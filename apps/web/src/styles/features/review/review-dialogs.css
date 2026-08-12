@@ -87,75 +87,9 @@
   flex: 0 0 auto;
 }
 
-.mobile-app-promo-platforms {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.mobile-app-promo-platform {
-  min-width: 0;
-}
-
-.mobile-app-promo-platform-content {
-  display: grid;
-  gap: 12px;
-  align-content: start;
-}
-
-.mobile-app-promo-platform + .mobile-app-promo-platform {
-  padding-inline-start: 24px;
-  border-inline-start: 1px solid var(--panel-border);
-}
-
-.mobile-app-promo-platform-title {
-  margin: 0;
-  color: var(--text);
-  font-size: 1rem;
-  line-height: 1.2;
-}
-
-.mobile-app-promo-badge-link {
-  width: fit-content;
-  height: 44px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.mobile-app-promo-close:focus-visible,
-.mobile-app-promo-badge-link:focus-visible {
+.mobile-app-promo-close:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-}
-
-.mobile-app-promo-badge-link .invite-platform-badge {
-  width: auto;
-  max-width: 100%;
-  height: 40px;
-  object-fit: contain;
-}
-
-.mobile-app-promo-badge-link .invite-platform-badge-google-play {
-  max-height: 40px;
-}
-
-.mobile-app-promo-qr-frame {
-  width: 180px;
-  height: 180px;
-  padding: 8px;
-  border-radius: 8px;
-  background: #fff;
-  display: grid;
-  place-items: center;
-}
-
-.mobile-app-promo-qr-code {
-  display: block;
-  width: 164px;
-  height: 164px;
 }
 
 .review-editor-delete-btn {
@@ -177,17 +111,6 @@
 
   .mobile-app-promo-header {
     display: grid;
-  }
-
-  .mobile-app-promo-platforms {
-    grid-template-columns: 1fr;
-  }
-
-  .mobile-app-promo-platform + .mobile-app-promo-platform {
-    padding-block-start: 20px;
-    padding-inline-start: 0;
-    border-block-start: 1px solid var(--panel-border);
-    border-inline-start: 0;
   }
 
   .mobile-app-promo-close {

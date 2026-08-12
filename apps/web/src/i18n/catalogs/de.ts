@@ -132,6 +132,8 @@ const deCatalog: TranslationCatalog = {
     dangerZone: "Gefahrenbereich wird geladen...",
     testSettings: "Testeinstellungen werden geladen...",
     testAnimations: "Animationen werden geladen...",
+    testAppPlatformLinks: "App-Plattformlinks werden geladen...",
+    testCatalogImportSuccess: "Katalogimport-Erfolg wird geladen...",
     aiChat: "AI-Chat wird geladen...",
     progress: "Fortschritt wird geladen...",
   },
@@ -291,13 +293,13 @@ const deCatalog: TranslationCatalog = {
       reviews: "Wiederholungen",
     },
   },
-  shareApp: {
-    title: "Mit Flashcards lernen",
-    body: "Wähle, wo du die App nutzen möchtest. Deine Karten bleiben auf iOS, Android und im Web verfügbar.",
-    links: {
-      ios: "Im App Store öffnen",
-      android: "In Google Play öffnen",
-      web: "Web App",
+  appPlatformLinks: {
+    ios: "Im App Store öffnen",
+    android: "In Google Play öffnen",
+    web: "Web-App öffnen",
+    qr: {
+      ios: "QR-Code für den iOS-App-Link",
+      android: "QR-Code für den Android-App-Link",
     },
     mcp: {
       label: "Für KI-Agenten",
@@ -308,6 +310,10 @@ const deCatalog: TranslationCatalog = {
       copied: "Kopiert",
       copyFailed: "Kopieren fehlgeschlagen",
     },
+  },
+  shareApp: {
+    title: "Mit Flashcards lernen",
+    body: "Wähle, wo du die App nutzen möchtest. Deine Karten bleiben auf iOS, Android und im Web verfügbar.",
   },
   friendInvite: {
     loading: "Einladungslink wird geprüft...",
@@ -329,11 +335,6 @@ const deCatalog: TranslationCatalog = {
     alreadyFriendsTitle: "Ihr seid bereits Freunde",
     alreadyFriendsBody: "In deiner App ist dieser Freund als {{name}} gespeichert.",
     mobileSameEmailNote: "Mobile Apps erfordern die Anmeldung mit derselben E-Mail-Adresse.",
-    links: {
-      ios: "Im App Store öffnen",
-      android: "In Google Play öffnen",
-      web: "Web App",
-    },
     validation: {
       required: "Gib einen Namen ein.",
       singleLine: "Verwende einen einzeiligen Namen ohne Steuerzeichen.",
@@ -573,6 +574,26 @@ const deCatalog: TranslationCatalog = {
         error: "Fehler",
       },
     },
+    appPlatformLinks: {
+      title: "App-Plattformlinks",
+      description: "Zeige das gemeinsame Plattform-Linkraster in jeder Oberflächenkonfiguration.",
+      value: "4 Oberflächen",
+      screenTitle: "App-Plattformlinks",
+      screenSubtitle: "Alle Konfigurationen des gemeinsamen Plattform-Linkrasters.",
+      surfaces: {
+        share: "Teilen-Bildschirm",
+        reviewPromo: "Promo-Dialog beim Wiederholen",
+        catalogImport: "Katalogimport-Erfolg",
+        friendInvite: "Freundeseinladung-Erfolg",
+      },
+    },
+    catalogImportSuccess: {
+      title: "Katalogimport-Erfolg",
+      description: "Zeige das Katalogimport-Erfolgspanel mit festen Beispieldaten.",
+      value: "Vorschau",
+      screenTitle: "Katalogimport-Erfolg",
+      screenSubtitle: "Das Katalogimport-Erfolgspanel mit festen Beispieldaten.",
+    },
     technicalError: {
       title: "Dialog für technischen Fehler",
       description: "Zeige eine Vorschau des gemeinsamen Dialogs für technische Fehler.",
@@ -759,9 +780,6 @@ const deCatalog: TranslationCatalog = {
     successWorkspaceLabel: "Arbeitsbereich",
     successSameEmailNote: "Melde dich in den mobilen Apps mit derselben E-Mail-Adresse an, um diese Karten zu sehen.",
     successSameEmailNoteWithAddress: "Melde dich in den mobilen Apps mit {{email}} an, um diese Karten zu sehen.",
-    successOpenIos: "Im App Store öffnen",
-    successOpenAndroid: "In Google Play öffnen",
-    successOpenWeb: "Web-App öffnen",
     syncing: "Importierte Karten werden synchronisiert...",
     syncFailed: "Die Karten wurden importiert, aber die Synchronisierung ist fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
     retrySync: "Synchronisierung wiederholen",
@@ -945,16 +963,6 @@ const deCatalog: TranslationCatalog = {
     title: "Auf dem Smartphone wiederholen",
     body: "Installiere die iOS- oder Android-App, um schnell mit Offline-Zugriff weiterzulernen.",
     close: "Schließen",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "iOS-App im App Store öffnen",
-      qrLabel: "QR-Code für den iOS-App-Link",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Android-App in Google Play öffnen",
-      qrLabel: "QR-Code für den Android-App-Link",
-    },
   },
   feedback: {
     title: "Hast du eine Idee für Flashcards?",

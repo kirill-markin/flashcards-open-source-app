@@ -1,22 +1,17 @@
 import { useEffect, useRef, type ReactElement } from "react";
-import { useI18n } from "../../../i18n";
 import {
-  AppStoreBadge,
-  GooglePlayBadge,
+  AppPlatformLinksGrid,
+  buildAppPlatformOptions,
+  resolveClientPlatform,
   type AppPlatformStoreLinks,
-} from "../../share/AppPlatformLinks";
-import { MobileAppQrCode } from "../../share/MobileAppQrCode";
+} from "../../../appPlatformLinks";
+import { useI18n } from "../../../i18n";
 
 export type MobileAppPromotionDialogProps = Readonly<{
   isOpen: boolean;
   onDismiss: () => void;
   storeLinks: AppPlatformStoreLinks;
 }>;
-
-export const webReviewMobilePromptStoreLinks: AppPlatformStoreLinks = {
-  ios: "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=web_review_mobile_prompt&mt=8",
-  android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=web_review_mobile_prompt",
-};
 
 const mobileAppPromotionFocusableSelector = [
   "a[href]",
@@ -69,7 +64,7 @@ function trapFocusInsideDialog(event: KeyboardEvent, dialog: HTMLElement): void 
 
 export function MobileAppPromotionDialog(props: MobileAppPromotionDialogProps): ReactElement | null {
   const { isOpen, onDismiss, storeLinks } = props;
-  const { direction, t } = useI18n();
+  const { t } = useI18n();
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
   const onDismissRef = useRef(onDismiss);
@@ -146,74 +141,27 @@ export function MobileAppPromotionDialog(props: MobileAppPromotionDialogProps): 
           </button>
         </div>
 
-        <div className="mobile-app-promo-platforms" dir="ltr" data-testid="mobile-app-promo-platforms">
-          <section
-            className="mobile-app-promo-platform"
-            aria-labelledby="mobile-app-promo-ios-title"
-            dir="ltr"
-            data-testid="mobile-app-promo-platform-ios"
-          >
-            <div
-              className="mobile-app-promo-platform-content"
-              dir={direction}
-              data-testid="mobile-app-promo-content-ios"
-            >
-              <h3 id="mobile-app-promo-ios-title" className="mobile-app-promo-platform-title">
-                {t("mobileAppPromo.ios.title")}
-              </h3>
-              <a
-                className="mobile-app-promo-badge-link"
-                href={storeLinks.ios}
-                rel="noreferrer"
-                target="_blank"
-                aria-label={t("mobileAppPromo.ios.storeLinkLabel")}
-                data-testid="mobile-app-promo-badge-ios"
-              >
-                <AppStoreBadge />
-              </a>
-              <div className="mobile-app-promo-qr-frame">
-                <MobileAppQrCode
-                  title={t("mobileAppPromo.ios.qrLabel")}
-                  value={storeLinks.ios}
-                  testId="mobile-app-promo-qr-ios"
-                />
-              </div>
-            </div>
-          </section>
-
-          <section
-            className="mobile-app-promo-platform"
-            aria-labelledby="mobile-app-promo-android-title"
-            dir="ltr"
-            data-testid="mobile-app-promo-platform-android"
-          >
-            <div
-              className="mobile-app-promo-platform-content"
-              dir={direction}
-              data-testid="mobile-app-promo-content-android"
-            >
-              <h3 id="mobile-app-promo-android-title" className="mobile-app-promo-platform-title">
-                {t("mobileAppPromo.android.title")}
-              </h3>
-              <a
-                className="mobile-app-promo-badge-link"
-                href={storeLinks.android}
-                rel="noreferrer"
-                target="_blank"
-                aria-label={t("mobileAppPromo.android.storeLinkLabel")}
-                data-testid="mobile-app-promo-badge-android"
-              >
-                <GooglePlayBadge />
-              </a>
-              <div className="mobile-app-promo-qr-frame">
-                <MobileAppQrCode
-                  title={t("mobileAppPromo.android.qrLabel")}
-                  value={storeLinks.android}
-                  testId="mobile-app-promo-qr-android"
-                />
-              </div>
-            </div>
-          </section>
+        {/* The store tiles keep a stable left-to-right order under right-to-left locales. */}
+        <div dir="ltr">
+          <AppPlatformLinksGrid
+            options={buildAppPlatformOptions({
+              platforms: ["ios", "android", "mcp"],
+              storeLinks,
+              webHref: null,
+              labels: {
+                ios: t("appPlatformLinks.ios"),
+                android: t("appPlatformLinks.android"),
+                web: t("appPlatformLinks.web"),
+                mcp: t("appPlatformLinks.mcp.label"),
+              },
+              qrTitles: {
+                ios: t("appPlatformLinks.qr.ios"),
+                android: t("appPlatformLinks.qr.android"),
+              },
+              clientPlatform: resolveClientPlatform(navigator.userAgent),
+            })}
+            testIdPrefix="mobile-app-promo"
+          />
         </div>
       </section>
     </div>

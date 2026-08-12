@@ -132,6 +132,8 @@ export const zhHansCatalog = {
     dangerZone: "正在加载危险区域...",
     testSettings: "正在加载测试设置...",
     testAnimations: "正在加载动画...",
+    testAppPlatformLinks: "正在加载应用平台链接...",
+    testCatalogImportSuccess: "正在加载目录导入成功页面...",
     aiChat: "正在加载 AI 聊天...",
     progress: "正在加载进度...",
   },
@@ -291,13 +293,13 @@ export const zhHansCatalog = {
       reviews: "复习次数",
     },
   },
-  shareApp: {
-    title: "用 Flashcards 学习",
-    body: "选择你想在哪里使用应用。你的卡片可在 iOS、Android 和网页版中继续使用。",
-    links: {
-      ios: "在 App Store 打开",
-      android: "在 Google Play 打开",
-      web: "Web App",
+  appPlatformLinks: {
+    ios: "在 App Store 打开",
+    android: "在 Google Play 打开",
+    web: "打开网页应用",
+    qr: {
+      ios: "iOS 应用链接的二维码",
+      android: "Android 应用链接的二维码",
     },
     mcp: {
       label: "面向 AI 代理",
@@ -308,6 +310,10 @@ export const zhHansCatalog = {
       copied: "已复制",
       copyFailed: "复制失败",
     },
+  },
+  shareApp: {
+    title: "用 Flashcards 学习",
+    body: "选择你想在哪里使用应用。你的卡片可在 iOS、Android 和网页版中继续使用。",
   },
   friendInvite: {
     loading: "正在检查邀请链接...",
@@ -329,11 +335,6 @@ export const zhHansCatalog = {
     alreadyFriendsTitle: "你们已经是好友",
     alreadyFriendsBody: "在你的应用中，此好友已保存为 {{name}}。",
     mobileSameEmailNote: "移动应用需要使用同一个电子邮件地址登录。",
-    links: {
-      ios: "在 App Store 打开",
-      android: "在 Google Play 打开",
-      web: "Web App",
-    },
     validation: {
       required: "请输入名称。",
       singleLine: "使用不含控制字符的单行名称。",
@@ -573,6 +574,26 @@ export const zhHansCatalog = {
         error: "错误",
       },
     },
+    appPlatformLinks: {
+      title: "应用平台链接",
+      description: "预览共享平台链接网格的所有页面配置。",
+      value: "4 种配置",
+      screenTitle: "应用平台链接",
+      screenSubtitle: "共享平台链接网格的所有配置。",
+      surfaces: {
+        share: "分享页面",
+        reviewPromo: "复习推广对话框",
+        catalogImport: "目录导入成功",
+        friendInvite: "好友邀请成功",
+      },
+    },
+    catalogImportSuccess: {
+      title: "目录导入成功",
+      description: "使用固定示例数据预览目录导入成功面板。",
+      value: "预览",
+      screenTitle: "目录导入成功",
+      screenSubtitle: "使用固定示例数据的目录导入成功面板。",
+    },
     technicalError: {
       title: "技术错误对话框",
       description: "预览共享技术错误对话框。",
@@ -759,9 +780,6 @@ export const zhHansCatalog = {
     successWorkspaceLabel: "工作区",
     successSameEmailNote: "在移动应用中使用同一个电子邮件地址登录即可看到这些卡片。",
     successSameEmailNoteWithAddress: "在移动应用中使用 {{email}} 登录即可看到这些卡片。",
-    successOpenIos: "在 App Store 打开",
-    successOpenAndroid: "在 Google Play 打开",
-    successOpenWeb: "打开网页应用",
     syncing: "正在同步已导入的卡片...",
     syncFailed: "卡片已导入，但同步失败。请检查网络连接后重试同步。",
     retrySync: "重试同步",
@@ -945,16 +963,6 @@ export const zhHansCatalog = {
     title: "在手机上复习",
     body: "安装 iOS 或 Android 应用，在离线时也能快速继续复习。",
     close: "关闭",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "在 App Store 打开 iOS 应用",
-      qrLabel: "iOS 应用链接的二维码",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "在 Google Play 打开 Android 应用",
-      qrLabel: "Android 应用链接的二维码",
-    },
   },
   feedback: {
     title: "对 Flashcards 有想法吗？",

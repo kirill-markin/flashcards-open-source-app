@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../../appData";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import { webReviewMobilePromptStoreLinks } from "../../appPlatformLinks";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import {
   settingsTestAnimationsRoute,
+  settingsTestAppPlatformLinksRoute,
+  settingsTestCatalogImportSuccessRoute,
   settingsTestLocalSyncDiagnosticsRoute,
 } from "../../routes";
 import {
   loadLocalSyncDiagnosticsReport,
   type LocalSyncDiagnosticsReport,
 } from "../../localDb/diagnostics/localSyncDiagnostics";
-import {
-  MobileAppPromotionDialog,
-  webReviewMobilePromptStoreLinks,
-} from "../review/mobileAppPromo/MobileAppPromotionDialog";
+import { MobileAppPromotionDialog } from "../review/mobileAppPromo/MobileAppPromotionDialog";
 import {
   appendReviewReactionEvent,
   matchesReducedReviewReactionMotion,
@@ -93,6 +93,20 @@ export function TestSettingsScreen(): ReactElement {
               value={t("settingsTest.localSyncDiagnostics.value")}
               to={settingsTestLocalSyncDiagnosticsRoute}
               testId="test-settings-local-sync-diagnostics-row"
+            />
+            <SettingsNavigationCard
+              title={t("settingsTest.appPlatformLinks.title")}
+              description={t("settingsTest.appPlatformLinks.description")}
+              value={t("settingsTest.appPlatformLinks.value")}
+              to={settingsTestAppPlatformLinksRoute}
+              testId="test-settings-app-platform-links-row"
+            />
+            <SettingsNavigationCard
+              title={t("settingsTest.catalogImportSuccess.title")}
+              description={t("settingsTest.catalogImportSuccess.description")}
+              value={t("settingsTest.catalogImportSuccess.value")}
+              to={settingsTestCatalogImportSuccessRoute}
+              testId="test-settings-catalog-import-success-row"
             />
             <SettingsActionCard
               title={t("settingsTest.technicalError.title")}

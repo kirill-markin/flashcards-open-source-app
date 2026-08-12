@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
-type MobileAppQrCodeProps = Readonly<{
+type AppPlatformQrCodeProps = Readonly<{
   title: string;
   testId: string;
   value: string;
@@ -13,23 +13,23 @@ function requireHttpsUrl(value: string): string {
   try {
     parsedUrl = new URL(value);
   } catch (error) {
-    throw new TypeError(`Mobile app QR code value must be an absolute URL. Received: ${value}`, { cause: error });
+    throw new TypeError(`App platform QR code value must be an absolute URL. Received: ${value}`, { cause: error });
   }
 
   if (parsedUrl.protocol !== "https:") {
-    throw new TypeError(`Mobile app QR code value must use HTTPS. Received protocol: ${parsedUrl.protocol}`);
+    throw new TypeError(`App platform QR code value must use HTTPS. Received protocol: ${parsedUrl.protocol}`);
   }
 
   return parsedUrl.toString();
 }
 
-export function MobileAppQrCode(props: MobileAppQrCodeProps): ReactElement {
+export function AppPlatformQrCode(props: AppPlatformQrCodeProps): ReactElement {
   const { title, testId, value } = props;
   const qrValue = requireHttpsUrl(value);
 
   return (
     <QRCodeSVG
-      className="mobile-app-promo-qr-code"
+      className="app-platform-links-qr-code"
       data-testid={testId}
       level="M"
       marginSize={2}

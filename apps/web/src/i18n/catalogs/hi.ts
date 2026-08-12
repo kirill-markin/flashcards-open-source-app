@@ -132,6 +132,8 @@ const hiCatalog: TranslationCatalog = {
     dangerZone: "खतरे का क्षेत्र लोड हो रहा है...",
     testSettings: "टेस्ट सेटिंग्स लोड हो रही हैं...",
     testAnimations: "ऐनिमेशन लोड हो रहे हैं...",
+    testAppPlatformLinks: "ऐप प्लेटफ़ॉर्म लिंक लोड हो रहे हैं...",
+    testCatalogImportSuccess: "कैटलॉग इंपोर्ट सफलता स्क्रीन लोड हो रही है...",
     aiChat: "AI चैट लोड हो रही है...",
     progress: "प्रगति लोड हो रही है...",
   },
@@ -291,13 +293,13 @@ const hiCatalog: TranslationCatalog = {
       reviews: "रिव्यू",
     },
   },
-  shareApp: {
-    title: "Flashcards के साथ पढ़ें",
-    body: "चुनें कि आप ऐप कहां इस्तेमाल करना चाहते हैं। आपके कार्ड iOS, Android और वेब पर उपलब्ध रहते हैं।",
-    links: {
-      ios: "App Store में खोलें",
-      android: "Google Play में खोलें",
-      web: "वेब ऐप",
+  appPlatformLinks: {
+    ios: "App Store में खोलें",
+    android: "Google Play में खोलें",
+    web: "वेब ऐप खोलें",
+    qr: {
+      ios: "iOS ऐप लिंक का QR कोड",
+      android: "Android ऐप लिंक का QR कोड",
     },
     mcp: {
       label: "AI एजेंट के लिए",
@@ -308,6 +310,10 @@ const hiCatalog: TranslationCatalog = {
       copied: "कॉपी हो गया",
       copyFailed: "कॉपी नहीं हो सका",
     },
+  },
+  shareApp: {
+    title: "Flashcards के साथ पढ़ें",
+    body: "चुनें कि आप ऐप कहां इस्तेमाल करना चाहते हैं। आपके कार्ड iOS, Android और वेब पर उपलब्ध रहते हैं।",
   },
   friendInvite: {
     loading: "आमंत्रण लिंक जांचा जा रहा है...",
@@ -329,11 +335,6 @@ const hiCatalog: TranslationCatalog = {
     alreadyFriendsTitle: "आप पहले से दोस्त हैं",
     alreadyFriendsBody: "आपके ऐप में यह दोस्त {{name}} के रूप में सहेजा गया है।",
     mobileSameEmailNote: "मोबाइल ऐप्स में उसी ईमेल से साइन इन करना आवश्यक है।",
-    links: {
-      ios: "App Store में खोलें",
-      android: "Google Play में खोलें",
-      web: "Web App",
-    },
     validation: {
       required: "नाम दर्ज करें।",
       singleLine: "कंट्रोल वर्णों के बिना एक पंक्ति वाला नाम इस्तेमाल करें।",
@@ -573,6 +574,26 @@ const hiCatalog: TranslationCatalog = {
         error: "त्रुटि",
       },
     },
+    appPlatformLinks: {
+      title: "ऐप प्लेटफ़ॉर्म लिंक",
+      description: "साझा प्लेटफ़ॉर्म लिंक ग्रिड को हर स्क्रीन कॉन्फ़िगरेशन में देखें।",
+      value: "4 स्क्रीन",
+      screenTitle: "ऐप प्लेटफ़ॉर्म लिंक",
+      screenSubtitle: "साझा प्लेटफ़ॉर्म लिंक ग्रिड के सभी कॉन्फ़िगरेशन।",
+      surfaces: {
+        share: "शेयर स्क्रीन",
+        reviewPromo: "रिव्यू प्रोमो डायलॉग",
+        catalogImport: "कैटलॉग इंपोर्ट सफलता",
+        friendInvite: "मित्र आमंत्रण सफलता",
+      },
+    },
+    catalogImportSuccess: {
+      title: "कैटलॉग इंपोर्ट सफलता",
+      description: "तय नमूना डेटा के साथ कैटलॉग इंपोर्ट सफलता पैनल देखें।",
+      value: "प्रीव्यू",
+      screenTitle: "कैटलॉग इंपोर्ट सफलता",
+      screenSubtitle: "तय नमूना डेटा के साथ कैटलॉग इंपोर्ट सफलता पैनल।",
+    },
     technicalError: {
       title: "तकनीकी त्रुटि डायलॉग",
       description: "साझा तकनीकी-त्रुटि डायलॉग का प्रीव्यू देखें।",
@@ -759,9 +780,6 @@ const hiCatalog: TranslationCatalog = {
     successWorkspaceLabel: "वर्कस्पेस",
     successSameEmailNote: "ये कार्ड देखने के लिए मोबाइल ऐप्स में उसी ईमेल से साइन इन करें।",
     successSameEmailNoteWithAddress: "ये कार्ड देखने के लिए मोबाइल ऐप्स में {{email}} से साइन इन करें।",
-    successOpenIos: "App Store में खोलें",
-    successOpenAndroid: "Google Play में खोलें",
-    successOpenWeb: "वेब ऐप खोलें",
     syncing: "इम्पोर्ट किए गए कार्ड सिंक हो रहे हैं...",
     syncFailed: "कार्ड इम्पोर्ट हो गए, लेकिन सिंक नहीं हो सका। अपना कनेक्शन जाँचें और फिर सिंक करें।",
     retrySync: "सिंक फिर से करें",
@@ -945,16 +963,6 @@ const hiCatalog: TranslationCatalog = {
     title: "अपने फोन पर रिव्यू करें",
     body: "ऑफलाइन एक्सेस के साथ तेजी से रिव्यू जारी रखने के लिए iOS या Android ऐप इंस्टॉल करें.",
     close: "बंद करें",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "App Store में iOS ऐप खोलें",
-      qrLabel: "iOS ऐप लिंक का QR कोड",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Google Play में Android ऐप खोलें",
-      qrLabel: "Android ऐप लिंक का QR कोड",
-    },
   },
   feedback: {
     title: "Flashcards के लिए कोई विचार है?",

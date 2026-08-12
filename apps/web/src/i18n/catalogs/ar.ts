@@ -132,6 +132,8 @@ const arCatalog: TranslationCatalog = {
     dangerZone: "جارٍ تحميل منطقة الخطر...",
     testSettings: "جارٍ تحميل إعدادات الاختبار...",
     testAnimations: "جارٍ تحميل الرسوم المتحركة...",
+    testAppPlatformLinks: "جارٍ تحميل روابط منصات التطبيق...",
+    testCatalogImportSuccess: "جارٍ تحميل شاشة نجاح استيراد الكتالوج...",
     aiChat: "جارٍ تحميل دردشة الذكاء الاصطناعي...",
     progress: "جارٍ تحميل التقدم...",
   },
@@ -291,13 +293,13 @@ const arCatalog: TranslationCatalog = {
       reviews: "المراجعات",
     },
   },
-  shareApp: {
-    title: "ادرس باستخدام Flashcards",
-    body: "اختر أين تريد استخدام التطبيق. ستظل بطاقاتك متاحة على iOS وAndroid والويب.",
-    links: {
-      ios: "فتح في App Store",
-      android: "فتح في Google Play",
-      web: "تطبيق الويب",
+  appPlatformLinks: {
+    ios: "فتح في App Store",
+    android: "فتح في Google Play",
+    web: "فتح تطبيق الويب",
+    qr: {
+      ios: "رمز QR لرابط تطبيق iOS",
+      android: "رمز QR لرابط تطبيق Android",
     },
     mcp: {
       label: "لوكيل الذكاء الاصطناعي",
@@ -308,6 +310,10 @@ const arCatalog: TranslationCatalog = {
       copied: "تم النسخ",
       copyFailed: "فشل النسخ",
     },
+  },
+  shareApp: {
+    title: "ادرس باستخدام Flashcards",
+    body: "اختر أين تريد استخدام التطبيق. ستظل بطاقاتك متاحة على iOS وAndroid والويب.",
   },
   friendInvite: {
     loading: "جارٍ فحص رابط الدعوة...",
@@ -329,11 +335,6 @@ const arCatalog: TranslationCatalog = {
     alreadyFriendsTitle: "أنتما صديقان بالفعل",
     alreadyFriendsBody: "في تطبيقك، هذا الصديق محفوظ باسم {{name}}.",
     mobileSameEmailNote: "تتطلب تطبيقات الهاتف تسجيل الدخول بالبريد الإلكتروني نفسه.",
-    links: {
-      ios: "فتح في App Store",
-      android: "فتح في Google Play",
-      web: "Web App",
-    },
     validation: {
       required: "أدخل اسمًا.",
       singleLine: "استخدم اسمًا من سطر واحد بدون محارف تحكم.",
@@ -573,6 +574,26 @@ const arCatalog: TranslationCatalog = {
         error: "خطأ",
       },
     },
+    appPlatformLinks: {
+      title: "روابط منصات التطبيق",
+      description: "عاين شبكة روابط المنصات المشتركة في كل تكوينات الشاشات.",
+      value: "4 شاشات",
+      screenTitle: "روابط منصات التطبيق",
+      screenSubtitle: "كل تكوينات شبكة روابط المنصات المشتركة.",
+      surfaces: {
+        share: "شاشة المشاركة",
+        reviewPromo: "مربع حوار الترويج أثناء المراجعة",
+        catalogImport: "نجاح استيراد الكتالوج",
+        friendInvite: "نجاح دعوة صديق",
+      },
+    },
+    catalogImportSuccess: {
+      title: "نجاح استيراد الكتالوج",
+      description: "عاين لوحة نجاح استيراد الكتالوج ببيانات ثابتة.",
+      value: "معاينة",
+      screenTitle: "نجاح استيراد الكتالوج",
+      screenSubtitle: "لوحة نجاح استيراد الكتالوج ببيانات ثابتة.",
+    },
     technicalError: {
       title: "مربع حوار الخطأ التقني",
       description: "عاين مربع حوار الأخطاء التقنية المشترك.",
@@ -759,9 +780,6 @@ const arCatalog: TranslationCatalog = {
     successWorkspaceLabel: "مساحة العمل",
     successSameEmailNote: "سجّل الدخول إلى تطبيقات الهاتف بالبريد الإلكتروني نفسه لرؤية هذه البطاقات.",
     successSameEmailNoteWithAddress: "سجّل الدخول إلى تطبيقات الهاتف باستخدام {{email}} لرؤية هذه البطاقات.",
-    successOpenIos: "فتح في App Store",
-    successOpenAndroid: "فتح في Google Play",
-    successOpenWeb: "فتح تطبيق الويب",
     syncing: "جارٍ مزامنة البطاقات المستوردة...",
     syncFailed: "تم استيراد البطاقات، لكن فشلت المزامنة. تحقق من اتصالك وحاول المزامنة مرة أخرى.",
     retrySync: "إعادة محاولة المزامنة",
@@ -945,16 +963,6 @@ const arCatalog: TranslationCatalog = {
     title: "راجع على هاتفك",
     body: "ثبّت تطبيق iOS أو Android لمتابعة المراجعة بسرعة مع الوصول دون اتصال.",
     close: "إغلاق",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "افتح تطبيق iOS في App Store",
-      qrLabel: "رمز QR لرابط تطبيق iOS",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "افتح تطبيق Android في Google Play",
-      qrLabel: "رمز QR لرابط تطبيق Android",
-    },
   },
   feedback: {
     title: "هل لديك فكرة لـ Flashcards؟",

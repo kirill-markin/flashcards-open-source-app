@@ -132,6 +132,8 @@ export const ruCatalog = {
     dangerZone: "Загрузка опасной зоны...",
     testSettings: "Загрузка тестовых настроек...",
     testAnimations: "Загрузка анимаций...",
+    testAppPlatformLinks: "Загрузка ссылок на платформы приложения...",
+    testCatalogImportSuccess: "Загрузка экрана успешного импорта каталога...",
     aiChat: "Загрузка AI-чата...",
     progress: "Загрузка прогресса...",
   },
@@ -291,13 +293,13 @@ export const ruCatalog = {
       reviews: "Повторения",
     },
   },
-  shareApp: {
-    title: "Учитесь с Flashcards",
-    body: "Выберите, где использовать приложение. Ваши карточки доступны на iOS, Android и в веб-версии.",
-    links: {
-      ios: "Открыть в App Store",
-      android: "Открыть в Google Play",
-      web: "Веб-приложение",
+  appPlatformLinks: {
+    ios: "Открыть в App Store",
+    android: "Открыть в Google Play",
+    web: "Открыть веб-приложение",
+    qr: {
+      ios: "QR-код для ссылки на приложение iOS",
+      android: "QR-код для ссылки на приложение Android",
     },
     mcp: {
       label: "Для AI-агента",
@@ -308,6 +310,10 @@ export const ruCatalog = {
       copied: "Скопировано",
       copyFailed: "Не удалось скопировать",
     },
+  },
+  shareApp: {
+    title: "Учитесь с Flashcards",
+    body: "Выберите, где использовать приложение. Ваши карточки доступны на iOS, Android и в веб-версии.",
   },
   friendInvite: {
     loading: "Проверяем ссылку-приглашение...",
@@ -329,11 +335,6 @@ export const ruCatalog = {
     alreadyFriendsTitle: "Вы уже друзья",
     alreadyFriendsBody: "В вашем приложении этот друг сохранен как {{name}}.",
     mobileSameEmailNote: "В мобильных приложениях нужно войти с тем же адресом электронной почты.",
-    links: {
-      ios: "Открыть в App Store",
-      android: "Открыть в Google Play",
-      web: "Web App",
-    },
     validation: {
       required: "Введите имя.",
       singleLine: "Используйте имя в одну строку без управляющих символов.",
@@ -573,6 +574,26 @@ export const ruCatalog = {
         error: "Ошибка",
       },
     },
+    appPlatformLinks: {
+      title: "Ссылки на платформы приложения",
+      description: "Предпросмотр общей сетки ссылок на платформы во всех конфигурациях экранов.",
+      value: "4 экрана",
+      screenTitle: "Ссылки на платформы приложения",
+      screenSubtitle: "Все конфигурации общей сетки ссылок на платформы.",
+      surfaces: {
+        share: "Экран «Поделиться»",
+        reviewPromo: "Диалог промо в обзоре",
+        catalogImport: "Успешный импорт каталога",
+        friendInvite: "Успешное приглашение друга",
+      },
+    },
+    catalogImportSuccess: {
+      title: "Успешный импорт каталога",
+      description: "Предпросмотр панели успешного импорта каталога с фиксированными данными.",
+      value: "Предпросмотр",
+      screenTitle: "Успешный импорт каталога",
+      screenSubtitle: "Панель успешного импорта каталога с фиксированными данными.",
+    },
     technicalError: {
       title: "Диалог технической ошибки",
       description: "Предпросмотр общего диалога технической ошибки.",
@@ -759,9 +780,6 @@ export const ruCatalog = {
     successWorkspaceLabel: "Рабочее пространство",
     successSameEmailNote: "Чтобы увидеть эти карточки, войдите в мобильные приложения с тем же адресом электронной почты.",
     successSameEmailNoteWithAddress: "Чтобы увидеть эти карточки, войдите в мобильные приложения с адресом {{email}}.",
-    successOpenIos: "Открыть в App Store",
-    successOpenAndroid: "Открыть в Google Play",
-    successOpenWeb: "Открыть веб-приложение",
     syncing: "Синхронизация импортированных карточек...",
     syncFailed: "Карточки импортированы, но синхронизация не удалась. Проверьте подключение и повторите синхронизацию.",
     retrySync: "Повторить синхронизацию",
@@ -945,16 +963,6 @@ export const ruCatalog = {
     title: "Повторяйте на телефоне",
     body: "Установите приложение для iOS или Android, чтобы быстро повторять карточки с офлайн-доступом.",
     close: "Закрыть",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "Открыть приложение для iOS в App Store",
-      qrLabel: "QR-код для ссылки на приложение iOS",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Открыть приложение для Android в Google Play",
-      qrLabel: "QR-код для ссылки на приложение Android",
-    },
   },
   feedback: {
     title: "Есть идея для Flashcards?",

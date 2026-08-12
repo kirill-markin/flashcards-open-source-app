@@ -1,0 +1,191 @@
+.app-platform-links-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.app-platform-links-option {
+  min-height: 92px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-hover);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-decoration: none;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.app-platform-links-option:hover {
+  background: var(--surface-pressed);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.app-platform-links-option:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+.app-platform-links-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.app-platform-links-badge {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+}
+
+/* The Google Play lockup is wider than the App Store badge, so it is capped lower to read as the same weight. */
+.app-platform-links-badge-google-play {
+  max-height: 34px;
+}
+
+.app-platform-links-option-web {
+  grid-column: 1 / -1;
+  min-height: 64px;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.app-platform-links-option-label {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* The QR frame stays white in every theme so scanners keep enough contrast. */
+.app-platform-links-qr-frame {
+  width: 180px;
+  height: 180px;
+  max-width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.app-platform-links-qr-code {
+  display: block;
+  width: 164px;
+  height: 164px;
+}
+
+.app-platform-links-mcp-option {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-hover);
+}
+
+.app-platform-links-mcp-label,
+.app-platform-links-mcp-title,
+.app-platform-links-mcp-description,
+.app-platform-links-mcp-caption,
+.app-platform-links-mcp-status {
+  margin: 0;
+}
+
+.app-platform-links-mcp-label {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-platform-links-mcp-header {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.app-platform-links-mcp-title {
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.app-platform-links-mcp-description,
+.app-platform-links-mcp-caption {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.app-platform-links-mcp-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.app-platform-links-mcp-copy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.app-platform-links-mcp-url {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-pressed);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.app-platform-links-mcp-copy-button {
+  min-width: 110px;
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+.app-platform-links-mcp-status {
+  min-height: 18px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .app-platform-links-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-platform-links-mcp-copy-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-platform-links-mcp-copy-button {
+    width: 100%;
+  }
+}

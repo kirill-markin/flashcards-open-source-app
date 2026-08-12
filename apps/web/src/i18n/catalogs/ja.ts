@@ -132,6 +132,8 @@ export const jaCatalog = {
     dangerZone: "危険な操作を読み込んでいます...",
     testSettings: "テスト設定を読み込んでいます...",
     testAnimations: "アニメーションを読み込んでいます...",
+    testAppPlatformLinks: "アプリのプラットフォームリンクを読み込んでいます...",
+    testCatalogImportSuccess: "カタログインポート完了画面を読み込んでいます...",
     aiChat: "AIチャットを読み込んでいます...",
     progress: "進捗を読み込んでいます...",
   },
@@ -291,13 +293,13 @@ export const jaCatalog = {
       reviews: "復習回数",
     },
   },
-  shareApp: {
-    title: "Flashcardsで学習",
-    body: "アプリを使う場所を選択してください。カードはiOS、Android、Webで引き続き利用できます。",
-    links: {
-      ios: "App Store で開く",
-      android: "Google Play で開く",
-      web: "Web App",
+  appPlatformLinks: {
+    ios: "App Store で開く",
+    android: "Google Play で開く",
+    web: "Web アプリを開く",
+    qr: {
+      ios: "iOS アプリリンクの QR コード",
+      android: "Android アプリリンクの QR コード",
     },
     mcp: {
       label: "AIエージェント向け",
@@ -308,6 +310,10 @@ export const jaCatalog = {
       copied: "コピー済み",
       copyFailed: "コピーできませんでした",
     },
+  },
+  shareApp: {
+    title: "Flashcardsで学習",
+    body: "アプリを使う場所を選択してください。カードはiOS、Android、Webで引き続き利用できます。",
   },
   friendInvite: {
     loading: "招待リンクを確認しています...",
@@ -329,11 +335,6 @@ export const jaCatalog = {
     alreadyFriendsTitle: "すでに友だちです",
     alreadyFriendsBody: "あなたのアプリでは、この友だちは {{name}} として保存されています。",
     mobileSameEmailNote: "モバイルアプリでは同じメールアドレスでサインインする必要があります。",
-    links: {
-      ios: "App Store で開く",
-      android: "Google Play で開く",
-      web: "Web App",
-    },
     validation: {
       required: "名前を入力してください。",
       singleLine: "制御文字を含まない1行の名前を使用してください。",
@@ -573,6 +574,26 @@ export const jaCatalog = {
         error: "エラー",
       },
     },
+    appPlatformLinks: {
+      title: "アプリのプラットフォームリンク",
+      description: "共通のプラットフォームリンクグリッドをすべての画面構成でプレビューします。",
+      value: "4 構成",
+      screenTitle: "アプリのプラットフォームリンク",
+      screenSubtitle: "共通のプラットフォームリンクグリッドのすべての構成。",
+      surfaces: {
+        share: "共有画面",
+        reviewPromo: "復習プロモダイアログ",
+        catalogImport: "カタログインポート完了",
+        friendInvite: "友だち招待完了",
+      },
+    },
+    catalogImportSuccess: {
+      title: "カタログインポート完了",
+      description: "固定のサンプルデータでカタログインポート完了パネルをプレビューします。",
+      value: "プレビュー",
+      screenTitle: "カタログインポート完了",
+      screenSubtitle: "固定のサンプルデータのカタログインポート完了パネル。",
+    },
     technicalError: {
       title: "技術エラーダイアログ",
       description: "共通の技術エラーダイアログをプレビューします。",
@@ -759,9 +780,6 @@ export const jaCatalog = {
     successWorkspaceLabel: "ワークスペース",
     successSameEmailNote: "これらのカードを見るには、モバイルアプリで同じメールアドレスでサインインしてください。",
     successSameEmailNoteWithAddress: "これらのカードを見るには、モバイルアプリで {{email}} でサインインしてください。",
-    successOpenIos: "App Store で開く",
-    successOpenAndroid: "Google Play で開く",
-    successOpenWeb: "Web アプリを開く",
     syncing: "インポートしたカードを同期しています...",
     syncFailed: "カードはインポートされましたが、同期に失敗しました。接続を確認して、もう一度同期してください。",
     retrySync: "同期を再試行",
@@ -945,16 +963,6 @@ export const jaCatalog = {
     title: "スマートフォンで復習",
     body: "iOS または Android アプリをインストールして、オフラインでもすばやく復習できます。",
     close: "閉じる",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "App Store で iOS アプリを開く",
-      qrLabel: "iOS アプリリンクの QR コード",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Google Play で Android アプリを開く",
-      qrLabel: "Android アプリリンクの QR コード",
-    },
   },
   feedback: {
     title: "Flashcards へのアイデアがありますか？",

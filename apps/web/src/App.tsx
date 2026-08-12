@@ -67,6 +67,8 @@ import {
   settingsServerRoute,
   settingsTagsRoute,
   settingsTestAnimationsRoute,
+  settingsTestAppPlatformLinksRoute,
+  settingsTestCatalogImportSuccessRoute,
   settingsTestLocalSyncDiagnosticsRoute,
   settingsTestRoute,
   shareRoute,
@@ -177,6 +179,12 @@ const ServerSettingsInfoScreen = lazy(async () => import("./screens/settings/Ser
 })));
 const TestAnimationsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
   default: module.TestAnimationsScreen,
+})));
+const TestAppPlatformLinksScreen = lazy(async () => import("./screens/settings/TestAppPlatformLinksScreen").then((module) => ({
+  default: module.TestAppPlatformLinksScreen,
+})));
+const TestCatalogImportSuccessScreen = lazy(async () => import("./screens/settings/TestAppPlatformLinksScreen").then((module) => ({
+  default: module.TestCatalogImportSuccessScreen,
 })));
 const TestLocalSyncDiagnosticsScreen = lazy(async () => import("./screens/settings/TestSettingsScreen").then((module) => ({
   default: module.TestLocalSyncDiagnosticsScreen,
@@ -840,6 +848,22 @@ export function RoutedShell(): ReactElement {
                 <TestAnimationsScreen />
               </TestModeRouteGuard>
             ), "loading.testAnimations")}
+          />
+          <Route
+            path={settingsTestAppPlatformLinksRoute}
+            element={renderDeferredRoute((
+              <TestModeRouteGuard>
+                <TestAppPlatformLinksScreen />
+              </TestModeRouteGuard>
+            ), "loading.testAppPlatformLinks")}
+          />
+          <Route
+            path={settingsTestCatalogImportSuccessRoute}
+            element={renderDeferredRoute((
+              <TestModeRouteGuard>
+                <TestCatalogImportSuccessScreen />
+              </TestModeRouteGuard>
+            ), "loading.testCatalogImportSuccess")}
           />
           <Route
             path={settingsTestLocalSyncDiagnosticsRoute}

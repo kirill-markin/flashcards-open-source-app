@@ -132,6 +132,8 @@ const esEsCatalog: TranslationCatalog = {
     dangerZone: "Cargando la zona de peligro...",
     testSettings: "Cargando los ajustes de prueba...",
     testAnimations: "Cargando las animaciones...",
+    testAppPlatformLinks: "Cargando los enlaces de plataforma de la app...",
+    testCatalogImportSuccess: "Cargando el resultado de la importación del catálogo...",
     aiChat: "Cargando el chat con IA...",
     progress: "Cargando el progreso...",
   },
@@ -291,13 +293,13 @@ const esEsCatalog: TranslationCatalog = {
       reviews: "Repasos",
     },
   },
-  shareApp: {
-    title: "Estudia con Flashcards",
-    body: "Elige dónde quieres usar la app. Tus tarjetas siguen disponibles en iOS, Android y la web.",
-    links: {
-      ios: "Abrir en App Store",
-      android: "Abrir en Google Play",
-      web: "Web App",
+  appPlatformLinks: {
+    ios: "Abrir en App Store",
+    android: "Abrir en Google Play",
+    web: "Abrir la app web",
+    qr: {
+      ios: "Código QR para el enlace de la app de iOS",
+      android: "Código QR para el enlace de la app de Android",
     },
     mcp: {
       label: "Para agentes de IA",
@@ -308,6 +310,10 @@ const esEsCatalog: TranslationCatalog = {
       copied: "Copiado",
       copyFailed: "Error al copiar",
     },
+  },
+  shareApp: {
+    title: "Estudia con Flashcards",
+    body: "Elige dónde quieres usar la app. Tus tarjetas siguen disponibles en iOS, Android y la web.",
   },
   friendInvite: {
     loading: "Comprobando enlace de invitación...",
@@ -329,11 +335,6 @@ const esEsCatalog: TranslationCatalog = {
     alreadyFriendsTitle: "Ya sois amigos",
     alreadyFriendsBody: "En tu app, este amigo está guardado como {{name}}.",
     mobileSameEmailNote: "Las apps móviles requieren iniciar sesión con el mismo correo electrónico.",
-    links: {
-      ios: "Abrir en App Store",
-      android: "Abrir en Google Play",
-      web: "Web App",
-    },
     validation: {
       required: "Introduce un nombre.",
       singleLine: "Usa un nombre de una sola línea sin caracteres de control.",
@@ -573,6 +574,26 @@ const esEsCatalog: TranslationCatalog = {
         error: "Error",
       },
     },
+    appPlatformLinks: {
+      title: "Enlaces de plataforma de la app",
+      description: "Previsualiza la cuadrícula compartida de enlaces en todas las configuraciones.",
+      value: "4 pantallas",
+      screenTitle: "Enlaces de plataforma de la app",
+      screenSubtitle: "Todas las configuraciones de la cuadrícula compartida de enlaces.",
+      surfaces: {
+        share: "Pantalla de compartir",
+        reviewPromo: "Diálogo de promoción en el repaso",
+        catalogImport: "Importación de catálogo correcta",
+        friendInvite: "Invitación de amistad correcta",
+      },
+    },
+    catalogImportSuccess: {
+      title: "Importación de catálogo correcta",
+      description: "Previsualiza el panel de importación correcta con datos de ejemplo fijos.",
+      value: "Vista previa",
+      screenTitle: "Importación de catálogo correcta",
+      screenSubtitle: "El panel de importación correcta con datos de ejemplo fijos.",
+    },
     technicalError: {
       title: "Diálogo de error técnico",
       description: "Previsualiza el diálogo compartido de error técnico.",
@@ -759,9 +780,6 @@ const esEsCatalog: TranslationCatalog = {
     successWorkspaceLabel: "Espacio de trabajo",
     successSameEmailNote: "Inicia sesión en las apps móviles con el mismo correo electrónico para ver estas tarjetas.",
     successSameEmailNoteWithAddress: "Inicia sesión en las apps móviles con {{email}} para ver estas tarjetas.",
-    successOpenIos: "Abrir en App Store",
-    successOpenAndroid: "Abrir en Google Play",
-    successOpenWeb: "Abrir la app web",
     syncing: "Sincronizando las tarjetas importadas...",
     syncFailed: "Las tarjetas se importaron, pero falló la sincronización. Comprueba la conexión e inténtalo de nuevo.",
     retrySync: "Reintentar sincronización",
@@ -945,16 +963,6 @@ const esEsCatalog: TranslationCatalog = {
     title: "Repasa en tu móvil",
     body: "Instala la app para iOS o Android para seguir repasando rápido con acceso sin conexión.",
     close: "Cerrar",
-    ios: {
-      title: "iOS",
-      storeLinkLabel: "Abrir la app de iOS en App Store",
-      qrLabel: "Código QR para el enlace de la app de iOS",
-    },
-    android: {
-      title: "Android",
-      storeLinkLabel: "Abrir la app de Android en Google Play",
-      qrLabel: "Código QR para el enlace de la app de Android",
-    },
   },
   feedback: {
     title: "¿Tienes una idea para Flashcards?",
