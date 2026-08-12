@@ -92,11 +92,6 @@
   outline-offset: 3px;
 }
 
-/* The platform grid is forced left-to-right, so its text-only MCP cell reads in the locale direction again. */
-[dir="rtl"] .mobile-app-promo-dialog .app-platform-links-mcp-option {
-  direction: rtl;
-}
-
 .review-editor-delete-btn {
   color: #ffaea9;
 }

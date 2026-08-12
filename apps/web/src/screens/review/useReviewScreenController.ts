@@ -9,6 +9,7 @@ import {
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard } from "../../appData/domain";
+import { webReviewMobilePromptStoreLinks } from "../../appPlatformLinks";
 import {
   buildNextAutomaticFeedbackPromptAt,
   evaluateAutomaticFeedbackPromptEligibility,
@@ -70,10 +71,7 @@ import {
   mobileAppPromotionMinimumReviewCount,
   type MobileAppPromotionReviewActivity,
 } from "./mobileAppPromo/mobileAppPromotionEligibility";
-import {
-  type MobileAppPromotionDialogProps,
-  webReviewMobilePromptStoreLinks,
-} from "./mobileAppPromo/MobileAppPromotionDialog";
+import type { MobileAppPromotionDialogProps } from "./mobileAppPromo/MobileAppPromotionDialog";
 import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from "./reactions/useReviewRatingReactions";
 import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech";
 

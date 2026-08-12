@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../../appData";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import { webReviewMobilePromptStoreLinks } from "../../appPlatformLinks";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import {
   settingsTestAnimationsRoute,
@@ -12,10 +13,7 @@ import {
   loadLocalSyncDiagnosticsReport,
   type LocalSyncDiagnosticsReport,
 } from "../../localDb/diagnostics/localSyncDiagnostics";
-import {
-  MobileAppPromotionDialog,
-  webReviewMobilePromptStoreLinks,
-} from "../review/mobileAppPromo/MobileAppPromotionDialog";
+import { MobileAppPromotionDialog } from "../review/mobileAppPromo/MobileAppPromotionDialog";
 import {
   appendReviewReactionEvent,
   matchesReducedReviewReactionMotion,
