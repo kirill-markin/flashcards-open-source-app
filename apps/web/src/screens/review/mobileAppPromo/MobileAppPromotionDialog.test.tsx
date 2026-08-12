@@ -168,47 +168,41 @@ describe("MobileAppPromotionDialog", () => {
     });
 
     const closeButton = requireElement(container, "[data-testid='mobile-app-promo-close']");
-    const androidBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-badge-android']");
+    const mcpCopyButton = requireElement(container, "[data-testid='mobile-app-promo-mcp-copy-button']");
 
-    androidBadgeLink.focus();
+    mcpCopyButton.focus();
     await dispatchWindowKeyDown("Tab", false);
     expect(document.activeElement).toBe(closeButton);
 
     closeButton.focus();
     await dispatchWindowKeyDown("Tab", true);
-    expect(document.activeElement).toBe(androidBadgeLink);
+    expect(document.activeElement).toBe(mcpCopyButton);
   });
 
-  it("renders store links, platform test ids, and QR output for each platform", async () => {
+  it("renders the platform grid cells, store links, and QR output for each platform", async () => {
     await renderDialog({
       isOpen: true,
       onDismiss: () => undefined,
       storeLinks: webReviewMobilePromptStoreLinks,
     });
 
-    const platformTestIds: ReadonlyArray<string> = Array.from(
-      container.querySelectorAll("[data-testid^='mobile-app-promo-platform-']"),
-    ).map((element) => {
+    const grid = requireElement(container, "[data-testid='mobile-app-promo-grid']");
+    const gridTestIds: ReadonlyArray<string> = Array.from(grid.children).map((element) => {
       const testId = element.getAttribute("data-testid");
       if (testId === null) {
-        throw new Error("Expected platform test id");
+        throw new Error("Expected grid cell test id");
       }
 
       return testId;
     });
-    expect(platformTestIds).toEqual([
-      "mobile-app-promo-platform-ios",
-      "mobile-app-promo-platform-android",
+    expect(gridTestIds).toEqual([
+      "mobile-app-promo-link-ios",
+      "mobile-app-promo-link-android",
+      "mobile-app-promo-mcp-option",
     ]);
 
-    const iosPlatform = requireElement(container, "[data-testid='mobile-app-promo-platform-ios']");
-    const androidPlatform = requireElement(container, "[data-testid='mobile-app-promo-platform-android']");
-    expect(iosPlatform.compareDocumentPosition(androidPlatform) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-
-    const iosBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-badge-ios']");
-    const androidBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-badge-android']");
+    const iosBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-link-ios']");
+    const androidBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-link-android']");
 
     expect(iosBadgeLink.href).toBe(webReviewMobilePromptStoreLinks.ios);
     expect(androidBadgeLink.href).toBe(webReviewMobilePromptStoreLinks.android);
@@ -237,18 +231,12 @@ describe("MobileAppPromotionDialog", () => {
 
     expect(document.documentElement.dir).toBe("rtl");
 
-    const platformGrid = requireElement(container, "[data-testid='mobile-app-promo-platforms']");
-    const iosPlatform = requireElement(container, "[data-testid='mobile-app-promo-platform-ios']");
-    const androidPlatform = requireElement(container, "[data-testid='mobile-app-promo-platform-android']");
-    const iosPlatformContent = requireElement(container, "[data-testid='mobile-app-promo-content-ios']");
-    const androidPlatformContent = requireElement(container, "[data-testid='mobile-app-promo-content-android']");
+    const platformGrid = requireElement(container, "[data-testid='mobile-app-promo-grid']");
+    const iosBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-link-ios']");
+    const androidBadgeLink = requireAnchor(container, "[data-testid='mobile-app-promo-link-android']");
 
-    expect(platformGrid.getAttribute("dir")).toBe("ltr");
-    expect(iosPlatform.getAttribute("dir")).toBe("ltr");
-    expect(androidPlatform.getAttribute("dir")).toBe("ltr");
-    expect(iosPlatformContent.getAttribute("dir")).toBe("rtl");
-    expect(androidPlatformContent.getAttribute("dir")).toBe("rtl");
-    expect(iosPlatform.compareDocumentPosition(androidPlatform) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+    expect(platformGrid.parentElement?.getAttribute("dir")).toBe("ltr");
+    expect(iosBadgeLink.compareDocumentPosition(androidBadgeLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
