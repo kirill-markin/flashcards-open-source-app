@@ -18,6 +18,8 @@ import type {
 } from "../../../../types";
 import { WorkspaceImportScreen } from "./WorkspaceImportScreen";
 
+const workspaceReplicaId = "45268888-5620-5912-9ed1-4bd6f2105aff";
+
 const {
   confirmWorkspacePackageImportMock,
   previewWorkspacePackageImportMock,
@@ -546,13 +548,42 @@ describe("WorkspaceImportScreen package import", () => {
     expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
   });
 
-  it("confirms import with generated options, refreshes local data, and shows tagged success", async () => {
+  it("registers and submits the derived replica, refreshes imported data, and shows tagged success", async () => {
     const file = createZipFile("flashcards.zip");
+    const operationOrder: string[] = [];
+    let resolveRegistrationRefresh: (() => void) | null = null;
+    const registrationRefreshPromise = new Promise<void>((resolve) => {
+      resolveRegistrationRefresh = resolve;
+    });
+    const refreshLocalDataMock = vi.fn()
+      .mockImplementationOnce(() => {
+        operationOrder.push("refresh");
+        return registrationRefreshPromise;
+      })
+      .mockImplementationOnce(async (): Promise<void> => {
+        operationOrder.push("refresh");
+      });
+    getAppData().refreshLocalData = refreshLocalDataMock;
+    confirmWorkspacePackageImportMock.mockImplementationOnce(async () => {
+      operationOrder.push("confirm");
+      return createConfirmResponse();
+    });
 
     await renderScreen();
     await choosePackageFile(file);
     await waitForPreview();
     await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
+    await waitForCondition("Replica registration refresh did not start", () => (
+      refreshLocalDataMock.mock.calls.length === 1
+    ));
+    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+    expect(operationOrder).toEqual(["refresh"]);
+
+    const completeRegistrationRefresh = resolveRegistrationRefresh;
+    if (completeRegistrationRefresh === null) {
+      throw new Error("Replica registration refresh resolve function is unavailable");
+    }
+    await act(async () => completeRegistrationRefresh());
     await waitForCondition("Package import success was not shown", () => (
       getContainer().querySelector("[data-testid='workspace-import-success']") !== null
     ));
@@ -562,21 +593,22 @@ describe("WorkspaceImportScreen package import", () => {
       addImportTag: true,
       importId: "11111111-1111-4111-8111-111111111111",
       importTag: "import:2026-07-01",
-      lastModifiedByReplicaId: "00000000-0000-4000-8000-000000000001",
+      lastModifiedByReplicaId: workspaceReplicaId,
       operationIdPrefix: "11111111-1111-4111-8111-111111111111",
       removeTags: ["temporary"],
     }));
     expect(options.clientUpdatedAt).toBe(options.importedAt);
     expect(Date.parse(options.importedAt)).not.toBeNaN();
-    expect(getAppData().refreshLocalData).toHaveBeenCalledTimes(1);
+    expect(refreshLocalDataMock).toHaveBeenCalledTimes(2);
+    expect(operationOrder).toEqual(["refresh", "confirm", "refresh"]);
     expect(requireElement("[data-testid='workspace-import-success']", HTMLParagraphElement).textContent).toContain("Imported 2 cards with tag import:2026-07-01.");
   });
 
   it("surfaces refresh failures after confirm without showing success", async () => {
     const file = createZipFile("flashcards.zip");
-    getAppData().refreshLocalData = vi.fn(async (): Promise<void> => {
-      throw new Error("Refresh failed");
-    });
+    getAppData().refreshLocalData = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("Refresh failed"));
 
     await renderScreen();
     await choosePackageFile(file);
@@ -587,6 +619,7 @@ describe("WorkspaceImportScreen package import", () => {
     ));
 
     expect(confirmWorkspacePackageImportMock).toHaveBeenCalledTimes(1);
+    expect(getAppData().refreshLocalData).toHaveBeenCalledTimes(2);
     expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement).textContent).toContain("A technical error occurred.");
     expect(getContainer().querySelector("[data-testid='workspace-import-success']")).toBeNull();
     expect(getContainer().querySelector("[data-testid='workspace-package-import-preview']")).toBeNull();

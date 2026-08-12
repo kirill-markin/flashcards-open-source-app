@@ -8,6 +8,7 @@ import { useAppData } from "../../../../appData";
 import { requireCloudInstallationId } from "../../../../appData/sync/local/syncCloudSettings";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../../../i18n";
+import { buildClientWorkspaceReplicaId } from "../../../../media/mediaCrypto";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type {
   WorkspacePackageImportConfirmOptions,
@@ -299,6 +300,10 @@ export function WorkspaceImportScreen(): ReactElement {
     setSuccessMessage("");
 
     try {
+      const workspaceId = activeWorkspace.workspaceId;
+      const installationId = requireCloudInstallationId(cloudSettings);
+      await refreshLocalData();
+      const replicaId = await buildClientWorkspaceReplicaId(workspaceId, installationId);
       const importId = crypto.randomUUID().toLowerCase();
       const importedAt = new Date().toISOString();
       const options: WorkspacePackageImportConfirmOptions = {
@@ -308,10 +313,10 @@ export function WorkspaceImportScreen(): ReactElement {
         importedAt,
         importId,
         clientUpdatedAt: importedAt,
-        lastModifiedByReplicaId: requireCloudInstallationId(cloudSettings),
+        lastModifiedByReplicaId: replicaId,
         operationIdPrefix: importId,
       };
-      const result = await confirmWorkspacePackageImport(activeWorkspace.workspaceId, packageImportFile, options);
+      const result = await confirmWorkspacePackageImport(workspaceId, packageImportFile, options);
 
       resetPackageImportPreview();
       await refreshLocalData();
