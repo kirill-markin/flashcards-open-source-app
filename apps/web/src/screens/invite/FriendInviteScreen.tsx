@@ -8,6 +8,12 @@ import {
   isAuthRedirectError,
   previewFriendInvitation,
 } from "../../api";
+import {
+  AppPlatformLinksGrid,
+  buildAppPlatformOptions,
+  resolveClientPlatform,
+  type AppPlatformStoreLinks,
+} from "../../appPlatformLinks";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { invalidateServerProgress } from "../../appData/progress/invalidation/progressInvalidation";
 import { clearPersistedProgressLeaderboard } from "../../appData/progress/storage/progressStorage";
@@ -19,8 +25,12 @@ import type {
   FriendInvitationPreviewResponse,
   SessionInfo,
 } from "../../types";
-import { AppPlatformLinks, defaultAppPlatformStoreLinks } from "../share/AppPlatformLinks";
 import { validateFriendInvitationDisplayName } from "./friendInvitationDisplayName";
+
+export const friendInviteStoreLinks: AppPlatformStoreLinks = {
+  ios: "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=friend_invite&mt=8",
+  android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=friend_invite",
+};
 
 type InviteLoadState = "loading" | "inactive" | "error" | "signed_out" | "ready" | "success";
 
@@ -79,16 +89,24 @@ function InviteSuccessLinks(): ReactElement {
   const webHref = `${getAppConfig().appBaseUrl}${progressLeaderboardRoute}`;
 
   return (
-    <AppPlatformLinks
-      labels={{
-        ios: t("friendInvite.links.ios"),
-        android: t("friendInvite.links.android"),
-        web: t("friendInvite.links.web"),
-      }}
-      storeLinks={defaultAppPlatformStoreLinks}
-      webHref={webHref}
-      gridTestId="friend-invite-success-links"
-      webHrefTestId="friend-invite-web-link-value"
+    <AppPlatformLinksGrid
+      options={buildAppPlatformOptions({
+        platforms: ["ios", "android", "web", "mcp"],
+        storeLinks: friendInviteStoreLinks,
+        webHref,
+        labels: {
+          ios: t("appPlatformLinks.ios"),
+          android: t("appPlatformLinks.android"),
+          web: t("appPlatformLinks.web"),
+          mcp: t("appPlatformLinks.mcp.label"),
+        },
+        qrTitles: {
+          ios: t("appPlatformLinks.qr.ios"),
+          android: t("appPlatformLinks.qr.android"),
+        },
+        clientPlatform: resolveClientPlatform(navigator.userAgent),
+      })}
+      testIdPrefix="friend-invite-success"
     />
   );
 }

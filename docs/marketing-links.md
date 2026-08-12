@@ -13,6 +13,7 @@ Current campaign buckets:
 | `marketplace` | Reserved for future catalog browsing surfaces; its use is not decided yet. |
 | `web_review_mobile_prompt` | Web review mobile app promotion prompt. |
 | `catalog_import` | Catalog package import screen in the web app. |
+| `friend_invite` | Friend invite acceptance screen in the web app. |
 
 ## Google Play
 

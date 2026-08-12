@@ -10,8 +10,8 @@ import { getAppConfig } from "../../config";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { progressLeaderboardRoute, reviewRoute } from "../../routes";
 import { CatalogImportSuccessPanel, catalogImportStoreLinks } from "../catalog/CatalogImportSuccessPanel";
+import { friendInviteStoreLinks } from "../invite/FriendInviteScreen";
 import { webReviewMobilePromptStoreLinks } from "../review/mobileAppPromo/MobileAppPromotionDialog";
-import { defaultAppPlatformStoreLinks } from "../share/AppPlatformLinks";
 import { shareAppStoreLinks } from "../share/ShareAppScreen";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
@@ -56,12 +56,10 @@ function buildTestAppPlatformSurfaces(t: Translate, appBaseUrl: string): Readonl
       webHref: reviewWebHref,
     },
     {
-      // The friend-invite campaign links land with the friend-invite migration, so this
-      // preview uses the canonical store links the surface ships today.
       id: "friend-invite",
       heading: t("settingsTest.appPlatformLinks.surfaces.friendInvite"),
       platforms: ["ios", "android", "web", "mcp"],
-      storeLinks: defaultAppPlatformStoreLinks,
+      storeLinks: friendInviteStoreLinks,
       webHref: `${appBaseUrl}${progressLeaderboardRoute}`,
     },
   ];

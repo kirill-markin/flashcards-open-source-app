@@ -175,8 +175,8 @@ describe("FriendInviteScreen", () => {
     expect(container.querySelector("[data-testid='friend-invite-success']")).not.toBeNull();
     expect(container.textContent).toContain("You are now friends");
     expect(container.textContent).toContain("Mobile apps require signing in with the same email.");
-    expect(container.querySelector("[data-testid='friend-invite-success-links']")).not.toBeNull();
-    const webLink = container.querySelector("[data-testid='app-platform-link-web']");
+    expect(container.querySelector("[data-testid='friend-invite-success-grid']")).not.toBeNull();
+    const webLink = container.querySelector("[data-testid='friend-invite-success-link-web']");
     if (!(webLink instanceof HTMLAnchorElement)) {
       throw new Error("Invite web app link was not found");
     }
