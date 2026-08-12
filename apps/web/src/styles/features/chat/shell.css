@@ -37,7 +37,7 @@
 .chat-sidebar-fullscreen {
   --chat-sidebar-padding: 12px;
   --chat-sidebar-radius: var(--radius-xl);
-  --chat-sidebar-inner-radius: max(0px, calc(var(--chat-sidebar-radius) - var(--chat-sidebar-padding)));
+  --chat-sidebar-inner-radius: calc(var(--chat-sidebar-radius) / 2);
   display: flex;
   flex-direction: column;
   min-height: 0;

@@ -1,7 +1,7 @@
 .chat-msg {
   --chat-msg-padding-block: 11px;
   --chat-msg-radius: var(--radius-md);
-  --chat-msg-inner-radius: max(0px, calc(var(--chat-msg-radius) - var(--chat-msg-padding-block)));
+  --chat-msg-inner-radius: calc(var(--chat-msg-radius) / 2);
   font-size: 15px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -51,7 +51,7 @@
 
 .chat-card-part {
   --chat-card-part-padding: 12px;
-  --chat-card-part-inner-radius: max(0px, calc(var(--chat-msg-inner-radius, var(--radius-sm)) - var(--chat-card-part-padding)));
+  --chat-card-part-inner-radius: calc(var(--chat-msg-inner-radius, var(--radius-sm)) / 2);
   display: block;
   margin: 10px 0 6px;
   overflow: hidden;
