@@ -128,7 +128,7 @@ test("backend, direct ingestion, and chat worker package sharp with ARM64 Docker
   );
   assert.match(
     apiGatewaySource,
-    /"DirectImageIngestionHandler"[\s\S]*lambda-direct-image-ingestion\.ts[\s\S]*timeout: cdk\.Duration\.seconds\(directImageIngestionLambdaTimeoutSeconds\)[\s\S]*memorySize: 1024[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
+    /"DirectImageIngestionHandler"[\s\S]*entry: resolveFromRepoRoot\(\s*"apps",\s*"backend",\s*"src",\s*"entrypoints",\s*"directImageIngestion",\s*"lambda\.ts",\s*\)[\s\S]*timeout: cdk\.Duration\.seconds\(directImageIngestionLambdaTimeoutSeconds\)[\s\S]*memorySize: 1024[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
   );
   assert.match(
     apiGatewaySource,
