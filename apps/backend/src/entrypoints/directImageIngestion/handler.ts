@@ -5,15 +5,15 @@ import {
   createDirectImageIngestionRequestTiming,
   runWithDirectImageIngestionRequestContext,
   type DirectImageIngestionRequestTiming,
-} from "../server/mediaRequests/directImageIngestionRequestTiming";
-import { createCredentialedBrowserCorsResponseHeaders } from "../server/browserCors";
+} from "../../server/mediaRequests/directImageIngestionRequestTiming";
+import { createCredentialedBrowserCorsResponseHeaders } from "../../server/browserCors";
 import {
   createAgentApiKeyErrorEnvelope,
   isAgentApiKeyAuthorizationHeader,
-} from "../agent/envelope";
+} from "../../agent/envelope";
 import {
   isDirectImageIngestionTarget,
-} from "../server/mediaRequests/directImageIngestionRouting";
+} from "../../server/mediaRequests/directImageIngestionRouting";
 
 type JsonRecord = Readonly<Record<string, unknown>>;
 
