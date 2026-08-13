@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import { revalidateSession } from "../../api";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { loadActiveCardCount } from "../../localDb/cards/cards";
 import type {
@@ -77,6 +78,7 @@ function mergeRefreshedAccountSessionWithoutPreferences(
 export function AppDataProvider(props: Props): ReactElement {
   const { children } = props;
   const { t } = useI18n();
+  const { indexedDbOpenRecoveryState, showTechnicalError } = useAppErrorDialog();
   useProgressInvalidationRefresh();
   const [warmStartSnapshot] = useState(loadWarmStartSnapshot);
   const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(
@@ -148,6 +150,7 @@ export function AppDataProvider(props: Props): ReactElement {
     setIsSyncing,
     setErrorMessage,
     setTechnicalError,
+    indexedDbOpenRecoveryState,
   });
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
@@ -188,25 +191,43 @@ export function AppDataProvider(props: Props): ReactElement {
     let isCancelled = false;
 
     async function refreshLocalCardCount(): Promise<void> {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       if (activeWorkspace === null) {
         setLocalCardCount(0);
         return;
       }
 
       const cardCount = await loadActiveCardCount(activeWorkspace.workspaceId);
-      if (isCancelled) {
+      if (isCancelled || indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
 
       setLocalCardCount(cardCount);
     }
 
-    void refreshLocalCardCount();
+    void refreshLocalCardCount().catch((error: unknown): void => {
+      const markResult = indexedDbOpenRecoveryState.markFailed(error);
+      if (markResult === "not_recovery") {
+        throw error;
+      }
+
+      showTechnicalError(error, {
+        feature: "sync",
+        operation: "refresh_local_metadata",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: null,
+        entityId: null,
+      });
+    });
 
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspace, localReadVersion]);
+  }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion, session?.userId, showTechnicalError]);
 
   useEffect(() => {
     if (
@@ -368,6 +389,7 @@ export function AppDataProvider(props: Props): ReactElement {
     discardWorkspaceSync: syncEngine.discardWorkspaceSync,
     discardAllSyncWork: syncEngine.discardAllSyncWork,
     resetUserScopedUiState,
+    indexedDbOpenRecoveryState,
   });
 
   const value: AppDataContextValue = {

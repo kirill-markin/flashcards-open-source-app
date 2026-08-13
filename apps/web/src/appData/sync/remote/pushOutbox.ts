@@ -1,5 +1,6 @@
 import { pushSyncOperations } from "../../../api";
 import { webAppVersion } from "../../../clientIdentity";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import {
   deleteOutboxRecord,
   isScheduleRelevantCardOutboxRecord,
@@ -63,6 +64,10 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
         didChangeProgressHistory = true;
       }
     } catch (error) {
+      if (isIndexedDbOpenRecoveryError(error)) {
+        throw error;
+      }
+
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
       const errorMessage = getErrorMessage(error);
       for (const record of batch) {

@@ -6,6 +6,7 @@ import {
 } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type {
   CloudSettings,
   SessionInfo,
@@ -13,6 +14,11 @@ import type {
   WorkspaceSummary,
 } from "../../../types";
 import { useSyncEngine } from "./useSyncEngine";
+
+const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
+  hasFailed: (): boolean => false,
+  markFailed: () => "not_recovery",
+};
 
 const syncEngineMocks = vi.hoisted(() => ({
   processDueMediaUploadTransfersForWorkspace: vi.fn(),
@@ -112,6 +118,7 @@ function renderSyncEngineHarness(): Readonly<{
       setIsSyncing,
       setErrorMessage,
       setTechnicalError,
+      indexedDbOpenRecoveryState,
     });
     return null;
   }
