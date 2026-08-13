@@ -2,6 +2,7 @@ import {
   ApiContractError,
   ApiError,
 } from "../../../api";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import {
   claimNextDueMediaTransferByKind,
   markClaimedMediaTransferFailed,
@@ -189,7 +190,10 @@ async function renewUploadTransferClaim(
   return requireInProgressUploadClaimedAt(renewedTransfer);
 }
 
-export function startUploadClaimHeartbeat(transfer: MediaTransferQueueRecord): MediaUploadClaimHeartbeat {
+export function startUploadClaimHeartbeat(
+  transfer: MediaTransferQueueRecord,
+  hasFailed: () => boolean,
+): MediaUploadClaimHeartbeat {
   let claimedAt = requireInProgressUploadClaimedAt(transfer);
   let heartbeatError: unknown = null;
   let renewalTask: Promise<void> = Promise.resolve();
@@ -201,17 +205,22 @@ export function startUploadClaimHeartbeat(transfer: MediaTransferQueueRecord): M
   });
 
   const queueRenewal = (): void => {
-    if (heartbeatError !== null || didStop) {
+    if (heartbeatError !== null || didStop || hasFailed()) {
       return;
     }
 
     renewalTask = renewalTask
       .then(async (): Promise<void> => {
+        if (hasFailed()) {
+          return;
+        }
         claimedAt = await renewUploadTransferClaim(transfer, claimedAt);
       })
       .catch((error: unknown): void => {
         heartbeatError = error;
-        heartbeatFailureController.abort(error);
+        if (hasFailed() === false && isIndexedDbOpenRecoveryError(error) === false) {
+          heartbeatFailureController.abort(error);
+        }
         resolveHeartbeatFailure?.();
       });
   };
@@ -226,6 +235,9 @@ export function startUploadClaimHeartbeat(transfer: MediaTransferQueueRecord): M
       await renewalTask;
       if (heartbeatError !== null) {
         throw heartbeatError;
+      }
+      if (hasFailed()) {
+        return;
       }
     },
     waitForFailure: () => heartbeatFailurePromise,

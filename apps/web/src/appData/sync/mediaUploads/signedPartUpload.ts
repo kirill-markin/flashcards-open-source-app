@@ -93,7 +93,10 @@ function toBoundedSignedPartErrorField(value: string | null): string | null {
   return `${trimmedValue.slice(0, signedPartUploadErrorFieldMaximumLength)}...`;
 }
 
-async function readSignedPartUploadFailureBodyText(response: Response): Promise<string | null> {
+async function readSignedPartUploadFailureBodyText(
+  response: Response,
+  hasFailed: () => boolean,
+): Promise<string | null> {
   const responseBody = response.body;
   if (responseBody === null) {
     return null;
@@ -105,6 +108,9 @@ async function readSignedPartUploadFailureBodyText(response: Response): Promise<
   try {
     while (totalByteLength < signedPartUploadErrorBodyMaximumBytes) {
       const result = await reader.read();
+      if (hasFailed()) {
+        return null;
+      }
       if (result.done) {
         break;
       }
@@ -117,10 +123,16 @@ async function readSignedPartUploadFailureBodyText(response: Response): Promise<
       totalByteLength += chunk.byteLength;
       if (result.value.byteLength >= remainingByteLength) {
         await reader.cancel();
+        if (hasFailed()) {
+          return null;
+        }
         break;
       }
     }
   } catch (error) {
+    if (hasFailed()) {
+      throw error;
+    }
     console.warn("Media upload part failure body read failed", {
       errorName: readErrorName(error),
       errorMessage: toBoundedSignedPartErrorField(readErrorMessage(error)) ?? "none",
@@ -187,8 +199,14 @@ function parseS3ErrorBody(responseBody: string | null): Pick<SanitizedSignedPart
   };
 }
 
-async function readSanitizedSignedPartUploadFailure(response: Response): Promise<SanitizedSignedPartUploadFailure> {
-  const responseBody = await readSignedPartUploadFailureBodyText(response);
+async function readSanitizedSignedPartUploadFailure(
+  response: Response,
+  hasFailed: () => boolean,
+): Promise<SanitizedSignedPartUploadFailure | null> {
+  const responseBody = await readSignedPartUploadFailureBodyText(response, hasFailed);
+  if (hasFailed()) {
+    return null;
+  }
   const parsedBody = parseS3ErrorBody(responseBody);
   return {
     status: response.status,
@@ -241,7 +259,11 @@ async function uploadSignedPartOnce(
   part: PlannedUploadPart,
   blob: Blob,
   signal: AbortSignal,
-): Promise<string> {
+  hasFailed: () => boolean,
+): Promise<string | null> {
+  if (hasFailed()) {
+    return null;
+  }
   assertSignedPartUrlUsable(transfer, partUrl, part);
   let response: Response;
   try {
@@ -252,11 +274,20 @@ async function uploadSignedPartOnce(
       signal,
     });
   } catch (error) {
+    if (hasFailed()) {
+      throw error;
+    }
     throw new RetryableMediaUploadError(`Media upload part request failed: transferId=${transfer.transferId}, partNumber=${part.partNumber}, errorName=${readErrorName(error)}`);
+  }
+  if (hasFailed()) {
+    return null;
   }
 
   if (response.ok === false) {
-    const failure = await readSanitizedSignedPartUploadFailure(response);
+    const failure = await readSanitizedSignedPartUploadFailure(response, hasFailed);
+    if (hasFailed() || failure === null) {
+      return null;
+    }
     const message = describeSanitizedSignedPartUploadFailure(transfer, part, failure);
     if (isTransientStatusCode(response.status) || response.status === 403) {
       throw new RetryableMediaUploadError(message);
@@ -291,13 +322,20 @@ async function loadPartUrls(
   sessionId: string,
   parts: ReadonlyArray<PlannedUploadPart>,
   signal: AbortSignal,
-): Promise<ReadonlyArray<MediaAssetUploadPartUrl>> {
+  hasFailed: () => boolean,
+): Promise<ReadonlyArray<MediaAssetUploadPartUrl> | null> {
+  if (hasFailed()) {
+    return null;
+  }
   const response = await createMediaAssetUploadPartUrls(transfer.workspaceId, sessionId, {
     parts: parts.map((part) => ({
       partNumber: part.partNumber,
       sha256: part.sha256,
     })),
   }, signal);
+  if (hasFailed()) {
+    return null;
+  }
   if (response.sessionId !== sessionId) {
     throw new PermanentMediaUploadError(`Media upload part URL session mismatch: transferId=${transfer.transferId}, expectedSessionId=${sessionId}, actualSessionId=${response.sessionId}`);
   }
@@ -310,8 +348,13 @@ async function loadPartUrl(
   sessionId: string,
   part: PlannedUploadPart,
   signal: AbortSignal,
-): Promise<MediaAssetUploadPartUrl> {
-  const [partUrl] = await loadPartUrls(transfer, sessionId, [part], signal);
+  hasFailed: () => boolean,
+): Promise<MediaAssetUploadPartUrl | null> {
+  const partUrls = await loadPartUrls(transfer, sessionId, [part], signal, hasFailed);
+  if (hasFailed() || partUrls === null) {
+    return null;
+  }
+  const [partUrl] = partUrls;
   if (partUrl === undefined) {
     throw new PermanentMediaUploadError(`Media upload part URL response was empty: transferId=${transfer.transferId}, partNumber=${part.partNumber}`);
   }
@@ -326,24 +369,44 @@ async function uploadSignedPart(
   blob: Blob,
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
-): Promise<UploadedMediaPart> {
+  hasFailed: () => boolean,
+): Promise<UploadedMediaPart | null> {
   let attemptNumber = 1;
   while (true) {
+    if (hasFailed()) {
+      return null;
+    }
     try {
-      const partUrl = await loadPartUrl(transfer, sessionId, part, signal);
+      const partUrl = await loadPartUrl(transfer, sessionId, part, signal, hasFailed);
+      if (hasFailed() || partUrl === null) {
+        return null;
+      }
       await heartbeat.throwIfFailed();
+      if (hasFailed()) {
+        return null;
+      }
+      const eTag = await uploadSignedPartOnce(transfer, partUrl, part, blob, signal, hasFailed);
+      if (hasFailed() || eTag === null) {
+        return null;
+      }
       return {
         partNumber: part.partNumber,
-        eTag: await uploadSignedPartOnce(transfer, partUrl, part, blob, signal),
+        eTag,
         sha256: part.sha256,
       };
     } catch (error) {
+      if (hasFailed()) {
+        throw error;
+      }
       if (error instanceof RetryableMediaUploadError === false || attemptNumber >= signedPartUploadMaximumAttemptCount) {
         throw error;
       }
 
       warnSignedPartUploadRetry(transfer, part.partNumber, attemptNumber, error);
       await waitForSignedPartUploadRetry(signal);
+      if (hasFailed()) {
+        throw error;
+      }
       attemptNumber += 1;
     }
   }
@@ -356,18 +419,30 @@ export async function uploadParts(
   blob: Blob,
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
-): Promise<ReadonlyArray<UploadedMediaPart>> {
+  hasFailed: () => boolean,
+): Promise<ReadonlyArray<UploadedMediaPart> | null> {
   const uploadedParts: Array<UploadedMediaPart> = [];
   for (const part of parts) {
+    if (hasFailed()) {
+      return null;
+    }
     await heartbeat.throwIfFailed();
-    uploadedParts.push(await uploadSignedPart(
+    if (hasFailed()) {
+      return null;
+    }
+    const uploadedPart = await uploadSignedPart(
       transfer,
       uploadSession.sessionId,
       part,
       blob,
       heartbeat,
       signal,
-    ));
+      hasFailed,
+    );
+    if (hasFailed() || uploadedPart === null) {
+      return null;
+    }
+    uploadedParts.push(uploadedPart);
   }
 
   return uploadedParts;

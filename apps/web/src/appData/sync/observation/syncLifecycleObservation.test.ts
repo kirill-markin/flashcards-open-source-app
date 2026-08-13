@@ -79,6 +79,7 @@ function createRemoteSyncInput(): WorkspaceRemoteSyncInput {
     workspaceId: "workspace-1",
     installationId: "installation-1",
     syncRunId: "sync-run-1",
+    hasFailed: (): boolean => false,
     isOnlyWorkspaceForUser: true,
     requireWorkspaceSyncNotDiscarded: (_workspaceId: string): void => {},
     publishWorkspaceSettings: (_workspaceId, _settings): void => {},
