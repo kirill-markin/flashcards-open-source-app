@@ -5,6 +5,7 @@ import type { WebAppOperation, WebObservationFeature } from "../observability/we
 import { AppErrorDialog } from "./AppErrorDialog";
 import {
   buildAppErrorPresentation,
+  type AppErrorAction,
   type AppErrorPresentation,
   type AppErrorPresentationMessages,
 } from "./appErrorPresentation";
@@ -35,8 +36,18 @@ const AppErrorDialogContext = createContext<AppErrorDialogContextValue | null>(n
 
 function buildPresentationMessages(t: AppErrorTranslate): AppErrorPresentationMessages {
   return {
-    title: t("appError.technicalError.title"),
-    message: t("appError.technicalError.message"),
+    technicalError: {
+      title: t("appError.technicalError.title"),
+      message: t("appError.technicalError.message"),
+      close: t("appError.technicalError.close"),
+    },
+    indexedDbReloadRecovery: {
+      title: t("appError.indexedDbReloadRecovery.title"),
+      message: t("appError.indexedDbReloadRecovery.message"),
+      guidance: t("appError.indexedDbReloadRecovery.guidance"),
+      reload: t("appError.indexedDbReloadRecovery.reload"),
+      later: t("appError.indexedDbReloadRecovery.later"),
+    },
     labels: {
       name: t("appError.technicalError.labels.name"),
       message: t("appError.technicalError.labels.message"),
@@ -67,6 +78,15 @@ export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): Reac
   const dismiss = useCallback((): void => {
     setPresentation(null);
   }, []);
+
+  const performAction = useCallback((action: AppErrorAction): void => {
+    if (action.kind === "dismiss") {
+      dismiss();
+      return;
+    }
+
+    window.location.reload();
+  }, [dismiss]);
 
   const showCapturedTechnicalError = useCallback((error: unknown): void => {
     setPresentation(buildAppErrorPresentation(error, buildPresentationMessages(t)));
@@ -103,7 +123,7 @@ export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): Reac
   return (
     <AppErrorDialogContext.Provider value={contextValue}>
       {children}
-      <AppErrorDialog presentation={presentation} onDismiss={dismiss} />
+      <AppErrorDialog presentation={presentation} onAction={performAction} onDismiss={dismiss} />
     </AppErrorDialogContext.Provider>
   );
 }

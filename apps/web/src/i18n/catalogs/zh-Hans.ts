@@ -100,6 +100,13 @@ export const zhHansCatalog = {
         originalErrorName: "原始错误",
       },
     },
+    indexedDbReloadRecovery: {
+      title: "需要重新加载页面",
+      message: "浏览器存储已停止响应。请重新加载页面以继续。",
+      guidance: "重新加载前，请复制您想保留的所有未保存文本。",
+      reload: "重新加载页面",
+      later: "稍后",
+    },
   },
   filters: {
     allCards: "所有卡片",
