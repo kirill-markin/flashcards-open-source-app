@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react";
 import type { Scope } from "@sentry/react";
+import { isIndexedDbOpenRecoveryError } from "../localDb/core/indexedDbOpenRecovery";
 import { isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
 import { isWebSentryEnabled } from "./instrument";
 
@@ -829,6 +830,10 @@ export function captureWebException(event: WebExceptionEvent): void {
 }
 
 export function buildWebExceptionFingerprint(event: WebExceptionEvent): Array<string> {
+  if (isIndexedDbOpenRecoveryError(event.error)) {
+    return ["web.indexeddb.open.unknown_error"];
+  }
+
   if (event.action === "app_operation_failed") {
     return ["{{ default }}", event.action, event.details.operation];
   }
