@@ -100,6 +100,13 @@ export const jaCatalog = {
         originalErrorName: "元のエラー",
       },
     },
+    indexedDbReloadRecovery: {
+      title: "ページの再読み込みが必要です",
+      message: "ブラウザのストレージが応答しなくなりました。続行するにはページを再読み込みしてください。",
+      guidance: "再読み込みする前に、残しておきたい未保存のテキストをコピーしてください。",
+      reload: "ページを再読み込み",
+      later: "後で",
+    },
   },
   filters: {
     allCards: "すべてのカード",

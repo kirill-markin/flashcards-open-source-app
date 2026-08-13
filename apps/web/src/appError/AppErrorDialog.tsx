@@ -1,10 +1,11 @@
 import { useEffect, useRef, type MouseEvent, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../i18n";
-import type { AppErrorPresentation } from "./appErrorPresentation";
+import type { AppErrorAction, AppErrorPresentation } from "./appErrorPresentation";
 
 export type AppErrorDialogProps = Readonly<{
   presentation: AppErrorPresentation | null;
+  onAction: (action: AppErrorAction) => void;
   onDismiss: () => void;
 }>;
 
@@ -54,9 +55,9 @@ function trapFocusInsideDialog(event: KeyboardEvent, dialog: HTMLElement): void 
 }
 
 export function AppErrorDialog(props: AppErrorDialogProps): ReactElement | null {
-  const { presentation, onDismiss } = props;
+  const { presentation, onAction, onDismiss } = props;
   const { t } = useI18n();
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const initialFocusButtonRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -68,7 +69,7 @@ export function AppErrorDialog(props: AppErrorDialogProps): ReactElement | null 
     previousFocusRef.current = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
-    closeButtonRef.current?.focus();
+    initialFocusButtonRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
@@ -112,13 +113,18 @@ export function AppErrorDialog(props: AppErrorDialogProps): ReactElement | null 
         role="dialog"
         aria-modal="true"
         aria-labelledby="app-error-dialog-title"
-        aria-describedby="app-error-dialog-message"
+        aria-describedby={presentation.kind === "indexeddb-reload-recovery"
+          ? "app-error-dialog-message app-error-dialog-guidance"
+          : "app-error-dialog-message"}
         tabIndex={-1}
         data-testid="app-error-dialog"
       >
         <div className="cell-stack">
           <h2 id="app-error-dialog-title" className="panel-subtitle">{presentation.title}</h2>
           <p id="app-error-dialog-message" className="subtitle">{presentation.message}</p>
+          {presentation.kind === "indexeddb-reload-recovery" ? (
+            <p id="app-error-dialog-guidance" className="subtitle">{presentation.guidance}</p>
+          ) : null}
         </div>
 
         <details className="app-error-dialog-details" data-testid="app-error-dialog-details">
@@ -127,15 +133,37 @@ export function AppErrorDialog(props: AppErrorDialogProps): ReactElement | null 
         </details>
 
         <div className="screen-actions">
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className="primary-btn"
-            onClick={onDismiss}
-            data-testid="app-error-dialog-close"
-          >
-            {t("appError.technicalError.close")}
-          </button>
+          {presentation.kind === "indexeddb-reload-recovery" ? (
+            <>
+              <button
+                ref={initialFocusButtonRef}
+                type="button"
+                className="ghost-btn"
+                onClick={onDismiss}
+                data-testid="app-error-dialog-later"
+              >
+                {presentation.dismissLabel}
+              </button>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={() => onAction(presentation.action)}
+                data-testid="app-error-dialog-reload"
+              >
+                {presentation.action.label}
+              </button>
+            </>
+          ) : (
+            <button
+              ref={initialFocusButtonRef}
+              type="button"
+              className="primary-btn"
+              onClick={() => onAction(presentation.action)}
+              data-testid="app-error-dialog-close"
+            >
+              {presentation.action.label}
+            </button>
+          )}
         </div>
       </section>
     </div>,

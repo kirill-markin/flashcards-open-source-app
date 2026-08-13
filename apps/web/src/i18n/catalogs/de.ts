@@ -100,6 +100,13 @@ const deCatalog: TranslationCatalog = {
         originalErrorName: "Ursprünglicher Fehler",
       },
     },
+    indexedDbReloadRecovery: {
+      title: "Seite muss neu geladen werden",
+      message: "Der Browserspeicher reagiert nicht mehr. Lade die Seite neu, um fortzufahren.",
+      guidance: "Kopiere vor dem Neuladen alle nicht gespeicherten Texte, die du behalten möchtest.",
+      reload: "Seite neu laden",
+      later: "Später",
+    },
   },
   filters: {
     allCards: "Alle Karten",

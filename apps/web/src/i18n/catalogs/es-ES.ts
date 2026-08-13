@@ -100,6 +100,13 @@ const esEsCatalog: TranslationCatalog = {
         originalErrorName: "Error original",
       },
     },
+    indexedDbReloadRecovery: {
+      title: "Es necesario recargar la página",
+      message: "El almacenamiento del navegador ha dejado de responder. Recarga la página para continuar.",
+      guidance: "Antes de recargar, copia cualquier texto sin guardar que quieras conservar.",
+      reload: "Recargar página",
+      later: "Más tarde",
+    },
   },
   filters: {
     allCards: "Todas las tarjetas",

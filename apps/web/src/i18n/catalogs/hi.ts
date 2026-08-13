@@ -100,6 +100,13 @@ const hiCatalog: TranslationCatalog = {
         originalErrorName: "मूल त्रुटि",
       },
     },
+    indexedDbReloadRecovery: {
+      title: "पेज फिर से लोड करना ज़रूरी है",
+      message: "ब्राउज़र स्टोरेज ने जवाब देना बंद कर दिया है। जारी रखने के लिए पेज फिर से लोड करें।",
+      guidance: "फिर से लोड करने से पहले, वह टेक्स्ट कॉपी कर लें जिसे आपने अभी तक सेव नहीं किया है।",
+      reload: "पेज फिर से लोड करें",
+      later: "बाद में",
+    },
   },
   filters: {
     allCards: "सभी कार्ड",
