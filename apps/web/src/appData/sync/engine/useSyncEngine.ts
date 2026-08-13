@@ -17,6 +17,7 @@ import {
 import {
   loadWorkspaceSettings,
 } from "../../../localDb/cards/workspace";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import type {
   Card,
   CloudSettings,
@@ -625,6 +626,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const syncTask = (async (): Promise<void> => {
       let syncInstallationId: string | null = null;
+      let didFailWithIndexedDbOpenRecoveryError = false;
       const syncRunId = createSyncRunId();
       const requireCurrentWorkspaceSync = function requireCurrentWorkspaceSync(currentWorkspaceId: string): void {
         requireWorkspaceSyncNotDiscarded(currentWorkspaceId, syncGeneration);
@@ -692,6 +694,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
 
         const normalizedError = normalizeCaughtError(error);
+        didFailWithIndexedDbOpenRecoveryError = isIndexedDbOpenRecoveryError(normalizedError);
         Object.assign(normalizedError, {
           syncRunId,
         });
@@ -715,7 +718,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
           const needsResync = needsResyncWorkspaceIdsRef.current.has(workspaceId);
           needsResyncWorkspaceIdsRef.current.delete(workspaceId);
-          if (needsResync && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false) {
+          if (
+            needsResync
+            && didFailWithIndexedDbOpenRecoveryError === false
+            && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false
+          ) {
             runSyncInBackground(runSyncForWorkspace(workspace));
           }
         }
