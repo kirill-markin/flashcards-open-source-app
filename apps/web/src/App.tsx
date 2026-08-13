@@ -373,7 +373,7 @@ export function AppShell(): ReactElement {
     createWorkspace,
     cloudSettings,
   } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const [isAccountDeletionPendingState, setIsAccountDeletionPendingState] = useState<boolean>(isAccountDeletionPending);
   const [accountDeletionErrorMessage, setAccountDeletionErrorMessage] = useState<string>("");
   const [accountDeletionTechnicalError, setAccountDeletionTechnicalError] = useState<Error | null>(null);
@@ -404,6 +404,36 @@ export function AppShell(): ReactElement {
       ? accountDeletionErrorMessage
       : visibleTechnicalErrorMessage;
 
+  const reportAccountDeletionError = useCallback(function reportAccountDeletionError(error: unknown): void {
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    let wasCaptured = false;
+    if (normalizedError instanceof ApiContractError) {
+      captureApiContractError(normalizedError, {
+        feature: "auth",
+        sourceAction: "account_deletion_submit",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+      });
+      wasCaptured = true;
+    } else {
+      wasCaptured = captureAppOperationError(normalizedError, {
+        feature: "auth",
+        operation: "account_deletion_submit",
+        userId: session?.userId ?? null,
+        workspaceId: activeWorkspace?.workspaceId ?? null,
+        installationId: cloudSettings?.installationId ?? null,
+        entityId: null,
+      });
+    }
+
+    setAccountDeletionErrorMessage(normalizedError.message);
+    setAccountDeletionTechnicalError(wasCaptured ? normalizedError : null);
+    if (wasCaptured) {
+      showCapturedTechnicalError(normalizedError);
+    }
+  }, [activeWorkspace?.workspaceId, cloudSettings?.installationId, session?.userId, showCapturedTechnicalError]);
+
   const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
     if (isSessionVerified === false) {
       return;
@@ -418,47 +448,38 @@ export function AppShell(): ReactElement {
       if (persistedCsrfToken !== null) {
         primeSessionCsrfToken(persistedCsrfToken);
       }
-      await deleteMyAccount(deleteAccountConfirmationText);
-      await clearAllLocalBrowserData("account_deletion_submit");
+
+      try {
+        await deleteMyAccount(deleteAccountConfirmationText);
+      } catch (error) {
+        if ((error instanceof ApiError) === false || error.code !== "ACCOUNT_DELETED") {
+          throw error;
+        }
+      }
+
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        try {
+          await clearAllLocalBrowserData("account_deletion_submit");
+        } catch (error) {
+          reportAccountDeletionError(error);
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            window.location.href = buildLogoutLocalUrl();
+          }
+          return;
+        }
+
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          window.location.href = buildLogoutLocalUrl();
+          return;
+        }
+      }
       window.location.href = buildLogoutLocalUrl();
     } catch (error) {
-      if (error instanceof ApiError && error.code === "ACCOUNT_DELETED") {
-        await clearAllLocalBrowserData("account_deletion_submit");
-        window.location.href = buildLogoutLocalUrl();
-        return;
-      }
-
-      const normalizedError = error instanceof Error ? error : new Error(String(error));
-      let wasCaptured = false;
-      if (normalizedError instanceof ApiContractError) {
-        captureApiContractError(normalizedError, {
-          feature: "auth",
-          sourceAction: "account_deletion_submit",
-          userId: session?.userId ?? null,
-          workspaceId: activeWorkspace?.workspaceId ?? null,
-          installationId: cloudSettings?.installationId ?? null,
-        });
-        wasCaptured = true;
-      } else {
-        wasCaptured = captureAppOperationError(normalizedError, {
-          feature: "auth",
-          operation: "account_deletion_submit",
-          userId: session?.userId ?? null,
-          workspaceId: activeWorkspace?.workspaceId ?? null,
-          installationId: cloudSettings?.installationId ?? null,
-          entityId: null,
-        });
-      }
-
-      setAccountDeletionErrorMessage(normalizedError.message);
-      setAccountDeletionTechnicalError(wasCaptured ? normalizedError : null);
-      if (wasCaptured) {
-        showCapturedTechnicalError(normalizedError);
-      }
+      reportAccountDeletionError(error);
     } finally {
       setIsAccountDeletionSubmitting(false);
     }
-  }, [activeWorkspace?.workspaceId, cloudSettings?.installationId, isSessionVerified, session?.userId, showCapturedTechnicalError]);
+  }, [indexedDbOpenRecoveryState, isSessionVerified, reportAccountDeletionError]);
 
   useEffect(() => subscribeToAccountDeletionPending(() => {
     setIsAccountDeletionPendingState(isAccountDeletionPending());

@@ -156,7 +156,10 @@ function assertUploadSessionCreateResultMatchesTransfer(
   }
 }
 
-async function loadVerifiedUploadBytes(transfer: MediaTransferQueueRecord): Promise<VerifiedUploadBytes> {
+async function loadVerifiedUploadBytes(
+  transfer: MediaTransferQueueRecord,
+  hasFailed: () => boolean,
+): Promise<VerifiedUploadBytes | null> {
   if (transfer.sourceBlobCacheKey === null) {
     throw new PermanentMediaUploadError(`Media upload source blob is missing: transferId=${transfer.transferId}`);
   }
@@ -166,17 +169,26 @@ async function loadVerifiedUploadBytes(transfer: MediaTransferQueueRecord): Prom
   }
 
   const cacheRecord = await loadMediaBlobCacheRecord(transfer.sourceBlobCacheKey);
+  if (hasFailed()) {
+    return null;
+  }
   if (cacheRecord === null) {
     throw new PermanentMediaUploadError(`Media upload source blob cache record was not found: transferId=${transfer.transferId}, sourceBlobCacheKey=${transfer.sourceBlobCacheKey}`);
   }
 
   assertUploadCacheRecordMatchesTransfer(transfer, cacheRecord);
   const bytes = new Uint8Array(await cacheRecord.blob.arrayBuffer());
+  if (hasFailed()) {
+    return null;
+  }
   if (bytes.byteLength !== transfer.sizeBytes) {
     throw new PermanentMediaUploadError(`Media upload source byte length mismatch: transferId=${transfer.transferId}, expectedSizeBytes=${transfer.sizeBytes}, actualSizeBytes=${bytes.byteLength}`);
   }
 
   const actualSha256 = await calculateSha256Hex(toExactArrayBuffer(bytes));
+  if (hasFailed()) {
+    return null;
+  }
   if (actualSha256 !== transfer.sha256) {
     throw new PermanentMediaUploadError(`Media upload source sha256 mismatch: transferId=${transfer.transferId}, expectedSha256=${transfer.sha256}, actualSha256=${actualSha256}`);
   }
@@ -224,16 +236,24 @@ async function buildPlannedUploadParts(
   transfer: MediaTransferQueueRecord,
   uploadSession: MediaAssetUploadSession,
   bytes: Uint8Array,
-): Promise<ReadonlyArray<PlannedUploadPart>> {
+  hasFailed: () => boolean,
+): Promise<ReadonlyArray<PlannedUploadPart> | null> {
   assertUploadSessionMatchesBytes(transfer, uploadSession);
   const uploadParts: Array<PlannedUploadPart> = [];
   for (let partIndex = 0; partIndex < uploadSession.partCount; partIndex += 1) {
+    if (hasFailed()) {
+      return null;
+    }
     const startByte = partIndex * uploadSession.partSizeBytes;
     const endByte = Math.min(startByte + uploadSession.partSizeBytes, transfer.sizeBytes);
     const partBytes = bytes.subarray(startByte, endByte);
+    const sha256 = await calculateSha256Hex(toExactArrayBuffer(partBytes));
+    if (hasFailed()) {
+      return null;
+    }
     uploadParts.push({
       partNumber: partIndex + 1,
-      sha256: await calculateSha256Hex(toExactArrayBuffer(partBytes)),
+      sha256,
       startByte,
       endByte,
     });
@@ -248,9 +268,13 @@ async function runMultipartUploadSession(
   verifiedBytes: VerifiedUploadBytes,
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
-): Promise<MediaUploadCompletionResult> {
+  hasFailed: () => boolean,
+): Promise<MediaUploadCompletionResult | null> {
   try {
-    const parts = await buildPlannedUploadParts(transfer, uploadSession, verifiedBytes.bytes);
+    const parts = await buildPlannedUploadParts(transfer, uploadSession, verifiedBytes.bytes, hasFailed);
+    if (hasFailed() || parts === null) {
+      return null;
+    }
     const uploadedParts = await uploadParts(
       transfer,
       uploadSession,
@@ -258,14 +282,22 @@ async function runMultipartUploadSession(
       verifiedBytes.blob,
       heartbeat,
       signal,
+      hasFailed,
     );
+    if (hasFailed() || uploadedParts === null) {
+      return null;
+    }
     const result = await completeMultipartUploadSession(
       transfer,
       uploadSession,
       uploadedParts,
       heartbeat,
       signal,
+      hasFailed,
     );
+    if (hasFailed() || result === null) {
+      return null;
+    }
     try {
       assertUploadedMediaAssetMatchesTransfer(transfer, result.mediaAsset);
     } catch (error) {
@@ -287,6 +319,9 @@ async function runMultipartUploadSession(
     if (isIndexedDbOpenRecoveryError(error)) {
       throw error;
     }
+    if (hasFailed()) {
+      throw error;
+    }
 
     if (
       error instanceof MediaUploadCompletionTerminalError
@@ -296,6 +331,9 @@ async function runMultipartUploadSession(
     }
 
     const abortError = await abortUploadSessionAfterFailure(transfer, uploadSession.sessionId);
+    if (hasFailed()) {
+      throw error;
+    }
     throw combineUploadFailureWithAbortFailure(error, abortError);
   }
 }
@@ -305,13 +343,20 @@ async function uploadClaimedMediaTransfer(
   installationId: string,
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
-): Promise<MediaUploadCompletionResult> {
+  hasFailed: () => boolean,
+): Promise<MediaUploadCompletionResult | null> {
   const lastModifiedByReplicaId = await buildClientWorkspaceReplicaId(transfer.workspaceId, installationId);
+  if (hasFailed()) {
+    return null;
+  }
   const sessionCreateResult = await createMediaAssetUploadSession(
     transfer.workspaceId,
     buildUploadSessionCreateInput(transfer, lastModifiedByReplicaId),
     signal,
   );
+  if (hasFailed()) {
+    return null;
+  }
   assertUploadSessionCreateResultMatchesTransfer(transfer, sessionCreateResult);
   if (sessionCreateResult.status === "already_available") {
     assertUploadedMediaAssetMatchesTransfer(transfer, sessionCreateResult.mediaAsset);
@@ -323,22 +368,36 @@ async function uploadClaimedMediaTransfer(
 
   let verifiedBytes: VerifiedUploadBytes;
   try {
-    verifiedBytes = await loadVerifiedUploadBytes(transfer);
+    const loadedBytes = await loadVerifiedUploadBytes(transfer, hasFailed);
+    if (hasFailed() || loadedBytes === null) {
+      return null;
+    }
+    verifiedBytes = loadedBytes;
   } catch (error) {
     if (isIndexedDbOpenRecoveryError(error)) {
       throw error;
     }
+    if (hasFailed()) {
+      throw error;
+    }
 
     const abortError = await abortUploadSessionAfterFailure(transfer, sessionCreateResult.uploadSession.sessionId);
+    if (hasFailed()) {
+      throw error;
+    }
     throw combineUploadFailureWithAbortFailure(error, abortError);
   }
 
+  if (hasFailed()) {
+    return null;
+  }
   return runMultipartUploadSession(
     transfer,
     sessionCreateResult.uploadSession,
     verifiedBytes,
     heartbeat,
     signal,
+    hasFailed,
   );
 }
 
@@ -346,20 +405,43 @@ async function processClaimedUploadTransfer(
   transfer: MediaTransferQueueRecord,
   installationId: string,
   signal: AbortSignal,
+  hasFailed: () => boolean,
 ): Promise<void> {
-  const heartbeat = startUploadClaimHeartbeat(transfer);
+  if (hasFailed()) {
+    return;
+  }
+  const heartbeat = startUploadClaimHeartbeat(transfer, hasFailed);
   let retryableCompletionCause: ApiError | null = null;
   try {
-    const result = await uploadClaimedMediaTransfer(transfer, installationId, heartbeat, signal);
+    const result = await uploadClaimedMediaTransfer(transfer, installationId, heartbeat, signal, hasFailed);
+    if (hasFailed() || result === null) {
+      const heartbeatError = await heartbeat.stop();
+      if (heartbeatError !== null) {
+        throw heartbeatError;
+      }
+      return;
+    }
     retryableCompletionCause = result.retryableCompletionCause;
     const heartbeatError = await heartbeat.stop();
     if (heartbeatError !== null) {
       throw heartbeatError;
     }
+    if (hasFailed()) {
+      return;
+    }
 
     throwIfUploadLifecycleCancelled(signal);
+    if (hasFailed()) {
+      return;
+    }
     await putMediaAsset(result.mediaAsset);
+    if (hasFailed()) {
+      return;
+    }
     throwIfUploadLifecycleCancelled(signal);
+    if (hasFailed()) {
+      return;
+    }
     await markClaimedMediaTransferSucceeded({
       transferId: transfer.transferId,
       kind: "upload",
@@ -369,6 +451,9 @@ async function processClaimedUploadTransfer(
   } catch (error) {
     const heartbeatError = await heartbeat.stop();
     if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
+    if (hasFailed()) {
       throw error;
     }
     if (isIndexedDbOpenRecoveryError(heartbeatError)) {
@@ -386,13 +471,22 @@ async function processClaimedUploadTransfer(
             normalizeMediaUploadError(interruptionError),
           );
     if (isAuthRedirectError(failureError)) {
+      if (hasFailed()) {
+        throw failureError;
+      }
       await markAuthRedirectUploadTransferRetryable(transfer, heartbeat.getClaimedAt());
       throw failureError;
     }
 
     if (failureError instanceof MediaUploadCompletionTerminalError) {
+      if (hasFailed()) {
+        throw failureError;
+      }
       await markUploadTransferCompletionTerminal(transfer, failureError);
       return;
+    }
+    if (hasFailed()) {
+      throw failureError;
     }
     await markUploadTransferFailed(transfer, heartbeat.getClaimedAt(), failureError);
   }
@@ -401,12 +495,16 @@ async function processClaimedUploadTransfer(
 export async function processDueMediaUploadTransfersForWorkspace(
   workspaceId: string,
   signal: AbortSignal,
+  hasFailed: () => boolean,
 ): Promise<void> {
-  if (isBrowserOnline() === false || signal.aborted) {
+  if (isBrowserOnline() === false || signal.aborted || hasFailed()) {
     return;
   }
 
   const cloudSettings = await loadCloudSettings();
+  if (hasFailed()) {
+    return;
+  }
   if (
     cloudSettings === null
     || cloudSettings.cloudState !== "linked"
@@ -416,16 +514,31 @@ export async function processDueMediaUploadTransfersForWorkspace(
   }
 
   const installationId = requireCloudInstallationId(cloudSettings);
+  if (hasFailed()) {
+    return;
+  }
   await recoverStaleUploadTransferClaims(workspaceId, new Date().toISOString());
+  if (hasFailed()) {
+    return;
+  }
   while (true) {
-    if (signal.aborted) {
+    if (signal.aborted || hasFailed()) {
       return;
     }
     const transfer = await claimNextDueUploadTransfer(workspaceId, new Date().toISOString());
+    if (hasFailed()) {
+      return;
+    }
     if (transfer === null) {
       return;
     }
 
-    await processClaimedUploadTransfer(transfer, installationId, signal);
+    if (hasFailed()) {
+      return;
+    }
+    await processClaimedUploadTransfer(transfer, installationId, signal, hasFailed);
+    if (hasFailed()) {
+      return;
+    }
   }
 }

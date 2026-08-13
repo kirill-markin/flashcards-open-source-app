@@ -48,6 +48,7 @@ export function processDueMediaUploadTransfersForWorkspace(testWorkspaceId: stri
   return runMediaUploadTransferRunner(
     testWorkspaceId,
     new AbortController().signal,
+    (): boolean => false,
   );
 }
 
@@ -55,7 +56,7 @@ export function runDueMediaUploadTransfersForWorkspace(
   testWorkspaceId: string,
   signal: AbortSignal,
 ): Promise<void> {
-  return runMediaUploadTransferRunner(testWorkspaceId, signal);
+  return runMediaUploadTransferRunner(testWorkspaceId, signal, (): boolean => false);
 }
 
 function toTestUuidFromHexDigest(hexDigest: string): string {

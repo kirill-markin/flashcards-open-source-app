@@ -27,11 +27,23 @@ function isAcknowledgedPushStatus(status: SyncPushResult["operations"][number]["
 
 export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFlags> {
   let currentOutbox = await listOutboxRecords(input.workspaceId);
+  if (input.hasFailed()) {
+    return {
+      didChangeProgressHistory: false,
+      didChangeReviewSchedule: false,
+    };
+  }
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   let didChangeProgressHistory = false;
   let didChangeReviewSchedule = false;
 
   while (currentOutbox.length > 0) {
+    if (input.hasFailed()) {
+      return {
+        didChangeProgressHistory,
+        didChangeReviewSchedule,
+      };
+    }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
     const batch = currentOutbox.slice(0, 100);
     const batchIncludesProgressReviewEvents = batch.some(isProgressReviewEventOperation);
@@ -48,12 +60,30 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
         webAppVersion,
         batch.map((record) => record.operation),
       );
+      if (input.hasFailed()) {
+        return {
+          didChangeProgressHistory,
+          didChangeReviewSchedule,
+        };
+      }
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
 
       for (const result of pushResult.operations) {
         if (isAcknowledgedPushStatus(result.status)) {
+          if (input.hasFailed()) {
+            return {
+              didChangeProgressHistory,
+              didChangeReviewSchedule,
+            };
+          }
           input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
           await deleteOutboxRecord(input.workspaceId, result.operationId);
+          if (input.hasFailed()) {
+            return {
+              didChangeProgressHistory,
+              didChangeReviewSchedule,
+            };
+          }
           if (reviewScheduleOperationIds.has(result.operationId)) {
             didChangeReviewSchedule = true;
           }
@@ -67,21 +97,36 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
       if (isIndexedDbOpenRecoveryError(error)) {
         throw error;
       }
+      if (input.hasFailed()) {
+        throw error;
+      }
 
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
       const errorMessage = getErrorMessage(error);
       for (const record of batch) {
+        if (input.hasFailed()) {
+          throw error;
+        }
         input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
         await putOutboxRecord({
           ...record,
           attemptCount: record.attemptCount + 1,
           lastError: errorMessage,
         });
+        if (input.hasFailed()) {
+          throw error;
+        }
       }
       throw error;
     }
 
     currentOutbox = await listOutboxRecords(input.workspaceId);
+    if (input.hasFailed()) {
+      return {
+        didChangeProgressHistory,
+        didChangeReviewSchedule,
+      };
+    }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   }
 

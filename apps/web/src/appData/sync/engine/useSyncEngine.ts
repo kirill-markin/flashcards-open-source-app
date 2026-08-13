@@ -610,6 +610,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       await processDueMediaUploadTransfersForWorkspace(
         workspace.workspaceId,
         abortController.signal,
+        indexedDbOpenRecoveryState.hasFailed,
       );
     })().catch((error: unknown): never => {
       markIndexedDbOpenRecoveryFailure(error);
@@ -772,6 +773,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           workspaceId,
           installationId,
           syncRunId,
+          hasFailed: indexedDbOpenRecoveryState.hasFailed,
           isOnlyWorkspaceForUser: isOnlyWorkspaceOfAccount(availableWorkspacesRef.current, workspaceId),
           requireWorkspaceSyncNotDiscarded: requireCurrentWorkspaceSync,
           publishWorkspaceSettings: publishCurrentWorkspaceSettings,
