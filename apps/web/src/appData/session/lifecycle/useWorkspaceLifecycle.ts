@@ -12,6 +12,7 @@ import {
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
 import type { TranslationKey } from "../../../i18n";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { normalizeCaughtError, setWebObservabilityUser } from "../../../observability/webObservability";
@@ -94,6 +95,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     clearConfirmedUserScopedState,
   } = params;
   const resumePromiseRef = useRef<Promise<void> | null>(null);
+  const indexedDbOpenRecoveryFailedRef = useRef<boolean>(false);
 
   const initialize = useCallback(async function initialize(): Promise<void> {
     const shouldPreserveWarmStartState = sessionLoadState === "ready"
@@ -294,6 +296,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   }, [revalidateActiveSession, runSyncSilently, setErrorMessage, setSessionErrorMessage, setSessionTechnicalError, setTechnicalError]);
 
   const resumeInBackground = useCallback(async function resumeInBackground(): Promise<void> {
+    if (indexedDbOpenRecoveryFailedRef.current) {
+      return;
+    }
+
     const activeResume = resumePromiseRef.current;
     if (activeResume !== null) {
       return activeResume;
@@ -317,8 +323,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             return;
           }
 
+          const isIndexedDbOpenRecoveryFailure = isIndexedDbOpenRecoveryError(error);
+          if (isIndexedDbOpenRecoveryFailure) {
+            indexedDbOpenRecoveryFailedRef.current = true;
+          }
+
           lastError = error;
-          if (attemptNumber === resumeRetryCount) {
+          if (isIndexedDbOpenRecoveryFailure || attemptNumber === resumeRetryCount) {
             break;
           }
 
