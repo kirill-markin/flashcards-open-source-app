@@ -10,6 +10,7 @@ import {
   type MediaBlobCacheRecord,
   type MediaTransferQueueRecord,
 } from "../../../localDb/mediaTransfers";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type {
   MediaAsset,
@@ -268,6 +269,10 @@ async function runMultipartUploadSession(
     try {
       assertUploadedMediaAssetMatchesTransfer(transfer, result.mediaAsset);
     } catch (error) {
+      if (isIndexedDbOpenRecoveryError(error)) {
+        throw error;
+      }
+
       if (result.retryableCompletionCause !== null) {
         throw new MediaUploadCompletionTerminalError(
           "interrupted",
@@ -279,6 +284,10 @@ async function runMultipartUploadSession(
     }
     return result;
   } catch (error) {
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
+
     if (
       error instanceof MediaUploadCompletionTerminalError
       || isSameSessionCompletionRetryError(error)
@@ -316,6 +325,10 @@ async function uploadClaimedMediaTransfer(
   try {
     verifiedBytes = await loadVerifiedUploadBytes(transfer);
   } catch (error) {
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
+
     const abortError = await abortUploadSessionAfterFailure(transfer, sessionCreateResult.uploadSession.sessionId);
     throw combineUploadFailureWithAbortFailure(error, abortError);
   }
@@ -355,6 +368,13 @@ async function processClaimedUploadTransfer(
     });
   } catch (error) {
     const heartbeatError = await heartbeat.stop();
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
+    if (isIndexedDbOpenRecoveryError(heartbeatError)) {
+      throw heartbeatError;
+    }
+
     const interruptionError = heartbeatError ?? error;
     const failureError = error instanceof MediaUploadCompletionTerminalError
       ? error

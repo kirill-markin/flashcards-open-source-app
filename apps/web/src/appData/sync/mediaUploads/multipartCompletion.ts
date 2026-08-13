@@ -7,6 +7,7 @@ import {
   isAuthRedirectError,
 } from "../../../api";
 import type { MediaTransferQueueRecord } from "../../../localDb/mediaTransfers";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import type {
   CompleteMediaAssetUploadPartInput,
   MediaAsset,
@@ -126,6 +127,10 @@ async function validateCompletionOwnership(
     await heartbeat.throwIfFailed();
     throwIfUploadLifecycleCancelled(signal);
   } catch (error) {
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
+
     if (retryableCompletionCause !== null) {
       throw new MediaUploadCompletionTerminalError(
         "interrupted",
@@ -167,6 +172,10 @@ export async function completeMultipartUploadSession(
         retryableCompletionCause: lastRetryableCompletionError,
       };
     } catch (error) {
+      if (isIndexedDbOpenRecoveryError(error)) {
+        throw error;
+      }
+
       if (error instanceof MediaUploadCompletionTerminalError) {
         throw error;
       }
@@ -202,6 +211,10 @@ export async function completeMultipartUploadSession(
       try {
         await waitForCompletionRetry(delayMs, heartbeat, signal);
       } catch (interruptionError) {
+        if (isIndexedDbOpenRecoveryError(interruptionError)) {
+          throw interruptionError;
+        }
+
         throw new MediaUploadCompletionTerminalError(
           "interrupted",
           error,
@@ -246,7 +259,15 @@ function describeUploadSessionCleanupFailure(primaryFailure: MediaUploadFailure,
 }
 
 export function combineUploadFailureWithAbortFailure(primaryError: unknown, abortError: unknown | null): unknown {
-  if (abortError === null || isAuthRedirectError(primaryError)) {
+  if (abortError === null || isIndexedDbOpenRecoveryError(primaryError)) {
+    return primaryError;
+  }
+
+  if (isIndexedDbOpenRecoveryError(abortError)) {
+    return abortError;
+  }
+
+  if (isAuthRedirectError(primaryError)) {
     return primaryError;
   }
 

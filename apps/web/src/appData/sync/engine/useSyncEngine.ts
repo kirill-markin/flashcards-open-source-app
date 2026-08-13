@@ -9,6 +9,12 @@ import {
   isAuthRedirectError,
 } from "../../../api";
 import {
+  isIndexedDbOpenRecoveryFailureMark,
+  ownsIndexedDbOpenRecoveryFailure,
+  type IndexedDbOpenRecoveryMarkResult,
+  type IndexedDbOpenRecoveryState,
+} from "../../../appError/AppErrorContext";
+import {
   loadCloudSettings,
 } from "../../../localDb/sync/cloudSettings";
 import {
@@ -17,7 +23,6 @@ import {
 import {
   loadWorkspaceSettings,
 } from "../../../localDb/cards/workspace";
-import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import type {
   Card,
   CloudSettings,
@@ -96,6 +101,7 @@ type UseSyncEngineParams = Readonly<{
   setIsSyncing: Dispatch<SetStateAction<boolean>>;
   setErrorMessage: Dispatch<SetStateAction<string>>;
   setTechnicalError: Dispatch<SetStateAction<Error | null>>;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
 }>;
 
 type SyncEngine = Readonly<{
@@ -184,19 +190,9 @@ function isLinkedMediaUploadCloudSettings(
 
 function runMediaUploadTransfersInBackground(
   mediaUploadTask: Promise<void>,
-  userId: string,
-  workspaceId: string,
+  reportError: (error: unknown) => void,
 ): void {
-  void mediaUploadTask.catch((error: unknown): void => {
-    captureAppOperationError(error, {
-      feature: "sync",
-      operation: "media_upload_transfers",
-      userId,
-      workspaceId,
-      installationId: null,
-      entityId: null,
-    });
-  });
+  void mediaUploadTask.catch(reportError);
 }
 
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
@@ -212,6 +208,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     setIsSyncing,
     setErrorMessage,
     setTechnicalError,
+    indexedDbOpenRecoveryState,
   } = params;
   const activeWorkspaceRef = useRef<WorkspaceSummary | null>(activeWorkspace);
   const availableWorkspacesRef = useRef<ReadonlyArray<WorkspaceSummary>>(availableWorkspaces);
@@ -281,6 +278,20 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     mediaUploadRetryTimerIdsRef.current.clear();
   }, []);
+
+  const markIndexedDbOpenRecoveryFailure = useCallback(function markIndexedDbOpenRecoveryFailure(
+    error: unknown,
+  ): IndexedDbOpenRecoveryMarkResult {
+    const markResult = indexedDbOpenRecoveryState.markFailed(error);
+    if (isIndexedDbOpenRecoveryFailureMark(markResult) === false) {
+      return markResult;
+    }
+
+    needsResyncWorkspaceIdsRef.current.clear();
+    mediaUploadNeedsRunWorkspaceIdsRef.current.clear();
+    clearAllMediaUploadRetryTimers();
+    return markResult;
+  }, [clearAllMediaUploadRetryTimers, indexedDbOpenRecoveryState]);
 
   const abortAllMediaUploadTransfers = useCallback(function abortAllMediaUploadTransfers(): void {
     for (const controller of mediaUploadAbortControllersRef.current.values()) {
@@ -379,7 +390,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   }, []);
 
   const refreshLocalMetadata = useCallback(async function refreshLocalMetadata(workspaceId: string): Promise<void> {
-    if (isDiscardingAllSyncWorkRef.current) {
+    if (isDiscardingAllSyncWorkRef.current || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -387,8 +398,19 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const [workspaceSettings, cloudSettings] = await runLocalDataRead(() => Promise.all([
       loadWorkspaceSettings(workspaceId),
       loadCloudSettings(),
-    ]));
-    if (metadataGeneration !== syncGenerationRef.current || isDiscardingAllSyncWorkRef.current) {
+    ])).catch((error: unknown): never => {
+      const normalizedError = normalizeCaughtError(error);
+      if (isIndexedDbOpenRecoveryFailureMark(markIndexedDbOpenRecoveryFailure(normalizedError))) {
+        throw normalizedError;
+      }
+
+      throw error;
+    });
+    if (
+      metadataGeneration !== syncGenerationRef.current
+      || isDiscardingAllSyncWorkRef.current
+      || indexedDbOpenRecoveryState.hasFailed()
+    ) {
       return;
     }
 
@@ -396,19 +418,22 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     if (isVisibleWorkspace(workspaceId)) {
       setWorkspaceSettings(workspaceSettings);
     }
-  }, [isVisibleWorkspace, runLocalDataRead, setCloudSettings, setWorkspaceSettings]);
+  }, [indexedDbOpenRecoveryState, isVisibleWorkspace, markIndexedDbOpenRecoveryFailure, runLocalDataRead, setCloudSettings, setWorkspaceSettings]);
 
   const refreshWorkspaceView = useCallback(async function refreshWorkspaceView(workspaceId: string): Promise<void> {
     const metadataGeneration = syncGenerationRef.current;
     await refreshLocalMetadata(workspaceId);
-    if (metadataGeneration !== syncGenerationRef.current) {
+    if (
+      metadataGeneration !== syncGenerationRef.current
+      || indexedDbOpenRecoveryState.hasFailed()
+    ) {
       return;
     }
 
     if (isVisibleWorkspace(workspaceId)) {
       bumpLocalReadVersion();
     }
-  }, [bumpLocalReadVersion, isVisibleWorkspace, refreshLocalMetadata]);
+  }, [bumpLocalReadVersion, indexedDbOpenRecoveryState, isVisibleWorkspace, refreshLocalMetadata]);
 
   const publishWorkspaceSettings = useCallback(function publishWorkspaceSettings(
     workspaceId: string,
@@ -420,16 +445,44 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   }, [isVisibleWorkspace, setWorkspaceSettings]);
 
   const reportGlobalSyncError = useCallback(function reportGlobalSyncError(report: SyncFailureReport): void {
+    const markResult = markIndexedDbOpenRecoveryFailure(report.error);
+    if (ownsIndexedDbOpenRecoveryFailure(markResult) === false && indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setErrorMessage(getErrorMessage(report.error));
     if (report.wasCaptured) {
       setTechnicalError(report.error);
     } else {
       setTechnicalError(null);
     }
-  }, [setErrorMessage, setTechnicalError]);
+  }, [indexedDbOpenRecoveryState, markIndexedDbOpenRecoveryFailure, setErrorMessage, setTechnicalError]);
 
   const ignoreSyncError = useCallback(function ignoreSyncError(_report: SyncFailureReport): void {
   }, []);
+
+  const reportMediaUploadError = useCallback(function reportMediaUploadError(
+    error: unknown,
+    userId: string,
+    workspaceId: string,
+  ): void {
+    const normalizedError = normalizeCaughtError(error);
+    const markResult = markIndexedDbOpenRecoveryFailure(normalizedError);
+    const wasCaptured = captureAppOperationError(normalizedError, {
+      feature: "sync",
+      operation: "media_upload_transfers",
+      userId,
+      workspaceId,
+      installationId: null,
+      entityId: null,
+    });
+    if (isIndexedDbOpenRecoveryFailureMark(markResult)) {
+      reportGlobalSyncError({
+        error: normalizedError,
+        wasCaptured,
+      });
+    }
+  }, [markIndexedDbOpenRecoveryFailure, reportGlobalSyncError]);
 
   const readCurrentRunnableMediaUploadSession = useCallback(function readCurrentRunnableMediaUploadSession(
     workspace: WorkspaceSummary,
@@ -437,6 +490,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const currentSession = sessionRef.current;
     if (
       isDiscardingAllSyncWorkRef.current
+      || indexedDbOpenRecoveryState.hasFailed()
       || isSyncEngineMountedRef.current === false
       || sessionLoadStateRef.current !== "ready"
       || currentSession === null
@@ -449,7 +503,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
 
     return currentSession;
-  }, []);
+  }, [indexedDbOpenRecoveryState]);
 
   const loadRunnableMediaUploadSession = useCallback(async function loadRunnableMediaUploadSession(
     workspace: WorkspaceSummary,
@@ -474,14 +528,23 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const scheduleMediaUploadRetryTimerForWorkspace = useCallback(async function scheduleMediaUploadRetryTimerForWorkspace(
     workspace: WorkspaceSummary,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const mediaUploadLifecycleGeneration = mediaUploadLifecycleGenerationRef.current;
     if (await loadRunnableMediaUploadSession(workspace) === null) {
+      return;
+    }
+
+    if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
     const nextAttemptAt = await loadNextPendingMediaTransferAttemptAtByKind(workspace.workspaceId, "upload");
     if (
       mediaUploadLifecycleGeneration !== mediaUploadLifecycleGenerationRef.current
+      || indexedDbOpenRecoveryState.hasFailed()
       || nextAttemptAt === null
       || await loadRunnableMediaUploadSession(workspace) === null
     ) {
@@ -494,21 +557,33 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
 
     clearMediaUploadRetryTimer(workspace.workspaceId);
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const timerId = window.setTimeout((): void => {
       if (mediaUploadLifecycleGeneration !== mediaUploadLifecycleGenerationRef.current) {
         return;
       }
 
       mediaUploadRetryTimerIdsRef.current.delete(workspace.workspaceId);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       runMediaUploadTransfersForWorkspaceRef.current(workspace);
     }, delayMs);
     mediaUploadRetryTimerIdsRef.current.set(workspace.workspaceId, timerId);
-  }, [clearMediaUploadRetryTimer, loadRunnableMediaUploadSession]);
+  }, [clearMediaUploadRetryTimer, indexedDbOpenRecoveryState, loadRunnableMediaUploadSession]);
 
   const runMediaUploadTransfersForWorkspace = useCallback(function runMediaUploadTransfersForWorkspace(
     workspace: WorkspaceSummary,
   ): void {
     clearMediaUploadRetryTimer(workspace.workspaceId);
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const currentSession = readCurrentRunnableMediaUploadSession(workspace);
     if (currentSession === null) {
       return;
@@ -528,11 +603,18 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         return;
       }
 
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       await processDueMediaUploadTransfersForWorkspace(
         workspace.workspaceId,
         abortController.signal,
       );
-    })().finally(() => {
+    })().catch((error: unknown): never => {
+      markIndexedDbOpenRecoveryFailure(error);
+      throw error;
+    }).finally(() => {
       if (mediaUploadAbortControllersRef.current.get(workspace.workspaceId) === abortController) {
         mediaUploadAbortControllersRef.current.delete(workspace.workspaceId);
       }
@@ -543,6 +625,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         mediaUploadPromisesRef.current.delete(workspace.workspaceId);
         const needsAnotherRun = mediaUploadNeedsRunWorkspaceIdsRef.current.has(workspace.workspaceId);
         mediaUploadNeedsRunWorkspaceIdsRef.current.delete(workspace.workspaceId);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         if (needsAnotherRun && discardedSyncWorkspaceIdsRef.current.has(workspace.workspaceId) === false) {
           runMediaUploadTransfersForWorkspaceRef.current(workspace);
           return;
@@ -550,17 +636,23 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
         runMediaUploadTransfersInBackground(
           scheduleMediaUploadRetryTimerForWorkspace(workspace),
-          currentSession.userId,
-          workspace.workspaceId,
+          (error: unknown): void => {
+            reportMediaUploadError(error, currentSession.userId, workspace.workspaceId);
+          },
         );
       }
     });
     mediaUploadPromisesRef.current.set(workspace.workspaceId, mediaUploadTask);
-    runMediaUploadTransfersInBackground(mediaUploadTask, currentSession.userId, workspace.workspaceId);
+    runMediaUploadTransfersInBackground(mediaUploadTask, (error: unknown): void => {
+      reportMediaUploadError(error, currentSession.userId, workspace.workspaceId);
+    });
   }, [
     clearMediaUploadRetryTimer,
+    indexedDbOpenRecoveryState,
     loadRunnableMediaUploadSession,
+    markIndexedDbOpenRecoveryFailure,
     readCurrentRunnableMediaUploadSession,
+    reportMediaUploadError,
     scheduleMediaUploadRetryTimerForWorkspace,
   ]);
 
@@ -605,7 +697,12 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   ): Promise<void> {
     // Local writes may happen during warm start, but remote sync stays paused
     // until auth verification confirms which account owns this browser state.
-    if (isDiscardingAllSyncWorkRef.current || session === null || sessionVerificationState !== "verified") {
+    if (
+      isDiscardingAllSyncWorkRef.current
+      || indexedDbOpenRecoveryState.hasFailed()
+      || session === null
+      || sessionVerificationState !== "verified"
+    ) {
       return;
     }
 
@@ -626,7 +723,6 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const syncTask = (async (): Promise<void> => {
       let syncInstallationId: string | null = null;
-      let didFailWithIndexedDbOpenRecoveryError = false;
       const syncRunId = createSyncRunId();
       const requireCurrentWorkspaceSync = function requireCurrentWorkspaceSync(currentWorkspaceId: string): void {
         requireWorkspaceSyncNotDiscarded(currentWorkspaceId, syncGeneration);
@@ -643,11 +739,32 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         await refreshWorkspaceView(currentWorkspaceId);
         requireCurrentWorkspaceSync(currentWorkspaceId);
       };
+      const observeAndReportSyncFailure = function observeAndReportSyncFailure(error: Error): Error {
+        Object.assign(error, {
+          syncRunId,
+        });
+        const wasCaptured = observeSyncFailure({
+          error,
+          userId: session.userId,
+          workspaceId,
+          installationId: syncInstallationId,
+        });
+        const observedError = attachSyncFailureObservation(error, wasCaptured);
+        reportSyncError({
+          error: observedError,
+          wasCaptured,
+        });
+        return observedError;
+      };
 
       try {
         requireCurrentWorkspaceSync(workspaceId);
         const cloudSettings = await loadCloudSettings();
         requireCurrentWorkspaceSync(workspaceId);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         const installationId = requireCloudInstallationId(cloudSettings);
         syncInstallationId = installationId;
         const syncFlags = await runWorkspaceRemoteSync({
@@ -661,7 +778,15 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           refreshWorkspaceView: refreshCurrentWorkspaceView,
         });
 
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         await refreshCurrentWorkspaceView(workspaceId);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         if (syncFlags.didChangeProgressHistory) {
           invalidateProgress();
         }
@@ -671,6 +796,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         setErrorMessage("");
         runMediaUploadTransfersForWorkspace(workspace);
       } catch (error) {
+        const normalizedError = normalizeCaughtError(error);
+        if (isIndexedDbOpenRecoveryFailureMark(markIndexedDbOpenRecoveryFailure(normalizedError))) {
+          throw observeAndReportSyncFailure(normalizedError);
+        }
+
         if (syncGeneration !== syncGenerationRef.current) {
           return;
         }
@@ -693,23 +823,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           return;
         }
 
-        const normalizedError = normalizeCaughtError(error);
-        didFailWithIndexedDbOpenRecoveryError = isIndexedDbOpenRecoveryError(normalizedError);
-        Object.assign(normalizedError, {
-          syncRunId,
-        });
-        const wasCaptured = observeSyncFailure({
-          error: normalizedError,
-          userId: session.userId,
-          workspaceId,
-          installationId: syncInstallationId,
-        });
-        const observedError = attachSyncFailureObservation(normalizedError, wasCaptured);
-        reportSyncError({
-          error: observedError,
-          wasCaptured,
-        });
-        throw observedError;
+        throw observeAndReportSyncFailure(normalizedError);
       } finally {
         if (syncGeneration === syncGenerationRef.current) {
           syncPromisesRef.current.delete(workspaceId);
@@ -720,7 +834,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           needsResyncWorkspaceIdsRef.current.delete(workspaceId);
           if (
             needsResync
-            && didFailWithIndexedDbOpenRecoveryError === false
+            && indexedDbOpenRecoveryState.hasFailed() === false
             && discardedSyncWorkspaceIdsRef.current.has(workspaceId) === false
           ) {
             runSyncInBackground(runSyncForWorkspace(workspace));
@@ -732,6 +846,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     syncPromisesRef.current.set(workspaceId, syncTask);
     return syncTask;
   }, [
+    indexedDbOpenRecoveryState,
+    markIndexedDbOpenRecoveryFailure,
     publishWorkspaceSettings,
     refreshSyncIndicator,
     refreshWorkspaceView,
@@ -778,7 +894,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
 
     void refreshLocalMetadata(activeWorkspace.workspaceId).catch((error: unknown): void => {
-      captureAppOperationError(error, {
+      const normalizedError = normalizeCaughtError(error);
+      const markResult = markIndexedDbOpenRecoveryFailure(normalizedError);
+      const wasCaptured = captureAppOperationError(normalizedError, {
         feature: "sync",
         operation: "refresh_local_metadata",
         userId: session.userId,
@@ -786,12 +904,20 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         installationId: null,
         entityId: null,
       });
+      if (isIndexedDbOpenRecoveryFailureMark(markResult)) {
+        reportGlobalSyncError({
+          error: normalizedError,
+          wasCaptured,
+        });
+      }
     });
     runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     runMediaUploadTransfersForWorkspace(activeWorkspace);
   }, [
     activeWorkspace,
+    markIndexedDbOpenRecoveryFailure,
     refreshLocalMetadata,
+    reportGlobalSyncError,
     runMediaUploadTransfersForWorkspace,
     runSyncForWorkspace,
     session,

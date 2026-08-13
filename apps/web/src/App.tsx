@@ -382,8 +382,6 @@ export function AppShell(): ReactElement {
   const topbarShellRef = useRef<HTMLElement | null>(null);
   const mobileNavigationToggleRef = useRef<HTMLButtonElement | null>(null);
   const mobileNavigationMenuRef = useRef<HTMLDivElement | null>(null);
-  const shownSessionTechnicalErrorRef = useRef<Error | null>(null);
-  const shownGlobalTechnicalErrorRef = useRef<Error | null>(null);
   const sessionRestoringMessage = sessionVerificationState === "unverified" ? t("loading.restoringSession") : "";
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
@@ -533,34 +531,6 @@ export function AppShell(): ReactElement {
       void completeAccountDeletion();
     }
   }, [accountDeletionErrorMessage, completeAccountDeletion, isAccountDeletionPendingState, isAccountDeletionSubmitting, isSessionVerified]);
-
-  useEffect(() => {
-    if (sessionLoadState !== "error" || sessionTechnicalError === null) {
-      shownSessionTechnicalErrorRef.current = null;
-      return;
-    }
-
-    if (shownSessionTechnicalErrorRef.current === sessionTechnicalError) {
-      return;
-    }
-
-    shownSessionTechnicalErrorRef.current = sessionTechnicalError;
-    showCapturedTechnicalError(sessionTechnicalError);
-  }, [sessionLoadState, sessionTechnicalError, showCapturedTechnicalError]);
-
-  useEffect(() => {
-    if (errorMessage === "" || technicalError === null) {
-      shownGlobalTechnicalErrorRef.current = null;
-      return;
-    }
-
-    if (shownGlobalTechnicalErrorRef.current === technicalError) {
-      return;
-    }
-
-    shownGlobalTechnicalErrorRef.current = technicalError;
-    showCapturedTechnicalError(technicalError);
-  }, [errorMessage, showCapturedTechnicalError, technicalError]);
 
   function toggleMobileNavigation(): void {
     setIsMobileNavigationOpen((currentValue: boolean): boolean => !currentValue);

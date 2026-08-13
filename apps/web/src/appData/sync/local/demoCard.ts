@@ -4,6 +4,7 @@ import {
   resolveLocaleState,
   translateMessage,
 } from "../../../i18n/runtime";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { nowIso } from "../../domain";
 import {
@@ -85,7 +86,8 @@ function buildDemoCardText(): DemoCardText {
 // Every condition is decided by the caller and passed in, so this stays a pure guard over
 // its input and never re-reads workspace state.
 //
-// Failing to seed must never fail a sync run, so a seed failure is reported and swallowed.
+// Ordinary seed failures must never fail a sync run, so they are reported and swallowed.
+// An IndexedDB open recovery failure must escape so the page-lifetime recovery latch can stop all local work.
 export async function seedDemoCardForNewWorkspace(
   input: SeedDemoCardInput,
 ): Promise<LocalCardMutationResult | null> {
@@ -117,6 +119,10 @@ export async function seedDemoCardForNewWorkspace(
       installationId: input.installationId,
       entityId: null,
     });
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
+
     return null;
   }
 }

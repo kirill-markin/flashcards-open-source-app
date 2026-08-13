@@ -9,6 +9,10 @@ import {
   resetWorkspaceProgress as resetWorkspaceProgressRequest,
   selectWorkspace,
 } from "../../../api";
+import {
+  ownsIndexedDbOpenRecoveryFailure,
+  type IndexedDbOpenRecoveryState,
+} from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { normalizeCaughtError } from "../../../observability/webObservability";
@@ -38,6 +42,7 @@ import type {
 type UseWorkspaceActionsParams =
   & Readonly<{
     t: (key: TranslationKey) => string;
+    indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
     activateWorkspace: (
       currentSession: SessionInfo,
       currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
@@ -100,6 +105,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     activateWorkspace,
     runSync,
     discardWorkspaceSync,
+    indexedDbOpenRecoveryState,
   } = params;
 
   const chooseWorkspace = useCallback(async function chooseWorkspace(workspaceId: string): Promise<void> {
@@ -126,6 +132,10 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         selectedWorkspace.workspaceId,
         null,
       ));
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       await activateWorkspace(verifiedSession, availableWorkspaces, selectedWorkspace);
     } catch (error) {
       if (isAuthRedirectError(error)) {
@@ -133,6 +143,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       }
 
       const normalizedError = normalizeCaughtError(error);
+      const markResult = indexedDbOpenRecoveryState.markFailed(normalizedError);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
       if (isExpectedError === false) {
@@ -146,6 +157,10 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
           nextErrorMessage,
         ), normalizedError);
       }
+      if (indexedDbOpenRecoveryState.hasFailed() && ownsIndexedDbOpenRecoveryFailure(markResult) === false) {
+        return;
+      }
+
       setErrorMessage(nextErrorMessage);
       setTechnicalError(isExpectedError ? null : normalizedError);
     } finally {
@@ -156,6 +171,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     activeWorkspace,
     availableWorkspaces,
     cloudSettings,
+    indexedDbOpenRecoveryState,
     session,
     sessionVerificationState,
     t,
@@ -193,6 +209,10 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         createdWorkspace.workspaceId,
         null,
       ));
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       const nextWorkspaces = replaceWorkspaceSummary(availableWorkspaces, createdWorkspace);
       await activateWorkspace(verifiedSession, nextWorkspaces, createdWorkspace);
     } catch (error) {
@@ -201,6 +221,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       }
 
       const normalizedError = normalizeCaughtError(error);
+      const markResult = indexedDbOpenRecoveryState.markFailed(normalizedError);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
       if (isExpectedError === false) {
@@ -214,6 +235,10 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
           nextErrorMessage,
         ), normalizedError);
       }
+      if (indexedDbOpenRecoveryState.hasFailed() && ownsIndexedDbOpenRecoveryFailure(markResult) === false) {
+        throw error;
+      }
+
       setErrorMessage(nextErrorMessage);
       setTechnicalError(isExpectedError ? null : normalizedError);
       throw error;
@@ -225,6 +250,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     activeWorkspace,
     availableWorkspaces,
     cloudSettings,
+    indexedDbOpenRecoveryState,
     session,
     sessionVerificationState,
     t,
@@ -304,6 +330,10 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         deletedWorkspaceId: response.deletedWorkspaceId,
         replacementWorkspaceId: response.workspace.workspaceId,
       });
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       discardWorkspaceSync(response.deletedWorkspaceId);
       const nextWorkspaces = replaceWorkspaceSummary(
         availableWorkspaces.filter((workspace) => workspace.workspaceId !== response.deletedWorkspaceId),
@@ -315,6 +345,10 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         nextWorkspaceIds: nextWorkspaces.map((workspace) => workspace.workspaceId),
       });
       await activateWorkspace(verifiedSession, nextWorkspaces, response.workspace);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setErrorMessage("");
     } catch (error) {
       if (isAuthRedirectError(error)) {
@@ -326,6 +360,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       }
 
       const normalizedError = normalizeCaughtError(error);
+      const markResult = indexedDbOpenRecoveryState.markFailed(normalizedError);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
       if (isExpectedError === false) {
@@ -334,6 +369,10 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
           errorMessage: nextErrorMessage,
         }, normalizedError);
       }
+      if (indexedDbOpenRecoveryState.hasFailed() && ownsIndexedDbOpenRecoveryFailure(markResult) === false) {
+        throw error;
+      }
+
       setErrorMessage(nextErrorMessage);
       setTechnicalError(isExpectedError ? null : normalizedError);
       throw error;
@@ -344,6 +383,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     activateWorkspace,
     availableWorkspaces,
     discardWorkspaceSync,
+    indexedDbOpenRecoveryState,
     session,
     sessionVerificationState,
     t,

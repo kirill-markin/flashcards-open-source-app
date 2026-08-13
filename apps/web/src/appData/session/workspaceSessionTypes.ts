@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { LocalBrowserDataCleanupReason } from "../../accountDeletion";
+import type { IndexedDbOpenRecoveryState } from "../../appError/AppErrorContext";
 import type { TranslationKey } from "../../i18n";
 import type {
   CloudSettings,
@@ -51,6 +52,7 @@ export type WorkspaceSessionUiActions = Readonly<{
 export type UseWorkspaceSessionParams =
   & Readonly<{
     t: (key: TranslationKey) => string;
+    indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   }>
   & WorkspaceSessionState
   & WorkspaceSessionSetters
