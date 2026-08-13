@@ -80,6 +80,10 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   const clearConfirmedUserScopedState = useCallback(async function clearConfirmedUserScopedState(
     reason: LocalBrowserDataCleanupReason,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     workspaceBootstrapGenerationRef.current += 1;
     deferredBootstrapWorkspaceRef.current = null;
     setSession(null);
@@ -92,10 +96,15 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setTechnicalError(null);
     resetUserScopedUiState();
     await discardAllSyncWork(async (): Promise<void> => {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       await clearAllLocalBrowserData(reason);
     });
   }, [
     discardAllSyncWork,
+    indexedDbOpenRecoveryState,
     resetUserScopedUiState,
     setActiveWorkspace,
     setAvailableWorkspaces,
@@ -281,6 +290,10 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     logWorkspaceTransition("workspace_activate_started", {
       workspaceId: workspace.workspaceId,
       selectedWorkspaceId: currentSession.selectedWorkspaceId,
@@ -293,6 +306,10 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       indexedDbOpenRecoveryState.markFailed(error);
       throw error;
     }
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     logWorkspaceTransition("workspace_activate_cloud_settings_saved", {
       workspaceId: workspace.workspaceId,
       selectedWorkspaceId: workspace.workspaceId,

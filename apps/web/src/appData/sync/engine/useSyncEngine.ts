@@ -557,6 +557,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
 
     clearMediaUploadRetryTimer(workspace.workspaceId);
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const timerId = window.setTimeout((): void => {
       if (mediaUploadLifecycleGeneration !== mediaUploadLifecycleGenerationRef.current) {
         return;

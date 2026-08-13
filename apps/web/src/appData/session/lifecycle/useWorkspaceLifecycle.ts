@@ -404,6 +404,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             break;
           }
 
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            break;
+          }
+
           await waitForDelay(resumeRetryDelayMs);
           attemptNumber += 1;
         }
