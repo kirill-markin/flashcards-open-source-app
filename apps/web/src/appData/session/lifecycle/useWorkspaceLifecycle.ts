@@ -11,8 +11,13 @@ import {
   isBrowserReauthRequired,
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
+import {
+  isIndexedDbOpenRecoveryFailureMark,
+  ownsIndexedDbOpenRecoveryFailure,
+  type IndexedDbOpenRecoveryMarkResult,
+  type IndexedDbOpenRecoveryState,
+} from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
-import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { normalizeCaughtError, setWebObservabilityUser } from "../../../observability/webObservability";
@@ -46,6 +51,7 @@ type UseWorkspaceLifecycleParams =
     runSyncSilently: () => Promise<void>;
     resolveInitialWorkspace: (currentSession: SessionInfo) => Promise<void>;
     clearConfirmedUserScopedState: (reason: LocalBrowserDataCleanupReason) => Promise<void>;
+    indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   }>
   & WorkspaceSessionState
   & WorkspaceSessionSetters;
@@ -93,11 +99,15 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     runSyncSilently,
     resolveInitialWorkspace,
     clearConfirmedUserScopedState,
+    indexedDbOpenRecoveryState,
   } = params;
   const resumePromiseRef = useRef<Promise<void> | null>(null);
-  const indexedDbOpenRecoveryFailedRef = useRef<boolean>(false);
 
   const initialize = useCallback(async function initialize(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const shouldPreserveWarmStartState = sessionLoadState === "ready"
       && sessionVerificationState === "unverified"
       && session !== null
@@ -122,10 +132,17 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     try {
       if (consumeLoggedOutMarker()) {
         await clearConfirmedUserScopedState("logout_marker");
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
       }
 
       if (consumeAccountDeletedMarker()) {
         await clearConfirmedUserScopedState("account_deleted_marker");
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         setSession(null);
         setWebObservabilityUser(null);
         setSessionLoadState("deleted");
@@ -137,8 +154,16 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
       const wasBrowserReauthRequired = isBrowserReauthRequired();
       const currentSession = await getSession();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setWebObservabilityUser({ id: currentSession.userId });
       const persistedCloudSettings = await loadCloudSettings();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       const localDataCleanupReason = resolveLocalDataCleanupReasonForVerifiedSession(
         persistedCloudSettings,
         currentSession,
@@ -146,13 +171,24 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       );
       if (localDataCleanupReason !== null) {
         await clearConfirmedUserScopedState(localDataCleanupReason);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
       }
 
       clearBrowserReauthRequired();
       const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
       await putCloudSettings(linkingReadyCloudSettings);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setCloudSettings(linkingReadyCloudSettings);
       await resolveInitialWorkspace(currentSession);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setSessionVerificationState("verified");
     } catch (error) {
       if (isAuthRedirectError(error)) {
@@ -170,6 +206,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       }
 
       const normalizedError = normalizeCaughtError(error);
+      const markResult = indexedDbOpenRecoveryState.markFailed(normalizedError);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const isExpectedError = isExpectedWorkspaceSessionApiError(normalizedError);
       if (isExpectedError === false) {
@@ -178,6 +215,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           sessionVerificationState,
         }, normalizedError);
       }
+      if (indexedDbOpenRecoveryState.hasFailed() && ownsIndexedDbOpenRecoveryFailure(markResult) === false) {
+        return;
+      }
+
       setSessionLoadState("error");
       setSessionErrorMessage(nextErrorMessage);
       setSessionTechnicalError(isExpectedError ? null : normalizedError);
@@ -185,6 +226,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     }
   }, [
     clearConfirmedUserScopedState,
+    indexedDbOpenRecoveryState,
     resolveInitialWorkspace,
     session,
     sessionLoadState,
@@ -215,27 +257,49 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   }, []);
 
   const revalidateActiveSession = useCallback(async function revalidateActiveSession(): Promise<boolean> {
-    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null) {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || sessionLoadState !== "ready"
+      || sessionVerificationState !== "verified"
+      || session === null
+    ) {
       return false;
     }
 
     try {
       const currentSession = await revalidateSessionRequest();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return false;
+      }
+
       if (currentSession.userId !== session.userId) {
         try {
           setWebObservabilityUser({ id: currentSession.userId });
           await clearConfirmedUserScopedState("confirmed_account_switch");
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            return false;
+          }
+
           clearBrowserReauthRequired();
           const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
           await putCloudSettings(linkingReadyCloudSettings);
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            return false;
+          }
+
           setCloudSettings(linkingReadyCloudSettings);
           await resolveInitialWorkspace(currentSession);
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            return false;
+          }
+
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");
           return false;
         } catch (error) {
           const normalizedError = normalizeCaughtError(error);
+          const markResult = indexedDbOpenRecoveryState.markFailed(normalizedError);
           const nextErrorMessage = getErrorMessage(normalizedError);
           const isExpectedError = isExpectedWorkspaceSessionApiError(normalizedError);
           if (isExpectedError === false) {
@@ -244,6 +308,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
               sessionVerificationState,
             }, normalizedError);
           }
+          if (indexedDbOpenRecoveryState.hasFailed() && ownsIndexedDbOpenRecoveryFailure(markResult) === false) {
+            throw createSessionAccountSwitchError(nextErrorMessage);
+          }
+
           setSessionLoadState("error");
           setSessionErrorMessage(nextErrorMessage);
           setErrorMessage(nextErrorMessage);
@@ -269,6 +337,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     }
   }, [
     clearConfirmedUserScopedState,
+    indexedDbOpenRecoveryState,
     resolveInitialWorkspace,
     session,
     sessionLoadState,
@@ -289,14 +358,18 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       await runSyncSilently();
     }
 
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setSessionErrorMessage("");
     setErrorMessage("");
     setSessionTechnicalError(null);
     setTechnicalError(null);
-  }, [revalidateActiveSession, runSyncSilently, setErrorMessage, setSessionErrorMessage, setSessionTechnicalError, setTechnicalError]);
+  }, [indexedDbOpenRecoveryState, revalidateActiveSession, runSyncSilently, setErrorMessage, setSessionErrorMessage, setSessionTechnicalError, setTechnicalError]);
 
   const resumeInBackground = useCallback(async function resumeInBackground(): Promise<void> {
-    if (indexedDbOpenRecoveryFailedRef.current) {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -309,6 +382,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     trackedResumePromise = (async (): Promise<void> => {
       let attemptNumber = 1;
       let lastError: unknown = null;
+      let lastMarkResult: IndexedDbOpenRecoveryMarkResult = "not_recovery";
 
       while (attemptNumber <= resumeRetryCount) {
         try {
@@ -323,13 +397,14 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             return;
           }
 
-          const isIndexedDbOpenRecoveryFailure = isIndexedDbOpenRecoveryError(error);
-          if (isIndexedDbOpenRecoveryFailure) {
-            indexedDbOpenRecoveryFailedRef.current = true;
-          }
+          lastMarkResult = indexedDbOpenRecoveryState.markFailed(error);
 
           lastError = error;
-          if (isIndexedDbOpenRecoveryFailure || attemptNumber === resumeRetryCount) {
+          if (isIndexedDbOpenRecoveryFailureMark(lastMarkResult) || attemptNumber === resumeRetryCount) {
+            break;
+          }
+
+          if (indexedDbOpenRecoveryState.hasFailed()) {
             break;
           }
 
@@ -351,6 +426,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           entityId: null,
         })
         : syncFailureCaptureState;
+      if (indexedDbOpenRecoveryState.hasFailed() && ownsIndexedDbOpenRecoveryFailure(lastMarkResult) === false) {
+        throw normalizedError;
+      }
+
       setErrorMessage(nextErrorMessage);
       setTechnicalError(didCaptureResumeError ? normalizedError : null);
       throw normalizedError;
@@ -362,7 +441,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
     resumePromiseRef.current = trackedResumePromise;
     return trackedResumePromise;
-  }, [activeWorkspace?.workspaceId, runResumeAttempt, session?.userId, setErrorMessage, setTechnicalError]);
+  }, [activeWorkspace?.workspaceId, indexedDbOpenRecoveryState, runResumeAttempt, session?.userId, setErrorMessage, setTechnicalError]);
 
   useEffect(() => {
     if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null) {

@@ -1,6 +1,7 @@
 import { act, useEffect, useState, type ReactElement } from "react";
 import { vi, type Mock } from "vitest";
 import { setNavigationHandlerForTests, resetApiClientStateForTests } from "../../api";
+import type { IndexedDbOpenRecoveryState } from "../../appError/AppErrorContext";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
 import { WARM_START_SNAPSHOT_STORAGE_KEY } from "./activation/warmStart";
@@ -16,6 +17,11 @@ import type { TranslationKey } from "../../i18n";
 import type { SessionLoadState } from "../context/types";
 import type { SessionVerificationState } from "./workspaceSessionTypes";
 import { clearWebSyncCache } from "../../localDb/cache";
+
+const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
+  hasFailed: (): boolean => false,
+  markFailed: () => "not_recovery",
+};
 
 const observabilityMocks = vi.hoisted(() => ({
   addWebBreadcrumbMock: vi.fn(),
@@ -263,6 +269,7 @@ export function TestHarness(props: TestHarnessProps): ReactElement {
 
   const actions = useWorkspaceSession({
     t: (key: TranslationKey): string => key,
+    indexedDbOpenRecoveryState,
     sessionLoadState,
     sessionVerificationState,
     session,
