@@ -42,6 +42,15 @@ import {
 } from "../state/progressScope";
 import { resetProgressTimeContextStateForTests } from "../time/progressTimeContext";
 import type { SessionVerificationState } from "../../session/workspaceSessionTypes";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
+
+const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
+  hasFailed: () => false,
+  isFailed: false,
+  markFailed: () => "not_recovery",
+  signal: new AbortController().signal,
+  throwIfFailed: () => undefined,
+};
 
 const progressSourceMocks = vi.hoisted(() => ({
   loadProgressSummaryMock: vi.fn<(input: Readonly<{ timeZone: string; today: string }>) => Promise<ProgressSummaryPayload>>(),
@@ -279,6 +288,7 @@ function renderProgressSourceHarness(
       progressServerInvalidationVersion: currentProps.progressServerInvalidationVersion,
       leaderboardAutoRefreshEnabled: true,
       canExposeTechnicalErrors,
+      indexedDbOpenRecoveryState,
       sections: currentProps.sections,
     });
     return null;
@@ -343,6 +353,7 @@ export function renderInvalidationHarness(props: HarnessProps): Readonly<{
       progressServerInvalidationVersion,
       leaderboardAutoRefreshEnabled: true,
       canExposeTechnicalErrors: true,
+      indexedDbOpenRecoveryState,
       sections: currentProps.sections,
     });
     return null;

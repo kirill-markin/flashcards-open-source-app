@@ -17,7 +17,10 @@ import { useSyncEngine } from "./useSyncEngine";
 
 const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
   hasFailed: (): boolean => false,
+  isFailed: false,
   markFailed: () => "not_recovery",
+  signal: new AbortController().signal,
+  throwIfFailed: (): void => {},
 };
 
 const syncEngineMocks = vi.hoisted(() => ({

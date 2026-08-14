@@ -269,7 +269,10 @@ async function runMultipartUploadSession(
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
   hasFailed: () => boolean,
+  markFailed: (error: unknown) => void,
+  throwIfFailed: () => void,
 ): Promise<MediaUploadCompletionResult | null> {
+  let hasStartedCompletion = false;
   try {
     const parts = await buildPlannedUploadParts(transfer, uploadSession, verifiedBytes.bytes, hasFailed);
     if (hasFailed() || parts === null) {
@@ -287,6 +290,7 @@ async function runMultipartUploadSession(
     if (hasFailed() || uploadedParts === null) {
       return null;
     }
+    hasStartedCompletion = true;
     const result = await completeMultipartUploadSession(
       transfer,
       uploadSession,
@@ -316,24 +320,40 @@ async function runMultipartUploadSession(
     }
     return result;
   } catch (error) {
+    throwIfFailed();
+    markFailed(error);
+    throwIfFailed();
     if (isIndexedDbOpenRecoveryError(error)) {
       throw error;
     }
     if (hasFailed()) {
       throw error;
     }
-
     if (
       error instanceof MediaUploadCompletionTerminalError
       || isSameSessionCompletionRetryError(error)
     ) {
       throw error;
     }
-
-    const abortError = await abortUploadSessionAfterFailure(transfer, uploadSession.sessionId);
-    if (hasFailed()) {
-      throw error;
+    if (hasStartedCompletion) {
+      try {
+        throwIfUploadLifecycleCancelled(signal);
+      } catch (cancellationError) {
+        throw new MediaUploadCompletionTerminalError(
+          "interrupted",
+          null,
+          normalizeMediaUploadError(cancellationError),
+        );
+      }
     }
+
+    const abortError = await abortUploadSessionAfterFailure(
+      transfer,
+      uploadSession.sessionId,
+      markFailed,
+      throwIfFailed,
+    );
+    throwIfFailed();
     throw combineUploadFailureWithAbortFailure(error, abortError);
   }
 }
@@ -344,6 +364,8 @@ async function uploadClaimedMediaTransfer(
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
   hasFailed: () => boolean,
+  markFailed: (error: unknown) => void,
+  throwIfFailed: () => void,
 ): Promise<MediaUploadCompletionResult | null> {
   const lastModifiedByReplicaId = await buildClientWorkspaceReplicaId(transfer.workspaceId, installationId);
   if (hasFailed()) {
@@ -374,6 +396,9 @@ async function uploadClaimedMediaTransfer(
     }
     verifiedBytes = loadedBytes;
   } catch (error) {
+    throwIfFailed();
+    markFailed(error);
+    throwIfFailed();
     if (isIndexedDbOpenRecoveryError(error)) {
       throw error;
     }
@@ -381,10 +406,13 @@ async function uploadClaimedMediaTransfer(
       throw error;
     }
 
-    const abortError = await abortUploadSessionAfterFailure(transfer, sessionCreateResult.uploadSession.sessionId);
-    if (hasFailed()) {
-      throw error;
-    }
+    const abortError = await abortUploadSessionAfterFailure(
+      transfer,
+      sessionCreateResult.uploadSession.sessionId,
+      markFailed,
+      throwIfFailed,
+    );
+    throwIfFailed();
     throw combineUploadFailureWithAbortFailure(error, abortError);
   }
 
@@ -398,6 +426,8 @@ async function uploadClaimedMediaTransfer(
     heartbeat,
     signal,
     hasFailed,
+    markFailed,
+    throwIfFailed,
   );
 }
 
@@ -406,14 +436,24 @@ async function processClaimedUploadTransfer(
   installationId: string,
   signal: AbortSignal,
   hasFailed: () => boolean,
+  markFailed: (error: unknown) => void,
+  throwIfFailed: () => void,
 ): Promise<void> {
   if (hasFailed()) {
     return;
   }
-  const heartbeat = startUploadClaimHeartbeat(transfer, hasFailed);
+  const heartbeat = startUploadClaimHeartbeat(transfer, signal, hasFailed, markFailed);
   let retryableCompletionCause: ApiError | null = null;
   try {
-    const result = await uploadClaimedMediaTransfer(transfer, installationId, heartbeat, signal, hasFailed);
+    const result = await uploadClaimedMediaTransfer(
+      transfer,
+      installationId,
+      heartbeat,
+      signal,
+      hasFailed,
+      markFailed,
+      throwIfFailed,
+    );
     if (hasFailed() || result === null) {
       const heartbeatError = await heartbeat.stop();
       if (heartbeatError !== null) {
@@ -449,9 +489,14 @@ async function processClaimedUploadTransfer(
       completedAt: new Date().toISOString(),
     });
   } catch (error) {
+    throwIfFailed();
+    markFailed(error);
+    throwIfFailed();
     const heartbeatError = await heartbeat.stop();
-    if (isIndexedDbOpenRecoveryError(error)) {
-      throw error;
+    throwIfFailed();
+    if (heartbeatError !== null) {
+      markFailed(heartbeatError);
+      throwIfFailed();
     }
     if (hasFailed()) {
       throw error;
@@ -496,6 +541,8 @@ export async function processDueMediaUploadTransfersForWorkspace(
   workspaceId: string,
   signal: AbortSignal,
   hasFailed: () => boolean,
+  markFailed: (error: unknown) => void,
+  throwIfFailed: () => void,
 ): Promise<void> {
   if (isBrowserOnline() === false || signal.aborted || hasFailed()) {
     return;
@@ -536,7 +583,14 @@ export async function processDueMediaUploadTransfersForWorkspace(
     if (hasFailed()) {
       return;
     }
-    await processClaimedUploadTransfer(transfer, installationId, signal, hasFailed);
+    await processClaimedUploadTransfer(
+      transfer,
+      installationId,
+      signal,
+      hasFailed,
+      markFailed,
+      throwIfFailed,
+    );
     if (hasFailed()) {
       return;
     }

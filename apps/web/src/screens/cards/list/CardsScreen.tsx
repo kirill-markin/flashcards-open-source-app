@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from "rea
 import { Link } from "react-router";
 import { useAppData } from "../../../appData";
 import { normalizeTagKey } from "../../../appData/domain";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../../cardFilters";
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
@@ -55,6 +59,23 @@ type CardsQueryControl = Readonly<{
 const cardsPageSize = 50;
 const cardsSearchDebounceMs = 300;
 const maximumUserSortCount = 3;
+
+async function runRecoveryGuardedLocalRead<ResultType>(
+  createRead: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createRead();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
 
 function createInitialCardsQueryState(): CardsQueryState {
   return {
@@ -199,7 +220,7 @@ export function CardsScreen(): ReactElement {
     updateCardItem,
     setErrorMessage,
   } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime, formatNumber } = useI18n();
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
@@ -268,12 +289,16 @@ export function CardsScreen(): ReactElement {
   });
 
   useEffect(() => {
+    if (indexedDbOpenRecoveryState.isFailed) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
       setDebouncedSearchText(searchText);
     }, cardsSearchDebounceMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [searchText]);
+  }, [indexedDbOpenRecoveryState.isFailed, searchText]);
 
   function acceptCardsQueryWindow(
     queryIdentity: string,
@@ -343,6 +368,10 @@ export function CardsScreen(): ReactElement {
   }, []);
 
   async function resetCardsQuery(queryIdentity: string): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const requestSequence = cardsQueryControlRef.current.requestSequence + 1;
     activeEditorLifecyclesRef.current.clear();
     loadMoreSentinelIntersectionConsumedRef.current = false;
@@ -369,15 +398,19 @@ export function CardsScreen(): ReactElement {
 
     try {
       const [nextPage, tagsSummary] = await Promise.all([
-        queryLocalCardsPage(activeWorkspace.workspaceId, {
+        runRecoveryGuardedLocalRead(() => queryLocalCardsPage(activeWorkspace.workspaceId, {
           searchText: normalizedSearchText,
           cursor: null,
           limit: cardsPageSize,
           sorts,
           filter: cardFilter,
-        }),
-        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+        }), indexedDbOpenRecoveryState),
+        runRecoveryGuardedLocalRead(
+          () => loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+          indexedDbOpenRecoveryState,
+        ),
       ]);
+      indexedDbOpenRecoveryState.throwIfFailed();
 
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
         return;
@@ -402,6 +435,9 @@ export function CardsScreen(): ReactElement {
         savedAt: new Date().toISOString(),
       });
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
         return;
       }
@@ -433,7 +469,8 @@ export function CardsScreen(): ReactElement {
 
   async function refreshCardsQuery(queryIdentity: string): Promise<void> {
     if (
-      activeWorkspace === null
+      indexedDbOpenRecoveryState.hasFailed()
+      || activeWorkspace === null
       || cardsQueryControlRef.current.queryIdentity !== queryIdentity
     ) {
       return;
@@ -456,15 +493,19 @@ export function CardsScreen(): ReactElement {
 
     try {
       const [nextPage, tagsSummary] = await Promise.all([
-        queryLocalCardsPage(activeWorkspace.workspaceId, {
+        runRecoveryGuardedLocalRead(() => queryLocalCardsPage(activeWorkspace.workspaceId, {
           searchText: normalizedSearchText,
           cursor: null,
           limit: refreshLimit,
           sorts,
           filter: cardFilter,
-        }),
-        loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+        }), indexedDbOpenRecoveryState),
+        runRecoveryGuardedLocalRead(
+          () => loadWorkspaceTagsSummary(activeWorkspace.workspaceId),
+          indexedDbOpenRecoveryState,
+        ),
       ]);
+      indexedDbOpenRecoveryState.throwIfFailed();
 
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
         return;
@@ -488,6 +529,9 @@ export function CardsScreen(): ReactElement {
         savedAt: new Date().toISOString(),
       });
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, queryIdentity, requestSequence)) {
         return;
       }
@@ -518,7 +562,8 @@ export function CardsScreen(): ReactElement {
   async function loadNextPage(): Promise<void> {
     const currentControl = cardsQueryControlRef.current;
     if (
-      activeWorkspace === null
+      indexedDbOpenRecoveryState.hasFailed()
+      || activeWorkspace === null
       || currentControl.queryIdentity !== cardsQueryIdentity
       || currentControl.nextCursor === null
       || currentControl.activeRequest !== null
@@ -547,6 +592,7 @@ export function CardsScreen(): ReactElement {
         sorts,
         filter: cardFilter,
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
 
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, cardsQueryIdentity, requestSequence)) {
         return;
@@ -558,6 +604,9 @@ export function CardsScreen(): ReactElement {
         mergeCardsQueryWindow(currentControl.authoritativeWindow, nextPage),
       );
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (!ownsCardsQueryRequest(cardsQueryControlRef.current, cardsQueryIdentity, requestSequence)) {
         return;
       }
@@ -661,14 +710,26 @@ export function CardsScreen(): ReactElement {
   }, [cardsQueryState.nextCursor, loadNextPage]);
 
   function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return Promise.resolve();
+    }
+
     setSavingCardIds((currentCardIds) => new Set([...currentCardIds, card.cardId]));
     setErrorMessage("");
 
     const previousTail = inlineSaveTailsRef.current.get(card.cardId) ?? Promise.resolve();
     const savePromise = previousTail.then(async () => {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       try {
         await updateCardItem(card.cardId, patch);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
         if (expectedErrorMessage !== null) {
           setErrorMessage(expectedErrorMessage);
@@ -691,7 +752,11 @@ export function CardsScreen(): ReactElement {
 
       try {
         await refreshCardsQuery(cardsQueryIdentity);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         showCapturedTechnicalError(error);
         setErrorMessage(t("appError.technicalError.message"));
       }
@@ -708,6 +773,9 @@ export function CardsScreen(): ReactElement {
       }
 
       inlineSaveTailsRef.current.delete(card.cardId);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       setSavingCardIds((currentCardIds) => {
         const nextCardIds = new Set(currentCardIds);
         nextCardIds.delete(card.cardId);

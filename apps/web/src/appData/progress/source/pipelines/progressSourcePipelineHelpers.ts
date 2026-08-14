@@ -1,4 +1,5 @@
 import type { Dispatch, MutableRefObject } from "react";
+import type { IndexedDbOpenRecoveryState } from "../../../../appError/AppErrorContext";
 import {
   ApiContractError,
   ApiError,
@@ -31,6 +32,23 @@ export type ProgressLocalLoadOperation =
   | "progress_series_local_load"
   | "progress_review_schedule_local_load"
   | "progress_leaderboard_local_load";
+
+export async function runRecoveryGuardedProgressLocalRead<ResultType>(
+  createRead: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createRead();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
 
 export type ProgressServerLoadObservationContext = Readonly<{
   operation: ProgressServerLoadOperation;

@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../../../appError/AppErrorContext";
+import {
   ApiNetworkError,
   loadProgressLeaderboard,
   loadProgressStreakLeaderboard,
@@ -27,6 +31,7 @@ import {
   captureProgressServerLoadError,
   getErrorMessage,
   normalizeProgressSourceError,
+  runRecoveryGuardedProgressLocalRead,
   type ProgressCanLoadServerBaseRef,
   type ProgressScopeKeyRef,
   type ProgressSourceDispatch,
@@ -64,6 +69,7 @@ type ProgressLeaderboardSourcePipelineParams = Readonly<{
   currentScopeKeyRef: ProgressScopeKeyRef;
   dispatch: ProgressSourceDispatch;
   installationId: string | null;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   manualRefreshVersion: number;
   progressLocalVersion: number;
   refreshKey: string | null;
@@ -113,6 +119,7 @@ export function useProgressLeaderboardSourcePipeline(
     currentScopeKeyRef,
     dispatch,
     installationId,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     refreshKey,
@@ -126,6 +133,10 @@ export function useProgressLeaderboardSourcePipeline(
 
   useEffect(() => {
     currentScopeKeyRef.current = scopeKey;
+
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
 
     if (scopeKey === null) {
       dispatch({ type: "leaderboard_scope_reset" });
@@ -154,10 +165,10 @@ export function useProgressLeaderboardSourcePipeline(
         : createProgressStreakLeaderboardSnapshot(persistedStreakLeaderboard, false),
       canRenderServerBase: canLoadServerBaseRef.current,
     });
-  }, [canLoadServerBase, canLoadServerBaseRef, currentScopeKeyRef, dispatch, scopeKey]);
+  }, [canLoadServerBase, canLoadServerBaseRef, currentScopeKeyRef, dispatch, indexedDbOpenRecoveryState, scopeKey]);
 
   useEffect(() => {
-    if (scopeKey === null) {
+    if (scopeKey === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -171,9 +182,13 @@ export function useProgressLeaderboardSourcePipeline(
     const currentSequence = localLoadSequenceRef.current + 1;
     localLoadSequenceRef.current = currentSequence;
 
-    void loadLocalLeaderboardViewerCounts(accessibleWorkspaceIds, new Date()).then((localViewerCounts) => {
+    void runRecoveryGuardedProgressLocalRead(
+      () => loadLocalLeaderboardViewerCounts(accessibleWorkspaceIds, new Date()),
+      indexedDbOpenRecoveryState,
+    ).then((localViewerCounts) => {
       if (
-        currentScopeKeyRef.current !== scopeKey
+        indexedDbOpenRecoveryState.hasFailed()
+        || currentScopeKeyRef.current !== scopeKey
         || localLoadSequenceRef.current !== currentSequence
       ) {
         return;
@@ -186,6 +201,10 @@ export function useProgressLeaderboardSourcePipeline(
         canRenderServerBase: canLoadServerBaseRef.current,
       });
     }).catch((error: unknown) => {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+
       if (
         currentScopeKeyRef.current !== scopeKey
         || localLoadSequenceRef.current !== currentSequence
@@ -216,6 +235,7 @@ export function useProgressLeaderboardSourcePipeline(
     canExposeTechnicalErrors,
     currentScopeKeyRef,
     dispatch,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     scopeKey,
@@ -226,6 +246,10 @@ export function useProgressLeaderboardSourcePipeline(
     nextRefreshKey: string,
     bypassFreshnessGate: boolean,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     requestedRefreshRequestsRef.current.set(targetScopeKey, {
       refreshKey: nextRefreshKey,
       bypassFreshnessGate,
@@ -269,6 +293,9 @@ export function useProgressLeaderboardSourcePipeline(
 
           try {
             const serverLeaderboard = await loadProgressLeaderboard();
+            if (indexedDbOpenRecoveryState.hasFailed()) {
+              return;
+            }
             const isCurrentRefreshRequest: boolean = requestedRefreshRequestsRef.current
               .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
 
@@ -286,6 +313,10 @@ export function useProgressLeaderboardSourcePipeline(
               });
             }
           } catch (error: unknown) {
+            if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+              return;
+            }
+
             const isCurrentRefreshRequest: boolean = requestedRefreshRequestsRef.current
               .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
 
@@ -325,13 +356,17 @@ export function useProgressLeaderboardSourcePipeline(
 
     serverRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, indexedDbOpenRecoveryState, installationId]);
 
   const refreshProgressStreakLeaderboard = useCallback<RefreshProgressStreakLeaderboard>(async function refreshProgressStreakLeaderboard(
     targetScopeKey: ProgressScopeKey,
     nextRefreshKey: string,
     bypassFreshnessGate: boolean,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     requestedStreakRefreshRequestsRef.current.set(targetScopeKey, {
       refreshKey: nextRefreshKey,
       bypassFreshnessGate,
@@ -375,6 +410,9 @@ export function useProgressLeaderboardSourcePipeline(
 
           try {
             const serverLeaderboard = await loadProgressStreakLeaderboard();
+            if (indexedDbOpenRecoveryState.hasFailed()) {
+              return;
+            }
             const isCurrentRefreshRequest: boolean = requestedStreakRefreshRequestsRef.current
               .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
 
@@ -392,6 +430,10 @@ export function useProgressLeaderboardSourcePipeline(
               });
             }
           } catch (error: unknown) {
+            if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+              return;
+            }
+
             const isCurrentRefreshRequest: boolean = requestedStreakRefreshRequestsRef.current
               .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
 
@@ -431,14 +473,14 @@ export function useProgressLeaderboardSourcePipeline(
 
     streakServerRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, indexedDbOpenRecoveryState, installationId]);
 
   useEffect(() => {
     if (autoRefreshEnabled === false) {
       return;
     }
 
-    if (scopeKey === null || refreshKey === null) {
+    if (scopeKey === null || refreshKey === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -455,6 +497,7 @@ export function useProgressLeaderboardSourcePipeline(
     }
   }, [
     autoRefreshEnabled,
+    indexedDbOpenRecoveryState,
     refreshKey,
     refreshProgressLeaderboard,
     refreshProgressStreakLeaderboard,

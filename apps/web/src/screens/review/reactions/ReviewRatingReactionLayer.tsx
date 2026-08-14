@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type ReactElement } from "react";
 import type { AnimationItem } from "lottie-web";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 import {
   matchesReducedReviewReactionMotion,
   reviewReactionAnimationDurationMillis,
@@ -190,11 +191,19 @@ type ReviewReactionLottieAnimationProps = Readonly<{
 
 function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps): ReactElement {
   const { eventId, onReactionEventFallback, variant } = props;
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const mountedContainer = containerRef.current;
     if (mountedContainer === null) {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       reportReviewReactionLottieFailure(
         new Error("Review reaction Lottie container was not mounted."),
         "render",
@@ -208,6 +217,9 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
     try {
       animationItem = mountReservedReviewReactionLottieRender(eventId, variant, mountedContainer).animationItem;
     } catch (error: unknown) {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       reportReviewReactionLottieFailure(error, "render", variant);
       onReactionEventFallback(eventId);
       return;
@@ -215,7 +227,7 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
 
     let hasReportedFailure = false;
     const handlePlaybackFailure = (error: unknown): void => {
-      if (hasReportedFailure) {
+      if (hasReportedFailure || indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
 
@@ -252,7 +264,7 @@ function ReviewReactionLottieAnimation(props: ReviewReactionLottieAnimationProps
       removeDataFailedListener();
       unmountReservedReviewReactionLottieRender(eventId);
     };
-  }, [eventId, onReactionEventFallback, variant]);
+  }, [eventId, indexedDbOpenRecoveryState, onReactionEventFallback, variant]);
 
   return (
     <div ref={containerRef} className={reviewReactionLottieContainerClassByVariant[variant]} />

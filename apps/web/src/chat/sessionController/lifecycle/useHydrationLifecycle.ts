@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useEffectEvent, useRef, type Dispatch } from "react";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../../appError/AppErrorContext";
 import type { Locale } from "../../../i18n/types";
 import { loadStoredChatConfig } from "../support/config";
 import type {
@@ -20,6 +24,7 @@ import type { ChatHistoryState } from "../../history/useChatHistory";
 import type { ChatSessionControllerUiMessages } from "../support/types";
 
 type UseChatSessionHydrationLifecycleParams = Readonly<{
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspaceId: string | null;
   isRemoteReady: boolean;
   uiLocale: Locale;
@@ -41,6 +46,7 @@ export function useChatSessionHydrationLifecycle(
   params: UseChatSessionHydrationLifecycleParams,
 ): void {
   const {
+    indexedDbOpenRecoveryState,
     workspaceId,
     isRemoteReady,
     uiLocale,
@@ -109,6 +115,10 @@ export function useChatSessionHydrationLifecycle(
   }, [detachLiveStream, dispatch, replaceMessages, resetSnapshotTracking, uiLocale]);
 
   const runHydrationLifecycle = useEffectEvent((isDisposedRef: { current: boolean }): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const isWorkspaceTransition = hydratedWorkspaceIdRef.current !== workspaceId;
     const isLocaleTransition = isWorkspaceTransition === false
       && workspaceId !== null
@@ -215,7 +225,7 @@ export function useChatSessionHydrationLifecycle(
           "initial_hydration",
           null,
         );
-        if (isDisposedRef.current || snapshot === null) {
+        if (indexedDbOpenRecoveryState.hasFailed() || isDisposedRef.current || snapshot === null) {
           return;
         }
 
@@ -225,6 +235,10 @@ export function useChatSessionHydrationLifecycle(
           startSnapshotLiveStream(snapshot, null);
         }
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
+
         if (isDisposedRef.current) {
           return;
         }
@@ -238,7 +252,7 @@ export function useChatSessionHydrationLifecycle(
           message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
         });
       } finally {
-        if (isDisposedRef.current === false) {
+        if (isDisposedRef.current === false && indexedDbOpenRecoveryState.hasFailed() === false) {
           dispatch({
             type: "set_history_loaded",
             isHistoryLoaded: true,
@@ -257,7 +271,7 @@ export function useChatSessionHydrationLifecycle(
   }, [isRemoteReady, uiLocale, workspaceId]);
 
   useEffect(() => {
-    if (state.isHistoryLoaded) {
+    if (indexedDbOpenRecoveryState.hasFailed() || state.isHistoryLoaded) {
       return;
     }
 
@@ -267,5 +281,5 @@ export function useChatSessionHydrationLifecycle(
         isHistoryLoaded: true,
       });
     }
-  }, [dispatch, state.isHistoryLoaded, workspaceId]);
+  }, [dispatch, indexedDbOpenRecoveryState, state.isHistoryLoaded, workspaceId]);
 }

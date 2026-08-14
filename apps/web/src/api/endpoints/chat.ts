@@ -37,9 +37,14 @@ function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
   return `/chat?${searchParams.toString()}`;
 }
 
-export async function getChatSnapshot(sessionId: string, workspaceId: string): Promise<ChatSessionSnapshot> {
+export async function getChatSnapshot(
+  sessionId: string,
+  workspaceId: string,
+  signal: AbortSignal,
+): Promise<ChatSessionSnapshot> {
   return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
+    signal,
   }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
 }
 
@@ -47,6 +52,7 @@ export async function getChatSnapshotWithResumeDiagnostics(
   sessionId: string,
   workspaceId: string,
   diagnostics: ChatResumeRequestDiagnostics,
+  signal: AbortSignal,
 ): Promise<ChatSessionSnapshot> {
   return parseContractResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
@@ -55,6 +61,7 @@ export async function getChatSnapshotWithResumeDiagnostics(
       "X-Client-Platform": "web",
       "X-Client-Version": webAppVersion,
     },
+    signal,
   }, allowAuthRecoveryWithTransientNetworkRetry), "GET /chat", parseChatSessionSnapshotResponse);
 }
 
@@ -136,6 +143,7 @@ export async function transcribeChatAudio(
   source: ChatTranscriptionSource,
   sessionId: string,
   workspaceId: string,
+  signal: AbortSignal,
 ): Promise<ChatTranscriptionResponse> {
   const mediaType = normalizeAudioMediaType(blob.type === "" ? "audio/webm" : blob.type);
   const file = new File([blob], `chat-dictation.${extensionForAudioMediaType(mediaType)}`, { type: mediaType });
@@ -148,5 +156,6 @@ export async function transcribeChatAudio(
   return parseContractResponse(await requestJson("/chat/transcriptions", {
     method: "POST",
     body: formData,
+    signal,
   }, allowAuthRecovery), "POST /chat/transcriptions", parseChatTranscriptionResponse);
 }

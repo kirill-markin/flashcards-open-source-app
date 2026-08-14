@@ -306,6 +306,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
         bootstrapCursor,
         syncBootstrapPageSize,
         true,
+        input.signal,
       );
       if (input.hasFailed()) {
         return {
@@ -507,6 +508,7 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       }
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
       const demoCardSeedResult = await seedDemoCardForNewWorkspace({
+        indexedDbOpenRecoveryState: input.indexedDbOpenRecoveryState,
         userId: input.userId,
         workspaceId: input.workspaceId,
         installationId: input.installationId,
@@ -530,6 +532,9 @@ export async function bootstrapHotState(input: WorkspaceRemoteSyncInput): Promis
       didChangeReviewSchedule,
     };
   } catch (error) {
+    input.indexedDbOpenRecoveryState.throwIfFailed();
+    input.indexedDbOpenRecoveryState.markFailed(error);
+    input.indexedDbOpenRecoveryState.throwIfFailed();
     if (isLocalDbRecovery && restoreHistoryBefore !== null) {
       observeLocalDbRecoveryFailed({
         userId: input.userId,

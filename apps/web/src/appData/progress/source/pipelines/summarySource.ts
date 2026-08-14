@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { loadProgressSummary } from "../../../../api";
 import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../../../appError/AppErrorContext";
+import {
   hasPendingProgressReviewEvents,
   loadLocalProgressActiveDates,
   loadLocalProgressSummary,
@@ -21,6 +25,7 @@ import {
   captureProgressServerLoadError,
   getErrorMessage,
   normalizeProgressSourceError,
+  runRecoveryGuardedProgressLocalRead,
   type ProgressCanLoadServerBaseRef,
   type ProgressScopeKeyRef,
   type ProgressSourceDispatch,
@@ -46,6 +51,7 @@ type ProgressSummarySourcePipelineParams = Readonly<{
   dispatch: ProgressSourceDispatch;
   input: ProgressSummaryInput;
   installationId: string | null;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   manualRefreshVersion: number;
   progressLocalVersion: number;
   refreshKey: string | null;
@@ -65,6 +71,7 @@ export function useProgressSummarySourcePipeline(
     dispatch,
     input,
     installationId,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     refreshKey,
@@ -76,6 +83,10 @@ export function useProgressSummarySourcePipeline(
 
   useEffect(() => {
     currentScopeKeyRef.current = scopeKey;
+
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
 
     if (scopeKey === null) {
       dispatch({
@@ -96,10 +107,10 @@ export function useProgressSummarySourcePipeline(
       serverBase: persistedSummary === null ? null : createProgressSummarySnapshot(persistedSummary, "server", false),
       canRenderServerBase: canLoadServerBaseRef.current,
     });
-  }, [canLoadServerBase, canLoadServerBaseRef, currentScopeKeyRef, dispatch, input.today, scopeKey]);
+  }, [canLoadServerBase, canLoadServerBaseRef, currentScopeKeyRef, dispatch, indexedDbOpenRecoveryState, input.today, scopeKey]);
 
   useEffect(() => {
-    if (scopeKey === null) {
+    if (scopeKey === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -107,11 +118,24 @@ export function useProgressSummarySourcePipeline(
     localLoadSequenceRef.current = currentSequence;
 
     void Promise.all([
-      loadLocalProgressSummary(accessibleWorkspaceIds, input),
-      loadLocalProgressActiveDates(accessibleWorkspaceIds, input.timeZone),
-      hasPendingProgressReviewEvents(accessibleWorkspaceIds),
+      runRecoveryGuardedProgressLocalRead(
+        () => loadLocalProgressSummary(accessibleWorkspaceIds, input),
+        indexedDbOpenRecoveryState,
+      ),
+      runRecoveryGuardedProgressLocalRead(
+        () => loadLocalProgressActiveDates(accessibleWorkspaceIds, input.timeZone),
+        indexedDbOpenRecoveryState,
+      ),
+      runRecoveryGuardedProgressLocalRead(
+        () => hasPendingProgressReviewEvents(accessibleWorkspaceIds),
+        indexedDbOpenRecoveryState,
+      ),
     ]).then(([localSummary, localFallbackActiveDates, hasPendingLocalReviews]) => {
-      if (currentScopeKeyRef.current !== scopeKey || localLoadSequenceRef.current !== currentSequence) {
+      if (
+        indexedDbOpenRecoveryState.hasFailed()
+        || currentScopeKeyRef.current !== scopeKey
+        || localLoadSequenceRef.current !== currentSequence
+      ) {
         return;
       }
 
@@ -129,6 +153,10 @@ export function useProgressSummarySourcePipeline(
         canRenderServerBase: canLoadServerBaseRef.current,
       });
     }).catch((error: unknown) => {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+
       if (currentScopeKeyRef.current !== scopeKey || localLoadSequenceRef.current !== currentSequence) {
         return;
       }
@@ -157,6 +185,7 @@ export function useProgressSummarySourcePipeline(
     currentScopeKeyRef,
     dispatch,
     input,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     scopeKey,
@@ -167,6 +196,10 @@ export function useProgressSummarySourcePipeline(
     refreshInput: ProgressSummaryInput,
     nextRefreshKey: string,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     requestedRefreshKeysRef.current.set(targetScopeKey, nextRefreshKey);
 
     const inFlightRefresh = serverRefreshPromisesRef.current.get(targetScopeKey);
@@ -190,6 +223,9 @@ export function useProgressSummarySourcePipeline(
 
           try {
             const serverSummary = await loadProgressSummary(refreshInput);
+            if (indexedDbOpenRecoveryState.hasFailed()) {
+              return;
+            }
             const isCurrentRefreshRequest: boolean = requestedRefreshKeysRef.current.get(targetScopeKey)
               === requestedRefreshKey;
 
@@ -207,6 +243,10 @@ export function useProgressSummarySourcePipeline(
               });
             }
           } catch (error: unknown) {
+            if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+              return;
+            }
+
             const isCurrentRefreshRequest: boolean = requestedRefreshKeysRef.current.get(targetScopeKey)
               === requestedRefreshKey;
 
@@ -245,10 +285,10 @@ export function useProgressSummarySourcePipeline(
 
     serverRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, indexedDbOpenRecoveryState, installationId]);
 
   useEffect(() => {
-    if (scopeKey === null || refreshKey === null) {
+    if (scopeKey === null || refreshKey === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -257,7 +297,7 @@ export function useProgressSummarySourcePipeline(
     }
 
     void refreshProgressSummary(scopeKey, input, refreshKey);
-  }, [input, refreshKey, refreshProgressSummary, scopeKey]);
+  }, [indexedDbOpenRecoveryState, input, refreshKey, refreshProgressSummary, scopeKey]);
 
   return {
     refreshProgressSummary,

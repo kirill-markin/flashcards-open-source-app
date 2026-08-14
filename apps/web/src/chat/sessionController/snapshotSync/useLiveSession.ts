@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { ChatLiveStream } from "../../../types";
 import {
   ChatLiveContractError,
@@ -24,6 +25,7 @@ type LiveStreamDisposition = "pending" | "terminal";
 type UseChatLiveSessionParams = Readonly<{
   applyLiveEvent: (event: ChatLiveEvent) => void;
   finalizeInterruptedRun: (message: string) => void;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   onVisibleResumeRequested: () => void;
   onRecoverableStreamError: (
     sessionId: string,
@@ -152,6 +154,7 @@ export function useChatLiveSession(
   const {
     applyLiveEvent,
     finalizeInterruptedRun,
+    indexedDbOpenRecoveryState,
     onVisibleResumeRequested,
     onRecoverableStreamError,
     onUnexpectedStreamEnd,
@@ -218,6 +221,12 @@ export function useChatLiveSession(
     onLiveAttachConnectedRef.current = onLiveAttachConnected;
   }, [onLiveAttachConnected]);
 
+  useEffect(() => {
+    if (indexedDbOpenRecoveryState.isFailed) {
+      detachLiveStream(null, null);
+    }
+  }, [detachLiveStream, indexedDbOpenRecoveryState.isFailed]);
+
   /**
    * Attaches live SSE only while the chat surface is visible. Existing sessions
    * must provide the latest known cursor so the stream continues after the last
@@ -232,11 +241,15 @@ export function useChatLiveSession(
   ): void => {
     detachLiveStream(null, null);
 
-    if (isDocumentVisibleRef.current === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isDocumentVisibleRef.current === false) {
       return;
     }
 
     const abortController = new AbortController();
+    const liveStreamSignal = AbortSignal.any([
+      indexedDbOpenRecoveryState.signal,
+      abortController.signal,
+    ]);
     let liveStreamDisposition: LiveStreamDisposition = "pending";
     let didReportConnected = false;
     activeLiveConnectionRef.current = { sessionId, runId, abortController };
@@ -248,11 +261,12 @@ export function useChatLiveSession(
       runId,
       afterCursor,
       resumeAttemptId,
-      signal: abortController.signal,
+      signal: liveStreamSignal,
       onEvent: (event) => {
         const activeConnection = activeLiveConnectionRef.current;
         if (
-          activeConnection?.sessionId !== sessionId
+          indexedDbOpenRecoveryState.hasFailed()
+          || activeConnection?.sessionId !== sessionId
           || activeConnection.runId !== runId
           || event.sessionId !== sessionId
           || event.runId !== runId
@@ -273,7 +287,7 @@ export function useChatLiveSession(
         applyLiveEventRef.current(event);
       },
     }).then(() => {
-      if (abortController.signal.aborted) {
+      if (liveStreamSignal.aborted || indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
 
@@ -290,7 +304,7 @@ export function useChatLiveSession(
 
       onUnexpectedStreamEndRef.current(sessionId, runId);
     }).catch((error: unknown) => {
-      if (abortController.signal.aborted) {
+      if (liveStreamSignal.aborted || indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
 
@@ -310,7 +324,7 @@ export function useChatLiveSession(
       captureLiveStreamError(normalizedError, sessionId, runId, resumeAttemptId);
       finalizeInterruptedRunRef.current(normalizedError.message);
     });
-  }, [detachLiveStream]);
+  }, [detachLiveStream, indexedDbOpenRecoveryState]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -336,6 +350,9 @@ export function useChatLiveSession(
         return;
       }
 
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       onVisibleResumeRequestedRef.current();
     };
 
@@ -343,7 +360,7 @@ export function useChatLiveSession(
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [detachLiveStream]);
+  }, [detachLiveStream, indexedDbOpenRecoveryState]);
 
   useEffect(() => {
     return () => {

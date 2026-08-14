@@ -2,6 +2,8 @@
 import { act, useEffect, type ReactElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AppErrorDialogProvider } from "../../../appError/AppErrorContext";
+import { I18nProvider } from "../../../i18n";
 import {
   makeReviewReactionRating,
   reviewReactionRatings,
@@ -242,11 +244,15 @@ describe("ReviewRatingReactionLayer Lottie fallback", () => {
 
     await act(async () => {
       currentRoot.render(
-        <ReviewReactionLayerHarness
-          onResult={(result) => {
-            latestResult = result;
-          }}
-        />,
+        <I18nProvider>
+          <AppErrorDialogProvider>
+            <ReviewReactionLayerHarness
+              onResult={(result) => {
+                latestResult = result;
+              }}
+            />
+          </AppErrorDialogProvider>
+        </I18nProvider>,
       );
     });
   }

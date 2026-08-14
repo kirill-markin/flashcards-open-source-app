@@ -7,7 +7,10 @@ import {
   submitFeedback,
 } from "../../api";
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard } from "../../appData/domain";
 import { webReviewMobilePromptStoreLinks } from "../../appPlatformLinks";
 import {
@@ -141,7 +144,7 @@ export function useReviewScreenController(
   const reviewLeaderboardBadge = useReviewLeaderboardBadge();
   const reviewProgressBadge = useReviewProgressBadge();
   const { formatCount, locale, messages, t } = useI18n();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [reviewSubmitState, setReviewSubmitState] = useState<ReviewSubmitState>("idle");
@@ -334,6 +337,10 @@ export function useReviewScreenController(
   let reviewButtonErrorMessage: string = "";
   let reviewButtonScheduleError: Error | null = null;
 
+  function markIndexedDbOpenRecoveryFailure(error: unknown): boolean {
+    return markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error);
+  }
+
   function captureFeedbackOperationError(
     error: unknown,
     operation: "feedback_activity_load" | "feedback_state_load" | "feedback_prompt_event" | "feedback_submit",
@@ -412,6 +419,7 @@ export function useReviewScreenController(
 
   async function postAutomaticFeedbackPromptEvent(eventType: FeedbackPromptEventType): Promise<void> {
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const now = new Date();
       const feedbackState = await recordFeedbackPromptEvent(buildFeedbackPromptEventRequest({
         workspaceId: activeWorkspace?.workspaceId ?? null,
@@ -419,12 +427,17 @@ export function useReviewScreenController(
         eventType,
         now,
       }));
+      indexedDbOpenRecoveryState.throwIfFailed();
       await storeFetchedFeedbackState({
         identityKey: feedbackPromptIdentityKey,
         feedbackState,
         fetchedAt: now.toISOString(),
-      });
+      }, indexedDbOpenRecoveryState.throwIfFailed);
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailure(error)) {
+        return;
+      }
       captureFeedbackOperationError(error, "feedback_prompt_event", eventType);
     }
   }
@@ -436,12 +449,21 @@ export function useReviewScreenController(
     }
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const now = new Date();
       const nowMillis = now.getTime();
       let reviewActivity: AutomaticFeedbackPromptReviewActivity;
       try {
-        reviewActivity = await loadAutomaticFeedbackPromptReviewActivity(workspaceId, now);
+        reviewActivity = await loadAutomaticFeedbackPromptReviewActivity(
+          workspaceId,
+          now,
+          indexedDbOpenRecoveryState,
+        );
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailure(error)) {
+          return;
+        }
         captureFeedbackOperationError(error, "feedback_activity_load", null);
         return;
       }
@@ -449,7 +471,11 @@ export function useReviewScreenController(
       let promptState: FeedbackPromptState;
       try {
         promptState = await loadFeedbackPromptState(feedbackPromptIdentityKey);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailure(error)) {
+          return;
+        }
         captureFeedbackOperationError(error, "feedback_state_load", null);
         return;
       }
@@ -462,17 +488,22 @@ export function useReviewScreenController(
       if (shouldRequestAutomaticFeedbackState(decisionInput)) {
         try {
           const feedbackState = await loadFeedbackState();
+          indexedDbOpenRecoveryState.throwIfFailed();
           promptState = await storeFetchedFeedbackState({
             identityKey: feedbackPromptIdentityKey,
             feedbackState,
             fetchedAt: new Date().toISOString(),
-          });
+          }, indexedDbOpenRecoveryState.throwIfFailed);
+          indexedDbOpenRecoveryState.throwIfFailed();
           decisionInput = {
             reviewActivity,
             promptState,
             nowMillis: Date.now(),
           };
         } catch (error) {
+          if (markIndexedDbOpenRecoveryFailure(error)) {
+            return;
+          }
           captureFeedbackOperationError(error, "feedback_state_load", null);
           return;
         }
@@ -491,13 +522,17 @@ export function useReviewScreenController(
         identityKey: feedbackPromptIdentityKey,
         shownAt: shownAt.toISOString(),
         nextAutomaticFeedbackPromptAt: buildNextAutomaticFeedbackPromptAt(shownAt),
-      });
+      }, indexedDbOpenRecoveryState.throwIfFailed);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setFeedbackMessage("");
       setFeedbackErrorMessage("");
       setIsFeedbackSubmitting(false);
       setIsFeedbackDialogOpen(true);
       void postAutomaticFeedbackPromptEvent("automatic_prompt_shown");
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailure(error)) {
+        return;
+      }
       captureFeedbackOperationError(error, "feedback_state_load", null);
     }
   }
@@ -516,11 +551,16 @@ export function useReviewScreenController(
     }
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const now = new Date();
       let reviewActivity: MobileAppPromotionReviewActivity;
       try {
         reviewActivity = await loadMobileAppPromotionReviewActivity(workspaceId, now);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailure(error)) {
+          return { kind: "cancelled" };
+        }
         captureMobileAppPromotionOperationError(error, "mobile_app_promo_activity_load", null);
         return buildSkippedMobileAppPromotionDecision(promptContext);
       }
@@ -540,7 +580,11 @@ export function useReviewScreenController(
       let promptState: MobileAppPromotionState;
       try {
         promptState = await loadMobileAppPromotionState(promptContext.identityKey);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailure(error)) {
+          return { kind: "cancelled" };
+        }
         captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
         return buildSkippedMobileAppPromotionDecision(promptContext);
       }
@@ -561,7 +605,11 @@ export function useReviewScreenController(
       let hasMobileReviewEvent: boolean;
       try {
         hasMobileReviewEvent = (await loadReviewPlatformSummary()).hasMobileReviewEvent;
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailure(error)) {
+          return { kind: "cancelled" };
+        }
         captureMobileAppPromotionOperationError(error, "mobile_app_promo_status_load", null);
         return buildSkippedMobileAppPromotionDecision(promptContext);
       }
@@ -574,8 +622,12 @@ export function useReviewScreenController(
         try {
           await storeKnownMobileReviewEvent({
             identityKey: promptContext.identityKey,
-          });
+          }, indexedDbOpenRecoveryState.throwIfFailed);
+          indexedDbOpenRecoveryState.throwIfFailed();
         } catch (error) {
+          if (markIndexedDbOpenRecoveryFailure(error)) {
+            return { kind: "cancelled" };
+          }
           captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
         }
         return buildSkippedMobileAppPromotionDecision(promptContext);
@@ -583,7 +635,11 @@ export function useReviewScreenController(
 
       try {
         promptState = await loadMobileAppPromotionState(promptContext.identityKey);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailure(error)) {
+          return { kind: "cancelled" };
+        }
         captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
         return buildSkippedMobileAppPromotionDecision(promptContext);
       }
@@ -612,8 +668,12 @@ export function useReviewScreenController(
           identityKey: promptContext.identityKey,
           localDate: reviewActivity.today,
           shownAt: shownAtIso,
-        });
+        }, indexedDbOpenRecoveryState.throwIfFailed);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailure(error)) {
+          return { kind: "cancelled" };
+        }
         captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
         return buildSkippedMobileAppPromotionDecision(promptContext);
       }
@@ -625,8 +685,12 @@ export function useReviewScreenController(
             identityKey: promptContext.identityKey,
             localDate: reviewActivity.today,
             shownAt: shownAtIso,
-          });
+          }, indexedDbOpenRecoveryState.throwIfFailed);
+          indexedDbOpenRecoveryState.throwIfFailed();
         } catch (error) {
+          if (markIndexedDbOpenRecoveryFailure(error)) {
+            return { kind: "cancelled" };
+          }
           captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
         }
         return buildSkippedMobileAppPromotionDecision(promptContext);
@@ -635,6 +699,9 @@ export function useReviewScreenController(
       setIsMobileAppPromotionDialogOpen(true);
       return { kind: "opened" };
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailure(error)) {
+        return { kind: "cancelled" };
+      }
       captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
       return buildSkippedMobileAppPromotionDecision(promptContext);
     }
@@ -671,6 +738,13 @@ export function useReviewScreenController(
     const promptContext = mobileAppPromotionPromptContextRef.current;
     const mobileAppPromotionDecision = await maybeOpenMobileAppPromotion(promptContext);
     if (
+      mobileAppPromotionDecision.kind === "cancelled"
+      || indexedDbOpenRecoveryState.hasFailed()
+    ) {
+      return;
+    }
+
+    if (
       mobileAppPromotionDecision.kind === "skipped"
       && isMobileAppPromotionPromptContextCurrent(promptContext)
     ) {
@@ -694,6 +768,10 @@ export function useReviewScreenController(
   }
 
   async function submitAutomaticFeedback(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const normalizedMessage = normalizeFeedbackMessage(feedbackMessage);
     if (normalizedMessage === "") {
       setFeedbackErrorMessage(t("feedback.emptyError"));
@@ -723,23 +801,35 @@ export function useReviewScreenController(
     setIsFeedbackSubmitting(true);
     setFeedbackErrorMessage("");
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const feedbackState = await submitFeedback(submissionRequest);
+      indexedDbOpenRecoveryState.throwIfFailed();
       await storeFeedbackSubmittedAt({
         identityKey: feedbackPromptIdentityKey,
         feedbackState,
         submittedAt: submissionRequest.createdAtClient,
-      });
+      }, indexedDbOpenRecoveryState.throwIfFailed);
+      indexedDbOpenRecoveryState.throwIfFailed();
       closeFeedbackDialog();
       showReviewFeedbackMessage(t("feedback.success"));
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailure(error)) {
+        return;
+      }
       captureFeedbackOperationError(error, "feedback_submit", submissionRequest.feedbackSubmissionId);
       setFeedbackErrorMessage(t("feedback.submitError"));
     } finally {
-      setIsFeedbackSubmitting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsFeedbackSubmitting(false);
+      }
     }
   }
 
   async function handleReview(card: Card, rating: ReviewRating): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     emitReviewReaction(rating);
     setIsSubmitting(true);
     setReviewSubmitState("submitting");
@@ -751,6 +841,10 @@ export function useReviewScreenController(
 
     try {
       reviewSubmissionOutcome = await handleReviewData(card, rating);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        reviewSubmissionOutcome = "cancelled";
+        return;
+      }
       if (reviewSubmissionOutcome !== "saved") {
         return;
       }
@@ -773,18 +867,24 @@ export function useReviewScreenController(
         void maybeOpenPostReviewPrompt();
       }
     } finally {
-      setIsSubmitting(false);
-      if (reviewSubmissionOutcome === "stale") {
-        setLastSubmittedReview(null);
-        setReviewSubmitState("idle");
-      } else {
-        setReviewSubmitState(reviewSubmissionOutcome === "saved" ? "settled" : "failed");
+      if (reviewSubmissionOutcome !== "cancelled" && indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsSubmitting(false);
+        if (reviewSubmissionOutcome === "stale") {
+          setLastSubmittedReview(null);
+          setReviewSubmitState("idle");
+        } else {
+          setReviewSubmitState(reviewSubmissionOutcome === "saved" ? "settled" : "failed");
+        }
       }
     }
   }
 
   async function handleEditorAiHandoff(): Promise<void> {
-    if (editingCard === null || isEditorSubmissionAllowed() === false) {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || editingCard === null
+      || isEditorSubmissionAllowed() === false
+    ) {
       return;
     }
 
@@ -795,13 +895,31 @@ export function useReviewScreenController(
     const cardForHandoff = isCardFormStateDirty(editingCard, editorFormState)
       ? await handleEditorSaveForAiHandoff()
       : editingCard;
-    if (cardForHandoff === null) {
+    if (cardForHandoff === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
-    const didHandoff = await handoffCardToAi(cardForHandoff);
-    if (didHandoff) {
+    const didHandoff = await handleReviewPaneAiHandoff(cardForHandoff);
+    if (didHandoff && indexedDbOpenRecoveryState.hasFailed() === false) {
       handleCloseEditorIfCurrent(presentationToken);
+    }
+  }
+
+  async function handleReviewPaneAiHandoff(card: Card): Promise<boolean> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return false;
+    }
+
+    try {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      const didHandoff = await handoffCardToAi(card);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      return didHandoff;
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailure(error)) {
+        return false;
+      }
+      throw error;
     }
   }
 
@@ -815,8 +933,13 @@ export function useReviewScreenController(
 
   async function handleRetryReviewLoad(): Promise<void> {
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       await refreshLocalData();
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailure(error)) {
+        return;
+      }
       handleRefreshLocalDataError({
         error,
         context: {
@@ -842,6 +965,21 @@ export function useReviewScreenController(
     setIsAnswerVisible(false);
     stopSpeech();
   }, [selectedCard?.cardId, stopSpeech]);
+
+  useEffect(() => {
+    if (indexedDbOpenRecoveryState.isFailed === false) {
+      return;
+    }
+
+    stopSpeech();
+    dismissReviewReactions();
+    const currentContext = mobileAppPromotionPromptContextRef.current;
+    mobileAppPromotionPromptContextRef.current = {
+      ...currentContext,
+      generation: currentContext.generation + 1,
+    };
+    mobileAppPromotionCheckInFlightRef.current = null;
+  }, [dismissReviewReactions, indexedDbOpenRecoveryState.isFailed, stopSpeech]);
 
   useEffect(() => {
     recentReviewRatingsRef.current = [];
@@ -915,12 +1053,13 @@ export function useReviewScreenController(
       || selectedCard === null
       || reviewButtonErrorCaptureKey === ""
       || lastCapturedReviewButtonErrorKeyRef.current === reviewButtonErrorCaptureKey
+      || indexedDbOpenRecoveryState.hasFailed()
     ) {
       return;
     }
 
     lastCapturedReviewButtonErrorKeyRef.current = reviewButtonErrorCaptureKey;
-    captureAppOperationError(reviewButtonScheduleError, {
+    showTechnicalError(reviewButtonScheduleError, {
       feature: "review",
       operation: "review_schedule_preview",
       userId: session?.userId ?? null,
@@ -928,14 +1067,14 @@ export function useReviewScreenController(
       installationId: cloudSettings?.installationId ?? null,
       entityId: selectedCard.cardId,
     });
-    showCapturedTechnicalError(reviewButtonScheduleError);
   }, [
     activeWorkspace?.workspaceId,
     cloudSettings?.installationId,
+    indexedDbOpenRecoveryState,
     reviewButtonErrorCaptureKey,
     reviewButtonScheduleError,
     selectedCard,
-    showCapturedTechnicalError,
+    showTechnicalError,
     session?.userId,
   ]);
 
@@ -1024,7 +1163,7 @@ export function useReviewScreenController(
       lastSubmittedReview,
       localReadVersion,
       loadingReviewCurrentCard,
-      onAiHandoff: handoffCardToAi,
+      onAiHandoff: handleReviewPaneAiHandoff,
       onEditCard: handleOpenEditor,
       onRevealAnswer: handleRevealAnswer,
       onReview: handleReview,

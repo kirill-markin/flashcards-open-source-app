@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../../appData";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { webReviewMobilePromptStoreLinks } from "../../appPlatformLinks";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import {
@@ -220,7 +223,7 @@ function buildManagedMediaSyncFields(report: LocalSyncDiagnosticsReport): Readon
 
 export function TestLocalSyncDiagnosticsScreen(): ReactElement {
   const { activeWorkspace } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
   const isMountedRef = useRef<boolean>(false);
@@ -231,6 +234,10 @@ export function TestLocalSyncDiagnosticsScreen(): ReactElement {
   const technicalErrorMessage = t("appError.technicalError.message");
 
   const refreshDiagnostics = useCallback(async (): Promise<void> => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (activeWorkspaceId === null) {
       setReport(null);
       setLoadErrorMessage(t("settingsTest.localSyncDiagnostics.noWorkspace"));
@@ -244,12 +251,16 @@ export function TestLocalSyncDiagnosticsScreen(): ReactElement {
 
     try {
       const nextReport = await loadLocalSyncDiagnosticsReport(activeWorkspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isMountedRef.current === false) {
         return;
       }
 
       setReport(nextReport);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isMountedRef.current === false) {
         return;
       }
@@ -258,11 +269,11 @@ export function TestLocalSyncDiagnosticsScreen(): ReactElement {
       setReport(null);
       setLoadErrorMessage(technicalErrorMessage);
     } finally {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && indexedDbOpenRecoveryState.hasFailed() === false) {
         setIsLoading(false);
       }
     }
-  }, [activeWorkspaceId, showCapturedTechnicalError, t, technicalErrorMessage]);
+  }, [activeWorkspaceId, indexedDbOpenRecoveryState, showCapturedTechnicalError, t, technicalErrorMessage]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -485,6 +496,7 @@ function clearTrimmedReviewReactionTimers(
 }
 
 export function TestAnimationsScreen(): ReactElement {
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
   const [activeReviewReactionEvents, setActiveReviewReactionEvents] = useState<ReadonlyArray<ReviewReactionEvent>>([]);
   const [motionMode, setMotionMode] = useState<ReviewReactionMotionMode>(
@@ -506,8 +518,8 @@ export function TestAnimationsScreen(): ReactElement {
   }
 
   useEffect(() => {
-    startReviewReactionLottiePrewarm();
-  }, []);
+    return startReviewReactionLottiePrewarm(indexedDbOpenRecoveryState.signal);
+  }, [indexedDbOpenRecoveryState.signal]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -597,6 +609,7 @@ export function TestAnimationsScreen(): ReactElement {
     eventId: string,
     variant: ReviewReactionVariantDistributionEntry["variant"],
   ): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (!isReviewReactionLottieVariant(variant)) {
       throw new Error(`Test animation variant ${variant} is not a Lottie variant.`);
     }
@@ -605,6 +618,7 @@ export function TestAnimationsScreen(): ReactElement {
     }
 
     await loadReviewReactionLottieAsset(variant);
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (reserveReviewReactionLottieRender(eventId, variant)) {
       return;
     }
@@ -613,12 +627,14 @@ export function TestAnimationsScreen(): ReactElement {
   }
 
   async function playAnimation(entry: ReviewReactionVariantDistributionEntry): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (!isReviewReactionLottieVariant(entry.variant)) {
       throw new Error(`Test animation entry ${entry.id} is not a Lottie variant.`);
     }
 
     const eventId = crypto.randomUUID();
     await reserveTestAnimationRender(eventId, entry.variant);
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (!isMountedRef.current) {
       releaseReviewReactionLottieRender(eventId);
       return;
@@ -664,6 +680,9 @@ export function TestAnimationsScreen(): ReactElement {
                   data-testid="test-animation-row"
                   onClick={() => {
                     void playAnimation(entry).catch((error: unknown) => {
+                      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+                        return;
+                      }
                       reportTestAnimationPlaybackFailure(error, entry);
                     });
                   }}

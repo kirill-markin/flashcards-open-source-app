@@ -12,7 +12,10 @@ import {
 import { AppDataProvider, useAppData } from "../../appData";
 import { requireCloudInstallationId } from "../../appData/sync/local/syncCloudSettings";
 import { getSyncFailureObservationCaptureState } from "../../appData/sync/observation/syncErrorObservation";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
 import { buildClientWorkspaceReplicaId } from "../../media/mediaCrypto";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
@@ -376,7 +379,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     sessionErrorMessage,
     sessionLoadState,
   } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
   const isWorkspaceChoiceAvailable = availableWorkspaces.length > 1;
   const [step, setStep] = useState<CatalogImportStep>(() => (isWorkspaceChoiceAvailable ? "workspace" : "confirm"));
@@ -450,7 +453,8 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     identity: CatalogWorkspaceIdentity,
   ): Promise<void> {
     if (
-      activeSyncRequestRef.current !== null
+      indexedDbOpenRecoveryState.hasFailed()
+      || activeSyncRequestRef.current !== null
       || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, identity)
     ) {
       return;
@@ -462,7 +466,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     setSyncState({ status: "syncing" });
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       await refreshLocalData();
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (
         activeSyncRequestRef.current !== requestGeneration
         || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, identity)
@@ -471,6 +477,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       }
       setSyncState({ status: "succeeded" });
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (
         activeSyncRequestRef.current !== requestGeneration
         || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, identity)
@@ -494,9 +503,13 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         activeSyncRequestRef.current = null;
       }
     }
-  }, [refreshLocalData, showCapturedTechnicalError, t, technicalErrorMessage]);
+  }, [indexedDbOpenRecoveryState, refreshLocalData, showCapturedTechnicalError, t, technicalErrorMessage]);
 
   const refreshPreview = useCallback(async function refreshPreview(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const requestIdentity = workspaceIdentityRef.current;
     if (!isImportAvailable || requestIdentity === null) {
       setErrorMessage(t("catalogImport.workspaceUnavailable"));
@@ -525,10 +538,12 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     setErrorMessage("");
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const response = await previewCatalogPackageInstall(
         requestIdentity.workspaceId,
         catalogContext.packageVersion.packageVersionId,
       );
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (response.packageVersion.packageVersionId !== catalogContext.packageVersion.packageVersionId) {
         throw new Error(
           `Catalog install preview returned a different package version. expected=${catalogContext.packageVersion.packageVersionId} actual=${response.packageVersion.packageVersionId}`,
@@ -548,6 +563,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         removeTags: [...response.defaultOptions.removedTags],
       });
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (
         activePreviewRequestRef.current !== requestGeneration
         || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, requestIdentity)
@@ -568,7 +586,10 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       }
       setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
-      if (activePreviewRequestRef.current === requestGeneration) {
+      if (
+        indexedDbOpenRecoveryState.hasFailed() === false
+        && activePreviewRequestRef.current === requestGeneration
+      ) {
         activePreviewRequestRef.current = null;
         setIsPreviewing(false);
       }
@@ -576,6 +597,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   }, [
     captureCatalogImportError,
     catalogContext.packageVersion.packageVersionId,
+    indexedDbOpenRecoveryState,
     isImportAvailable,
     showCapturedTechnicalError,
     step,
@@ -641,6 +663,10 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   }
 
   async function selectCatalogWorkspace(nextWorkspaceId: string): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (nextWorkspaceId === workspaceId) {
       pendingWorkspaceSelectionRef.current = null;
       hasLeftInitialStepRef.current = true;
@@ -660,17 +686,28 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     pendingWorkspaceSelectionRef.current = nextWorkspaceId;
     setIsWorkspaceSelectionPending(true);
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       await chooseWorkspace(nextWorkspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       pendingWorkspaceSelectionRef.current = null;
       throw error;
     } finally {
-      workspaceSelectionInFlightRef.current = false;
-      setIsWorkspaceSelectionPending(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        workspaceSelectionInFlightRef.current = false;
+        setIsWorkspaceSelectionPending(false);
+      }
     }
   }
 
   async function confirmInstall(importOptions: WorkspaceImportOptions): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const requestIdentity = workspaceIdentityRef.current;
     if (!isImportAvailable || requestIdentity === null || activeWorkspace === null) {
       setErrorMessage(t("catalogImport.workspaceUnavailable"));
@@ -709,6 +746,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     setIsInstalling(true);
     setErrorMessage("");
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (currentAttempt === null) {
         const installationId = requireCloudInstallationId(cloudSettings);
         if (installationId !== requestIdentity.installationId) {
@@ -717,6 +755,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         }
 
         await refreshLocalData();
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (
           activeInstallRequestRef.current !== requestGeneration
           || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, requestIdentity)
@@ -725,6 +764,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         }
 
         const replicaId = await buildClientWorkspaceReplicaId(requestIdentity.workspaceId, installationId);
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (
           activeInstallRequestRef.current !== requestGeneration
           || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, requestIdentity)
@@ -754,11 +794,13 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       }
 
       const requestAttempt = currentAttempt;
+      indexedDbOpenRecoveryState.throwIfFailed();
       const result = await confirmCatalogPackageInstall(
         requestAttempt.identity.workspaceId,
         catalogContext.packageVersion.packageVersionId,
         requestAttempt.options,
       );
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (
         activeInstallRequestRef.current !== requestGeneration
         || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, requestAttempt.identity)
@@ -789,6 +831,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       setStep("done");
       void runPostInstallSync(requestAttempt.identity);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (
         activeInstallRequestRef.current !== requestGeneration
         || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, requestIdentity)
@@ -813,7 +858,10 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       }
       setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
-      if (activeInstallRequestRef.current === requestGeneration) {
+      if (
+        indexedDbOpenRecoveryState.hasFailed() === false
+        && activeInstallRequestRef.current === requestGeneration
+      ) {
         activeInstallRequestRef.current = null;
         setIsInstalling(false);
       }
@@ -932,7 +980,7 @@ function CatalogImportAuthenticatedScreen(props: Readonly<{ catalogContext: Cata
 export function CatalogImportScreen(): ReactElement {
   const { packageVersionId: routePackageVersionId } = useParams();
   const packageVersionId = parsePackageVersionId(routePackageVersionId);
-  const { showTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const [loadState, setLoadState] = useState<CatalogImportLoadState>("loading");
   const [catalogContext, setCatalogContext] = useState<CatalogImportContext | null>(null);
@@ -942,6 +990,10 @@ export function CatalogImportScreen(): ReactElement {
   const technicalErrorMessage = t("appError.technicalError.message");
 
   const loadCatalogImport = useCallback(async function loadCatalogImport(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const requestGeneration = loadRequestGenerationRef.current + 1;
     loadRequestGenerationRef.current = requestGeneration;
     if (packageVersionId === null) {
@@ -955,7 +1007,9 @@ export function CatalogImportScreen(): ReactElement {
     setSession(null);
     setErrorMessage("");
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const snapshot = await loadPublicCatalog();
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (loadRequestGenerationRef.current !== requestGeneration) {
         return;
       }
@@ -966,6 +1020,7 @@ export function CatalogImportScreen(): ReactElement {
       }
 
       const optionalSession = await getOptionalSession();
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (loadRequestGenerationRef.current !== requestGeneration) {
         return;
       }
@@ -973,6 +1028,9 @@ export function CatalogImportScreen(): ReactElement {
       setSession(optionalSession);
       setLoadState(optionalSession === null ? "signed_out" : "signed_in");
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (loadRequestGenerationRef.current !== requestGeneration) {
         return;
       }
@@ -990,7 +1048,7 @@ export function CatalogImportScreen(): ReactElement {
       setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
       setLoadState("error");
     }
-  }, [packageVersionId, showTechnicalError, t, technicalErrorMessage]);
+  }, [indexedDbOpenRecoveryState, packageVersionId, showTechnicalError, t, technicalErrorMessage]);
 
   useEffect(() => {
     void loadCatalogImport();

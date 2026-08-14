@@ -36,6 +36,7 @@ import {
   loadRequiredCloudInstallationId,
   requireCloudInstallationId,
 } from "./syncCloudSettings";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 
 export type LocalReviewRating = 0 | 1 | 2 | 3;
 
@@ -113,10 +114,17 @@ export async function requireDeck(workspaceId: string, deckId: string): Promise<
   return deck;
 }
 
-export async function createCardLocally(input: CreateCardLocallyInput): Promise<LocalCardMutationResult> {
+export async function createCardLocally(
+  input: CreateCardLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalCardMutationResult> {
+  indexedDbOpenRecoveryState.throwIfFailed();
   const normalizedInput = normalizeCreateCardInput(input.input);
   const operationId = crypto.randomUUID().toLowerCase();
-  const installationId = await loadRequiredCloudInstallationId();
+  const installationId = await runRecoveryGuardedSyncLocalOperation(
+    loadRequiredCloudInstallationId,
+    indexedDbOpenRecoveryState,
+  );
   const nextCard = buildInitialCard(normalizedInput, input.clientUpdatedAt, installationId, operationId);
   const didChangeReviewSchedule = doesCardMutationAffectReviewSchedule(null, nextCard);
   const nextOutboxRecord: PersistedOutboxRecord = {
@@ -129,8 +137,14 @@ export async function createCardLocally(input: CreateCardLocallyInput): Promise<
     operation: buildCardUpsertOperation(nextCard),
   };
 
-  await putCard(input.workspaceId, nextCard);
-  await putOutboxRecord(nextOutboxRecord);
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putCard(input.workspaceId, nextCard),
+    indexedDbOpenRecoveryState,
+  );
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putOutboxRecord(nextOutboxRecord),
+    indexedDbOpenRecoveryState,
+  );
   return {
     card: nextCard,
     didChangeProgressHistory: false,
@@ -138,10 +152,17 @@ export async function createCardLocally(input: CreateCardLocallyInput): Promise<
   };
 }
 
-export async function createDeckLocally(input: CreateDeckLocallyInput): Promise<LocalDeckMutationResult> {
+export async function createDeckLocally(
+  input: CreateDeckLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalDeckMutationResult> {
+  indexedDbOpenRecoveryState.throwIfFailed();
   const normalizedInput = normalizeCreateDeckInput(input.input);
   const operationId = crypto.randomUUID().toLowerCase();
-  const installationId = await loadRequiredCloudInstallationId();
+  const installationId = await runRecoveryGuardedSyncLocalOperation(
+    loadRequiredCloudInstallationId,
+    indexedDbOpenRecoveryState,
+  );
   const nextDeck = {
     ...buildDeck(normalizedInput, input.clientUpdatedAt, installationId, operationId),
     workspaceId: input.workspaceId,
@@ -155,18 +176,34 @@ export async function createDeckLocally(input: CreateDeckLocallyInput): Promise<
     operation: buildDeckUpsertOperation(nextDeck),
   };
 
-  await putDeck(nextDeck);
-  await putOutboxRecord(nextOutboxRecord);
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putDeck(nextDeck),
+    indexedDbOpenRecoveryState,
+  );
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putOutboxRecord(nextOutboxRecord),
+    indexedDbOpenRecoveryState,
+  );
   return {
     deck: nextDeck,
   };
 }
 
-export async function updateCardLocally(input: UpdateCardLocallyInput): Promise<LocalCardMutationResult> {
-  const existingCard = await requireCard(input.workspaceId, input.cardId);
+export async function updateCardLocally(
+  input: UpdateCardLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalCardMutationResult> {
+  indexedDbOpenRecoveryState.throwIfFailed();
+  const existingCard = await runRecoveryGuardedSyncLocalOperation(
+    () => requireCard(input.workspaceId, input.cardId),
+    indexedDbOpenRecoveryState,
+  );
   const normalizedInput = normalizeUpdateCardInput(input.input);
   const operationId = crypto.randomUUID().toLowerCase();
-  const installationId = await loadRequiredCloudInstallationId();
+  const installationId = await runRecoveryGuardedSyncLocalOperation(
+    loadRequiredCloudInstallationId,
+    indexedDbOpenRecoveryState,
+  );
   const nextCard = buildUpdatedCard(existingCard, normalizedInput, input.clientUpdatedAt, installationId, operationId);
   const didChangeReviewSchedule = doesCardMutationAffectReviewSchedule(existingCard, nextCard);
   const nextOutboxRecord: PersistedOutboxRecord = {
@@ -179,8 +216,14 @@ export async function updateCardLocally(input: UpdateCardLocallyInput): Promise<
     operation: buildCardUpsertOperation(nextCard),
   };
 
-  await putCard(input.workspaceId, nextCard);
-  await putOutboxRecord(nextOutboxRecord);
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putCard(input.workspaceId, nextCard),
+    indexedDbOpenRecoveryState,
+  );
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putOutboxRecord(nextOutboxRecord),
+    indexedDbOpenRecoveryState,
+  );
   return {
     card: nextCard,
     didChangeProgressHistory: false,
@@ -188,11 +231,21 @@ export async function updateCardLocally(input: UpdateCardLocallyInput): Promise<
   };
 }
 
-export async function updateDeckLocally(input: UpdateDeckLocallyInput): Promise<LocalDeckMutationResult> {
-  const existingDeck = await requireDeck(input.workspaceId, input.deckId);
+export async function updateDeckLocally(
+  input: UpdateDeckLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalDeckMutationResult> {
+  indexedDbOpenRecoveryState.throwIfFailed();
+  const existingDeck = await runRecoveryGuardedSyncLocalOperation(
+    () => requireDeck(input.workspaceId, input.deckId),
+    indexedDbOpenRecoveryState,
+  );
   const normalizedInput = normalizeUpdateDeckInput(input.input);
   const operationId = crypto.randomUUID().toLowerCase();
-  const installationId = await loadRequiredCloudInstallationId();
+  const installationId = await runRecoveryGuardedSyncLocalOperation(
+    loadRequiredCloudInstallationId,
+    indexedDbOpenRecoveryState,
+  );
   const nextDeck = buildUpdatedDeck(existingDeck, normalizedInput, input.clientUpdatedAt, installationId, operationId);
   const nextOutboxRecord: PersistedOutboxRecord = {
     operationId,
@@ -203,17 +256,33 @@ export async function updateDeckLocally(input: UpdateDeckLocallyInput): Promise<
     operation: buildDeckUpsertOperation(nextDeck),
   };
 
-  await putDeck(nextDeck);
-  await putOutboxRecord(nextOutboxRecord);
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putDeck(nextDeck),
+    indexedDbOpenRecoveryState,
+  );
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putOutboxRecord(nextOutboxRecord),
+    indexedDbOpenRecoveryState,
+  );
   return {
     deck: nextDeck,
   };
 }
 
-export async function deleteCardLocally(input: DeleteCardLocallyInput): Promise<LocalCardMutationResult> {
-  const existingCard = await requireCard(input.workspaceId, input.cardId);
+export async function deleteCardLocally(
+  input: DeleteCardLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalCardMutationResult> {
+  indexedDbOpenRecoveryState.throwIfFailed();
+  const existingCard = await runRecoveryGuardedSyncLocalOperation(
+    () => requireCard(input.workspaceId, input.cardId),
+    indexedDbOpenRecoveryState,
+  );
   const operationId = crypto.randomUUID().toLowerCase();
-  const installationId = await loadRequiredCloudInstallationId();
+  const installationId = await runRecoveryGuardedSyncLocalOperation(
+    loadRequiredCloudInstallationId,
+    indexedDbOpenRecoveryState,
+  );
   const nextCard = buildDeletedCard(existingCard, input.clientUpdatedAt, installationId, operationId);
   const didChangeReviewSchedule = doesCardMutationAffectReviewSchedule(existingCard, nextCard);
   const nextOutboxRecord: PersistedOutboxRecord = {
@@ -226,8 +295,14 @@ export async function deleteCardLocally(input: DeleteCardLocallyInput): Promise<
     operation: buildCardUpsertOperation(nextCard),
   };
 
-  await putCard(input.workspaceId, nextCard);
-  await putOutboxRecord(nextOutboxRecord);
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putCard(input.workspaceId, nextCard),
+    indexedDbOpenRecoveryState,
+  );
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putOutboxRecord(nextOutboxRecord),
+    indexedDbOpenRecoveryState,
+  );
   return {
     card: nextCard,
     didChangeProgressHistory: false,
@@ -235,10 +310,20 @@ export async function deleteCardLocally(input: DeleteCardLocallyInput): Promise<
   };
 }
 
-export async function deleteDeckLocally(input: DeleteDeckLocallyInput): Promise<LocalDeckMutationResult> {
-  const existingDeck = await requireDeck(input.workspaceId, input.deckId);
+export async function deleteDeckLocally(
+  input: DeleteDeckLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalDeckMutationResult> {
+  indexedDbOpenRecoveryState.throwIfFailed();
+  const existingDeck = await runRecoveryGuardedSyncLocalOperation(
+    () => requireDeck(input.workspaceId, input.deckId),
+    indexedDbOpenRecoveryState,
+  );
   const operationId = crypto.randomUUID().toLowerCase();
-  const installationId = await loadRequiredCloudInstallationId();
+  const installationId = await runRecoveryGuardedSyncLocalOperation(
+    loadRequiredCloudInstallationId,
+    indexedDbOpenRecoveryState,
+  );
   const nextDeck = buildDeletedDeck(existingDeck, input.clientUpdatedAt, installationId, operationId);
   const nextOutboxRecord: PersistedOutboxRecord = {
     operationId,
@@ -249,19 +334,52 @@ export async function deleteDeckLocally(input: DeleteDeckLocallyInput): Promise<
     operation: buildDeckUpsertOperation(nextDeck),
   };
 
-  await putDeck(nextDeck);
-  await putOutboxRecord(nextOutboxRecord);
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putDeck(nextDeck),
+    indexedDbOpenRecoveryState,
+  );
+  await runRecoveryGuardedSyncLocalOperation(
+    () => putOutboxRecord(nextOutboxRecord),
+    indexedDbOpenRecoveryState,
+  );
   return {
     deck: nextDeck,
   };
 }
 
-export async function submitReviewLocally(input: SubmitReviewLocallyInput): Promise<LocalCardMutationResult> {
+async function runRecoveryGuardedSyncLocalOperation<ResultType>(
+  createOperation: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createOperation();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
+
+export async function submitReviewLocally(
+  input: SubmitReviewLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalCardMutationResult> {
   const [existingCard, schedulerSettings, cloudSettings] = await Promise.all([
-    requireCard(input.workspaceId, input.cardId),
-    loadWorkspaceSettings(input.workspaceId),
-    loadCloudSettings(),
+    runRecoveryGuardedSyncLocalOperation(
+      () => requireCard(input.workspaceId, input.cardId),
+      indexedDbOpenRecoveryState,
+    ),
+    runRecoveryGuardedSyncLocalOperation(
+      () => loadWorkspaceSettings(input.workspaceId),
+      indexedDbOpenRecoveryState,
+    ),
+    runRecoveryGuardedSyncLocalOperation(loadCloudSettings, indexedDbOpenRecoveryState),
   ]);
+  indexedDbOpenRecoveryState.throwIfFailed();
   if (schedulerSettings === null) {
     throw new Error("Workspace scheduler settings are not loaded");
   }
@@ -316,9 +434,13 @@ export async function submitReviewLocally(input: SubmitReviewLocallyInput): Prom
   };
 
   await putReviewEvent(nextReviewEvent);
+  indexedDbOpenRecoveryState.throwIfFailed();
   await putCard(input.workspaceId, nextCard);
+  indexedDbOpenRecoveryState.throwIfFailed();
   await putOutboxRecord(reviewEventOutboxRecord);
+  indexedDbOpenRecoveryState.throwIfFailed();
   await putOutboxRecord(cardOutboxRecord);
+  indexedDbOpenRecoveryState.throwIfFailed();
   return {
     card: nextCard,
     didChangeProgressHistory: true,

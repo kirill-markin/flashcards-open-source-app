@@ -8,7 +8,10 @@ import {
 } from "../../api";
 import { isExpectedClipboardWriteError } from "../../access/browserAccess";
 import { useAppData } from "../../appData";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import type { FriendInvitationCreateResponse } from "../../types";
 import { validateFriendInvitationDisplayName } from "../invite/friendInvitationDisplayName";
@@ -37,7 +40,7 @@ function isExpectedFriendInvitationCreateError(error: unknown): boolean {
 export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): ReactElement {
   const { authRedirectUrl, canCreateInvite, onClose } = props;
   const { activeWorkspace, cloudSettings, session } = useAppData();
-  const { showTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showTechnicalError } = useAppErrorDialog();
   const { locale, t, formatDateTime } = useI18n();
   const [friendDisplayName, setFriendDisplayName] = useState<string>("");
   const [fieldErrorMessage, setFieldErrorMessage] = useState<string>("");
@@ -49,7 +52,28 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
   const [isSharing, setIsSharing] = useState<boolean>(false);
   const technicalErrorMessage = t("appError.technicalError.message");
 
+  function closeDialog(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    onClose();
+  }
+
+  function updateFriendDisplayName(value: string): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    setFriendDisplayName(value);
+    setFieldErrorMessage("");
+  }
+
   async function submitInviteCreate(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const validationMessage = validateFriendInvitationDisplayName(friendDisplayName, {
       required: t("progressScreen.leaderboard.invite.validation.required"),
       singleLine: t("progressScreen.leaderboard.invite.validation.singleLine"),
@@ -68,9 +92,13 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
       const response = await createFriendInvitation({
         inviteeDisplayName: friendDisplayName.trim(),
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       setCreatedInvite(response);
       setStatusMessage("");
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isAuthRedirectError(error)) {
         return;
       }
@@ -90,11 +118,17 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
       });
       setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
-      setIsSubmitting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsSubmitting(false);
+      }
     }
   }
 
   async function copyInviteLink(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (createdInvite === null) {
       throw new Error("Cannot copy a friend invite before it is created.");
     }
@@ -110,8 +144,12 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
       }
 
       await navigator.clipboard.writeText(createdInvite.inviteUrl);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setStatusMessage(t("progressScreen.leaderboard.invite.copied"));
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isExpectedClipboardWriteError(error)) {
         setErrorMessage(t("progressScreen.leaderboard.invite.clipboardUnavailable"));
         return;
@@ -127,11 +165,17 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
       });
       setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
-      setIsCopying(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsCopying(false);
+      }
     }
   }
 
   async function shareInviteLink(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (createdInvite === null) {
       throw new Error("Cannot share a friend invite before it is created.");
     }
@@ -151,8 +195,12 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
         text: t("progressScreen.leaderboard.invite.shareText"),
         url: createdInvite.inviteUrl,
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       setStatusMessage(t("progressScreen.leaderboard.invite.shared"));
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
@@ -167,7 +215,9 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
       });
       setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
-      setIsSharing(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsSharing(false);
+      }
     }
   }
 
@@ -178,7 +228,7 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
           <h2 id="progress-leaderboard-invite-title" className="panel-subtitle">
             {t("progressScreen.leaderboard.invite.title")}
           </h2>
-          <button className="ghost-btn progress-leaderboard-invite-close" type="button" onClick={onClose}>
+          <button className="ghost-btn progress-leaderboard-invite-close" type="button" onClick={closeDialog}>
             {t("common.cancel")}
           </button>
         </div>
@@ -195,8 +245,7 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
                   value={friendDisplayName}
                   disabled={isSubmitting}
                   onChange={(event) => {
-                    setFriendDisplayName(event.target.value);
-                    setFieldErrorMessage("");
+                    updateFriendDisplayName(event.target.value);
                   }}
                   data-testid="progress-leaderboard-invite-name-input"
                 />

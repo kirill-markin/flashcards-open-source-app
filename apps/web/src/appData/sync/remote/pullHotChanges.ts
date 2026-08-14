@@ -41,6 +41,7 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
       afterHotChangeId,
       syncIncrementalPageSize,
       true,
+      input.signal,
     );
     if (input.hasFailed()) {
       return {

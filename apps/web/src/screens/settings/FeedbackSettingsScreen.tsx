@@ -1,7 +1,10 @@
 import { useState, type FormEvent, type ReactElement } from "react";
 import { ApiError, submitFeedback } from "../../api";
 import { useAppData } from "../../appData";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import {
   buildFeedbackSubmissionRequest,
   feedbackMaximumMessageLength,
@@ -38,7 +41,7 @@ export function FeedbackSettingsScreen(): ReactElement {
     cloudSettings,
     session,
   } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { locale, t } = useI18n();
   const { message, showMessage } = useTransientMessage(3000);
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
@@ -52,6 +55,10 @@ export function FeedbackSettingsScreen(): ReactElement {
   const technicalErrorMessage = t("appError.technicalError.message");
 
   async function submitSettingsFeedback(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const normalizedMessage = normalizeFeedbackMessage(feedbackMessage);
     if (normalizedMessage === "") {
       setFeedbackErrorMessage(t("feedback.emptyError"));
@@ -91,14 +98,20 @@ export function FeedbackSettingsScreen(): ReactElement {
     setIsFeedbackSubmitting(true);
     setFeedbackErrorMessage("");
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const feedbackState = await submitFeedback(submissionRequest);
+      indexedDbOpenRecoveryState.throwIfFailed();
       try {
         await storeFeedbackSubmittedAt({
           identityKey: feedbackPromptIdentityKey,
           feedbackState,
           submittedAt: submissionRequest.createdAtClient,
-        });
+        }, indexedDbOpenRecoveryState.throwIfFailed);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         const wasCaptured = captureAppOperationError(error, {
           feature: "feedback",
           operation: "feedback_submit",
@@ -111,9 +124,13 @@ export function FeedbackSettingsScreen(): ReactElement {
           showCapturedTechnicalError(error);
         }
       }
+      indexedDbOpenRecoveryState.throwIfFailed();
       setFeedbackMessage("");
       showMessage(t("feedback.success"));
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isExpectedFeedbackSubmitError(error)) {
         setFeedbackErrorMessage(t("feedback.submitError"));
         return;
@@ -132,7 +149,9 @@ export function FeedbackSettingsScreen(): ReactElement {
       }
       setFeedbackErrorMessage(wasCaptured ? technicalErrorMessage : t("feedback.submitError"));
     } finally {
-      setIsFeedbackSubmitting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsFeedbackSubmitting(false);
+      }
     }
   }
 

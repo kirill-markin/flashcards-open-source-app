@@ -10,6 +10,10 @@ import {
   type ReactElement,
   type RefObject,
 } from "react";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import {
   CardFormTagsField,
@@ -630,6 +634,7 @@ export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function C
     onRetryMediaUploadTransfer,
   } = props;
   const { t, formatDateTime } = useI18n();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const frontFieldId = `${formIdPrefix}-front-text`;
   const backFieldId = `${formIdPrefix}-back-text`;
   const tagsFieldId = `${formIdPrefix}-tags-input`;
@@ -640,6 +645,7 @@ export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function C
   const tagsFieldRef = useRef<CardFormTagsFieldHandle | null>(null);
   const formStateRef = useRef<CardFormState>(formState);
   const uploadTransferLoadSequenceRef = useRef<number>(0);
+  const uploadTransferRefreshIntervalIdRef = useRef<number | null>(null);
   const [uploadTransfersByMediaAssetId, setUploadTransfersByMediaAssetId] = useState<ReadonlyMap<string, MediaTransferQueueRecord>>(
     new Map<string, MediaTransferQueueRecord>(),
   );
@@ -666,7 +672,23 @@ export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function C
     },
   }), []);
 
+  const stopUploadTransferStatusPolling = useCallback(function stopUploadTransferStatusPolling(): void {
+    const intervalId = uploadTransferRefreshIntervalIdRef.current;
+    if (intervalId === null) {
+      return;
+    }
+
+    window.clearInterval(intervalId);
+    uploadTransferRefreshIntervalIdRef.current = null;
+  }, []);
+
   const loadUploadTransferStatuses = useCallback(async function loadUploadTransferStatuses(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      uploadTransferLoadSequenceRef.current += 1;
+      stopUploadTransferStatusPolling();
+      return;
+    }
+
     const requestSequence = uploadTransferLoadSequenceRef.current + 1;
     uploadTransferLoadSequenceRef.current = requestSequence;
     const isCurrentRequest = function isCurrentRequest(): boolean {
@@ -679,16 +701,23 @@ export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function C
     }
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const transfers = await loadMediaUploadTransfersForWorkspaceMediaAssets(workspaceId, referencedMediaAssetIds);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isCurrentRequest()) {
         setUploadTransfersByMediaAssetId(createMediaTransferByAssetId(transfers));
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        uploadTransferLoadSequenceRef.current += 1;
+        stopUploadTransferStatusPolling();
+        return;
+      }
       if (isCurrentRequest()) {
         warnMediaUploadStatusLoadFailed(workspaceId, referencedMediaAssetIds, error);
       }
     }
-  }, [referencedMediaAssetIds, workspaceId]);
+  }, [indexedDbOpenRecoveryState, referencedMediaAssetIds, stopUploadTransferStatusPolling, workspaceId]);
 
   useEffect(() => () => {
     uploadTransferLoadSequenceRef.current += 1;
@@ -699,18 +728,25 @@ export const CardFormFields = forwardRef<CardFormFieldsHandle, Props>(function C
   }, [loadUploadTransferStatuses, localReadVersion]);
 
   useEffect(() => {
-    if (hasRefreshableUploadTransfer(uploadTransfersByMediaAssetId) === false) {
+    if (
+      indexedDbOpenRecoveryState.isFailed
+      || hasRefreshableUploadTransfer(uploadTransfersByMediaAssetId) === false
+    ) {
       return undefined;
     }
 
     const intervalId = window.setInterval(() => {
       void loadUploadTransferStatuses();
     }, mediaUploadStatusRefreshIntervalMs);
+    uploadTransferRefreshIntervalIdRef.current = intervalId;
 
     return () => {
       window.clearInterval(intervalId);
+      if (uploadTransferRefreshIntervalIdRef.current === intervalId) {
+        uploadTransferRefreshIntervalIdRef.current = null;
+      }
     };
-  }, [loadUploadTransferStatuses, uploadTransfersByMediaAssetId]);
+  }, [indexedDbOpenRecoveryState.isFailed, loadUploadTransferStatuses, uploadTransfersByMediaAssetId]);
 
   function updateField<Key extends keyof CardFormState>(key: Key, value: CardFormState[Key]): void {
     onChange({

@@ -37,20 +37,23 @@ type MediaUploadCompletionTerminalReason = "retry_exhausted" | "interrupted";
 
 export class MediaUploadCompletionTerminalError extends PermanentMediaUploadError {
   readonly reason: MediaUploadCompletionTerminalReason;
-  readonly completionCause: ApiError;
+  readonly completionCause: ApiError | null;
   readonly interruptionCause: Error | null;
 
   constructor(
     reason: MediaUploadCompletionTerminalReason,
-    completionCause: ApiError,
+    completionCause: ApiError | null,
     interruptionCause: Error | null,
   ) {
+    const completionDescription = completionCause === null
+      ? "none"
+      : describeApiError(completionCause);
     const interruptionDescription = interruptionCause === null
       ? "none"
       : describeUploadError(interruptionCause);
     super(
       `Media upload completion stopped for this local run: reason=${reason}, `
-      + `completionError=${describeApiError(completionCause)}, `
+      + `completionError=${completionDescription}, `
       + `interruptionError=${interruptionDescription}`,
     );
     this.name = "MediaUploadCompletionTerminalError";
@@ -292,11 +295,18 @@ function warnUploadSessionAbortFailure(
 export async function abortUploadSessionAfterFailure(
   transfer: MediaTransferQueueRecord,
   sessionId: string,
+  markFailed: (error: unknown) => void,
+  throwIfFailed: () => void,
 ): Promise<unknown | null> {
   try {
+    throwIfFailed();
     await abortMediaAssetUploadSession(transfer.workspaceId, sessionId);
+    throwIfFailed();
     return null;
   } catch (error) {
+    throwIfFailed();
+    markFailed(error);
+    throwIfFailed();
     warnUploadSessionAbortFailure(transfer, sessionId, error);
     return error;
   }

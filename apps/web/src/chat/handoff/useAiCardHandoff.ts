@@ -1,5 +1,9 @@
 import { useCallback } from "react";
 import { useAppData } from "../../appData";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import type { Card } from "../../types";
 import { makeCardPendingAttachment } from "../attachments/chatCardParts";
 import { useOptionalChatDraft } from "../composer/drafts/ChatDraftContext";
@@ -8,12 +12,18 @@ import { useOptionalChatSession } from "../sessionController";
 
 export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
   const { setErrorMessage } = useAppData();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const draftContext = useOptionalChatDraft();
   const chatLayout = useOptionalChatLayout();
   const session = useOptionalChatSession();
 
   return useCallback(async (card: Card): Promise<boolean> => {
-    if (draftContext === null || chatLayout === null || session === null) {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || draftContext === null
+      || chatLayout === null
+      || session === null
+    ) {
       return false;
     }
 
@@ -54,20 +64,26 @@ export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
     let targetSessionId = sourceSessionId;
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (sourceSessionId === null || isDirtyConversation) {
+        indexedDbOpenRecoveryState.throwIfFailed();
         draftContext.suppressNextSessionDraftCarryover(sourceSessionId);
         const clearedSessionId = await session.clearConversation();
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (clearedSessionId !== null) {
           targetSessionId = clearedSessionId;
         }
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return false;
+      }
       const message = error instanceof Error ? error.message : String(error);
       setErrorMessage(`AI handoff failed. ${message}`);
       return false;
     }
 
-    if (targetSessionId === null) {
+    if (targetSessionId === null || indexedDbOpenRecoveryState.hasFailed()) {
       return false;
     }
 
@@ -86,6 +102,7 @@ export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
   }, [
     chatLayout,
     draftContext,
+    indexedDbOpenRecoveryState,
     setErrorMessage,
     session,
   ]);

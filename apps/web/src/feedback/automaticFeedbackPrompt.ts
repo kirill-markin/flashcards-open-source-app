@@ -4,6 +4,7 @@ import {
   loadLocalProgressSummary,
 } from "../localDb/progress/progress";
 import { buildProgressDateContext } from "../progress/progressDates";
+import type { IndexedDbOpenRecoveryState } from "../appError/AppErrorContext";
 
 export type AutomaticFeedbackPromptReviewActivity = Readonly<{
   today: string;
@@ -139,22 +140,30 @@ export function shouldRequestAutomaticFeedbackState(input: AutomaticFeedbackProm
 export async function loadAutomaticFeedbackPromptReviewActivity(
   workspaceId: string,
   now: Date,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
 ): Promise<AutomaticFeedbackPromptReviewActivity> {
   const dateContext = buildProgressDateContext(now);
   const [
     summary,
     todayReviews,
   ] = await Promise.all([
-    loadLocalProgressSummary([workspaceId], {
-      timeZone: dateContext.timeZone,
-      today: dateContext.today,
-    }),
-    loadLocalProgressDailyReviews([workspaceId], {
-      timeZone: dateContext.timeZone,
-      from: dateContext.today,
-      to: dateContext.today,
-    }),
+    runRecoveryGuardedAutomaticFeedbackRead(
+      () => loadLocalProgressSummary([workspaceId], {
+        timeZone: dateContext.timeZone,
+        today: dateContext.today,
+      }),
+      indexedDbOpenRecoveryState,
+    ),
+    runRecoveryGuardedAutomaticFeedbackRead(
+      () => loadLocalProgressDailyReviews([workspaceId], {
+        timeZone: dateContext.timeZone,
+        from: dateContext.today,
+        to: dateContext.today,
+      }),
+      indexedDbOpenRecoveryState,
+    ),
   ]);
+  indexedDbOpenRecoveryState.throwIfFailed();
   const todayReviewCount = todayReviews.find((point) => point.date === dateContext.today)?.reviewCount ?? 0;
   const previousReviewDayCount = summary.activeReviewDays - (summary.hasReviewedToday ? 1 : 0);
 
@@ -164,4 +173,21 @@ export async function loadAutomaticFeedbackPromptReviewActivity(
     todayReviewCount,
     hasPreviousReviewDay: previousReviewDayCount > 0,
   };
+}
+
+async function runRecoveryGuardedAutomaticFeedbackRead<ResultType>(
+  createRead: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createRead();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
 }

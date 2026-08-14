@@ -20,7 +20,10 @@ import { clearWebSyncCache } from "../../localDb/cache";
 
 const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
   hasFailed: (): boolean => false,
+  isFailed: false,
   markFailed: () => "not_recovery",
+  signal: new AbortController().signal,
+  throwIfFailed: (): void => {},
 };
 
 const observabilityMocks = vi.hoisted(() => ({

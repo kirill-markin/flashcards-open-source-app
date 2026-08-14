@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../../../appError/AppErrorContext";
 import { loadProgressReviewSchedule } from "../../../../api";
 import {
   calculatePendingProgressReviewScheduleCardTotalDelta,
@@ -22,6 +26,7 @@ import {
   captureProgressServerLoadError,
   getErrorMessage,
   normalizeProgressSourceError,
+  runRecoveryGuardedProgressLocalRead,
   type ProgressCanLoadServerBaseRef,
   type ProgressNumberRef,
   type ProgressScopeKeyRef,
@@ -54,6 +59,7 @@ type ProgressReviewScheduleSourcePipelineParams = Readonly<{
   dispatch: ProgressSourceDispatch;
   input: ProgressReviewScheduleInput;
   installationId: string | null;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   manualRefreshVersion: number;
   progressScheduleLocalVersion: number;
   progressScheduleLocalVersionRef: ProgressNumberRef;
@@ -74,6 +80,7 @@ export function useProgressReviewScheduleSourcePipeline(
     dispatch,
     input,
     installationId,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressScheduleLocalVersion,
     progressScheduleLocalVersionRef,
@@ -86,6 +93,10 @@ export function useProgressReviewScheduleSourcePipeline(
 
   useEffect(() => {
     currentScopeKeyRef.current = scopeKey;
+
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
 
     if (scopeKey === null) {
       dispatch({ type: "review_schedule_scope_reset" });
@@ -110,13 +121,14 @@ export function useProgressReviewScheduleSourcePipeline(
     canLoadServerBaseRef,
     currentScopeKeyRef,
     dispatch,
+    indexedDbOpenRecoveryState,
     input.timeZone,
     progressScheduleLocalVersionRef,
     scopeKey,
   ]);
 
   useEffect(() => {
-    if (scopeKey === null) {
+    if (scopeKey === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -124,10 +136,22 @@ export function useProgressReviewScheduleSourcePipeline(
     localLoadSequenceRef.current = currentSequence;
 
     void Promise.all([
-      loadLocalProgressReviewSchedule(accessibleWorkspaceIds, input),
-      hasPendingProgressReviewScheduleCardChanges(accessibleWorkspaceIds),
-      hasCompleteLocalProgressReviewScheduleCoverage(accessibleWorkspaceIds),
-      calculatePendingProgressReviewScheduleCardTotalDelta(accessibleWorkspaceIds),
+      runRecoveryGuardedProgressLocalRead(
+        () => loadLocalProgressReviewSchedule(accessibleWorkspaceIds, input),
+        indexedDbOpenRecoveryState,
+      ),
+      runRecoveryGuardedProgressLocalRead(
+        () => hasPendingProgressReviewScheduleCardChanges(accessibleWorkspaceIds),
+        indexedDbOpenRecoveryState,
+      ),
+      runRecoveryGuardedProgressLocalRead(
+        () => hasCompleteLocalProgressReviewScheduleCoverage(accessibleWorkspaceIds),
+        indexedDbOpenRecoveryState,
+      ),
+      runRecoveryGuardedProgressLocalRead(
+        () => calculatePendingProgressReviewScheduleCardTotalDelta(accessibleWorkspaceIds),
+        indexedDbOpenRecoveryState,
+      ),
     ]).then(([
       localReviewSchedule,
       hasPendingLocalCardChanges,
@@ -135,7 +159,8 @@ export function useProgressReviewScheduleSourcePipeline(
       pendingLocalCardTotalDelta,
     ]) => {
       if (
-        currentScopeKeyRef.current !== scopeKey
+        indexedDbOpenRecoveryState.hasFailed()
+        || currentScopeKeyRef.current !== scopeKey
         || localLoadSequenceRef.current !== currentSequence
       ) {
         return;
@@ -152,6 +177,10 @@ export function useProgressReviewScheduleSourcePipeline(
         canRenderServerBase: canLoadServerBaseRef.current,
       });
     }).catch((error: unknown) => {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+
       if (
         currentScopeKeyRef.current !== scopeKey
         || localLoadSequenceRef.current !== currentSequence
@@ -184,6 +213,7 @@ export function useProgressReviewScheduleSourcePipeline(
     currentScopeKeyRef,
     dispatch,
     input,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressScheduleLocalVersion,
     scopeKey,
@@ -195,6 +225,10 @@ export function useProgressReviewScheduleSourcePipeline(
     nextRefreshKey: string,
     nextProgressScheduleLocalVersion: number,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     requestedRefreshRequestsRef.current.set(targetScopeKey, {
       refreshKey: nextRefreshKey,
       progressScheduleLocalVersion: nextProgressScheduleLocalVersion,
@@ -221,6 +255,9 @@ export function useProgressReviewScheduleSourcePipeline(
 
           try {
             const serverReviewSchedule = await loadProgressReviewSchedule(refreshInput);
+            if (indexedDbOpenRecoveryState.hasFailed()) {
+              return;
+            }
             const isCurrentRefreshRequest: boolean = requestedRefreshRequestsRef.current
               .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
 
@@ -239,6 +276,10 @@ export function useProgressReviewScheduleSourcePipeline(
               });
             }
           } catch (error: unknown) {
+            if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+              return;
+            }
+
             const isCurrentRefreshRequest: boolean = requestedRefreshRequestsRef.current
               .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
 
@@ -281,10 +322,10 @@ export function useProgressReviewScheduleSourcePipeline(
 
     serverRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, indexedDbOpenRecoveryState, installationId]);
 
   useEffect(() => {
-    if (scopeKey === null || refreshKey === null) {
+    if (scopeKey === null || refreshKey === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -299,6 +340,7 @@ export function useProgressReviewScheduleSourcePipeline(
       progressScheduleLocalVersion,
     );
   }, [
+    indexedDbOpenRecoveryState,
     input,
     progressScheduleLocalVersion,
     refreshKey,

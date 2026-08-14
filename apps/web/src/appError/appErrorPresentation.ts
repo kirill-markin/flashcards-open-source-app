@@ -28,7 +28,6 @@ type IndexedDbReloadRecoveryPresentation = Readonly<{
   guidance: string;
   technicalDetails: string;
   action: ReloadPageAppErrorAction;
-  dismissLabel: string;
 }>;
 
 export type AppErrorPresentation = TechnicalErrorPresentation | IndexedDbReloadRecoveryPresentation;
@@ -57,7 +56,6 @@ export type AppErrorPresentationMessages = Readonly<{
     message: string;
     guidance: string;
     reload: string;
-    later: string;
   }>;
   labels: AppErrorPresentationLabels;
 }>;
@@ -153,7 +151,6 @@ export function buildAppErrorPresentation(
         kind: "reload-page",
         label: messages.indexedDbReloadRecovery.reload,
       },
-      dismissLabel: messages.indexedDbReloadRecovery.later,
     };
   }
 

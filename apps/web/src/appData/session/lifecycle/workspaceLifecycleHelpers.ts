@@ -7,16 +7,19 @@ export type SessionAccountSwitchError = Error & Readonly<{
   name: typeof sessionAccountSwitchErrorName;
 }>;
 
-export function consumeLoggedOutMarker(): boolean {
+export function hasLoggedOutMarker(): boolean {
+  return new URL(window.location.href).searchParams.get("logged_out") === "1";
+}
+
+export function removeLoggedOutMarker(): void {
   const url = new URL(window.location.href);
   if (url.searchParams.get("logged_out") !== "1") {
-    return false;
+    return;
   }
 
   url.searchParams.delete("logged_out");
   const nextUrl = `${url.pathname}${url.search}${url.hash}`;
   window.history.replaceState({}, document.title, nextUrl);
-  return true;
 }
 
 export function createSessionAccountSwitchError(errorMessage: string): SessionAccountSwitchError {

@@ -6,6 +6,10 @@ import {
   type MutableRefObject,
 } from "react";
 import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../appError/AppErrorContext";
+import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   IMAGE_MEDIA_TYPE_PREFIX,
   buildContentParts,
@@ -37,6 +41,7 @@ type UseChatAttachmentsParams = Readonly<{
   canAttachDraftFiles: boolean;
   currentSessionId: string | null;
   draftInputText: string;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   onTechnicalError: (error: unknown) => void;
   pendingAttachmentsRef: MutableRefObject<ReadonlyArray<PendingAttachment>>;
   setPendingAttachmentsState: (nextAttachments: ReadonlyArray<PendingAttachment>) => void;
@@ -120,6 +125,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
     canAttachDraftFiles,
     currentSessionId,
     draftInputText,
+    indexedDbOpenRecoveryState,
     onTechnicalError,
     pendingAttachmentsRef,
     setPendingAttachmentsState,
@@ -130,7 +136,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
   canAttachDraftFilesRef.current = canAttachDraftFiles;
 
   async function handleAttach(attachment: PendingAttachment): Promise<void> {
-    if (!canAttachDraftFilesRef.current) {
+    if (indexedDbOpenRecoveryState.hasFailed() || !canAttachDraftFilesRef.current) {
       return;
     }
 
@@ -155,11 +161,16 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       && attachment.mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX)
     ) {
       try {
+        indexedDbOpenRecoveryState.throwIfFailed();
         finalAttachment = await recompressImageAttachment(
           attachment,
           EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
         );
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         onTechnicalError(error);
         return;
       }
@@ -177,7 +188,7 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       });
     }
 
-    if (!canAttachDraftFilesRef.current) {
+    if (indexedDbOpenRecoveryState.hasFailed() || !canAttachDraftFilesRef.current) {
       return;
     }
 
@@ -191,6 +202,10 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
 
   async function ingestFiles(files: ReadonlyArray<File>): Promise<void> {
     for (const file of files) {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       const sizeError = checkFileSize(file);
       if (sizeError !== null) {
         window.alert(attachmentLimitMessage);
@@ -198,8 +213,16 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       }
 
       try {
-        await handleAttach(await prepareAttachment(file));
+        indexedDbOpenRecoveryState.throwIfFailed();
+        const attachment = await prepareAttachment(file);
+        indexedDbOpenRecoveryState.throwIfFailed();
+        await handleAttach(attachment);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
+
         if (isChatAttachmentTooLargeError(error)) {
           window.alert(attachmentLimitMessage);
           continue;
@@ -221,6 +244,10 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
   }
 
   function removeAttachment(index: number): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const currentAttachments = pendingAttachmentsRef.current;
     setPendingAttachmentsState([
       ...currentAttachments.slice(0, index),
@@ -230,6 +257,9 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
 
   function handleDragEnter(event: DragEvent<HTMLDivElement>): void {
     event.preventDefault();
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     event.dataTransfer.dropEffect = canAttachDraftFiles ? "copy" : "none";
     if (!canAttachDraftFiles) {
       dragCounterRef.current = 0;
@@ -245,6 +275,9 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
 
   function handleDragLeave(event: DragEvent<HTMLDivElement>): void {
     event.preventDefault();
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     if (!canAttachDraftFiles) {
       dragCounterRef.current = 0;
       setIsDragOver(false);
@@ -259,11 +292,16 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
 
   function handleDragOver(event: DragEvent<HTMLDivElement>): void {
     event.preventDefault();
-    event.dataTransfer.dropEffect = canAttachDraftFiles ? "copy" : "none";
+    event.dataTransfer.dropEffect = canAttachDraftFiles && indexedDbOpenRecoveryState.hasFailed() === false
+      ? "copy"
+      : "none";
   }
 
   async function handleDrop(event: DragEvent<HTMLDivElement>): Promise<void> {
     event.preventDefault();
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     dragCounterRef.current = 0;
     setIsDragOver(false);
 
@@ -272,10 +310,13 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
     }
 
     await ingestFiles(Array.from(event.dataTransfer.files));
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
   }
 
   function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
-    if (!canAttachDraftFiles) {
+    if (indexedDbOpenRecoveryState.hasFailed() || !canAttachDraftFiles) {
       return;
     }
 

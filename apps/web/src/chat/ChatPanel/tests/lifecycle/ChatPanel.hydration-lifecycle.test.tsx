@@ -178,7 +178,7 @@ describe("ChatPanel hydration lifecycle", () => {
     await renderChatPanel();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-local-fresh", "workspace-1");
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-local-fresh", "workspace-1", expect.any(AbortSignal));
   });
 
   it("keeps a typed draft when hydration accepts a replacement session id", async () => {
@@ -301,7 +301,7 @@ describe("ChatPanel hydration lifecycle", () => {
     await renderChatPanel();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-assistant-only", "workspace-1");
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-assistant-only", "workspace-1", expect.any(AbortSignal));
     expect(createNewChatSessionMock).not.toHaveBeenCalled();
   });
 

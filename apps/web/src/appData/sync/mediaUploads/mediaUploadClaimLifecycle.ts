@@ -192,41 +192,100 @@ async function renewUploadTransferClaim(
 
 export function startUploadClaimHeartbeat(
   transfer: MediaTransferQueueRecord,
+  signal: AbortSignal,
   hasFailed: () => boolean,
+  markFailed: (error: unknown) => void,
 ): MediaUploadClaimHeartbeat {
   let claimedAt = requireInProgressUploadClaimedAt(transfer);
   let heartbeatError: unknown = null;
   let renewalTask: Promise<void> = Promise.resolve();
   let didStop = false;
+  let timerId: number | null = null;
   let resolveHeartbeatFailure: (() => void) | null = null;
   const heartbeatFailureController = new AbortController();
   const heartbeatFailurePromise = new Promise<void>((resolve) => {
     resolveHeartbeatFailure = resolve;
   });
 
+  const clearHeartbeatTimer = (): void => {
+    if (timerId === null) {
+      return;
+    }
+
+    window.clearInterval(timerId);
+    timerId = null;
+  };
+
+  const handleLifecycleAbort = (): void => {
+    didStop = true;
+    clearHeartbeatTimer();
+    resolveHeartbeatFailure?.();
+  };
+
   const queueRenewal = (): void => {
-    if (heartbeatError !== null || didStop || hasFailed()) {
+    if (hasFailed()) {
+      handleLifecycleAbort();
+      return;
+    }
+    if (heartbeatError !== null || didStop || signal.aborted) {
       return;
     }
 
     renewalTask = renewalTask
       .then(async (): Promise<void> => {
         if (hasFailed()) {
+          handleLifecycleAbort();
           return;
         }
-        claimedAt = await renewUploadTransferClaim(transfer, claimedAt);
+        if (heartbeatError !== null || didStop || signal.aborted) {
+          return;
+        }
+        const renewedClaimedAt = await renewUploadTransferClaim(transfer, claimedAt);
+        claimedAt = renewedClaimedAt;
+        if (hasFailed()) {
+          handleLifecycleAbort();
+          return;
+        }
+        if (heartbeatError !== null || didStop || signal.aborted) {
+          return;
+        }
       })
       .catch((error: unknown): void => {
-        heartbeatError = error;
-        if (hasFailed() === false && isIndexedDbOpenRecoveryError(error) === false) {
+        if (isIndexedDbOpenRecoveryError(error)) {
+          const wasRecoveryAlreadyActive = hasFailed();
+          markFailed(error);
+          if (wasRecoveryAlreadyActive || didStop || signal.aborted) {
+            handleLifecycleAbort();
+            return;
+          }
+          heartbeatError = error;
+          didStop = true;
+          clearHeartbeatTimer();
           heartbeatFailureController.abort(error);
+          resolveHeartbeatFailure?.();
+          return;
         }
+        if (didStop || signal.aborted) {
+          resolveHeartbeatFailure?.();
+          return;
+        }
+        if (hasFailed()) {
+          handleLifecycleAbort();
+          return;
+        }
+        heartbeatError = error;
+        heartbeatFailureController.abort(error);
         resolveHeartbeatFailure?.();
       });
   };
 
-  const timerId = window.setInterval(queueRenewal, mediaUploadClaimHeartbeatMs);
-  queueRenewal();
+  signal.addEventListener("abort", handleLifecycleAbort, { once: true });
+  if (signal.aborted) {
+    handleLifecycleAbort();
+  } else {
+    timerId = window.setInterval(queueRenewal, mediaUploadClaimHeartbeatMs);
+    queueRenewal();
+  }
 
   return {
     failureSignal: heartbeatFailureController.signal,
@@ -244,8 +303,9 @@ export function startUploadClaimHeartbeat(
     stop: async (): Promise<unknown | null> => {
       if (didStop === false) {
         didStop = true;
-        window.clearInterval(timerId);
       }
+      clearHeartbeatTimer();
+      signal.removeEventListener("abort", handleLifecycleAbort);
 
       await renewalTask;
       return heartbeatError;

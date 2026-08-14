@@ -9,11 +9,7 @@ import {
   clearAllLocalBrowserData,
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
-import {
-  isIndexedDbOpenRecoveryFailureMark,
-  ownsIndexedDbOpenRecoveryFailure,
-  type IndexedDbOpenRecoveryState,
-} from "../../../appError/AppErrorContext";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type {
   SessionInfo,
@@ -80,9 +76,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   const clearConfirmedUserScopedState = useCallback(async function clearConfirmedUserScopedState(
     reason: LocalBrowserDataCleanupReason,
   ): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
-      return;
-    }
+    indexedDbOpenRecoveryState.throwIfFailed();
 
     workspaceBootstrapGenerationRef.current += 1;
     deferredBootstrapWorkspaceRef.current = null;
@@ -96,12 +90,11 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setTechnicalError(null);
     resetUserScopedUiState();
     await discardAllSyncWork(async (): Promise<void> => {
-      if (indexedDbOpenRecoveryState.hasFailed()) {
-        return;
-      }
-
-      await clearAllLocalBrowserData(reason);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      await clearAllLocalBrowserData(reason, indexedDbOpenRecoveryState.throwIfFailed);
+      indexedDbOpenRecoveryState.throwIfFailed();
     });
+    indexedDbOpenRecoveryState.throwIfFailed();
   }, [
     discardAllSyncWork,
     indexedDbOpenRecoveryState,
@@ -210,22 +203,24 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
         });
       } catch (error) {
         const normalizedError = normalizeCaughtError(error);
-        const markResult = indexedDbOpenRecoveryState.markFailed(normalizedError);
-        if (isIndexedDbOpenRecoveryFailureMark(markResult) === false) {
-          if (isCurrentBootstrapGeneration() === false) {
-            return;
-          }
+        indexedDbOpenRecoveryState.markFailed(normalizedError);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
 
-          if (isAuthRedirectError(error)) {
-            logWorkspaceTransition("workspace_activate_bootstrap_redirected", {
-              workspaceId: workspace.workspaceId,
-              redirected: true,
-              sessionVerificationState,
-              bootstrapPhase,
-            });
-            setSessionLoadState("redirecting");
-            return;
-          }
+        if (isCurrentBootstrapGeneration() === false) {
+          return;
+        }
+
+        if (isAuthRedirectError(error)) {
+          logWorkspaceTransition("workspace_activate_bootstrap_redirected", {
+            workspaceId: workspace.workspaceId,
+            redirected: true,
+            sessionVerificationState,
+            bootstrapPhase,
+          });
+          setSessionLoadState("redirecting");
+          return;
         }
 
         const nextErrorMessage = getErrorMessage(normalizedError);
@@ -238,10 +233,6 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
             bootstrapPhase,
           }, normalizedError);
         }
-        if (indexedDbOpenRecoveryState.hasFailed() && ownsIndexedDbOpenRecoveryFailure(markResult) === false) {
-          return;
-        }
-
         setSessionErrorMessage(nextErrorMessage);
         setErrorMessage(nextErrorMessage);
         setSessionTechnicalError(syncFailureCaptureState === false ? null : normalizedError);
@@ -304,6 +295,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       await putCloudSettings(linkedCloudSettings);
     } catch (error) {
       indexedDbOpenRecoveryState.markFailed(error);
+      indexedDbOpenRecoveryState.throwIfFailed();
       throw error;
     }
     if (indexedDbOpenRecoveryState.hasFailed()) {

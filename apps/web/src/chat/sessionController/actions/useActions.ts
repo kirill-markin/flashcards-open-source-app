@@ -1,5 +1,9 @@
 import { useCallback, useRef, type Dispatch } from "react";
 import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../../appError/AppErrorContext";
+import {
   ApiContractError,
   ApiError,
   AuthRedirectError,
@@ -56,6 +60,7 @@ import type { ChatHistoryState } from "../../history/useChatHistory";
 type FreshSessionErrorPresentation = "new_chat" | "refresh" | "silent";
 
 type UseChatSessionActionsParams = Readonly<{
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspaceId: string | null;
   isRemoteReady: boolean;
   uiLocale: Locale;
@@ -203,6 +208,7 @@ export function useChatSessionActions(
   params: UseChatSessionActionsParams,
 ): ChatSessionActions {
   const {
+    indexedDbOpenRecoveryState,
     workspaceId,
     isRemoteReady,
     uiLocale,
@@ -286,13 +292,23 @@ export function useChatSessionActions(
   const provisionRemoteSession = useCallback(async (
     sessionId: string,
   ): Promise<NewChatSessionResponse> => {
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (workspaceId === null) {
       throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
     }
 
     const activeProvisioning = getActiveProvisioningState();
     if (activeProvisioning !== null && activeProvisioning.sessionId === sessionId) {
-      return activeProvisioning.promise;
+      try {
+        const response = await activeProvisioning.promise;
+        indexedDbOpenRecoveryState.throwIfFailed();
+        return response;
+      } catch (error) {
+        indexedDbOpenRecoveryState.throwIfFailed();
+        indexedDbOpenRecoveryState.markFailed(error);
+        indexedDbOpenRecoveryState.throwIfFailed();
+        throw error;
+      }
     }
 
     const nextPromise = createNewChatSession(sessionId, workspaceId, uiLocale);
@@ -304,7 +320,14 @@ export function useChatSessionActions(
     };
 
     try {
-      return await nextPromise;
+      const response = await nextPromise;
+      indexedDbOpenRecoveryState.throwIfFailed();
+      return response;
+    } catch (error) {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      indexedDbOpenRecoveryState.markFailed(error);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      throw error;
     } finally {
       const currentProvisioning = remoteSessionProvisioningRef.current;
       if (
@@ -316,7 +339,7 @@ export function useChatSessionActions(
         remoteSessionProvisioningRef.current = null;
       }
     }
-  }, [uiLocale, workspaceId]);
+  }, [indexedDbOpenRecoveryState, uiLocale, uiMessages, workspaceId]);
 
   const beginFreshSessionRequestSequence = useCallback((): number => {
     const nextSequence = clearConversationRequestSequenceRef.current + 1;
@@ -408,10 +431,15 @@ export function useChatSessionActions(
     requestSequence: number,
     errorPresentation: FreshSessionErrorPresentation,
   ): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const requestLocale = uiLocale;
     void (async (): Promise<void> => {
       try {
         const response = await provisionRemoteSession(sessionId);
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (response.sessionId !== sessionId) {
           return;
         }
@@ -430,6 +458,10 @@ export function useChatSessionActions(
         });
         storeChatConfig(response.chatConfig);
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
+
         if (isFreshSessionEnsureCurrent(sessionId, requestSequence, requestLocale) === false) {
           return;
         }
@@ -453,7 +485,7 @@ export function useChatSessionActions(
         });
       }
     })();
-  }, [dispatch, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages, workspaceId]);
+  }, [dispatch, indexedDbOpenRecoveryState, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages, workspaceId]);
 
   const ensureFreshSessionInBackground = useCallback((sessionId: string, requestSequence: number): void => {
     ensureFreshSession(sessionId, requestSequence, "silent");
@@ -464,6 +496,7 @@ export function useChatSessionActions(
   }, [ensureFreshSession]);
 
   const ensureRemoteSession = useCallback(async (): Promise<string> => {
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (workspaceId === null) {
       throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
     }
@@ -515,6 +548,7 @@ export function useChatSessionActions(
     };
 
     const resolution = await resolveRemoteSession();
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (
       resolution.provisionedResponse !== null
       && runtimeRefs.currentWorkspaceIdRef.current === workspaceId
@@ -530,9 +564,10 @@ export function useChatSessionActions(
     }
 
     return resolution.sessionId;
-  }, [dispatch, isRemoteReady, provisionRemoteSession, runtimeRefs, uiMessages, workspaceId]);
+  }, [dispatch, indexedDbOpenRecoveryState, isRemoteReady, provisionRemoteSession, runtimeRefs, uiMessages, workspaceId]);
 
   const ensureRemoteSessionForHydration = useCallback(async (): Promise<string> => {
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (workspaceId === null) {
       throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
     }
@@ -547,6 +582,7 @@ export function useChatSessionActions(
     if (currentSessionId !== null) {
       if (activeProvisioning !== null && activeProvisioning.sessionId === currentSessionId) {
         const response = await activeProvisioning.promise;
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (response.sessionId !== currentSessionId) {
           throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
         }
@@ -557,6 +593,7 @@ export function useChatSessionActions(
 
     if (activeProvisioning !== null) {
       const response = await activeProvisioning.promise;
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (response.sessionId !== activeProvisioning.sessionId) {
         throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
       }
@@ -566,12 +603,13 @@ export function useChatSessionActions(
 
     const nextSessionId = createClientChatSessionId();
     const response = await provisionRemoteSession(nextSessionId);
+    indexedDbOpenRecoveryState.throwIfFailed();
     if (response.sessionId !== nextSessionId) {
       throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
     }
 
     return response.sessionId;
-  }, [isRemoteReady, provisionRemoteSession, runtimeRefs, uiMessages, workspaceId]);
+  }, [indexedDbOpenRecoveryState, isRemoteReady, provisionRemoteSession, runtimeRefs, uiMessages, workspaceId]);
 
   const sendMessage = useCallback(async (
     sendParams: SendChatMessageParams,
@@ -615,6 +653,10 @@ export function useChatSessionActions(
     });
 
     const failRemoteSessionRequest = (error: unknown): SendChatMessageResult => {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return createRejectedSendResult(state.currentSessionId);
+      }
+
       captureChatRunRequestError(error, workspaceId, {
         operation: "chat_remote_session_failed",
         sessionId: runtimeRefs.currentSessionIdRef.current,
@@ -643,6 +685,10 @@ export function useChatSessionActions(
     };
 
     const activateRecoveredSession = (session: NewChatSessionResponse): boolean => {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return false;
+      }
+
       if (prepareDraftTargetSession(session.sessionId) === false) {
         return false;
       }
@@ -663,6 +709,7 @@ export function useChatSessionActions(
 
     const recoverAndActivateSession = async (): Promise<SessionConflictRecovery> => {
       const recovery = await recoverFromSessionIdConflict(requestSequence, sourceSessionId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (recovery.status === "recovered" && activateRecoveredSession(recovery.session) === false) {
         return { status: "stale" };
       }
@@ -675,11 +722,16 @@ export function useChatSessionActions(
 
     try {
       const ensuredSessionId = await ensureRemoteSession();
+      indexedDbOpenRecoveryState.throwIfFailed();
       sessionId = ensuredSessionId;
       if (prepareDraftTargetSession(ensuredSessionId) === false) {
         return finishStaleRequest();
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return createRejectedSendResult(state.currentSessionId);
+      }
+
       if (isRequestSequenceCurrent(requestSequence) === false) {
         return finishStaleRequest();
       }
@@ -687,6 +739,7 @@ export function useChatSessionActions(
       if (isChatSessionIdConflictError(error)) {
         try {
           const recovery = await recoverAndActivateSession();
+          indexedDbOpenRecoveryState.throwIfFailed();
           if (recovery.status === "recovered") {
             didRecoverSessionIdConflict = true;
             sessionId = recovery.session.sessionId;
@@ -694,6 +747,10 @@ export function useChatSessionActions(
             return finishStaleRequest();
           }
         } catch (recoveryError) {
+          if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, recoveryError)) {
+            return createRejectedSendResult(state.currentSessionId);
+          }
+
           if (isRequestSequenceCurrent(requestSequence) === false) {
             return finishStaleRequest();
           }
@@ -723,6 +780,7 @@ export function useChatSessionActions(
     });
 
     const startRunForSession = async (requestSessionId: string): Promise<StartChatRunResponse | null> => {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const requestBody = createStartRunRequestBody(requestSessionId);
       if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
         dispatch({
@@ -732,7 +790,9 @@ export function useChatSessionActions(
         return null;
       }
 
-      return startChatRun(requestBody);
+      const startRunResponse = await startChatRun(requestBody);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      return startRunResponse;
     };
 
     const failStartRunRequest = (
@@ -740,6 +800,10 @@ export function useChatSessionActions(
       requestSessionId: string,
       resultSessionId: string | null,
     ): SendChatMessageResult => {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return createRejectedSendResult(resultSessionId);
+      }
+
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {
         dispatch({
           type: "error_shown",
@@ -792,11 +856,16 @@ export function useChatSessionActions(
 
     try {
       const initialResponse = await startRunForSession(sessionId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (initialResponse === null) {
         return createRejectedSendResult(didRecoverSessionIdConflict ? sessionId : state.currentSessionId);
       }
       response = initialResponse;
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return createRejectedSendResult(state.currentSessionId);
+      }
+
       if (isRequestSequenceCurrent(requestSequence) === false) {
         return finishStaleRequest();
       }
@@ -804,17 +873,23 @@ export function useChatSessionActions(
       if (isChatSessionIdConflictError(error) && didRecoverSessionIdConflict === false) {
         try {
           const recovery = await recoverAndActivateSession();
+          indexedDbOpenRecoveryState.throwIfFailed();
           if (recovery.status === "recovered") {
             didRecoverSessionIdConflict = true;
             sessionId = recovery.session.sessionId;
 
             try {
               const retryResponse = await startRunForSession(recovery.session.sessionId);
+              indexedDbOpenRecoveryState.throwIfFailed();
               if (retryResponse === null) {
                 return createRejectedSendResult(recovery.session.sessionId);
               }
               response = retryResponse;
             } catch (retryError) {
+              if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, retryError)) {
+                return createRejectedSendResult(recovery.session.sessionId);
+              }
+
               if (isRequestSequenceCurrent(requestSequence) === false) {
                 return finishStaleRequest();
               }
@@ -827,6 +902,10 @@ export function useChatSessionActions(
             return finishStaleRequest();
           }
         } catch (retryError) {
+          if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, retryError)) {
+            return createRejectedSendResult(state.currentSessionId);
+          }
+
           if (isRequestSequenceCurrent(requestSequence) === false) {
             return finishStaleRequest();
           }
@@ -890,6 +969,7 @@ export function useChatSessionActions(
     appendUserMessage,
     dispatch,
     getActiveRequestSequence,
+    indexedDbOpenRecoveryState,
     invalidatePendingSnapshotRequests,
     isDocumentVisibleRef,
     isRemoteReady,
@@ -939,6 +1019,7 @@ export function useChatSessionActions(
       }
 
       const response = await stopChatRun(requestSessionId, requestWorkspaceId, requestActiveRunId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isStopRequestCurrent() === false) {
         if (isStopRequestSessionCurrent()) {
           dispatch({ type: "stop_request_stale", runId: requestActiveRunId });
@@ -967,6 +1048,10 @@ export function useChatSessionActions(
         return;
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+
       if (requestWorkspaceId !== null && isStopRequestCurrent() === false) {
         if (isStopRequestSessionCurrent()) {
           dispatch({ type: "stop_request_stale", runId: requestActiveRunId });
@@ -995,6 +1080,7 @@ export function useChatSessionActions(
   }, [
     dispatch,
     hasActiveLiveConnection,
+    indexedDbOpenRecoveryState,
     reconcileTerminalSnapshot,
     runtimeRefs.runStateRef,
     runtimeRefs.activeRunIdRef,
@@ -1009,6 +1095,10 @@ export function useChatSessionActions(
   ]);
 
   const clearConversation = useCallback(async (): Promise<string | null> => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return null;
+    }
+
     beginFreshSessionRequestSequence();
 
     if (workspaceId === null) {
@@ -1038,6 +1128,7 @@ export function useChatSessionActions(
     detachLiveStream,
     dispatch,
     ensureFreshSession,
+    indexedDbOpenRecoveryState,
     invalidatePendingSnapshotRequests,
     resetSnapshotTracking,
     workspaceId,

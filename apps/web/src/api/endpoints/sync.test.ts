@@ -20,7 +20,16 @@ describe("sync API endpoints", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await pullSyncChanges("workspace-1", "device-1", "web", "1.0.0", 41, 100, true);
+    await pullSyncChanges(
+      "workspace-1",
+      "device-1",
+      "web",
+      "1.0.0",
+      41,
+      100,
+      true,
+      new AbortController().signal,
+    );
 
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     const requestBody = JSON.parse(String(requestInit?.body)) as Readonly<{ includeMediaAssets?: unknown }>;
@@ -66,7 +75,15 @@ describe("sync API endpoints", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await pullReviewHistorySync("workspace-1", "device-1", "web", "1.0.0", 41, 100);
+    const result = await pullReviewHistorySync(
+      "workspace-1",
+      "device-1",
+      "web",
+      "1.0.0",
+      41,
+      100,
+      new AbortController().signal,
+    );
 
     expect(result).toEqual({
       reviewEvents: [
