@@ -292,11 +292,18 @@ function warnUploadSessionAbortFailure(
 export async function abortUploadSessionAfterFailure(
   transfer: MediaTransferQueueRecord,
   sessionId: string,
+  markFailed: (error: unknown) => void,
+  throwIfFailed: () => void,
 ): Promise<unknown | null> {
   try {
+    throwIfFailed();
     await abortMediaAssetUploadSession(transfer.workspaceId, sessionId);
+    throwIfFailed();
     return null;
   } catch (error) {
+    throwIfFailed();
+    markFailed(error);
+    throwIfFailed();
     warnUploadSessionAbortFailure(transfer, sessionId, error);
     return error;
   }

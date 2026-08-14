@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useAppData } from "../../../appData";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useAiCardHandoff } from "../../../chat/handoff/useAiCardHandoff";
 import { useI18n } from "../../../i18n";
 import {
@@ -50,6 +54,23 @@ function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSumma
 
 const workspaceUnavailableErrorMessage = "Workspace is unavailable";
 
+async function runRecoveryGuardedLocalRead<ResultType>(
+  createRead: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createRead();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
+
 type CardFormIdentity = Readonly<{
   cardId: string | null;
   workspaceId: string;
@@ -90,7 +111,7 @@ export function CardFormScreen(): ReactElement {
     runMediaUploadTransfers,
     session,
   } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const cardFormFieldsRef = useRef<CardFormFieldsHandle | null>(null);
   const formIdentityRef = useRef<CardFormIdentity | null>(null);
   const renderedFormIdentityRef = useRef<CardFormIdentity | null>(null);
@@ -216,6 +237,10 @@ export function CardFormScreen(): ReactElement {
   );
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const carriedTextareaSelection = (
       pendingTextareaSelectionRestoreRef.current?.restore.selection ?? null
     );
@@ -296,9 +321,18 @@ export function CardFormScreen(): ReactElement {
         formIdentity,
       );
       const [tagsSummary, loadedCard] = await Promise.all([
-        loadWorkspaceTagsSummary(workspaceId),
-        isCreateMode || cardId === undefined ? Promise.resolve(null) : loadCardById(workspaceId, cardId),
+        runRecoveryGuardedLocalRead(
+          () => loadWorkspaceTagsSummary(workspaceId),
+          indexedDbOpenRecoveryState,
+        ),
+        runRecoveryGuardedLocalRead(
+          () => isCreateMode || cardId === undefined
+            ? Promise.resolve(null)
+            : loadCardById(workspaceId, cardId),
+          indexedDbOpenRecoveryState,
+        ),
       ]);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isCurrentLoadRequest() === false) {
         return;
       }
@@ -401,6 +435,9 @@ export function CardFormScreen(): ReactElement {
         setLoadErrorMessage(t("cardForm.errors.cardNotFound"));
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isCurrentLoadRequest() === false) {
         return;
       }
@@ -425,7 +462,7 @@ export function CardFormScreen(): ReactElement {
       }
       setCurrentLoadErrorMessage(t("appError.technicalError.message"));
     } finally {
-      if (isCurrentLoadRequest()) {
+      if (isCurrentLoadRequest() && indexedDbOpenRecoveryState.hasFailed() === false) {
         setIsLoading(false);
       }
     }
@@ -434,6 +471,7 @@ export function CardFormScreen(): ReactElement {
     cancelPendingTextareaSelectionRestore,
     captureCurrentTextareaSelection,
     cardId,
+    indexedDbOpenRecoveryState,
     isCreateMode,
     resetTextareaSelectionRestore,
     scheduleTextareaSelectionRestore,
@@ -475,7 +513,7 @@ export function CardFormScreen(): ReactElement {
   }
 
   async function saveCurrentCard(): Promise<Card | null> {
-    if (isSubmissionAllowed() === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isSubmissionAllowed() === false) {
       return null;
     }
 
@@ -490,6 +528,7 @@ export function CardFormScreen(): ReactElement {
 
     try {
       const savedCard = await updateCardItem(cardId, buildUpdatePayload());
+      indexedDbOpenRecoveryState.throwIfFailed();
       successfulMutationGenerationRef.current += 1;
       reconciliationBaselineCardRef.current = savedCard;
       setCurrentCard(savedCard);
@@ -498,6 +537,9 @@ export function CardFormScreen(): ReactElement {
       setFormState(savedFormState);
       return savedCard;
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return null;
+      }
       const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
       if (expectedErrorMessage !== null) {
         setActionErrorMessage(expectedErrorMessage);
@@ -521,11 +563,17 @@ export function CardFormScreen(): ReactElement {
       setActionErrorMessage(t("appError.technicalError.message"));
       return null;
     } finally {
-      setIsSaving(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsSaving(false);
+      }
     }
   }
 
   async function handleSubmit(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     cardFormFieldsRef.current?.commitTagsDraft();
     if (isSubmissionAllowed() === false) {
       return;
@@ -544,12 +592,17 @@ export function CardFormScreen(): ReactElement {
           tags: currentFormState.tags,
         };
         await createCardItem(payload);
+        indexedDbOpenRecoveryState.throwIfFailed();
       } else if (cardId !== undefined) {
         await updateCardItem(cardId, buildUpdatePayload());
+        indexedDbOpenRecoveryState.throwIfFailed();
       }
 
       navigate(cardsRoute);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
       if (expectedErrorMessage !== null) {
         setActionErrorMessage(expectedErrorMessage);
@@ -572,12 +625,14 @@ export function CardFormScreen(): ReactElement {
       showCapturedTechnicalError(error);
       setActionErrorMessage(t("appError.technicalError.message"));
     } finally {
-      setIsSaving(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsSaving(false);
+      }
     }
   }
 
   async function handleEditWithAi(): Promise<void> {
-    if (isAuthoringMedia) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isAuthoringMedia) {
       return;
     }
 
@@ -591,16 +646,25 @@ export function CardFormScreen(): ReactElement {
     }
 
     if (isCardFormStateDirty(currentCard, formStateRef.current) === false) {
-      await handoffCardToAi(currentCard);
+      const didHandoff = await handoffCardToAi(currentCard);
+      if (didHandoff === false || indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       return;
     }
 
     const savedCard = await saveCurrentCard();
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     if (savedCard === null) {
       return;
     }
 
-    await handoffCardToAi(savedCard);
+    const didHandoff = await handoffCardToAi(savedCard);
+    if (didHandoff === false || indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
   }
 
   function setManagedMediaFieldState(
@@ -621,6 +685,10 @@ export function CardFormScreen(): ReactElement {
   }
 
   async function handlePrepareImageMedia(request: CardFormImageMediaRequest): Promise<string | null> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return null;
+    }
+
     if (activeWorkspace === null) {
       setManagedMediaFieldError(request.field, t("cardForm.media.errors.workspaceUnavailable"));
       return null;
@@ -643,10 +711,14 @@ export function CardFormScreen(): ReactElement {
         installationId: cloudSettings.installationId,
         file: request.file,
         altText: request.altText,
-      });
+      }, indexedDbOpenRecoveryState.throwIfFailed);
+      indexedDbOpenRecoveryState.throwIfFailed();
       runMediaUploadTransfers();
       return result.markdown;
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return null;
+      }
       if (error instanceof UnsupportedImagePreparationError) {
         setManagedMediaFieldError(request.field, t("cardForm.media.errors.unsupportedImage"));
         return null;
@@ -664,17 +736,23 @@ export function CardFormScreen(): ReactElement {
       setManagedMediaFieldError(request.field, t("cardForm.media.errors.processingFailed"));
       return null;
     } finally {
-      setManagedMediaState((currentState) => ({
-        ...currentState,
-        [request.field]: {
-          ...currentState[request.field],
-          isProcessing: false,
-        },
-      }));
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setManagedMediaState((currentState) => ({
+          ...currentState,
+          [request.field]: {
+            ...currentState[request.field],
+            isProcessing: false,
+          },
+        }));
+      }
     }
   }
 
   async function handleRetryMediaUploadTransfer(request: CardFormMediaUploadRetryRequest): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setActionErrorMessage("");
     setErrorMessage("");
 
@@ -683,8 +761,12 @@ export function CardFormScreen(): ReactElement {
         ...request,
         retryAt: new Date().toISOString(),
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       runMediaUploadTransfers();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       captureAppOperationError(error, {
         feature: "cards",
         operation: "card_image_upload_retry",
@@ -699,6 +781,10 @@ export function CardFormScreen(): ReactElement {
   }
 
   async function handleDelete(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (cardId === undefined) {
       setActionErrorMessage(t("cardForm.errors.cardIdRequired"));
       return;
@@ -714,8 +800,12 @@ export function CardFormScreen(): ReactElement {
 
     try {
       await deleteCardItem(cardId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       navigate(cardsRoute);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
       if (expectedErrorMessage !== null) {
         setActionErrorMessage(expectedErrorMessage);
@@ -738,7 +828,9 @@ export function CardFormScreen(): ReactElement {
       showCapturedTechnicalError(error);
       setActionErrorMessage(t("appError.technicalError.message"));
     } finally {
-      setIsDeleting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsDeleting(false);
+      }
     }
   }
 

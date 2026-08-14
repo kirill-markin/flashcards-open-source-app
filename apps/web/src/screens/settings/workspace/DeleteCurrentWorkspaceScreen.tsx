@@ -1,7 +1,10 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { ApiContractError, ApiError, loadWorkspaceDeletePreview } from "../../../api";
 import { useAppData } from "../../../appData";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -31,7 +34,7 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
     isSessionVerified,
     session,
   } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatCount } = useI18n();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [deletePreview, setDeletePreview] = useState<WorkspaceDeletePreview | null>(null);
@@ -71,7 +74,7 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
   }
 
   async function openDeleteDialog(): Promise<void> {
-    if (activeWorkspace === null || isSessionVerified === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || activeWorkspace === null || isSessionVerified === false) {
       return;
     }
 
@@ -82,8 +85,12 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
 
     try {
       const preview = await loadWorkspaceDeletePreview(activeWorkspace.workspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setDeletePreview(preview);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isExpectedWorkspaceDeleteError(error)) {
         setDeletePreviewErrorMessage(error.message);
         return;
@@ -122,6 +129,10 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
   }
 
   async function retryDeletePreview(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (activeWorkspace === null) {
       setDeletePreviewErrorMessage(t("workspaceOverview.rename.workspaceUnavailable"));
       return;
@@ -132,8 +143,12 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
 
     try {
       const preview = await loadWorkspaceDeletePreview(activeWorkspace.workspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setDeletePreview(preview);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isExpectedWorkspaceDeleteError(error)) {
         setDeletePreviewErrorMessage(error.message);
         return;
@@ -172,7 +187,7 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
   }
 
   async function confirmDeleteWorkspace(): Promise<void> {
-    if (activeWorkspace === null || deletePreview === null) {
+    if (indexedDbOpenRecoveryState.hasFailed() || activeWorkspace === null || deletePreview === null) {
       return;
     }
 
@@ -181,8 +196,12 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
 
     try {
       await deleteWorkspace(activeWorkspace.workspaceId, deleteConfirmationValue);
+      indexedDbOpenRecoveryState.throwIfFailed();
       closeDeleteDialog();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const nextErrorMessage = error instanceof Error ? error.message : String(error);
       const isExpectedError = nextErrorMessage === t("app.sessionUnavailable")
         || nextErrorMessage === t("app.sessionRestoringActionLocked");
@@ -193,7 +212,9 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
         setDeletePreviewErrorMessage(technicalErrorMessage);
       }
     } finally {
-      setIsDeleteSubmitting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsDeleteSubmitting(false);
+      }
     }
   }
 

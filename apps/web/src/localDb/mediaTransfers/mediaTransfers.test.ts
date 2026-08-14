@@ -4,6 +4,7 @@ import { Blob as NodeBlob } from "node:buffer";
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { MediaAsset } from "../../types";
+import type { IndexedDbOpenRecoveryState } from "../../appError/AppErrorContext";
 import { clearWebSyncCache } from "../core/cache";
 import { loadMediaAssetRecord } from "../mediaAssets";
 import {
@@ -24,6 +25,14 @@ import {
   recoverStaleInProgressMediaTransfersByKind,
   renewInProgressMediaTransferClaim,
 } from "./mediaTransfers";
+
+const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
+  hasFailed: () => false,
+  isFailed: false,
+  markFailed: () => "not_recovery",
+  signal: new AbortController().signal,
+  throwIfFailed: () => undefined,
+};
 
 describe("localDb media transfers", () => {
   beforeEach(async () => {
@@ -148,6 +157,7 @@ describe("localDb media transfers", () => {
     await expect(loadNextPendingMediaTransferAttemptAtByKind(
       "workspace-1",
       "upload",
+      indexedDbOpenRecoveryState,
     )).resolves.toBe("2026-03-10T09:30:00.000Z");
   });
 

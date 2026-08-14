@@ -59,6 +59,7 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
         "web",
         webAppVersion,
         batch.map((record) => record.operation),
+        input.signal,
       );
       if (input.hasFailed()) {
         return {

@@ -179,27 +179,35 @@ export async function putMobileAppPromotionState(
 
 export async function storeMobileAppPromotionPromptShown(
   input: MobileAppPromotionPromptShownInput,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<MobileAppPromotionState> {
   validateIsoLocalDate(input.localDate, "lastPromptShownLocalDate");
   validateIsoTimestamp(input.shownAt, "lastPromptShownAt");
 
+  throwIfIndexedDbOpenRecoveryFailed();
   const currentState = await loadMobileAppPromotionState(input.identityKey);
+  throwIfIndexedDbOpenRecoveryFailed();
   const nextState: MobileAppPromotionState = {
     ...currentState,
     lastPromptShownLocalDate: input.localDate,
     lastPromptShownAt: input.shownAt,
   };
+  throwIfIndexedDbOpenRecoveryFailed();
   await putMobileAppPromotionState(input.identityKey, nextState);
+  throwIfIndexedDbOpenRecoveryFailed();
   return nextState;
 }
 
 export async function clearMobileAppPromotionPromptShownIfCurrent(
   input: MobileAppPromotionPromptShownInput,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<MobileAppPromotionState> {
   validateIsoLocalDate(input.localDate, "lastPromptShownLocalDate");
   validateIsoTimestamp(input.shownAt, "lastPromptShownAt");
 
+  throwIfIndexedDbOpenRecoveryFailed();
   const currentState = await loadMobileAppPromotionState(input.identityKey);
+  throwIfIndexedDbOpenRecoveryFailed();
   if (
     currentState.lastPromptShownLocalDate !== input.localDate
     || currentState.lastPromptShownAt !== input.shownAt
@@ -212,18 +220,25 @@ export async function clearMobileAppPromotionPromptShownIfCurrent(
     lastPromptShownLocalDate: null,
     lastPromptShownAt: null,
   };
+  throwIfIndexedDbOpenRecoveryFailed();
   await putMobileAppPromotionState(input.identityKey, nextState);
+  throwIfIndexedDbOpenRecoveryFailed();
   return nextState;
 }
 
 export async function storeKnownMobileReviewEvent(
   input: MobileReviewEventKnownInput,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<MobileAppPromotionState> {
+  throwIfIndexedDbOpenRecoveryFailed();
   const currentState = await loadMobileAppPromotionState(input.identityKey);
+  throwIfIndexedDbOpenRecoveryFailed();
   const nextState: MobileAppPromotionState = {
     ...currentState,
     knownHasMobileReviewEvent: true,
   };
+  throwIfIndexedDbOpenRecoveryFailed();
   await putMobileAppPromotionState(input.identityKey, nextState);
+  throwIfIndexedDbOpenRecoveryFailed();
   return nextState;
 }

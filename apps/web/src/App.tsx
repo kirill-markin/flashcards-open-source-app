@@ -2,10 +2,18 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactEle
 import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useParams } from "react-router";
 import { AccountMenu } from "./AccountMenu";
 import {
+  beginAccountDeletionRetryAttempt,
   clearAllLocalBrowserData,
   deleteAccountConfirmationText,
+  hasAccountDeletionAttemptDispatched,
   isAccountDeletionPending,
+  isAccountDeletionServerConfirmed,
+  loadAccountDeletionAttemptId,
   loadAccountDeletionCsrfToken,
+  markAccountDeletionAttemptDispatched,
+  markAccountDeletionServerConfirmed,
+  runWithAccountDeletionLock,
+  setAccountDeletionPending,
   subscribeToAccountDeletionPending,
 } from "./accountDeletion";
 import { AppDataProvider, useAppData } from "./appData";
@@ -403,6 +411,26 @@ export function AppShell(): ReactElement {
     : accountDeletionTechnicalError === null
       ? accountDeletionErrorMessage
       : visibleTechnicalErrorMessage;
+  const visiblePendingAccountDeletionErrorMessage = visibleAccountDeletionErrorMessage === ""
+    ? visibleSessionErrorMessage
+    : visibleAccountDeletionErrorMessage;
+
+  const selectInitialWorkspace = useCallback(async function selectInitialWorkspace(workspaceId: string): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    try {
+      await chooseWorkspace(workspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
+    } catch (error) {
+      indexedDbOpenRecoveryState.markFailed(error);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+      throw error;
+    }
+  }, [chooseWorkspace, indexedDbOpenRecoveryState]);
 
   const reportAccountDeletionError = useCallback(function reportAccountDeletionError(error: unknown): void {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
@@ -435,51 +463,122 @@ export function AppShell(): ReactElement {
   }, [activeWorkspace?.workspaceId, cloudSettings?.installationId, session?.userId, showCapturedTechnicalError]);
 
   const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
-    if (isSessionVerified === false) {
+    let didStartSubmission = false;
+    try {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (isSessionVerified === false) {
+        if (sessionLoadState !== "error") {
+          return;
+        }
+
+        didStartSubmission = true;
+        setIsAccountDeletionSubmitting(true);
+        setAccountDeletionErrorMessage("");
+        setAccountDeletionTechnicalError(null);
+        await initialize();
+        indexedDbOpenRecoveryState.throwIfFailed();
+        return;
+      }
+
+      await runWithAccountDeletionLock(
+        indexedDbOpenRecoveryState.signal,
+        async (): Promise<void> => {
+          indexedDbOpenRecoveryState.throwIfFailed();
+          if (isAccountDeletionPending() === false) {
+            return;
+          }
+
+          const isServerConfirmed = isAccountDeletionServerConfirmed();
+          if (isServerConfirmed === false && hasAccountDeletionAttemptDispatched()) {
+            return;
+          }
+
+          didStartSubmission = true;
+          setIsAccountDeletionSubmitting(true);
+          setAccountDeletionErrorMessage("");
+          setAccountDeletionTechnicalError(null);
+
+          if (isServerConfirmed === false) {
+            const persistedCsrfToken = loadAccountDeletionCsrfToken();
+            if (persistedCsrfToken !== null) {
+              primeSessionCsrfToken(persistedCsrfToken);
+            }
+
+            markAccountDeletionAttemptDispatched();
+            try {
+              await deleteMyAccount(deleteAccountConfirmationText);
+              markAccountDeletionServerConfirmed();
+            } catch (error) {
+              if ((error instanceof ApiError) === false || error.code !== "ACCOUNT_DELETED") {
+                indexedDbOpenRecoveryState.throwIfFailed();
+                throw error;
+              }
+
+              markAccountDeletionServerConfirmed();
+            }
+          }
+
+          indexedDbOpenRecoveryState.throwIfFailed();
+          await clearAllLocalBrowserData(
+            "account_deletion_submit",
+            indexedDbOpenRecoveryState.throwIfFailed,
+          );
+          indexedDbOpenRecoveryState.throwIfFailed();
+          window.location.href = buildLogoutLocalUrl();
+          setAccountDeletionPending(false);
+        },
+      );
+      indexedDbOpenRecoveryState.throwIfFailed();
+    } catch (error) {
+      indexedDbOpenRecoveryState.markFailed(error);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+      reportAccountDeletionError(error);
+    } finally {
+      if (didStartSubmission && indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsAccountDeletionSubmitting(false);
+      }
+    }
+  }, [indexedDbOpenRecoveryState, initialize, isSessionVerified, reportAccountDeletionError, sessionLoadState]);
+
+  const retryAccountDeletion = useCallback(async function retryAccountDeletion(): Promise<void> {
+    if (
+      isAccountDeletionServerConfirmed()
+      || (isSessionVerified === false && hasAccountDeletionAttemptDispatched() === false)
+    ) {
+      await completeAccountDeletion();
       return;
     }
 
-    setIsAccountDeletionSubmitting(true);
-    setAccountDeletionErrorMessage("");
-    setAccountDeletionTechnicalError(null);
+    const expectedAttemptId = loadAccountDeletionAttemptId();
+    if (expectedAttemptId === null) {
+      return;
+    }
 
     try {
-      const persistedCsrfToken = loadAccountDeletionCsrfToken();
-      if (persistedCsrfToken !== null) {
-        primeSessionCsrfToken(persistedCsrfToken);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      const didBeginRetryAttempt = await runWithAccountDeletionLock(
+        indexedDbOpenRecoveryState.signal,
+        async (): Promise<boolean> => {
+          indexedDbOpenRecoveryState.throwIfFailed();
+          return beginAccountDeletionRetryAttempt(expectedAttemptId);
+        },
+      );
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (didBeginRetryAttempt === false) {
+        return;
       }
 
-      try {
-        await deleteMyAccount(deleteAccountConfirmationText);
-      } catch (error) {
-        if ((error instanceof ApiError) === false || error.code !== "ACCOUNT_DELETED") {
-          throw error;
-        }
-      }
-
-      if (indexedDbOpenRecoveryState.hasFailed() === false) {
-        try {
-          await clearAllLocalBrowserData("account_deletion_submit");
-        } catch (error) {
-          reportAccountDeletionError(error);
-          if (indexedDbOpenRecoveryState.hasFailed()) {
-            window.location.href = buildLogoutLocalUrl();
-          }
-          return;
-        }
-
-        if (indexedDbOpenRecoveryState.hasFailed()) {
-          window.location.href = buildLogoutLocalUrl();
-          return;
-        }
-      }
-      window.location.href = buildLogoutLocalUrl();
+      await completeAccountDeletion();
     } catch (error) {
+      indexedDbOpenRecoveryState.markFailed(error);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       reportAccountDeletionError(error);
-    } finally {
-      setIsAccountDeletionSubmitting(false);
     }
-  }, [indexedDbOpenRecoveryState, isSessionVerified, reportAccountDeletionError]);
+  }, [completeAccountDeletion, indexedDbOpenRecoveryState, isSessionVerified, reportAccountDeletionError]);
 
   useEffect(() => subscribeToAccountDeletionPending(() => {
     setIsAccountDeletionPendingState(isAccountDeletionPending());
@@ -567,12 +666,12 @@ export function AppShell(): ReactElement {
               ? t("app.deleteAccountInProgress")
               : t("app.deleteAccountRestoring")}
           </p>
-          {visibleAccountDeletionErrorMessage !== "" ? <p className="error-banner">{visibleAccountDeletionErrorMessage}</p> : null}
+          {visiblePendingAccountDeletionErrorMessage !== "" ? <p className="error-banner">{visiblePendingAccountDeletionErrorMessage}</p> : null}
           <button
             className="primary-btn"
             type="button"
-            disabled={isAccountDeletionSubmitting}
-            onClick={() => void completeAccountDeletion()}
+            disabled={isAccountDeletionSubmitting || (isSessionVerified === false && sessionLoadState !== "error")}
+            onClick={() => void retryAccountDeletion()}
           >
             {isAccountDeletionSubmitting ? t("app.deleting") : t("app.deleteAccountRetry")}
           </button>
@@ -631,7 +730,7 @@ export function AppShell(): ReactElement {
                 key={workspace.workspaceId}
                 className="workspace-choice-btn"
                 type="button"
-                onClick={() => void chooseWorkspace(workspace.workspaceId)}
+                onClick={() => void selectInitialWorkspace(workspace.workspaceId)}
                 disabled={isChoosingWorkspace}
               >
                 <span className="workspace-choice-name">{workspace.name}</span>

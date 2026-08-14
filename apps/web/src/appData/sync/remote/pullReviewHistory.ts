@@ -44,6 +44,7 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
       webAppVersion,
       afterReviewSequenceId,
       syncIncrementalPageSize,
+      input.signal,
     );
     if (input.hasFailed()) {
       return {

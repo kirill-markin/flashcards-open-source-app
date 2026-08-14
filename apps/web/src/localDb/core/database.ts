@@ -12,6 +12,7 @@ import {
   type WebObservationScope,
 } from "../../observability/webObservability";
 import { upgradeDatabase } from "./databaseMigrations";
+import { isIndexedDbOpenRecoveryError } from "./indexedDbOpenRecovery";
 import { databaseName, databaseVersion } from "./databaseSchema";
 import type { DatabaseStores } from "./databaseSchema";
 
@@ -209,7 +210,9 @@ export function openDatabase(): Promise<IDBDatabase> {
 
     request.onerror = () => {
       const error = describeIndexedDbOperationError("Failed to open IndexedDB", request.error, "open");
-      addIndexedDbOperationFailedBreadcrumb("open", request.error, error);
+      if (isIndexedDbOpenRecoveryError(error) === false) {
+        addIndexedDbOperationFailedBreadcrumb("open", request.error, error);
+      }
       reject(error);
     };
 
@@ -401,16 +404,25 @@ function clearAllObjectStores(database: IDBDatabase): Promise<void> {
   });
 }
 
-async function wipeAllObjectStores(): Promise<void> {
+async function wipeAllObjectStores(
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<void> {
   const database = await openDatabase();
   try {
+    throwIfIndexedDbOpenRecoveryFailed();
     await clearAllObjectStores(database);
+    throwIfIndexedDbOpenRecoveryFailed();
+  } catch (error) {
+    throwIfIndexedDbOpenRecoveryFailed();
+    throw error;
   } finally {
     database.close();
   }
 }
 
-async function databaseExists(): Promise<boolean> {
+async function databaseExists(
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<boolean> {
   if (typeof indexedDB.databases !== "function") {
     // Capability missing in older browsers: assume the database exists; the
     // wipe open below creates it when absent, which is harmless.
@@ -419,8 +431,13 @@ async function databaseExists(): Promise<boolean> {
 
   try {
     const databases = await indexedDB.databases();
+    throwIfIndexedDbOpenRecoveryFailed();
     return databases.some((databaseInfo) => databaseInfo.name === databaseName);
   } catch (error) {
+    throwIfIndexedDbOpenRecoveryFailed();
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
     // Enumeration failure is non-fatal: proceed with the wipe open, which
     // raises an actionable open error when storage is actually broken.
     console.warn("IndexedDB databases() enumeration failed", {
@@ -506,6 +523,33 @@ function requestDeleteDatabaseBestEffort(): Promise<DeleteDatabaseOutcome> {
   });
 }
 
+function ignoreIndexedDbOpenRecoveryFailure(): void {
+}
+
+async function waitForDatabaseCleanupPhase<ResultType>(
+  phase: Promise<ResultType>,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<ResultType> {
+  try {
+    const result = await phase;
+    throwIfIndexedDbOpenRecoveryFailed();
+    return result;
+  } catch (error) {
+    throwIfIndexedDbOpenRecoveryFailed();
+    throw error;
+  }
+}
+
+function throwActiveIndexedDbOpenRecoveryFailure(
+  results: ReadonlyArray<PromiseSettledResult<unknown>>,
+): void {
+  for (const result of results) {
+    if (result.status === "rejected" && isIndexedDbOpenRecoveryError(result.reason)) {
+      throw result.reason;
+    }
+  }
+}
+
 /**
  * Resets the local database for user-scoped cleanup.
  *
@@ -515,29 +559,49 @@ function requestDeleteDatabaseBestEffort(): Promise<DeleteDatabaseOutcome> {
  * either step removed the data; it fails only when the stores could not be
  * wiped and the database was not confirmed deleted.
  */
-export function deleteDatabase(): Promise<void> {
+function startDatabaseDeletion(throwIfIndexedDbOpenRecoveryFailed: () => void): Promise<void> {
+  throwIfIndexedDbOpenRecoveryFailed();
   const activeDelete = activeDatabaseDeletePromise;
   if (activeDelete !== null) {
-    return activeDelete;
+    return waitForDatabaseCleanupPhase(activeDelete, throwIfIndexedDbOpenRecoveryFailed);
   }
 
   const deleteTask = (async (): Promise<void> => {
     isDatabaseDeleteInProgress = true;
     try {
-      await Promise.allSettled([...activeDatabaseOperationPromises]);
+      const activeOperationResults = await waitForDatabaseCleanupPhase(
+        Promise.allSettled([...activeDatabaseOperationPromises]),
+        throwIfIndexedDbOpenRecoveryFailed,
+      );
+      throwActiveIndexedDbOpenRecoveryFailure(activeOperationResults);
 
       let wipeError: Error | null = null;
       try {
         // A missing database has nothing to wipe; skipping avoids creating
         // the full schema just to delete it on fresh browsers.
-        if (await databaseExists()) {
-          await wipeAllObjectStores();
+        const doesDatabaseExist = await waitForDatabaseCleanupPhase(
+          databaseExists(throwIfIndexedDbOpenRecoveryFailed),
+          throwIfIndexedDbOpenRecoveryFailed,
+        );
+        if (doesDatabaseExist) {
+          await waitForDatabaseCleanupPhase(
+            wipeAllObjectStores(throwIfIndexedDbOpenRecoveryFailed),
+            throwIfIndexedDbOpenRecoveryFailed,
+          );
         }
       } catch (error) {
+        throwIfIndexedDbOpenRecoveryFailed();
+        if (isIndexedDbOpenRecoveryError(error)) {
+          throw error;
+        }
         wipeError = error instanceof Error ? error : new Error(String(error));
       }
 
-      const deleteOutcome = await requestDeleteDatabaseBestEffort();
+      throwIfIndexedDbOpenRecoveryFailed();
+      const deleteOutcome = await waitForDatabaseCleanupPhase(
+        requestDeleteDatabaseBestEffort(),
+        throwIfIndexedDbOpenRecoveryFailed,
+      );
       if (wipeError !== null && deleteOutcome !== "deleted") {
         throw wipeError;
       }
@@ -548,6 +612,16 @@ export function deleteDatabase(): Promise<void> {
   })();
   activeDatabaseDeletePromise = deleteTask;
   return deleteTask;
+}
+
+export function deleteDatabase(): Promise<void> {
+  return startDatabaseDeletion(ignoreIndexedDbOpenRecoveryFailure);
+}
+
+export function deleteDatabaseForLocalBrowserDataCleanup(
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<void> {
+  return startDatabaseDeletion(throwIfIndexedDbOpenRecoveryFailed);
 }
 
 export type StoredEntity = StoredCard | Deck | ReviewEvent | ProgressDailyCountRecord;

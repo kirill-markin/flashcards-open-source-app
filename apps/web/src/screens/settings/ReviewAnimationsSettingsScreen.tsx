@@ -1,7 +1,10 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { isAuthRedirectError, updateAccountPreferences } from "../../api";
 import { useAppData } from "../../appData";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type { AccountPreferences } from "../../types";
@@ -16,7 +19,7 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     session,
     setAccountPreferences,
   } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -32,12 +35,20 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     let isCancelled = false;
 
     async function refreshPreferencesOnOpen(): Promise<void> {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       try {
         await refreshAccountPreferences();
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (isCancelled === false) {
           setErrorMessage("");
         }
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCancelled || isAuthRedirectError(error)) {
           return;
         }
@@ -57,7 +68,7 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [isSessionVerified, refreshAccountPreferences, session?.userId]);
+  }, [indexedDbOpenRecoveryState, isSessionVerified, refreshAccountPreferences, session?.userId]);
 
   function capturePreferenceOperationError(error: unknown, operation: "account_preferences_refresh" | "account_preferences_update"): boolean {
     return captureAppOperationError(error, {
@@ -71,10 +82,18 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
   }
 
   async function refreshPreferencesAfterPatch(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     try {
       await refreshAccountPreferences();
+      indexedDbOpenRecoveryState.throwIfFailed();
       setErrorMessage("");
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isAuthRedirectError(error)) {
         return;
       }
@@ -90,6 +109,10 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
   }
 
   async function persistReviewAnimationsPreference(nextEnabled: boolean): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (session === null) {
       setErrorMessage(t("app.sessionUnavailable"));
       return;
@@ -112,9 +135,14 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
 
     try {
       const response = await updateAccountPreferences(nextPreferences);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setAccountPreferences(targetUserId, response.preferences);
       await refreshPreferencesAfterPatch();
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       setAccountPreferences(targetUserId, previousPreferences);
       if (isAuthRedirectError(error)) {
         return;
@@ -128,7 +156,9 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      setIsSubmitting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsSubmitting(false);
+      }
     }
   }
 

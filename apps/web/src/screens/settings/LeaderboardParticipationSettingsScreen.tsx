@@ -7,7 +7,10 @@ import {
 import { useAppData } from "../../appData";
 import { invalidateServerProgress } from "../../appData/progress/invalidation/progressInvalidation";
 import { clearPersistedProgressLeaderboard } from "../../appData/progress/storage/progressStorage";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type { CommunityPublicProfile } from "../../types";
@@ -15,7 +18,7 @@ import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 export function LeaderboardParticipationSettingsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, isSessionVerified, session } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const [communityProfile, setCommunityProfile] = useState<CommunityPublicProfile | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -44,6 +47,10 @@ export function LeaderboardParticipationSettingsScreen(): ReactElement {
   }
 
   useEffect(() => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (canManageLeaderboardParticipation === false) {
       setCommunityProfile(null);
       setErrorMessage("");
@@ -57,13 +64,21 @@ export function LeaderboardParticipationSettingsScreen(): ReactElement {
     let isCancelled = false;
 
     async function refreshCommunityProfileOnOpen(): Promise<void> {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       try {
         const profile = await loadCommunityProfile();
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (isCancelled === false) {
           setCommunityProfile(profile);
           setErrorMessage("");
         }
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCancelled || isAuthRedirectError(error)) {
           return;
         }
@@ -83,9 +98,13 @@ export function LeaderboardParticipationSettingsScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [canManageLeaderboardParticipation, isSessionVerified, session?.userId]);
+  }, [canManageLeaderboardParticipation, indexedDbOpenRecoveryState, isSessionVerified, session?.userId]);
 
   async function persistLeaderboardParticipation(nextEnabled: boolean): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (session === null) {
       setErrorMessage(t("app.sessionUnavailable"));
       return;
@@ -112,12 +131,16 @@ export function LeaderboardParticipationSettingsScreen(): ReactElement {
       const updatedProfile = await updateCommunityProfile({
         leaderboardParticipationEnabled: nextEnabled,
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       setCommunityProfile(updatedProfile);
       // Drop the cached leaderboard payload and invalidate server progress so the
       // Progress tab refetches immediately instead of serving stale participation.
       clearPersistedProgressLeaderboard();
       invalidateServerProgress();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       setCommunityProfile(previousProfile);
       if (isAuthRedirectError(error)) {
         return;
@@ -131,7 +154,9 @@ export function LeaderboardParticipationSettingsScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      setIsSubmitting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsSubmitting(false);
+      }
     }
   }
 

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useAppData } from "../../../../appData";
-import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../../appError/AppErrorContext";
 import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
@@ -35,7 +38,7 @@ function hasDeckFilterRules(filterDefinition: DeckFilterDefinition): boolean {
 export function DeckDetailScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatCount, formatDateTime, formatNumber } = useI18n();
   const {
     activeWorkspace,
@@ -68,6 +71,10 @@ export function DeckDetailScreen(): ReactElement {
   };
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (deckId === undefined) {
       setScreenErrorMessage(t("deckDetail.errors.notFound"));
       setIsLoading(false);
@@ -84,10 +91,12 @@ export function DeckDetailScreen(): ReactElement {
 
       if (deckId === ALL_CARDS_DECK_SLUG) {
         const decksSnapshot = await loadDecksListSnapshot(activeWorkspace.workspaceId);
+        indexedDbOpenRecoveryState.throwIfFailed();
         const allCards = await loadCardsMatchingDeck(activeWorkspace.workspaceId, {
           version: 2,
           tags: [],
         });
+        indexedDbOpenRecoveryState.throwIfFailed();
         setDetailState({
           title: t("filters.allCards"),
           filterSummary: t("filters.allCards"),
@@ -105,6 +114,7 @@ export function DeckDetailScreen(): ReactElement {
       }
 
       const deck = await loadDeckById(activeWorkspace.workspaceId, deckId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (deck === null) {
         setDetailState(null);
         setScreenErrorMessage(t("deckDetail.errors.notFound"));
@@ -113,6 +123,7 @@ export function DeckDetailScreen(): ReactElement {
       }
 
       const matchingCards = await loadCardsMatchingDeck(activeWorkspace.workspaceId, deck.filterDefinition);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setDetailState({
         title: deck.name,
         filterSummary: formatDeckFilterSummary(deck.filterDefinition, t),
@@ -127,6 +138,9 @@ export function DeckDetailScreen(): ReactElement {
         emptyMessage: t("deckDetail.empty.deckCards"),
       });
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (activeWorkspace !== null) {
         const observationIdentity = observationIdentityRef.current;
         const wasCaptured = captureAppOperationError(error, {
@@ -145,15 +159,21 @@ export function DeckDetailScreen(): ReactElement {
       }
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setIsLoading(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsLoading(false);
+      }
     }
-  }, [activeWorkspace, deckId, t]);
+  }, [activeWorkspace, deckId, indexedDbOpenRecoveryState, showCapturedTechnicalError, t, technicalErrorMessage]);
 
   useEffect(() => {
     void loadScreenData();
   }, [loadScreenData, localReadVersion]);
 
   async function handleDelete(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (deckId === undefined || deckId === ALL_CARDS_DECK_SLUG) {
       setScreenErrorMessage(t("deckDetail.errors.systemDeckDelete"));
       return;
@@ -169,8 +189,12 @@ export function DeckDetailScreen(): ReactElement {
 
     try {
       await deleteDeckItem(deckId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       navigate(settingsDecksRoute);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const wasCaptured = captureAppOperationError(error, {
         feature: "settings",
         operation: "deck_delete",
@@ -186,12 +210,14 @@ export function DeckDetailScreen(): ReactElement {
         setScreenErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      setIsDeleting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsDeleting(false);
+      }
     }
   }
 
   function handleOpenReview(): void {
-    if (detailState === null) {
+    if (indexedDbOpenRecoveryState.hasFailed() || detailState === null) {
       return;
     }
 
@@ -200,9 +226,17 @@ export function DeckDetailScreen(): ReactElement {
   }
 
   async function handleRefreshLocalData(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     try {
       await refreshLocalData();
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       handleRefreshLocalDataError({
         error,
         context: {

@@ -1,5 +1,8 @@
 import { type FormEvent, type ReactElement, useCallback, useEffect, useRef, useState } from "react";
-import { useAppErrorDialog } from "./appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "./appError/AppErrorContext";
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "./floating";
 import { useI18n } from "./i18n";
 import type { WorkspaceSummary } from "./types";
@@ -37,7 +40,7 @@ export function AccountMenu(props: Props): ReactElement {
     onSelectWorkspace,
     onCreateWorkspace,
   } = props;
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -103,20 +106,35 @@ export function AccountMenu(props: Props): ReactElement {
   }, [isCreating]);
 
   async function handleWorkspaceSelect(workspaceId: string): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (isWorkspaceManagementLocked) {
       showMessage(workspaceManagementLockedMessage);
       return;
     }
 
     setErrorMessage("");
-    await onSelectWorkspace(workspaceId);
-    setIsOpen(false);
-    setIsCreating(false);
-    setNewWorkspaceName("");
+    try {
+      await onSelectWorkspace(workspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      setIsOpen(false);
+      setIsCreating(false);
+      setNewWorkspaceName("");
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+      throw error;
+    }
   }
 
   async function handleCreateWorkspace(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
 
     if (isWorkspaceManagementLocked) {
       showMessage(workspaceManagementLockedMessage);
@@ -132,10 +150,14 @@ export function AccountMenu(props: Props): ReactElement {
     try {
       setErrorMessage("");
       await onCreateWorkspace(trimmedName);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setIsOpen(false);
       setIsCreating(false);
       setNewWorkspaceName("");
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const nextErrorMessage = error instanceof Error ? error.message : String(error);
       const isExpectedError = nextErrorMessage === t("app.sessionUnavailable")
         || nextErrorMessage === t("app.sessionRestoringActionLocked")

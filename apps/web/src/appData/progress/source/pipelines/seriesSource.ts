@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../../../appError/AppErrorContext";
 import { loadProgressSeries } from "../../../../api";
 import {
   loadLocalProgressActiveDates,
@@ -24,6 +28,7 @@ import {
   captureProgressServerLoadError,
   getErrorMessage,
   normalizeProgressSourceError,
+  runRecoveryGuardedProgressLocalRead,
   type ProgressCanLoadServerBaseRef,
   type ProgressScopeKeyRef,
   type ProgressSourceDispatch,
@@ -49,6 +54,7 @@ type ProgressSeriesSourcePipelineParams = Readonly<{
   dispatch: ProgressSourceDispatch;
   input: ProgressSeriesInput;
   installationId: string | null;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   manualRefreshVersion: number;
   progressLocalVersion: number;
   refreshKey: string | null;
@@ -68,6 +74,7 @@ export function useProgressSeriesSourcePipeline(
     dispatch,
     input,
     installationId,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     refreshKey,
@@ -79,6 +86,10 @@ export function useProgressSeriesSourcePipeline(
 
   useEffect(() => {
     currentScopeKeyRef.current = scopeKey;
+
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
 
     if (scopeKey === null) {
       dispatch({
@@ -98,10 +109,10 @@ export function useProgressSeriesSourcePipeline(
       serverBase: persistedSeries === null ? null : createProgressSeriesSnapshot(persistedSeries, "server", false),
       canRenderServerBase: canLoadServerBaseRef.current,
     });
-  }, [canLoadServerBase, canLoadServerBaseRef, currentScopeKeyRef, dispatch, scopeKey]);
+  }, [canLoadServerBase, canLoadServerBaseRef, currentScopeKeyRef, dispatch, indexedDbOpenRecoveryState, scopeKey]);
 
   useEffect(() => {
-    if (scopeKey === null) {
+    if (scopeKey === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -109,11 +120,24 @@ export function useProgressSeriesSourcePipeline(
     localLoadSequenceRef.current = currentSequence;
 
     void Promise.all([
-      loadLocalProgressDailyReviews(accessibleWorkspaceIds, input),
-      loadLocalProgressActiveDates(accessibleWorkspaceIds, input.timeZone),
-      loadPendingProgressDailyReviews(accessibleWorkspaceIds, input),
+      runRecoveryGuardedProgressLocalRead(
+        () => loadLocalProgressDailyReviews(accessibleWorkspaceIds, input),
+        indexedDbOpenRecoveryState,
+      ),
+      runRecoveryGuardedProgressLocalRead(
+        () => loadLocalProgressActiveDates(accessibleWorkspaceIds, input.timeZone),
+        indexedDbOpenRecoveryState,
+      ),
+      runRecoveryGuardedProgressLocalRead(
+        () => loadPendingProgressDailyReviews(accessibleWorkspaceIds, input),
+        indexedDbOpenRecoveryState,
+      ),
     ]).then(([localDailyReviews, localActiveDates, pendingLocalDailyReviews]) => {
-      if (currentScopeKeyRef.current !== scopeKey || localLoadSequenceRef.current !== currentSequence) {
+      if (
+        indexedDbOpenRecoveryState.hasFailed()
+        || currentScopeKeyRef.current !== scopeKey
+        || localLoadSequenceRef.current !== currentSequence
+      ) {
         return;
       }
 
@@ -130,6 +154,10 @@ export function useProgressSeriesSourcePipeline(
         canRenderServerBase: canLoadServerBaseRef.current,
       });
     }).catch((error: unknown) => {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+
       if (currentScopeKeyRef.current !== scopeKey || localLoadSequenceRef.current !== currentSequence) {
         return;
       }
@@ -158,6 +186,7 @@ export function useProgressSeriesSourcePipeline(
     currentScopeKeyRef,
     dispatch,
     input,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     scopeKey,
@@ -168,6 +197,10 @@ export function useProgressSeriesSourcePipeline(
     refreshInput: ProgressSeriesInput,
     nextRefreshKey: string,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     requestedRefreshKeysRef.current.set(targetScopeKey, nextRefreshKey);
 
     const inFlightRefresh = serverRefreshPromisesRef.current.get(targetScopeKey);
@@ -191,6 +224,9 @@ export function useProgressSeriesSourcePipeline(
 
           try {
             const serverSeries = normalizeProgressSeries(await loadProgressSeries(refreshInput));
+            if (indexedDbOpenRecoveryState.hasFailed()) {
+              return;
+            }
             const isCurrentRefreshRequest: boolean = requestedRefreshKeysRef.current.get(targetScopeKey)
               === requestedRefreshKey;
 
@@ -208,6 +244,10 @@ export function useProgressSeriesSourcePipeline(
               });
             }
           } catch (error: unknown) {
+            if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+              return;
+            }
+
             const isCurrentRefreshRequest: boolean = requestedRefreshKeysRef.current.get(targetScopeKey)
               === requestedRefreshKey;
 
@@ -246,10 +286,10 @@ export function useProgressSeriesSourcePipeline(
 
     serverRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
     return refreshPromise;
-  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, installationId]);
+  }, [activeWorkspaceId, canExposeTechnicalErrors, canLoadServerBaseRef, currentScopeKeyRef, dispatch, indexedDbOpenRecoveryState, installationId]);
 
   useEffect(() => {
-    if (scopeKey === null || refreshKey === null) {
+    if (scopeKey === null || refreshKey === null || indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -258,7 +298,7 @@ export function useProgressSeriesSourcePipeline(
     }
 
     void refreshProgressSeries(scopeKey, input, refreshKey);
-  }, [input, refreshKey, refreshProgressSeries, scopeKey]);
+  }, [indexedDbOpenRecoveryState, input, refreshKey, refreshProgressSeries, scopeKey]);
 
   return {
     refreshProgressSeries,

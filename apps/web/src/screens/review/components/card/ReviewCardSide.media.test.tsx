@@ -15,12 +15,29 @@ import type { MediaAsset } from "../../../../types";
 import { ReviewCardSide } from "./ReviewCardSide";
 
 const mediaMocks = vi.hoisted(() => ({
+  indexedDbOpenRecoveryState: {
+    hasFailed: (): boolean => false,
+    isFailed: false,
+    markFailed: (): "not_recovery" => "not_recovery",
+    signal: new AbortController().signal,
+    throwIfFailed: (): void => {},
+  },
   loadMediaAssetDownloadUrlMock: vi.fn(),
   loadMediaAssetRecordMock: vi.fn(),
   loadMediaBlobCacheRecordMock: vi.fn(),
   loadMediaUploadTransfersForWorkspaceMediaAssetsMock: vi.fn(),
   writeMediaBlobCacheRecordMock: vi.fn(),
 }));
+
+vi.mock("../../../../appError/AppErrorContext", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../../appError/AppErrorContext")>();
+  return {
+    ...actual,
+    useAppErrorDialog: () => ({
+      indexedDbOpenRecoveryState: mediaMocks.indexedDbOpenRecoveryState,
+    }),
+  };
+});
 
 vi.mock("../../../../api", () => ({
   loadMediaAssetDownloadUrl: mediaMocks.loadMediaAssetDownloadUrlMock,

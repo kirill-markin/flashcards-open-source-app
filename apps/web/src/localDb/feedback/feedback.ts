@@ -195,8 +195,13 @@ export async function putFeedbackPromptState(
   });
 }
 
-export async function storeFetchedFeedbackState(input: FeedbackStateFetchedInput): Promise<FeedbackPromptState> {
+export async function storeFetchedFeedbackState(
+  input: FeedbackStateFetchedInput,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<FeedbackPromptState> {
+  throwIfIndexedDbOpenRecoveryFailed();
   const currentState = await loadFeedbackPromptState(input.identityKey);
+  throwIfIndexedDbOpenRecoveryFailed();
   const nextState: FeedbackPromptState = {
     ...currentState,
     lastAutomaticFeedbackPromptShownAt: getLaterNullableIsoTimestamp(
@@ -212,12 +217,19 @@ export async function storeFetchedFeedbackState(input: FeedbackStateFetchedInput
     nextAutomaticFeedbackPromptAt: input.feedbackState.nextAutomaticPromptAt,
     lastFeedbackStateFetchedAt: input.fetchedAt,
   };
+  throwIfIndexedDbOpenRecoveryFailed();
   await putFeedbackPromptState(input.identityKey, nextState);
+  throwIfIndexedDbOpenRecoveryFailed();
   return nextState;
 }
 
-export async function storeFeedbackSubmittedAt(input: FeedbackSubmittedInput): Promise<FeedbackPromptState> {
+export async function storeFeedbackSubmittedAt(
+  input: FeedbackSubmittedInput,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<FeedbackPromptState> {
+  throwIfIndexedDbOpenRecoveryFailed();
   const currentState = await loadFeedbackPromptState(input.identityKey);
+  throwIfIndexedDbOpenRecoveryFailed();
   const localSubmittedAt = getLaterNullableIsoTimestamp(
     currentState.lastFeedbackSubmittedAt,
     input.submittedAt,
@@ -238,12 +250,19 @@ export async function storeFeedbackSubmittedAt(input: FeedbackSubmittedInput): P
     nextAutomaticFeedbackPromptAt: input.feedbackState.nextAutomaticPromptAt,
     lastFeedbackStateFetchedAt: input.submittedAt,
   };
+  throwIfIndexedDbOpenRecoveryFailed();
   await putFeedbackPromptState(input.identityKey, nextState);
+  throwIfIndexedDbOpenRecoveryFailed();
   return nextState;
 }
 
-export async function storeAutomaticFeedbackPromptShownAt(input: AutomaticPromptShownInput): Promise<FeedbackPromptState> {
+export async function storeAutomaticFeedbackPromptShownAt(
+  input: AutomaticPromptShownInput,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<FeedbackPromptState> {
+  throwIfIndexedDbOpenRecoveryFailed();
   const currentState = await loadFeedbackPromptState(input.identityKey);
+  throwIfIndexedDbOpenRecoveryFailed();
   const nextState: FeedbackPromptState = {
     ...currentState,
     lastAutomaticFeedbackPromptShownAt: getLaterNullableIsoTimestamp(
@@ -257,6 +276,8 @@ export async function storeAutomaticFeedbackPromptShownAt(input: AutomaticPrompt
       "nextAutomaticFeedbackPromptAt",
     ),
   };
+  throwIfIndexedDbOpenRecoveryFailed();
   await putFeedbackPromptState(input.identityKey, nextState);
+  throwIfIndexedDbOpenRecoveryFailed();
   return nextState;
 }

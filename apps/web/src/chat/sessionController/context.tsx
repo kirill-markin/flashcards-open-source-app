@@ -1,5 +1,9 @@
 import { createContext, useCallback, useContext, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../../appData";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { USER_VISIBLE_ATTACHMENT_LIMIT_MB } from "../shared/chatHelpers";
 import {
@@ -16,6 +20,7 @@ const ChatSessionControllerContext = createContext<ChatSessionController | null>
 export function ChatSessionControllerProvider(props: Props): ReactElement {
   const { children } = props;
   const appData = useAppData();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { locale, t, formatNumber } = useI18n();
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const runSync = appData.runSync;
@@ -26,15 +31,21 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
     // from one post-run sync after any tool-backed run, not from chat-specific
     // invalidation callbacks.
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       await runSync();
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        indexedDbOpenRecoveryState.throwIfFailed();
+      }
       const message = error instanceof Error ? error.message : String(error);
       setAppErrorMessage(`Chat sync failed. ${message}`);
       throw error;
     }
-  }, [runSync, setAppErrorMessage]);
+  }, [indexedDbOpenRecoveryState, runSync, setAppErrorMessage]);
 
   const controller = useChatSessionController({
+    indexedDbOpenRecoveryState,
     workspaceId: activeWorkspaceId,
     isRemoteReady: appData.sessionVerificationState === "verified",
     uiLocale: locale,

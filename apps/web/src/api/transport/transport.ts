@@ -66,6 +66,98 @@ let sessionTransportReadyPromise: Promise<void> | null = null;
 let sessionTransportReadyNetworkRetryMode: NetworkRetryMode | null = null;
 let redirectInFlight = false;
 let navigationHandler: NavigateToUrl | null = null;
+let indexedDbOpenRecoverySignal: AbortSignal | null = null;
+
+export function bindIndexedDbOpenRecoverySignal(signal: AbortSignal): () => void {
+  const previousSignal = indexedDbOpenRecoverySignal;
+  indexedDbOpenRecoverySignal = signal;
+  return (): void => {
+    if (indexedDbOpenRecoverySignal === signal) {
+      indexedDbOpenRecoverySignal = previousSignal;
+    }
+  };
+}
+
+function readAbortError(signal: AbortSignal): Error {
+  const reason: unknown = signal.reason;
+  if (reason instanceof Error) {
+    return reason;
+  }
+  if (typeof reason === "string" && reason.trim() !== "") {
+    return new Error(reason);
+  }
+  return new DOMException("Request was aborted", "AbortError");
+}
+
+function throwIfRequestAborted(signal: AbortSignal | null): void {
+  if (indexedDbOpenRecoverySignal?.aborted) {
+    throw readAbortError(indexedDbOpenRecoverySignal);
+  }
+  if (signal?.aborted) {
+    throw readAbortError(signal);
+  }
+}
+
+function mergeRequestSignal(lifecycleSignal: AbortSignal | null | undefined): AbortSignal | undefined {
+  const recoverySignal = indexedDbOpenRecoverySignal;
+  if (recoverySignal === null) {
+    return lifecycleSignal ?? undefined;
+  }
+  if (lifecycleSignal === undefined || lifecycleSignal === null || lifecycleSignal === recoverySignal) {
+    return recoverySignal;
+  }
+  return AbortSignal.any([recoverySignal, lifecycleSignal]);
+}
+
+function attachRecoverySignal(init: RequestInit): RequestInit {
+  const signal = mergeRequestSignal(init.signal);
+  return signal === init.signal ? init : { ...init, signal };
+}
+
+function waitForSharedTransportTask<ResultType>(
+  task: Promise<ResultType>,
+  signal: AbortSignal | null,
+): Promise<ResultType> {
+  if (indexedDbOpenRecoverySignal?.aborted) {
+    return Promise.reject(readAbortError(indexedDbOpenRecoverySignal));
+  }
+  if (signal === null) {
+    return task;
+  }
+  if (signal.aborted) {
+    try {
+      throwIfRequestAborted(signal);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  return new Promise<ResultType>((resolve, reject) => {
+    const handleAbort = (): void => {
+      signal.removeEventListener("abort", handleAbort);
+      try {
+        throwIfRequestAborted(signal);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    signal.addEventListener("abort", handleAbort, { once: true });
+    task.then(
+      (result: ResultType): void => {
+        signal.removeEventListener("abort", handleAbort);
+        resolve(result);
+      },
+      (error: unknown): void => {
+        signal.removeEventListener("abort", handleAbort);
+        reject(error);
+      },
+    );
+  });
+}
+
+function selectSharedAuthTaskSignal(requestSignal: AbortSignal | null): AbortSignal | null {
+  return indexedDbOpenRecoverySignal ?? requestSignal;
+}
 
 /**
  * A terminal browser-auth failure locks warm start until `/me` confirms which
@@ -234,18 +326,19 @@ export function createApiNetworkRetryDelayMs(attemptCount: number): number {
   return Math.floor(Math.random() * cappedDelayMs);
 }
 
-function waitForApiNetworkRetry(
-  attemptCount: number,
+function waitForTransportDelay(
+  delayMs: number,
   signal: AbortSignal | null,
 ): Promise<void> {
-  const delayMs = createApiNetworkRetryDelayMs(attemptCount);
   return new Promise((resolve, reject) => {
     let timerId: number | null = null;
     const abortHandler = (): void => {
       if (timerId !== null) {
         window.clearTimeout(timerId);
+        timerId = null;
       }
-      reject(signal?.reason);
+      signal?.removeEventListener("abort", abortHandler);
+      reject(signal === null ? new DOMException("Request was aborted", "AbortError") : readAbortError(signal));
     };
     if (signal?.aborted === true) {
       abortHandler();
@@ -254,10 +347,18 @@ function waitForApiNetworkRetry(
 
     timerId = window.setTimeout((): void => {
       signal?.removeEventListener("abort", abortHandler);
+      timerId = null;
       resolve();
     }, delayMs);
     signal?.addEventListener("abort", abortHandler, { once: true });
   });
+}
+
+function waitForApiNetworkRetry(
+  attemptCount: number,
+  signal: AbortSignal | null,
+): Promise<void> {
+  return waitForTransportDelay(createApiNetworkRetryDelayMs(attemptCount), signal);
 }
 
 function warnApiTransportRetry(error: ApiNetworkError): void {
@@ -290,6 +391,7 @@ async function performFetch(
       headers,
     });
   } catch (error) {
+    throwIfRequestAborted(init.signal ?? null);
     throw createFetchApiNetworkError(pathname, init, error, attemptCount);
   }
 }
@@ -303,9 +405,13 @@ async function performWithNetworkRetry<Result>(
   let attemptCount = 1;
 
   while (true) {
+    throwIfRequestAborted(init.signal ?? null);
     try {
-      return await performAttempt(attemptCount);
+      const result = await performAttempt(attemptCount);
+      throwIfRequestAborted(init.signal ?? null);
+      return result;
     } catch (error) {
+      throwIfRequestAborted(init.signal ?? null);
       if (
         error instanceof ApiNetworkError === false
         || error.endpoint !== endpoint
@@ -362,12 +468,19 @@ async function redirectToLogin(prepareForAuthRedirectCallback: PrepareForAuthRed
  * Loads `/me` without attempting another refresh cycle. This function is used
  * only inside auth recovery to ensure a failed refresh cannot recurse forever.
  */
-async function loadSessionInfoWithoutRecovery(networkRetryMode: NetworkRetryMode): Promise<SessionInfo> {
+async function loadSessionInfoWithoutRecovery(
+  networkRetryMode: NetworkRetryMode,
+  signal: AbortSignal | null,
+): Promise<SessionInfo> {
   const session = parseContractResponse(
-    await requestJson("/me", { method: "GET" }, createSkipAuthRecoveryOptions(networkRetryMode)),
+    await requestJson("/me", {
+      method: "GET",
+      ...(signal === null ? {} : { signal }),
+    }, createSkipAuthRecoveryOptions(networkRetryMode)),
     "GET /me",
     parseSessionInfoResponse,
   );
+  throwIfRequestAborted(signal);
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   redirectInFlight = false;
   return session;
@@ -394,8 +507,12 @@ function createRefreshSessionNetworkError(error: unknown): ApiError {
   });
 }
 
-async function createRefreshSessionResponseError(response: Response): Promise<ApiError> {
+async function createRefreshSessionResponseError(
+  response: Response,
+  signal: AbortSignal | null,
+): Promise<ApiError> {
   const payload = await readJsonResponse(response);
+  throwIfRequestAborted(signal);
   const fallbackMessage = typeof payload.value === "string" ? payload.value : `Request failed with status ${response.status}`;
   return new ApiError({
     statusCode: response.status,
@@ -414,32 +531,29 @@ function createRefreshSessionRetryDelay(attemptIndex: number): number {
   return Math.floor(Math.random() * cappedDelayMs);
 }
 
-function waitForRefreshSessionRetry(attemptIndex: number): Promise<void> {
-  const delayMs = createRefreshSessionRetryDelay(attemptIndex);
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, delayMs);
-  });
+function waitForRefreshSessionRetry(attemptIndex: number, signal: AbortSignal | null): Promise<void> {
+  return waitForTransportDelay(createRefreshSessionRetryDelay(attemptIndex), signal);
 }
 
-function waitForRefreshSessionReconciliation(): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, refreshSessionReconciliationDelayMs);
-  });
+function waitForRefreshSessionReconciliation(signal: AbortSignal | null): Promise<void> {
+  return waitForTransportDelay(refreshSessionReconciliationDelayMs, signal);
 }
 
 async function reconcileRefreshSession(
   networkRetryMode: NetworkRetryMode,
   refreshNetworkError: ApiError,
+  signal: AbortSignal | null,
 ): Promise<void> {
   for (
     let attemptCount = 1;
     attemptCount <= refreshSessionReconciliationMaximumAttemptCount;
     attemptCount += 1
   ) {
-    await waitForRefreshSessionReconciliation();
+    await waitForRefreshSessionReconciliation(signal);
 
     try {
-      await loadSessionInfoWithoutRecovery(networkRetryMode);
+      await loadSessionInfoWithoutRecovery(networkRetryMode, signal);
+      throwIfRequestAborted(signal);
       return;
     } catch (error) {
       if (error instanceof ApiError === false || error.statusCode !== 401) {
@@ -459,35 +573,42 @@ async function reconcileRefreshSession(
  * Calls the auth service refresh endpoint with shared cookies and distinguishes
  * a normal refresh from a session verified after ambiguous network failures.
  */
-async function refreshBrowserSession(networkRetryMode: NetworkRetryMode): Promise<RefreshBrowserSessionResult> {
+async function refreshBrowserSession(
+  networkRetryMode: NetworkRetryMode,
+  signal: AbortSignal | null,
+): Promise<RefreshBrowserSessionResult> {
   const config = getAppConfig();
   let lastNetworkError: ApiError | null = null;
   let networkRejectionCount = 0;
 
   for (let attemptIndex = 0; attemptIndex < refreshSessionMaximumAttemptCount; attemptIndex += 1) {
+    throwIfRequestAborted(signal);
     let response: Response;
 
     try {
       response = await fetch(`${config.authBaseUrl}/api/refresh-session`, {
         method: "POST",
         credentials: "include",
+        ...(signal === null ? {} : { signal }),
       });
     } catch (error) {
+      throwIfRequestAborted(signal);
       lastNetworkError = createRefreshSessionNetworkError(error);
       networkRejectionCount += 1;
       if (hasRemainingRefreshAttempt(attemptIndex)) {
-        await waitForRefreshSessionRetry(attemptIndex);
+        await waitForRefreshSessionRetry(attemptIndex, signal);
         continue;
       }
 
       if (networkRejectionCount === refreshSessionMaximumAttemptCount) {
-        await reconcileRefreshSession(networkRetryMode, lastNetworkError);
+        await reconcileRefreshSession(networkRetryMode, lastNetworkError, signal);
         return "reconciled";
       }
 
       throw lastNetworkError;
     }
 
+    throwIfRequestAborted(signal);
     if (response.ok) {
       return "refreshed";
     }
@@ -498,11 +619,11 @@ async function refreshBrowserSession(networkRetryMode: NetworkRetryMode): Promis
     }
 
     if (isTransientRefreshSessionStatus(response.status) && hasRemainingRefreshAttempt(attemptIndex)) {
-      await waitForRefreshSessionRetry(attemptIndex);
+      await waitForRefreshSessionRetry(attemptIndex, signal);
       continue;
     }
 
-    throw await createRefreshSessionResponseError(response);
+    throw await createRefreshSessionResponseError(response, signal);
   }
 
   if (lastNetworkError !== null) {
@@ -520,9 +641,14 @@ function shouldRetryAfterWeakerSessionRecovery(error: unknown, options: RequestO
   return options.networkRetryMode === "transient" && error instanceof ApiNetworkError;
 }
 
-function startSessionRecovery(options: RequestOptions): Promise<void> {
+function startSessionRecovery(
+  options: RequestOptions,
+  requestSignal: AbortSignal | null,
+): Promise<void> {
+  const authTaskSignal = selectSharedAuthTaskSignal(requestSignal);
   const recoveryTask = (async (): Promise<void> => {
-    const refreshResult = await refreshBrowserSession(options.networkRetryMode);
+    const refreshResult = await refreshBrowserSession(options.networkRetryMode, authTaskSignal);
+    throwIfRequestAborted(authTaskSignal);
     if (refreshResult === "unauthorized") {
       await redirectToLogin(options.prepareForAuthRedirect);
     }
@@ -532,7 +658,8 @@ function startSessionRecovery(options: RequestOptions): Promise<void> {
     }
 
     try {
-      await loadSessionInfoWithoutRecovery(options.networkRetryMode);
+      await loadSessionInfoWithoutRecovery(options.networkRetryMode, authTaskSignal);
+      throwIfRequestAborted(authTaskSignal);
     } catch (error) {
       if (error instanceof ApiError && error.statusCode === 401) {
         await redirectToLogin(options.prepareForAuthRedirect);
@@ -551,22 +678,25 @@ function startSessionRecovery(options: RequestOptions): Promise<void> {
   sessionRecoveryPromise = trackedRecoveryTask;
   sessionRecoveryNetworkRetryMode = options.networkRetryMode;
 
-  return sessionRecoveryPromise;
+  return trackedRecoveryTask;
 }
 
-async function recoverSession(options: RequestOptions): Promise<void> {
+async function recoverSession(
+  options: RequestOptions,
+  requestSignal: AbortSignal | null,
+): Promise<void> {
   while (true) {
     const activeRecovery = sessionRecoveryPromise;
     if (
       activeRecovery !== null
       && canReuseNetworkRetryPromise(sessionRecoveryNetworkRetryMode, options.networkRetryMode)
     ) {
-      return activeRecovery;
+      return waitForSharedTransportTask(activeRecovery, requestSignal);
     }
 
     if (activeRecovery !== null) {
       try {
-        await activeRecovery;
+        await waitForSharedTransportTask(activeRecovery, requestSignal);
         return;
       } catch (error) {
         if (shouldRetryAfterWeakerSessionRecovery(error, options) === false) {
@@ -577,7 +707,7 @@ async function recoverSession(options: RequestOptions): Promise<void> {
       }
     }
 
-    return startSessionRecovery(options);
+    return waitForSharedTransportTask(startSessionRecovery(options, requestSignal), requestSignal);
   }
 }
 
@@ -585,17 +715,22 @@ async function recoverSession(options: RequestOptions): Promise<void> {
  * Reloads the current session-bound CSRF token after another same-site app has
  * rotated the shared session cookie.
  */
-async function recoverSessionCsrf(options: RequestOptions): Promise<void> {
+async function recoverSessionCsrf(
+  options: RequestOptions,
+  requestSignal: AbortSignal | null,
+): Promise<void> {
   const activeRecovery = sessionCsrfRecoveryPromise;
   if (
     activeRecovery !== null
     && canReuseNetworkRetryPromise(sessionCsrfRecoveryNetworkRetryMode, options.networkRetryMode)
   ) {
-    return activeRecovery;
+    return waitForSharedTransportTask(activeRecovery, requestSignal);
   }
 
+  const authTaskSignal = selectSharedAuthTaskSignal(requestSignal);
   const recoveryTask = (async (): Promise<void> => {
-    await loadSessionInfoWithRecovery(options);
+    await loadSessionInfoWithRecovery(options, authTaskSignal);
+    throwIfRequestAborted(authTaskSignal);
   })();
 
   const trackedRecoveryTask = recoveryTask.finally(() => {
@@ -607,16 +742,19 @@ async function recoverSessionCsrf(options: RequestOptions): Promise<void> {
   sessionCsrfRecoveryPromise = trackedRecoveryTask;
   sessionCsrfRecoveryNetworkRetryMode = options.networkRetryMode;
 
-  return sessionCsrfRecoveryPromise;
+  return waitForSharedTransportTask(trackedRecoveryTask, requestSignal);
 }
 
-async function ensureSessionTransportReadyForUnsafeRequest(options: RequestOptions): Promise<void> {
+async function ensureSessionTransportReadyForUnsafeRequest(
+  options: RequestOptions,
+  requestSignal: AbortSignal | null,
+): Promise<void> {
   if (sessionCsrfState !== "unknown") {
     return;
   }
 
   if (sessionRecoveryPromise !== null) {
-    await recoverSession(options);
+    await recoverSession(options, requestSignal);
     return;
   }
 
@@ -625,12 +763,14 @@ async function ensureSessionTransportReadyForUnsafeRequest(options: RequestOptio
     activeBootstrap !== null
     && canReuseNetworkRetryPromise(sessionTransportReadyNetworkRetryMode, options.networkRetryMode)
   ) {
-    await activeBootstrap;
+    await waitForSharedTransportTask(activeBootstrap, requestSignal);
     return;
   }
 
+  const authTaskSignal = selectSharedAuthTaskSignal(requestSignal);
   const readinessTask = (async (): Promise<void> => {
-    await loadSessionInfoWithRecovery(options);
+    await loadSessionInfoWithRecovery(options, authTaskSignal);
+    throwIfRequestAborted(authTaskSignal);
   })();
 
   const trackedReadinessTask = readinessTask.finally(() => {
@@ -641,7 +781,7 @@ async function ensureSessionTransportReadyForUnsafeRequest(options: RequestOptio
   });
   sessionTransportReadyPromise = trackedReadinessTask;
   sessionTransportReadyNetworkRetryMode = options.networkRetryMode;
-  await trackedReadinessTask;
+  await waitForSharedTransportTask(trackedReadinessTask, requestSignal);
 }
 
 /**
@@ -655,12 +795,16 @@ async function requestResponse(
   options: RequestOptions,
   attemptCount: number,
 ): Promise<Response> {
+  const requestSignal = init.signal ?? null;
+  throwIfRequestAborted(requestSignal);
   if (isUnsafeMethod(getMethod(init))) {
-    await ensureSessionTransportReadyForUnsafeRequest(options);
+    await ensureSessionTransportReadyForUnsafeRequest(options, requestSignal);
+    throwIfRequestAborted(requestSignal);
   }
 
   const endpoint = buildSanitizedRequestEndpoint(pathname, init);
   let response: Response = await performFetch(pathname, init, "include", attemptCount);
+  throwIfRequestAborted(requestSignal);
   if (options.authRecoveryMode === "skip") {
     return response;
   }
@@ -674,22 +818,26 @@ async function requestResponse(
       }
 
       didRecoverSession = true;
-      await recoverSession(options);
+      await recoverSession(options, requestSignal);
+      throwIfRequestAborted(requestSignal);
       response = await performFetch(pathname, init, "include", attemptCount);
+      throwIfRequestAborted(requestSignal);
       continue;
     }
 
-    if (
-      didRecoverSessionCsrf === false
-      && isUnsafeMethod(getMethod(init))
-      && await isRecoverableSessionCsrfResponse(response, {
+    const isRecoverableSessionCsrf = didRecoverSessionCsrf === false && isUnsafeMethod(getMethod(init))
+      ? await isRecoverableSessionCsrfResponse(response, {
         attemptCount,
         endpoint,
       })
-    ) {
+      : false;
+    throwIfRequestAborted(requestSignal);
+    if (isRecoverableSessionCsrf) {
       didRecoverSessionCsrf = true;
-      await recoverSessionCsrf(options);
+      await recoverSessionCsrf(options, requestSignal);
+      throwIfRequestAborted(requestSignal);
       response = await performFetch(pathname, init, "include", attemptCount);
+      throwIfRequestAborted(requestSignal);
       continue;
     }
 
@@ -702,12 +850,13 @@ export async function requestJson(
   init: RequestInit,
   options: RequestOptions,
 ): Promise<ParsedResponsePayload> {
-  const endpoint = buildSanitizedRequestEndpoint(pathname, init);
-  return performWithNetworkRetry(endpoint, init, options, async (attemptCount: number) => {
-    const response = await requestResponse(pathname, init, options, attemptCount);
+  const requestInit = attachRecoverySignal(init);
+  const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
+  return performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
+    const response = await requestResponse(pathname, requestInit, options, attemptCount);
     return parseJsonPayload(
       response,
-      buildRequestEndpoint(pathname, init),
+      buildRequestEndpoint(pathname, requestInit),
       {
         attemptCount,
         endpoint,
@@ -721,7 +870,7 @@ export async function requestJson(
  * credential-free CORS and intentionally do not participate in auth recovery.
  */
 export async function requestPublicJson(pathname: string): Promise<ParsedResponsePayload> {
-  const init: RequestInit = { method: "GET" };
+  const init = attachRecoverySignal({ method: "GET" });
   const options = skipAuthRecoveryWithTransientNetworkRetry;
   const endpoint = buildSanitizedRequestEndpoint(pathname, init);
   return performWithNetworkRetry(endpoint, init, options, async (attemptCount: number) => {
@@ -742,10 +891,11 @@ export async function requestBlob(
   init: RequestInit,
   options: RequestOptions,
 ): Promise<BlobResponsePayload> {
-  const endpoint = buildRequestEndpoint(pathname, init);
-  const sanitizedEndpoint = buildSanitizedRequestEndpoint(pathname, init);
-  return performWithNetworkRetry(sanitizedEndpoint, init, options, async (attemptCount: number) => {
-    const response = await requestResponse(pathname, init, options, attemptCount);
+  const requestInit = attachRecoverySignal(init);
+  const endpoint = buildRequestEndpoint(pathname, requestInit);
+  const sanitizedEndpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
+  return performWithNetworkRetry(sanitizedEndpoint, requestInit, options, async (attemptCount: number) => {
+    const response = await requestResponse(pathname, requestInit, options, attemptCount);
     if (!response.ok) {
       await parseJsonPayload(response, endpoint, {
         attemptCount,
@@ -770,12 +920,12 @@ export async function requestBlob(
  * CSRF token when the backend authenticates the request via shared cookies.
  */
 export async function getSession(): Promise<SessionInfo> {
-  return loadSessionInfoWithRecovery(allowAuthRecoveryWithTransientNetworkRetry);
+  return loadSessionInfoWithRecovery(allowAuthRecoveryWithTransientNetworkRetry, null);
 }
 
 export async function getOptionalSession(): Promise<SessionInfo | null> {
   try {
-    return await loadSessionInfoWithoutRecovery("transient");
+    return await loadSessionInfoWithoutRecovery("transient", null);
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 401) {
       return null;
@@ -790,17 +940,22 @@ export async function getOptionalSession(): Promise<SessionInfo | null> {
  * UI state. Callers should use this on tab resume before background sync.
  */
 export async function revalidateSession(): Promise<SessionInfo> {
-  return loadSessionInfoWithRecovery(allowAuthRecoveryWithTransientNetworkRetry);
+  return loadSessionInfoWithRecovery(allowAuthRecoveryWithTransientNetworkRetry, null);
 }
 
 /**
  * Loads `/me` through the normal request pipeline so the API layer can recover
  * from one expired session token without forcing a full page reload.
  */
-async function loadSessionInfoWithRecovery(options: RequestOptions): Promise<SessionInfo> {
+async function loadSessionInfoWithRecovery(
+  options: RequestOptions,
+  signal: AbortSignal | null,
+): Promise<SessionInfo> {
   const session = parseContractResponse(await requestJson("/me", {
     method: "GET",
+    ...(signal === null ? {} : { signal }),
   }, options), "GET /me", parseSessionInfoResponse);
+  throwIfRequestAborted(signal);
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   redirectInFlight = false;
   return session;

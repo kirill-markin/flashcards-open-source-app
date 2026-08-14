@@ -1,7 +1,10 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { ApiContractError, createAgentApiKey, listAgentApiKeys, revokeAgentApiKey } from "../../../api";
 import { useAppData } from "../../../appData";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -10,7 +13,7 @@ import { SettingsShell } from "../SettingsShared";
 
 export function AgentConnectionsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, isSessionVerified, session } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
   const [connections, setConnections] = useState<ReadonlyArray<AgentApiKeyConnection>>([]);
   const [instructions, setInstructions] = useState<string>("");
@@ -24,6 +27,10 @@ export function AgentConnectionsScreen(): ReactElement {
   const technicalErrorMessage = t("appError.technicalError.message");
 
   useEffect(() => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (isSessionVerified === false) {
       setIsLoading(false);
       // Do not keep a one-time secret on screen across a session loss/redirect.
@@ -33,16 +40,24 @@ export function AgentConnectionsScreen(): ReactElement {
     }
 
     void loadConnections();
-  }, [isSessionVerified]);
+  }, [indexedDbOpenRecoveryState, isSessionVerified]);
 
   async function loadConnections(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       const result = await listAgentApiKeys();
+      indexedDbOpenRecoveryState.throwIfFailed();
       setConnections(result.connections);
       setInstructions(result.instructions);
       setErrorMessage("");
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const wasContractErrorCaptured = captureApiContractError(error, {
         feature: "settings",
         sourceAction: "agent_connections_load",
@@ -68,24 +83,31 @@ export function AgentConnectionsScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      setIsLoading(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsLoading(false);
+      }
     }
   }
 
   async function handleGenerate(): Promise<void> {
-    if (isSessionVerified === false || isGenerating) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isSessionVerified === false || isGenerating) {
       return;
     }
 
     setIsGenerating(true);
     try {
       const result = await createAgentApiKey(newKeyLabel.trim());
+      indexedDbOpenRecoveryState.throwIfFailed();
       setGeneratedApiKey(result.apiKey);
       setIsCopied(false);
       setNewKeyLabel("");
       setErrorMessage("");
       await loadConnections();
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const wasContractErrorCaptured = captureApiContractError(error, {
         feature: "settings",
         sourceAction: "agent_connection_create",
@@ -111,19 +133,29 @@ export function AgentConnectionsScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : t("agentConnections.generateError"));
       }
     } finally {
-      setIsGenerating(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsGenerating(false);
+      }
     }
   }
 
   async function handleCopyGeneratedKey(): Promise<void> {
-    if (generatedApiKey === null || typeof navigator.clipboard?.writeText !== "function") {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || generatedApiKey === null
+      || typeof navigator.clipboard?.writeText !== "function"
+    ) {
       return;
     }
 
     try {
       await navigator.clipboard.writeText(generatedApiKey);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setIsCopied(true);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const wasCaptured = captureAppOperationError(error, {
         feature: "settings",
         operation: "agent_connection_copy_key",
@@ -139,24 +171,32 @@ export function AgentConnectionsScreen(): ReactElement {
   }
 
   function dismissGeneratedKey(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setGeneratedApiKey(null);
     setIsCopied(false);
   }
 
   async function handleRevoke(connectionId: string): Promise<void> {
-    if (isSessionVerified === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isSessionVerified === false) {
       return;
     }
 
     setBusyConnectionId(connectionId);
     try {
       const result = await revokeAgentApiKey(connectionId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setConnections((currentConnections) => currentConnections.map((connection) => (
         connection.connectionId === result.connection.connectionId ? result.connection : connection
       )));
       setInstructions(result.instructions);
       setErrorMessage("");
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const wasContractErrorCaptured = captureApiContractError(error, {
         feature: "settings",
         sourceAction: "agent_connection_revoke",
@@ -182,7 +222,9 @@ export function AgentConnectionsScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      setBusyConnectionId(null);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setBusyConnectionId(null);
+      }
     }
   }
 

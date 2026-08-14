@@ -4,6 +4,7 @@ import type { ChatErrorFallbackMessages } from "../../shared/chatHelpers";
 import type { PendingAttachment } from "../../attachments/FileAttachment";
 import type { StoredMessage } from "../../history/useChatHistory";
 import type { ChatComposerAction, ChatRunState } from "../state/runState";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 
 export type ChatSessionControllerUiMessages = Readonly<{
   activeRunInProgress: string;
@@ -23,6 +24,7 @@ export type ChatSessionControllerUiMessages = Readonly<{
 }>;
 
 export type UseChatSessionControllerParams = Readonly<{
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspaceId: string | null;
   isRemoteReady: boolean;
   uiLocale: Locale;

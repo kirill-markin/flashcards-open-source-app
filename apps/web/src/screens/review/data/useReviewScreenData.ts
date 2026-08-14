@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { loadDecksListSnapshot } from "../../../localDb/cards/decks";
 import {
@@ -73,9 +77,25 @@ type CarriedReviewDataContext = Readonly<{
   localReadVersion: number;
 }>;
 
-export type ReviewSubmissionOutcome = "saved" | "failed" | "stale";
+export type ReviewSubmissionOutcome = "saved" | "failed" | "stale" | "cancelled";
 
 const workspaceUnavailableErrorMessage = "Workspace is unavailable";
+
+async function waitForRecoveryGuardedReviewPhase<ResultType>(
+  phase: Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    const result = await phase;
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
 
 function isWorkspaceUnavailableError(error: unknown): boolean {
   return error instanceof Error && error.message === workspaceUnavailableErrorMessage;
@@ -118,7 +138,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     userId,
   } = params;
   const { formatCount, messages, t } = useI18n();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const [canonicalReviewQueue, setCanonicalReviewQueue] = useState<ReadonlyArray<Card>>([]);
   const [queueCards, setQueueCards] = useState<ReadonlyArray<Card>>([]);
   const [reviewCounts, setReviewCounts] = useState<ReviewCounts>(createEmptyReviewCounts);
@@ -279,13 +299,14 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     const shouldShowBlockingLoader = loadedReviewDataContextKeyRef.current !== reviewDataContextKey;
 
     async function loadReviewData(): Promise<void> {
-      if (loadedWorkspaceIdRef.current !== activeWorkspaceId) {
-        setLocalHotStateStatus("loading");
-        setLocalWorkspaceCardCount(0);
-      }
-      setReviewLoadErrorMessage("");
-
       try {
+        indexedDbOpenRecoveryState.throwIfFailed();
+        if (loadedWorkspaceIdRef.current !== activeWorkspaceId) {
+          setLocalHotStateStatus("loading");
+          setLocalWorkspaceCardCount(0);
+        }
+        setReviewLoadErrorMessage("");
+
         if (activeWorkspaceId === null) {
           throw new Error(workspaceUnavailableErrorMessage);
         }
@@ -296,13 +317,31 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           tagsSummary,
           decksSnapshot,
           isHotStateHydrated,
-        ] = await Promise.all([
-          loadReviewQueueSnapshot(activeWorkspaceId, selectedReviewFilter, 8),
-          loadReviewTimelinePage(activeWorkspaceId, selectedReviewFilter, 200, 0),
-          loadWorkspaceTagsSummary(activeWorkspaceId),
-          loadDecksListSnapshot(activeWorkspaceId),
-          hasHydratedHotState(activeWorkspaceId),
-        ]);
+        ] = await waitForRecoveryGuardedReviewPhase(Promise.all([
+          waitForRecoveryGuardedReviewPhase(
+            loadReviewQueueSnapshot(activeWorkspaceId, selectedReviewFilter, 8),
+            indexedDbOpenRecoveryState,
+          ),
+          waitForRecoveryGuardedReviewPhase(
+            loadReviewTimelinePage(activeWorkspaceId, selectedReviewFilter, 200, 0),
+            indexedDbOpenRecoveryState,
+          ),
+          waitForRecoveryGuardedReviewPhase(
+            loadWorkspaceTagsSummary(activeWorkspaceId),
+            indexedDbOpenRecoveryState,
+          ),
+          waitForRecoveryGuardedReviewPhase(
+            loadDecksListSnapshot(activeWorkspaceId),
+            indexedDbOpenRecoveryState,
+          ),
+          waitForRecoveryGuardedReviewPhase(
+            hasHydratedHotState(activeWorkspaceId),
+            indexedDbOpenRecoveryState,
+          ),
+        ]), indexedDbOpenRecoveryState);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
         if (isCancelled) {
           return;
         }
@@ -335,13 +374,19 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           ),
         );
         const previousPresentedCard = shouldShowBlockingLoader ? null : presentedCardRef.current;
-        const resolvedPresentedCard = await resolvePresentedCard(
-          canonicalReviewQueueBeforePresentation,
-          previousPresentedCard,
-          nextResolvedReviewFilter,
-          decksSnapshot.deckSummaries,
-          getCardById,
+        const resolvedPresentedCard = await waitForRecoveryGuardedReviewPhase(
+          resolvePresentedCard(
+            canonicalReviewQueueBeforePresentation,
+            previousPresentedCard,
+            nextResolvedReviewFilter,
+            decksSnapshot.deckSummaries,
+            getCardById,
+          ),
+          indexedDbOpenRecoveryState,
         );
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
         if (isCancelled) {
           return;
         }
@@ -413,6 +458,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           selectReviewFilter(nextResolvedReviewFilter);
         }
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCancelled) {
           return;
         }
@@ -441,9 +489,13 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspaceId, getCardById, localReadVersion, reviewDataContextKey, selectReviewFilter, selectedReviewFilter]);
+  }, [activeWorkspaceId, getCardById, indexedDbOpenRecoveryState, localReadVersion, reviewDataContextKey, selectReviewFilter, selectedReviewFilter]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<ReviewSubmissionOutcome> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return "cancelled";
+    }
+
     if (loadedReviewDataContextKeyRef.current !== reviewDataContextKeyRef.current) {
       return "stale";
     }
@@ -474,8 +526,17 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     setCurrentReviewSessionSignature(optimisticActiveReviewQueue, optimisticQueueCards);
 
     try {
-      await submitReviewItem(submissionContext.cardId, rating);
+      await waitForRecoveryGuardedReviewPhase(
+        submitReviewItem(submissionContext.cardId, rating),
+        indexedDbOpenRecoveryState,
+      );
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return "cancelled";
+      }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return "cancelled";
+      }
       const observationIdentity = observationIdentityRef.current;
       pendingReviewSnapshotsRef.current = removePendingReviewSnapshot(
         pendingReviewSnapshotsRef.current,
@@ -496,8 +557,17 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
 
       let freshRollbackCard: Card | null = null;
       try {
-        freshRollbackCard = await loadPresentedCardForPreservation(submissionContext.cardId, getCardById);
-      } catch {
+        freshRollbackCard = await waitForRecoveryGuardedReviewPhase(
+          loadPresentedCardForPreservation(submissionContext.cardId, getCardById),
+          indexedDbOpenRecoveryState,
+        );
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return "cancelled";
+        }
+      } catch (rollbackError) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, rollbackError)) {
+          return "cancelled";
+        }
         // The submit failure owns the visible technical report; rollback lookup is only UI preservation.
       }
       const currentResolvedReviewFilter = resolvedReviewFilterRef.current;
@@ -610,13 +680,19 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           pendingReviewSnapshotsBeforeClear,
           new Set([submissionContext.cardId]),
         );
-        const nextChunk = await loadReviewQueueChunk(
-          currentWorkspaceId,
-          resolvedReviewFilterRef.current,
-          requestedReviewQueueCursor,
-          8 - nextCanonicalReviewQueue.length,
-          excludedCardIds,
+        const nextChunk = await waitForRecoveryGuardedReviewPhase(
+          loadReviewQueueChunk(
+            currentWorkspaceId,
+            resolvedReviewFilterRef.current,
+            requestedReviewQueueCursor,
+            8 - nextCanonicalReviewQueue.length,
+            excludedCardIds,
+          ),
+          indexedDbOpenRecoveryState,
         );
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return "cancelled";
+        }
         if (
           isReviewSubmissionContextCurrent(
             submissionContext,
@@ -663,6 +739,9 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         setQueueCardsState(replenishedQueueCards);
         setCurrentReviewSessionSignature(replenishedActiveReviewQueue, replenishedQueueCards);
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return "cancelled";
+        }
         if (
           isReviewSubmissionContextCurrent(
             submissionContext,

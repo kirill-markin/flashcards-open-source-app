@@ -79,7 +79,15 @@ function createRemoteSyncInput(): WorkspaceRemoteSyncInput {
     workspaceId: "workspace-1",
     installationId: "installation-1",
     syncRunId: "sync-run-1",
+    signal: new AbortController().signal,
     hasFailed: (): boolean => false,
+    indexedDbOpenRecoveryState: {
+      hasFailed: (): boolean => false,
+      isFailed: false,
+      markFailed: (): "not_recovery" => "not_recovery",
+      signal: new AbortController().signal,
+      throwIfFailed: (): void => {},
+    },
     isOnlyWorkspaceForUser: true,
     requireWorkspaceSyncNotDiscarded: (_workspaceId: string): void => {},
     publishWorkspaceSettings: (_workspaceId, _settings): void => {},
@@ -416,6 +424,7 @@ describe("sync lifecycle observation", () => {
       null,
       1000,
       true,
+      expect.any(AbortSignal),
     );
     expect(apiMocks.pullSyncChangesMock).toHaveBeenCalledWith(
       "workspace-1",
@@ -425,6 +434,7 @@ describe("sync lifecycle observation", () => {
       12,
       500,
       true,
+      expect.any(AbortSignal),
     );
     expect(apiMocks.pullReviewHistorySyncMock).toHaveBeenCalledWith(
       "workspace-1",
@@ -433,6 +443,7 @@ describe("sync lifecycle observation", () => {
       webAppVersion,
       0,
       500,
+      expect.any(AbortSignal),
     );
   });
 

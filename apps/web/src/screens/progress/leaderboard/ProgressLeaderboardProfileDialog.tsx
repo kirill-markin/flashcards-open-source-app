@@ -1,6 +1,10 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { loadProgressLeaderboardProfile } from "../../../api";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import type {
   ProgressLeaderboardProfile,
@@ -193,6 +197,7 @@ function ProgressLeaderboardProfileReadyBody(props: Readonly<{
 
 export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfileDialogProps): ReactElement {
   const { cachedProfile, initialProfile, onClose, onProfileLoaded } = props;
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { t } = useI18n();
   const [retryCount, setRetryCount] = useState<number>(0);
   const [loadState, setLoadState] = useState<ProfileDialogLoadState>({
@@ -202,7 +207,7 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
 
   useEffect(() => {
     function closeOnEscape(event: KeyboardEvent): void {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && indexedDbOpenRecoveryState.hasFailed() === false) {
         onClose();
       }
     }
@@ -211,9 +216,13 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
     return () => {
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, [onClose]);
+  }, [indexedDbOpenRecoveryState, onClose]);
 
   useEffect(() => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (cachedProfile !== null) {
       setLoadState({
         kind: "loaded",
@@ -232,6 +241,7 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
     async function loadProfile(): Promise<void> {
       try {
         const profile = await loadProgressLeaderboardProfile(initialProfile.publicProfileId);
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (isCancelled) {
           return;
         }
@@ -243,6 +253,9 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
           profile,
         });
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCancelled) {
           return;
         }
@@ -260,7 +273,23 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
     return () => {
       isCancelled = true;
     };
-  }, [cachedProfile, initialProfile.publicProfileId, onProfileLoaded, retryCount]);
+  }, [cachedProfile, indexedDbOpenRecoveryState, initialProfile.publicProfileId, onProfileLoaded, retryCount]);
+
+  function closeDialog(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    onClose();
+  }
+
+  function retryProfileLoad(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    setRetryCount((previousRetryCount) => previousRetryCount + 1);
+  }
 
   const loadedProfile = cachedProfile
     ?? (
@@ -306,7 +335,7 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
           <button
             className="ghost-btn progress-leaderboard-profile-close"
             type="button"
-            onClick={onClose}
+            onClick={closeDialog}
             data-testid="progress-leaderboard-profile-close"
           >
             {t("progressScreen.leaderboard.profile.close")}
@@ -327,7 +356,7 @@ export function ProgressLeaderboardProfileDialog(props: ProgressLeaderboardProfi
             <button
               className="ghost-btn"
               type="button"
-              onClick={() => setRetryCount((previousRetryCount) => previousRetryCount + 1)}
+              onClick={retryProfileLoad}
               data-testid="progress-leaderboard-profile-retry"
             >
               {t("common.retry")}

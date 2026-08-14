@@ -118,6 +118,11 @@ type ReviewReactionLottiePreparedRender = Readonly<{
   variant: ReviewReactionLottieVariant;
 }>;
 
+type ReviewReactionLottieWorkOwner = Readonly<{
+  controller: AbortController;
+  removeRecoveryAbortListener: () => void;
+}>;
+
 const reviewReactionLottieVariantSet: ReadonlySet<ReviewReactionRenderableVariant> = new Set(
   reviewReactionLottieVariants,
 );
@@ -402,6 +407,7 @@ let reviewReactionLottieMountedRenderEventIds: Set<string> = new Set<string>();
 let reviewReactionLottieReleaseRequestedEventIds: Set<string> = new Set<string>();
 let reviewReactionLottieOffscreenRoot: HTMLDivElement | null = null;
 let reviewReactionLottieStateGeneration = 0;
+let reviewReactionLottieWorkOwner: ReviewReactionLottieWorkOwner | null = null;
 
 export const reviewReactionLottieFallbackVariant: ReviewReactionFallbackVariant = "fallbackCrownBounce";
 
@@ -419,7 +425,7 @@ export function reviewReactionLottieAssetFailure(variant: ReviewReactionLottieVa
   return reviewReactionLottieFailureByVariant[variant];
 }
 
-export function resetReviewReactionLottieStateForTests(): void {
+function clearReviewReactionLottieState(): void {
   reviewReactionLottieStateGeneration += 1;
   destroyReviewReactionLottiePreparedRenders(reviewReactionLottiePreparedRenderByVariant);
   for (const preparedRender of reviewReactionLottieReservedRenderByEventId.values()) {
@@ -440,6 +446,83 @@ export function resetReviewReactionLottieStateForTests(): void {
   reviewReactionLottieOffscreenRoot = null;
 }
 
+function detachReviewReactionLottieWorkOwner(
+  owner: ReviewReactionLottieWorkOwner,
+  reason: unknown,
+): boolean {
+  if (reviewReactionLottieWorkOwner !== owner) {
+    return false;
+  }
+
+  owner.removeRecoveryAbortListener();
+  owner.controller.abort(reason);
+  reviewReactionLottieWorkOwner = null;
+  reviewReactionLottieStateGeneration += 1;
+  if (reviewReactionLottiePlayerReady === false) {
+    reviewReactionLottiePlayerPromise = null;
+  }
+  reviewReactionLottieAnimationPromiseByVariant = makeEmptyReviewReactionLottieAnimationPromiseByVariant();
+  reviewReactionLottiePreparedRenderPromiseByVariant = makeEmptyReviewReactionLottiePreparedRenderPromiseByVariant();
+  return true;
+}
+
+function stopAndClearReviewReactionLottieWork(
+  owner: ReviewReactionLottieWorkOwner,
+  reason: unknown,
+): void {
+  if (detachReviewReactionLottieWorkOwner(owner, reason) === false) {
+    return;
+  }
+
+  clearReviewReactionLottieState();
+}
+
+function createReviewReactionLottieWorkOwner(recoverySignal: AbortSignal): ReviewReactionLottieWorkOwner {
+  if (reviewReactionLottieWorkOwner !== null) {
+    stopAndClearReviewReactionLottieWork(
+      reviewReactionLottieWorkOwner,
+      new DOMException("Review reaction Lottie prewarm was replaced", "AbortError"),
+    );
+  }
+
+  const controller = new AbortController();
+  let owner: ReviewReactionLottieWorkOwner | null = null;
+  const handleRecoveryAbort = (): void => {
+    if (owner === null) {
+      return;
+    }
+    stopAndClearReviewReactionLottieWork(owner, recoverySignal.reason);
+  };
+  recoverySignal.addEventListener("abort", handleRecoveryAbort, { once: true });
+  owner = {
+    controller,
+    removeRecoveryAbortListener: () => {
+      recoverySignal.removeEventListener("abort", handleRecoveryAbort);
+    },
+  };
+  reviewReactionLottieWorkOwner = owner;
+  if (recoverySignal.aborted) {
+    handleRecoveryAbort();
+  }
+  return owner;
+}
+
+function getReviewReactionLottieWorkSignal(): AbortSignal {
+  return reviewReactionLottieWorkOwner?.controller.signal ?? new AbortController().signal;
+}
+
+export function resetReviewReactionLottieStateForTests(): void {
+  if (reviewReactionLottieWorkOwner !== null) {
+    stopAndClearReviewReactionLottieWork(
+      reviewReactionLottieWorkOwner,
+      new DOMException("Review reaction Lottie state was reset", "AbortError"),
+    );
+    return;
+  }
+
+  clearReviewReactionLottieState();
+}
+
 function destroyReviewReactionLottiePreparedRenders(
   preparedRenderByVariant: ReviewReactionLottiePreparedRenderByVariant,
 ): void {
@@ -455,7 +538,8 @@ function destroyReviewReactionLottiePreparedRender(preparedRender: ReviewReactio
   preparedRender.container.remove();
 }
 
-function loadReviewReactionLottiePlayer(): Promise<LottiePlayer> {
+function loadReviewReactionLottiePlayer(signal: AbortSignal): Promise<LottiePlayer> {
+  signal.throwIfAborted();
   if (reviewReactionLottiePlayerPromise !== null) {
     return reviewReactionLottiePlayerPromise;
   }
@@ -463,12 +547,14 @@ function loadReviewReactionLottiePlayer(): Promise<LottiePlayer> {
   const generation = reviewReactionLottieStateGeneration;
   reviewReactionLottiePlayerPromise = import("lottie-web/build/player/lottie_light")
     .then((lottieModule: ReviewReactionLottiePlayerModule): LottiePlayer => {
+      signal.throwIfAborted();
       if (generation === reviewReactionLottieStateGeneration) {
         reviewReactionLottiePlayerReady = true;
       }
       return lottieModule.default;
     })
     .catch((error: unknown): never => {
+      signal.throwIfAborted();
       if (generation === reviewReactionLottieStateGeneration) {
         reviewReactionLottiePlayerReady = false;
         reviewReactionLottiePlayerPromise = null;
@@ -485,12 +571,16 @@ function isReviewReactionLottieAnimationData(animationData: unknown): animationD
 
 async function fetchReviewReactionLottieAnimationData(
   variant: ReviewReactionLottieVariant,
+  signal: AbortSignal,
 ): Promise<object> {
+  signal.throwIfAborted();
   const url = reviewReactionLottieAnimationUrlByVariant[variant];
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, { signal });
+    signal.throwIfAborted();
   } catch (error: unknown) {
+    signal.throwIfAborted();
     throw new Error(
       `Failed to fetch review reaction Lottie animation JSON for variant ${variant} from ${url}.`,
       { cause: error },
@@ -498,7 +588,9 @@ async function fetchReviewReactionLottieAnimationData(
   }
 
   if (!response.ok) {
+    signal.throwIfAborted();
     const responseBody = await response.text();
+    signal.throwIfAborted();
     throw new Error(
       `Failed to fetch review reaction Lottie animation JSON for variant ${variant} from ${url}. `
         + `Received status ${response.status} ${response.statusText}. Response body: ${responseBody}`,
@@ -507,8 +599,11 @@ async function fetchReviewReactionLottieAnimationData(
 
   let animationData: unknown;
   try {
+    signal.throwIfAborted();
     animationData = await response.json();
+    signal.throwIfAborted();
   } catch (error: unknown) {
+    signal.throwIfAborted();
     throw new Error(
       `Failed to parse review reaction Lottie animation JSON for variant ${variant} from ${url}.`,
       { cause: error },
@@ -524,7 +619,11 @@ async function fetchReviewReactionLottieAnimationData(
   return animationData;
 }
 
-function loadReviewReactionLottieAnimationData(variant: ReviewReactionLottieVariant): Promise<object> {
+function loadReviewReactionLottieAnimationData(
+  variant: ReviewReactionLottieVariant,
+  signal: AbortSignal,
+): Promise<object> {
+  signal.throwIfAborted();
   const cachedAnimationData = reviewReactionLottieAnimationDataByVariant[variant];
   if (cachedAnimationData !== null) {
     return Promise.resolve(cachedAnimationData);
@@ -535,27 +634,34 @@ function loadReviewReactionLottieAnimationData(variant: ReviewReactionLottieVari
     return cachedAnimationPromise;
   }
 
-  const animationDataPromise = fetchReviewReactionLottieAnimationData(variant)
+  const generation = reviewReactionLottieStateGeneration;
+  const animationDataPromise = fetchReviewReactionLottieAnimationData(variant, signal)
     .then((animationData: object): object => {
-      reviewReactionLottieAnimationDataByVariant = {
-        ...reviewReactionLottieAnimationDataByVariant,
-        [variant]: animationData,
-      };
-      reviewReactionLottieAnimationPromiseByVariant = {
-        ...reviewReactionLottieAnimationPromiseByVariant,
-        [variant]: null,
-      };
+      signal.throwIfAborted();
+      if (generation === reviewReactionLottieStateGeneration) {
+        reviewReactionLottieAnimationDataByVariant = {
+          ...reviewReactionLottieAnimationDataByVariant,
+          [variant]: animationData,
+        };
+        reviewReactionLottieAnimationPromiseByVariant = {
+          ...reviewReactionLottieAnimationPromiseByVariant,
+          [variant]: null,
+        };
+      }
       return animationData;
     })
     .catch((error: unknown): never => {
-      reviewReactionLottieAnimationDataByVariant = {
-        ...reviewReactionLottieAnimationDataByVariant,
-        [variant]: null,
-      };
-      reviewReactionLottieAnimationPromiseByVariant = {
-        ...reviewReactionLottieAnimationPromiseByVariant,
-        [variant]: null,
-      };
+      signal.throwIfAborted();
+      if (generation === reviewReactionLottieStateGeneration) {
+        reviewReactionLottieAnimationDataByVariant = {
+          ...reviewReactionLottieAnimationDataByVariant,
+          [variant]: null,
+        };
+        reviewReactionLottieAnimationPromiseByVariant = {
+          ...reviewReactionLottieAnimationPromiseByVariant,
+          [variant]: null,
+        };
+      }
       throw error;
     });
 
@@ -567,7 +673,8 @@ function loadReviewReactionLottieAnimationData(variant: ReviewReactionLottieVari
   return animationDataPromise;
 }
 
-function requireReviewReactionLottieDocumentBody(): HTMLElement {
+function requireReviewReactionLottieDocumentBody(signal: AbortSignal): HTMLElement {
+  signal.throwIfAborted();
   if (typeof document === "undefined" || document.body === null) {
     throw new Error("Review reaction Lottie prewarm requires a mounted document body.");
   }
@@ -575,13 +682,15 @@ function requireReviewReactionLottieDocumentBody(): HTMLElement {
   return document.body;
 }
 
-function makeReviewReactionLottieOffscreenRoot(): HTMLDivElement {
+function makeReviewReactionLottieOffscreenRoot(signal: AbortSignal): HTMLDivElement {
+  signal.throwIfAborted();
   const existingRoot = reviewReactionLottieOffscreenRoot;
   if (existingRoot !== null && existingRoot.isConnected) {
     return existingRoot;
   }
 
-  const body = requireReviewReactionLottieDocumentBody();
+  const body = requireReviewReactionLottieDocumentBody(signal);
+  signal.throwIfAborted();
   const root = document.createElement("div");
   root.setAttribute("aria-hidden", "true");
   root.setAttribute("data-review-reaction-lottie-prewarm-root", "true");
@@ -593,14 +702,18 @@ function makeReviewReactionLottieOffscreenRoot(): HTMLDivElement {
   root.style.top = "-10000px";
   root.style.opacity = "0";
   root.style.pointerEvents = "none";
+  signal.throwIfAborted();
   body.appendChild(root);
   reviewReactionLottieOffscreenRoot = root;
   return root;
 }
 
-function makeReviewReactionLottieOffscreenContainer(): HTMLDivElement {
-  const root = makeReviewReactionLottieOffscreenRoot();
+function makeReviewReactionLottieOffscreenContainer(signal: AbortSignal): HTMLDivElement {
+  signal.throwIfAborted();
+  const root = makeReviewReactionLottieOffscreenRoot(signal);
+  signal.throwIfAborted();
   const container = document.createElement("div");
+  signal.throwIfAborted();
   root.appendChild(container);
   return container;
 }
@@ -608,7 +721,7 @@ function makeReviewReactionLottieOffscreenContainer(): HTMLDivElement {
 function moveReviewReactionLottieRenderToOffscreenRoot(
   preparedRender: ReviewReactionLottiePreparedRender,
 ): void {
-  makeReviewReactionLottieOffscreenRoot().appendChild(preparedRender.container);
+  makeReviewReactionLottieOffscreenRoot(getReviewReactionLottieWorkSignal()).appendChild(preparedRender.container);
 }
 
 function makeReviewReactionLottieRenderEventError(
@@ -623,7 +736,9 @@ function makeReviewReactionLottieRenderEventError(
 function waitForReviewReactionLottiePreparedRender(
   animationItem: AnimationItem,
   variant: ReviewReactionLottieVariant,
+  signal: AbortSignal,
 ): Promise<void> {
+  signal.throwIfAborted();
   if (animationItem.isLoaded) {
     return Promise.resolve();
   }
@@ -638,6 +753,7 @@ function waitForReviewReactionLottiePreparedRender(
       removeDomLoadedListener?.();
       removeDataFailedListener?.();
       removeErrorListener?.();
+      signal.removeEventListener("abort", markRenderAborted);
       removeDomLoadedListener = null;
       removeDataFailedListener = null;
       removeErrorListener = null;
@@ -663,6 +779,17 @@ function waitForReviewReactionLottiePreparedRender(
       reject(makeReviewReactionLottieRenderEventError(eventName, variant));
     };
 
+    const markRenderAborted = (): void => {
+      if (hasSettled) {
+        return;
+      }
+
+      hasSettled = true;
+      removeListeners();
+      reject(signal.reason);
+    };
+
+    signal.addEventListener("abort", markRenderAborted, { once: true });
     removeDomLoadedListener = animationItem.addEventListener("DOMLoaded", markRenderReady);
     removeDataFailedListener = animationItem.addEventListener("data_failed", () => {
       markRenderFailed("data_failed");
@@ -672,21 +799,27 @@ function waitForReviewReactionLottiePreparedRender(
     });
     if (animationItem.isLoaded) {
       markRenderReady();
+    } else if (signal.aborted) {
+      markRenderAborted();
     }
   });
 }
 
 async function makeReviewReactionLottiePreparedRender(
   variant: ReviewReactionLottieVariant,
+  signal: AbortSignal,
 ): Promise<ReviewReactionLottiePreparedRender> {
+  signal.throwIfAborted();
   const [player, animationData] = await Promise.all([
-    loadReviewReactionLottiePlayer(),
-    loadReviewReactionLottieAnimationData(variant),
+    loadReviewReactionLottiePlayer(signal),
+    loadReviewReactionLottieAnimationData(variant, signal),
   ]);
-  const container = makeReviewReactionLottieOffscreenContainer();
+  signal.throwIfAborted();
+  const container = makeReviewReactionLottieOffscreenContainer(signal);
   let animationItem: AnimationItem;
 
   try {
+    signal.throwIfAborted();
     animationItem = player.loadAnimation({
       container,
       renderer: "svg",
@@ -703,7 +836,8 @@ async function makeReviewReactionLottiePreparedRender(
   }
 
   try {
-    await waitForReviewReactionLottiePreparedRender(animationItem, variant);
+    await waitForReviewReactionLottiePreparedRender(animationItem, variant, signal);
+    signal.throwIfAborted();
   } catch (error: unknown) {
     animationItem.destroy();
     container.remove();
@@ -724,7 +858,9 @@ async function makeReviewReactionLottiePreparedRender(
 
 function prewarmReviewReactionLottieVariant(
   variant: ReviewReactionLottieVariant,
+  signal: AbortSignal,
 ): Promise<ReviewReactionLottiePreparedRender> {
+  signal.throwIfAborted();
   const preparedRender = reviewReactionLottiePreparedRenderByVariant[variant];
   if (preparedRender !== null) {
     return Promise.resolve(preparedRender);
@@ -736,8 +872,9 @@ function prewarmReviewReactionLottieVariant(
   }
 
   const generation = reviewReactionLottieStateGeneration;
-  const nextPreparedRenderPromise = makeReviewReactionLottiePreparedRender(variant)
+  const nextPreparedRenderPromise = makeReviewReactionLottiePreparedRender(variant, signal)
     .then((nextPreparedRender: ReviewReactionLottiePreparedRender): ReviewReactionLottiePreparedRender => {
+      signal.throwIfAborted();
       if (generation !== reviewReactionLottieStateGeneration) {
         destroyReviewReactionLottiePreparedRender(nextPreparedRender);
         return nextPreparedRender;
@@ -758,6 +895,7 @@ function prewarmReviewReactionLottieVariant(
       return nextPreparedRender;
     })
     .catch((error: unknown): never => {
+      signal.throwIfAborted();
       if (generation === reviewReactionLottieStateGeneration) {
         reviewReactionLottiePreparedRenderByVariant = {
           ...reviewReactionLottiePreparedRenderByVariant,
@@ -794,7 +932,15 @@ function reportReviewReactionLottiePrewarmFailure(
 }
 
 function startReviewReactionLottieVariantPrewarm(variant: ReviewReactionLottieVariant): void {
-  void prewarmReviewReactionLottieVariant(variant).catch((error: unknown) => {
+  const signal = getReviewReactionLottieWorkSignal();
+  if (signal.aborted) {
+    return;
+  }
+
+  void prewarmReviewReactionLottieVariant(variant, signal).catch((error: unknown) => {
+    if (signal.aborted) {
+      return;
+    }
     reportReviewReactionLottiePrewarmFailure(error, variant);
   });
 }
@@ -802,7 +948,10 @@ function startReviewReactionLottieVariantPrewarm(variant: ReviewReactionLottieVa
 export async function loadReviewReactionLottieAsset(
   variant: ReviewReactionLottieVariant,
 ): Promise<ReviewReactionLottieAsset> {
-  const preparedRender = await prewarmReviewReactionLottieVariant(variant);
+  const signal = getReviewReactionLottieWorkSignal();
+  signal.throwIfAborted();
+  const preparedRender = await prewarmReviewReactionLottieVariant(variant, signal);
+  signal.throwIfAborted();
   return {
     animationData: preparedRender.animationData,
     player: preparedRender.player,
@@ -810,9 +959,12 @@ export async function loadReviewReactionLottieAsset(
 }
 
 export async function prewarmReviewReactionLottieAssets(): Promise<ReviewReactionLottiePreloadResult> {
+  const signal = getReviewReactionLottieWorkSignal();
+  signal.throwIfAborted();
   const settledPreparedRenders = await Promise.allSettled(
-    reviewReactionLottieVariants.map((variant) => prewarmReviewReactionLottieVariant(variant)),
+    reviewReactionLottieVariants.map((variant) => prewarmReviewReactionLottieVariant(variant, signal)),
   );
+  signal.throwIfAborted();
   const failures: Array<ReviewReactionLottieAssetFailure> = [];
 
   for (const [index, settledPreparedRender] of settledPreparedRenders.entries()) {
@@ -832,22 +984,44 @@ export async function loadReviewReactionLottieAssets(): Promise<ReviewReactionLo
   return prewarmReviewReactionLottieAssets();
 }
 
-export function startReviewReactionLottiePrewarm(): void {
+export function startReviewReactionLottiePrewarm(recoverySignal: AbortSignal): () => void {
+  const owner = createReviewReactionLottieWorkOwner(recoverySignal);
+  if (owner.controller.signal.aborted) {
+    return () => undefined;
+  }
+
   void prewarmReviewReactionLottieAssets()
     .then((result: ReviewReactionLottiePreloadResult): void => {
+      owner.controller.signal.throwIfAborted();
       for (const failure of result.failures) {
+        owner.controller.signal.throwIfAborted();
         reportReviewReactionLottiePrewarmFailure(failure.error, failure.variant);
       }
     })
     .catch((error: unknown): void => {
+      if (owner.controller.signal.aborted) {
+        return;
+      }
       reportReviewReactionLottiePrewarmFailure(error, null);
     });
+
+  return () => {
+    stopAndClearReviewReactionLottieWork(
+      owner,
+      new DOMException("Review reaction Lottie prewarm was stopped", "AbortError"),
+    );
+  };
 }
 
 export function reserveReviewReactionLottieRender(
   eventId: string,
   variant: ReviewReactionLottieVariant,
 ): boolean {
+  const signal = getReviewReactionLottieWorkSignal();
+  if (signal.aborted) {
+    return false;
+  }
+
   if (reviewReactionLottieReservedRenderByEventId.has(eventId)) {
     throw new Error(`Review reaction Lottie render reservation already exists for event ${eventId}.`);
   }
@@ -871,6 +1045,7 @@ export function mountReservedReviewReactionLottieRender(
   variant: ReviewReactionLottieVariant,
   container: HTMLDivElement,
 ): ReviewReactionLottieMountedRender {
+  getReviewReactionLottieWorkSignal().throwIfAborted();
   const preparedRender = reviewReactionLottieReservedRenderByEventId.get(eventId);
   if (preparedRender === undefined) {
     throw new Error(`Review reaction Lottie render reservation is missing for event ${eventId} variant ${variant}.`);

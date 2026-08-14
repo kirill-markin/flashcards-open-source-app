@@ -38,6 +38,7 @@ export function useChatSessionController(
   params: UseChatSessionControllerParams,
 ): ChatSessionController {
   const {
+    indexedDbOpenRecoveryState,
     workspaceId,
     isRemoteReady,
     uiLocale,
@@ -46,7 +47,14 @@ export function useChatSessionController(
   } = params;
   const controllerIdRef = useRef<string>(createChatControllerDebugId());
   const controllerId = controllerIdRef.current;
-  const initialWarmStartSnapshotRef = useRef(loadChatSessionWarmStartSnapshot(workspaceId));
+  const initialWarmStartSnapshotRef = useRef<ReturnType<typeof loadChatSessionWarmStartSnapshot>>(null);
+  const didLoadInitialWarmStartSnapshotRef = useRef<boolean>(false);
+  if (didLoadInitialWarmStartSnapshotRef.current === false) {
+    didLoadInitialWarmStartSnapshotRef.current = true;
+    initialWarmStartSnapshotRef.current = indexedDbOpenRecoveryState.hasFailed()
+      ? null
+      : loadChatSessionWarmStartSnapshot(workspaceId);
+  }
   const initialWarmStartSnapshot = initialWarmStartSnapshotRef.current;
   const initialWarmStartSnapshotIsStale = initialWarmStartSnapshot === null
     ? false
@@ -63,6 +71,7 @@ export function useChatSessionController(
   const [state, dispatch] = useReducer(chatSessionControllerReducer, bootstrap.initialState);
   const history = useChatHistory(bootstrap.initialMessages);
   const snapshotSync = useChatSessionSnapshotSync({
+    indexedDbOpenRecoveryState,
     controllerId,
     workspaceId,
     isRemoteReady,
@@ -76,6 +85,7 @@ export function useChatSessionController(
       : null,
   });
   const actions = useChatSessionActions({
+    indexedDbOpenRecoveryState,
     workspaceId,
     isRemoteReady,
     uiLocale,
@@ -87,6 +97,7 @@ export function useChatSessionController(
   });
 
   useChatSessionHydrationLifecycle({
+    indexedDbOpenRecoveryState,
     workspaceId,
     isRemoteReady,
     uiLocale,
@@ -114,7 +125,12 @@ export function useChatSessionController(
   }, []);
 
   const persistWarmStartSnapshot = useEffectEvent((): void => {
-    if (workspaceId === null || state.currentSessionId === null || state.isHistoryLoaded === false) {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || workspaceId === null
+      || state.currentSessionId === null
+      || state.isHistoryLoaded === false
+    ) {
       return;
     }
 
@@ -146,33 +162,50 @@ export function useChatSessionController(
   ]);
 
   const dismissErrorDialog = useCallback((): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     dispatch({ type: "error_dismissed" });
-  }, []);
+  }, [indexedDbOpenRecoveryState]);
 
   const acceptServerSessionId = useCallback((sessionId: string | null): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     dispatch({
       type: "accept_server_session_id",
       sessionId,
     });
-  }, []);
+  }, [indexedDbOpenRecoveryState]);
 
   const sendMessage = useCallback(async (
     sendParams: SendChatMessageParams,
   ): Promise<SendChatMessageResult> => {
-    return actions.sendMessage(sendParams);
-  }, [actions]);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await actions.sendMessage(sendParams);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  }, [actions, indexedDbOpenRecoveryState]);
 
   const ensureRemoteSession = useCallback(async (): Promise<string> => {
-    return actions.ensureRemoteSession();
-  }, [actions]);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const sessionId = await actions.ensureRemoteSession();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return sessionId;
+  }, [actions, indexedDbOpenRecoveryState]);
 
   const stopMessage = useCallback(async (): Promise<void> => {
+    indexedDbOpenRecoveryState.throwIfFailed();
     await actions.stopMessage();
-  }, [actions]);
+    indexedDbOpenRecoveryState.throwIfFailed();
+  }, [actions, indexedDbOpenRecoveryState]);
 
   const clearConversation = useCallback(async (): Promise<string | null> => {
-    return actions.clearConversation();
-  }, [actions]);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const sessionId = await actions.clearConversation();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return sessionId;
+  }, [actions, indexedDbOpenRecoveryState]);
 
   return {
     messages: history.messages,

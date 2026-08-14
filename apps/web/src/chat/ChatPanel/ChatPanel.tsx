@@ -1,6 +1,9 @@
 import { useRef, type ReactElement } from "react";
 import { useAppData } from "../../appData";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import type { WebAppOperation } from "../../observability/webObservability";
 import { useChatDraft } from "../composer/drafts/ChatDraftContext";
@@ -37,7 +40,7 @@ type Props = Readonly<{
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
-  const { showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
   const {
@@ -126,6 +129,7 @@ export function ChatPanel(props: Props): ReactElement {
     ensureRemoteSession,
     focusComposerRequestVersion,
     inputText: draftInputText,
+    indexedDbOpenRecoveryState,
     onTechnicalError: showChatTechnicalError,
     t,
     textareaRef,
@@ -150,6 +154,7 @@ export function ChatPanel(props: Props): ReactElement {
     draftInputText,
     draftPendingAttachments,
     draftUpdatedAt: draft.updatedAt,
+    indexedDbOpenRecoveryState,
     isSessionVerified: appData.isSessionVerified,
     pendingSyncMessage: t("chatPanel.transientErrors.pendingSync"),
     moveDraftToSession,
@@ -168,7 +173,8 @@ export function ChatPanel(props: Props): ReactElement {
   });
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
   const isDictationVisible = dictationState !== "idle";
-  const isChatActionLocked = appData.isSessionVerified === false;
+  const isChatActionLocked = appData.isSessionVerified === false
+    || indexedDbOpenRecoveryState.hasFailed();
   const areAttachmentsEnabled = chatConfig.features.attachmentsEnabled;
   const isDictationEnabled = chatConfig.features.dictationEnabled;
   const isChatConversationReadyForAttachments = isHistoryLoaded && currentSessionId !== null;
@@ -201,7 +207,11 @@ export function ChatPanel(props: Props): ReactElement {
     canAttachDraftFiles,
     currentSessionId,
     draftInputText,
+    indexedDbOpenRecoveryState,
     onTechnicalError: (error) => {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       showChatTechnicalError(error, "chat_attachment_prepare");
     },
     pendingAttachmentsRef,
@@ -210,7 +220,7 @@ export function ChatPanel(props: Props): ReactElement {
   const { handleKeyDown } = useChatComposerKeyboard({
     composerAction,
     sendPendingMessage,
-    stopMessage,
+    stopMessage: handleStopMessage,
   });
   const hasDraftContent = hasChatDraftContent(inputText, pendingAttachments);
   const composerState = getChatComposerState({
@@ -250,6 +260,44 @@ export function ChatPanel(props: Props): ReactElement {
       ? t("chatPanel.dictation.listening")
       : t("chatPanel.dictation.transcribing");
 
+  async function handleStartNewConversation(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    try {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      suppressNextSessionDraftCarryover(currentSessionId);
+      startNewConversationComposerReset(currentSessionId);
+      discardDictation();
+      const nextSessionId = await clearConversation();
+      indexedDbOpenRecoveryState.throwIfFailed();
+      finishNewConversationComposerReset(nextSessionId);
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  async function handleStopMessage(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    try {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      await stopMessage();
+      indexedDbOpenRecoveryState.throwIfFailed();
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+      throw error;
+    }
+  }
+
   return (
     <div
       ref={rootRef}
@@ -267,7 +315,9 @@ export function ChatPanel(props: Props): ReactElement {
           className={`chat-resize-handle${isDragging ? " dragging" : ""}`}
           onMouseDown={(event) => {
             event.preventDefault();
-            beginResizeDrag();
+            if (indexedDbOpenRecoveryState.hasFailed() === false) {
+              beginResizeDrag();
+            }
           }}
         />
       ) : null}
@@ -280,13 +330,7 @@ export function ChatPanel(props: Props): ReactElement {
           <button
             type="button"
             className="chat-close-btn"
-            onClick={() => {
-              suppressNextSessionDraftCarryover(currentSessionId);
-              startNewConversationComposerReset(currentSessionId);
-              discardDictation();
-              void clearConversation()
-                .then((nextSessionId) => finishNewConversationComposerReset(nextSessionId));
-            }}
+            onClick={() => void handleStartNewConversation()}
             disabled={isStopping || isChatActionLocked}
             data-testid="chat-new-button"
           >
@@ -297,9 +341,12 @@ export function ChatPanel(props: Props): ReactElement {
               type="button"
               className="chat-close-btn"
               onClick={() => {
-                discardDictation();
-                setIsOpen(false);
+                if (indexedDbOpenRecoveryState.hasFailed() === false) {
+                  discardDictation();
+                  setIsOpen(false);
+                }
               }}
+              disabled={isChatActionLocked}
             >
               &laquo;
             </button>
@@ -335,7 +382,17 @@ export function ChatPanel(props: Props): ReactElement {
                 key={`${message.timestamp}-${index}`}
                 className={`chat-msg chat-msg-${message.role}`}
               >
-                {renderStoredMessageContent(message, t, (error) => showChatTechnicalError(error, "chat_tool_call_copy"))}
+                {renderStoredMessageContent(
+                  message,
+                  t,
+                  (error) => {
+                    if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+                      return true;
+                    }
+                    return showChatTechnicalError(error, "chat_tool_call_copy");
+                  },
+                  () => indexedDbOpenRecoveryState.hasFailed() === false,
+                )}
                 {isLastAssistant ? (
                   <span className="chat-streaming-indicator">
                     <span className="chat-dots" />
@@ -403,6 +460,9 @@ export function ChatPanel(props: Props): ReactElement {
                 data-suggestion-id={suggestion.id}
                 data-suggestion-index={index}
                 onClick={() => {
+                  if (indexedDbOpenRecoveryState.hasFailed()) {
+                    return;
+                  }
                   updateInputText((currentText) =>
                     currentText.length === 0
                       ? suggestion.text
@@ -438,6 +498,9 @@ export function ChatPanel(props: Props): ReactElement {
             disabled={isDraftInputBlocked}
             data-testid="chat-composer-input"
             onChange={(event) => {
+              if (indexedDbOpenRecoveryState.hasFailed()) {
+                return;
+              }
               replaceInputText(event.target.value);
               updateTrackedDraftSelection(event.target);
             }}
@@ -460,7 +523,11 @@ export function ChatPanel(props: Props): ReactElement {
               type="button"
               className={`chat-mic-btn${dictationState === "recording" ? " chat-mic-btn-recording" : ""}`}
               aria-label={microphoneAriaLabel}
-              onClick={() => void handleMicrophoneClick(canStartDictation)}
+              onClick={() => {
+                if (indexedDbOpenRecoveryState.hasFailed() === false) {
+                  void handleMicrophoneClick(canStartDictation);
+                }
+              }}
               disabled={isDictationButtonDisabled}
             >
               {dictationState === "recording" ? (
@@ -488,8 +555,12 @@ export function ChatPanel(props: Props): ReactElement {
                 type="button"
                 className="chat-stop-btn"
                 aria-label={t("chatPanel.actions.stopAriaLabel")}
-                onClick={() => void stopMessage()}
-                disabled={isStopping}
+                onClick={() => {
+                  if (indexedDbOpenRecoveryState.hasFailed() === false) {
+                    void handleStopMessage();
+                  }
+                }}
+                disabled={isStopping || isChatActionLocked}
                 data-testid="chat-stop-button"
               >
                 <span className="chat-stop-btn-icon" aria-hidden="true" />
@@ -530,7 +601,12 @@ export function ChatPanel(props: Props): ReactElement {
             <button
               type="button"
               className="primary-btn"
-              onClick={dismissErrorDialog}
+              onClick={() => {
+                if (indexedDbOpenRecoveryState.hasFailed() === false) {
+                  dismissErrorDialog();
+                }
+              }}
+              disabled={isChatActionLocked}
             >
               OK
             </button>

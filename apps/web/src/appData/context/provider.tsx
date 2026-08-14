@@ -10,10 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import { revalidateSession } from "../../api";
-import {
-  ownsIndexedDbOpenRecoveryFailure,
-  useAppErrorDialog,
-} from "../../appError/AppErrorContext";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { loadActiveCardCount } from "../../localDb/cards/cards";
 import type {
@@ -88,7 +85,7 @@ function resolveTechnicalErrorAction(
 export function AppDataProvider(props: Props): ReactElement {
   const { children } = props;
   const { t } = useI18n();
-  const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   useProgressInvalidationRefresh();
   const [warmStartSnapshot] = useState(loadWarmStartSnapshot);
   const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(
@@ -146,10 +143,10 @@ export function AppDataProvider(props: Props): ReactElement {
 
   const setSessionTechnicalError = useCallback<Dispatch<SetStateAction<Error | null>>>((nextErrorAction): void => {
     const nextError = resolveTechnicalErrorAction(sessionTechnicalErrorRef.current, nextErrorAction);
-    if (
-      indexedDbOpenRecoveryState.hasFailed()
-      && (nextError === null || ownsIndexedDbOpenRecoveryFailure(indexedDbOpenRecoveryState.markFailed(nextError)) === false)
-    ) {
+    if (nextError !== null) {
+      indexedDbOpenRecoveryState.markFailed(nextError);
+    }
+    if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -159,10 +156,10 @@ export function AppDataProvider(props: Props): ReactElement {
 
   const setTechnicalError = useCallback<Dispatch<SetStateAction<Error | null>>>((nextErrorAction): void => {
     const nextError = resolveTechnicalErrorAction(technicalErrorRef.current, nextErrorAction);
-    if (
-      indexedDbOpenRecoveryState.hasFailed()
-      && (nextError === null || ownsIndexedDbOpenRecoveryFailure(indexedDbOpenRecoveryState.markFailed(nextError)) === false)
-    ) {
+    if (nextError !== null) {
+      indexedDbOpenRecoveryState.markFailed(nextError);
+    }
+    if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
@@ -171,14 +168,20 @@ export function AppDataProvider(props: Props): ReactElement {
   }, [indexedDbOpenRecoveryState]);
 
   const setSessionErrorMessage = useCallback<Dispatch<SetStateAction<string>>>((nextMessageAction): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     setSessionTechnicalError(null);
     setSessionErrorMessageState(nextMessageAction);
-  }, [setSessionTechnicalError]);
+  }, [indexedDbOpenRecoveryState, setSessionTechnicalError]);
 
   const setErrorMessage = useCallback<Dispatch<SetStateAction<string>>>((nextMessageAction): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     setTechnicalError(null);
     setErrorMessageState(nextMessageAction);
-  }, [setTechnicalError]);
+  }, [indexedDbOpenRecoveryState, setTechnicalError]);
 
   useEffect(() => {
     if (sessionLoadState !== "error" || sessionTechnicalError === null) {
@@ -279,25 +282,18 @@ export function AppDataProvider(props: Props): ReactElement {
     }
 
     void refreshLocalCardCount().catch((error: unknown): void => {
-      const markResult = indexedDbOpenRecoveryState.markFailed(error);
-      if (markResult === "not_recovery") {
-        throw error;
+      indexedDbOpenRecoveryState.markFailed(error);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
       }
 
-      showTechnicalError(error, {
-        feature: "sync",
-        operation: "refresh_local_metadata",
-        userId: session?.userId ?? null,
-        workspaceId: activeWorkspace?.workspaceId ?? null,
-        installationId: null,
-        entityId: null,
-      });
+      throw error;
     });
 
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion, session?.userId, showTechnicalError]);
+  }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion]);
 
   useEffect(() => {
     if (

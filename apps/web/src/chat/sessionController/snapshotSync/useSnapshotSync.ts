@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject } from "react";
 import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../../appError/AppErrorContext";
+import {
   ApiContractError,
   ApiError,
   AuthRedirectError,
@@ -42,6 +46,7 @@ import type { ChatLiveEvent } from "../../streaming/liveStream";
 const assistantMessageDoneTerminalReconcileDelayMs = 5_000;
 
 type UseChatSessionSnapshotSyncParams = Readonly<{
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   controllerId: string;
   workspaceId: string | null;
   isRemoteReady: boolean;
@@ -402,6 +407,7 @@ export function useChatSessionSnapshotSync(
   params: UseChatSessionSnapshotSyncParams,
 ): ChatSessionSnapshotSync {
   const {
+    indexedDbOpenRecoveryState,
     controllerId,
     workspaceId,
     isRemoteReady,
@@ -429,6 +435,7 @@ export function useChatSessionSnapshotSync(
   const chatConfigRef = useRef<ChatSessionControllerState["chatConfig"]>(state.chatConfig);
   const lastSnapshotUpdatedAtRef = useRef<number | null>(initialLastSnapshotUpdatedAt);
   const snapshotRequestVersionRef = useRef<number>(0);
+  const activeSnapshotAbortControllersRef = useRef<Set<AbortController>>(new Set<AbortController>());
   const visibilityResumePromiseRef = useRef<Promise<void> | null>(null);
   const streamTransportRecoveryPromiseRef = useRef<Promise<void> | null>(null);
   const activeToolRunPostSyncPromiseRef = useRef<Promise<void> | null>(null);
@@ -473,6 +480,13 @@ export function useChatSessionSnapshotSync(
     snapshotRequestVersionRef.current += 1;
   }, []);
 
+  const abortPendingSnapshotRequests = useCallback((): void => {
+    for (const controller of activeSnapshotAbortControllersRef.current) {
+      controller.abort();
+    }
+    activeSnapshotAbortControllersRef.current.clear();
+  }, []);
+
   const clearAssistantMessageDoneTerminalReconcileTimer = useCallback((): void => {
     const timerId = assistantMessageDoneTerminalReconcileTimerRef.current;
     if (timerId === null) {
@@ -491,7 +505,8 @@ export function useChatSessionSnapshotSync(
     assistantMessageDoneTerminalReconcileTimerRef.current = window.setTimeout((): void => {
       assistantMessageDoneTerminalReconcileTimerRef.current = null;
       if (
-        currentSessionIdRef.current !== sessionId
+        indexedDbOpenRecoveryState.hasFailed()
+        || currentSessionIdRef.current !== sessionId
         || runStateRef.current !== "running"
         || activeRunIdRef.current !== runId
       ) {
@@ -500,7 +515,7 @@ export function useChatSessionSnapshotSync(
 
       reconcileTerminalSnapshotRef.current(sessionId);
     }, assistantMessageDoneTerminalReconcileDelayMs);
-  }, [clearAssistantMessageDoneTerminalReconcileTimer]);
+  }, [clearAssistantMessageDoneTerminalReconcileTimer, indexedDbOpenRecoveryState]);
 
   const resetSnapshotTracking = useCallback((updatedAt: number | null): void => {
     clearAssistantMessageDoneTerminalReconcileTimer();
@@ -516,7 +531,7 @@ export function useChatSessionSnapshotSync(
   }, []);
 
   const requestToolRunPostSyncIfNeeded = useCallback((): Promise<void> => {
-    if (pendingToolRunPostSyncRef.current === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || pendingToolRunPostSyncRef.current === false) {
       return Promise.resolve();
     }
 
@@ -531,7 +546,9 @@ export function useChatSessionSnapshotSync(
     let postSyncRequestPromise: Promise<void> | null = null;
     postSyncRequestPromise = (async (): Promise<void> => {
       try {
+        indexedDbOpenRecoveryState.throwIfFailed();
         await onToolRunPostSyncRequested();
+        indexedDbOpenRecoveryState.throwIfFailed();
         pendingToolRunPostSyncRef.current = false;
         dispatch({ type: "tool_run_post_sync_consumed" });
       } finally {
@@ -543,20 +560,23 @@ export function useChatSessionSnapshotSync(
 
     activeToolRunPostSyncPromiseRef.current = postSyncRequestPromise;
     return postSyncRequestPromise;
-  }, [dispatch, onToolRunPostSyncRequested]);
+  }, [dispatch, indexedDbOpenRecoveryState, onToolRunPostSyncRequested]);
 
   const triggerToolRunPostSyncIfNeeded = useCallback((): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     void requestToolRunPostSyncIfNeeded().catch(() => undefined);
-  }, [requestToolRunPostSyncIfNeeded]);
+  }, [indexedDbOpenRecoveryState, requestToolRunPostSyncIfNeeded]);
 
   const markPendingToolRunPostSync = useCallback((): void => {
-    if (pendingToolRunPostSyncRef.current) {
+    if (indexedDbOpenRecoveryState.hasFailed() || pendingToolRunPostSyncRef.current) {
       return;
     }
 
     pendingToolRunPostSyncRef.current = true;
     dispatch({ type: "tool_run_post_sync_marked" });
-  }, [dispatch]);
+  }, [dispatch, indexedDbOpenRecoveryState]);
 
   const markRunHadToolCallsFromSnapshot = useCallback((
     activeRun: ChatActiveRun | null,
@@ -577,6 +597,10 @@ export function useChatSessionSnapshotSync(
   }, [markPendingToolRunPostSync]);
 
   const applyLiveEvent = useCallback((event: ChatLiveEvent): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (event.type === "assistant_delta") {
       setKnownLiveCursor(event.cursor);
       appendAssistantText(event.text, event.itemId, event.cursor);
@@ -670,6 +694,7 @@ export function useChatSessionSnapshotSync(
     completeAssistantReasoningSummary,
     dispatch,
     finishAssistantMessage,
+    indexedDbOpenRecoveryState,
     markPendingToolRunPostSync,
     state.currentSessionId,
     state.mainContentInvalidationVersion,
@@ -691,14 +716,19 @@ export function useChatSessionSnapshotSync(
   } = useChatLiveSession({
     applyLiveEvent,
     finalizeInterruptedRun: (message) => {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       dispatch({
         type: "run_interrupted",
         message: toErrorMessage(new Error(message), uiMessages.errorFallbacks),
       });
     },
+    indexedDbOpenRecoveryState,
     onVisibleResumeRequested: () => {
       if (
-        isDocumentVisibleRef.current === false
+        indexedDbOpenRecoveryState.hasFailed()
+        || isDocumentVisibleRef.current === false
         || workspaceId === null
         || isRemoteReady === false
         || state.isHistoryLoaded === false
@@ -723,7 +753,11 @@ export function useChatSessionSnapshotSync(
             "visible_resume",
             resumeAttemptId,
           );
-          if (snapshot === null || isDocumentVisibleRef.current === false) {
+          if (
+            indexedDbOpenRecoveryState.hasFailed()
+            || snapshot === null
+            || isDocumentVisibleRef.current === false
+          ) {
             return;
           }
 
@@ -740,6 +774,10 @@ export function useChatSessionSnapshotSync(
 
           detachLiveStream(snapshot.sessionId, null);
         } catch (error) {
+          if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+            return;
+          }
+
           if (isDocumentVisibleRef.current === false) {
             return;
           }
@@ -759,7 +797,7 @@ export function useChatSessionSnapshotSync(
       visibilityResumePromiseRef.current = refreshPromise;
     },
     onRecoverableStreamError: (sessionId) => {
-      if (streamTransportRecoveryPromiseRef.current !== null) {
+      if (indexedDbOpenRecoveryState.hasFailed() || streamTransportRecoveryPromiseRef.current !== null) {
         return;
       }
 
@@ -773,7 +811,7 @@ export function useChatSessionSnapshotSync(
             "stream_transport_error",
             resumeAttemptId,
           );
-          if (snapshot === null) {
+          if (indexedDbOpenRecoveryState.hasFailed() || snapshot === null) {
             return;
           }
 
@@ -797,6 +835,10 @@ export function useChatSessionSnapshotSync(
             });
           }
         } catch (error) {
+          if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+            return;
+          }
+
           detachLiveStream(null, null);
           dispatch({
             type: "run_interrupted",
@@ -812,9 +854,14 @@ export function useChatSessionSnapshotSync(
       streamTransportRecoveryPromiseRef.current = recoveryPromise;
     },
     onLiveAttachConnected: () => {
-      dispatch({ type: "live_attach_connected" });
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        dispatch({ type: "live_attach_connected" });
+      }
     },
     onUnexpectedStreamEnd: (sessionId, runId) => {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       clearAssistantMessageDoneTerminalReconcileTimer();
       dispatch({
         type: "stop_finished",
@@ -829,7 +876,7 @@ export function useChatSessionSnapshotSync(
             "unexpected_stream_end",
             null,
           );
-          if (snapshot === null) {
+          if (indexedDbOpenRecoveryState.hasFailed() || snapshot === null) {
             return;
           }
 
@@ -849,6 +896,10 @@ export function useChatSessionSnapshotSync(
             });
           }
         } catch (error) {
+          if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+            return;
+          }
+
           dispatch({
             type: "run_interrupted",
             message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
@@ -858,14 +909,39 @@ export function useChatSessionSnapshotSync(
     },
   });
 
+  useEffect(() => {
+    if (indexedDbOpenRecoveryState.isFailed === false) {
+      return;
+    }
+
+    invalidatePendingSnapshotRequests();
+    abortPendingSnapshotRequests();
+    clearAssistantMessageDoneTerminalReconcileTimer();
+    pendingToolRunPostSyncRef.current = false;
+    visibilityResumePromiseRef.current = null;
+    streamTransportRecoveryPromiseRef.current = null;
+    activeToolRunPostSyncPromiseRef.current = null;
+  }, [
+    abortPendingSnapshotRequests,
+    clearAssistantMessageDoneTerminalReconcileTimer,
+    indexedDbOpenRecoveryState.isFailed,
+    invalidatePendingSnapshotRequests,
+  ]);
+
   const loadAndApplySnapshot = useCallback(async (
     sessionId: string,
     replaceHistory: boolean,
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
   ): Promise<ChatSessionSnapshot | null> => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return null;
+    }
+
     const requestVersion = snapshotRequestVersionRef.current + 1;
     snapshotRequestVersionRef.current = requestVersion;
+    const abortController = new AbortController();
+    activeSnapshotAbortControllersRef.current.add(abortController);
 
     debugLog("snapshot_request_started", {
       workspaceId,
@@ -876,13 +952,20 @@ export function useChatSessionSnapshotSync(
     });
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (workspaceId === null) {
         throw new Error(uiMessages.workspaceRequired);
       }
 
       const snapshot = resumeAttemptId === null
-        ? await getChatSnapshot(sessionId, workspaceId)
-        : await getChatSnapshotWithResumeDiagnostics(sessionId, workspaceId, { resumeAttemptId });
+        ? await getChatSnapshot(sessionId, workspaceId, abortController.signal)
+        : await getChatSnapshotWithResumeDiagnostics(
+          sessionId,
+          workspaceId,
+          { resumeAttemptId },
+          abortController.signal,
+        );
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (requestVersion !== snapshotRequestVersionRef.current) {
         return null;
       }
@@ -951,6 +1034,12 @@ export function useChatSessionSnapshotSync(
       });
       return snapshot;
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        invalidatePendingSnapshotRequests();
+        clearAssistantMessageDoneTerminalReconcileTimer();
+        return null;
+      }
+
       if (requestVersion !== snapshotRequestVersionRef.current) {
         return null;
       }
@@ -964,10 +1053,15 @@ export function useChatSessionSnapshotSync(
       });
       captureChatSnapshotError(error, workspaceId, sessionId, trigger, resumeAttemptId);
       throw error;
+    } finally {
+      activeSnapshotAbortControllersRef.current.delete(abortController);
     }
   }, [
     debugLog,
     dispatch,
+    clearAssistantMessageDoneTerminalReconcileTimer,
+    indexedDbOpenRecoveryState,
+    invalidatePendingSnapshotRequests,
     markRunHadToolCallsFromSnapshot,
     replaceMessages,
     triggerToolRunPostSyncIfNeeded,
@@ -982,6 +1076,9 @@ export function useChatSessionSnapshotSync(
     activeRun: ChatActiveRun,
     resumeAttemptId: number | null,
   ): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     setKnownActiveRunId(activeRun.runId);
     startLiveStream(
       sessionId,
@@ -990,22 +1087,30 @@ export function useChatSessionSnapshotSync(
       activeRun.live.cursor,
       resumeAttemptId,
     );
-  }, [setKnownActiveRunId, startLiveStream]);
+  }, [indexedDbOpenRecoveryState, setKnownActiveRunId, startLiveStream]);
 
   const startSnapshotLiveStream = useCallback((
     snapshot: ChatSessionSnapshot,
     resumeAttemptId: number | null,
   ): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     if (snapshot.activeRun === null) {
       detachLiveStream(snapshot.sessionId, null);
       return;
     }
 
     startActiveRunLiveStream(snapshot.sessionId, snapshot.activeRun, resumeAttemptId);
-  }, [detachLiveStream, startActiveRunLiveStream]);
+  }, [detachLiveStream, indexedDbOpenRecoveryState, startActiveRunLiveStream]);
 
   const reconcileTerminalSnapshot = useCallback((sessionId: string | null): void => {
-    if (workspaceId === null || isRemoteReady === false || sessionId === null) {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || workspaceId === null
+      || isRemoteReady === false
+      || sessionId === null
+    ) {
       return;
     }
 
@@ -1017,7 +1122,7 @@ export function useChatSessionSnapshotSync(
           "terminal_reconcile",
           null,
         );
-        if (snapshot === null) {
+        if (indexedDbOpenRecoveryState.hasFailed() || snapshot === null) {
           return;
         }
 
@@ -1028,6 +1133,10 @@ export function useChatSessionSnapshotSync(
 
         detachLiveStream(snapshot.sessionId, null);
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
+
         detachLiveStream(null, null);
         dispatch({
           type: "run_interrupted",
@@ -1038,6 +1147,7 @@ export function useChatSessionSnapshotSync(
   }, [
     detachLiveStream,
     dispatch,
+    indexedDbOpenRecoveryState,
     isDocumentVisibleRef,
     isRemoteReady,
     loadAndApplySnapshot,
@@ -1051,8 +1161,10 @@ export function useChatSessionSnapshotSync(
   }, [reconcileTerminalSnapshot]);
 
   useEffect(() => () => {
+    invalidatePendingSnapshotRequests();
+    abortPendingSnapshotRequests();
     clearAssistantMessageDoneTerminalReconcileTimer();
-  }, [clearAssistantMessageDoneTerminalReconcileTimer]);
+  }, [abortPendingSnapshotRequests, clearAssistantMessageDoneTerminalReconcileTimer, invalidatePendingSnapshotRequests]);
 
   return {
     isLiveStreamConnected,

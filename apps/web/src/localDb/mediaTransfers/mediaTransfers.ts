@@ -1,4 +1,5 @@
 import type { MediaAsset } from "../../types";
+import type { IndexedDbOpenRecoveryState } from "../../appError/AppErrorContext";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
@@ -582,12 +583,37 @@ async function loadNextPendingMediaTransferByStatusAndKind(
 export async function loadNextPendingMediaTransferAttemptAtByKind(
   workspaceId: string,
   kind: MediaTransferKind,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
 ): Promise<string | null> {
   const [queuedRecord, failedRecord] = await Promise.all([
-    loadNextPendingMediaTransferByStatusAndKind(workspaceId, "queued", kind),
-    loadNextPendingMediaTransferByStatusAndKind(workspaceId, "failed", kind),
+    runRecoveryGuardedMediaTransferRead(
+      () => loadNextPendingMediaTransferByStatusAndKind(workspaceId, "queued", kind),
+      indexedDbOpenRecoveryState,
+    ),
+    runRecoveryGuardedMediaTransferRead(
+      () => loadNextPendingMediaTransferByStatusAndKind(workspaceId, "failed", kind),
+      indexedDbOpenRecoveryState,
+    ),
   ]);
+  indexedDbOpenRecoveryState.throwIfFailed();
   return selectNextDueTransfer(queuedRecord, failedRecord)?.nextAttemptAt ?? null;
+}
+
+async function runRecoveryGuardedMediaTransferRead<ResultType>(
+  createRead: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createRead();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
 }
 
 export async function recoverStaleInProgressMediaTransfersByKind(

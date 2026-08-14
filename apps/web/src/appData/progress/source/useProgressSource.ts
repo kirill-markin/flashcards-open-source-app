@@ -14,6 +14,7 @@ import type {
   ProgressSummaryInput,
   WorkspaceSummary,
 } from "../../../types";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import {
   buildProgressReviewScheduleInputForDateContext,
   buildProgressSeriesInputForDateContext,
@@ -53,6 +54,7 @@ type UseProgressSourceParams = Readonly<{
   progressServerInvalidationVersion: number;
   leaderboardAutoRefreshEnabled: boolean;
   canExposeTechnicalErrors: boolean;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   sections: ProgressSourceSections;
 }>;
 
@@ -72,6 +74,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     progressServerInvalidationVersion,
     leaderboardAutoRefreshEnabled,
     canExposeTechnicalErrors,
+    indexedDbOpenRecoveryState,
     sections,
   } = params;
   const { includeSummary, includeSeries, includeReviewSchedule, includeLeaderboard } = sections;
@@ -152,6 +155,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     dispatch,
     input: summaryInput,
     installationId,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     refreshKey: summaryRefreshKey,
@@ -167,6 +171,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     dispatch,
     input: seriesInput,
     installationId,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     refreshKey: seriesRefreshKey,
@@ -182,6 +187,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     dispatch,
     input: reviewScheduleInput,
     installationId,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressScheduleLocalVersion,
     progressScheduleLocalVersionRef,
@@ -201,6 +207,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     currentScopeKeyRef: currentLeaderboardScopeKeyRef,
     dispatch,
     installationId,
+    indexedDbOpenRecoveryState,
     manualRefreshVersion,
     progressLocalVersion,
     refreshKey: leaderboardRefreshKey,
@@ -208,6 +215,10 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
   });
 
   const refreshProgress = useCallback(async function refreshProgress(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (
       summaryScopeKey === null
       && seriesScopeKey === null
@@ -292,6 +303,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     await Promise.all(refreshPromises);
   }, [
     canLoadServerBase,
+    indexedDbOpenRecoveryState,
     leaderboardScopeKey,
     progressScheduleLocalVersion,
     progressServerInvalidationVersion,

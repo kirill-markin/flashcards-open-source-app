@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useAppData } from "../../../../appData";
-import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+  useAppErrorDialog,
+} from "../../../../appError/AppErrorContext";
 import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../../../../routes";
@@ -30,6 +34,23 @@ type RefreshBarrier = Readonly<{
   promise: Promise<RefreshOutcome>;
   settle: (outcome: RefreshOutcome) => void;
 }>;
+
+async function runRecoveryGuardedLocalRead<ResultType>(
+  createRead: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createRead();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
 
 function createInitialFormState(): FormState {
   return {
@@ -91,7 +112,7 @@ function createRefreshBarrier(
 export function DeckFormScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const {
     activeWorkspace,
@@ -178,6 +199,10 @@ export function DeckFormScreen(): ReactElement {
   }, [activeWorkspace?.workspaceId, deckId, isCreateMode]);
 
   const loadScreenData = useCallback(function loadScreenData(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return Promise.resolve();
+    }
+
     const requestSequence = loadRequestSequenceRef.current + 1;
     loadRequestSequenceRef.current = requestSequence;
     const requestEditorIdentity = renderedEditorIdentityRef.current;
@@ -220,13 +245,20 @@ export function DeckFormScreen(): ReactElement {
         }
 
         const [tagsSummary, loadedDeck] = await Promise.all([
-          loadWorkspaceTagsSummary(requestEditorIdentity.workspaceId),
-          deckId === undefined
-            ? Promise.resolve(null)
-            : deckId === ALL_CARDS_DECK_SLUG
-              ? Promise.reject(new Error(t("deckForm.systemDeckReadonly")))
-              : getDeckById(deckId),
+          runRecoveryGuardedLocalRead(
+            () => loadWorkspaceTagsSummary(requestEditorIdentity.workspaceId),
+            indexedDbOpenRecoveryState,
+          ),
+          runRecoveryGuardedLocalRead(
+            () => deckId === undefined
+              ? Promise.resolve(null)
+              : deckId === ALL_CARDS_DECK_SLUG
+                ? Promise.reject(new Error(t("deckForm.systemDeckReadonly")))
+                : getDeckById(deckId),
+            indexedDbOpenRecoveryState,
+          ),
         ]);
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (isCurrentLoadRequest() === false) {
           return;
         }
@@ -260,6 +292,9 @@ export function DeckFormScreen(): ReactElement {
         }
         refreshOutcome = "accepted";
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCurrentLoadRequest() === false) {
           return;
         }
@@ -293,13 +328,13 @@ export function DeckFormScreen(): ReactElement {
           setScreenErrorMessage(errorMessage);
         }
       } finally {
-        if (isCurrentLoadRequest()) {
+        if (isCurrentLoadRequest() && indexedDbOpenRecoveryState.hasFailed() === false) {
           setIsLoading(false);
         }
         refreshBarrier?.settle(refreshOutcome);
       }
     })();
-  }, [activeWorkspace, deckId, getDeckById, showCapturedTechnicalError, t, technicalErrorMessage]);
+  }, [activeWorkspace, deckId, getDeckById, indexedDbOpenRecoveryState, showCapturedTechnicalError, t, technicalErrorMessage]);
 
   useLayoutEffect(() => {
     void loadScreenData();
@@ -330,6 +365,10 @@ export function DeckFormScreen(): ReactElement {
   async function readFormStateAfterLatestRefresh(
     submitEditorIdentity: DeckEditorIdentity,
   ): Promise<FormState | null> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return null;
+    }
+
     if (submitEditorIdentity.mode === "create") {
       return formStateRef.current;
     }
@@ -349,6 +388,9 @@ export function DeckFormScreen(): ReactElement {
       }
 
       const refreshOutcome = await refreshBarrier.promise;
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return null;
+      }
       if (isSubmitEditorCurrent() === false) {
         return null;
       }
@@ -372,7 +414,7 @@ export function DeckFormScreen(): ReactElement {
   }
 
   async function handleSubmit(): Promise<void> {
-    if (isSavingRef.current) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isSavingRef.current) {
       return;
     }
 
@@ -387,6 +429,7 @@ export function DeckFormScreen(): ReactElement {
         throw new Error("Deck editor is unavailable");
       }
       const latestFormState = await readFormStateAfterLatestRefresh(submitEditorIdentity);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (latestFormState === null) {
         return;
       }
@@ -405,12 +448,17 @@ export function DeckFormScreen(): ReactElement {
 
       if (isCreateMode) {
         const createdDeck = await createDeckItem(payload);
+        indexedDbOpenRecoveryState.throwIfFailed();
         navigate(buildSettingsDeckDetailRoute(createdDeck.deckId));
       } else if (deckId !== undefined) {
         const updatedDeck = await updateDeckItem(deckId, payload);
+        indexedDbOpenRecoveryState.throwIfFailed();
         navigate(buildSettingsDeckDetailRoute(updatedDeck.deckId));
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const wasCaptured = captureAppOperationError(error, {
         feature: "settings",
         operation: "deck_save",
@@ -426,8 +474,10 @@ export function DeckFormScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      isSavingRef.current = false;
-      setIsSaving(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        isSavingRef.current = false;
+        setIsSaving(false);
+      }
     }
   }
 

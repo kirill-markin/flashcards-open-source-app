@@ -6,6 +6,7 @@ import {
 } from "../../../i18n/runtime";
 import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import { nowIso } from "../../domain";
 import {
   createCardLocally,
@@ -34,6 +35,7 @@ type DemoCardText = Readonly<{
 }>;
 
 export type SeedDemoCardInput = Readonly<{
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   userId: string;
   workspaceId: string;
   installationId: string;
@@ -91,6 +93,7 @@ function buildDemoCardText(): DemoCardText {
 export async function seedDemoCardForNewWorkspace(
   input: SeedDemoCardInput,
 ): Promise<LocalCardMutationResult | null> {
+  input.indexedDbOpenRecoveryState.throwIfFailed();
   if (
     input.isOnlyWorkspaceForUser !== true
     || input.remoteIsEmpty !== true
@@ -101,16 +104,22 @@ export async function seedDemoCardForNewWorkspace(
 
   try {
     const demoCardText = buildDemoCardText();
-    return await createCardLocally({
-      workspaceId: input.workspaceId,
-      input: {
-        frontText: demoCardText.frontText,
-        backText: demoCardText.backText,
-        tags: [demoCardTag],
+    return await createCardLocally(
+      {
+        workspaceId: input.workspaceId,
+        input: {
+          frontText: demoCardText.frontText,
+          backText: demoCardText.backText,
+          tags: [demoCardTag],
+        },
+        clientUpdatedAt: nowIso(),
       },
-      clientUpdatedAt: nowIso(),
-    });
+      input.indexedDbOpenRecoveryState,
+    );
   } catch (error) {
+    input.indexedDbOpenRecoveryState.throwIfFailed();
+    input.indexedDbOpenRecoveryState.markFailed(error);
+    input.indexedDbOpenRecoveryState.throwIfFailed();
     captureAppOperationError(error, {
       feature: "sync",
       operation: "demo_card_seed",

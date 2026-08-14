@@ -4,6 +4,7 @@ import { createDefaultStreakFreeze } from "../../../progress/streakFreeze";
 import { useProgressInvalidationState } from "../invalidation/progressInvalidation";
 import { useProgressSource } from "../progressSource";
 import { useAppData } from "../../context/provider";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 
 const EMPTY_REVIEW_PROGRESS_BADGE_STATE: ReviewProgressBadgeState = {
   streakDays: 0,
@@ -64,6 +65,7 @@ export function useReviewProgressBadge(): ReviewProgressBadgeState {
     cloudSettings,
     sessionVerificationState,
   } = useAppData();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { progressLocalVersion, progressServerInvalidationVersion } = useProgressInvalidationState();
   const { progressSourceState } = useProgressSource({
     activeWorkspace,
@@ -75,6 +77,7 @@ export function useReviewProgressBadge(): ReviewProgressBadgeState {
     progressServerInvalidationVersion,
     leaderboardAutoRefreshEnabled: true,
     canExposeTechnicalErrors: false,
+    indexedDbOpenRecoveryState,
     sections: REVIEW_PROGRESS_BADGE_SECTIONS,
   });
 
