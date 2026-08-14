@@ -387,7 +387,7 @@ jobs:
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
-            --require-migration 0110_collection_cover_media.sql
+            --require-migration 0111_delist_catalog_test_fixture.sql
 
       - name: CDK deploy with reconciliation schedule enabled
         working-directory: infra/aws
