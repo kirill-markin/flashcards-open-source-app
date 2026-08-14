@@ -272,6 +272,7 @@ async function runMultipartUploadSession(
   markFailed: (error: unknown) => void,
   throwIfFailed: () => void,
 ): Promise<MediaUploadCompletionResult | null> {
+  let hasStartedCompletion = false;
   try {
     const parts = await buildPlannedUploadParts(transfer, uploadSession, verifiedBytes.bytes, hasFailed);
     if (hasFailed() || parts === null) {
@@ -289,6 +290,7 @@ async function runMultipartUploadSession(
     if (hasFailed() || uploadedParts === null) {
       return null;
     }
+    hasStartedCompletion = true;
     const result = await completeMultipartUploadSession(
       transfer,
       uploadSession,
@@ -327,12 +329,14 @@ async function runMultipartUploadSession(
     if (hasFailed()) {
       throw error;
     }
-
     if (
       error instanceof MediaUploadCompletionTerminalError
       || isSameSessionCompletionRetryError(error)
     ) {
       throw error;
+    }
+    if (hasStartedCompletion) {
+      throwIfUploadLifecycleCancelled(signal);
     }
 
     const abortError = await abortUploadSessionAfterFailure(

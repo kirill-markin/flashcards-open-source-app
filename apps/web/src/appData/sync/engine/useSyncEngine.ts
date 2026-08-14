@@ -859,8 +859,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ]);
     syncAbortControllersRef.current.set(workspaceId, syncAbortController);
 
-    let syncTask: Promise<void>;
-    syncTask = (async (): Promise<void> => {
+    const syncTask = (async (): Promise<void> => {
       let syncInstallationId: string | null = null;
       const syncRunId = createSyncRunId();
       const requireCurrentWorkspaceSync = function requireCurrentWorkspaceSync(currentWorkspaceId: string): void {
@@ -968,8 +967,6 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       } finally {
         if (syncAbortControllersRef.current.get(workspaceId) === syncAbortController) {
           syncAbortControllersRef.current.delete(workspaceId);
-        }
-        if (syncPromisesRef.current.get(workspaceId) === syncTask) {
           syncPromisesRef.current.delete(workspaceId);
         }
         if (
