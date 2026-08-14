@@ -11,6 +11,13 @@ import type { Card } from "../../../types";
 const mocks = vi.hoisted(() => ({
   deleteCardItemMock: vi.fn(),
   handoffCardToAiMock: vi.fn(),
+  indexedDbOpenRecoveryState: {
+    hasFailed: (): boolean => false,
+    isFailed: false,
+    markFailed: (): "not_recovery" => "not_recovery",
+    signal: new AbortController().signal,
+    throwIfFailed: (): void => {},
+  },
   loadCardByIdMock: vi.fn(),
   loadMediaAssetRecordMock: vi.fn(),
   loadMediaBlobCacheRecordMock: vi.fn(),
@@ -29,11 +36,16 @@ vi.mock("../../../appData", () => ({
   useAppData: mocks.useAppDataMock,
 }));
 
-vi.mock("../../../appError/AppErrorContext", () => ({
-  useAppErrorDialog: () => ({
-    showCapturedTechnicalError: mocks.showCapturedTechnicalErrorMock,
-  }),
-}));
+vi.mock("../../../appError/AppErrorContext", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../appError/AppErrorContext")>();
+  return {
+    ...actual,
+    useAppErrorDialog: () => ({
+      indexedDbOpenRecoveryState: mocks.indexedDbOpenRecoveryState,
+      showCapturedTechnicalError: mocks.showCapturedTechnicalErrorMock,
+    }),
+  };
+});
 
 vi.mock("../../../chat/handoff/useAiCardHandoff", () => ({
   useAiCardHandoff: () => mocks.handoffCardToAiMock,

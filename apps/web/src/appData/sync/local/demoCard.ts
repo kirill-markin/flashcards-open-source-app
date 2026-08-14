@@ -4,7 +4,9 @@ import {
   resolveLocaleState,
   translateMessage,
 } from "../../../i18n/runtime";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import { nowIso } from "../../domain";
 import {
   createCardLocally,
@@ -33,6 +35,7 @@ type DemoCardText = Readonly<{
 }>;
 
 export type SeedDemoCardInput = Readonly<{
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   userId: string;
   workspaceId: string;
   installationId: string;
@@ -85,10 +88,12 @@ function buildDemoCardText(): DemoCardText {
 // Every condition is decided by the caller and passed in, so this stays a pure guard over
 // its input and never re-reads workspace state.
 //
-// Failing to seed must never fail a sync run, so a seed failure is reported and swallowed.
+// Ordinary seed failures must never fail a sync run, so they are reported and swallowed.
+// An IndexedDB open recovery failure must escape so the page-lifetime recovery latch can stop all local work.
 export async function seedDemoCardForNewWorkspace(
   input: SeedDemoCardInput,
 ): Promise<LocalCardMutationResult | null> {
+  input.indexedDbOpenRecoveryState.throwIfFailed();
   if (
     input.isOnlyWorkspaceForUser !== true
     || input.remoteIsEmpty !== true
@@ -99,16 +104,22 @@ export async function seedDemoCardForNewWorkspace(
 
   try {
     const demoCardText = buildDemoCardText();
-    return await createCardLocally({
-      workspaceId: input.workspaceId,
-      input: {
-        frontText: demoCardText.frontText,
-        backText: demoCardText.backText,
-        tags: [demoCardTag],
+    return await createCardLocally(
+      {
+        workspaceId: input.workspaceId,
+        input: {
+          frontText: demoCardText.frontText,
+          backText: demoCardText.backText,
+          tags: [demoCardTag],
+        },
+        clientUpdatedAt: nowIso(),
       },
-      clientUpdatedAt: nowIso(),
-    });
+      input.indexedDbOpenRecoveryState,
+    );
   } catch (error) {
+    input.indexedDbOpenRecoveryState.throwIfFailed();
+    input.indexedDbOpenRecoveryState.markFailed(error);
+    input.indexedDbOpenRecoveryState.throwIfFailed();
     captureAppOperationError(error, {
       feature: "sync",
       operation: "demo_card_seed",
@@ -117,6 +128,10 @@ export async function seedDemoCardForNewWorkspace(
       installationId: input.installationId,
       entityId: null,
     });
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
+
     return null;
   }
 }

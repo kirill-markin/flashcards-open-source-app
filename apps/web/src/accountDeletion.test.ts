@@ -2,10 +2,21 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  beginAccountDeletionRetryAttempt,
   clearAllLocalBrowserData,
   clearBrowserReauthRequired,
+  hasAccountDeletionAttemptDispatched,
+  isAccountDeletionPending,
+  isAccountDeletionServerConfirmed,
   isBrowserReauthRequired,
+  loadAccountDeletionAttemptId,
+  loadAccountDeletionCsrfToken,
+  markAccountDeletionAttemptDispatched,
+  markAccountDeletionServerConfirmed,
   markBrowserReauthRequired,
+  runWithAccountDeletionLock,
+  setAccountDeletionPending,
+  storeAccountDeletionCsrfToken,
 } from "./accountDeletion";
 import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "./chat/preferences/AIChatPreferencesContext";
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
@@ -32,6 +43,30 @@ const seededCloudSettings: CloudSettings = {
   onboardingCompleted: true,
   updatedAt: "2026-04-10T00:00:00.000Z",
 };
+
+function ignoreIndexedDbOpenRecoveryFailure(): void {
+}
+
+function installSerialAccountDeletionLockMock(): void {
+  let previousRequest: Promise<void> = Promise.resolve();
+  Object.defineProperty(window.navigator, "locks", {
+    configurable: true,
+    value: {
+      request<Result>(
+        _name: string,
+        _options: Readonly<{ signal: AbortSignal }>,
+        action: () => Promise<Result>,
+      ): Promise<Result> {
+        const result = previousRequest.then(action);
+        previousRequest = result.then(
+          (): void => undefined,
+          (): void => undefined,
+        );
+        return result;
+      },
+    },
+  });
+}
 
 function createStorageMock(): Storage {
   const state = new Map<string, string>();
@@ -124,6 +159,13 @@ function mockUnavailableIndexedDbOpen(): void {
   }));
 }
 
+function mockOrdinaryIndexedDbOpenFailure(): void {
+  vi.spyOn(indexedDB, "open").mockImplementation(() => createMockOpenDbRequest((request) => {
+    Object.assign(request, { error: new DOMException("IndexedDB unavailable", "InvalidStateError") });
+    request.onerror?.(new Event("error"));
+  }));
+}
+
 beforeEach(async () => {
   await clearWebSyncCache();
   Object.defineProperty(window, "localStorage", {
@@ -138,6 +180,7 @@ beforeEach(async () => {
 afterEach(async () => {
   window.localStorage.clear();
   clearBrowserReauthRequired();
+  Reflect.deleteProperty(window.navigator, "locks");
   vi.restoreAllMocks();
   await clearWebSyncCache();
 });
@@ -148,7 +191,7 @@ describe("account deletion local cleanup helpers", () => {
     await putCloudSettings(seededCloudSettings);
     mockBlockedThenSuccessfulDeleteDatabase();
 
-    await expect(clearAllLocalBrowserData("logout_marker")).resolves.toBeUndefined();
+    await expect(clearAllLocalBrowserData("logout_marker", ignoreIndexedDbOpenRecoveryFailure)).resolves.toBeUndefined();
 
     expectLocalBrowserStateCleared();
     await expect(loadCloudSettings()).resolves.toBeNull();
@@ -168,7 +211,7 @@ describe("account deletion local cleanup helpers", () => {
     await putCloudSettings(seededCloudSettings);
     mockFailingDeleteDatabase();
 
-    await expect(clearAllLocalBrowserData("logout_marker")).resolves.toBeUndefined();
+    await expect(clearAllLocalBrowserData("logout_marker", ignoreIndexedDbOpenRecoveryFailure)).resolves.toBeUndefined();
 
     expectLocalBrowserStateCleared();
     await expect(loadCloudSettings()).resolves.toBeNull();
@@ -187,21 +230,20 @@ describe("account deletion local cleanup helpers", () => {
     mockUnavailableIndexedDbOpen();
     mockFailingDeleteDatabase();
 
-    await expect(clearAllLocalBrowserData("logout_marker")).rejects.toThrow("Failed to open IndexedDB");
-    expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).toBeNull();
-    expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
-    expect(window.localStorage.getItem(SYNC_RESTORE_HISTORY_STORAGE_KEY)).toBeNull();
+    await expect(clearAllLocalBrowserData("logout_marker", ignoreIndexedDbOpenRecoveryFailure)).rejects.toThrow("Failed to open IndexedDB");
+    expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).not.toBeNull();
+    expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).not.toBeNull();
+    expect(window.localStorage.getItem(SYNC_RESTORE_HISTORY_STORAGE_KEY)).not.toBeNull();
     expect(window.localStorage.getItem("flashcards-browser-reauth-required")).toBe("1");
     expect(window.localStorage.getItem("flashcards-auth-reset-required")).toBe("1");
     expect(isBrowserReauthRequired()).toBe(true);
     expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
     expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
     expect(window.localStorage.getItem(AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY)).toBe("false");
-    expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
+    expect(observabilityMocks.addWebBreadcrumbMock).not.toHaveBeenCalledWith(expect.objectContaining({
       action: "local_browser_data_cleanup",
       details: expect.objectContaining({
         eventName: "local_browser_data_cleanup_failed",
-        errorName: "UnknownError",
       }),
     }));
   });
@@ -210,7 +252,7 @@ describe("account deletion local cleanup helpers", () => {
     seedLocalBrowserState();
     await putCloudSettings(seededCloudSettings);
 
-    await expect(clearAllLocalBrowserData("confirmed_account_switch")).resolves.toBeUndefined();
+    await expect(clearAllLocalBrowserData("confirmed_account_switch", ignoreIndexedDbOpenRecoveryFailure)).resolves.toBeUndefined();
 
     expectLocalBrowserStateCleared();
     await expect(loadCloudSettings()).resolves.toBeNull();
@@ -223,6 +265,195 @@ describe("account deletion local cleanup helpers", () => {
         localStorageCleared: true,
       }),
     }));
+  });
+
+  it("preserves pending account deletion proof until successful cleanup is handed off", async () => {
+    seedLocalBrowserState();
+    setAccountDeletionPending(true);
+    storeAccountDeletionCsrfToken("csrf-token");
+    markAccountDeletionServerConfirmed();
+    markAccountDeletionAttemptDispatched();
+    await putCloudSettings(seededCloudSettings);
+
+    await expect(clearAllLocalBrowserData("account_deletion_submit", ignoreIndexedDbOpenRecoveryFailure)).resolves.toBeUndefined();
+
+    expect(isAccountDeletionPending()).toBe(true);
+    expect(loadAccountDeletionCsrfToken()).toBe("csrf-token");
+    expect(isAccountDeletionServerConfirmed()).toBe(true);
+    expect(hasAccountDeletionAttemptDispatched()).toBe(true);
+
+    setAccountDeletionPending(false);
+
+    expect(isAccountDeletionPending()).toBe(false);
+    expect(loadAccountDeletionCsrfToken()).toBeNull();
+    expect(isAccountDeletionServerConfirmed()).toBe(false);
+    expect(loadAccountDeletionAttemptId()).toBeNull();
+    expect(hasAccountDeletionAttemptDispatched()).toBe(false);
+  });
+
+  it("preserves pending account deletion proof after ordinary IndexedDB cleanup failure", async () => {
+    seedLocalBrowserState();
+    setAccountDeletionPending(true);
+    storeAccountDeletionCsrfToken("csrf-token");
+    markAccountDeletionServerConfirmed();
+    markAccountDeletionAttemptDispatched();
+    await putCloudSettings(seededCloudSettings);
+    mockOrdinaryIndexedDbOpenFailure();
+    mockFailingDeleteDatabase();
+
+    await expect(clearAllLocalBrowserData("account_deletion_submit", ignoreIndexedDbOpenRecoveryFailure)).rejects.toThrow("Failed to open IndexedDB");
+
+    expect(isAccountDeletionPending()).toBe(true);
+    expect(loadAccountDeletionCsrfToken()).toBe("csrf-token");
+    expect(isAccountDeletionServerConfirmed()).toBe(true);
+    expect(hasAccountDeletionAttemptDispatched()).toBe(true);
+  });
+
+  it("preserves pending account deletion proof after canonical IndexedDB recovery", async () => {
+    seedLocalBrowserState();
+    setAccountDeletionPending(true);
+    storeAccountDeletionCsrfToken("csrf-token");
+    markAccountDeletionServerConfirmed();
+    markAccountDeletionAttemptDispatched();
+    await putCloudSettings(seededCloudSettings);
+    mockUnavailableIndexedDbOpen();
+    mockFailingDeleteDatabase();
+
+    await expect(clearAllLocalBrowserData("account_deletion_submit", ignoreIndexedDbOpenRecoveryFailure)).rejects.toThrow("Failed to open IndexedDB");
+
+    expect(isAccountDeletionPending()).toBe(true);
+    expect(loadAccountDeletionCsrfToken()).toBe("csrf-token");
+    expect(isAccountDeletionServerConfirmed()).toBe(true);
+    expect(hasAccountDeletionAttemptDispatched()).toBe(true);
+  });
+
+  it("does not infer server confirmation from a new pending deletion", () => {
+    markAccountDeletionServerConfirmed();
+    storeAccountDeletionCsrfToken("csrf-token");
+
+    setAccountDeletionPending(true);
+
+    expect(isAccountDeletionPending()).toBe(true);
+    expect(loadAccountDeletionCsrfToken()).toBe("csrf-token");
+    expect(isAccountDeletionServerConfirmed()).toBe(false);
+  });
+
+  it("resets and clears the dispatch claim with pending attempt lifecycle", () => {
+    setAccountDeletionPending(true);
+    const firstAttemptId = loadAccountDeletionAttemptId();
+    markAccountDeletionAttemptDispatched();
+
+    expect(firstAttemptId).not.toBeNull();
+    expect(hasAccountDeletionAttemptDispatched()).toBe(true);
+
+    setAccountDeletionPending(true);
+
+    expect(loadAccountDeletionAttemptId()).not.toBe(firstAttemptId);
+    expect(hasAccountDeletionAttemptDispatched()).toBe(false);
+
+    markAccountDeletionAttemptDispatched();
+    setAccountDeletionPending(false);
+
+    expect(loadAccountDeletionAttemptId()).toBeNull();
+    expect(hasAccountDeletionAttemptDispatched()).toBe(false);
+  });
+
+  it("keeps server confirmation when the following recovery checkpoint throws", () => {
+    setAccountDeletionPending(true);
+    const recoveryError = new Error("IndexedDB recovery required");
+
+    expect(() => {
+      markAccountDeletionServerConfirmed();
+      throw recoveryError;
+    }).toThrow(recoveryError);
+
+    expect(isAccountDeletionPending()).toBe(true);
+    expect(isAccountDeletionServerConfirmed()).toBe(true);
+  });
+
+  it("prevents automatic waiters from dispatching after an ordinary owner failure", async () => {
+    installSerialAccountDeletionLockMock();
+    setAccountDeletionPending(true);
+    let deleteRequestCount = 0;
+    const recoveryController = new AbortController();
+    const ordinaryDeleteError = new Error("Account deletion request failed");
+
+    const completePendingDeletion = (): Promise<void> => runWithAccountDeletionLock(
+      recoveryController.signal,
+      async (): Promise<void> => {
+        if (
+          isAccountDeletionPending() === false
+          || isAccountDeletionServerConfirmed()
+          || hasAccountDeletionAttemptDispatched()
+        ) {
+          return;
+        }
+
+        markAccountDeletionAttemptDispatched();
+        deleteRequestCount += 1;
+        throw ordinaryDeleteError;
+      },
+    );
+
+    const results = await Promise.allSettled([
+      completePendingDeletion(),
+      completePendingDeletion(),
+      completePendingDeletion(),
+    ]);
+
+    expect(deleteRequestCount).toBe(1);
+    expect(results[0]).toEqual({ status: "rejected", reason: ordinaryDeleteError });
+    expect(results[1]).toEqual({ status: "fulfilled", value: undefined });
+    expect(results[2]).toEqual({ status: "fulfilled", value: undefined });
+    expect(isAccountDeletionPending()).toBe(true);
+    expect(isAccountDeletionServerConfirmed()).toBe(false);
+    expect(hasAccountDeletionAttemptDispatched()).toBe(true);
+  });
+
+  it("collapses simultaneous explicit retries into one new dispatched attempt", async () => {
+    installSerialAccountDeletionLockMock();
+    setAccountDeletionPending(true);
+    markAccountDeletionAttemptDispatched();
+    let deleteRequestCount = 0;
+    const recoveryController = new AbortController();
+
+    const completePendingDeletion = (): Promise<void> => runWithAccountDeletionLock(
+      recoveryController.signal,
+      async (): Promise<void> => {
+        if (
+          isAccountDeletionPending() === false
+          || isAccountDeletionServerConfirmed()
+          || hasAccountDeletionAttemptDispatched()
+        ) {
+          return;
+        }
+
+        markAccountDeletionAttemptDispatched();
+        deleteRequestCount += 1;
+        markAccountDeletionServerConfirmed();
+      },
+    );
+    const retryPendingDeletion = async (): Promise<void> => {
+      const expectedAttemptId = loadAccountDeletionAttemptId();
+      if (expectedAttemptId === null) {
+        return;
+      }
+
+      const didBeginRetryAttempt = await runWithAccountDeletionLock(
+        recoveryController.signal,
+        async (): Promise<boolean> => beginAccountDeletionRetryAttempt(expectedAttemptId),
+      );
+      if (didBeginRetryAttempt) {
+        await completePendingDeletion();
+      }
+    };
+
+    await Promise.all([retryPendingDeletion(), retryPendingDeletion()]);
+
+    expect(deleteRequestCount).toBe(1);
+    expect(isAccountDeletionPending()).toBe(true);
+    expect(isAccountDeletionServerConfirmed()).toBe(true);
+    expect(hasAccountDeletionAttemptDispatched()).toBe(true);
   });
 
   it("treats the legacy auth reset marker as reauth required", () => {

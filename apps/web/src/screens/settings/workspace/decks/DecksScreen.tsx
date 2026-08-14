@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router";
 import { useAppData } from "../../../../appData";
-import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../../appError/AppErrorContext";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../../../../routes";
@@ -56,7 +59,7 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 
 export function DecksScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatNumber } = useI18n();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -78,6 +81,10 @@ export function DecksScreen(): ReactElement {
     let isCancelled = false;
 
     async function loadScreenData(): Promise<void> {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setIsLoading(true);
       setErrorMessage("");
 
@@ -87,12 +94,16 @@ export function DecksScreen(): ReactElement {
         }
 
         const nextDecksSnapshot = await loadDecksListSnapshot(activeWorkspace.workspaceId);
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (isCancelled) {
           return;
         }
 
         setDecksSnapshot(nextDecksSnapshot);
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCancelled) {
           return;
         }
@@ -115,7 +126,7 @@ export function DecksScreen(): ReactElement {
         }
         setErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
-        if (!isCancelled) {
+        if (!isCancelled && indexedDbOpenRecoveryState.hasFailed() === false) {
           setIsLoading(false);
         }
       }
@@ -126,14 +137,22 @@ export function DecksScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspace, localReadVersion]);
+  }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion]);
 
   const deckListEntries = makeDeckListEntries(decksSnapshot);
 
   async function handleRefreshLocalData(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     try {
       await refreshLocalData();
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       handleRefreshLocalDataError({
         error,
         context: {

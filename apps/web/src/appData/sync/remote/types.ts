@@ -3,6 +3,7 @@ import type {
   SyncChange,
   WorkspaceSchedulerSettings,
 } from "../../../types";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 
 export type HotSyncEntry = SyncBootstrapEntry | SyncChange;
 export type CardHotSyncEntry = Extract<HotSyncEntry, Readonly<{ entityType: "card" }>>;
@@ -17,6 +18,9 @@ export type WorkspaceRemoteSyncInput = Readonly<{
   workspaceId: string;
   installationId: string;
   syncRunId: string;
+  signal: AbortSignal;
+  hasFailed: () => boolean;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   // True when this workspace is the only one the account owns, which is the user-scoped
   // signal for a brand-new user. Resolved by the sync engine from the account's workspace
   // list, because remote sync itself only ever sees one workspace.

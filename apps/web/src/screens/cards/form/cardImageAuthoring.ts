@@ -84,16 +84,22 @@ function buildMediaBlobCacheRecord(
 
 export async function prepareCardImageMediaAuthoring(
   input: CardImageMediaAuthoringInput,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<CardMediaAuthoringResult> {
+  throwIfIndexedDbOpenRecoveryFailed();
   const workspaceId = requireNonEmptyInput(input.workspaceId, "workspaceId");
   const installationId = requireNonEmptyInput(input.installationId, "installationId");
   const preparedImage = await prepareCardImageFile(input.file);
+  throwIfIndexedDbOpenRecoveryFailed();
   const bytes = await preparedImage.blob.arrayBuffer();
+  throwIfIndexedDbOpenRecoveryFailed();
   const sha256 = await calculateSha256Hex(bytes);
+  throwIfIndexedDbOpenRecoveryFailed();
   const createdAt = new Date().toISOString();
   const mediaAssetId = createLocalMediaId("mediaAssetId");
   const transferId = createLocalMediaId("transferId");
   const lastModifiedByReplicaId = await buildClientWorkspaceReplicaId(workspaceId, installationId);
+  throwIfIndexedDbOpenRecoveryFailed();
   const mediaAsset = buildLocalMediaAsset(
     workspaceId,
     mediaAssetId,
@@ -120,6 +126,7 @@ export async function prepareCardImageMediaAuthoring(
       nextAttemptAt: createdAt,
     },
   });
+  throwIfIndexedDbOpenRecoveryFailed();
 
   return {
     mediaAsset,

@@ -9,6 +9,7 @@ import {
   resetWorkspaceProgress as resetWorkspaceProgressRequest,
   selectWorkspace,
 } from "../../../api";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { normalizeCaughtError } from "../../../observability/webObservability";
@@ -38,6 +39,7 @@ import type {
 type UseWorkspaceActionsParams =
   & Readonly<{
     t: (key: TranslationKey) => string;
+    indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
     activateWorkspace: (
       currentSession: SessionInfo,
       currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
@@ -100,9 +102,12 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     activateWorkspace,
     runSync,
     discardWorkspaceSync,
+    indexedDbOpenRecoveryState,
   } = params;
 
   const chooseWorkspace = useCallback(async function chooseWorkspace(workspaceId: string): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
+
     const verifiedSession = requireVerifiedWorkspaceSession(session, sessionVerificationState, t);
 
     setIsChoosingWorkspace(true);
@@ -117,6 +122,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         null,
       ));
       const selectedWorkspace = await selectWorkspace(workspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       logWorkspaceTransition("workspace_select_client_succeeded", buildWorkspaceInteractionLogDetails(
         sessionVerificationState,
         verifiedSession,
@@ -126,13 +132,19 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         selectedWorkspace.workspaceId,
         null,
       ));
+      indexedDbOpenRecoveryState.throwIfFailed();
+
       await activateWorkspace(verifiedSession, availableWorkspaces, selectedWorkspace);
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      const normalizedError = normalizeCaughtError(error);
+      indexedDbOpenRecoveryState.markFailed(normalizedError);
+      indexedDbOpenRecoveryState.throwIfFailed();
+
       if (isAuthRedirectError(error)) {
         return;
       }
 
-      const normalizedError = normalizeCaughtError(error);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
       if (isExpectedError === false) {
@@ -149,13 +161,16 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       setErrorMessage(nextErrorMessage);
       setTechnicalError(isExpectedError ? null : normalizedError);
     } finally {
-      setIsChoosingWorkspace(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsChoosingWorkspace(false);
+      }
     }
   }, [
     activateWorkspace,
     activeWorkspace,
     availableWorkspaces,
     cloudSettings,
+    indexedDbOpenRecoveryState,
     session,
     sessionVerificationState,
     t,
@@ -165,6 +180,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
   ]);
 
   const createWorkspace = useCallback(async function createWorkspace(name: string): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
     const verifiedSession = requireVerifiedWorkspaceSession(session, sessionVerificationState, t);
 
     const trimmedName = name.trim();
@@ -184,6 +200,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         null,
       ));
       const createdWorkspace = await createWorkspaceRequest(trimmedName);
+      indexedDbOpenRecoveryState.throwIfFailed();
       logWorkspaceTransition("workspace_create_client_succeeded", buildWorkspaceInteractionLogDetails(
         sessionVerificationState,
         verifiedSession,
@@ -193,14 +210,19 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         createdWorkspace.workspaceId,
         null,
       ));
+      indexedDbOpenRecoveryState.throwIfFailed();
+
       const nextWorkspaces = replaceWorkspaceSummary(availableWorkspaces, createdWorkspace);
       await activateWorkspace(verifiedSession, nextWorkspaces, createdWorkspace);
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      const normalizedError = normalizeCaughtError(error);
+      indexedDbOpenRecoveryState.markFailed(normalizedError);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isAuthRedirectError(error)) {
         return;
       }
 
-      const normalizedError = normalizeCaughtError(error);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
       if (isExpectedError === false) {
@@ -218,13 +240,16 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       setTechnicalError(isExpectedError ? null : normalizedError);
       throw error;
     } finally {
-      setIsChoosingWorkspace(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsChoosingWorkspace(false);
+      }
     }
   }, [
     activateWorkspace,
     activeWorkspace,
     availableWorkspaces,
     cloudSettings,
+    indexedDbOpenRecoveryState,
     session,
     sessionVerificationState,
     t,
@@ -237,6 +262,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     workspaceId: string,
     name: string,
   ): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
     const verifiedSession = requireVerifiedWorkspaceSession(session, sessionVerificationState, t);
 
     const trimmedName = name.trim();
@@ -247,6 +273,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     setIsChoosingWorkspace(true);
     try {
       const renamedWorkspace = await renameWorkspaceRequest(workspaceId, trimmedName);
+      indexedDbOpenRecoveryState.throwIfFailed();
       const nextWorkspaces = replaceWorkspaceSummary(availableWorkspaces, renamedWorkspace);
       setAvailableWorkspaces(nextWorkspaces);
       if (activeWorkspace?.workspaceId === workspaceId) {
@@ -257,6 +284,8 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       }
       setErrorMessage("");
     } catch (error) {
+      indexedDbOpenRecoveryState.markFailed(error);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isAuthRedirectError(error)) {
         return;
       }
@@ -270,12 +299,15 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       });
       throw error;
     } finally {
-      setIsChoosingWorkspace(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsChoosingWorkspace(false);
+      }
     }
   }, [
     activeWorkspace,
     availableWorkspaces,
     cloudSettings?.installationId,
+    indexedDbOpenRecoveryState,
     session,
     sessionVerificationState,
     t,
@@ -289,6 +321,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     workspaceId: string,
     confirmationText: string,
   ): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
     const verifiedSession = requireVerifiedWorkspaceSession(session, sessionVerificationState, t);
 
     setIsChoosingWorkspace(true);
@@ -299,11 +332,14 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         availableWorkspaceIds: availableWorkspaces.map((workspace) => workspace.workspaceId),
       });
       const response = await deleteWorkspaceRequest(workspaceId, confirmationText);
+      indexedDbOpenRecoveryState.throwIfFailed();
       logWorkspaceTransition("workspace_delete_client_succeeded", {
         workspaceId,
         deletedWorkspaceId: response.deletedWorkspaceId,
         replacementWorkspaceId: response.workspace.workspaceId,
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
+
       discardWorkspaceSync(response.deletedWorkspaceId);
       const nextWorkspaces = replaceWorkspaceSummary(
         availableWorkspaces.filter((workspace) => workspace.workspaceId !== response.deletedWorkspaceId),
@@ -315,8 +351,13 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         nextWorkspaceIds: nextWorkspaces.map((workspace) => workspace.workspaceId),
       });
       await activateWorkspace(verifiedSession, nextWorkspaces, response.workspace);
+      indexedDbOpenRecoveryState.throwIfFailed();
+
       setErrorMessage("");
     } catch (error) {
+      const normalizedError = normalizeCaughtError(error);
+      indexedDbOpenRecoveryState.markFailed(normalizedError);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isAuthRedirectError(error)) {
         logWorkspaceTransition("workspace_delete_client_redirected", {
           workspaceId,
@@ -325,7 +366,6 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
         return;
       }
 
-      const normalizedError = normalizeCaughtError(error);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const isExpectedError = isExpectedWorkspaceActionApiError(normalizedError);
       if (isExpectedError === false) {
@@ -338,12 +378,15 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       setTechnicalError(isExpectedError ? null : normalizedError);
       throw error;
     } finally {
-      setIsChoosingWorkspace(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsChoosingWorkspace(false);
+      }
     }
   }, [
     activateWorkspace,
     availableWorkspaces,
     discardWorkspaceSync,
+    indexedDbOpenRecoveryState,
     session,
     sessionVerificationState,
     t,
@@ -355,6 +398,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
   const loadWorkspaceResetProgressPreview = useCallback(async function loadWorkspaceResetProgressPreview(
     workspaceId: string,
   ): Promise<WorkspaceResetProgressPreview> {
+    indexedDbOpenRecoveryState.throwIfFailed();
     requireVerifiedWorkspaceSession(session, sessionVerificationState, t);
 
     if (cloudSettings?.cloudState !== "linked") {
@@ -364,23 +408,28 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     try {
       if (activeWorkspace?.workspaceId === workspaceId) {
         await runSync();
+        indexedDbOpenRecoveryState.throwIfFailed();
       }
       const preview = await loadWorkspaceResetProgressPreviewRequest(workspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setErrorMessage("");
       return preview;
     } catch (error) {
+      indexedDbOpenRecoveryState.markFailed(error);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isAuthRedirectError(error)) {
         return Promise.reject(error);
       }
 
       throw error;
     }
-  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, t, setErrorMessage]);
+  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, indexedDbOpenRecoveryState, runSync, session, sessionVerificationState, t, setErrorMessage]);
 
   const resetWorkspaceProgress = useCallback(async function resetWorkspaceProgress(
     workspaceId: string,
     confirmationText: string,
   ): Promise<ResetWorkspaceProgressResponse> {
+    indexedDbOpenRecoveryState.throwIfFailed();
     requireVerifiedWorkspaceSession(session, sessionVerificationState, t);
 
     if (cloudSettings?.cloudState !== "linked") {
@@ -389,19 +438,22 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
 
     try {
       const response = await resetWorkspaceProgressRequest(workspaceId, confirmationText);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (activeWorkspace?.workspaceId === workspaceId) {
         runWorkspaceActionTaskInBackground(runSync());
       }
       setErrorMessage("");
       return response;
     } catch (error) {
+      indexedDbOpenRecoveryState.markFailed(error);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isAuthRedirectError(error)) {
         return Promise.reject(error);
       }
 
       throw error;
     }
-  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, t, setErrorMessage]);
+  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, indexedDbOpenRecoveryState, runSync, session, sessionVerificationState, t, setErrorMessage]);
 
   return {
     chooseWorkspace,

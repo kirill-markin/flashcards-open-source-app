@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import { revalidateSession } from "../../api";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { loadActiveCardCount } from "../../localDb/cards/cards";
 import type {
@@ -74,9 +75,17 @@ function mergeRefreshedAccountSessionWithoutPreferences(
   };
 }
 
+function resolveTechnicalErrorAction(
+  currentError: Error | null,
+  nextErrorAction: SetStateAction<Error | null>,
+): Error | null {
+  return typeof nextErrorAction === "function" ? nextErrorAction(currentError) : nextErrorAction;
+}
+
 export function AppDataProvider(props: Props): ReactElement {
   const { children } = props;
   const { t } = useI18n();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   useProgressInvalidationRefresh();
   const [warmStartSnapshot] = useState(loadWarmStartSnapshot);
   const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(
@@ -86,7 +95,7 @@ export function AppDataProvider(props: Props): ReactElement {
     "unverified",
   );
   const [sessionErrorMessage, setSessionErrorMessageState] = useState<string>("");
-  const [sessionTechnicalError, setSessionTechnicalError] = useState<Error | null>(null);
+  const [sessionTechnicalError, setSessionTechnicalErrorState] = useState<Error | null>(null);
   const [session, setSession] = useState<SessionInfo | null>(warmStartSnapshot?.session ?? null);
   const [workspaceReviewFilterState, setWorkspaceReviewFilterState] = useState<WorkspaceReviewFilterState>(() => {
     const activeWorkspace = warmStartSnapshot?.activeWorkspace ?? null;
@@ -123,18 +132,84 @@ export function AppDataProvider(props: Props): ReactElement {
   const [localCardCount, setLocalCardCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [errorMessage, setErrorMessageState] = useState<string>("");
-  const [technicalError, setTechnicalError] = useState<Error | null>(null);
+  const [technicalError, setTechnicalErrorState] = useState<Error | null>(null);
+  const sessionTechnicalErrorRef = useRef<Error | null>(sessionTechnicalError);
+  const technicalErrorRef = useRef<Error | null>(technicalError);
+  const shownSessionTechnicalErrorRef = useRef<Error | null>(null);
+  const shownGlobalTechnicalErrorRef = useRef<Error | null>(null);
+  sessionTechnicalErrorRef.current = sessionTechnicalError;
+  technicalErrorRef.current = technicalError;
   const accountPreferencesMutationVersionRef = useRef<number>(0);
 
+  const setSessionTechnicalError = useCallback<Dispatch<SetStateAction<Error | null>>>((nextErrorAction): void => {
+    const nextError = resolveTechnicalErrorAction(sessionTechnicalErrorRef.current, nextErrorAction);
+    if (nextError !== null) {
+      indexedDbOpenRecoveryState.markFailed(nextError);
+    }
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    sessionTechnicalErrorRef.current = nextError;
+    setSessionTechnicalErrorState(nextError);
+  }, [indexedDbOpenRecoveryState]);
+
+  const setTechnicalError = useCallback<Dispatch<SetStateAction<Error | null>>>((nextErrorAction): void => {
+    const nextError = resolveTechnicalErrorAction(technicalErrorRef.current, nextErrorAction);
+    if (nextError !== null) {
+      indexedDbOpenRecoveryState.markFailed(nextError);
+    }
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    technicalErrorRef.current = nextError;
+    setTechnicalErrorState(nextError);
+  }, [indexedDbOpenRecoveryState]);
+
   const setSessionErrorMessage = useCallback<Dispatch<SetStateAction<string>>>((nextMessageAction): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     setSessionTechnicalError(null);
     setSessionErrorMessageState(nextMessageAction);
-  }, []);
+  }, [indexedDbOpenRecoveryState, setSessionTechnicalError]);
 
   const setErrorMessage = useCallback<Dispatch<SetStateAction<string>>>((nextMessageAction): void => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     setTechnicalError(null);
     setErrorMessageState(nextMessageAction);
-  }, []);
+  }, [indexedDbOpenRecoveryState, setTechnicalError]);
+
+  useEffect(() => {
+    if (sessionLoadState !== "error" || sessionTechnicalError === null) {
+      shownSessionTechnicalErrorRef.current = null;
+      return;
+    }
+
+    if (shownSessionTechnicalErrorRef.current === sessionTechnicalError) {
+      return;
+    }
+
+    shownSessionTechnicalErrorRef.current = sessionTechnicalError;
+    showCapturedTechnicalError(sessionTechnicalError);
+  }, [sessionLoadState, sessionTechnicalError, showCapturedTechnicalError]);
+
+  useEffect(() => {
+    if (errorMessage === "" || technicalError === null) {
+      shownGlobalTechnicalErrorRef.current = null;
+      return;
+    }
+
+    if (shownGlobalTechnicalErrorRef.current === technicalError) {
+      return;
+    }
+
+    shownGlobalTechnicalErrorRef.current = technicalError;
+    showCapturedTechnicalError(technicalError);
+  }, [errorMessage, showCapturedTechnicalError, technicalError]);
 
   const syncEngine = useSyncEngine({
     sessionLoadState,
@@ -148,6 +223,7 @@ export function AppDataProvider(props: Props): ReactElement {
     setIsSyncing,
     setErrorMessage,
     setTechnicalError,
+    indexedDbOpenRecoveryState,
   });
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
@@ -188,25 +264,36 @@ export function AppDataProvider(props: Props): ReactElement {
     let isCancelled = false;
 
     async function refreshLocalCardCount(): Promise<void> {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       if (activeWorkspace === null) {
         setLocalCardCount(0);
         return;
       }
 
       const cardCount = await loadActiveCardCount(activeWorkspace.workspaceId);
-      if (isCancelled) {
+      if (isCancelled || indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
 
       setLocalCardCount(cardCount);
     }
 
-    void refreshLocalCardCount();
+    void refreshLocalCardCount().catch((error: unknown): void => {
+      indexedDbOpenRecoveryState.markFailed(error);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
+      throw error;
+    });
 
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspace, localReadVersion]);
+  }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion]);
 
   useEffect(() => {
     if (
@@ -368,6 +455,7 @@ export function AppDataProvider(props: Props): ReactElement {
     discardWorkspaceSync: syncEngine.discardWorkspaceSync,
     discardAllSyncWork: syncEngine.discardAllSyncWork,
     resetUserScopedUiState,
+    indexedDbOpenRecoveryState,
   });
 
   const value: AppDataContextValue = {

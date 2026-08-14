@@ -59,6 +59,7 @@ export function ProgressScreen(): ReactElement {
     progressScheduleLocalVersion,
     progressServerInvalidationVersion,
   } = useProgressInvalidationState();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const location = useLocation();
   const { progressSourceState, refreshProgress } = useProgressSource({
     activeWorkspace,
@@ -70,6 +71,7 @@ export function ProgressScreen(): ReactElement {
     progressServerInvalidationVersion,
     leaderboardAutoRefreshEnabled: true,
     canExposeTechnicalErrors: true,
+    indexedDbOpenRecoveryState,
     sections: {
       includeSummary: true,
       includeSeries: true,
@@ -114,8 +116,6 @@ export function ProgressScreen(): ReactElement {
     ?? progressSourceState.leaderboard.localViewerCountsTechnicalError
     ?? progressSourceState.streakLeaderboard.technicalError;
   const reviewProgressBadge = buildReviewProgressBadgeStateFromSummarySnapshot(progressSummary);
-  const { showCapturedTechnicalError } = useAppErrorDialog();
-
   useEffect(() => {
     if (technicalError === null) {
       shownTechnicalErrorRef.current = null;

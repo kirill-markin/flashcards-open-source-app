@@ -2,6 +2,10 @@ import { useEffect, useState, type ReactElement } from "react";
 import { isAuthRedirectError } from "../../api";
 import { useAppData } from "../../appData";
 import { canLoadProgressServerBase } from "../../appData/progress/progressSource";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { getAppConfig } from "../../config";
 import {
   autoLocalePreference,
@@ -94,6 +98,7 @@ export function SettingsScreen(): ReactElement {
     setErrorMessage,
     workspaceSettings,
   } = useAppData();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { localePreference, t } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
   const { isTestModeEnabled } = useTestMode();
@@ -107,21 +112,55 @@ export function SettingsScreen(): ReactElement {
   const canCreateInvite = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
   const appShareUrl = `${getAppConfig().appBaseUrl}${shareRoute}`;
 
+  function openInviteDialog(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    setIsInviteDialogOpen(true);
+  }
+
+  function closeInviteDialog(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
+    setIsInviteDialogOpen(false);
+  }
+
   useEffect(() => {
     if (session === null || isSessionVerified === false) {
       return;
     }
 
-    void refreshAccountPreferences().catch((error: unknown) => {
-      if (isAuthRedirectError(error)) {
+    async function refreshPreferences(): Promise<void> {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
 
-      setErrorMessage(error instanceof Error ? error.message : String(error));
-    });
-  }, [isSessionVerified, refreshAccountPreferences, session?.userId, setErrorMessage]);
+      try {
+        await refreshAccountPreferences();
+        indexedDbOpenRecoveryState.throwIfFailed();
+      } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
+        if (isAuthRedirectError(error)) {
+          return;
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    void refreshPreferences();
+  }, [indexedDbOpenRecoveryState, isSessionVerified, refreshAccountPreferences, session?.userId, setErrorMessage]);
 
   async function shareApp(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setShareStatusMessage("");
     setShareErrorMessage("");
 
@@ -136,8 +175,12 @@ export function SettingsScreen(): ReactElement {
         text: t("settingsHome.shareApp.shareText"),
         url: appShareUrl,
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       setShareStatusMessage(t("settingsHome.shareApp.shared"));
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
@@ -177,7 +220,7 @@ export function SettingsScreen(): ReactElement {
               className="primary-btn settings-invite-btn"
               type="button"
               aria-label={t("settingsHome.inviteFriend.ariaLabel")}
-              onClick={() => setIsInviteDialogOpen(true)}
+              onClick={openInviteDialog}
               data-testid="settings-invite-open"
             >
               {t("settingsHome.inviteFriend.actionText")}
@@ -399,7 +442,7 @@ export function SettingsScreen(): ReactElement {
         <FriendInviteCreateDialog
           canCreateInvite={canCreateInvite}
           authRedirectUrl={window.location.href}
-          onClose={() => setIsInviteDialogOpen(false)}
+          onClose={closeInviteDialog}
         />
       ) : null}
     </SettingsShell>

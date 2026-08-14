@@ -1,6 +1,7 @@
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "./i18n/runtime";
-import { clearWebSyncCache } from "./localDb/cache";
+import { clearWebSyncCacheForLocalBrowserDataCleanup } from "./localDb/cache";
+import { isIndexedDbOpenRecoveryError } from "./localDb/core/indexedDbOpenRecovery";
 import {
   addWebBreadcrumb,
   type LocalBrowserDataCleanupReason,
@@ -17,7 +18,10 @@ const AUTH_RESET_REQUIRED_KEY = "flashcards-auth-reset-required";
 const BROWSER_REAUTH_REQUIRED_KEY = "flashcards-browser-reauth-required";
 const ACCOUNT_DELETION_PENDING_KEY = "flashcards-account-deletion-pending";
 const ACCOUNT_DELETION_CSRF_TOKEN_KEY = "flashcards-account-deletion-csrf-token";
+const ACCOUNT_DELETION_SERVER_CONFIRMED_KEY = "flashcards-account-deletion-server-confirmed";
+const ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY = "flashcards-account-deletion-attempt-dispatched";
 const ACCOUNT_DELETION_EVENT_NAME = "flashcards-account-deletion-pending-change";
+const ACCOUNT_DELETION_LOCK_NAME = "flashcards-account-deletion";
 const APP_LOCAL_STORAGE_PREFIX = "flashcards-";
 const APP_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   "selected-review-filter",
@@ -53,7 +57,12 @@ function dispatchAccountDeletionChange(): void {
 }
 
 export function isAccountDeletionPending(): boolean {
-  return getBrowserStorage()?.getItem(ACCOUNT_DELETION_PENDING_KEY) === "1";
+  return loadAccountDeletionAttemptId() !== null;
+}
+
+export function loadAccountDeletionAttemptId(): string | null {
+  const attemptId = getBrowserStorage()?.getItem(ACCOUNT_DELETION_PENDING_KEY) ?? null;
+  return attemptId === null || attemptId === "" ? null : attemptId;
 }
 
 export function setAccountDeletionPending(isPending: boolean): void {
@@ -64,10 +73,14 @@ export function setAccountDeletionPending(isPending: boolean): void {
   }
 
   if (isPending) {
-    browserStorage.setItem(ACCOUNT_DELETION_PENDING_KEY, "1");
+    browserStorage.setItem(ACCOUNT_DELETION_PENDING_KEY, crypto.randomUUID());
+    browserStorage.removeItem(ACCOUNT_DELETION_SERVER_CONFIRMED_KEY);
+    browserStorage.removeItem(ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY);
   } else {
     browserStorage.removeItem(ACCOUNT_DELETION_PENDING_KEY);
     browserStorage.removeItem(ACCOUNT_DELETION_CSRF_TOKEN_KEY);
+    browserStorage.removeItem(ACCOUNT_DELETION_SERVER_CONFIRMED_KEY);
+    browserStorage.removeItem(ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY);
   }
 
   dispatchAccountDeletionChange();
@@ -89,16 +102,19 @@ export function subscribeToAccountDeletionPending(listener: AccountDeletionListe
   };
 }
 
-export function consumeAccountDeletedMarker(): boolean {
+export function hasAccountDeletedMarker(): boolean {
+  return new URL(window.location.href).searchParams.get("account_deleted") === "1";
+}
+
+export function removeAccountDeletedMarker(): void {
   const url = new URL(window.location.href);
   if (url.searchParams.get("account_deleted") !== "1") {
-    return false;
+    return;
   }
 
   url.searchParams.delete("account_deleted");
   const nextUrl = `${url.pathname}${url.search}${url.hash}`;
   window.history.replaceState({}, document.title, nextUrl);
-  return true;
 }
 
 export function storeAccountDeletionCsrfToken(csrfToken: string | null): void {
@@ -118,6 +134,56 @@ export function storeAccountDeletionCsrfToken(csrfToken: string | null): void {
 export function loadAccountDeletionCsrfToken(): string | null {
   const csrfToken = getBrowserStorage()?.getItem(ACCOUNT_DELETION_CSRF_TOKEN_KEY) ?? null;
   return csrfToken === null || csrfToken === "" ? null : csrfToken;
+}
+
+export function isAccountDeletionServerConfirmed(): boolean {
+  return getBrowserStorage()?.getItem(ACCOUNT_DELETION_SERVER_CONFIRMED_KEY) === "1";
+}
+
+export function markAccountDeletionServerConfirmed(): void {
+  getBrowserStorage()?.setItem(ACCOUNT_DELETION_SERVER_CONFIRMED_KEY, "1");
+}
+
+export function hasAccountDeletionAttemptDispatched(): boolean {
+  const browserStorage = getBrowserStorage();
+  const attemptId = loadAccountDeletionAttemptId();
+  return attemptId !== null
+    && browserStorage?.getItem(ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY) === attemptId;
+}
+
+export function markAccountDeletionAttemptDispatched(): void {
+  const browserStorage = getBrowserStorage();
+  const attemptId = loadAccountDeletionAttemptId();
+  if (browserStorage === null || attemptId === null) {
+    throw new Error("Cannot dispatch account deletion without a pending attempt");
+  }
+
+  browserStorage.setItem(ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY, attemptId);
+}
+
+export function beginAccountDeletionRetryAttempt(expectedAttemptId: string): boolean {
+  const browserStorage = getBrowserStorage();
+  if (
+    browserStorage?.getItem(ACCOUNT_DELETION_PENDING_KEY) !== expectedAttemptId
+    || browserStorage.getItem(ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY) !== expectedAttemptId
+  ) {
+    return false;
+  }
+
+  browserStorage.setItem(ACCOUNT_DELETION_PENDING_KEY, crypto.randomUUID());
+  browserStorage.removeItem(ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY);
+  return true;
+}
+
+export function runWithAccountDeletionLock<Result>(
+  signal: AbortSignal,
+  action: () => Promise<Result>,
+): Promise<Result> {
+  return navigator.locks.request(
+    ACCOUNT_DELETION_LOCK_NAME,
+    { mode: "exclusive", signal },
+    action,
+  );
 }
 
 function normalizeCleanupError(error: unknown): Error {
@@ -216,6 +282,13 @@ function shouldRemoveAppLocalStorageKeyAfterIncompleteIndexedDbCleanup(storageKe
   return shouldRemoveAppLocalStorageKey(storageKey);
 }
 
+function isPendingAccountDeletionStorageKey(storageKey: string): boolean {
+  return storageKey === ACCOUNT_DELETION_PENDING_KEY
+    || storageKey === ACCOUNT_DELETION_CSRF_TOKEN_KEY
+    || storageKey === ACCOUNT_DELETION_SERVER_CONFIRMED_KEY
+    || storageKey === ACCOUNT_DELETION_ATTEMPT_DISPATCHED_KEY;
+}
+
 export function markBrowserReauthRequired(): void {
   getBrowserStorage()?.setItem(BROWSER_REAUTH_REQUIRED_KEY, "1");
 }
@@ -254,7 +327,10 @@ export function clearAuthResetRequired(): void {
  * preserves device identity, UI language, local chat UI preferences, and local
  * tester tooling across re-login while still clearing application data.
  */
-export async function clearAllLocalBrowserData(reason: LocalBrowserDataCleanupReason): Promise<void> {
+export async function clearAllLocalBrowserData(
+  reason: LocalBrowserDataCleanupReason,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<void> {
   const browserStorage = getBrowserStorage();
   let indexedDbError: Error | null = null;
 
@@ -267,16 +343,29 @@ export async function clearAllLocalBrowserData(reason: LocalBrowserDataCleanupRe
     errorMessage: null,
   });
 
+  throwIfIndexedDbOpenRecoveryFailed();
   try {
-    await clearWebSyncCache();
+    await clearWebSyncCacheForLocalBrowserDataCleanup(throwIfIndexedDbOpenRecoveryFailed);
+    throwIfIndexedDbOpenRecoveryFailed();
   } catch (error) {
+    throwIfIndexedDbOpenRecoveryFailed();
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
     indexedDbError = normalizeCleanupError(error);
   }
 
+  throwIfIndexedDbOpenRecoveryFailed();
   if (browserStorage !== null) {
-    const shouldRemoveStorageKey = indexedDbError === null
+    const shouldRemoveBaseStorageKey: BrowserStorageKeyPredicate = indexedDbError === null
       ? shouldRemoveAppLocalStorageKey
       : shouldRemoveAppLocalStorageKeyAfterIncompleteIndexedDbCleanup;
+    const shouldRemoveStorageKey: BrowserStorageKeyPredicate = reason === "account_deletion_submit"
+      ? (storageKey: string): boolean => (
+        isPendingAccountDeletionStorageKey(storageKey) === false
+        && shouldRemoveBaseStorageKey(storageKey)
+      )
+      : shouldRemoveBaseStorageKey;
     clearUserScopedBrowserStorage(browserStorage, shouldRemoveStorageKey);
   }
 

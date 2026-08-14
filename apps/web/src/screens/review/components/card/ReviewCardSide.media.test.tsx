@@ -15,12 +15,29 @@ import type { MediaAsset } from "../../../../types";
 import { ReviewCardSide } from "./ReviewCardSide";
 
 const mediaMocks = vi.hoisted(() => ({
+  indexedDbOpenRecoveryState: {
+    hasFailed: (): boolean => false,
+    isFailed: false,
+    markFailed: (): "not_recovery" => "not_recovery",
+    signal: new AbortController().signal,
+    throwIfFailed: (): void => {},
+  },
   loadMediaAssetDownloadUrlMock: vi.fn(),
   loadMediaAssetRecordMock: vi.fn(),
   loadMediaBlobCacheRecordMock: vi.fn(),
   loadMediaUploadTransfersForWorkspaceMediaAssetsMock: vi.fn(),
   writeMediaBlobCacheRecordMock: vi.fn(),
 }));
+
+vi.mock("../../../../appError/AppErrorContext", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../../appError/AppErrorContext")>();
+  return {
+    ...actual,
+    useAppErrorDialog: () => ({
+      indexedDbOpenRecoveryState: mediaMocks.indexedDbOpenRecoveryState,
+    }),
+  };
+});
 
 vi.mock("../../../../api", () => ({
   loadMediaAssetDownloadUrl: mediaMocks.loadMediaAssetDownloadUrlMock,
@@ -931,6 +948,7 @@ describe("ReviewCardSide managed media rendering", () => {
       headers: {
         Range: "bytes=0-3",
       },
+      signal: expect.any(AbortSignal),
     });
     expect(mediaMocks.writeMediaBlobCacheRecordMock).toHaveBeenCalledTimes(1);
     expect(mediaMocks.writeMediaBlobCacheRecordMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
@@ -974,12 +992,14 @@ describe("ReviewCardSide managed media rendering", () => {
       headers: {
         Range: "bytes=0-4194303",
       },
+      signal: expect.any(AbortSignal),
     });
     expect(fetchMock).toHaveBeenNthCalledWith(2, "https://media.example.test/large-signed-download", {
       method: "GET",
       headers: {
         Range: "bytes=4194304-4194306",
       },
+      signal: expect.any(AbortSignal),
     });
     expect(mediaMocks.writeMediaBlobCacheRecordMock).toHaveBeenCalledWith(expect.objectContaining({
       sha256: largeSha256,
@@ -1060,12 +1080,14 @@ describe("ReviewCardSide managed media rendering", () => {
       headers: {
         Range: "bytes=0-4",
       },
+      signal: expect.any(AbortSignal),
     });
     expect(fetchMock.mock.calls[1]?.[1]).toEqual({
       method: "GET",
       headers: {
         Range: "bytes=0-4",
       },
+      signal: expect.any(AbortSignal),
     });
     expect(mediaMocks.writeMediaBlobCacheRecordMock).toHaveBeenCalledWith(expect.objectContaining({
       sha256: refreshedSha256,

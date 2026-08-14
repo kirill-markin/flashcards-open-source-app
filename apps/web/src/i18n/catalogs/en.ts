@@ -98,6 +98,13 @@ const enCatalog = {
         originalErrorName: "Original error",
       },
     },
+    indexedDbReloadRecovery: {
+      title: "Reload required",
+      message: "Browser storage stopped responding. Reload the page to continue.",
+      guidance: "Before reloading, copy any unsaved text you want to keep.",
+      reload: "Reload page",
+      later: "Later",
+    },
   },
   filters: {
     allCards: "All cards",

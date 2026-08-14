@@ -100,6 +100,13 @@ const arCatalog: TranslationCatalog = {
         originalErrorName: "الخطأ الأصلي",
       },
     },
+    indexedDbReloadRecovery: {
+      title: "يلزم إعادة تحميل الصفحة",
+      message: "توقفت مساحة تخزين المتصفح عن الاستجابة. أعد تحميل الصفحة للمتابعة.",
+      guidance: "قبل إعادة التحميل، انسخ أي نص غير محفوظ تريد الاحتفاظ به.",
+      reload: "إعادة تحميل الصفحة",
+      later: "لاحقًا",
+    },
   },
   filters: {
     allCards: "كل البطاقات",

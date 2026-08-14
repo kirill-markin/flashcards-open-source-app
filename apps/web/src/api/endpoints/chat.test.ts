@@ -66,7 +66,7 @@ describe("chat API endpoints", () => {
       .mockResolvedValueOnce(createChatSnapshotResponse());
     vi.stubGlobal("fetch", fetchMock);
 
-    await getChatSnapshot("session-1", "workspace-1");
+    await getChatSnapshot("session-1", "workspace-1", new AbortController().signal);
 
     const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]));
     expect(requestUrl.pathname).toBe("/v1/chat");
@@ -90,7 +90,7 @@ describe("chat API endpoints", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(getChatSnapshot("session-1", "workspace-1")).resolves.toMatchObject({
+    await expect(getChatSnapshot("session-1", "workspace-1", new AbortController().signal)).resolves.toMatchObject({
       sessionId: "session-1",
       chatConfig: {
         features: {
@@ -159,6 +159,7 @@ describe("chat API endpoints", () => {
       "web",
       "session-1",
       "workspace-1",
+      new AbortController().signal,
     );
 
     const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;

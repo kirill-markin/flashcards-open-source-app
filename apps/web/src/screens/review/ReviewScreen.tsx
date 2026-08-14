@@ -1,5 +1,6 @@
 import { useEffect, type ReactElement } from "react";
 import { useAppData } from "../../appData";
+import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { FeedbackDialog } from "../../feedback/FeedbackDialog";
 import { ReviewEditorModal } from "./components/card/ReviewEditorModal";
 import { ReviewPane } from "./components/ReviewPane";
@@ -15,6 +16,7 @@ export { normalizeReviewMarkdownForWeb } from "./components/card/ReviewCardSide"
 
 export function ReviewScreen(): ReactElement {
   const { session } = useAppData();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const reviewReactionAnimationsEnabled = session?.preferences.reviewReactionAnimationsEnabled !== false;
   const {
     dismissReviewReactions,
@@ -33,12 +35,11 @@ export function ReviewScreen(): ReactElement {
 
   useEffect(() => {
     if (reviewReactionAnimationsEnabled) {
-      startReviewReactionLottiePrewarm();
-      return;
+      return startReviewReactionLottiePrewarm(indexedDbOpenRecoveryState.signal);
     }
 
     dismissReviewReactions();
-  }, [dismissReviewReactions, reviewReactionAnimationsEnabled]);
+  }, [dismissReviewReactions, indexedDbOpenRecoveryState.signal, reviewReactionAnimationsEnabled]);
 
   const reviewLayoutClassName = queuePanelProps.isReviewQueuePanelOpen
     ? "review-layout review-layout-queue-open"

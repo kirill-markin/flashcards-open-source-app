@@ -77,7 +77,12 @@ async function copyToolCallSection(
   sectionTitle: string,
   t: Translate,
   onTechnicalError: ChatMessageTechnicalErrorHandler,
+  canStartAction: () => boolean,
 ): Promise<void> {
+  if (canStartAction() === false) {
+    return;
+  }
+
   if (typeof navigator.clipboard?.writeText !== "function") {
     window.alert(t("chatMessageContent.failedToCopy", { section: sectionTitle.toLowerCase() }));
     return;
@@ -86,6 +91,10 @@ async function copyToolCallSection(
   try {
     await navigator.clipboard.writeText(text);
   } catch (error) {
+    if (canStartAction() === false) {
+      return;
+    }
+
     if (isExpectedClipboardWriteError(error)) {
       window.alert(toClipboardErrorMessage(sectionTitle, t));
       return;
@@ -103,6 +112,7 @@ function renderToolCallSection(
   sectionClassName: "input" | "output",
   t: Translate,
   onTechnicalError: ChatMessageTechnicalErrorHandler,
+  canStartAction: () => boolean,
 ): ReactElement | null {
   if (text === null || text === "") {
     return null;
@@ -119,8 +129,9 @@ function renderToolCallSection(
           type="button"
           className="chat-tool-call-copy"
           onClick={() => {
-            void copyToolCallSection(text, sectionTitle, t, onTechnicalError);
+            void copyToolCallSection(text, sectionTitle, t, onTechnicalError, canStartAction);
           }}
+          disabled={canStartAction() === false}
         >
           {t("chatMessageContent.copy")}
         </button>
@@ -170,6 +181,7 @@ export function renderStoredMessageContent(
   message: StoredMessage,
   t: Translate,
   onTechnicalError: ChatMessageTechnicalErrorHandler,
+  canStartAction: () => boolean,
 ): ReactElement {
   const elements: Array<ReactElement> = [];
   let previousPartNeedsTextSeparator = false;
@@ -242,8 +254,8 @@ export function renderStoredMessageContent(
           <span className="chat-tool-call-summary-main" title={summaryText}>{summaryText}</span>
           <span className="chat-tool-call-status">{toolCallStatusLabel(part.status, t)}</span>
         </summary>
-        {renderToolCallSection(t("chatMessageContent.request"), part.input, "input", t, onTechnicalError)}
-        {renderToolCallSection(t("chatMessageContent.response"), part.output, "output", t, onTechnicalError)}
+        {renderToolCallSection(t("chatMessageContent.request"), part.input, "input", t, onTechnicalError, canStartAction)}
+        {renderToolCallSection(t("chatMessageContent.response"), part.output, "output", t, onTechnicalError, canStartAction)}
       </details>,
     );
   }

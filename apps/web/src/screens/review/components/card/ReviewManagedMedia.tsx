@@ -8,6 +8,11 @@ import {
 } from "react";
 import { defaultUrlTransform } from "react-markdown";
 import { loadMediaAssetDownloadUrl } from "../../../../api";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+  useAppErrorDialog,
+} from "../../../../appError/AppErrorContext";
 import { useI18n } from "../../../../i18n";
 import { loadMediaAssetRecord } from "../../../../localDb/mediaAssets";
 import {
@@ -64,8 +69,62 @@ type ManagedMediaDownloadRange = Readonly<{
   startByte: number;
   endByte: number;
 }>;
+type ManagedMediaDownloadTask = Readonly<{
+  abortController: AbortController;
+  promise: Promise<MediaBlobCacheRecord>;
+}>;
 
-const activeManagedMediaDownloadPromises = new Map<string, Promise<MediaBlobCacheRecord>>();
+async function waitForRecoveryGuardedManagedMediaPhase<ResultType>(
+  createPhase: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createPhase();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
+
+function throwIfManagedMediaDownloadAborted(signal: AbortSignal): void {
+  if (signal.aborted === false) {
+    return;
+  }
+
+  if (signal.reason instanceof Error) {
+    throw signal.reason;
+  }
+
+  throw new DOMException("Managed media download was aborted", "AbortError");
+}
+
+async function waitForRecoveryAndAbortGuardedManagedMediaPhase<ResultType>(
+  createPhase: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+  signal: AbortSignal,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    const result = await createPhase();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
+
+const activeManagedMediaDownloadTasks = new Map<string, ManagedMediaDownloadTask>();
 const managedMediaObjectUrlCache = new Map<string, ManagedMediaObjectUrlCacheEntry>();
 
 export function reviewMarkdownUrlTransform(url: string): string {
@@ -183,15 +242,38 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function calculateSha256Hex(bytes: ArrayBuffer): Promise<string> {
-  const digest = await requireSha256Digest().digest("SHA-256", bytes);
+async function calculateSha256Hex(
+  bytes: ArrayBuffer,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+  signal: AbortSignal,
+): Promise<string> {
+  const digest = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+    () => requireSha256Digest().digest("SHA-256", bytes),
+    indexedDbOpenRecoveryState,
+    signal,
+  );
+  indexedDbOpenRecoveryState.throwIfFailed();
+  throwIfManagedMediaDownloadAborted(signal);
   return bytesToHex(new Uint8Array(digest));
 }
 
-async function readDownloadFailureBody(response: Response): Promise<string> {
+async function readDownloadFailureBody(
+  response: Response,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+  signal: AbortSignal,
+): Promise<string> {
   try {
-    return await response.text();
+    const responseBody = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => response.text(),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    return responseBody;
   } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
     return `failed to read response body: ${readErrorMessage(error)}`;
   }
 }
@@ -224,10 +306,21 @@ async function readManagedMediaResponseBytes(
   mediaAsset: MediaAsset,
   response: Response,
   rangeHeader: string,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+  signal: AbortSignal,
 ): Promise<ArrayBuffer> {
   try {
-    return await response.arrayBuffer();
+    const bytes = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => response.arrayBuffer(),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    return bytes;
   } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
     throw new Error(`Managed media download response body read failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, status=${response.status}, error=${readErrorMessage(error)}`);
   }
 }
@@ -238,22 +331,39 @@ async function fetchManagedMediaRangeBytes(
   downloadUrl: string,
   range: ManagedMediaDownloadRange,
   isSingleRange: boolean,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+  signal: AbortSignal,
 ): Promise<ArrayBuffer> {
   const rangeHeader = `bytes=${range.startByte}-${range.endByte}`;
   let response: Response;
   try {
-    response = await fetch(downloadUrl, {
-      method: downloadMethod,
-      headers: {
-        Range: rangeHeader,
-      },
-    });
+    response = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => fetch(downloadUrl, {
+        method: downloadMethod,
+        headers: {
+          Range: rangeHeader,
+        },
+        signal,
+      }),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
   } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
     throw new Error(`Managed media ranged download request failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, error=${readErrorMessage(error)}`);
   }
 
   if (response.status === 206) {
-    const bytes = await readManagedMediaResponseBytes(mediaAsset, response, rangeHeader);
+    const bytes = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => readManagedMediaResponseBytes(mediaAsset, response, rangeHeader, indexedDbOpenRecoveryState, signal),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
     const expectedRangeSizeBytes = readManagedMediaDownloadRangeSize(range);
     if (bytes.byteLength !== expectedRangeSizeBytes) {
       throw new Error(`Managed media ranged download size mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, expectedRangeSizeBytes=${expectedRangeSizeBytes}, actualRangeSizeBytes=${bytes.byteLength}, status=${response.status}`);
@@ -263,7 +373,13 @@ async function fetchManagedMediaRangeBytes(
   }
 
   if (isSingleRange && response.status === 200) {
-    const bytes = await readManagedMediaResponseBytes(mediaAsset, response, rangeHeader);
+    const bytes = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => readManagedMediaResponseBytes(mediaAsset, response, rangeHeader, indexedDbOpenRecoveryState, signal),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
     if (bytes.byteLength !== mediaAsset.sizeBytes) {
       throw new Error(`Managed media full download size mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, expectedSizeBytes=${mediaAsset.sizeBytes}, actualSizeBytes=${bytes.byteLength}, status=${response.status}`);
     }
@@ -272,7 +388,13 @@ async function fetchManagedMediaRangeBytes(
   }
 
   if (response.ok === false) {
-    const responseBody = await readDownloadFailureBody(response);
+    const responseBody = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => readDownloadFailureBody(response, indexedDbOpenRecoveryState, signal),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
     throw new Error(`Managed media ranged download failed: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, sha256=${mediaAsset.sha256}, range=${rangeHeader}, status=${response.status}, statusText=${response.statusText}, responseBody=${responseBody}`);
   }
 
@@ -299,26 +421,61 @@ async function fetchManagedMediaBytes(
   mediaAsset: MediaAsset,
   downloadMethod: "GET",
   downloadUrl: string,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+  signal: AbortSignal,
 ): Promise<ArrayBuffer> {
   const ranges = planManagedMediaDownloadRanges(mediaAsset.sizeBytes, MANAGED_MEDIA_DOWNLOAD_RANGE_SIZE_BYTES);
   const chunks: Array<ArrayBuffer> = [];
   for (const range of ranges) {
-    chunks.push(await fetchManagedMediaRangeBytes(mediaAsset, downloadMethod, downloadUrl, range, ranges.length === 1));
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    const chunk = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => fetchManagedMediaRangeBytes(
+        mediaAsset,
+        downloadMethod,
+        downloadUrl,
+        range,
+        ranges.length === 1,
+        indexedDbOpenRecoveryState,
+        signal,
+      ),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    chunks.push(chunk);
   }
 
+  indexedDbOpenRecoveryState.throwIfFailed();
+  throwIfManagedMediaDownloadAborted(signal);
   return combineManagedMediaRangeBytes(mediaAsset, chunks);
 }
 
-async function verifyManagedMediaBytes(mediaAsset: MediaAsset, bytes: ArrayBuffer): Promise<Blob> {
+async function verifyManagedMediaBytes(
+  mediaAsset: MediaAsset,
+  bytes: ArrayBuffer,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+  signal: AbortSignal,
+): Promise<Blob> {
+  indexedDbOpenRecoveryState.throwIfFailed();
+  throwIfManagedMediaDownloadAborted(signal);
   if (bytes.byteLength !== mediaAsset.sizeBytes) {
     throw new Error(`Managed media download size mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, expectedSizeBytes=${mediaAsset.sizeBytes}, actualSizeBytes=${bytes.byteLength}`);
   }
 
-  const actualSha256 = await calculateSha256Hex(bytes);
+  const actualSha256 = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+    () => calculateSha256Hex(bytes, indexedDbOpenRecoveryState, signal),
+    indexedDbOpenRecoveryState,
+    signal,
+  );
+  indexedDbOpenRecoveryState.throwIfFailed();
+  throwIfManagedMediaDownloadAborted(signal);
   if (actualSha256 !== mediaAsset.sha256) {
     throw new Error(`Managed media download sha256 mismatch: workspaceId=${mediaAsset.workspaceId}, mediaAssetId=${mediaAsset.mediaAssetId}, expectedSha256=${mediaAsset.sha256}, actualSha256=${actualSha256}`);
   }
 
+  throwIfManagedMediaDownloadAborted(signal);
   return new Blob([bytes], { type: mediaAsset.mimeType });
 }
 
@@ -361,15 +518,41 @@ function assertDownloadMediaAssetMatchesLocal(localMediaAsset: MediaAsset, downl
   }
 }
 
-async function downloadVerifiedMediaBlob(mediaAsset: MediaAsset): Promise<Blob> {
+async function downloadVerifiedMediaBlob(
+  mediaAsset: MediaAsset,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+  signal: AbortSignal,
+): Promise<Blob> {
   let lastError: unknown = null;
   for (let attemptNumber = 1; attemptNumber <= MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT; attemptNumber += 1) {
-    const downloadResult = await loadMediaAssetDownloadUrl(mediaAsset.workspaceId, mediaAsset.mediaAssetId);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    const downloadResult = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => loadMediaAssetDownloadUrl(mediaAsset.workspaceId, mediaAsset.mediaAssetId, signal),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
     assertDownloadMediaAssetMatchesLocal(mediaAsset, downloadResult.mediaAsset);
     let bytes: ArrayBuffer;
     try {
-      bytes = await fetchManagedMediaBytes(mediaAsset, downloadResult.download.method, downloadResult.download.url);
+      bytes = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+        () => fetchManagedMediaBytes(
+          mediaAsset,
+          downloadResult.download.method,
+          downloadResult.download.url,
+          indexedDbOpenRecoveryState,
+          signal,
+        ),
+        indexedDbOpenRecoveryState,
+        signal,
+      );
+      indexedDbOpenRecoveryState.throwIfFailed();
+      throwIfManagedMediaDownloadAborted(signal);
     } catch (error) {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      throwIfManagedMediaDownloadAborted(signal);
       lastError = error;
       if (attemptNumber >= MANAGED_MEDIA_DOWNLOAD_ATTEMPT_COUNT) {
         break;
@@ -385,20 +568,59 @@ async function downloadVerifiedMediaBlob(mediaAsset: MediaAsset): Promise<Blob> 
       continue;
     }
 
-    return verifyManagedMediaBytes(mediaAsset, bytes);
+    const verifiedBlob = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => verifyManagedMediaBytes(mediaAsset, bytes, indexedDbOpenRecoveryState, signal),
+      indexedDbOpenRecoveryState,
+      signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(signal);
+    return verifiedBlob;
   }
 
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
-async function downloadMediaBlobCacheRecord(mediaAsset: MediaAsset): Promise<MediaBlobCacheRecord> {
-  const activeDownloadPromise = activeManagedMediaDownloadPromises.get(mediaAsset.sha256);
-  if (activeDownloadPromise !== undefined) {
-    return activeDownloadPromise;
+async function downloadMediaBlobCacheRecord(
+  mediaAsset: MediaAsset,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<MediaBlobCacheRecord> {
+  const activeDownloadTask = activeManagedMediaDownloadTasks.get(mediaAsset.sha256);
+  if (activeDownloadTask !== undefined) {
+    const activeCacheRecord = await waitForRecoveryGuardedManagedMediaPhase(
+      () => activeDownloadTask.promise,
+      indexedDbOpenRecoveryState,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return activeCacheRecord;
   }
 
+  const abortController = new AbortController();
+  const abortForRecovery = (): void => {
+    if (abortController.signal.aborted === false) {
+      abortController.abort(indexedDbOpenRecoveryState.signal.reason);
+    }
+  };
+  if (indexedDbOpenRecoveryState.signal.aborted) {
+    abortForRecovery();
+  } else {
+    indexedDbOpenRecoveryState.signal.addEventListener("abort", abortForRecovery, { once: true });
+  }
+  let downloadTask: ManagedMediaDownloadTask;
   const downloadPromise = (async (): Promise<MediaBlobCacheRecord> => {
-    const downloadedBlob = await downloadVerifiedMediaBlob(mediaAsset);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(abortController.signal);
+    const downloadedBlob = await waitForRecoveryAndAbortGuardedManagedMediaPhase(
+      () => downloadVerifiedMediaBlob(
+        mediaAsset,
+        indexedDbOpenRecoveryState,
+        abortController.signal,
+      ),
+      indexedDbOpenRecoveryState,
+      abortController.signal,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(abortController.signal);
     const now = new Date().toISOString();
     const cacheRecord: MediaBlobCacheRecord = {
       sha256: mediaAsset.sha256,
@@ -409,42 +631,92 @@ async function downloadMediaBlobCacheRecord(mediaAsset: MediaAsset): Promise<Med
       lastAccessedAt: now,
       sourceMediaAssetId: mediaAsset.mediaAssetId,
     };
-    await writeMediaBlobCacheRecord(cacheRecord);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(abortController.signal);
+    await waitForRecoveryGuardedManagedMediaPhase(
+      () => writeMediaBlobCacheRecord(cacheRecord),
+      indexedDbOpenRecoveryState,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throwIfManagedMediaDownloadAborted(abortController.signal);
     return cacheRecord;
   })().finally(() => {
-    activeManagedMediaDownloadPromises.delete(mediaAsset.sha256);
+    indexedDbOpenRecoveryState.signal.removeEventListener("abort", abortForRecovery);
+    if (activeManagedMediaDownloadTasks.get(mediaAsset.sha256) === downloadTask) {
+      activeManagedMediaDownloadTasks.delete(mediaAsset.sha256);
+    }
   });
-  activeManagedMediaDownloadPromises.set(mediaAsset.sha256, downloadPromise);
-  return downloadPromise;
+  downloadTask = {
+    abortController,
+    promise: downloadPromise,
+  };
+  activeManagedMediaDownloadTasks.set(mediaAsset.sha256, downloadTask);
+  const cacheRecord = await waitForRecoveryGuardedManagedMediaPhase(
+    () => downloadPromise,
+    indexedDbOpenRecoveryState,
+  );
+  indexedDbOpenRecoveryState.throwIfFailed();
+  return cacheRecord;
 }
 
-async function loadMediaBlobForReview(mediaAsset: MediaAsset): Promise<MediaBlobCacheRecord> {
-  const cacheRecord = await loadMediaBlobCacheRecord(mediaAsset.sha256);
+async function loadMediaBlobForReview(
+  mediaAsset: MediaAsset,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<MediaBlobCacheRecord> {
+  indexedDbOpenRecoveryState.throwIfFailed();
+  const cacheRecord = await waitForRecoveryGuardedManagedMediaPhase(
+    () => loadMediaBlobCacheRecord(mediaAsset.sha256),
+    indexedDbOpenRecoveryState,
+  );
+  indexedDbOpenRecoveryState.throwIfFailed();
   if (cacheRecord !== null) {
     assertUsableMediaBlobCacheRecord(mediaAsset, cacheRecord);
     const accessedRecord: MediaBlobCacheRecord = {
       ...cacheRecord,
       lastAccessedAt: new Date().toISOString(),
     };
-    await writeMediaBlobCacheRecord(accessedRecord);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    await waitForRecoveryGuardedManagedMediaPhase(
+      () => writeMediaBlobCacheRecord(accessedRecord),
+      indexedDbOpenRecoveryState,
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
     return accessedRecord;
   }
 
-  return downloadMediaBlobCacheRecord(mediaAsset);
+  indexedDbOpenRecoveryState.throwIfFailed();
+  const downloadedCacheRecord = await waitForRecoveryGuardedManagedMediaPhase(
+    () => downloadMediaBlobCacheRecord(mediaAsset, indexedDbOpenRecoveryState),
+    indexedDbOpenRecoveryState,
+  );
+  indexedDbOpenRecoveryState.throwIfFailed();
+  return downloadedCacheRecord;
 }
 
 async function loadManagedMediaBlob(
   workspaceId: string,
   mediaAssetId: string,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
 ): Promise<ManagedMediaBlobLoadResult | null> {
-  const mediaAsset = await loadMediaAssetRecord(workspaceId, mediaAssetId);
+  indexedDbOpenRecoveryState.throwIfFailed();
+  const mediaAsset = await waitForRecoveryGuardedManagedMediaPhase(
+    () => loadMediaAssetRecord(workspaceId, mediaAssetId),
+    indexedDbOpenRecoveryState,
+  );
+  indexedDbOpenRecoveryState.throwIfFailed();
   if (mediaAsset === null || mediaAsset.deletedAt !== null) {
     return null;
   }
 
+  indexedDbOpenRecoveryState.throwIfFailed();
+  const cacheRecord = await waitForRecoveryGuardedManagedMediaPhase(
+    () => loadMediaBlobForReview(mediaAsset, indexedDbOpenRecoveryState),
+    indexedDbOpenRecoveryState,
+  );
+  indexedDbOpenRecoveryState.throwIfFailed();
   return {
     mediaAsset,
-    cacheRecord: await loadMediaBlobForReview(mediaAsset),
+    cacheRecord,
   };
 }
 
@@ -532,17 +804,30 @@ function waitForManagedImageLoad(image: HTMLImageElement, url: string): Promise<
   });
 }
 
-async function decodeManagedImageObjectUrl(url: string): Promise<ManagedMediaImageDimensions | null> {
+async function decodeManagedImageObjectUrl(
+  url: string,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ManagedMediaImageDimensions | null> {
+  indexedDbOpenRecoveryState.throwIfFailed();
   const image = new Image();
   image.src = url;
 
   try {
     if (typeof image.decode === "function") {
-      await image.decode();
+      await waitForRecoveryGuardedManagedMediaPhase(
+        () => image.decode(),
+        indexedDbOpenRecoveryState,
+      );
+      indexedDbOpenRecoveryState.throwIfFailed();
     } else {
-      await waitForManagedImageLoad(image, url);
+      await waitForRecoveryGuardedManagedMediaPhase(
+        () => waitForManagedImageLoad(image, url),
+        indexedDbOpenRecoveryState,
+      );
+      indexedDbOpenRecoveryState.throwIfFailed();
     }
   } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
     throw new Error(`Managed media image decode failed: objectUrl=${url}, error=${readErrorMessage(error)}`);
   }
 
@@ -647,6 +932,7 @@ export function ManagedMediaReference(props: Readonly<{
     workspaceId,
   } = props;
   const { t } = useI18n();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const [loadState, setLoadState] = useState<ManagedMediaLoadState>({ status: "loading" });
   const loadStateRef = useRef<ManagedMediaLoadState>(loadState);
 
@@ -714,6 +1000,13 @@ export function ManagedMediaReference(props: Readonly<{
     }
 
     async function loadManagedMedia(): Promise<void> {
+      try {
+        indexedDbOpenRecoveryState.throwIfFailed();
+      } catch (error) {
+        markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error);
+        return;
+      }
+
       if (workspaceId === null) {
         updateLoadState({ status: "unavailable", mediaAsset: null });
         return;
@@ -725,8 +1018,19 @@ export function ManagedMediaReference(props: Readonly<{
 
       let loadResult: ManagedMediaBlobLoadResult | null;
       try {
-        loadResult = await loadManagedMediaBlob(workspaceId, mediaAssetId);
+        loadResult = await waitForRecoveryGuardedManagedMediaPhase(
+          () => loadManagedMediaBlob(
+            workspaceId,
+            mediaAssetId,
+            indexedDbOpenRecoveryState,
+          ),
+          indexedDbOpenRecoveryState,
+        );
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCancelled) {
           return;
         }
@@ -748,6 +1052,7 @@ export function ManagedMediaReference(props: Readonly<{
       let objectUrlRetention: ManagedMediaObjectUrlRetention;
       let imageDimensions: ManagedMediaImageDimensions | null = null;
       try {
+        indexedDbOpenRecoveryState.throwIfFailed();
         const currentLoadState = loadStateRef.current;
         objectUrlRetention = retainObjectUrlForReadyMedia(currentLoadState, loadResult.mediaAsset, loadResult.cacheRecord);
         if (objectUrlRetention.isAcquiredLease) {
@@ -755,13 +1060,27 @@ export function ManagedMediaReference(props: Readonly<{
         }
 
         if (classifyManagedMediaKind(loadResult.mediaAsset.mimeType) === "image") {
-          imageDimensions = objectUrlRetention.isAcquiredLease
-            ? await decodeManagedImageObjectUrl(objectUrlRetention.objectUrlLease.url)
-            : currentLoadState.status === "ready"
+          if (objectUrlRetention.isAcquiredLease) {
+            imageDimensions = await waitForRecoveryGuardedManagedMediaPhase(
+              () => decodeManagedImageObjectUrl(
+                objectUrlRetention.objectUrlLease.url,
+                indexedDbOpenRecoveryState,
+              ),
+              indexedDbOpenRecoveryState,
+            );
+            indexedDbOpenRecoveryState.throwIfFailed();
+          } else {
+            imageDimensions = currentLoadState.status === "ready"
               ? currentLoadState.imageDimensions
               : null;
+          }
         }
+        indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          releaseProvisionalObjectUrlLease();
+          return;
+        }
         if (isCancelled) {
           releaseProvisionalObjectUrlLease();
           return;
@@ -795,7 +1114,7 @@ export function ManagedMediaReference(props: Readonly<{
       isCancelled = true;
       releaseProvisionalObjectUrlLease();
     };
-  }, [localReadVersion, mediaAssetId, referenceState, workspaceId]);
+  }, [indexedDbOpenRecoveryState, localReadVersion, mediaAssetId, referenceState, workspaceId]);
 
   const childrenText = readTextFromReactNode(children);
   if (referenceState !== "ready") {

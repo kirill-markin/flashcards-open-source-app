@@ -7,6 +7,7 @@ import {
   isAuthRedirectError,
 } from "../../../api";
 import type { MediaTransferQueueRecord } from "../../../localDb/mediaTransfers";
+import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import type {
   CompleteMediaAssetUploadPartInput,
   MediaAsset,
@@ -36,20 +37,23 @@ type MediaUploadCompletionTerminalReason = "retry_exhausted" | "interrupted";
 
 export class MediaUploadCompletionTerminalError extends PermanentMediaUploadError {
   readonly reason: MediaUploadCompletionTerminalReason;
-  readonly completionCause: ApiError;
+  readonly completionCause: ApiError | null;
   readonly interruptionCause: Error | null;
 
   constructor(
     reason: MediaUploadCompletionTerminalReason,
-    completionCause: ApiError,
+    completionCause: ApiError | null,
     interruptionCause: Error | null,
   ) {
+    const completionDescription = completionCause === null
+      ? "none"
+      : describeApiError(completionCause);
     const interruptionDescription = interruptionCause === null
       ? "none"
       : describeUploadError(interruptionCause);
     super(
       `Media upload completion stopped for this local run: reason=${reason}, `
-      + `completionError=${describeApiError(completionCause)}, `
+      + `completionError=${completionDescription}, `
       + `interruptionError=${interruptionDescription}`,
     );
     this.name = "MediaUploadCompletionTerminalError";
@@ -82,6 +86,7 @@ async function waitForCompletionRetry(
   delayMs: number,
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
+  hasFailed: () => boolean,
 ): Promise<void> {
   let timerId: number | null = null;
   let abortHandler: (() => void) | null = null;
@@ -111,8 +116,14 @@ async function waitForCompletionRetry(
     }
   }
 
+  if (hasFailed()) {
+    return;
+  }
   throwIfUploadLifecycleCancelled(signal);
   await heartbeat.throwIfFailed();
+  if (hasFailed()) {
+    return;
+  }
   throwIfUploadLifecycleCancelled(signal);
 }
 
@@ -120,12 +131,26 @@ async function validateCompletionOwnership(
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
   retryableCompletionCause: ApiError | null,
+  hasFailed: () => boolean,
 ): Promise<void> {
   try {
+    if (hasFailed()) {
+      return;
+    }
     throwIfUploadLifecycleCancelled(signal);
     await heartbeat.throwIfFailed();
+    if (hasFailed()) {
+      return;
+    }
     throwIfUploadLifecycleCancelled(signal);
   } catch (error) {
+    if (isIndexedDbOpenRecoveryError(error)) {
+      throw error;
+    }
+    if (hasFailed()) {
+      throw error;
+    }
+
     if (retryableCompletionCause !== null) {
       throw new MediaUploadCompletionTerminalError(
         "interrupted",
@@ -143,7 +168,8 @@ export async function completeMultipartUploadSession(
   uploadedParts: ReadonlyArray<UploadedMediaPart>,
   heartbeat: MediaUploadClaimHeartbeat,
   signal: AbortSignal,
-): Promise<MediaUploadCompletionResult> {
+  hasFailed: () => boolean,
+): Promise<MediaUploadCompletionResult | null> {
   const request = {
     parts: toCompleteParts(uploadedParts),
   };
@@ -152,26 +178,51 @@ export async function completeMultipartUploadSession(
   let lastRetryableCompletionError: ApiError | null = null;
 
   while (true) {
-    await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError);
+    if (hasFailed()) {
+      return null;
+    }
+    await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
+    if (hasFailed()) {
+      return null;
+    }
 
     try {
+      if (hasFailed()) {
+        return null;
+      }
       const result = await completeMediaAssetUploadSession(
         transfer.workspaceId,
         uploadSession.sessionId,
         request,
         completionSignal,
       );
-      await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError);
+      if (hasFailed()) {
+        return null;
+      }
+      await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
+      if (hasFailed()) {
+        return null;
+      }
       return {
         mediaAsset: result.mediaAsset,
         retryableCompletionCause: lastRetryableCompletionError,
       };
     } catch (error) {
+      if (isIndexedDbOpenRecoveryError(error)) {
+        throw error;
+      }
+      if (hasFailed()) {
+        throw error;
+      }
+
       if (error instanceof MediaUploadCompletionTerminalError) {
         throw error;
       }
       if (isSameSessionCompletionRetryError(error) === false) {
-        await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError);
+        await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
+        if (hasFailed()) {
+          throw error;
+        }
         if (lastRetryableCompletionError !== null) {
           throw new MediaUploadCompletionTerminalError(
             "interrupted",
@@ -182,7 +233,10 @@ export async function completeMultipartUploadSession(
         throw error;
       }
       lastRetryableCompletionError = error;
-      await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError);
+      await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
+      if (hasFailed()) {
+        throw error;
+      }
       if (attemptNumber >= apiNetworkRetryMaximumAttemptCount) {
         throw new MediaUploadCompletionTerminalError("retry_exhausted", error, null);
       }
@@ -200,8 +254,18 @@ export async function completeMultipartUploadSession(
         delayMs,
       });
       try {
-        await waitForCompletionRetry(delayMs, heartbeat, signal);
+        await waitForCompletionRetry(delayMs, heartbeat, signal, hasFailed);
+        if (hasFailed()) {
+          throw error;
+        }
       } catch (interruptionError) {
+        if (isIndexedDbOpenRecoveryError(interruptionError)) {
+          throw interruptionError;
+        }
+        if (hasFailed()) {
+          throw interruptionError;
+        }
+
         throw new MediaUploadCompletionTerminalError(
           "interrupted",
           error,
@@ -231,11 +295,18 @@ function warnUploadSessionAbortFailure(
 export async function abortUploadSessionAfterFailure(
   transfer: MediaTransferQueueRecord,
   sessionId: string,
+  markFailed: (error: unknown) => void,
+  throwIfFailed: () => void,
 ): Promise<unknown | null> {
   try {
+    throwIfFailed();
     await abortMediaAssetUploadSession(transfer.workspaceId, sessionId);
+    throwIfFailed();
     return null;
   } catch (error) {
+    throwIfFailed();
+    markFailed(error);
+    throwIfFailed();
     warnUploadSessionAbortFailure(transfer, sessionId, error);
     return error;
   }
@@ -246,7 +317,15 @@ function describeUploadSessionCleanupFailure(primaryFailure: MediaUploadFailure,
 }
 
 export function combineUploadFailureWithAbortFailure(primaryError: unknown, abortError: unknown | null): unknown {
-  if (abortError === null || isAuthRedirectError(primaryError)) {
+  if (abortError === null || isIndexedDbOpenRecoveryError(primaryError)) {
+    return primaryError;
+  }
+
+  if (isIndexedDbOpenRecoveryError(abortError)) {
+    return abortError;
+  }
+
+  if (isAuthRedirectError(primaryError)) {
     return primaryError;
   }
 

@@ -14,6 +14,7 @@ import {
   createCardLocally,
   submitReviewLocally,
 } from "./syncLocalMutations";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 
 const deterministicSeedReviewTimeZone = "UTC";
 
@@ -24,6 +25,7 @@ export type WorkspaceSeedReadiness = Readonly<{
 }>;
 
 export type EnsureWorkspaceSeedReadyInput = Readonly<{
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspace: WorkspaceSummary;
   waitForWorkspaceSyncToSettle: (workspaceId: string) => Promise<void>;
   refreshWorkspaceView: (workspaceId: string) => Promise<void>;
@@ -31,6 +33,7 @@ export type EnsureWorkspaceSeedReadyInput = Readonly<{
 }>;
 
 export type SeedWorkspaceLocallyInput = Readonly<{
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   workspaceId: string;
   request: TestSeedRequest;
 }>;
@@ -80,12 +83,33 @@ function isWorkspaceSeedReady(readiness: WorkspaceSeedReadiness): boolean {
   return readiness.workspaceSettingsLoaded && readiness.hotStateHydrated && readiness.reviewHistoryHydrated;
 }
 
-async function loadWorkspaceSeedReadiness(workspaceId: string): Promise<WorkspaceSeedReadiness> {
+async function runRecoveryGuardedSeedRead<ResultType>(
+  createRead: () => Promise<ResultType>,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<ResultType> {
+  try {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const result = await createRead();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    return result;
+  } catch (error) {
+    indexedDbOpenRecoveryState.throwIfFailed();
+    indexedDbOpenRecoveryState.markFailed(error);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    throw error;
+  }
+}
+
+async function loadWorkspaceSeedReadiness(
+  workspaceId: string,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<WorkspaceSeedReadiness> {
   const [workspaceSettings, hotStateHydrated, reviewHistoryHydrated] = await Promise.all([
-    loadWorkspaceSettings(workspaceId),
-    hasHydratedHotState(workspaceId),
-    hasHydratedReviewHistory(workspaceId),
+    runRecoveryGuardedSeedRead(() => loadWorkspaceSettings(workspaceId), indexedDbOpenRecoveryState),
+    runRecoveryGuardedSeedRead(() => hasHydratedHotState(workspaceId), indexedDbOpenRecoveryState),
+    runRecoveryGuardedSeedRead(() => hasHydratedReviewHistory(workspaceId), indexedDbOpenRecoveryState),
   ]);
+  indexedDbOpenRecoveryState.throwIfFailed();
 
   return {
     workspaceSettingsLoaded: workspaceSettings !== null,
@@ -95,21 +119,27 @@ async function loadWorkspaceSeedReadiness(workspaceId: string): Promise<Workspac
 }
 
 export async function ensureWorkspaceSeedReady(input: EnsureWorkspaceSeedReadyInput): Promise<void> {
+  input.indexedDbOpenRecoveryState.throwIfFailed();
   const workspaceId = input.workspace.workspaceId;
 
   await input.waitForWorkspaceSyncToSettle(workspaceId);
+  input.indexedDbOpenRecoveryState.throwIfFailed();
 
-  let readiness = await loadWorkspaceSeedReadiness(workspaceId);
+  let readiness = await loadWorkspaceSeedReadiness(workspaceId, input.indexedDbOpenRecoveryState);
   if (isWorkspaceSeedReady(readiness)) {
     await input.refreshWorkspaceView(workspaceId);
+    input.indexedDbOpenRecoveryState.throwIfFailed();
     return;
   }
 
   await input.runSyncForWorkspace(input.workspace);
+  input.indexedDbOpenRecoveryState.throwIfFailed();
   await input.waitForWorkspaceSyncToSettle(workspaceId);
+  input.indexedDbOpenRecoveryState.throwIfFailed();
   await input.refreshWorkspaceView(workspaceId);
+  input.indexedDbOpenRecoveryState.throwIfFailed();
 
-  readiness = await loadWorkspaceSeedReadiness(workspaceId);
+  readiness = await loadWorkspaceSeedReadiness(workspaceId, input.indexedDbOpenRecoveryState);
   if (isWorkspaceSeedReady(readiness)) {
     return;
   }
@@ -124,26 +154,37 @@ export async function ensureWorkspaceSeedReady(input: EnsureWorkspaceSeedReadyIn
 }
 
 export async function seedWorkspaceLocally(input: SeedWorkspaceLocallyInput): Promise<SeedWorkspaceLocallyResult> {
+  input.indexedDbOpenRecoveryState.throwIfFailed();
   validateSeedRequest(input.request);
 
   const seededCards: Array<TestSeedCardResult> = [];
   let didChangeProgressHistory = false;
 
   for (const seedCard of input.request.cards) {
-    let nextCard = (await createCardLocally({
-      workspaceId: input.workspaceId,
-      input: seedCard,
-      clientUpdatedAt: seedCard.createdAt,
-    })).card;
+    input.indexedDbOpenRecoveryState.throwIfFailed();
+    let nextCard = (await createCardLocally(
+      {
+        workspaceId: input.workspaceId,
+        input: seedCard,
+        clientUpdatedAt: seedCard.createdAt,
+      },
+      input.indexedDbOpenRecoveryState,
+    )).card;
+    input.indexedDbOpenRecoveryState.throwIfFailed();
 
     for (const review of seedCard.reviews) {
-      const reviewResult = await submitReviewLocally({
-        workspaceId: input.workspaceId,
-        cardId: nextCard.cardId,
-        rating: review.rating,
-        reviewedAtClient: review.reviewedAtClient,
-        reviewedTimeZone: deterministicSeedReviewTimeZone,
-      });
+      input.indexedDbOpenRecoveryState.throwIfFailed();
+      const reviewResult = await submitReviewLocally(
+        {
+          workspaceId: input.workspaceId,
+          cardId: nextCard.cardId,
+          rating: review.rating,
+          reviewedAtClient: review.reviewedAtClient,
+          reviewedTimeZone: deterministicSeedReviewTimeZone,
+        },
+        input.indexedDbOpenRecoveryState,
+      );
+      input.indexedDbOpenRecoveryState.throwIfFailed();
       nextCard = reviewResult.card;
       if (reviewResult.didChangeProgressHistory) {
         didChangeProgressHistory = true;

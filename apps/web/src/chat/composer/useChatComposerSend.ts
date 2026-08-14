@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { isCapturedSyncFailure } from "../../appData/sync/observation/syncErrorObservation";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../appError/AppErrorContext";
 import { listOutboxRecords } from "../../localDb/sync/outbox";
 import type { ChatComposerSendPhase } from "./drafts/ChatDraftContext";
 import {
@@ -36,6 +40,7 @@ type UseChatComposerSendParams = Readonly<{
   draftPendingAttachments: ReadonlyArray<PendingAttachment>;
   draftUpdatedAt: number | null;
   isSessionVerified: boolean;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   pendingSyncMessage: string;
   moveDraftToSession: (sourceSessionId: string | null, sourceDraftUpdatedAt: number | null, targetSessionId: string, nextDraft: ChatDraftContent) => number | null;
   onCapturedTechnicalError: (error: unknown) => void;
@@ -75,6 +80,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     draftPendingAttachments,
     draftUpdatedAt,
     isSessionVerified,
+    indexedDbOpenRecoveryState,
     pendingSyncMessage,
     moveDraftToSession,
     onCapturedTechnicalError,
@@ -110,7 +116,10 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
   }, []);
 
   useEffect(() => {
-    if (activeWorkspaceIdRef.current === activeWorkspaceId) {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || activeWorkspaceIdRef.current === activeWorkspaceId
+    ) {
       return;
     }
 
@@ -119,7 +128,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     setIsDraftOptimisticallyClearedForSend(false);
     pendingAttachmentsRef.current = draftPendingAttachments;
     setSendPhase("idle");
-  }, [activeWorkspaceId, draftPendingAttachments, setSendPhase]);
+  }, [activeWorkspaceId, draftPendingAttachments, indexedDbOpenRecoveryState, setSendPhase]);
 
   function setPendingAttachmentsState(nextAttachments: ReadonlyArray<PendingAttachment>): void {
     pendingAttachmentsRef.current = nextAttachments;
@@ -226,6 +235,10 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
   }
 
   async function sendPendingMessage(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (dictationState !== "idle" || composerAction !== "send" || sendPhase !== "idle") {
       return;
     }
@@ -274,6 +287,9 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
         return;
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isSendLifecycleRequestCurrent(requestSequence) === false) {
         return;
       }
@@ -290,7 +306,9 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     }
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const outboxRecords = await listOutboxRecords(activeWorkspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isSendLifecycleRequestCurrent(requestSequence) === false) {
         return;
       }
@@ -302,6 +320,9 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
         return;
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isSendLifecycleRequestCurrent(requestSequence) === false) {
         return;
       }
@@ -320,9 +341,13 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
     setSendPhase("startingRun");
 
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       let pendingDraftSessionId: string | null = sourceSessionId;
       let resultDraftUpdatedAt: number | null = sourceDraftUpdatedAt;
       const handleSessionDraftTargetReady = (targetSessionId: string): number | null => {
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return resultDraftUpdatedAt;
+        }
         if (pendingDraftSessionId === targetSessionId) {
           return resultDraftUpdatedAt;
         }
@@ -343,6 +368,7 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
         attachments: nextAttachments,
         onSessionDraftTargetReady: handleSessionDraftTargetReady,
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (result.accepted) {
         clearAcceptedSendStoredDrafts(
           sourceSessionId,
@@ -377,8 +403,13 @@ export function useChatComposerSend(params: UseChatComposerSendParams): ChatComp
           result.sessionId,
         );
       }
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+      throw error;
     } finally {
-      if (isSendLifecycleRequestCurrent(requestSequence)) {
+      if (indexedDbOpenRecoveryState.hasFailed() === false && isSendLifecycleRequestCurrent(requestSequence)) {
         setSendPhase("idle");
       }
     }

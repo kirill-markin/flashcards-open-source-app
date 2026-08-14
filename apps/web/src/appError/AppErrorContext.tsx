@@ -1,10 +1,30 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactElement, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import { bindIndexedDbOpenRecoverySignal } from "../api/transport/transport";
 import { type TranslationKey, type TranslationValues, useI18n } from "../i18n";
+import {
+  isIndexedDbOpenRecoveryError,
+  type IndexedDbOpenRecoveryError,
+} from "../localDb/core/indexedDbOpenRecovery";
 import { captureAppOperationError } from "../observability/appOperationObservation";
-import type { WebAppOperation, WebObservationFeature } from "../observability/webObservability";
+import {
+  captureWebException,
+  type WebAppOperation,
+  type WebObservationFeature,
+} from "../observability/webObservability";
 import { AppErrorDialog } from "./AppErrorDialog";
 import {
   buildAppErrorPresentation,
+  type AppErrorAction,
   type AppErrorPresentation,
   type AppErrorPresentationMessages,
 } from "./appErrorPresentation";
@@ -20,11 +40,35 @@ export type AppTechnicalErrorContext = Readonly<{
   entityId: string | null;
 }>;
 
+export type IndexedDbOpenRecoveryState = Readonly<{
+  hasFailed: () => boolean;
+  isFailed: boolean;
+  markFailed: (error: unknown) => IndexedDbOpenRecoveryMarkResult;
+  signal: AbortSignal;
+  throwIfFailed: () => void;
+}>;
+
+export type IndexedDbOpenRecoveryMarkResult = "not_recovery" | "first_failure" | "first_failure_repeat" | "later_failure";
+
+export function isIndexedDbOpenRecoveryFailureMark(result: IndexedDbOpenRecoveryMarkResult): boolean {
+  return result !== "not_recovery";
+}
+
+export function markIndexedDbOpenRecoveryFailureAndCheckActive(
+  state: IndexedDbOpenRecoveryState,
+  error: unknown,
+): boolean {
+  const markResult = state.markFailed(error);
+  const hasFailed = state.hasFailed();
+  return isIndexedDbOpenRecoveryFailureMark(markResult) || hasFailed;
+}
+
 type AppErrorDialogContextValue = Readonly<{
   showTechnicalError: (error: unknown, context: AppTechnicalErrorContext) => boolean;
   showCapturedTechnicalError: (error: unknown) => void;
   showTechnicalErrorPreview: () => void;
   dismiss: () => void;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
 }>;
 
 type AppErrorDialogProviderProps = Readonly<{
@@ -35,8 +79,17 @@ const AppErrorDialogContext = createContext<AppErrorDialogContextValue | null>(n
 
 function buildPresentationMessages(t: AppErrorTranslate): AppErrorPresentationMessages {
   return {
-    title: t("appError.technicalError.title"),
-    message: t("appError.technicalError.message"),
+    technicalError: {
+      title: t("appError.technicalError.title"),
+      message: t("appError.technicalError.message"),
+      close: t("appError.technicalError.close"),
+    },
+    indexedDbReloadRecovery: {
+      title: t("appError.indexedDbReloadRecovery.title"),
+      message: t("appError.indexedDbReloadRecovery.message"),
+      guidance: t("appError.indexedDbReloadRecovery.guidance"),
+      reload: t("appError.indexedDbReloadRecovery.reload"),
+    },
     labels: {
       name: t("appError.technicalError.labels.name"),
       message: t("appError.technicalError.labels.message"),
@@ -59,20 +112,114 @@ function buildPreviewError(): Error {
   return previewError;
 }
 
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function captureIndexedDbOpenRecoveryFailure(error: IndexedDbOpenRecoveryError): void {
+  captureWebException({
+    action: "indexed_db_open_recovery_failed",
+    error,
+    scope: {
+      app: "web",
+      feature: "app",
+      userId: null,
+      workspaceId: null,
+      installationId: null,
+      route: getCurrentRoute(),
+      requestId: null,
+      statusCode: null,
+      code: null,
+    },
+    details: {
+      recoveryOwner: "app_error_dialog_provider",
+    },
+  });
+}
+
 export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): ReactElement {
   const { children } = props;
   const { t } = useI18n();
   const [presentation, setPresentation] = useState<AppErrorPresentation | null>(null);
+  const [isIndexedDbOpenRecoveryFailed, setIsIndexedDbOpenRecoveryFailed] = useState<boolean>(false);
+  const [indexedDbOpenRecoveryAbortController] = useState<AbortController>(() => new AbortController());
+  const indexedDbOpenRecoveryRef = useRef<{
+    firstError: Error | null;
+  }>({ firstError: null });
+
+  useLayoutEffect(() => bindIndexedDbOpenRecoverySignal(indexedDbOpenRecoveryAbortController.signal), [
+    indexedDbOpenRecoveryAbortController,
+  ]);
+
+  const hasIndexedDbOpenRecoveryFailed = useCallback((): boolean => indexedDbOpenRecoveryRef.current.firstError !== null, []);
+
+  const throwIfIndexedDbOpenRecoveryFailed = useCallback((): void => {
+    const firstError = indexedDbOpenRecoveryRef.current.firstError;
+    if (firstError !== null) {
+      throw firstError;
+    }
+  }, []);
+
+  const markIndexedDbOpenRecoveryFailed = useCallback((error: unknown): IndexedDbOpenRecoveryMarkResult => {
+    if (isIndexedDbOpenRecoveryError(error) === false) {
+      return "not_recovery";
+    }
+
+    const firstError = indexedDbOpenRecoveryRef.current.firstError;
+    if (firstError === null) {
+      indexedDbOpenRecoveryRef.current = {
+        firstError: error,
+      };
+      captureIndexedDbOpenRecoveryFailure(error);
+      indexedDbOpenRecoveryAbortController.abort(error);
+      setIsIndexedDbOpenRecoveryFailed(true);
+      setPresentation(buildAppErrorPresentation(error, buildPresentationMessages(t)));
+      return "first_failure";
+    }
+
+    return firstError === error ? "first_failure_repeat" : "later_failure";
+  }, [indexedDbOpenRecoveryAbortController, t]);
 
   const dismiss = useCallback((): void => {
+    if (indexedDbOpenRecoveryRef.current.firstError !== null) {
+      return;
+    }
+
     setPresentation(null);
   }, []);
 
+  const performAction = useCallback((action: AppErrorAction): void => {
+    if (action.kind === "dismiss") {
+      dismiss();
+      return;
+    }
+
+    window.location.reload();
+  }, [dismiss]);
+
   const showCapturedTechnicalError = useCallback((error: unknown): void => {
+    const markResult = markIndexedDbOpenRecoveryFailed(error);
+    if (markResult !== "not_recovery") {
+      return;
+    }
+
+    if (indexedDbOpenRecoveryRef.current.firstError !== null) {
+      return;
+    }
+
     setPresentation(buildAppErrorPresentation(error, buildPresentationMessages(t)));
-  }, [t]);
+  }, [markIndexedDbOpenRecoveryFailed, t]);
 
   const showTechnicalError = useCallback((error: unknown, context: AppTechnicalErrorContext): boolean => {
+    const markResult = markIndexedDbOpenRecoveryFailed(error);
+    if (markResult !== "not_recovery" || indexedDbOpenRecoveryRef.current.firstError !== null) {
+      return false;
+    }
+
     const wasCaptured = captureAppOperationError(error, {
       feature: context.feature,
       operation: context.operation,
@@ -87,23 +234,42 @@ export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): Reac
     }
 
     return wasCaptured;
-  }, [showCapturedTechnicalError]);
+  }, [markIndexedDbOpenRecoveryFailed, showCapturedTechnicalError]);
 
   const showTechnicalErrorPreview = useCallback((): void => {
+    if (indexedDbOpenRecoveryRef.current.firstError !== null) {
+      return;
+    }
+
     setPresentation(buildAppErrorPresentation(buildPreviewError(), buildPresentationMessages(t)));
   }, [t]);
+
+  const indexedDbOpenRecoveryState = useMemo((): IndexedDbOpenRecoveryState => ({
+    hasFailed: hasIndexedDbOpenRecoveryFailed,
+    isFailed: isIndexedDbOpenRecoveryFailed,
+    markFailed: markIndexedDbOpenRecoveryFailed,
+    signal: indexedDbOpenRecoveryAbortController.signal,
+    throwIfFailed: throwIfIndexedDbOpenRecoveryFailed,
+  }), [
+    hasIndexedDbOpenRecoveryFailed,
+    isIndexedDbOpenRecoveryFailed,
+    indexedDbOpenRecoveryAbortController,
+    markIndexedDbOpenRecoveryFailed,
+    throwIfIndexedDbOpenRecoveryFailed,
+  ]);
 
   const contextValue = useMemo((): AppErrorDialogContextValue => ({
     showTechnicalError,
     showCapturedTechnicalError,
     showTechnicalErrorPreview,
     dismiss,
-  }), [dismiss, showCapturedTechnicalError, showTechnicalError, showTechnicalErrorPreview]);
+    indexedDbOpenRecoveryState,
+  }), [dismiss, indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError, showTechnicalErrorPreview]);
 
   return (
     <AppErrorDialogContext.Provider value={contextValue}>
-      {children}
-      <AppErrorDialog presentation={presentation} onDismiss={dismiss} />
+      {isIndexedDbOpenRecoveryFailed ? null : children}
+      <AppErrorDialog presentation={presentation} onAction={performAction} onDismiss={dismiss} />
     </AppErrorDialogContext.Provider>
   );
 }

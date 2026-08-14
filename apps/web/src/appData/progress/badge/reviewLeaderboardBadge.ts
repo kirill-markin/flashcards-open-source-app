@@ -4,6 +4,7 @@ import { useAppData } from "../../context/provider";
 import { useProgressInvalidationState } from "../invalidation/progressInvalidation";
 import { resolveBestLeaderboardPlacement } from "../leaderboardPlacement";
 import { useProgressSource } from "../progressSource";
+import { useAppErrorDialog } from "../../../appError/AppErrorContext";
 
 const EMPTY_REVIEW_LEADERBOARD_BADGE_STATE: ReviewLeaderboardBadgeState = {
   rank: null,
@@ -40,6 +41,7 @@ export function useReviewLeaderboardBadge(): ReviewLeaderboardBadgeState {
     cloudSettings,
     sessionVerificationState,
   } = useAppData();
+  const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const { progressLocalVersion, progressServerInvalidationVersion } = useProgressInvalidationState();
   const { progressSourceState, refreshProgress } = useProgressSource({
     activeWorkspace,
@@ -51,6 +53,7 @@ export function useReviewLeaderboardBadge(): ReviewLeaderboardBadgeState {
     progressServerInvalidationVersion,
     leaderboardAutoRefreshEnabled: false,
     canExposeTechnicalErrors: false,
+    indexedDbOpenRecoveryState,
     sections: REVIEW_LEADERBOARD_BADGE_SECTIONS,
   });
 

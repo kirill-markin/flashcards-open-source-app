@@ -9,6 +9,7 @@ import {
   clearAllLocalBrowserData,
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type {
   SessionInfo,
@@ -40,6 +41,9 @@ import type {
 import { normalizeCaughtError, type WorkspaceActivationBootstrapPhase } from "../../../observability/webObservability";
 
 type UseWorkspaceActivationParams =
+  & Readonly<{
+    indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
+  }>
   & Pick<WorkspaceSessionState, "activeWorkspace" | "sessionVerificationState">
   & WorkspaceSessionSetters
   & WorkspaceSessionSyncActions
@@ -63,6 +67,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     resetUserScopedUiState,
     activeWorkspace,
     sessionVerificationState,
+    indexedDbOpenRecoveryState,
   } = params;
   const workspaceBootstrapGenerationRef = useRef<number>(0);
   const deferredBootstrapWorkspaceRef = useRef<WorkspaceSummary | null>(null);
@@ -71,6 +76,8 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   const clearConfirmedUserScopedState = useCallback(async function clearConfirmedUserScopedState(
     reason: LocalBrowserDataCleanupReason,
   ): Promise<void> {
+    indexedDbOpenRecoveryState.throwIfFailed();
+
     workspaceBootstrapGenerationRef.current += 1;
     deferredBootstrapWorkspaceRef.current = null;
     setSession(null);
@@ -83,10 +90,14 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setTechnicalError(null);
     resetUserScopedUiState();
     await discardAllSyncWork(async (): Promise<void> => {
-      await clearAllLocalBrowserData(reason);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      await clearAllLocalBrowserData(reason, indexedDbOpenRecoveryState.throwIfFailed);
+      indexedDbOpenRecoveryState.throwIfFailed();
     });
+    indexedDbOpenRecoveryState.throwIfFailed();
   }, [
     discardAllSyncWork,
+    indexedDbOpenRecoveryState,
     resetUserScopedUiState,
     setActiveWorkspace,
     setAvailableWorkspaces,
@@ -139,6 +150,10 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       let bootstrapPhase: WorkspaceActivationBootstrapPhase = "refresh_before_sync";
       try {
         await refreshWorkspaceView(workspace.workspaceId);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         if (sessionVerificationState !== "verified") {
           if (isCurrentBootstrapGeneration() === false) {
             return;
@@ -158,12 +173,20 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
         deferredBootstrapWorkspaceRef.current = null;
         bootstrapPhase = "run_sync";
         await runSyncForWorkspace(workspace);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         if (isCurrentBootstrapGeneration() === false) {
           return;
         }
 
         bootstrapPhase = "final_refresh";
         await refreshWorkspaceView(workspace.workspaceId);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         if (isCurrentBootstrapGeneration() === false) {
           return;
         }
@@ -179,6 +202,12 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
           bootstrapPhase,
         });
       } catch (error) {
+        const normalizedError = normalizeCaughtError(error);
+        indexedDbOpenRecoveryState.markFailed(normalizedError);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
+
         if (isCurrentBootstrapGeneration() === false) {
           return;
         }
@@ -194,7 +223,6 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
           return;
         }
 
-        const normalizedError = normalizeCaughtError(error);
         const nextErrorMessage = getErrorMessage(normalizedError);
         const syncFailureCaptureState = getSyncFailureObservationCaptureState(normalizedError);
         if (syncFailureCaptureState === null) {
@@ -212,6 +240,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       }
     })();
   }, [
+    indexedDbOpenRecoveryState,
     refreshWorkspaceView,
     runSyncForWorkspace,
     sessionVerificationState,
@@ -223,7 +252,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   ]);
 
   useEffect(() => {
-    if (sessionVerificationState !== "verified") {
+    if (indexedDbOpenRecoveryState.hasFailed() || sessionVerificationState !== "verified") {
       return;
     }
 
@@ -243,6 +272,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     activeWorkspace,
     bootstrapWorkspaceInBackground,
     deferredBootstrapVersion,
+    indexedDbOpenRecoveryState,
     sessionVerificationState,
   ]);
 
@@ -251,13 +281,27 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     logWorkspaceTransition("workspace_activate_started", {
       workspaceId: workspace.workspaceId,
       selectedWorkspaceId: currentSession.selectedWorkspaceId,
       availableWorkspaceIds: currentWorkspaces.map((currentWorkspace) => currentWorkspace.workspaceId),
     });
     const linkedCloudSettings = buildLinkedCloudSettings(currentSession, workspace.workspaceId);
-    await putCloudSettings(linkedCloudSettings);
+    try {
+      await putCloudSettings(linkedCloudSettings);
+    } catch (error) {
+      indexedDbOpenRecoveryState.markFailed(error);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      throw error;
+    }
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     logWorkspaceTransition("workspace_activate_cloud_settings_saved", {
       workspaceId: workspace.workspaceId,
       selectedWorkspaceId: workspace.workspaceId,
@@ -276,6 +320,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     bootstrapWorkspaceInBackground(workspace);
   }, [
     bootstrapWorkspaceInBackground,
+    indexedDbOpenRecoveryState,
     publishSelectedWorkspace,
     setCloudSettings,
     setErrorMessage,
@@ -287,10 +332,21 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   const resolveInitialWorkspace = useCallback(async function resolveInitialWorkspace(
     currentSession: SessionInfo,
   ): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const workspaces = await listWorkspaces();
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
 
     if (workspaces.length === 0) {
       const createdWorkspace = await createWorkspaceRequest(defaultWorkspaceName);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       await activateWorkspace(currentSession, [createdWorkspace], createdWorkspace);
       return;
     }
@@ -304,6 +360,10 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     if (workspaces.length === 1) {
       const onlyWorkspace = workspaces[0];
       const selectedOnlyWorkspace = await selectWorkspace(onlyWorkspace.workspaceId);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       await activateWorkspace(currentSession, [selectedOnlyWorkspace], selectedOnlyWorkspace);
       return;
     }
@@ -312,7 +372,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     setActiveWorkspace(null);
     setSession(currentSession);
     setSessionLoadState("selecting_workspace");
-  }, [activateWorkspace, setActiveWorkspace, setAvailableWorkspaces, setSession, setSessionLoadState]);
+  }, [activateWorkspace, indexedDbOpenRecoveryState, setActiveWorkspace, setAvailableWorkspaces, setSession, setSessionLoadState]);
 
   return {
     activateWorkspace,

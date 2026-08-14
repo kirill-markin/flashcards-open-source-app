@@ -9,6 +9,8 @@ import {
   storeFeedbackSubmittedAt,
 } from "./feedback";
 
+const ignoreIndexedDbOpenRecoveryFailure = (): void => {};
+
 describe("local feedback prompt state", () => {
   beforeEach(async () => {
     await clearWebSyncCache();
@@ -30,7 +32,7 @@ describe("local feedback prompt state", () => {
         nextAutomaticPromptAt: "2026-05-20T09:00:00.000Z",
       },
       submittedAt: "2026-04-20T09:00:00.000Z",
-    });
+    }, ignoreIndexedDbOpenRecoveryFailure);
 
     await expect(loadFeedbackPromptState("user:user-1")).resolves.toEqual({
       ...emptyFeedbackPromptState,

@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useRef } from "react";
 import {
   ApiError,
+  buildLogoutLocalUrl,
   getSession,
   isAuthRedirectError,
   revalidateSession as revalidateSessionRequest,
 } from "../../../api";
 import {
   clearBrowserReauthRequired,
-  consumeAccountDeletedMarker,
+  hasAccountDeletedMarker,
+  isAccountDeletionPending,
+  isAccountDeletionServerConfirmed,
   isBrowserReauthRequired,
+  markAccountDeletionServerConfirmed,
+  removeAccountDeletedMarker,
+  runWithAccountDeletionLock,
+  setAccountDeletionPending,
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
+import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
 import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -22,9 +30,10 @@ import {
   resolveLocalDataCleanupReasonForVerifiedSession,
 } from "../cloud/workspaceSessionCloud";
 import {
-  consumeLoggedOutMarker,
   createSessionAccountSwitchError,
+  hasLoggedOutMarker,
   isSessionAccountSwitchError,
+  removeLoggedOutMarker,
   resumeRetryCount,
   resumeRetryDelayMs,
   waitForDelay,
@@ -45,6 +54,7 @@ type UseWorkspaceLifecycleParams =
     runSyncSilently: () => Promise<void>;
     resolveInitialWorkspace: (currentSession: SessionInfo) => Promise<void>;
     clearConfirmedUserScopedState: (reason: LocalBrowserDataCleanupReason) => Promise<void>;
+    indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   }>
   & WorkspaceSessionState
   & WorkspaceSessionSetters;
@@ -92,10 +102,36 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     runSyncSilently,
     resolveInitialWorkspace,
     clearConfirmedUserScopedState,
+    indexedDbOpenRecoveryState,
   } = params;
   const resumePromiseRef = useRef<Promise<void> | null>(null);
 
+  const resumeConfirmedAccountDeletion = useCallback(async function resumeConfirmedAccountDeletion(): Promise<void> {
+    await runWithAccountDeletionLock(
+      indexedDbOpenRecoveryState.signal,
+      async (): Promise<void> => {
+        indexedDbOpenRecoveryState.throwIfFailed();
+        if (
+          isAccountDeletionPending() === false
+          || isAccountDeletionServerConfirmed() === false
+        ) {
+          return;
+        }
+
+        await clearConfirmedUserScopedState("account_deletion_submit");
+        indexedDbOpenRecoveryState.throwIfFailed();
+        window.location.href = buildLogoutLocalUrl();
+        setAccountDeletionPending(false);
+      },
+    );
+    indexedDbOpenRecoveryState.throwIfFailed();
+  }, [clearConfirmedUserScopedState, indexedDbOpenRecoveryState]);
+
   const initialize = useCallback(async function initialize(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const shouldPreserveWarmStartState = sessionLoadState === "ready"
       && sessionVerificationState === "unverified"
       && session !== null
@@ -118,12 +154,17 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setTechnicalError(null);
 
     try {
-      if (consumeLoggedOutMarker()) {
+      if (hasLoggedOutMarker()) {
         await clearConfirmedUserScopedState("logout_marker");
+        indexedDbOpenRecoveryState.throwIfFailed();
+        removeLoggedOutMarker();
       }
 
-      if (consumeAccountDeletedMarker()) {
+      if (hasAccountDeletedMarker()) {
         await clearConfirmedUserScopedState("account_deleted_marker");
+        indexedDbOpenRecoveryState.throwIfFailed();
+        removeAccountDeletedMarker();
+
         setSession(null);
         setWebObservabilityUser(null);
         setSessionLoadState("deleted");
@@ -133,10 +174,40 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
+      if (isAccountDeletionPending() && isAccountDeletionServerConfirmed()) {
+        await resumeConfirmedAccountDeletion();
+        return;
+      }
+
       const wasBrowserReauthRequired = isBrowserReauthRequired();
-      const currentSession = await getSession();
+      let currentSession: SessionInfo;
+      try {
+        currentSession = await getSession();
+      } catch (error) {
+        if (
+          isAccountDeletionPending()
+          && error instanceof ApiError
+          && error.code === "ACCOUNT_DELETED"
+        ) {
+          markAccountDeletionServerConfirmed();
+          indexedDbOpenRecoveryState.throwIfFailed();
+          await resumeConfirmedAccountDeletion();
+          return;
+        }
+
+        indexedDbOpenRecoveryState.throwIfFailed();
+        throw error;
+      }
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setWebObservabilityUser({ id: currentSession.userId });
       const persistedCloudSettings = await loadCloudSettings();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       const localDataCleanupReason = resolveLocalDataCleanupReasonForVerifiedSession(
         persistedCloudSettings,
         currentSession,
@@ -144,15 +215,32 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       );
       if (localDataCleanupReason !== null) {
         await clearConfirmedUserScopedState(localDataCleanupReason);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return;
+        }
       }
 
       clearBrowserReauthRequired();
       const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
       await putCloudSettings(linkingReadyCloudSettings);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setCloudSettings(linkingReadyCloudSettings);
       await resolveInitialWorkspace(currentSession);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setSessionVerificationState("verified");
     } catch (error) {
+      const normalizedError = normalizeCaughtError(error);
+      indexedDbOpenRecoveryState.markFailed(normalizedError);
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       if (isAuthRedirectError(error)) {
         logWorkspaceTransition("session_bootstrap_redirected", {
           redirected: true,
@@ -167,7 +255,6 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
-      const normalizedError = normalizeCaughtError(error);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const isExpectedError = isExpectedWorkspaceSessionApiError(normalizedError);
       if (isExpectedError === false) {
@@ -183,7 +270,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     }
   }, [
     clearConfirmedUserScopedState,
+    indexedDbOpenRecoveryState,
     resolveInitialWorkspace,
+    resumeConfirmedAccountDeletion,
     session,
     sessionLoadState,
     sessionVerificationState,
@@ -213,27 +302,50 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   }, []);
 
   const revalidateActiveSession = useCallback(async function revalidateActiveSession(): Promise<boolean> {
-    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null) {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || sessionLoadState !== "ready"
+      || sessionVerificationState !== "verified"
+      || session === null
+    ) {
       return false;
     }
 
     try {
       const currentSession = await revalidateSessionRequest();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return false;
+      }
+
       if (currentSession.userId !== session.userId) {
         try {
           setWebObservabilityUser({ id: currentSession.userId });
           await clearConfirmedUserScopedState("confirmed_account_switch");
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            return false;
+          }
+
           clearBrowserReauthRequired();
           const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
           await putCloudSettings(linkingReadyCloudSettings);
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            return false;
+          }
+
           setCloudSettings(linkingReadyCloudSettings);
           await resolveInitialWorkspace(currentSession);
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            return false;
+          }
+
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");
           return false;
         } catch (error) {
           const normalizedError = normalizeCaughtError(error);
+          indexedDbOpenRecoveryState.markFailed(normalizedError);
+          indexedDbOpenRecoveryState.throwIfFailed();
           const nextErrorMessage = getErrorMessage(normalizedError);
           const isExpectedError = isExpectedWorkspaceSessionApiError(normalizedError);
           if (isExpectedError === false) {
@@ -259,6 +371,8 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       setTechnicalError(null);
       return true;
     } catch (error) {
+      indexedDbOpenRecoveryState.markFailed(error);
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isAuthRedirectError(error)) {
         return false;
       }
@@ -267,6 +381,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     }
   }, [
     clearConfirmedUserScopedState,
+    indexedDbOpenRecoveryState,
     resolveInitialWorkspace,
     session,
     sessionLoadState,
@@ -287,13 +402,21 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       await runSyncSilently();
     }
 
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setSessionErrorMessage("");
     setErrorMessage("");
     setSessionTechnicalError(null);
     setTechnicalError(null);
-  }, [revalidateActiveSession, runSyncSilently, setErrorMessage, setSessionErrorMessage, setSessionTechnicalError, setTechnicalError]);
+  }, [indexedDbOpenRecoveryState, revalidateActiveSession, runSyncSilently, setErrorMessage, setSessionErrorMessage, setSessionTechnicalError, setTechnicalError]);
 
   const resumeInBackground = useCallback(async function resumeInBackground(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const activeResume = resumePromiseRef.current;
     if (activeResume !== null) {
       return activeResume;
@@ -309,6 +432,11 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           await runResumeAttempt();
           return;
         } catch (error) {
+          indexedDbOpenRecoveryState.markFailed(error);
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            return;
+          }
+
           if (isAuthRedirectError(error)) {
             return;
           }
@@ -323,10 +451,16 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           }
 
           await waitForDelay(resumeRetryDelayMs);
+          if (indexedDbOpenRecoveryState.hasFailed()) {
+            return;
+          }
           attemptNumber += 1;
         }
       }
 
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       const normalizedError = normalizeCaughtError(lastError);
       const nextErrorMessage = getErrorMessage(normalizedError);
       const syncFailureCaptureState = getSyncFailureObservationCaptureState(normalizedError);
@@ -351,10 +485,15 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
     resumePromiseRef.current = trackedResumePromise;
     return trackedResumePromise;
-  }, [activeWorkspace?.workspaceId, runResumeAttempt, session?.userId, setErrorMessage, setTechnicalError]);
+  }, [activeWorkspace?.workspaceId, indexedDbOpenRecoveryState, runResumeAttempt, session?.userId, setErrorMessage, setTechnicalError]);
 
   useEffect(() => {
-    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null) {
+    if (
+      indexedDbOpenRecoveryState.isFailed
+      || sessionLoadState !== "ready"
+      || sessionVerificationState !== "verified"
+      || session === null
+    ) {
       return;
     }
 
@@ -385,7 +524,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [resumeInBackground, session, sessionLoadState, sessionVerificationState]);
+  }, [
+    indexedDbOpenRecoveryState.isFailed,
+    resumeInBackground,
+    session,
+    sessionLoadState,
+    sessionVerificationState,
+  ]);
 
   return {
     initialize,

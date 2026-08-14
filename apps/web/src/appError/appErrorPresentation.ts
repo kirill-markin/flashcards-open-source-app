@@ -1,10 +1,36 @@
+import { isIndexedDbOpenRecoveryError } from "../localDb/core/indexedDbOpenRecovery";
 import { normalizeCaughtError } from "../observability/webObservability";
 
-export type AppErrorPresentation = Readonly<{
+type DismissAppErrorAction = Readonly<{
+  kind: "dismiss";
+  label: string;
+}>;
+
+type ReloadPageAppErrorAction = Readonly<{
+  kind: "reload-page";
+  label: string;
+}>;
+
+export type AppErrorAction = DismissAppErrorAction | ReloadPageAppErrorAction;
+
+type TechnicalErrorPresentation = Readonly<{
+  kind: "technical-error";
   title: string;
   message: string;
   technicalDetails: string;
+  action: DismissAppErrorAction;
 }>;
+
+type IndexedDbReloadRecoveryPresentation = Readonly<{
+  kind: "indexeddb-reload-recovery";
+  title: string;
+  message: string;
+  guidance: string;
+  technicalDetails: string;
+  action: ReloadPageAppErrorAction;
+}>;
+
+export type AppErrorPresentation = TechnicalErrorPresentation | IndexedDbReloadRecoveryPresentation;
 
 export type AppErrorPresentationLabels = Readonly<{
   name: string;
@@ -20,8 +46,17 @@ export type AppErrorPresentationLabels = Readonly<{
 }>;
 
 export type AppErrorPresentationMessages = Readonly<{
-  title: string;
-  message: string;
+  technicalError: Readonly<{
+    title: string;
+    message: string;
+    close: string;
+  }>;
+  indexedDbReloadRecovery: Readonly<{
+    title: string;
+    message: string;
+    guidance: string;
+    reload: string;
+  }>;
   labels: AppErrorPresentationLabels;
 }>;
 
@@ -103,10 +138,30 @@ export function buildAppErrorPresentation(
   messages: AppErrorPresentationMessages,
 ): AppErrorPresentation {
   const error = normalizeCaughtError(caughtError);
+  const technicalDetails = buildTechnicalDetails(error, messages.labels);
+
+  if (isIndexedDbOpenRecoveryError(error)) {
+    return {
+      kind: "indexeddb-reload-recovery",
+      title: messages.indexedDbReloadRecovery.title,
+      message: messages.indexedDbReloadRecovery.message,
+      guidance: messages.indexedDbReloadRecovery.guidance,
+      technicalDetails,
+      action: {
+        kind: "reload-page",
+        label: messages.indexedDbReloadRecovery.reload,
+      },
+    };
+  }
 
   return {
-    title: messages.title,
-    message: messages.message,
-    technicalDetails: buildTechnicalDetails(error, messages.labels),
+    kind: "technical-error",
+    title: messages.technicalError.title,
+    message: messages.technicalError.message,
+    technicalDetails,
+    action: {
+      kind: "dismiss",
+      label: messages.technicalError.close,
+    },
   };
 }

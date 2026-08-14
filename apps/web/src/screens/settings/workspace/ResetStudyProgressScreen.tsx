@@ -5,7 +5,10 @@ import {
   isCapturedSyncFailure,
   isExpectedUnobservedSyncFailure,
 } from "../../../appData/sync/observation/syncErrorObservation";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureApiContractError } from "../../../observability/apiContractObservation";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -26,7 +29,7 @@ export function ResetStudyProgressScreen(): ReactElement {
     session,
     setErrorMessage: setAppErrorMessage,
   } = useAppData();
-  const { showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
   const { t, formatCount } = useI18n();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState<boolean>(false);
   const [resetConfirmationValue, setResetConfirmationValue] = useState<string>("");
@@ -95,7 +98,7 @@ export function ResetStudyProgressScreen(): ReactElement {
   }
 
   async function loadResetPreview(): Promise<void> {
-    if (activeWorkspace === null || isResetAvailable === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || activeWorkspace === null || isResetAvailable === false) {
       return;
     }
 
@@ -104,8 +107,12 @@ export function ResetStudyProgressScreen(): ReactElement {
 
     try {
       const preview = await loadWorkspaceResetProgressPreview(activeWorkspace.workspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setResetPreview(preview);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isCapturedSyncFailure(error)) {
         showCapturedTechnicalError(error);
         setAppErrorMessage(technicalErrorMessage);
@@ -154,12 +161,14 @@ export function ResetStudyProgressScreen(): ReactElement {
       }
       setResetErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setIsResetPreviewLoading(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsResetPreviewLoading(false);
+      }
     }
   }
 
   async function executeReset(): Promise<void> {
-    if (activeWorkspace === null || resetPreview === null) {
+    if (indexedDbOpenRecoveryState.hasFailed() || activeWorkspace === null || resetPreview === null) {
       return;
     }
 
@@ -168,8 +177,12 @@ export function ResetStudyProgressScreen(): ReactElement {
 
     try {
       await resetWorkspaceProgress(activeWorkspace.workspaceId, resetConfirmationValue);
+      indexedDbOpenRecoveryState.throwIfFailed();
       clearResetDialogState();
       void refreshLocalData().catch((error: unknown) => {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCapturedSyncFailure(error)) {
           showCapturedTechnicalError(error);
           setAppErrorMessage(technicalErrorMessage);
@@ -191,6 +204,9 @@ export function ResetStudyProgressScreen(): ReactElement {
         setAppErrorMessage(wasCaptured ? technicalErrorMessage : error instanceof Error ? error.message : String(error));
       });
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (error instanceof ApiContractError) {
         const wasCaptured = captureApiContractError(error, {
           feature: "settings",
@@ -228,7 +244,9 @@ export function ResetStudyProgressScreen(): ReactElement {
       }
       setResetErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setIsResetExecuting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsResetExecuting(false);
+      }
     }
   }
 

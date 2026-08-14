@@ -11,6 +11,8 @@ import {
   storeMobileAppPromotionPromptShown,
 } from "./mobileAppPromotion";
 
+const ignoreIndexedDbOpenRecoveryFailure = (): void => {};
+
 describe("local mobile app promotion state", () => {
   beforeEach(async () => {
     await clearWebSyncCache();
@@ -25,7 +27,7 @@ describe("local mobile app promotion state", () => {
 
     await storeKnownMobileReviewEvent({
       identityKey: "user:user-2",
-    });
+    }, ignoreIndexedDbOpenRecoveryFailure);
 
     await expect(loadMobileAppPromotionState("user:user-1")).resolves.toEqual({
       ...emptyMobileAppPromotionState,
@@ -46,7 +48,7 @@ describe("local mobile app promotion state", () => {
       identityKey: "user:user-1",
       localDate: "2026-03-11",
       shownAt: "2026-03-11T08:00:00.000Z",
-    })).resolves.toEqual({
+    }, ignoreIndexedDbOpenRecoveryFailure)).resolves.toEqual({
       ...emptyMobileAppPromotionState,
       lastPromptShownLocalDate: "2026-03-11",
       lastPromptShownAt: "2026-03-11T08:00:00.000Z",
@@ -70,7 +72,7 @@ describe("local mobile app promotion state", () => {
       identityKey: "user:user-1",
       localDate: "2026-03-11",
       shownAt: "2026-03-11T08:00:00.000Z",
-    })).resolves.toEqual({
+    }, ignoreIndexedDbOpenRecoveryFailure)).resolves.toEqual({
       lastPromptShownLocalDate: null,
       lastPromptShownAt: null,
       knownHasMobileReviewEvent: true,
@@ -88,7 +90,7 @@ describe("local mobile app promotion state", () => {
       identityKey: "user:user-1",
       localDate: "2026-03-11",
       shownAt: "2026-03-11T08:00:00.000Z",
-    })).resolves.toEqual({
+    }, ignoreIndexedDbOpenRecoveryFailure)).resolves.toEqual({
       ...emptyMobileAppPromotionState,
       lastPromptShownLocalDate: "2026-03-12",
       lastPromptShownAt: "2026-03-12T08:00:00.000Z",

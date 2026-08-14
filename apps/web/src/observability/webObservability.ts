@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react";
 import type { Scope } from "@sentry/react";
+import { isIndexedDbOpenRecoveryError } from "../localDb/core/indexedDbOpenRecovery";
 import { isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
 import { isWebSentryEnabled } from "./instrument";
 
@@ -331,6 +332,10 @@ export type AuthResetCleanupFailureDetails = Readonly<{
   operation: "auth_reset_cleanup_failed";
 }>;
 
+export type IndexedDbOpenRecoveryFailureDetails = Readonly<{
+  recoveryOwner: "app_error_dialog_provider";
+}>;
+
 export type WebAppOperation =
   | "session_resume"
   | "account_deletion_submit"
@@ -472,6 +477,12 @@ export type WebExceptionEvent =
     error: Error;
     scope: WebObservationScope;
     details: AuthResetCleanupFailureDetails;
+  }>
+  | Readonly<{
+    action: "indexed_db_open_recovery_failed";
+    error: Error;
+    scope: WebObservationScope;
+    details: IndexedDbOpenRecoveryFailureDetails;
   }>
   | Readonly<{
     action: "app_operation_failed";
@@ -829,6 +840,10 @@ export function captureWebException(event: WebExceptionEvent): void {
 }
 
 export function buildWebExceptionFingerprint(event: WebExceptionEvent): Array<string> {
+  if (isIndexedDbOpenRecoveryError(event.error)) {
+    return ["web.indexeddb.open.unknown_error"];
+  }
+
   if (event.action === "app_operation_failed") {
     return ["{{ default }}", event.action, event.details.operation];
   }

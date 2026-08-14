@@ -13,11 +13,29 @@ import type {
 
 export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFlags> {
   let afterReviewSequenceId = await loadLastAppliedReviewSequenceId(input.workspaceId);
+  if (input.hasFailed()) {
+    return {
+      didChangeProgressHistory: false,
+      didChangeReviewSchedule: false,
+    };
+  }
   const reviewHistoryHydrated = await hasHydratedReviewHistory(input.workspaceId);
+  if (input.hasFailed()) {
+    return {
+      didChangeProgressHistory: false,
+      didChangeReviewSchedule: false,
+    };
+  }
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   let didChangeProgressHistory = false;
 
   while (true) {
+    if (input.hasFailed()) {
+      return {
+        didChangeProgressHistory,
+        didChangeReviewSchedule: false,
+      };
+    }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
     const reviewHistoryResult = await pullReviewHistorySync(
       input.workspaceId,
@@ -26,13 +44,32 @@ export async function pullReviewHistory(input: WorkspaceRemoteSyncInput): Promis
       webAppVersion,
       afterReviewSequenceId,
       syncIncrementalPageSize,
+      input.signal,
     );
+    if (input.hasFailed()) {
+      return {
+        didChangeProgressHistory,
+        didChangeReviewSchedule: false,
+      };
+    }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
 
+    if (input.hasFailed()) {
+      return {
+        didChangeProgressHistory,
+        didChangeReviewSchedule: false,
+      };
+    }
     await applyReviewHistorySyncPage(input.workspaceId, reviewHistoryResult.reviewEvents, {
       lastAppliedReviewSequenceId: reviewHistoryResult.nextReviewSequenceId,
       markReviewHistoryHydrated: reviewHistoryHydrated === false && reviewHistoryResult.hasMore === false,
     });
+    if (input.hasFailed()) {
+      return {
+        didChangeProgressHistory,
+        didChangeReviewSchedule: false,
+      };
+    }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
 
     if (reviewHistoryResult.reviewEvents.length > 0) {

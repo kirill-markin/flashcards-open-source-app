@@ -24,9 +24,11 @@ import {
 export async function loadMediaAssetDownloadUrl(
   workspaceId: string,
   mediaAssetId: string,
+  signal: AbortSignal,
 ): Promise<MediaAssetDownloadUrlResult> {
   return parseContractResponse(await requestJson(`/workspaces/${workspaceId}/media-assets/${mediaAssetId}/download-url`, {
     method: "GET",
+    signal,
   }, allowAuthRecoveryWithTransientNetworkRetry), `GET /workspaces/${workspaceId}/media-assets/${mediaAssetId}/download-url`, parseMediaAssetDownloadUrlResponse);
 }
 

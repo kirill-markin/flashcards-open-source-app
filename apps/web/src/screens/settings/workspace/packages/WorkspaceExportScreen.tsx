@@ -4,7 +4,10 @@ import {
   previewWorkspacePackageExport,
 } from "../../../../api";
 import { useAppData } from "../../../../appData";
-import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../../appError/AppErrorContext";
 import { useI18n } from "../../../../i18n";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type {
@@ -190,7 +193,7 @@ function formatApproximateBytes(byteCount: number, formatNumberValue: NumberForm
 
 export function WorkspaceExportScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, session } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime, formatNumber } = useI18n();
   const [isPackageExporting, setIsPackageExporting] = useState<boolean>(false);
   const [isPackageExportPreviewing, setIsPackageExportPreviewing] = useState<boolean>(false);
@@ -266,6 +269,10 @@ export function WorkspaceExportScreen(): ReactElement {
   }
 
   useEffect(() => {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (packageExportPreviewIdentity === null) {
       return;
     }
@@ -273,9 +280,13 @@ export function WorkspaceExportScreen(): ReactElement {
     if (packageExportPreviewIdentity.workspaceId !== activeWorkspaceId) {
       resetPackageExportState();
     }
-  }, [activeWorkspaceId, packageExportPreviewIdentity]);
+  }, [activeWorkspaceId, indexedDbOpenRecoveryState, packageExportPreviewIdentity]);
 
   async function previewPackageExportWithSelection(selectedCardTags: ReadonlyArray<string>): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (activeWorkspace === null) {
       setErrorMessage(t("workspaceExport.workspaceUnavailable"));
       setSuccessMessage("");
@@ -292,6 +303,7 @@ export function WorkspaceExportScreen(): ReactElement {
         activeWorkspace.workspaceId,
         buildWorkspacePackageExportPreviewRequest(selectedCardTags),
       );
+      indexedDbOpenRecoveryState.throwIfFailed();
       setPackageExportPreview(preview);
       setPackageExportPreviewIdentity({
         workspaceId: activeWorkspace.workspaceId,
@@ -303,6 +315,9 @@ export function WorkspaceExportScreen(): ReactElement {
       ));
       setPackageExportIncludedTags(buildWorkspacePackageIncludedTags(preview));
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const wasCaptured = captureWorkspaceExportError(error);
       if (wasCaptured) {
         showCapturedTechnicalError(error);
@@ -311,15 +326,28 @@ export function WorkspaceExportScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      setIsPackageExportPreviewing(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsPackageExportPreviewing(false);
+      }
     }
   }
 
   async function previewPackageExport(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     await previewPackageExportWithSelection(packageExportSelectedCardTags);
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
   }
 
   async function downloadPackageExport(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const currentPreview = currentPackageExportPreview;
     if (activeWorkspace === null || currentPreview === null) {
       resetPackageExportPreview();
@@ -337,6 +365,7 @@ export function WorkspaceExportScreen(): ReactElement {
         activeWorkspace.workspaceId,
         buildWorkspacePackageExportDownloadRequest(currentPreview, packageExportSelectedCardTags, packageExportIncludedTags),
       );
+      indexedDbOpenRecoveryState.throwIfFailed();
       triggerBlobDownload({
         blob: result.blob,
         filename: result.filename,
@@ -345,6 +374,9 @@ export function WorkspaceExportScreen(): ReactElement {
       });
       setSuccessMessage(t("workspaceExport.packageExportSuccess"));
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const wasCaptured = captureWorkspaceExportError(error);
       if (wasCaptured) {
         showCapturedTechnicalError(error);
@@ -353,16 +385,26 @@ export function WorkspaceExportScreen(): ReactElement {
         setErrorMessage(error instanceof Error ? error.message : String(error));
       }
     } finally {
-      setIsPackageExporting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsPackageExporting(false);
+      }
     }
   }
 
   function selectAllPackageExportCards(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setPackageExportSelectedCardTags([]);
     void previewPackageExportWithSelection([]);
   }
 
   function togglePackageExportCardSelectionTag(tag: string): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const selectedCardTags = packageExportSelectedCardTags.includes(tag)
       ? packageExportSelectedCardTags.filter((currentTag) => currentTag !== tag)
       : [...packageExportSelectedCardTags, tag];
@@ -372,6 +414,10 @@ export function WorkspaceExportScreen(): ReactElement {
   }
 
   function togglePackageExportIncludedTag(tag: string): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setPackageExportIncludedTags((currentTags) => (
       currentTags.includes(tag)
         ? currentTags.filter((currentTag) => currentTag !== tag)

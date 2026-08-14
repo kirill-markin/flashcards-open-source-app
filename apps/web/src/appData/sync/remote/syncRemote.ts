@@ -18,9 +18,25 @@ export type {
 
 export async function runWorkspaceRemoteSync(input: WorkspaceRemoteSyncInput): Promise<RemoteSyncFlags> {
   let syncFlags = createEmptyRemoteSyncFlags();
+  if (input.hasFailed()) {
+    return syncFlags;
+  }
+
   syncFlags = mergeRemoteSyncFlags(syncFlags, await bootstrapHotState(input));
+  if (input.hasFailed()) {
+    return syncFlags;
+  }
+
   syncFlags = mergeRemoteSyncFlags(syncFlags, await pushOutbox(input));
+  if (input.hasFailed()) {
+    return syncFlags;
+  }
+
   syncFlags = mergeRemoteSyncFlags(syncFlags, await pullHotChanges(input));
+  if (input.hasFailed()) {
+    return syncFlags;
+  }
+
   syncFlags = mergeRemoteSyncFlags(syncFlags, await pullReviewHistory(input));
   return syncFlags;
 }

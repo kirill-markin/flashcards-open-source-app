@@ -14,7 +14,10 @@ import {
   friendInviteStoreLinks,
   resolveClientPlatform,
 } from "../../appPlatformLinks";
-import { useAppErrorDialog } from "../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../appError/AppErrorContext";
 import { invalidateServerProgress } from "../../appData/progress/invalidation/progressInvalidation";
 import { clearPersistedProgressLeaderboard } from "../../appData/progress/storage/progressStorage";
 import { getAppConfig } from "../../config";
@@ -269,7 +272,7 @@ export function FriendInviteReadyPanel({
 export function FriendInviteScreen(): ReactElement {
   const { token } = useParams();
   const inviteToken = readInviteTokenParam(token);
-  const { showTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showTechnicalError } = useAppErrorDialog();
   const { locale, t } = useI18n();
   const [loadState, setLoadState] = useState<InviteLoadState>("loading");
   const [preview, setPreview] = useState<FriendInvitationPreviewResponse | null>(null);
@@ -282,6 +285,10 @@ export function FriendInviteScreen(): ReactElement {
   const technicalErrorMessage = t("appError.technicalError.message");
 
   async function loadInvite(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setLoadState("loading");
     setPreview(null);
     setSession(null);
@@ -291,6 +298,7 @@ export function FriendInviteScreen(): ReactElement {
 
     try {
       const previewResponse = await previewFriendInvitation(inviteToken);
+      indexedDbOpenRecoveryState.throwIfFailed();
       setPreview(previewResponse);
       if (previewResponse.status === "inactive") {
         setLoadState("inactive");
@@ -298,9 +306,13 @@ export function FriendInviteScreen(): ReactElement {
       }
 
       const optionalSession = await getOptionalSession();
+      indexedDbOpenRecoveryState.throwIfFailed();
       setSession(optionalSession);
       setLoadState(optionalSession === null ? "signed_out" : "ready");
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isAuthRedirectError(error)) {
         return;
       }
@@ -326,9 +338,13 @@ export function FriendInviteScreen(): ReactElement {
 
   useEffect(() => {
     void loadInvite();
-  }, [inviteToken]);
+  }, [indexedDbOpenRecoveryState, inviteToken]);
 
   async function submitInviteAcceptance(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (session === null) {
       setErrorMessage(t("friendInvite.signInBody"));
       setLoadState("signed_out");
@@ -352,6 +368,7 @@ export function FriendInviteScreen(): ReactElement {
       const response = await acceptFriendInvitation(inviteToken, {
         inviterDisplayName: friendDisplayName.trim(),
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
 
       if (response.status === "inactive") {
         setLoadState("inactive");
@@ -365,6 +382,9 @@ export function FriendInviteScreen(): ReactElement {
         setLoadState("success");
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isAuthRedirectError(error)) {
         return;
       }
@@ -384,20 +404,34 @@ export function FriendInviteScreen(): ReactElement {
       });
       setErrorMessage(wasCaptured ? technicalErrorMessage : getErrorMessage(error));
     } finally {
-      setIsSubmitting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsSubmitting(false);
+      }
     }
   }
 
   function retryInviteLoad(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     void loadInvite();
   }
 
   function updateFriendDisplayName(value: string): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setFriendDisplayName(value);
     setFieldErrorMessage("");
   }
 
   function acceptInvite(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     void submitInviteAcceptance();
   }
 

@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  type IndexedDbOpenRecoveryState,
+} from "../../../appError/AppErrorContext";
 import {
   ApiError,
   isAuthRedirectError,
@@ -25,6 +29,7 @@ type UseChatDictationCaptureParams = Readonly<{
   ensureRemoteSession: () => Promise<string>;
   focusComposerRequestVersion: number;
   inputText: string;
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   onTechnicalError: (error: unknown, operation: ChatDictationTechnicalOperation) => boolean;
   t: Translate;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -148,6 +153,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
     ensureRemoteSession,
     focusComposerRequestVersion,
     inputText,
+    indexedDbOpenRecoveryState,
     onTechnicalError,
     t,
     textareaRef,
@@ -156,6 +162,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const transcriptionAbortControllerRef = useRef<AbortController | null>(null);
   const recordedChunksRef = useRef<Array<Blob>>([]);
   const currentSessionIdRef = useRef<string | null>(currentSessionId);
   const draftSelectionRef = useRef<ChatDraftSelection | null>(null);
@@ -164,12 +171,26 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   const shouldRestoreTextareaFocusAfterDictationRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
 
+  const stopActiveDictationResources = useCallback((): void => {
+    transcriptionAbortControllerRef.current?.abort(new DOMException("Chat dictation stopped", "AbortError"));
+    transcriptionAbortControllerRef.current = null;
+    const recorder = mediaRecorderRef.current;
+    if (recorder !== null && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+    cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+  }, []);
+
   useEffect(() => {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
 
   useEffect(() => {
-    if (pendingComposerFocusRestoreRef.current === false || dictationState !== "idle") {
+    if (
+      indexedDbOpenRecoveryState.hasFailed()
+      || pendingComposerFocusRestoreRef.current === false
+      || dictationState !== "idle"
+    ) {
       return;
     }
 
@@ -183,15 +204,15 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   });
 
   useEffect(() => {
-    if (dictationState !== "idle") {
+    if (indexedDbOpenRecoveryState.hasFailed() || dictationState !== "idle") {
       return;
     }
 
     textareaRef.current?.focus();
-  }, [dictationState, focusComposerRequestVersion, textareaRef]);
+  }, [dictationState, focusComposerRequestVersion, indexedDbOpenRecoveryState, textareaRef]);
 
   useEffect(() => {
-    if (dictationState !== "idle") {
+    if (indexedDbOpenRecoveryState.hasFailed() || dictationState !== "idle") {
       return;
     }
 
@@ -212,20 +233,39 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
     draftSelectionRef.current = { start, end };
     pendingTextareaSelectionRef.current = null;
     shouldRestoreTextareaFocusAfterDictationRef.current = false;
-  }, [dictationState, inputText, textareaRef]);
+  }, [dictationState, indexedDbOpenRecoveryState, inputText, textareaRef]);
+
+  useEffect(() => {
+    const handleRecoveryAbort = (): void => {
+      stopActiveDictationResources();
+      draftSelectionRef.current = null;
+      pendingTextareaSelectionRef.current = null;
+      pendingComposerFocusRestoreRef.current = false;
+      shouldRestoreTextareaFocusAfterDictationRef.current = false;
+    };
+
+    if (indexedDbOpenRecoveryState.signal.aborted) {
+      handleRecoveryAbort();
+      return undefined;
+    }
+
+    indexedDbOpenRecoveryState.signal.addEventListener("abort", handleRecoveryAbort, { once: true });
+    return (): void => {
+      indexedDbOpenRecoveryState.signal.removeEventListener("abort", handleRecoveryAbort);
+    };
+  }, [indexedDbOpenRecoveryState.signal, stopActiveDictationResources]);
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
-      const recorder = mediaRecorderRef.current;
-      if (recorder !== null && recorder.state !== "inactive") {
-        recorder.stop();
-      }
-      cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+      stopActiveDictationResources();
     };
-  }, []);
+  }, [stopActiveDictationResources]);
 
   function updateTrackedDraftSelection(textarea: HTMLTextAreaElement): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     draftSelectionRef.current = {
       start: textarea.selectionStart,
       end: textarea.selectionEnd,
@@ -238,16 +278,14 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   }
 
   function requestComposerFocusRestore(): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
     pendingComposerFocusRestoreRef.current = true;
   }
 
   function discardDictation(): void {
-    const recorder = mediaRecorderRef.current;
-    if (recorder !== null && recorder.state !== "inactive") {
-      recorder.stop();
-    }
-
-    cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+    stopActiveDictationResources();
     draftSelectionRef.current = null;
     pendingTextareaSelectionRef.current = null;
     shouldRestoreTextareaFocusAfterDictationRef.current = false;
@@ -257,7 +295,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   }
 
   async function startDictation(): Promise<void> {
-    if (dictationState !== "idle") {
+    if (indexedDbOpenRecoveryState.hasFailed() || dictationState !== "idle") {
       return;
     }
 
@@ -286,7 +324,9 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
 
     let stream: MediaStream | null = null;
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       stream = await mediaDevices.getUserMedia({ audio: true, video: false });
+      indexedDbOpenRecoveryState.throwIfFailed();
       const recorderMimeType = chooseSupportedRecordingMimeType();
       const recorder = recorderMimeType === null
         ? new MediaRecorder(stream)
@@ -304,9 +344,19 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         setDictationState("recording");
       }
     } catch (error) {
+      const isRecoveryActive = markIndexedDbOpenRecoveryFailureAndCheckActive(
+        indexedDbOpenRecoveryState,
+        error,
+      );
       stopMediaStream(stream);
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+      if (isRecoveryActive) {
+        return;
+      }
       const permissionState = await queryBrowserPermissionState("microphone");
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       if (isMountedRef.current) {
         if (isExpectedBrowserMediaPermissionError(error)) {
           window.alert(explainBrowserMediaPermissionError("microphone", error, permissionState, t));
@@ -319,6 +369,12 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   }
 
   async function stopDictation(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      stopActiveDictationResources();
+      pendingComposerFocusRestoreRef.current = false;
+      return;
+    }
+
     const recorder = mediaRecorderRef.current;
     if (recorder === null || recorder.state === "inactive") {
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
@@ -328,8 +384,11 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
 
     setDictationState("transcribing");
 
+    let transcriptionAbortController: AbortController | null = null;
     try {
+      indexedDbOpenRecoveryState.throwIfFailed();
       const audioBlob = await stopMediaRecorder(recorder, recordedChunksRef);
+      indexedDbOpenRecoveryState.throwIfFailed();
       stopMediaStream(mediaStreamRef.current);
       if (audioBlob.size <= 0) {
         if (isMountedRef.current) {
@@ -343,12 +402,17 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       }
 
       const sessionId = await ensureRemoteSession();
+      indexedDbOpenRecoveryState.throwIfFailed();
+      transcriptionAbortController = new AbortController();
+      transcriptionAbortControllerRef.current = transcriptionAbortController;
       const transcription = await transcribeChatAudio(
         audioBlob,
         "web",
         sessionId,
         activeWorkspaceId,
+        transcriptionAbortController.signal,
       );
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (transcription.sessionId !== sessionId) {
         throw new Error(t("chatPanel.errors.transcriptionUnexpectedSessionId"));
       }
@@ -373,6 +437,10 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         });
       }
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+
       if (isMountedRef.current) {
         if (error instanceof Error && error.message === "MICROPHONE_RECORDING_FAILED") {
           window.alert(t("chatPanel.alerts.microphoneUnavailable"));
@@ -387,16 +455,26 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         }
       }
     } finally {
+      if (transcriptionAbortControllerRef.current === transcriptionAbortController) {
+        transcriptionAbortControllerRef.current = null;
+      }
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
-      if (isMountedRef.current) {
+      if (isMountedRef.current && indexedDbOpenRecoveryState.hasFailed() === false) {
         setDictationState("idle");
       }
     }
   }
 
   async function handleMicrophoneClick(canStartDictation: boolean): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     if (dictationState === "recording") {
       await stopDictation();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
       return;
     }
 

@@ -8,7 +8,10 @@ import {
 } from "react";
 import { ApiContractError } from "../../../api";
 import { useAppData } from "../../../appData";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { addWebBreadcrumb } from "../../../observability/webObservability";
@@ -33,7 +36,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
     technicalError: workspaceActionTechnicalError,
     setErrorMessage: setWorkspaceActionErrorMessage,
   } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
   const [isChangeDialogOpen, setIsChangeDialogOpen] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -200,15 +203,30 @@ export function CurrentWorkspaceScreen(): ReactElement {
   }
 
   async function handleWorkspaceSelect(workspaceId: string, focusTarget: HTMLButtonElement): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setChangeErrorMessage("");
     setWorkspaceActionErrorMessage("");
     setPendingWorkspaceId(workspaceId);
     changeDialogOperationFocusRef.current = focusTarget;
-    await chooseWorkspace(workspaceId);
+    try {
+      await chooseWorkspace(workspaceId);
+      indexedDbOpenRecoveryState.throwIfFailed();
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
+      throw error;
+    }
   }
 
   async function handleCreateWorkspace(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
 
     const trimmedName = newWorkspaceName.trim();
     if (trimmedName === "") {
@@ -221,8 +239,12 @@ export function CurrentWorkspaceScreen(): ReactElement {
       setWorkspaceActionErrorMessage("");
       changeDialogOperationFocusRef.current = newWorkspaceNameInputRef.current;
       await createWorkspace(trimmedName);
+      indexedDbOpenRecoveryState.throwIfFailed();
       closeChangeDialog();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const nextErrorMessage = error instanceof Error ? error.message : String(error);
       const isExpectedError = nextErrorMessage === t("app.sessionUnavailable")
         || nextErrorMessage === t("app.sessionRestoringActionLocked")
@@ -239,6 +261,9 @@ export function CurrentWorkspaceScreen(): ReactElement {
 
   async function handleRenameSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
 
     if (activeWorkspace === null) {
       setRenameErrorMessage(t("workspaceOverview.rename.workspaceUnavailable"));
@@ -266,8 +291,12 @@ export function CurrentWorkspaceScreen(): ReactElement {
 
     try {
       await renameWorkspace(activeWorkspace.workspaceId, trimmedWorkspaceName);
+      indexedDbOpenRecoveryState.throwIfFailed();
       closeRenameDialog();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (error instanceof ApiContractError === false) {
         const wasCaptured = captureAppOperationError(error, {
           feature: "settings",
@@ -294,7 +323,9 @@ export function CurrentWorkspaceScreen(): ReactElement {
       }
       setRenameErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
-      setIsRenameSubmitting(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsRenameSubmitting(false);
+      }
     }
   }
 

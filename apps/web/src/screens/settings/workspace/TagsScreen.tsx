@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 import { useAppData } from "../../../appData";
-import { useAppErrorDialog } from "../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../appError/AppErrorContext";
 import { useI18n } from "../../../i18n";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
@@ -16,7 +19,7 @@ const emptyTagsSummary: WorkspaceTagsSummary = {
 
 export function TagsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, openReview, refreshLocalData, session } = useAppData();
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatCount, formatNumber } = useI18n();
   const navigate = useNavigate();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
@@ -39,6 +42,10 @@ export function TagsScreen(): ReactElement {
     let isCancelled = false;
 
     async function loadScreenData(): Promise<void> {
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
       setIsLoading(true);
       setErrorMessage("");
 
@@ -48,12 +55,16 @@ export function TagsScreen(): ReactElement {
         }
 
         const nextTagsSummary = await loadWorkspaceTagsSummary(activeWorkspace.workspaceId);
+        indexedDbOpenRecoveryState.throwIfFailed();
         if (isCancelled) {
           return;
         }
 
         setTagsSummary(nextTagsSummary);
       } catch (error) {
+        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+          return;
+        }
         if (isCancelled) {
           return;
         }
@@ -76,7 +87,7 @@ export function TagsScreen(): ReactElement {
         }
         setErrorMessage(error instanceof Error ? error.message : String(error));
       } finally {
-        if (!isCancelled) {
+        if (!isCancelled && indexedDbOpenRecoveryState.hasFailed() === false) {
           setIsLoading(false);
         }
       }
@@ -87,9 +98,13 @@ export function TagsScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspace, localReadVersion]);
+  }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion]);
 
   function handleOpenTagReview(tag: string): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     const reviewFilter: ReviewFilter = {
       kind: "tags",
       tags: [tag],
@@ -100,9 +115,17 @@ export function TagsScreen(): ReactElement {
   }
 
   async function handleRefreshLocalData(): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     try {
       await refreshLocalData();
+      indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       handleRefreshLocalDataError({
         error,
         context: {

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
+import {
+  markIndexedDbOpenRecoveryFailureAndCheckActive,
+  useAppErrorDialog,
+} from "../../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../../i18n";
 import { UnsupportedImagePreparationError } from "../../../../media/imagePreparation";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
@@ -139,7 +142,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     userId,
     workspaceId,
   } = params;
-  const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const editorIdentityRef = useRef<ReviewEditorIdentity | null>(null);
   const reconciliationBaselineCardRef = useRef<Card | null>(null);
   const lastProcessedObservedCardMarkerRef = useRef<ReviewCardObservationMarker | null>(null);
@@ -353,6 +356,10 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
   }, [resetTextareaSelectionRestore]);
 
   function handleOpenEditor(card: Card): void {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     resetTextareaSelectionRestore();
     const initialFormState = toCardFormState(card);
     const presentationGeneration = presentationGenerationRef.current + 1;
@@ -390,7 +397,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
   }
 
   async function handleEditorSave(): Promise<void> {
-    if (isAuthoringMedia || isEditorSubmissionAllowed() === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isAuthoringMedia || isEditorSubmissionAllowed() === false) {
       return;
     }
 
@@ -415,6 +422,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         backText: submittedFormState.backText,
         tags: submittedFormState.tags,
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isEditorPresentationCurrent(presentationToken) === false) {
         return;
       }
@@ -426,6 +434,9 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
 
       handleCloseEditorIfCurrent(presentationToken);
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       if (isEditorPresentationCurrent(presentationToken) === false) {
         return;
       }
@@ -447,14 +458,14 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       showCapturedTechnicalError(error);
       setEditorErrorMessage(t("appError.technicalError.message"));
     } finally {
-      if (isEditorPresentationCurrent(presentationToken)) {
+      if (indexedDbOpenRecoveryState.hasFailed() === false && isEditorPresentationCurrent(presentationToken)) {
         setIsEditorSaving(false);
       }
     }
   }
 
   async function handleEditorSaveForAiHandoff(): Promise<Card | null> {
-    if (isAuthoringMedia || isEditorSubmissionAllowed() === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isAuthoringMedia || isEditorSubmissionAllowed() === false) {
       return null;
     }
 
@@ -479,6 +490,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         backText: submittedFormState.backText,
         tags: submittedFormState.tags,
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       if (isEditorPresentationCurrent(presentationToken) === false) {
         return null;
       }
@@ -494,6 +506,9 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       setEditorFormState(savedFormState);
       return savedCard;
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return null;
+      }
       if (isEditorPresentationCurrent(presentationToken) === false) {
         return null;
       }
@@ -516,14 +531,14 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       setEditorErrorMessage(t("appError.technicalError.message"));
       return null;
     } finally {
-      if (isEditorPresentationCurrent(presentationToken)) {
+      if (indexedDbOpenRecoveryState.hasFailed() === false && isEditorPresentationCurrent(presentationToken)) {
         setIsEditorSaving(false);
       }
     }
   }
 
   async function handleEditorDelete(): Promise<void> {
-    if (isAuthoringMedia) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isAuthoringMedia) {
       return;
     }
 
@@ -542,8 +557,12 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
 
     try {
       await deleteCardItem(editingCardId);
+      indexedDbOpenRecoveryState.throwIfFailed();
       handleCloseEditor();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("reviewEditor.errors.cardNotFound"));
       if (expectedErrorMessage !== null) {
         setEditorErrorMessage(expectedErrorMessage);
@@ -561,7 +580,9 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       showCapturedTechnicalError(error);
       setEditorErrorMessage(t("appError.technicalError.message"));
     } finally {
-      setIsEditorSaving(false);
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setIsEditorSaving(false);
+      }
     }
   }
 
@@ -583,6 +604,10 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
   }
 
   async function handlePrepareImageMedia(request: CardFormImageMediaRequest): Promise<string | null> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return null;
+    }
+
     if (workspaceId === null) {
       setManagedMediaFieldError(request.field, t("cardForm.media.errors.workspaceUnavailable"));
       return null;
@@ -605,10 +630,14 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         installationId,
         file: request.file,
         altText: request.altText,
-      });
+      }, indexedDbOpenRecoveryState.throwIfFailed);
+      indexedDbOpenRecoveryState.throwIfFailed();
       runMediaUploadTransfers();
       return result.markdown;
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return null;
+      }
       if (error instanceof UnsupportedImagePreparationError) {
         setManagedMediaFieldError(request.field, t("cardForm.media.errors.unsupportedImage"));
         return null;
@@ -626,17 +655,23 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       setManagedMediaFieldError(request.field, t("cardForm.media.errors.processingFailed"));
       return null;
     } finally {
-      setManagedMediaState((currentState) => ({
-        ...currentState,
-        [request.field]: {
-          ...currentState[request.field],
-          isProcessing: false,
-        },
-      }));
+      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+        setManagedMediaState((currentState) => ({
+          ...currentState,
+          [request.field]: {
+            ...currentState[request.field],
+            isProcessing: false,
+          },
+        }));
+      }
     }
   }
 
   async function handleRetryMediaUploadTransfer(request: CardFormMediaUploadRetryRequest): Promise<void> {
+    if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+
     setEditorErrorMessage("");
     setErrorMessage("");
 
@@ -645,8 +680,12 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
         ...request,
         retryAt: new Date().toISOString(),
       });
+      indexedDbOpenRecoveryState.throwIfFailed();
       runMediaUploadTransfers();
     } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        return;
+      }
       captureAppOperationError(error, {
         feature: "review",
         operation: "review_card_image_upload_retry",

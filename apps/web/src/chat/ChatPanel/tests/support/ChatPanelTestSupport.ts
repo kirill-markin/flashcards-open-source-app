@@ -790,6 +790,8 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       _blob: Blob,
       _source: "web",
       sessionId: string,
+      _workspaceId: string,
+      _signal: AbortSignal,
     ) => ({
       text: "dictated text",
       sessionId,
