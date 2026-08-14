@@ -428,8 +428,13 @@ export function reviewReactionLottieAssetFailure(variant: ReviewReactionLottieVa
 function clearReviewReactionLottieState(): void {
   reviewReactionLottieStateGeneration += 1;
   destroyReviewReactionLottiePreparedRenders(reviewReactionLottiePreparedRenderByVariant);
-  for (const preparedRender of reviewReactionLottieReservedRenderByEventId.values()) {
-    destroyReviewReactionLottiePreparedRender(preparedRender);
+  const mountedRenderByEventId = new Map<string, ReviewReactionLottiePreparedRender>();
+  for (const [eventId, preparedRender] of reviewReactionLottieReservedRenderByEventId.entries()) {
+    if (reviewReactionLottieMountedRenderEventIds.has(eventId)) {
+      mountedRenderByEventId.set(eventId, preparedRender);
+    } else {
+      destroyReviewReactionLottiePreparedRender(preparedRender);
+    }
   }
   reviewReactionLottieOffscreenRoot?.remove();
 
@@ -440,9 +445,9 @@ function clearReviewReactionLottieState(): void {
   reviewReactionLottiePreparedRenderByVariant = makeEmptyReviewReactionLottiePreparedRenderByVariant();
   reviewReactionLottiePreparedRenderPromiseByVariant = makeEmptyReviewReactionLottiePreparedRenderPromiseByVariant();
   reviewReactionLottieFailureByVariant = makeEmptyReviewReactionLottieFailureByVariant();
-  reviewReactionLottieReservedRenderByEventId = new Map<string, ReviewReactionLottiePreparedRender>();
-  reviewReactionLottieMountedRenderEventIds = new Set<string>();
-  reviewReactionLottieReleaseRequestedEventIds = new Set<string>();
+  reviewReactionLottieReservedRenderByEventId = mountedRenderByEventId;
+  reviewReactionLottieMountedRenderEventIds = new Set<string>(mountedRenderByEventId.keys());
+  reviewReactionLottieReleaseRequestedEventIds = new Set<string>(mountedRenderByEventId.keys());
   reviewReactionLottieOffscreenRoot = null;
 }
 
