@@ -11,9 +11,16 @@ import {
 } from "react";
 import { bindIndexedDbOpenRecoverySignal } from "../api/transport/transport";
 import { type TranslationKey, type TranslationValues, useI18n } from "../i18n";
-import { isIndexedDbOpenRecoveryError } from "../localDb/core/indexedDbOpenRecovery";
+import {
+  isIndexedDbOpenRecoveryError,
+  type IndexedDbOpenRecoveryError,
+} from "../localDb/core/indexedDbOpenRecovery";
 import { captureAppOperationError } from "../observability/appOperationObservation";
-import type { WebAppOperation, WebObservationFeature } from "../observability/webObservability";
+import {
+  captureWebException,
+  type WebAppOperation,
+  type WebObservationFeature,
+} from "../observability/webObservability";
 import { AppErrorDialog } from "./AppErrorDialog";
 import {
   buildAppErrorPresentation,
@@ -105,6 +112,35 @@ function buildPreviewError(): Error {
   return previewError;
 }
 
+function getCurrentRoute(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function captureIndexedDbOpenRecoveryFailure(error: IndexedDbOpenRecoveryError): void {
+  captureWebException({
+    action: "indexed_db_open_recovery_failed",
+    error,
+    scope: {
+      app: "web",
+      feature: "app",
+      userId: null,
+      workspaceId: null,
+      installationId: null,
+      route: getCurrentRoute(),
+      requestId: null,
+      statusCode: null,
+      code: null,
+    },
+    details: {
+      recoveryOwner: "app_error_dialog_provider",
+    },
+  });
+}
+
 export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): ReactElement {
   const { children } = props;
   const { t } = useI18n();
@@ -138,6 +174,7 @@ export function AppErrorDialogProvider(props: AppErrorDialogProviderProps): Reac
       indexedDbOpenRecoveryRef.current = {
         firstError: error,
       };
+      captureIndexedDbOpenRecoveryFailure(error);
       indexedDbOpenRecoveryAbortController.abort(error);
       setIsIndexedDbOpenRecoveryFailed(true);
       setPresentation(buildAppErrorPresentation(error, buildPresentationMessages(t)));

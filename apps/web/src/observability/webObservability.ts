@@ -332,6 +332,10 @@ export type AuthResetCleanupFailureDetails = Readonly<{
   operation: "auth_reset_cleanup_failed";
 }>;
 
+export type IndexedDbOpenRecoveryFailureDetails = Readonly<{
+  recoveryOwner: "app_error_dialog_provider";
+}>;
+
 export type WebAppOperation =
   | "session_resume"
   | "account_deletion_submit"
@@ -473,6 +477,12 @@ export type WebExceptionEvent =
     error: Error;
     scope: WebObservationScope;
     details: AuthResetCleanupFailureDetails;
+  }>
+  | Readonly<{
+    action: "indexed_db_open_recovery_failed";
+    error: Error;
+    scope: WebObservationScope;
+    details: IndexedDbOpenRecoveryFailureDetails;
   }>
   | Readonly<{
     action: "app_operation_failed";
