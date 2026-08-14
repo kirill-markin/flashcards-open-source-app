@@ -6,6 +6,17 @@ description: >-
 
 # Publish a public flashcard deck
 
+## Reference
+
+Before drafting, inspect one published deck. The complete public JSON snapshot is `GET https://api.flashcards-open-source-app.com/v1/catalog`; do not download it only for reference. Read one deck and at most five of its cards through bounded endpoints:
+
+```sh
+package_json="$(curl --fail --silent --show-error 'https://api.flashcards-open-source-app.com/v1/catalog/packages?limit=1')"
+printf '%s\n' "$package_json" | jq '.catalogPackages[0]'
+package_version_id="$(printf '%s\n' "$package_json" | jq -r '.catalogPackages[0].latestVersion.packageVersionId')"
+curl --fail --silent --show-error "https://api.flashcards-open-source-app.com/v1/catalog/package-versions/${package_version_id}/cards?limit=5" | jq '.cards'
+```
+
 1. Read `AGENTS.md`, `apps/backend/src/catalog/authoring/`, `apps/backend/src/routes/catalog/admin.ts`, `apps/backend/src/routes/catalog/adminImageIngestion.ts`, and `apps/backend/src/routes/catalog/install.ts`, plus the sibling website's `src/lib/publicCatalogBuild.ts` and `.github/workflows/daily-vercel-rebuild.yml`. Use the current code as the API contract.
 2. Agree on the topic, card source and order, author, stable slug, title, summary, Markdown description, language and topic tags, license, content warning, and desired cover. For a deck that tracks the latest release, keep one durable canonical slug, put source and release years in versioned metadata, and create another slug only when distinct versions must remain independently installable. By default, put one short, recognizable, uncommon deck-specific tag on every card. Accept the small collision risk instead of adding a namespace or prefix; avoid generic tags such as `study`, `cards`, or `deck`. Do not add section, status, difficulty, or maintenance tags unless the user explicitly requests them. Review all public text and media with the user before state-changing API calls.
 3. Prefer a Git-ignored `tmp/public-catalog/<slug>/` review bundle. Reuse the portable workspace package layout for `cards.json` and optional card files under `media/`; add `catalog.json` for catalog-only metadata, an optional `cover.png`, `cover.jpg`, or `cover.webp`, and a generated `review.md`. Only `cards.json` and referenced `media/**` entries belong in a workspace import ZIP; exclude the catalog-only and review files. This bundle is recommended, not required. Covers and card images are optional and may be created with an available LLM image-generation tool; review generated media, alt text, credits, and licenses before upload. Before choosing a cover aspect ratio, inspect the rendered catalog crops and the SEO metadata wiring. When one image must serve catalog and search or social previews, prefer a relevant, text-light, center-safe 16:9 image at least 1200 pixels wide and review every crop; do not assume the package cover feeds Open Graph, Twitter, or JSON-LD metadata.
