@@ -37,20 +37,23 @@ type MediaUploadCompletionTerminalReason = "retry_exhausted" | "interrupted";
 
 export class MediaUploadCompletionTerminalError extends PermanentMediaUploadError {
   readonly reason: MediaUploadCompletionTerminalReason;
-  readonly completionCause: ApiError;
+  readonly completionCause: ApiError | null;
   readonly interruptionCause: Error | null;
 
   constructor(
     reason: MediaUploadCompletionTerminalReason,
-    completionCause: ApiError,
+    completionCause: ApiError | null,
     interruptionCause: Error | null,
   ) {
+    const completionDescription = completionCause === null
+      ? "none"
+      : describeApiError(completionCause);
     const interruptionDescription = interruptionCause === null
       ? "none"
       : describeUploadError(interruptionCause);
     super(
       `Media upload completion stopped for this local run: reason=${reason}, `
-      + `completionError=${describeApiError(completionCause)}, `
+      + `completionError=${completionDescription}, `
       + `interruptionError=${interruptionDescription}`,
     );
     this.name = "MediaUploadCompletionTerminalError";

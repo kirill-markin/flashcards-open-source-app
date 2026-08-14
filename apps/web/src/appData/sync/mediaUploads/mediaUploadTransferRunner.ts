@@ -336,7 +336,15 @@ async function runMultipartUploadSession(
       throw error;
     }
     if (hasStartedCompletion) {
-      throwIfUploadLifecycleCancelled(signal);
+      try {
+        throwIfUploadLifecycleCancelled(signal);
+      } catch (cancellationError) {
+        throw new MediaUploadCompletionTerminalError(
+          "interrupted",
+          null,
+          normalizeMediaUploadError(cancellationError),
+        );
+      }
     }
 
     const abortError = await abortUploadSessionAfterFailure(
