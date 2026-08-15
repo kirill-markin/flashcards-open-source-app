@@ -78,7 +78,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -132,6 +131,7 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 101,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
       "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
@@ -142,6 +142,7 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 100,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
       "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
