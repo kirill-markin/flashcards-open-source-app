@@ -914,9 +914,9 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
            RETURNING author_id
          )
          INSERT INTO catalog.packages (package_id, author_id, slug, title, summary, description,
-                                       language_tags, topic_tags, license)
+                                       language_tags, license)
          SELECT $2, author_id, $3 || '-package', 'Lifecycle', 'Lifecycle', 'Lifecycle',
-                ARRAY['en'], ARRAY[]::text[], 'CC0-1.0'
+                ARRAY['en'], 'CC0-1.0'
          FROM inserted_author`,
         [authorId, packageId, catalogSlug],
       );

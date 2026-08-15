@@ -109,6 +109,16 @@ function parseOptionalQueryString(value: string | undefined, fieldName: string):
   return trimmedValue;
 }
 
+function rejectRemovedTopicTagQuery(value: string | undefined): void {
+  if (value !== undefined) {
+    throw new HttpError(
+      400,
+      "topicTag was removed; omit topicTag from public catalog list requests.",
+      "CATALOG_PUBLIC_TOPIC_TAG_REMOVED",
+    );
+  }
+}
+
 function parsePackageSlugParam(value: string | undefined): string {
   if (value === undefined) {
     throw new HttpError(400, "packageSlug is required", "CATALOG_PUBLIC_PARAM_REQUIRED");
@@ -282,11 +292,11 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
   )));
 
   app.get("/catalog/packages", async (context) => {
+    rejectRemovedTopicTagQuery(context.req.query("topicTag"));
     const catalogPackages = await listPublicCatalogPackagesFn({
       limit: parseLimitQuery(context.req.query("limit"), "limit", defaultPackageListLimit),
       search: parseOptionalQueryString(context.req.query("q"), "q"),
       languageTag: parseOptionalQueryString(context.req.query("languageTag"), "languageTag"),
-      topicTag: parseOptionalQueryString(context.req.query("topicTag"), "topicTag"),
     });
 
     return context.json({ catalogPackages });

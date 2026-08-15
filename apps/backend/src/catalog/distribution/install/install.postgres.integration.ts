@@ -96,8 +96,8 @@ test("catalog install atomically replays one request and rejects key or operatio
       await setupClient.query(
         [
           "INSERT INTO catalog.packages",
-          "(package_id, author_id, slug, title, summary, description, language_tags, topic_tags, license, status, published_at)",
-          "VALUES ($1, $2, $3, 'Idempotency package', 'Summary', 'Description', ARRAY['en'], ARRAY['test'], 'CC0-1.0', 'published', $4)",
+          "(package_id, author_id, slug, title, summary, description, language_tags, license, status, published_at)",
+          "VALUES ($1, $2, $3, 'Idempotency package', 'Summary', 'Description', ARRAY['en'], 'CC0-1.0', 'published', $4)",
         ].join(" "),
         [packageId, authorId, `idempotency-package-${suffix}`, installedAt],
       );
@@ -105,9 +105,9 @@ test("catalog install atomically replays one request and rejects key or operatio
         [
           "INSERT INTO catalog.package_versions",
           "(package_version_id, package_id, version_number, status, slug, title, summary, description,",
-          "language_tags, topic_tags, license, card_count, created_by_admin_email)",
+          "language_tags, license, card_count, created_by_admin_email)",
           "VALUES ($1, $2, 1, 'draft', $3, 'Idempotency package', 'Summary', 'Description',",
-          "ARRAY['en'], ARRAY['test'], 'CC0-1.0', 1, $4)",
+          "ARRAY['en'], 'CC0-1.0', 1, $4)",
         ].join(" "),
         [packageVersionId, packageId, `idempotency-package-${suffix}-v1`, "catalog@example.test"],
       );

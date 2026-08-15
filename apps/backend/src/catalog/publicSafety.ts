@@ -42,7 +42,6 @@ export type PublicCatalogVersionPresentationInput = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -79,7 +78,7 @@ export type PublicCatalogVersionEligibilityIssue =
   | PublicCatalogAuthorEligibilityIssue
   | Readonly<{
     reason: "unsafe_version_field";
-    field: "slug" | "title" | "summary" | "description" | "languageTags" | "topicTags"
+    field: "slug" | "title" | "summary" | "description" | "languageTags"
       | "license" | "contentWarning";
   }>
   | Readonly<{
@@ -243,9 +242,6 @@ function getPublicCatalogVersionPresentationIssue(
 
   if (isPublicCatalogTextArraySafe(version.languageTags) === false) {
     return { reason: "unsafe_version_field", field: "languageTags" };
-  }
-  if (isPublicCatalogTextArraySafe(version.topicTags) === false) {
-    return { reason: "unsafe_version_field", field: "topicTags" };
   }
 
   return null;

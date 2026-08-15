@@ -75,8 +75,8 @@ test("catalog image admission stays fenced across reverse-SHA package and collec
       await fixture.ownerPool.query(
         `INSERT INTO catalog.packages(
            package_id,author_id,slug,title,summary,description,
-           language_tags,topic_tags,license
-         ) VALUES($1,$2,$3,'Images','Summary','Description',ARRAY['en'],ARRAY['test'],'CC-BY-4.0')`,
+           language_tags,license
+         ) VALUES($1,$2,$3,'Images','Summary','Description',ARRAY['en'],'CC-BY-4.0')`,
         [packageId, authorId, `image-package-${slug}`],
       );
       const admissionParams = (
@@ -249,9 +249,8 @@ test("catalog image admission stays fenced across reverse-SHA package and collec
       await fixture.runtimePool.query(
         `INSERT INTO catalog.collections(
            collection_id,slug,title,summary,description,language_tags,
-           topic_tags,cover_package_id,cover_media_blob_id
-         ) VALUES($1,$2,'Images','Summary','Description',ARRAY['en'],
-           ARRAY['test'],$3,$4)`,
+           cover_package_id,cover_media_blob_id
+         ) VALUES($1,$2,'Images','Summary','Description',ARRAY['en'],$3,$4)`,
         [collectionId, `image-collection-${slug}`, packageId, mediaBlobId],
       );
       assert.equal((await fixture.runtimePool.query<{ scheduled: boolean }>(

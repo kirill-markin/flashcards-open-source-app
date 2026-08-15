@@ -50,7 +50,6 @@ export type CatalogPackageRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  topic_tags: ReadonlyArray<string>;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -69,7 +68,6 @@ export type CatalogPackage = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -88,7 +86,6 @@ export type CreateCatalogPackageDraftInput = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
 }>;
@@ -101,7 +98,6 @@ export type UpdateCatalogPackageDraftInput = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -170,7 +166,6 @@ export type CatalogPackageVersionRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  topic_tags: ReadonlyArray<string>;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -196,7 +191,6 @@ export type CatalogPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -230,7 +224,6 @@ export type CatalogPublicPackageVersionSummary = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -246,7 +239,6 @@ export type CatalogPublicPackageSummary = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -283,7 +275,6 @@ export type CatalogPublicPackageListInput = Readonly<{
   limit: number;
   search: string | null;
   languageTag: string | null;
-  topicTag: string | null;
 }>;
 
 export type CatalogPublicPackageCardPreviewInput = Readonly<{
@@ -309,7 +300,7 @@ export type CatalogPublicCollectionCoverDownloadSource = Readonly<{
   sha256: string;
 }>;
 
-export const catalogPublicSnapshotSchemaVersion = 1 as const;
+export const catalogPublicSnapshotSchemaVersion = 2 as const;
 
 export type CatalogPublicSnapshotAuthor = Readonly<{
   authorId: string;
@@ -339,7 +330,6 @@ export type CatalogPublicSnapshotPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverMediaAssetId: string | null;
@@ -379,7 +369,6 @@ export type CatalogPublicSnapshotCollection = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   coverPackageId: string | null;
   coverDownloadUrl?: string;
   status: "published";
@@ -462,7 +451,6 @@ export type CatalogPackageInstallPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;

@@ -29,7 +29,6 @@ function createPackageVersion(): CatalogPackageInstallPackageVersion {
     summary: "Test package",
     description: "Test package",
     languageTags: ["ru"],
-    topicTags: ["test"],
     license: "CC0-1.0",
     contentWarning: null,
     coverPackageMediaKey: null,
@@ -78,7 +77,7 @@ describe("catalog API endpoints", () => {
     };
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(new Response(JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         generatedAt: "2026-08-02T10:00:00.000Z",
         authors: [{
           authorId,
@@ -112,7 +111,6 @@ describe("catalog API endpoints", () => {
           summary: "Test collection",
           description: "Test collection",
           languageTags: ["en"],
-          topicTags: ["test"],
           coverPackageId: packageId,
           coverDownloadUrl: `http://localhost:8080/v1/catalog/collections/${collectionId}/cover/download`,
           status: "published",
@@ -125,7 +123,6 @@ describe("catalog API endpoints", () => {
           summary: "Legacy collection",
           description: "Legacy collection",
           languageTags: ["en"],
-          topicTags: ["test"],
           coverPackageId: packageId,
           status: "published",
           updatedAt: "2026-08-01T10:00:00.000Z",
@@ -157,7 +154,7 @@ describe("catalog API endpoints", () => {
     };
 
     const catalog = await loadPublicCatalog();
-    expect(catalog).toMatchObject({ schemaVersion: 1 });
+    expect(catalog).toMatchObject({ schemaVersion: 2 });
     expect(catalog.collections[0]?.coverDownloadUrl).toBe(
       `http://localhost:8080/v1/catalog/collections/${collectionId}/cover/download`,
     );

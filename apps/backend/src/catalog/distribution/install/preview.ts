@@ -29,7 +29,6 @@ export type CatalogPackageInstallVersionRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  topic_tags: ReadonlyArray<string>;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -73,7 +72,6 @@ const catalogPackageInstallVersionColumns = [
   "package_versions.summary AS summary",
   "package_versions.description AS description",
   "package_versions.language_tags AS language_tags",
-  "package_versions.topic_tags AS topic_tags",
   "package_versions.license AS license",
   "package_versions.content_warning AS content_warning",
   "package_versions.cover_package_media_key AS cover_package_media_key",
@@ -109,7 +107,6 @@ export function mapCatalogPackageInstallPackageVersion(
     summary: row.summary,
     description: row.description,
     languageTags: [...row.language_tags],
-    topicTags: [...row.topic_tags],
     license: row.license,
     contentWarning: row.content_warning,
     coverPackageMediaKey: row.cover_package_media_key,

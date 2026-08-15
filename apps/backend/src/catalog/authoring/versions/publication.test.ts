@@ -42,7 +42,7 @@ type CatalogPublicationBoundaryHarnessInput = Readonly<{
   }>>;
   versionPatch: Readonly<Partial<Pick<
     CatalogPackageVersionRow,
-    "slug" | "title" | "summary" | "description" | "language_tags" | "topic_tags" | "license"
+    "slug" | "title" | "summary" | "description" | "language_tags" | "license"
       | "content_warning"
   >>>;
   mediaPatch: Readonly<Partial<{

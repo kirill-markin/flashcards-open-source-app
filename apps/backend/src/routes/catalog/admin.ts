@@ -141,6 +141,16 @@ function expectStringArray(value: unknown, fieldName: string): ReadonlyArray<str
   return value.map((item, index) => expectNonEmptyString(item, `${fieldName}[${index}]`));
 }
 
+function rejectRemovedTopicTagsField(record: Readonly<Record<string, unknown>>): void {
+  if (Object.hasOwn(record, "topicTags")) {
+    throw new HttpError(
+      400,
+      "topicTags was removed; omit topicTags from catalog package requests.",
+      "CATALOG_ADMIN_TOPIC_TAGS_REMOVED",
+    );
+  }
+}
+
 function expectPositiveSafeInteger(value: unknown, fieldName: string): number {
   if (typeof value !== "number" || Number.isSafeInteger(value) === false || value < 1) {
     throw new HttpError(400, `${fieldName} must be a positive safe integer`);
@@ -194,6 +204,7 @@ function parseAuthorUpdateInput(
 }
 
 function parsePackageCreateInput(record: Readonly<Record<string, unknown>>): CreateCatalogPackageDraftInput {
+  rejectRemovedTopicTagsField(record);
   return {
     packageId: expectUuidString(record.packageId, "packageId"),
     authorId: expectUuidString(record.authorId, "authorId"),
@@ -202,7 +213,6 @@ function parsePackageCreateInput(record: Readonly<Record<string, unknown>>): Cre
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
     languageTags: expectStringArray(record.languageTags, "languageTags"),
-    topicTags: expectStringArray(record.topicTags, "topicTags"),
     license: expectNonEmptyString(record.license, "license"),
     contentWarning: expectNullableNonEmptyString(record.contentWarning, "contentWarning"),
   };
@@ -212,6 +222,7 @@ function parsePackageUpdateInput(
   packageId: string,
   record: Readonly<Record<string, unknown>>,
 ): UpdateCatalogPackageDraftInput {
+  rejectRemovedTopicTagsField(record);
   return {
     packageId,
     authorId: expectUuidString(record.authorId, "authorId"),
@@ -220,7 +231,6 @@ function parsePackageUpdateInput(
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
     languageTags: expectStringArray(record.languageTags, "languageTags"),
-    topicTags: expectStringArray(record.topicTags, "topicTags"),
     license: expectNonEmptyString(record.license, "license"),
     contentWarning: expectNullableNonEmptyString(record.contentWarning, "contentWarning"),
     coverPackageMediaKey: expectNullableNonEmptyString(record.coverPackageMediaKey, "coverPackageMediaKey"),

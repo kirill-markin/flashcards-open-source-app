@@ -59,7 +59,6 @@ const catalogPackageInstallPackageVersionSchema = z.object({
   summary: z.string(),
   description: z.string(),
   languageTags: z.array(z.string()),
-  topicTags: z.array(z.string()),
   license: z.string(),
   contentWarning: z.string().nullable(),
   coverPackageMediaKey: z.string().nullable(),
@@ -293,5 +292,3 @@ export async function insertCatalogPackageInstallIdempotencyResultInExecutor(
     ],
   );
 }
-
-

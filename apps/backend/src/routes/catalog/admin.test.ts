@@ -20,6 +20,7 @@ import { createCatalogAdminRoutes } from "./admin";
 import { createCatalogAdminImageIngestionRoutes } from "./adminImageIngestion";
 
 const packageId = "11111111-1111-4111-8111-111111111111";
+const authorId = "88888888-8888-4888-8888-888888888888";
 const collectionId = "66666666-6666-4666-8666-666666666666";
 const packageVersionId = "22222222-2222-4222-8222-222222222222";
 const cardId = "33333333-3333-4333-8333-333333333333";
@@ -54,7 +55,6 @@ function createCatalogPackageVersion(sourceWorkspaceId: string): CatalogPackageV
     summary: "Test summary",
     description: "Test description",
     languageTags: [],
-    topicTags: [],
     license: "CC-BY-4.0",
     contentWarning: null,
     coverPackageMediaKey: null,
@@ -96,6 +96,72 @@ function createCatalogAdminTestApp(
   }));
   return app;
 }
+
+function createCatalogPackageInputValidationApp(
+  processPackageInput: () => Promise<never>,
+): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
+  app.onError((error, context) => {
+    if (error instanceof HttpError) {
+      context.status(error.statusCode as ContentfulStatusCode);
+      return context.json({ error: error.message, code: error.code });
+    }
+
+    throw error;
+  });
+  app.route("/", createCatalogAdminRoutes({
+    allowedOrigins: [],
+    requireAdminRequestFn: async () => createAdminRequestContext(),
+    createCatalogPackageDraftFn: processPackageInput,
+    updateCatalogPackageDraftFn: processPackageInput,
+  }));
+  return app;
+}
+
+test("catalog package inputs explicitly reject the removed topicTags field", async () => {
+  let processingCalls = 0;
+  const app = createCatalogPackageInputValidationApp(async () => {
+    processingCalls += 1;
+    throw new Error("Removed package input must be rejected before processing");
+  });
+  const sharedPackageInput = {
+    authorId,
+    slug: "test-package",
+    title: "Test package",
+    summary: "Test summary",
+    description: "Test description",
+    languageTags: ["en"],
+    topicTags: ["legacy"],
+    license: "CC0-1.0",
+    contentWarning: null,
+  };
+  const requests = [
+    {
+      method: "POST",
+      path: "/admin/catalog/packages",
+      body: { packageId, ...sharedPackageInput },
+    },
+    {
+      method: "PUT",
+      path: `/admin/catalog/packages/${packageId}/draft`,
+      body: { ...sharedPackageInput, coverPackageMediaKey: null },
+    },
+  ] as const;
+
+  for (const request of requests) {
+    const response = await app.request(`http://localhost${request.path}`, {
+      method: request.method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request.body),
+    });
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {
+      error: "topicTags was removed; omit topicTags from catalog package requests.",
+      code: "CATALOG_ADMIN_TOPIC_TAGS_REMOVED",
+    });
+  }
+  assert.equal(processingCalls, 0);
+});
 
 test("POST catalog version from workspace normalizes a legacy PostgreSQL workspace ID", async () => {
   let authorizationChecks = 0;
