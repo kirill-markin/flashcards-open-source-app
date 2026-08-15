@@ -105,8 +105,8 @@ test("catalog review transitions use the package-status enum parameter consisten
     await client.query(
       [
         "INSERT INTO catalog.packages",
-        "(package_id, author_id, slug, title, summary, description, language_tags, topic_tags, license)",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        "(package_id, author_id, slug, title, summary, description, language_tags, license)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
       ].join(" "),
       [
         packageId,
@@ -116,7 +116,6 @@ test("catalog review transitions use the package-status enum parameter consisten
         "Review status summary",
         "Review status description",
         ["en"],
-        ["testing"],
         "CC-BY-4.0",
       ],
     );
@@ -124,8 +123,8 @@ test("catalog review transitions use the package-status enum parameter consisten
       [
         "INSERT INTO catalog.package_versions",
         "(package_version_id, package_id, version_number, slug, title, summary, description,",
-        "language_tags, topic_tags, license, card_count, created_by_admin_email)",
-        "VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, $9, 0, $10)",
+        "language_tags, license, card_count, created_by_admin_email)",
+        "VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, 0, $9)",
       ].join(" "),
       [
         packageVersionId,
@@ -135,7 +134,6 @@ test("catalog review transitions use the package-status enum parameter consisten
         "Review status summary",
         "Review status description",
         ["en"],
-        ["testing"],
         "CC-BY-4.0",
         adminEmail,
       ],
@@ -225,8 +223,8 @@ test("catalog package update locks the package before its selected author", asyn
     await pool.query(
       [
         "INSERT INTO catalog.packages",
-        "(package_id, author_id, slug, title, summary, description, language_tags, topic_tags, license, status, published_at)",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'published', now())",
+        "(package_id, author_id, slug, title, summary, description, language_tags, license, status, published_at)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'published', now())",
       ].join(" "),
       [
         packageId,
@@ -236,7 +234,6 @@ test("catalog package update locks the package before its selected author", asyn
         "Lock order summary",
         "Lock order description",
         ["en"],
-        ["testing"],
         "CC-BY-4.0",
       ],
     );
@@ -244,8 +241,8 @@ test("catalog package update locks the package before its selected author", asyn
       [
         "INSERT INTO catalog.package_versions",
         "(package_version_id, package_id, version_number, status, slug, title, summary, description,",
-        "language_tags, topic_tags, license, card_count, created_by_admin_email, reviewed_by_admin_email, submitted_at, reviewed_at)",
-        "VALUES ($1, $2, 1, 'approved', $3, $4, $5, $6, $7, $8, $9, 0, $10, $10, now(), now())",
+        "language_tags, license, card_count, created_by_admin_email, reviewed_by_admin_email, submitted_at, reviewed_at)",
+        "VALUES ($1, $2, 1, 'approved', $3, $4, $5, $6, $7, $8, 0, $9, $9, now(), now())",
       ].join(" "),
       [
         packageVersionId,
@@ -255,7 +252,6 @@ test("catalog package update locks the package before its selected author", asyn
         "Lock order summary",
         "Lock order description",
         ["en"],
-        ["testing"],
         "CC-BY-4.0",
         "catalog-lock-order@example.test",
       ],
@@ -284,7 +280,6 @@ test("catalog package update locks the package before its selected author", asyn
         summary: "Lock order summary",
         description: "Lock order description",
         languageTags: ["en"],
-        topicTags: ["testing"],
         license: "CC-BY-4.0",
         contentWarning: null,
         coverPackageMediaKey: null,

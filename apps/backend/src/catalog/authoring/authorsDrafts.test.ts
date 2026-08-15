@@ -201,7 +201,6 @@ function createPackageDraftInput(): CreateCatalogPackageDraftInput {
     summary: "Core Spanish prompts.",
     description: "Core Spanish flashcards for beginners.",
     languageTags: ["en", "es"],
-    topicTags: ["language"],
     license: "CC-BY-4.0",
     contentWarning: null,
   };
@@ -297,7 +296,6 @@ test("catalog package draft creation starts coverless", async () => {
         "Core Spanish prompts.",
         "Core Spanish flashcards for beginners.",
         ["en", "es"],
-        ["language"],
         "CC-BY-4.0",
         null,
       ]);
@@ -343,7 +341,6 @@ test("catalog package draft update validates cover media after attach", async ()
           "Core Spanish prompts.",
           "Core Spanish flashcards for beginners.",
           ["en", "es"],
-          ["language"],
           "CC-BY-4.0",
           null,
           "cover",

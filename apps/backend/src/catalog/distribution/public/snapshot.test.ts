@@ -155,7 +155,6 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
             summary: "Starter language packages.",
             description: "A curated starter collection.",
             language_tags: ["en"],
-            topic_tags: ["language"],
             cover_package_id: testPackageId,
             status: "published",
             updated_at: testTimestamp,
@@ -168,7 +167,6 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
             summary: "More language packages.",
             description: "A second curated collection.",
             language_tags: ["en"],
-            topic_tags: ["language"],
             cover_package_id: draftPackageId,
             status: "published",
             updated_at: testTimestamp,
@@ -181,7 +179,6 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
             summary: `Unsafe ${unsafeStorageKeyPathDestination}`,
             description: "A legacy collection with unsafe text.",
             language_tags: ["en"],
-            topic_tags: ["language"],
             cover_package_id: testPackageId,
             status: "published",
             updated_at: testTimestamp,
@@ -267,7 +264,7 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
     generatedAt,
   });
 
-  assert.equal(snapshot.schemaVersion, 1);
+  assert.equal(snapshot.schemaVersion, 2);
   assert.equal(snapshot.generatedAt, generatedAt);
   assert.deepEqual(snapshot.authors.map((author) => author.authorId), [testAuthorId, secondAuthorId]);
   assert.equal(
@@ -411,7 +408,6 @@ for (const [fixtureName, relationPatch] of ineligibleSnapshotPublicRelationFixtu
             summary: "Starter language packages.",
             description: "A curated starter collection.",
             language_tags: ["en"],
-            topic_tags: ["language"],
             cover_package_id: testPackageId,
             status: "published",
             updated_at: testTimestamp,
@@ -531,7 +527,6 @@ for (const [fixtureName, ineligibleFixture] of ineligibleSnapshotMediaFixtures) 
             summary: "Starter language packages.",
             description: "A curated starter collection.",
             language_tags: ["en"],
-            topic_tags: ["language"],
             cover_package_id: testPackageId,
             status: "published",
             updated_at: testTimestamp,
@@ -676,7 +671,7 @@ test("public catalog snapshot route serves the exact unversioned catalog path", 
       assert.equal(publicApiBaseUrl, "https://api.example.com/v1");
       assert.equal(publicAppBaseUrl, "https://app.example.com");
       return {
-        schemaVersion: 1,
+        schemaVersion: 2,
         generatedAt: testTimestamp,
         authors: [],
         packages: [],
@@ -697,7 +692,7 @@ test("public catalog snapshot route serves the exact unversioned catalog path", 
     const response = await app.request("https://api.example.com/catalog");
     const payload = await response.json() as Readonly<Record<string, unknown>>;
     assert.equal(response.status, 200);
-    assert.equal(payload.schemaVersion, 1);
+    assert.equal(payload.schemaVersion, 2);
   } finally {
     if (originalPublicAppBaseUrl === undefined) {
       delete process.env.PUBLIC_APP_BASE_URL;

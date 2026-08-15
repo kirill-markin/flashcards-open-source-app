@@ -47,7 +47,6 @@ type CatalogPublicPackageRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  topic_tags: ReadonlyArray<string>;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -80,7 +79,6 @@ const publicCatalogPackageSelectColumns = [
   "versions.summary AS summary",
   "versions.description AS description",
   "versions.language_tags AS language_tags",
-  "versions.topic_tags AS topic_tags",
   "versions.license AS license",
   "versions.content_warning AS content_warning",
   "versions.cover_package_media_key AS cover_package_media_key",
@@ -93,7 +91,7 @@ const latestPublishedVersionsCte = [
   "WITH latest_published_versions AS (",
   "SELECT DISTINCT ON (package_id)",
   "package_version_id, package_id, version_number, status, title, summary, description,",
-  "language_tags, topic_tags, license, content_warning, cover_package_media_key, card_count,",
+  "language_tags, license, content_warning, cover_package_media_key, card_count,",
   "updated_at, published_at",
   "FROM catalog.package_versions",
   "WHERE status = 'published'",
@@ -199,11 +197,6 @@ function buildPublicPackageListQuery(input: CatalogPublicPackageListInput): Publ
     whereClauses.push(`$${params.length} = ANY(versions.language_tags)`);
   }
 
-  if (input.topicTag !== null) {
-    params.push(input.topicTag);
-    whereClauses.push(`$${params.length} = ANY(versions.topic_tags)`);
-  }
-
   params.push(input.limit);
 
   return {
@@ -267,7 +260,6 @@ function mapCatalogPublicPackageVersionSummary(
   assertPublicCatalogTextSafe(row.package_version_id, row.summary);
   assertPublicCatalogTextSafe(row.package_version_id, row.description);
   assertPublicCatalogTextArraySafe(row.package_version_id, row.language_tags);
-  assertPublicCatalogTextArraySafe(row.package_version_id, row.topic_tags);
   assertPublicCatalogTextSafe(row.package_version_id, row.license);
   assertPublicCatalogTextSafe(row.package_version_id, row.content_warning);
 
@@ -281,7 +273,6 @@ function mapCatalogPublicPackageVersionSummary(
     summary: row.summary,
     description: row.description,
     languageTags: [...row.language_tags],
-    topicTags: [...row.topic_tags],
     license: row.license,
     contentWarning: row.content_warning,
     coverPackageMediaKey: row.cover_package_media_key,
@@ -300,7 +291,6 @@ function mapCatalogPublicPackageSummary(row: CatalogPublicPackageRow): CatalogPu
     summary: latestVersion.summary,
     description: latestVersion.description,
     languageTags: latestVersion.languageTags,
-    topicTags: latestVersion.topicTags,
     license: latestVersion.license,
     contentWarning: latestVersion.contentWarning,
     coverPackageMediaKey: latestVersion.coverPackageMediaKey,
@@ -368,7 +358,6 @@ export function normalizeCatalogPublicPackageListInput(
     limit: normalizePositiveBoundedLimit(input.limit, "limit", 100),
     search: normalizeOptionalSearch(input.search),
     languageTag: normalizeOptionalTag(input.languageTag, "languageTag"),
-    topicTag: normalizeOptionalTag(input.topicTag, "topicTag"),
   };
 }
 

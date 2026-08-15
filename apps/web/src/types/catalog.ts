@@ -26,7 +26,6 @@ export type CatalogPublicSnapshotPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverMediaAssetId: string | null;
@@ -66,7 +65,6 @@ export type CatalogPublicSnapshotCollection = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   coverPackageId: string | null;
   coverDownloadUrl?: string;
   status: "published";
@@ -81,7 +79,7 @@ export type CatalogPublicSnapshotCollectionPackage = Readonly<{
 }>;
 
 export type CatalogPublicSnapshot = Readonly<{
-  schemaVersion: 1;
+  schemaVersion: 2;
   generatedAt: string;
   authors: ReadonlyArray<CatalogPublicSnapshotAuthor>;
   packages: ReadonlyArray<CatalogPublicSnapshotPackage>;
@@ -107,7 +105,6 @@ export type CatalogPackageInstallPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  topicTags: ReadonlyArray<string>;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;

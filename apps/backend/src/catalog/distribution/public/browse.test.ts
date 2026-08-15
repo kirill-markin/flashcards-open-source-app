@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
 import type { DatabaseExecutor, SqlValue } from "../../../database";
+import { createCatalogPublicRoutes } from "../../../routes/catalog/public";
 import { HttpError } from "../../../shared/errors";
 import {
   listPublicCatalogPackagesInExecutor,
@@ -14,6 +15,7 @@ import {
   testPackageVersionId,
 } from "../../testSupport";
 import {
+  createPublicCatalogRouteTestApp,
   createPublicMediaAssetRow,
   createPublicPackageRow,
   unsafeMarkdownDestinationFixtures,
@@ -23,6 +25,26 @@ import {
   unsafePublicPackageMediaKeyFixtures,
   unsafeStorageKeyPathDestination,
 } from "./testSupport";
+
+test("public catalog list explicitly rejects the removed topicTag query", async () => {
+  let listCalls = 0;
+  const app = createPublicCatalogRouteTestApp(createCatalogPublicRoutes({
+    listPublicCatalogPackagesFn: async () => {
+      listCalls += 1;
+      return [];
+    },
+  }));
+
+  const response = await app.request(
+    "https://api.example.com/catalog/packages?topicTag=language",
+  );
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    error: "topicTag was removed; omit topicTag from public catalog list requests.",
+    code: "CATALOG_PUBLIC_TOPIC_TAG_REMOVED",
+  });
+  assert.equal(listCalls, 0);
+});
 
 test("public catalog list reads only published, non-delisted package snapshots", async () => {
   const executor: DatabaseExecutor = {
@@ -42,7 +64,7 @@ test("public catalog list reads only published, non-delisted package snapshots",
       assert.doesNotMatch(text, /\bmedia_blob_id\b/);
       assert.doesNotMatch(text, /\bstorage_key\b/);
       assert.doesNotMatch(text, /\bsha256\b/);
-      assert.deepEqual(params, ["%spanish%", "es", "language", 10]);
+      assert.deepEqual(params, ["%spanish%", "es", 10]);
       return createQueryResult([createPublicPackageRow() as unknown as Row]);
     },
   };
@@ -51,7 +73,6 @@ test("public catalog list reads only published, non-delisted package snapshots",
     limit: 10,
     search: "Spanish",
     languageTag: "ES",
-    topicTag: "Language",
   });
 
   assert.equal(catalogPackages.length, 1);
@@ -89,7 +110,6 @@ test("legacy catalog list and detail preserve existing author website presentati
     limit: 1,
     search: null,
     languageTag: null,
-    topicTag: null,
   });
   const catalogPackage = await loadPublicCatalogPackageDetailInExecutor(
     executor,
@@ -120,7 +140,6 @@ for (const [unsafeMetadataLabel, unsafeMetadataPatch] of unsafePublicMetadataFix
         limit: 1,
         search: null,
         languageTag: null,
-        topicTag: null,
       }),
       (error: unknown) => {
         assert.equal(error instanceof HttpError, true);
@@ -153,7 +172,6 @@ for (const [unsafeKeyLabel, unsafePackageMediaKey] of unsafePublicPackageMediaKe
         limit: 1,
         search: null,
         languageTag: null,
-        topicTag: null,
       }),
       (error: unknown) => {
         assert.equal(error instanceof HttpError, true);
@@ -165,7 +183,6 @@ for (const [unsafeKeyLabel, unsafePackageMediaKey] of unsafePublicPackageMediaKe
     );
   });
 }
-
 test("public catalog detail resolves by package slug and excludes unpublished or delisted snapshots", async () => {
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
@@ -488,4 +505,3 @@ for (const [unsafeTextLabel, unsafeText] of unsafeMarkdownVisibleTextFixtures) {
     );
   });
 }
-

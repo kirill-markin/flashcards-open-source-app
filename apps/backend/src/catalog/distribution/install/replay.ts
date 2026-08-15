@@ -59,7 +59,6 @@ const catalogPackageInstallPackageVersionSchema = z.object({
   summary: z.string(),
   description: z.string(),
   languageTags: z.array(z.string()),
-  topicTags: z.array(z.string()),
   license: z.string(),
   contentWarning: z.string().nullable(),
   coverPackageMediaKey: z.string().nullable(),
@@ -68,6 +67,11 @@ const catalogPackageInstallPackageVersionSchema = z.object({
   publishedAt: catalogPackageInstallDateTimeSchema.nullable(),
   author: catalogPackageInstallAuthorSchema,
 }).strict();
+
+const catalogPackageInstallStoredPackageVersionSchema =
+  catalogPackageInstallPackageVersionSchema.extend({
+    topicTags: z.array(z.string()).optional(),
+  }).strict();
 
 const catalogPackageInstallResultSchema = z.object({
   packageVersion: catalogPackageInstallPackageVersionSchema,
@@ -93,6 +97,17 @@ const catalogPackageInstallResultSchema = z.object({
   }).strict(),
 }).strict();
 
+const catalogPackageInstallStoredResultSchema = catalogPackageInstallResultSchema.extend({
+  packageVersion: catalogPackageInstallStoredPackageVersionSchema,
+}).strict();
+
+function stripLegacyCatalogPackageInstallTopicTags(
+  storedResult: z.infer<typeof catalogPackageInstallStoredResultSchema>,
+): CatalogPackageInstallResult {
+  const { topicTags: _legacyTopicTags, ...packageVersion } = storedResult.packageVersion;
+  return { ...storedResult, packageVersion };
+}
+
 export function createCatalogPackageInstallRequestIdentity(
   packageVersionId: string,
   input: NormalizedCatalogPackageInstallConfirmInput,
@@ -114,7 +129,7 @@ function parseCatalogPackageInstallStoredResult(
   workspaceId: string,
   installId: string,
 ): CatalogPackageInstallResult {
-  const parsedResult = catalogPackageInstallResultSchema.safeParse(value);
+  const parsedResult = catalogPackageInstallStoredResultSchema.safeParse(value);
   if (parsedResult.success === false) {
     throw new HttpError(
       500,
@@ -129,7 +144,7 @@ function parseCatalogPackageInstallStoredResult(
     );
   }
 
-  return parsedResult.data;
+  return stripLegacyCatalogPackageInstallTopicTags(parsedResult.data);
 }
 
 function catalogPackageInstallStoredResultMismatchFields(
@@ -293,5 +308,3 @@ export async function insertCatalogPackageInstallIdempotencyResultInExecutor(
     ],
   );
 }
-
-

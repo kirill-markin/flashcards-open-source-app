@@ -66,7 +66,7 @@ test("workspace-selected catalog versions generate fresh package card ids", asyn
 
       if (text.includes("INSERT INTO catalog.package_versions")) {
         assert.equal(params[0], testPackageVersionId);
-        assert.equal(params[12], testWorkspaceId);
+        assert.equal(params[11], testWorkspaceId);
         return createQueryResult([{
           ...createPackageVersionRow("draft"),
           source_workspace_id: testWorkspaceId,
@@ -205,7 +205,7 @@ test("workspace-selected catalog versions preserve managed media as package medi
 
       if (text.includes("INSERT INTO catalog.package_versions")) {
         assert.equal(params[0], testPackageVersionId);
-        assert.equal(params[12], testWorkspaceId);
+        assert.equal(params[11], testWorkspaceId);
         return createQueryResult([{
           ...createPackageVersionRow("draft"),
           source_workspace_id: testWorkspaceId,

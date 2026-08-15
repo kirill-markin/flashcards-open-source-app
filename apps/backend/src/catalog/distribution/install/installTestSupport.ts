@@ -47,7 +47,6 @@ export function createPackageInstallVersionRow(status: CatalogPackageStatus): Re
     summary: "Core Spanish prompts.",
     description: "Core Spanish flashcards for beginners.",
     language_tags: ["en", "es"],
-    topic_tags: ["language"],
     license: "CC-BY-4.0",
     content_warning: null,
     cover_package_media_key: null,
@@ -71,7 +70,6 @@ export function createStoredCatalogPackageInstallResult(installId: string): Cata
       summary: "Core Spanish prompts.",
       description: "Core Spanish flashcards for beginners.",
       languageTags: ["en", "es"],
-      topicTags: ["language"],
       license: "CC-BY-4.0",
       contentWarning: null,
       coverPackageMediaKey: null,
@@ -143,5 +141,3 @@ export function createCatalogPackageInstallReplayExecutor(
     },
   };
 }
-
-

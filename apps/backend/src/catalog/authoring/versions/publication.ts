@@ -303,7 +303,6 @@ async function assertCatalogPackageVersionPubliclyEligibleInExecutor(
       summary: versionRow.summary,
       description: versionRow.description,
       languageTags: versionRow.language_tags,
-      topicTags: versionRow.topic_tags,
       license: versionRow.license,
       contentWarning: versionRow.content_warning,
       coverPackageMediaKey: versionRow.cover_package_media_key,

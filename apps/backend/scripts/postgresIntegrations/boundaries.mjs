@@ -71,13 +71,21 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0112_prepare_catalog_topic_removal.sql",
+    expectedMigrationCount: 114,
+    testFiles: Object.freeze([
+      "src/catalog/authoring/lockOrder.postgres.integration.ts",
+      "src/catalog/distribution/install/install.postgres.integration.ts",
+      "src/catalog/distribution/public/public.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0111_delist_catalog_test_fixture.sql",
     expectedMigrationCount: 113,
     testFiles: Object.freeze([
-      "src/catalog/authoring/lockOrder.postgres.integration.ts",
-      "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -94,7 +102,6 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0107_catalog_test_collection.sql",
     expectedMigrationCount: 109,
     testFiles: Object.freeze([
-      "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/cards/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
@@ -125,7 +132,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 101,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
       "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
@@ -136,7 +142,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 100,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
       "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),

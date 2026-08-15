@@ -102,7 +102,7 @@ function createWorkspace(workspaceId: string, name: string, isSelected: boolean)
 
 function createCatalogSnapshot(includeVersion: boolean): CatalogPublicSnapshot {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: "2026-08-02T10:00:00.000Z",
     authors: [{
       authorId,
@@ -130,7 +130,6 @@ function createCatalogSnapshot(includeVersion: boolean): CatalogPublicSnapshot {
       summary: "Test package",
       description: "Test package",
       languageTags: ["ru"],
-      topicTags: ["test"],
       license: "CC0-1.0",
       contentWarning: null,
       coverMediaAssetId: null,
@@ -157,7 +156,6 @@ function createInstallPreview(): CatalogPackageInstallPreviewResponse {
       summary: "Test package",
       description: "Test package",
       languageTags: ["ru"],
-      topicTags: ["test"],
       license: "CC0-1.0",
       contentWarning: null,
       coverPackageMediaKey: null,

@@ -50,7 +50,6 @@ type CatalogPublicPackageRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  topic_tags: ReadonlyArray<string>;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -100,7 +99,6 @@ type CatalogPublicSnapshotCollectionRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  topic_tags: ReadonlyArray<string>;
   cover_package_id: string | null;
   status: "published";
   updated_at: TimestampValue;
@@ -184,7 +182,6 @@ function buildPublicCatalogSnapshotPackageVersionsQuery(): PublicCatalogQuery {
       "versions.summary AS summary,",
       "versions.description AS description,",
       "versions.language_tags AS language_tags,",
-      "versions.topic_tags AS topic_tags,",
       "versions.license AS license,",
       "versions.content_warning AS content_warning,",
       "versions.cover_package_media_key AS cover_package_media_key,",
@@ -272,7 +269,6 @@ function buildPublicCatalogSnapshotCollectionsQuery(): PublicCatalogQuery {
       "collections.summary AS summary,",
       "collections.description AS description,",
       "collections.language_tags AS language_tags,",
-      "collections.topic_tags AS topic_tags,",
       "collections.cover_package_id AS cover_package_id,",
       "collections.status AS status,",
       "collections.updated_at AS updated_at,",
@@ -401,8 +397,7 @@ function isCatalogPublicSnapshotCollectionSafe(
     && isPublicCatalogTextSafe(row.title)
     && isPublicCatalogTextSafe(row.summary)
     && isPublicCatalogTextSafe(row.description)
-    && isPublicCatalogTextArraySafe(row.language_tags)
-    && isPublicCatalogTextArraySafe(row.topic_tags);
+    && isPublicCatalogTextArraySafe(row.language_tags);
 }
 
 function getEligibleSnapshotPackageVersionIds(
@@ -444,7 +439,6 @@ function getEligibleSnapshotPackageVersionIds(
         summary: row.summary,
         description: row.description,
         languageTags: row.language_tags,
-        topicTags: row.topic_tags,
         license: row.license,
         contentWarning: row.content_warning,
         coverPackageMediaKey: row.cover_package_media_key,
@@ -629,7 +623,6 @@ function mapCatalogPublicSnapshotPackageVersions(
     assertPublicCatalogTextSafe(row.package_version_id, row.summary);
     assertPublicCatalogTextSafe(row.package_version_id, row.description);
     assertPublicCatalogTextArraySafe(row.package_version_id, row.language_tags);
-    assertPublicCatalogTextArraySafe(row.package_version_id, row.topic_tags);
     assertPublicCatalogTextSafe(row.package_version_id, row.license);
     assertPublicCatalogTextSafe(row.package_version_id, row.content_warning);
     const coverMediaAssetId = row.cover_package_media_key === null
@@ -654,7 +647,6 @@ function mapCatalogPublicSnapshotPackageVersions(
       summary: row.summary,
       description: row.description,
       languageTags: [...row.language_tags],
-      topicTags: [...row.topic_tags],
       license: row.license,
       contentWarning: row.content_warning,
       coverMediaAssetId,
@@ -721,9 +713,6 @@ function mapCatalogPublicSnapshotCollections(
     for (const languageTag of row.language_tags) {
       assertPublicSnapshotCollectionTextSafe(row.collection_id, languageTag);
     }
-    for (const topicTag of row.topic_tags) {
-      assertPublicSnapshotCollectionTextSafe(row.collection_id, topicTag);
-    }
 
     return {
       collectionId: row.collection_id,
@@ -732,7 +721,6 @@ function mapCatalogPublicSnapshotCollections(
       summary: row.summary,
       description: row.description,
       languageTags: [...row.language_tags],
-      topicTags: [...row.topic_tags],
       coverPackageId: row.cover_package_id !== null && publicPackageIds.has(row.cover_package_id)
         ? row.cover_package_id
         : null,
