@@ -8,12 +8,12 @@ test("migration Lambda distinguishes direct and CloudFormation invocations", () 
   assert.deepEqual(parseMigrationInvocation({
     RequestType: "Update",
     ResourceProperties: {
-      RequiredMigration: "0112_prepare_catalog_topic_removal.sql",
+      RequiredMigration: "0113_drop_catalog_topic_tags.sql",
       UnrelatedProperty: "ignored",
     },
   }), {
     kind: "provision",
-    requiredMigration: "0112_prepare_catalog_topic_removal.sql",
+    requiredMigration: "0113_drop_catalog_topic_tags.sql",
   });
 });
 
