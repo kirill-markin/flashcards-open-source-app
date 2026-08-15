@@ -1,4 +1,4 @@
 interface:
   display_name: "Publish Public Flashcard Deck"
-  short_description: "Create and publish an SEO-ready public deck"
-  default_prompt: "Use $publish-public-flashcard-deck to create and publish a new public catalog deck."
+  short_description: "Prepare, review, and publish public decks"
+  default_prompt: "Use $publish-public-flashcard-deck to prepare, review, and publish a public catalog deck."
