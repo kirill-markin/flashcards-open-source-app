@@ -1,6 +1,6 @@
 -- Migration status: Current / additive.
 -- Introduces: empty-array defaults for catalog topic columns during runtime replacement.
--- Schema touched explicitly: catalog.
+-- Schemas touched/read explicitly: catalog.
 
 ALTER TABLE catalog.packages
   ALTER COLUMN topic_tags SET DEFAULT ARRAY[]::TEXT[];
