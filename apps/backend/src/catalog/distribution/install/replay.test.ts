@@ -86,34 +86,6 @@ test("catalog install rejects stored replay results that violate the published r
   }
 });
 
-test("catalog install strips legacy topic tags while replaying a stored result", async () => {
-  const installInput: CatalogPackageInstallConfirmInput = {
-    installId: "catalog-install-stored-legacy-topic-tags",
-    installedAt: testInstallTimestamp,
-    clientUpdatedAt: testInstallTimestamp,
-    lastModifiedByReplicaId: testWorkspaceReplicaId,
-    operationIdPrefix: "catalog-install-stored-legacy-topic-tags",
-  };
-  const validResult = createStoredCatalogPackageInstallResult(installInput.installId);
-  const legacyStoredResult = {
-    ...validResult,
-    packageVersion: {
-      ...validResult.packageVersion,
-      topicTags: ["language"],
-    },
-  };
-
-  const replayedResult = await installCatalogPackageVersionInExecutor(
-    createCatalogPackageInstallReplayExecutor(installInput, legacyStoredResult),
-    testWorkspaceId,
-    testPackageVersionId,
-    installInput,
-  );
-
-  assert.deepEqual(replayedResult, validResult);
-  assert.equal(Object.hasOwn(replayedResult.packageVersion, "topicTags"), false);
-});
-
 test("catalog install rejects a contract-valid stored result that mismatches its durable identity", async () => {
   const installInput: CatalogPackageInstallConfirmInput = {
     installId: "catalog-install-stored-identity",
@@ -166,4 +138,3 @@ test("catalog install rejects a contract-valid stored result that mismatches its
     },
   );
 });
-

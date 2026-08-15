@@ -340,7 +340,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const migrationGate = databaseMigrationGate(
       this,
       migrationFn,
-      "0112_prepare_catalog_topic_removal.sql",
+      "0113_drop_catalog_topic_tags.sql",
     );
     const api = apiGateway(this, {
       vpc: net.vpc,
