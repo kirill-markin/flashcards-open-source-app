@@ -29,7 +29,7 @@ struct ProgressStreakLeaderboardSection: View {
             Button(
                 String(
                     localized: "shared.ok",
-                    table: progressStringsTableName,
+                    table: "Foundation",
                     comment: "Confirmation button title"
                 ),
                 role: .cancel
@@ -68,7 +68,7 @@ struct ProgressStreakLeaderboardSection: View {
                 String(
                     localized: "progress.screen.streak_leaderboard.info.accessibility_label",
                     defaultValue: "About the streak leaderboard",
-                    table: progressStringsTableName,
+                    table: "Foundation",
                     comment: "Accessibility label for the streak leaderboard info button"
                 )
             )
@@ -106,7 +106,7 @@ struct ProgressStreakLeaderboardSection: View {
                     String(
                         localized: "progress.screen.streak_leaderboard.load_failed.title",
                         defaultValue: "Couldn't load the streak leaderboard",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Progress streak leaderboard placeholder title after a failed load"
                     ),
                     systemImage: "exclamationmark.triangle"
@@ -116,7 +116,7 @@ struct ProgressStreakLeaderboardSection: View {
                     String(
                         localized: "progress.screen.streak_leaderboard.load_failed.message",
                         defaultValue: "Try again later.",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Progress streak leaderboard placeholder message after a failed load"
                     )
                 )
@@ -127,7 +127,7 @@ struct ProgressStreakLeaderboardSection: View {
                     String(
                         localized: "progress.screen.streak_leaderboard.offline.title",
                         defaultValue: "You're offline",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Progress streak leaderboard offline placeholder title"
                     ),
                     systemImage: "wifi.slash"
@@ -137,7 +137,7 @@ struct ProgressStreakLeaderboardSection: View {
                     String(
                         localized: "progress.screen.streak_leaderboard.offline.message",
                         defaultValue: "Connect to the internet to load the streak leaderboard.",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Progress streak leaderboard offline placeholder message"
                     )
                 )
@@ -233,7 +233,7 @@ private struct ProgressStreakLeaderboardParticipantRowView: View {
         let localizedFormat = String(
             localized: "progress.screen.streak_leaderboard.row.accessibility_value",
             defaultValue: "Rank %1$lld, %2$@",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Accessibility value for a streak leaderboard row with rank and streak day count"
         )
         return String(
