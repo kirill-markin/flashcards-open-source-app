@@ -1,360 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "access_permission.camera.description" : {
-      "comment" : "Camera permission description",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nimm Fotos direkt im KI-Chat auf."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Take photos directly from AI chat."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Haz fotos directamente desde el chat con IA."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Haz fotos directamente desde el chat con IA."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI चैट से सीधे फ़ोटो लें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AIチャットから直接写真を撮影します。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Делайте фотографии прямо из чата с ИИ."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "直接在 AI 聊天中拍照。"
-          }
-        }
-      }
-    },
-    "access_permission.camera.title" : {
-      "comment" : "Camera permission title",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الكاميرا"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kamera"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Camera"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cámara"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cámara"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "कैमरा"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カメラ"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Камера"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "相机"
-          }
-        }
-      }
-    },
-    "access_permission.microphone.description" : {
-      "comment" : "Microphone permission description",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diktiere Text in den KI-Chat."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dictate text into AI chat."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dicta texto en el chat con IA."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dicta texto en el chat con IA."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI चैट में टेक्स्ट बोलकर लिखें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AIチャットにテキストを音声入力します。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Надиктуйте текст в чат с ИИ."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将文本口述到 AI 聊天中。"
-          }
-        }
-      }
-    },
-    "access_permission.microphone.title" : {
-      "comment" : "Microphone permission title",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الميكروفون"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mikrofon"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Microphone"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Micrófono"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Micrófono"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "माइक्रोफ़ोन"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "マイク"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Микрофон"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "麦克风"
-          }
-        }
-      }
-    },
-    "access_permission.photos.description" : {
-      "comment" : "Photos permission description",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle Fotos für Anhänge im KI-Chat aus."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose photos for AI chat attachments."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elige fotos para los archivos adjuntos del chat con IA."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elige fotos para los archivos adjuntos del chat con IA."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI चैट अटैचमेंट के लिए फ़ोटो चुनें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AIチャットの添付用に写真を選択します。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выберите фотографии для вложений в чате с ИИ."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "为 AI 聊天附件选择照片。"
-          }
-        }
-      }
-    },
-    "access_permission.photos.title" : {
-      "comment" : "Photos permission title",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "الصور"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fotos"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Photos"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fotos"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fotos"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "फ़ोटो"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "写真"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Фото"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "照片"
-          }
-        }
-      }
-    },
     "access_permission_guidance.allowed" : {
       "comment" : "Guidance when permission is allowed",
       "localizations" : {
@@ -1118,6 +764,360 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不可用"
+          }
+        }
+      }
+    },
+    "access_permission.camera.description" : {
+      "comment" : "Camera permission description",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nimm Fotos direkt im KI-Chat auf."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take photos directly from AI chat."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz fotos directamente desde el chat con IA."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz fotos directamente desde el chat con IA."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चैट से सीधे फ़ोटो लें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIチャットから直接写真を撮影します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Делайте фотографии прямо из чата с ИИ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接在 AI 聊天中拍照。"
+          }
+        }
+      }
+    },
+    "access_permission.camera.title" : {
+      "comment" : "Camera permission title",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الكاميرا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cámara"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cámara"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरा"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラ"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Камера"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机"
+          }
+        }
+      }
+    },
+    "access_permission.microphone.description" : {
+      "comment" : "Microphone permission description",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktiere Text in den KI-Chat."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictate text into AI chat."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicta texto en el chat con IA."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicta texto en el chat con IA."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चैट में टेक्स्ट बोलकर लिखें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIチャットにテキストを音声入力します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надиктуйте текст в чат с ИИ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将文本口述到 AI 聊天中。"
+          }
+        }
+      }
+    },
+    "access_permission.microphone.title" : {
+      "comment" : "Microphone permission title",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الميكروفون"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "माइक्रोफ़ोन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイク"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Микрофон"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麦克风"
+          }
+        }
+      }
+    },
+    "access_permission.photos.description" : {
+      "comment" : "Photos permission description",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle Fotos für Anhänge im KI-Chat aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose photos for AI chat attachments."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige fotos para los archivos adjuntos del chat con IA."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige fotos para los archivos adjuntos del chat con IA."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चैट अटैचमेंट के लिए फ़ोटो चुनें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIチャットの添付用に写真を選択します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите фотографии для вложений в чате с ИИ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为 AI 聊天附件选择照片。"
+          }
+        }
+      }
+    },
+    "access_permission.photos.title" : {
+      "comment" : "Photos permission title",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الصور"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़ोटो"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фото"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片"
           }
         }
       }
@@ -2534,6 +2534,655 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "验证验证码时连接中断。请重试，或在需要时重新获取一个。"
+          }
+        }
+      }
+    },
+    "progress.error.leaderboard_refresh_failed" : {
+      "comment" : "Generic progress card message when rating leaderboard refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewertungs-Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rating leaderboard couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar la clasificación por valoración. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar la tabla por valoración. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग लीडरबोर्ड रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "評価リーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить таблицу лидеров по оценкам. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新评分排行榜。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.review_schedule_refresh_failed" : {
+      "comment" : "Generic progress card message when review schedule refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholungsplan konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "समीक्षा शेड्यूल रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復習スケジュールを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить расписание повторений. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新复习计划。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.review_schedule_render_failed" : {
+      "comment" : "Generic progress card message when review schedule rendering fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholungsplan konnte nicht angezeigt werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule couldn't be shown. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo mostrar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo mostrar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "समीक्षा शेड्यूल नहीं दिखाया जा सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復習スケジュールを表示できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось показать расписание повторений. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法显示复习计划。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.series_refresh_failed" : {
+      "comment" : "Generic progress card message when chart refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschrittsdiagramm konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress chart couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el gráfico de progreso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el gráfico de progreso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगति चार्ट रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗グラフを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить график прогресса. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新进度图表。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.streak_leaderboard_refresh_failed" : {
+      "comment" : "Generic progress card message when streak leaderboard refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak-Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak leaderboard couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar la clasificación de rachas. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar la tabla de rachas. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्ट्रीक लीडरबोर्ड रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続記録のリーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить таблицу серий. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新连续天数排行榜。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.summary_refresh_failed" : {
+      "comment" : "Generic progress card message when summary refresh fails",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschrittsübersicht konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress summary couldn't refresh. Pull to try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el resumen de progreso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo actualizar el resumen de progreso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगति सारांश रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗サマリーを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось обновить сводку прогресса. Потяните, чтобы повторить попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法刷新进度摘要。下拉重试。"
+          }
+        }
+      }
+    },
+    "progress.error.unavailable" : {
+      "comment" : "Generic progress card message when progress cannot be prepared",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschritt ist nicht verfügbar. Zum Aktualisieren ziehen und erneut versuchen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress is unavailable. Pull to refresh and try again."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El progreso no está disponible. Desliza para actualizar e inténtalo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El progreso no está disponible. Desliza para actualizar e inténtalo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगति उपलब्ध नहीं है। रीफ़्रेश करने के लिए खींचें और फिर से कोशिश करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗を利用できません。下に引いて更新し、もう一度お試しください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прогресс недоступен. Потяните, чтобы обновить, и попробуйте снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进度不可用。下拉刷新后重试。"
+          }
+        }
+      }
+    },
+    "progress.freeze_bank.accessibility" : {
+      "comment" : "Accessibility label for the current streak freeze credit bank",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freeze-Vorrat: %@ von %@ verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freeze bank %@ of %@ available."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banco de congelación: %@ de %@ disponible."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banco de congelación: %@ de %@ disponible."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़्रीज़ बैंक में %@ में से %@ उपलब्ध हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フリーズ残数は%@/%@です。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Банк заморозок: %@ из %@ доступно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冻结库可用 %@/%@。"
+          }
+        }
+      }
+    },
+    "progress.freeze_bank.info.accessibility_hint" : {
+      "comment" : "Accessibility hint for the streak freeze bank info button",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يعرض كيفية عمل تجميدات السلسلة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt, wie Serien-Freezes funktionieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows how streak freezes work."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra cómo funcionan las congelaciones de racha."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra cómo funcionan las congelaciones de racha."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दिखाता है कि स्ट्रीक फ़्रीज़ कैसे काम करते हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストリークフリーズの仕組みを表示します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывает, как работают заморозки серии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示连续记录冻结的工作方式。"
+          }
+        }
+      }
+    },
+    "progress.freeze_bank.info.message" : {
+      "comment" : "Body for the streak freeze bank explanation alert. Parameters are available credits, capacity, next credit progress, and next credit required units.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verfügbar: %@/%@. Aufladung: %@/%@. Freezes schützen verpasste Tage und laden sich auf, während deine Serie weiterläuft."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available: %@/%@. Recharge: %@/%@. Freezes protect missed days and recharge as your streak continues."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibles: %@/%@. Recarga: %@/%@. Las congelaciones protegen días perdidos y se recargan a medida que continúa tu racha."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibles: %@/%@. Recarga: %@/%@. Las congelaciones protegen días perdidos y se recargan a medida que continúa tu racha."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उपलब्ध: %@/%@. रीचार्ज: %@/%@. फ़्रीज़ छूटे हुए दिनों की रक्षा करते हैं और आपकी श्रृंखला जारी रहने पर रीचार्ज होते हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用可能: %@/%@。リチャージ: %@/%@。フリーズは逃した日を保護し、連続記録が続くと回復します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступно: %@/%@. Перезарядка: %@/%@. Заморозки защищают пропущенные дни и восстанавливаются по мере продолжения серии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用：%@/%@。恢复进度：%@/%@。冻结可保护错过的日期，并会随着连续记录继续而恢复。"
+          }
+        }
+      }
+    },
+    "progress.freeze_bank.info.title" : {
+      "comment" : "Title for the streak freeze bank explanation alert",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تجميدات السلسلة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serien-Freezes"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak freezes"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Congelaciones de racha"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Congelaciones de racha"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्ट्रीक फ़्रीज़"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストリークフリーズ"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заморозки серии"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连续记录冻结"
           }
         }
       }
@@ -5134,124 +5783,6 @@
         }
       }
     },
-    "progress.screen.leaderboard.invite.button" : {
-      "comment" : "Button title for creating a leaderboard friend invite link",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إضافة صديق"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Freund hinzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add Friend"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir amigo"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Agregar amigo"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "दोस्त जोड़ें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "友達を追加"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавить друга"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加好友"
-          }
-        }
-      }
-    },
-    "progress.screen.leaderboard.invite.accessibility_label" : {
-      "comment" : "Accessibility label for the leaderboard friend invite button",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "إضافة صديق"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Freund hinzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add a friend"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir amigo"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Agregar amigo"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "दोस्त जोड़ें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "友達を追加"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Добавить друга"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加好友"
-          }
-        }
-      }
-    },
     "progress.screen.leaderboard.info.accessibility_label" : {
       "comment" : "Accessibility label for the rating leaderboard info button",
       "localizations" : {
@@ -5366,6 +5897,124 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“困难”“良好”“简单”计入排名，“重来”不计入。"
+          }
+        }
+      }
+    },
+    "progress.screen.leaderboard.invite.accessibility_label" : {
+      "comment" : "Accessibility label for the leaderboard friend invite button",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إضافة صديق"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freund hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a friend"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir amigo"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar amigo"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दोस्त जोड़ें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "友達を追加"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить друга"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加好友"
+          }
+        }
+      }
+    },
+    "progress.screen.leaderboard.invite.button" : {
+      "comment" : "Button title for creating a leaderboard friend invite link",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إضافة صديق"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freund hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Friend"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir amigo"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar amigo"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दोस्त जोड़ें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "友達を追加"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить друга"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加好友"
           }
         }
       }
@@ -6609,6 +7258,65 @@
         }
       }
     },
+    "progress.screen.leaderboard.window_picker.label" : {
+      "comment" : "Accessibility label for the leaderboard period selector",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الفترة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeitraum"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Period"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Período"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periodo"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अवधि"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期間"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Период"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时间段"
+          }
+        }
+      }
+    },
     "progress.screen.leaderboard.window.all_time" : {
       "comment" : "Progress leaderboard period selector label for all time",
       "localizations" : {
@@ -6664,124 +7372,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部时间"
-          }
-        }
-      }
-    },
-    "progress.screen.leaderboard.window.last_24_hours" : {
-      "comment" : "Progress leaderboard period selector label for the last 24 hours",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24 س"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24 h"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24h"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24 h"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24 h"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24 घं"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24時間"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24 ч"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "24小时"
-          }
-        }
-      }
-    },
-    "progress.screen.leaderboard.window.last_30_days" : {
-      "comment" : "Progress leaderboard period selector label for the last 30 days",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 ي"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 T"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30d"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 d"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 d"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 दिन"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30日"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30 д"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30天"
           }
         }
       }
@@ -6904,952 +7494,421 @@
         }
       }
     },
-    "progress.screen.leaderboard.window_picker.label" : {
-      "comment" : "Accessibility label for the leaderboard period selector",
+    "progress.screen.leaderboard.window.last_24_hours" : {
+      "comment" : "Progress leaderboard period selector label for the last 24 hours",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الفترة"
+            "value" : "24 س"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zeitraum"
+            "value" : "24 h"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Period"
+            "value" : "24h"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Período"
+            "value" : "24 h"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Periodo"
+            "value" : "24 h"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "अवधि"
+            "value" : "24 घं"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "期間"
+            "value" : "24時間"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Период"
+            "value" : "24 ч"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "时间段"
+            "value" : "24小时"
           }
         }
       }
     },
-    "review_notification.fallback_body" : {
-      "comment" : "Fallback review notification body text",
+    "progress.screen.leaderboard.window.last_30_days" : {
+      "comment" : "Progress leaderboard period selector label for the last 30 days",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "واصل جلسة الدراسة في Flashcards."
+            "value" : "30 ي"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Setze deine Lernsitzung in Flashcards fort."
+            "value" : "30 T"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continue your study session in Flashcards."
+            "value" : "30d"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continúa tu sesión de estudio en Flashcards."
+            "value" : "30 d"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continúa tu sesión de estudio en Flashcards."
+            "value" : "30 d"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards में अपना अध्ययन सत्र जारी रखें।"
+            "value" : "30 दिन"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards で学習セッションを続けましょう。"
+            "value" : "30日"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Продолжите занятие в Flashcards."
+            "value" : "30 д"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 Flashcards 中继续你的学习。"
+            "value" : "30天"
           }
         }
       }
     },
-    "strict_reminder.body.2h" : {
-      "comment" : "Streak reminder body sent 2 hours before the end of the local day",
+    "progress.screen.review_schedule.bucket.accessibility_value" : {
+      "comment" : "Accessibility value for a review schedule bucket with card count and percentage",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
+            "value" : "%lld بطاقات، %@"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 2 Stunden."
+            "value" : "%lld Karten, %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep your streak today. Review before midnight. 2 hours left."
+            "value" : "%lld cards, %@"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 2 horas."
+            "value" : "%lld tarjetas, %@"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 2 horas."
+            "value" : "%lld tarjetas, %@"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 2 घंटे बाकी हैं।"
+            "value" : "%lld कार्ड, %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと2時間です。"
+            "value" : "%lld枚のカード、%@"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 2 часа."
+            "value" : "%lld карточек, %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天保持连续记录。午夜前复习。还剩 2 小时。"
+            "value" : "%lld 张卡片，%@"
           }
         }
       }
     },
-    "strict_reminder.body.3h" : {
-      "comment" : "Streak reminder body sent 3 hours before the end of the local day",
+    "progress.screen.review_schedule.bucket.days_1_to_7" : {
+      "comment" : "Review schedule bucket label for cards due in one to seven days",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+            "value" : "1-7 أيام"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 3 Stunden."
+            "value" : "1-7 Tage"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep your streak today. Review before midnight. 3 hours left."
+            "value" : "1-7 days"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 3 horas."
+            "value" : "1-7 días"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 3 horas."
+            "value" : "1-7 días"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 3 घंटे बाकी हैं।"
+            "value" : "1-7 दिन"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと3時間です。"
+            "value" : "1-7日"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 3 часа."
+            "value" : "1-7 дней"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天保持连续记录。午夜前复习。还剩 3 小时。"
+            "value" : "1-7 天"
           }
         }
       }
     },
-    "strict_reminder.body.4h" : {
-      "comment" : "Streak reminder body sent 4 hours before the end of the local day",
+    "progress.screen.review_schedule.bucket.days_8_to_30" : {
+      "comment" : "Review schedule bucket label for cards due in eight to thirty days",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
+            "value" : "8-30 يومًا"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 4 Stunden."
+            "value" : "8-30 Tage"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keep your streak today. Review before midnight. 4 hours left."
+            "value" : "8-30 days"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 4 horas."
+            "value" : "8-30 días"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 4 horas."
+            "value" : "8-30 días"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 4 घंटे बाकी हैं।"
+            "value" : "8-30 दिन"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと4時間です。"
+            "value" : "8-30日"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 4 часа."
+            "value" : "8-30 дней"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天保持连续记录。午夜前复习。还剩 4 小时。"
+            "value" : "8-30 天"
           }
         }
       }
     },
-    "review_notification.mode.daily" : {
-      "comment" : "Once-daily review notification mode title",
+    "progress.screen.review_schedule.bucket.days_31_to_90" : {
+      "comment" : "Review schedule bucket label for cards due in thirty-one to ninety days",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مرة يوميًا"
+            "value" : "31-90 يومًا"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einmal täglich"
+            "value" : "31-90 Tage"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Once daily"
+            "value" : "31-90 days"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Una vez al día"
+            "value" : "31-90 días"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Una vez al día"
+            "value" : "31-90 días"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "दिन में एक बार"
+            "value" : "31-90 दिन"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1日1回"
+            "value" : "31-90日"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Раз в день"
+            "value" : "31-90 дней"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每天一次"
+            "value" : "31-90 天"
           }
         }
       }
     },
-    "review_notification.mode.inactivity" : {
-      "comment" : "After-a-break review notification mode title",
+    "progress.screen.review_schedule.bucket.days_91_to_360" : {
+      "comment" : "Review schedule bucket label for cards due in ninety-one to three hundred sixty days",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "بعد استراحة"
+            "value" : "91-360 يومًا"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach einer Pause"
+            "value" : "91-360 Tage"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "After a break"
+            "value" : "91-360 days"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Después de una pausa"
+            "value" : "91-360 días"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Después de una pausa"
+            "value" : "91-360 días"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ब्रेक के बाद"
+            "value" : "91-360 दिन"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "休憩後"
+            "value" : "91-360日"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "После перерыва"
+            "value" : "91-360 дней"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "休息后"
+            "value" : "91-360 天"
           }
         }
       }
     },
-    "review_notification_permission.allow_notifications" : {
-      "comment" : "Notifications permission action title to allow notifications",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السماح بالإشعارات"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mitteilungen erlauben"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Notifications"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir notificaciones"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitir notificaciones"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "सूचनाओं की अनुमति दें"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通知を許可"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить уведомления"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许通知"
-          }
-        }
-      }
-    },
-    "review_notification_permission.allowed" : {
-      "comment" : "Notifications permission title for allowed",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "مسموح"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erlaubt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allowed"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitido"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permitido"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "अनुमत"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "許可済み"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешено"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已允许"
-          }
-        }
-      }
-    },
-    "review_notification_permission.blocked" : {
-      "comment" : "Notifications permission title for blocked",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "محظور"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blockiert"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blocked"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bloqueado"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bloqueado"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "अवरुद्ध"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ブロック済み"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заблокировано"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已阻止"
-          }
-        }
-      }
-    },
-    "review_notification_permission.not_requested" : {
-      "comment" : "Notifications permission title for not requested",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "لم يُطلب"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nicht angefordert"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not requested"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No solicitado"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No solicitado"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "अनुरोध नहीं किया गया"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未リクエスト"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не запрашивалось"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未请求"
-          }
-        }
-      }
-    },
-    "review_rating.again.title" : {
-      "comment" : "Review rating title for Again",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "مرة أخرى"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nochmal"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Again"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "De nuevo"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "De nuevo"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "फिर से"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "もう一度"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Снова"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重来"
-          }
-        }
-      }
-    },
-    "review_rating.easy.title" : {
-      "comment" : "Review rating title for Easy",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "سهل"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leicht"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Easy"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fácil"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fácil"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "आसान"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "簡単"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Легко"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "简单"
-          }
-        }
-      }
-    },
-    "review_rating.good.title" : {
-      "comment" : "Review rating title for Good",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "جيد"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gut"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Good"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bien"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bien"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "अच्छा"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "良い"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Хорошо"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "良好"
-          }
-        }
-      }
-    },
-    "review_rating.hard.title" : {
-      "comment" : "Review rating title for Hard",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "صعب"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schwer"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hard"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Difícil"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Difícil"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "कठिन"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "難しい"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Трудно"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "困难"
-          }
-        }
-      }
-    },
-    "root_tab.account_deleted.title" : {
-      "comment" : "Account deletion success alert title",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تم حذف الحساب"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Konto gelöscht"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account deleted"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cuenta eliminada"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cuenta eliminada"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "खाता हटा दिया गया"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アカウントを削除しました"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Аккаунт удален"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "账户已删除"
-          }
-        }
-      }
-    },
-    "root_tab.guest_sign_in_after_review_prompt.later" : {
-      "comment" : "Guest sign-in prompt secondary button",
+    "progress.screen.review_schedule.bucket.later" : {
+      "comment" : "Review schedule bucket label for cards due later than two years",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -7890,7 +7949,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "後で"
+            "value" : "それ以降"
           }
         },
         "ru" : {
@@ -7902,243 +7961,302 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "稍后"
+            "value" : "更晚"
           }
         }
       }
     },
-    "root_tab.guest_sign_in_after_review_prompt.message" : {
-      "comment" : "Guest sign-in prompt body after reviewing enough cards",
+    "progress.screen.review_schedule.bucket.new" : {
+      "comment" : "Review schedule bucket label for cards without a due date",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+            "value" : "جديدة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Melde dich mit E-Mail an, damit diese Karten und dein Wiederholungsfortschritt nicht verloren gehen."
+            "value" : "Neu"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in with email so these cards and review progress are not lost."
+            "value" : "New"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inicia sesión con tu correo para que estas tarjetas y tu progreso de repaso no se pierdan."
+            "value" : "Nuevas"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inicia sesión con tu correo para que estas tarjetas y tu progreso de repaso no se pierdan."
+            "value" : "Nuevas"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ईमेल से साइन इन करें ताकि ये कार्ड और समीक्षा प्रगति खो न जाएँ।"
+            "value" : "नए"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メールでサインインして、これらのカードと復習の進捗を失わないようにしましょう。"
+            "value" : "新規"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Войдите по электронной почте, чтобы не потерять эти карточки и прогресс повторения."
+            "value" : "Новые"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用电子邮件登录，以免这些卡片和复习进度丢失。"
+            "value" : "新卡"
           }
         }
       }
     },
-    "root_tab.guest_sign_in_after_review_prompt.sign_in" : {
-      "comment" : "Guest sign-in prompt primary button",
+    "progress.screen.review_schedule.bucket.today" : {
+      "comment" : "Review schedule bucket label for overdue and due-today cards",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تسجيل الدخول"
+            "value" : "اليوم"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anmelden"
+            "value" : "Heute"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in"
+            "value" : "Today"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Iniciar sesión"
+            "value" : "Hoy"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Iniciar sesión"
+            "value" : "Hoy"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "साइन इन करें"
+            "value" : "आज"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "サインイン"
+            "value" : "今日"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Войти"
+            "value" : "Сегодня"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "登录"
+            "value" : "今天"
           }
         }
       }
     },
-    "root_tab.guest_sign_in_after_review_prompt.title" : {
-      "comment" : "Guest sign-in prompt title after reviewing enough cards",
+    "progress.screen.review_schedule.bucket.years_1_to_2" : {
+      "comment" : "Review schedule bucket label for cards due in one to two years",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "احفظ تقدمك"
+            "value" : "1-2 سنة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fortschritt sichern"
+            "value" : "1-2 Jahre"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save your progress"
+            "value" : "1-2 years"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guarda tu progreso"
+            "value" : "1-2 años"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Guarda tu progreso"
+            "value" : "1-2 años"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "अपनी प्रगति सहेजें"
+            "value" : "1-2 साल"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "進捗を保存"
+            "value" : "1-2年"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сохраните свой прогресс"
+            "value" : "1-2 года"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保存你的进度"
+            "value" : "1-2 年"
           }
         }
       }
     },
-    "progress.screen.loading" : {
-      "comment" : "Progress loading state",
+    "progress.screen.review_schedule.empty" : {
+      "comment" : "Progress review schedule empty caption",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "جارٍ تحميل التقدم..."
+            "value" : "لا توجد بطاقات نشطة بعد."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fortschritt wird geladen..."
+            "value" : "Noch keine aktiven Karten."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loading progress..."
+            "value" : "No active cards yet."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cargando progreso..."
+            "value" : "Todavía no hay tarjetas activas."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cargando progreso..."
+            "value" : "Todavía no hay tarjetas activas."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "प्रगति लोड हो रही है..."
+            "value" : "अभी तक कोई सक्रिय कार्ड नहीं है।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "進捗を読み込み中..."
+            "value" : "有効なカードはまだありません。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Загрузка прогресса..."
+            "value" : "Активных карточек пока нет."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在加载进度..."
+            "value" : "还没有活跃卡片。"
+          }
+        }
+      }
+    },
+    "progress.screen.review_schedule.section_title" : {
+      "comment" : "Progress review schedule section title",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جدول المراجعة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholungsplan"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review schedule"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendario de repasos"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendario de repasos"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रिव्यू शेड्यूल"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復習スケジュール"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расписание повторений"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复习计划"
           }
         }
       }
@@ -8375,950 +8493,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "复习"
-          }
-        }
-      }
-    },
-    "progress.screen.sign_in_required.description" : {
-      "comment" : "Progress sign-in-required description",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ابدأ جلسة سحابية كضيف أو بحساب مرتبط لتحميل التقدم."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starte eine Gast- oder verknüpfte Cloud-Sitzung, um den Fortschritt zu laden."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start a guest or linked cloud session to load progress."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inicia una sesión en la nube como invitado o con una cuenta vinculada para cargar el progreso."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inicia una sesión en la nube como invitado o con una cuenta vinculada para cargar el progreso."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "प्रगति लोड करने के लिए अतिथि या लिंक किया हुआ क्लाउड सत्र शुरू करें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "進捗を読み込むには、ゲストまたは連携済みのクラウドセッションを開始してください。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Чтобы загрузить прогресс, начните гостевую или привязанную облачную сессию."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "开始访客或已关联的云端会话以加载进度。"
-          }
-        }
-      }
-    },
-    "progress.screen.sign_in_required.title" : {
-      "comment" : "Progress sign-in-required title",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تقدم السحابة غير متاح"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cloud-Fortschritt ist nicht verfügbar"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cloud progress is unavailable"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El progreso en la nube no está disponible"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El progreso en la nube no está disponible"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "क्लाउड प्रगति उपलब्ध नहीं है"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "クラウドの進捗は利用できません"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Облачный прогресс недоступен"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "云端进度不可用"
-          }
-        }
-      }
-    },
-    "progress.error.leaderboard_refresh_failed" : {
-      "comment" : "Generic progress card message when rating leaderboard refresh fails",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bewertungs-Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rating leaderboard couldn't refresh. Pull to try again."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar la clasificación por valoración. Desliza para intentarlo de nuevo."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar la tabla por valoración. Desliza para intentarlo de nuevo."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "रेटिंग लीडरबोर्ड रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "評価リーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось обновить таблицу лидеров по оценкам. Потяните, чтобы повторить попытку."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法刷新评分排行榜。下拉重试。"
-          }
-        }
-      }
-    },
-    "progress.error.streak_leaderboard_refresh_failed" : {
-      "comment" : "Generic progress card message when streak leaderboard refresh fails",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streak-Bestenliste konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streak leaderboard couldn't refresh. Pull to try again."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar la clasificación de rachas. Desliza para intentarlo de nuevo."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar la tabla de rachas. Desliza para intentarlo de nuevo."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "स्ट्रीक लीडरबोर्ड रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "連続記録のリーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось обновить таблицу серий. Потяните, чтобы повторить попытку."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法刷新连续天数排行榜。下拉重试。"
-          }
-        }
-      }
-    },
-    "progress.error.review_schedule_refresh_failed" : {
-      "comment" : "Generic progress card message when review schedule refresh fails",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wiederholungsplan konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review schedule couldn't refresh. Pull to try again."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar el calendario de repaso. Desliza para intentarlo de nuevo."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar el calendario de repaso. Desliza para intentarlo de nuevo."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "समीक्षा शेड्यूल रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "復習スケジュールを更新できませんでした。もう一度試すには下に引いてください。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось обновить расписание повторений. Потяните, чтобы повторить попытку."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法刷新复习计划。下拉重试。"
-          }
-        }
-      }
-    },
-    "progress.error.review_schedule_render_failed" : {
-      "comment" : "Generic progress card message when review schedule rendering fails",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wiederholungsplan konnte nicht angezeigt werden. Zum erneuten Versuch ziehen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Review schedule couldn't be shown. Pull to try again."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo mostrar el calendario de repaso. Desliza para intentarlo de nuevo."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo mostrar el calendario de repaso. Desliza para intentarlo de nuevo."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "समीक्षा शेड्यूल नहीं दिखाया जा सका। फिर से कोशिश करने के लिए खींचें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "復習スケジュールを表示できませんでした。もう一度試すには下に引いてください。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось показать расписание повторений. Потяните, чтобы повторить попытку."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法显示复习计划。下拉重试。"
-          }
-        }
-      }
-    },
-    "progress.error.series_refresh_failed" : {
-      "comment" : "Generic progress card message when chart refresh fails",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fortschrittsdiagramm konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Progress chart couldn't refresh. Pull to try again."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar el gráfico de progreso. Desliza para intentarlo de nuevo."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar el gráfico de progreso. Desliza para intentarlo de nuevo."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "प्रगति चार्ट रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "進捗グラフを更新できませんでした。もう一度試すには下に引いてください。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось обновить график прогресса. Потяните, чтобы повторить попытку."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法刷新进度图表。下拉重试。"
-          }
-        }
-      }
-    },
-    "progress.error.summary_refresh_failed" : {
-      "comment" : "Generic progress card message when summary refresh fails",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fortschrittsübersicht konnte nicht aktualisiert werden. Zum erneuten Versuch ziehen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Progress summary couldn't refresh. Pull to try again."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar el resumen de progreso. Desliza para intentarlo de nuevo."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No se pudo actualizar el resumen de progreso. Desliza para intentarlo de nuevo."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "प्रगति सारांश रीफ़्रेश नहीं हो सका। फिर से कोशिश करने के लिए खींचें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "進捗サマリーを更新できませんでした。もう一度試すには下に引いてください。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не удалось обновить сводку прогресса. Потяните, чтобы повторить попытку."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法刷新进度摘要。下拉重试。"
-          }
-        }
-      }
-    },
-    "progress.error.unavailable" : {
-      "comment" : "Generic progress card message when progress cannot be prepared",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fortschritt ist nicht verfügbar. Zum Aktualisieren ziehen und erneut versuchen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Progress is unavailable. Pull to refresh and try again."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El progreso no está disponible. Desliza para actualizar e inténtalo de nuevo."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "El progreso no está disponible. Desliza para actualizar e inténtalo de nuevo."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "प्रगति उपलब्ध नहीं है। रीफ़्रेश करने के लिए खींचें और फिर से कोशिश करें।"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "進捗を利用できません。下に引いて更新し、もう一度お試しください。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Прогресс недоступен. Потяните, чтобы обновить, и попробуйте снова."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "进度不可用。下拉刷新后重试。"
-          }
-        }
-      }
-    },
-    "progress.freeze_bank.accessibility" : {
-      "comment" : "Accessibility label for the current streak freeze credit bank",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "بنك التجميد %@ من %@ متاح."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Freeze-Vorrat: %@ von %@ verfügbar."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Freeze bank %@ of %@ available."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Banco de congelación: %@ de %@ disponible."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Banco de congelación: %@ de %@ disponible."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "फ़्रीज़ बैंक में %@ में से %@ उपलब्ध हैं."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フリーズ残数は%@/%@です。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Банк заморозок: %@ из %@ доступно."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "冻结库可用 %@/%@。"
-          }
-        }
-      }
-    },
-    "progress.freeze_bank.info.accessibility_hint" : {
-      "comment" : "Accessibility hint for the streak freeze bank info button",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يعرض كيفية عمل تجميدات السلسلة."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeigt, wie Serien-Freezes funktionieren."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shows how streak freezes work."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Muestra cómo funcionan las congelaciones de racha."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Muestra cómo funcionan las congelaciones de racha."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "दिखाता है कि स्ट्रीक फ़्रीज़ कैसे काम करते हैं."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ストリークフリーズの仕組みを表示します。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показывает, как работают заморозки серии."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示连续记录冻结的工作方式。"
-          }
-        }
-      }
-    },
-    "progress.freeze_bank.info.message" : {
-      "comment" : "Body for the streak freeze bank explanation alert. Parameters are available credits, capacity, next credit progress, and next credit required units.",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verfügbar: %@/%@. Aufladung: %@/%@. Freezes schützen verpasste Tage und laden sich auf, während deine Serie weiterläuft."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Available: %@/%@. Recharge: %@/%@. Freezes protect missed days and recharge as your streak continues."
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disponibles: %@/%@. Recarga: %@/%@. Las congelaciones protegen días perdidos y se recargan a medida que continúa tu racha."
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disponibles: %@/%@. Recarga: %@/%@. Las congelaciones protegen días perdidos y se recargan a medida que continúa tu racha."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "उपलब्ध: %@/%@. रीचार्ज: %@/%@. फ़्रीज़ छूटे हुए दिनों की रक्षा करते हैं और आपकी श्रृंखला जारी रहने पर रीचार्ज होते हैं."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "利用可能: %@/%@。リチャージ: %@/%@。フリーズは逃した日を保護し、連続記録が続くと回復します。"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доступно: %@/%@. Перезарядка: %@/%@. Заморозки защищают пропущенные дни и восстанавливаются по мере продолжения серии."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可用：%@/%@。恢复进度：%@/%@。冻结可保护错过的日期，并会随着连续记录继续而恢复。"
-          }
-        }
-      }
-    },
-    "progress.freeze_bank.info.title" : {
-      "comment" : "Title for the streak freeze bank explanation alert",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "تجميدات السلسلة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serien-Freezes"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streak freezes"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Congelaciones de racha"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Congelaciones de racha"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "स्ट्रीक फ़्रीज़"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ストリークフリーズ"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Заморозки серии"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "连续记录冻结"
-          }
-        }
-      }
-    },
-    "progress.screen.streak.section_title" : {
-      "comment" : "Progress streak section title",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "السلسلة"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serie"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streak"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Racha"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Racha"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "श्रृंखला"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "連続記録"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Серия"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "连续记录"
-          }
-        }
-      }
-    },
-    "progress.screen.streak.frozen_day.accessibility" : {
-      "comment" : "Accessibility label component for a streak day preserved by a freeze credit",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يوم مجمّد"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eingefrorener Tag"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Frozen day"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Día congelado"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Día congelado"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "फ़्रीज़ किया गया दिन"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フリーズした日"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Замороженный день"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已冻结的一天"
-          }
-        }
-      }
-    },
-    "progress.screen.streak.future_day.accessibility" : {
-      "comment" : "Accessibility label component for a future streak calendar day",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "يوم مستقبلي"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zukünftiger Tag"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Future day"
-          }
-        },
-        "es-ES" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Día futuro"
-          }
-        },
-        "es-MX" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Día futuro"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "भविष्य का दिन"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未来の日"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Будущий день"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未来日期"
           }
         }
       }
@@ -9913,6 +9087,183 @@
         }
       }
     },
+    "progress.screen.streak.frozen_day.accessibility" : {
+      "comment" : "Accessibility label component for a streak day preserved by a freeze credit",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يوم مجمّد"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingefrorener Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frozen day"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Día congelado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Día congelado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़्रीज़ किया गया दिन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フリーズした日"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Замороженный день"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已冻结的一天"
+          }
+        }
+      }
+    },
+    "progress.screen.streak.future_day.accessibility" : {
+      "comment" : "Accessibility label component for a future streak calendar day",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يوم مستقبلي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zukünftiger Tag"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Future day"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Día futuro"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Día futuro"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भविष्य का दिन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未来の日"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будущий день"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未来日期"
+          }
+        }
+      }
+    },
+    "progress.screen.streak.section_title" : {
+      "comment" : "Progress streak section title",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "السلسلة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serie"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Racha"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Racha"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "श्रृंखला"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続記録"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Серия"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连续记录"
+          }
+        }
+      }
+    },
     "progress.screen.title" : {
       "comment" : "Progress screen title",
       "localizations" : {
@@ -10031,651 +9382,710 @@
         }
       }
     },
-    "progress.screen.review_schedule.bucket.accessibility_value" : {
-      "comment" : "Accessibility value for a review schedule bucket with card count and percentage",
+    "review_notification_permission.allow_notifications" : {
+      "comment" : "Notifications permission action title to allow notifications",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld بطاقات، %@"
+            "value" : "السماح بالإشعارات"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld Karten, %@"
+            "value" : "Mitteilungen erlauben"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld cards, %@"
+            "value" : "Allow Notifications"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld tarjetas, %@"
+            "value" : "Permitir notificaciones"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld tarjetas, %@"
+            "value" : "Permitir notificaciones"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld कार्ड, %@"
+            "value" : "सूचनाओं की अनुमति दें"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld枚のカード、%@"
+            "value" : "通知を許可"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld карточек, %@"
+            "value" : "Разрешить уведомления"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld 张卡片，%@"
+            "value" : "允许通知"
           }
         }
       }
     },
-    "progress.screen.review_schedule.bucket.days_1_to_7" : {
-      "comment" : "Review schedule bucket label for cards due in one to seven days",
+    "review_notification_permission.allowed" : {
+      "comment" : "Notifications permission title for allowed",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7 أيام"
+            "value" : "مسموح"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7 Tage"
+            "value" : "Erlaubt"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7 days"
+            "value" : "Allowed"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7 días"
+            "value" : "Permitido"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7 días"
+            "value" : "Permitido"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7 दिन"
+            "value" : "अनुमत"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7日"
+            "value" : "許可済み"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7 дней"
+            "value" : "Разрешено"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-7 天"
+            "value" : "已允许"
           }
         }
       }
     },
-    "progress.screen.review_schedule.bucket.days_31_to_90" : {
-      "comment" : "Review schedule bucket label for cards due in thirty-one to ninety days",
+    "review_notification_permission.blocked" : {
+      "comment" : "Notifications permission title for blocked",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90 يومًا"
+            "value" : "محظور"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90 Tage"
+            "value" : "Blockiert"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90 days"
+            "value" : "Blocked"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90 días"
+            "value" : "Bloqueado"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90 días"
+            "value" : "Bloqueado"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90 दिन"
+            "value" : "अवरुद्ध"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90日"
+            "value" : "ブロック済み"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90 дней"
+            "value" : "Заблокировано"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "31-90 天"
+            "value" : "已阻止"
           }
         }
       }
     },
-    "progress.screen.review_schedule.bucket.days_8_to_30" : {
-      "comment" : "Review schedule bucket label for cards due in eight to thirty days",
+    "review_notification_permission.not_requested" : {
+      "comment" : "Notifications permission title for not requested",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30 يومًا"
+            "value" : "لم يُطلب"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30 Tage"
+            "value" : "Nicht angefordert"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30 days"
+            "value" : "Not requested"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30 días"
+            "value" : "No solicitado"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30 días"
+            "value" : "No solicitado"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30 दिन"
+            "value" : "अनुरोध नहीं किया गया"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30日"
+            "value" : "未リクエスト"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30 дней"
+            "value" : "Не запрашивалось"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "8-30 天"
+            "value" : "未请求"
           }
         }
       }
     },
-    "progress.screen.review_schedule.bucket.days_91_to_360" : {
-      "comment" : "Review schedule bucket label for cards due in ninety-one to three hundred sixty days",
+    "review_notification.fallback_body" : {
+      "comment" : "Fallback review notification body text",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360 يومًا"
+            "value" : "واصل جلسة الدراسة في Flashcards."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360 Tage"
+            "value" : "Setze deine Lernsitzung in Flashcards fort."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360 days"
+            "value" : "Continue your study session in Flashcards."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360 días"
+            "value" : "Continúa tu sesión de estudio en Flashcards."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360 días"
+            "value" : "Continúa tu sesión de estudio en Flashcards."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360 दिन"
+            "value" : "Flashcards में अपना अध्ययन सत्र जारी रखें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360日"
+            "value" : "Flashcards で学習セッションを続けましょう。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360 дней"
+            "value" : "Продолжите занятие в Flashcards."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "91-360 天"
+            "value" : "在 Flashcards 中继续你的学习。"
           }
         }
       }
     },
-    "progress.screen.review_schedule.bucket.later" : {
-      "comment" : "Review schedule bucket label for cards due later than two years",
+    "review_notification.mode.daily" : {
+      "comment" : "Once-daily review notification mode title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لاحقًا"
+            "value" : "مرة يوميًا"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Später"
+            "value" : "Einmal täglich"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Later"
+            "value" : "Once daily"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Más tarde"
+            "value" : "Una vez al día"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Más tarde"
+            "value" : "Una vez al día"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "बाद में"
+            "value" : "दिन में एक बार"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "それ以降"
+            "value" : "1日1回"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Позже"
+            "value" : "Раз в день"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更晚"
+            "value" : "每天一次"
           }
         }
       }
     },
-    "progress.screen.review_schedule.bucket.new" : {
-      "comment" : "Review schedule bucket label for cards without a due date",
+    "review_notification.mode.inactivity" : {
+      "comment" : "After-a-break review notification mode title",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "جديدة"
+            "value" : "بعد استراحة"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Neu"
+            "value" : "Nach einer Pause"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "New"
+            "value" : "After a break"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nuevas"
+            "value" : "Después de una pausa"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nuevas"
+            "value" : "Después de una pausa"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "नए"
+            "value" : "ब्रेक के बाद"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新規"
+            "value" : "休憩後"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Новые"
+            "value" : "После перерыва"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新卡"
+            "value" : "休息后"
           }
         }
       }
     },
-    "progress.screen.review_schedule.bucket.today" : {
-      "comment" : "Review schedule bucket label for overdue and due-today cards",
+    "review_rating.again.title" : {
+      "comment" : "Review rating title for Again",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "اليوم"
+            "value" : "مرة أخرى"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Heute"
+            "value" : "Nochmal"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Today"
+            "value" : "Again"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hoy"
+            "value" : "De nuevo"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hoy"
+            "value" : "De nuevo"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "आज"
+            "value" : "फिर से"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日"
+            "value" : "もう一度"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сегодня"
+            "value" : "Снова"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天"
+            "value" : "重来"
           }
         }
       }
     },
-    "progress.screen.review_schedule.bucket.years_1_to_2" : {
-      "comment" : "Review schedule bucket label for cards due in one to two years",
+    "review_rating.easy.title" : {
+      "comment" : "Review rating title for Easy",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2 سنة"
+            "value" : "سهل"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2 Jahre"
+            "value" : "Leicht"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2 years"
+            "value" : "Easy"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2 años"
+            "value" : "Fácil"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2 años"
+            "value" : "Fácil"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2 साल"
+            "value" : "आसान"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2年"
+            "value" : "簡単"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2 года"
+            "value" : "Легко"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1-2 年"
+            "value" : "简单"
           }
         }
       }
     },
-    "progress.screen.review_schedule.empty" : {
-      "comment" : "Progress review schedule empty caption",
+    "review_rating.good.title" : {
+      "comment" : "Review rating title for Good",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لا توجد بطاقات نشطة بعد."
+            "value" : "جيد"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Noch keine aktiven Karten."
+            "value" : "Gut"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No active cards yet."
+            "value" : "Good"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todavía no hay tarjetas activas."
+            "value" : "Bien"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todavía no hay tarjetas activas."
+            "value" : "Bien"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "अभी तक कोई सक्रिय कार्ड नहीं है।"
+            "value" : "अच्छा"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有効なカードはまだありません。"
+            "value" : "良い"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Активных карточек пока нет."
+            "value" : "Хорошо"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "还没有活跃卡片。"
+            "value" : "良好"
           }
         }
       }
     },
-    "progress.screen.review_schedule.section_title" : {
-      "comment" : "Progress review schedule section title",
+    "review_rating.hard.title" : {
+      "comment" : "Review rating title for Hard",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "جدول المراجعة"
+            "value" : "صعب"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wiederholungsplan"
+            "value" : "Schwer"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Review schedule"
+            "value" : "Hard"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Calendario de repasos"
+            "value" : "Difícil"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Calendario de repasos"
+            "value" : "Difícil"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "रिव्यू शेड्यूल"
+            "value" : "कठिन"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "復習スケジュール"
+            "value" : "難しい"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Расписание повторений"
+            "value" : "Трудно"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "复习计划"
+            "value" : "困难"
+          }
+        }
+      }
+    },
+    "root_tab.account_deleted.title" : {
+      "comment" : "Account deletion success alert title",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم حذف الحساب"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto gelöscht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account deleted"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta eliminada"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta eliminada"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खाता हटा दिया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを削除しました"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аккаунт удален"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账户已删除"
           }
         }
       }
@@ -10794,6 +10204,242 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "卡片"
+          }
+        }
+      }
+    },
+    "root_tab.guest_sign_in_after_review_prompt.later" : {
+      "comment" : "Guest sign-in prompt secondary button",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لاحقًا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Später"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más tarde"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más tarde"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बाद में"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後で"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позже"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稍后"
+          }
+        }
+      }
+    },
+    "root_tab.guest_sign_in_after_review_prompt.message" : {
+      "comment" : "Guest sign-in prompt body after reviewing enough cards",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich mit E-Mail an, damit diese Karten und dein Wiederholungsfortschritt nicht verloren gehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with email so these cards and review progress are not lost."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sesión con tu correo para que estas tarjetas y tu progreso de repaso no se pierdan."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sesión con tu correo para que estas tarjetas y tu progreso de repaso no se pierdan."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ईमेल से साइन इन करें ताकि ये कार्ड और समीक्षा प्रगति खो न जाएँ।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メールでサインインして、これらのカードと復習の進捗を失わないようにしましょう。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войдите по электронной почте, чтобы не потерять эти карточки и прогресс повторения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用电子邮件登录，以免这些卡片和复习进度丢失。"
+          }
+        }
+      }
+    },
+    "root_tab.guest_sign_in_after_review_prompt.sign_in" : {
+      "comment" : "Guest sign-in prompt primary button",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تسجيل الدخول"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar sesión"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iniciar sesión"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "साइन इन करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サインイン"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录"
+          }
+        }
+      }
+    },
+    "root_tab.guest_sign_in_after_review_prompt.title" : {
+      "comment" : "Guest sign-in prompt title after reviewing enough cards",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "احفظ تقدمك"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschritt sichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save your progress"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guarda tu progreso"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guarda tu progreso"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपनी प्रगति सहेजें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進捗を保存"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраните свой прогресс"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存你的进度"
           }
         }
       }
@@ -10976,7 +10622,7 @@
       }
     },
     "shared.action.open_settings" : {
-      "comment" : "Shared action title to open Settings",
+      "comment" : "Permission action title to open Settings",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -11035,7 +10681,7 @@
       }
     },
     "shared.action.request_access" : {
-      "comment" : "Shared action title to request access",
+      "comment" : "Permission action title to request access",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -11148,6 +10794,183 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
+          }
+        }
+      }
+    },
+    "strict_reminder.body.2h" : {
+      "comment" : "Streak reminder body sent 2 hours before the end of the local day",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 2 Stunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep your streak today. Review before midnight. 2 hours left."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 2 horas."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 2 horas."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 2 घंटे बाकी हैं।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと2時間です。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 2 часа."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天保持连续记录。午夜前复习。还剩 2 小时。"
+          }
+        }
+      }
+    },
+    "strict_reminder.body.3h" : {
+      "comment" : "Streak reminder body sent 3 hours before the end of the local day",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 3 Stunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep your streak today. Review before midnight. 3 hours left."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 3 horas."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 3 horas."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 3 घंटे बाकी हैं।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと3時間です。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 3 часа."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天保持连续记录。午夜前复习。还剩 3 小时。"
+          }
+        }
+      }
+    },
+    "strict_reminder.body.4h" : {
+      "comment" : "Streak reminder body sent 4 hours before the end of the local day",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte deine Serie heute. Wiederhole vor Mitternacht. Noch 4 Stunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep your streak today. Review before midnight. 4 hours left."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 4 horas."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 4 horas."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आज अपनी स्ट्रीक बनाए रखें। आधी रात से पहले रिव्यू करें। 4 घंटे बाकी हैं।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと4時間です。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохраните серию сегодня. Повторите до полуночи. Осталось 4 часа."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天保持连续记录。午夜前复习。还剩 4 小时。"
           }
         }
       }
