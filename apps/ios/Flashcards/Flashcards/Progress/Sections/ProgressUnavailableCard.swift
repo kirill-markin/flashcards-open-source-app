@@ -7,7 +7,7 @@ struct ProgressUnavailableCard: View {
                 String(
                     localized: "progress.screen.unavailable.title",
                     defaultValue: "Progress is unavailable",
-                    table: progressStringsTableName,
+                    table: "Foundation",
                     comment: "Progress unavailable title"
                 ),
                 systemImage: "chart.bar.xaxis",
@@ -15,7 +15,7 @@ struct ProgressUnavailableCard: View {
                     String(
                         localized: "progress.screen.unavailable.description",
                         defaultValue: "Open review or reconnect cloud data, then refresh progress.",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Progress unavailable description"
                     )
                 )

@@ -26,7 +26,7 @@ struct ProgressReviewScheduleSection: View {
                 String(
                     localized: "progress.screen.review_schedule.section_title",
                     defaultValue: "Review schedule",
-                    table: progressStringsTableName,
+                    table: "Foundation",
                     comment: "Progress review schedule section title"
                 )
             )
@@ -77,7 +77,7 @@ struct ProgressReviewScheduleSection: View {
                     String(
                         localized: "progress.screen.review_schedule.empty",
                         defaultValue: "No active cards yet.",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Progress review schedule empty caption"
                     )
                 )

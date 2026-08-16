@@ -1,45 +1,44 @@
 import SwiftUI
 
-private let foundationStringsTableName: String = "Foundation"
 let transientBannerDefaultDismissDelayNanoseconds: UInt64 = 3_000_000_000
 let settingsWorkspaceLockedBannerMessage: String = String(
     localized: "transient_banner.workspace_changes_require_account",
-    table: foundationStringsTableName,
+    table: "Foundation",
     comment: "Banner message when workspace changes require an account"
 )
 let reviewUpdatedOnAnotherDeviceBannerMessage: String = String(
     localized: "transient_banner.review_updated_on_another_device",
-    table: foundationStringsTableName,
+    table: "Foundation",
     comment: "Banner message when a review is updated on another device"
 )
 let cardsUpdatedFromCloudBannerMessage: String = String(
     localized: "transient_banner.cards_updated_from_cloud",
-    table: foundationStringsTableName,
+    table: "Foundation",
     comment: "Banner message when cards update from the cloud"
 )
 let aiChatOfflineBannerMessage: String = String(
     localized: "transient_banner.ai_chat_offline",
-    table: foundationStringsTableName,
+    table: "Foundation",
     comment: "Banner message when AI chat is unavailable offline"
 )
 let aiChatActiveRunBannerMessage: String = String(
     localized: "transient_banner.ai_chat_active_run",
-    table: foundationStringsTableName,
+    table: "Foundation",
     comment: "Banner message when an AI response is already in progress"
 )
 let reviewSpeechUnavailableBannerMessage: String = String(
     localized: "transient_banner.review_speech_unavailable",
-    table: foundationStringsTableName,
+    table: "Foundation",
     comment: "Banner message when speech is unavailable on the device"
 )
 let testModeEnabledBannerMessage: String = String(
     localized: "transient_banner.test_mode_enabled",
-    table: foundationStringsTableName,
+    table: "Foundation",
     comment: "Banner message when hidden test mode is enabled"
 )
 let testModeDisabledBannerMessage: String = String(
     localized: "transient_banner.test_mode_disabled",
-    table: foundationStringsTableName,
+    table: "Foundation",
     comment: "Banner message when hidden test mode is disabled"
 )
 

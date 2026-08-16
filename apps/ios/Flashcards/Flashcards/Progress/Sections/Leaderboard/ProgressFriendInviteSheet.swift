@@ -54,7 +54,7 @@ struct ProgressFriendInviteSheet: View {
                             String(
                                 localized: "progress.friend_invite.description",
                                 defaultValue: "Create a private friend link for the leaderboard.",
-                                table: progressStringsTableName,
+                                table: "Foundation",
                                 comment: "Body text explaining friend invite creation before the display name field"
                             )
                         )
@@ -67,7 +67,7 @@ struct ProgressFriendInviteSheet: View {
                         String(
                             localized: "progress.friend_invite.display_name.label",
                             defaultValue: "Friend name on your leaderboard",
-                            table: progressStringsTableName,
+                            table: "Foundation",
                             comment: "Text field label for the private friend invite display name"
                         ),
                         text: self.$displayName,
@@ -75,7 +75,7 @@ struct ProgressFriendInviteSheet: View {
                             String(
                                 localized: "progress.friend_invite.display_name.prompt",
                                 defaultValue: "Your friend's name",
-                                table: progressStringsTableName,
+                                table: "Foundation",
                                 comment: "Prompt for an empty friend invite display name field"
                             )
                         )
@@ -96,7 +96,7 @@ struct ProgressFriendInviteSheet: View {
                         String(
                             localized: "progress.friend_invite.display_name.footer",
                             defaultValue: "Only you see this name in your leaderboard. Your friend chooses what to call you when accepting. Invite links expire in 2 days.",
-                            table: progressStringsTableName,
+                            table: "Foundation",
                             comment: "Footer explaining private friend invite display names and expiration"
                         )
                     )
@@ -110,7 +110,7 @@ struct ProgressFriendInviteSheet: View {
                                 String(
                                     localized: "progress.friend_invite.share_subject",
                                     defaultValue: "Flashcards friend invite",
-                                    table: progressStringsTableName,
+                                    table: "Foundation",
                                     comment: "Subject for sharing a created friend invite link"
                                 )
                             ),
@@ -118,7 +118,7 @@ struct ProgressFriendInviteSheet: View {
                                 String(
                                     localized: "progress.friend_invite.share_message",
                                     defaultValue: "Open this Flashcards invite, sign in or sign up, and we will see each other in the app.",
-                                    table: progressStringsTableName,
+                                    table: "Foundation",
                                     comment: "Message for sharing a created friend invite link"
                                 )
                             )
@@ -127,7 +127,7 @@ struct ProgressFriendInviteSheet: View {
                                 String(
                                     localized: "progress.friend_invite.share_button",
                                     defaultValue: "Send Invite Link",
-                                    table: progressStringsTableName,
+                                    table: "Foundation",
                                     comment: "Button title for sharing a created friend invite link"
                                 ),
                                 systemImage: "square.and.arrow.up"
@@ -139,7 +139,7 @@ struct ProgressFriendInviteSheet: View {
                             String(
                                 localized: "progress.friend_invite.created_message",
                                 defaultValue: "They can open it, sign in or sign up, and then you will see each other in the app. Invite links expire in 2 days.",
-                                table: progressStringsTableName,
+                                table: "Foundation",
                                 comment: "Message shown after creating a friend invite link"
                             )
                         )
@@ -150,7 +150,7 @@ struct ProgressFriendInviteSheet: View {
                             String(
                                 localized: "progress.friend_invite.created_title",
                                 defaultValue: "Send this link to your friend",
-                                table: progressStringsTableName,
+                                table: "Foundation",
                                 comment: "Section header shown after a friend invite link is created"
                             )
                         )
@@ -170,7 +170,7 @@ struct ProgressFriendInviteSheet: View {
                 String(
                     localized: "progress.friend_invite.title",
                     defaultValue: "Add Friend",
-                    table: progressStringsTableName,
+                    table: "Foundation",
                     comment: "Navigation title for the friend invite creation sheet"
                 )
             )
@@ -180,7 +180,7 @@ struct ProgressFriendInviteSheet: View {
                         String(
                             localized: "progress.friend_invite.done_button",
                             defaultValue: "Done",
-                            table: progressStringsTableName,
+                            table: "Foundation",
                             comment: "Toolbar button title for dismissing the friend invite sheet"
                         )
                     ) {
@@ -223,7 +223,7 @@ struct ProgressFriendInviteSheet: View {
             return String(
                 localized: "progress.friend_invite.creating_button",
                 defaultValue: "Creating...",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Toolbar button title while creating a friend invite link"
             )
         }
@@ -231,7 +231,7 @@ struct ProgressFriendInviteSheet: View {
         return String(
             localized: "progress.friend_invite.create_button",
             defaultValue: "Create Link",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Toolbar button title for creating a friend invite link"
         )
     }

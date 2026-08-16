@@ -35,7 +35,7 @@ enum ReviewNotificationPermissionStatus: Hashable, Sendable {
             return String(
                 localized: "shared.action.open_settings",
                 table: "Foundation",
-                comment: "Notifications permission action title to open Settings"
+                comment: "Permission action title to open Settings"
             )
         case .notRequested:
             return String(

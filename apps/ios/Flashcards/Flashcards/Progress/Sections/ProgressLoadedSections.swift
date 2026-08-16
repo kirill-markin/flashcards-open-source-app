@@ -67,7 +67,7 @@ private struct ProgressStreakCard: View {
                 String(
                     localized: "progress.screen.streak.section_title",
                     defaultValue: "Streak",
-                    table: progressStringsTableName,
+                    table: "Foundation",
                     comment: "Progress streak section title"
                 )
             )

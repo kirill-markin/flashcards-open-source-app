@@ -204,7 +204,7 @@ struct ProgressReviewsSection: View {
                         String(
                             localized: "progress.screen.reviews.section_title",
                             defaultValue: "Reviews",
-                            table: progressStringsTableName,
+                            table: "Foundation",
                             comment: "Progress reviews section title"
                         )
                     )
@@ -233,7 +233,7 @@ struct ProgressReviewsSection: View {
                             String(
                                 localized: "progress.screen.reviews.previous_week",
                                 defaultValue: "Previous week",
-                                table: progressStringsTableName,
+                                table: "Foundation",
                                 comment: "Accessibility label for the previous reviews week button"
                             )
                         )
@@ -248,7 +248,7 @@ struct ProgressReviewsSection: View {
                             String(
                                 localized: "progress.screen.reviews.next_week",
                                 defaultValue: "Next week",
-                                table: progressStringsTableName,
+                                table: "Foundation",
                                 comment: "Accessibility label for the next reviews week button"
                             )
                         )

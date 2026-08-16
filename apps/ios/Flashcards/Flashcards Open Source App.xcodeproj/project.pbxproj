@@ -572,6 +572,8 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 9.19.0;
 			};
+			traits = (
+			);
 		};
 		A10000000000000000000040 /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
