@@ -15,7 +15,7 @@ extension AIChatView {
                 .defaultScrollAnchor(.bottom, for: .initialOffset)
                 .defaultScrollAnchor(.bottom, for: .alignment)
                 .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
-                // The zero-height anchor's row gap preserves the existing bottom spacing.
+                // The zero-height structural row's gap preserves the existing bottom spacing.
                 .contentMargins(.top, 12, for: .scrollContent)
                 .contentMargins(.bottom, 0, for: .scrollContent)
                 .contentMargins(.horizontal, 0, for: .scrollIndicators)
@@ -128,39 +128,52 @@ extension AIChatView {
         // Keep List: LazyVStack produced blank transcript content during keyboard-driven
         // relayout, while non-lazy VStack could not virtualize long transcripts.
         List {
-            if self.chatStore.messages.isEmpty == false {
-                let tailMessageId: String? = self.chatStore.messages.last?.id
+            Section {
+                if self.chatStore.messages.isEmpty == false {
+                    let tailMessageId: String? = self.chatStore.messages.last?.id
 
-                ForEach(self.chatStore.messages) { message in
-                    self.messageRow(
-                        message: message,
-                        repairStatus: self.repairStatus(for: message),
-                        showsTypingIndicator: aiChatShouldShowTypingIndicator(
+                    ForEach(self.chatStore.messages) { message in
+                        self.messageRow(
                             message: message,
-                            isLastMessage: message.id == tailMessageId,
-                            isStreaming: self.chatStore.isStreaming,
-                            optimisticAssistantMessageId: self.chatStore.optimisticOutgoingTurnState?.assistantMessageId
+                            repairStatus: self.repairStatus(for: message),
+                            showsTypingIndicator: aiChatShouldShowTypingIndicator(
+                                message: message,
+                                isLastMessage: message.id == tailMessageId,
+                                isStreaming: self.chatStore.isStreaming,
+                                optimisticAssistantMessageId: self.chatStore.optimisticOutgoingTurnState?.assistantMessageId
+                            )
                         )
-                    )
-                    .id(message.id)
+                        .id(message.id)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                    }
+                }
+
+                // Keep the transcript section mounted while its dynamic rows mutate.
+                Color.clear
+                    .frame(height: 0)
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-                }
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
             }
 
-            // Never use a message ID here: messages can be cleared or replaced while
-            // a pending ScrollViewReader request still needs a mounted target.
-            Color.clear
-                .frame(height: 0)
-                .id(AIChatTranscriptScrollTarget.bottom)
-                .listRowInsets(EdgeInsets())
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .accessibilityHidden(true)
-                .allowsHitTesting(false)
+            Section {
+                // This separate section keeps the target fixed at section 1, item 0.
+                Color.clear
+                    .frame(height: 0)
+                    .id(AIChatTranscriptScrollTarget.bottom)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+            }
         }
         .listStyle(.plain)
+        .listSectionSpacing(0)
         .listRowSpacing(12)
         .environment(\.defaultMinListRowHeight, 0)
         .scrollContentBackground(.hidden)
