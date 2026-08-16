@@ -48,7 +48,7 @@ struct ProgressStreakSection: View {
             Button(
                 String(
                     localized: "shared.ok",
-                    table: progressStringsTableName,
+                    table: "Foundation",
                     comment: "Confirmation button title"
                 ),
                 role: .cancel
@@ -62,7 +62,7 @@ struct ProgressStreakSection: View {
         String(
             localized: "progress.freeze_bank.info.title",
             defaultValue: "Streak freezes",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Title for the streak freeze bank explanation alert"
         )
     }
@@ -71,7 +71,7 @@ struct ProgressStreakSection: View {
         let localizedFormat = String(
             localized: "progress.freeze_bank.info.message",
             defaultValue: "Available: %@/%@. Recharge: %@/%@. Freezes protect missed days and recharge as your streak continues.",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Body for the streak freeze bank explanation alert. Parameters are available credits, capacity, next credit progress, and next credit required units."
         )
         return String(
@@ -230,7 +230,7 @@ private struct ProgressFreezeBankChip: View {
             String(
                 localized: "progress.freeze_bank.info.accessibility_hint",
                 defaultValue: "Shows how streak freezes work.",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Accessibility hint for the streak freeze bank info button"
             )
         )
@@ -240,7 +240,7 @@ private struct ProgressFreezeBankChip: View {
         let localizedFormat = String(
             localized: "progress.freeze_bank.accessibility",
             defaultValue: "Freeze bank %@ of %@ available.",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Accessibility label for the current streak freeze credit bank"
         )
         return String(
@@ -358,7 +358,7 @@ private struct ProgressStreakDayCell: View {
             let futureTitle = String(
                 localized: "progress.screen.streak.future_day.accessibility",
                 defaultValue: "Future day",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Accessibility label component for a future streak calendar day"
             )
 
@@ -369,14 +369,14 @@ private struct ProgressStreakDayCell: View {
         let todayTitle = String(
             localized: "progress.screen.today",
             defaultValue: "Today",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress today label"
         )
         let reviewsTitle = String.localizedStringWithFormat(
             String(
                 localized: "progress.screen.reviews.accessibility",
                 defaultValue: "%lld reviews",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Accessibility label suffix for daily review counts"
             ),
             Int64(self.day.reviewCount)
@@ -389,7 +389,7 @@ private struct ProgressStreakDayCell: View {
             streakStateTitle = String(
                 localized: "progress.screen.streak.frozen_day.accessibility",
                 defaultValue: "Frozen day",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Accessibility label component for a streak day preserved by a freeze credit"
             )
         case .missed:

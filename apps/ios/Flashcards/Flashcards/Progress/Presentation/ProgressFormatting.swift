@@ -1,7 +1,6 @@
 import Foundation
 import SwiftUI
 
-let progressStringsTableName: String = "Foundation"
 let progressReviewRatingChartOrder: [ReviewRating] = [.again, .hard, .good, .easy]
 
 func progressReviewChartPageDateRange(
@@ -132,56 +131,56 @@ func progressReviewScheduleBucketTitle(key: ReviewScheduleBucketKey) -> String {
         return String(
             localized: "progress.screen.review_schedule.bucket.new",
             defaultValue: "New",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Review schedule bucket label for cards without a due date"
         )
     case .today:
         return String(
             localized: "progress.screen.review_schedule.bucket.today",
             defaultValue: "Today",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Review schedule bucket label for overdue and due-today cards"
         )
     case .days1To7:
         return String(
             localized: "progress.screen.review_schedule.bucket.days_1_to_7",
             defaultValue: "1-7 days",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Review schedule bucket label for cards due in one to seven days"
         )
     case .days8To30:
         return String(
             localized: "progress.screen.review_schedule.bucket.days_8_to_30",
             defaultValue: "8-30 days",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Review schedule bucket label for cards due in eight to thirty days"
         )
     case .days31To90:
         return String(
             localized: "progress.screen.review_schedule.bucket.days_31_to_90",
             defaultValue: "31-90 days",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Review schedule bucket label for cards due in thirty-one to ninety days"
         )
     case .days91To360:
         return String(
             localized: "progress.screen.review_schedule.bucket.days_91_to_360",
             defaultValue: "91-360 days",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Review schedule bucket label for cards due in ninety-one to three hundred sixty days"
         )
     case .years1To2:
         return String(
             localized: "progress.screen.review_schedule.bucket.years_1_to_2",
             defaultValue: "1-2 years",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Review schedule bucket label for cards due in one to two years"
         )
     case .later:
         return String(
             localized: "progress.screen.review_schedule.bucket.later",
             defaultValue: "Later",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Review schedule bucket label for cards due later than two years"
         )
     }
@@ -226,7 +225,7 @@ func progressReviewScheduleChartAccessibilityLabel() -> String {
     String(
         localized: "progress.screen.review_schedule.section_title",
         defaultValue: "Review schedule",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress review schedule section title"
     )
 }
@@ -238,7 +237,7 @@ func progressReviewScheduleBucketAccessibilityValue(
     let localizedFormat = String(
         localized: "progress.screen.review_schedule.bucket.accessibility_value",
         defaultValue: "%lld cards, %@",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Accessibility value for a review schedule bucket with card count and percentage"
     )
     return String(
@@ -260,7 +259,7 @@ func progressLeaderboardSectionTitle() -> String {
     String(
         localized: "progress.screen.leaderboard.section_title",
         defaultValue: "Rating leaderboard",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress rating leaderboard section title"
     )
 }
@@ -271,7 +270,7 @@ func progressLeaderboardInfoMessage(snapshotGeneratedAt: String?, now: Date) -> 
     let baseMessage = String(
         localized: "progress.screen.leaderboard.info.message",
         defaultValue: "Hard, Good, and Easy reviews count toward your rank. Again does not.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard info explanation of which review ratings count"
     )
 
@@ -287,7 +286,7 @@ func progressLeaderboardViewerRowTitle() -> String {
     String(
         localized: "progress.screen.leaderboard.row.you",
         defaultValue: "You",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard label for the viewer's own row"
     )
 }
@@ -296,7 +295,7 @@ func progressStreakLeaderboardSectionTitle() -> String {
     String(
         localized: "progress.screen.streak_leaderboard.section_title",
         defaultValue: "Streak leaderboard",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress streak leaderboard section title"
     )
 }
@@ -305,7 +304,7 @@ func progressStreakLeaderboardInfoMessage(snapshotGeneratedAt: String?, now: Dat
     let localizedFormat = String(
         localized: "progress.screen.streak_leaderboard.info.message",
         defaultValue: "Current streak days determine your rank. A streak day is any local day with at least one card review rated %1$@, %2$@, %3$@, or %4$@.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress streak leaderboard info explanation of ranking metric"
     )
     let baseMessage = String(
@@ -330,7 +329,7 @@ func progressStreakLeaderboardDayCountText(streakDays: Int) -> String {
         return String(
             localized: "progress.screen.streak_leaderboard.day_count.one",
             defaultValue: "1 day",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress streak leaderboard singular day count"
         )
     }
@@ -338,7 +337,7 @@ func progressStreakLeaderboardDayCountText(streakDays: Int) -> String {
     let localizedFormat = String(
         localized: "progress.screen.streak_leaderboard.day_count.other",
         defaultValue: "%lld days",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress streak leaderboard plural day count"
     )
     return String(format: localizedFormat, locale: Locale.current, Int64(streakDays))
@@ -350,35 +349,35 @@ func progressLeaderboardWindowTitle(key: LeaderboardWindowKey) -> String {
         return String(
             localized: "progress.screen.leaderboard.window.last_24_hours",
             defaultValue: "24h",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard period selector label for the last 24 hours"
         )
     case .last3Days:
         return String(
             localized: "progress.screen.leaderboard.window.last_3_days",
             defaultValue: "3d",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard period selector label for the last 3 days"
         )
     case .last7Days:
         return String(
             localized: "progress.screen.leaderboard.window.last_7_days",
             defaultValue: "7d",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard period selector label for the last 7 days"
         )
     case .last30Days:
         return String(
             localized: "progress.screen.leaderboard.window.last_30_days",
             defaultValue: "30d",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard period selector label for the last 30 days"
         )
     case .allTime:
         return String(
             localized: "progress.screen.leaderboard.window.all_time",
             defaultValue: "All time",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard period selector label for all time"
         )
     }
@@ -395,7 +394,7 @@ func progressLeaderboardProfileFriendBadgeTitle() -> String {
     String(
         localized: "progress.leaderboard_profile.friend_badge",
         defaultValue: "Friend",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Badge text shown on a leaderboard profile when the profile belongs to a friend"
     )
 }
@@ -407,7 +406,7 @@ func progressLeaderboardProfileBestRatingText(
         return String(
             localized: "progress.leaderboard_profile.best_rating.none",
             defaultValue: "No rating yet",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Leaderboard profile best rating value when the profile has no rating placement"
         )
     }
@@ -415,7 +414,7 @@ func progressLeaderboardProfileBestRatingText(
     let localizedFormat = String(
         localized: "progress.leaderboard_profile.best_rating.format",
         defaultValue: "#%1$lld in %2$@",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Leaderboard profile best rating value with rank and leaderboard window, for example #2 in 24h"
     )
     return String(
@@ -444,7 +443,7 @@ func progressLeaderboardProfileCardCountText(totalCards: Int) -> String {
         return String(
             localized: "progress.leaderboard_profile.card_count.one",
             defaultValue: "1 card",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Leaderboard profile singular total card count"
         )
     }
@@ -452,7 +451,7 @@ func progressLeaderboardProfileCardCountText(totalCards: Int) -> String {
     let localizedFormat = String(
         localized: "progress.leaderboard_profile.card_count.other",
         defaultValue: "%lld cards",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Leaderboard profile plural total card count"
     )
     return String(format: localizedFormat, locale: Locale.current, Int64(totalCards))
@@ -487,7 +486,7 @@ func progressLeaderboardUpdatedText(snapshotGeneratedAt: String, now: Date) -> S
         let localizedFormat = String(
             localized: "progress.screen.leaderboard.updated_at.elapsed.hours_minutes",
             defaultValue: "%1$@ %2$@",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard freshness elapsed time with hours and remaining minutes"
         )
         elapsedText = String(
@@ -501,7 +500,7 @@ func progressLeaderboardUpdatedText(snapshotGeneratedAt: String, now: Date) -> S
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at",
         defaultValue: "Updated %@ ago",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard freshness text with localized elapsed time"
     )
     return String(format: localizedFormat, locale: Locale.current, elapsedText)
@@ -521,7 +520,7 @@ private func progressLeaderboardElapsedHourText(hours: Int64) -> String {
         return String(
             localized: "progress.screen.leaderboard.updated_at.hour.one",
             defaultValue: "1 hour",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard freshness singular elapsed hour"
         )
     }
@@ -529,7 +528,7 @@ private func progressLeaderboardElapsedHourText(hours: Int64) -> String {
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at.hour.other",
         defaultValue: "%lld hours",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard freshness plural elapsed hours"
     )
     return String(format: localizedFormat, locale: Locale.current, hours)
@@ -540,7 +539,7 @@ private func progressLeaderboardElapsedMinuteText(minutes: Int64) -> String {
         return String(
             localized: "progress.screen.leaderboard.updated_at.minute.one",
             defaultValue: "1 minute",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard freshness singular elapsed minute"
         )
     }
@@ -548,7 +547,7 @@ private func progressLeaderboardElapsedMinuteText(minutes: Int64) -> String {
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at.minute.other",
         defaultValue: "%lld minutes",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard freshness plural elapsed minutes"
     )
     return String(format: localizedFormat, locale: Locale.current, minutes)

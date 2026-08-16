@@ -4,7 +4,7 @@ func localizedProgressUnavailableErrorMessage() -> String {
     String(
         localized: "progress.error.unavailable",
         defaultValue: "Progress is unavailable. Pull to refresh and try again.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Generic progress card message when progress cannot be prepared"
     )
 }
@@ -13,7 +13,7 @@ func localizedProgressSummaryRefreshErrorMessage() -> String {
     String(
         localized: "progress.error.summary_refresh_failed",
         defaultValue: "Progress summary couldn't refresh. Pull to try again.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Generic progress card message when summary refresh fails"
     )
 }
@@ -22,7 +22,7 @@ func localizedProgressSeriesRefreshErrorMessage() -> String {
     String(
         localized: "progress.error.series_refresh_failed",
         defaultValue: "Progress chart couldn't refresh. Pull to try again.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Generic progress card message when chart refresh fails"
     )
 }
@@ -31,7 +31,7 @@ func localizedProgressReviewScheduleRefreshErrorMessage() -> String {
     String(
         localized: "progress.error.review_schedule_refresh_failed",
         defaultValue: "Review schedule couldn't refresh. Pull to try again.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Generic progress card message when review schedule refresh fails"
     )
 }
@@ -40,7 +40,7 @@ func localizedProgressReviewScheduleRenderErrorMessage() -> String {
     String(
         localized: "progress.error.review_schedule_render_failed",
         defaultValue: "Review schedule couldn't be shown. Pull to try again.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Generic progress card message when review schedule rendering fails"
     )
 }
@@ -49,7 +49,7 @@ func localizedProgressLeaderboardRefreshErrorMessage() -> String {
     String(
         localized: "progress.error.leaderboard_refresh_failed",
         defaultValue: "Rating leaderboard couldn't refresh. Pull to try again.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Generic progress card message when rating leaderboard refresh fails"
     )
 }
@@ -58,7 +58,7 @@ func localizedProgressStreakLeaderboardRefreshErrorMessage() -> String {
     String(
         localized: "progress.error.streak_leaderboard_refresh_failed",
         defaultValue: "Streak leaderboard couldn't refresh. Pull to try again.",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Generic progress card message when streak leaderboard refresh fails"
     )
 }

@@ -28,7 +28,7 @@ struct ProgressLeaderboardProfileSheet: View {
                             String(
                                 localized: "progress.leaderboard_profile.done_button",
                                 defaultValue: "Done",
-                                table: progressStringsTableName,
+                                table: "Foundation",
                                 comment: "Toolbar button title for dismissing a leaderboard profile sheet"
                             )
                         ) {
@@ -142,7 +142,7 @@ private struct ProgressLeaderboardProfileLoadingView: View {
                     String(
                         localized: "progress.leaderboard_profile.loading",
                         defaultValue: "Loading profile...",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Loading message for a leaderboard profile sheet"
                     )
                 )
@@ -193,7 +193,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                         String(
                             localized: "progress.leaderboard_profile.current_streak.label",
                             defaultValue: "Current streak",
-                            table: progressStringsTableName,
+                            table: "Foundation",
                             comment: "Leaderboard profile current streak metric label"
                         )
                     )
@@ -210,7 +210,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                         String(
                             localized: "progress.leaderboard_profile.best_rating.label",
                             defaultValue: "Best rating",
-                            table: progressStringsTableName,
+                            table: "Foundation",
                             comment: "Leaderboard profile best rating metric label"
                         )
                     )
@@ -220,7 +220,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                     String(
                         localized: "progress.leaderboard_profile.metrics.section_title",
                         defaultValue: "Metrics",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Leaderboard profile metrics section title"
                     )
                 )
@@ -233,7 +233,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                     String(
                         localized: "progress.leaderboard_profile.activity.section_title",
                         defaultValue: "Review activity",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Leaderboard profile review activity section title"
                     )
                 )
@@ -242,7 +242,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                     String(
                         localized: "progress.leaderboard_profile.activity.footer",
                         defaultValue: "Last 30 days.",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Leaderboard profile review activity footer"
                     )
                 )
@@ -256,7 +256,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                         String(
                             localized: "progress.leaderboard_profile.joined.label",
                             defaultValue: "Joined",
-                            table: progressStringsTableName,
+                            table: "Foundation",
                             comment: "Leaderboard profile joined date stats label"
                         )
                     )
@@ -269,7 +269,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                         String(
                             localized: "progress.leaderboard_profile.cards.label",
                             defaultValue: "Cards",
-                            table: progressStringsTableName,
+                            table: "Foundation",
                             comment: "Leaderboard profile total cards stats label"
                         )
                     )
@@ -279,7 +279,7 @@ private struct ProgressLeaderboardProfileReadyView: View {
                     String(
                         localized: "progress.leaderboard_profile.stats.section_title",
                         defaultValue: "Stats",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Leaderboard profile stats section title"
                     )
                 )
@@ -349,7 +349,7 @@ private struct ProgressLeaderboardProfileActivityChart: View {
             String(
                 localized: "progress.leaderboard_profile.activity.chart.accessibility_label",
                 defaultValue: "Review activity",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Accessibility label for the leaderboard profile review activity chart"
             )
         )
@@ -359,7 +359,7 @@ private struct ProgressLeaderboardProfileActivityChart: View {
         String(
             localized: "progress.leaderboard_profile.activity.chart.date_axis",
             defaultValue: "Date",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Leaderboard profile review activity chart date axis label"
         )
     }
@@ -368,7 +368,7 @@ private struct ProgressLeaderboardProfileActivityChart: View {
         String(
             localized: "progress.leaderboard_profile.activity.chart.review_axis",
             defaultValue: "Reviews",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Leaderboard profile review activity chart review count axis label"
         )
     }
@@ -378,7 +378,7 @@ private struct ProgressLeaderboardProfileActivityChart: View {
             return String(
                 localized: "progress.leaderboard_profile.activity.review_count.one",
                 defaultValue: "1 review",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Leaderboard profile activity singular review count"
             )
         }
@@ -386,7 +386,7 @@ private struct ProgressLeaderboardProfileActivityChart: View {
         let localizedFormat = String(
             localized: "progress.leaderboard_profile.activity.review_count.other",
             defaultValue: "%lld reviews",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Leaderboard profile activity plural review count"
         )
         return String(format: localizedFormat, locale: Locale.current, Int64(reviewCount))
@@ -432,21 +432,21 @@ private struct ProgressLeaderboardProfileUnavailableView: View {
             return String(
                 localized: "progress.leaderboard_profile.unavailable.linked_account_required.title",
                 defaultValue: "Sign in required",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Leaderboard profile unavailable title when a linked account is required"
             )
         case .participationDisabled:
             return String(
                 localized: "progress.leaderboard_profile.unavailable.participation_disabled.title",
                 defaultValue: "Participation is off",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Leaderboard profile unavailable title when leaderboard participation is disabled"
             )
         case .profileUnavailable, .ready:
             return String(
                 localized: "progress.leaderboard_profile.unavailable.profile_unavailable.title",
                 defaultValue: "Profile unavailable",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Leaderboard profile unavailable title when the public profile cannot be shown"
             )
         }
@@ -458,21 +458,21 @@ private struct ProgressLeaderboardProfileUnavailableView: View {
             return String(
                 localized: "progress.leaderboard_profile.unavailable.linked_account_required.message",
                 defaultValue: "Sign in with email to view leaderboard profiles.",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Leaderboard profile unavailable message when a linked account is required"
             )
         case .participationDisabled:
             return String(
                 localized: "progress.leaderboard_profile.unavailable.participation_disabled.message",
                 defaultValue: "Profiles are visible only while rating leaderboard participation is on.",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Leaderboard profile unavailable message when leaderboard participation is disabled"
             )
         case .profileUnavailable, .ready:
             return String(
                 localized: "progress.leaderboard_profile.unavailable.profile_unavailable.message",
                 defaultValue: "This leaderboard profile cannot be shown right now.",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Leaderboard profile unavailable message when the public profile cannot be shown"
             )
         }
@@ -501,7 +501,7 @@ private struct ProgressLeaderboardProfileErrorView: View {
                     String(
                         localized: "progress.leaderboard_profile.error.title",
                         defaultValue: "Couldn't load profile",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Leaderboard profile load failure title"
                     ),
                     systemImage: "exclamationmark.triangle"
@@ -511,7 +511,7 @@ private struct ProgressLeaderboardProfileErrorView: View {
                     String(
                         localized: "progress.leaderboard_profile.error.message",
                         defaultValue: "Check your connection and try again.",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Leaderboard profile load failure message"
                     )
                 )
@@ -520,7 +520,7 @@ private struct ProgressLeaderboardProfileErrorView: View {
                     String(
                         localized: "progress.leaderboard_profile.retry_button",
                         defaultValue: "Try Again",
-                        table: progressStringsTableName,
+                        table: "Foundation",
                         comment: "Button title for retrying a leaderboard profile load"
                     )
                 ) {

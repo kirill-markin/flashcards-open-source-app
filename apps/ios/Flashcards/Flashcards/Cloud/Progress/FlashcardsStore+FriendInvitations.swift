@@ -12,14 +12,14 @@ enum FriendInvitationDisplayNameValidationError: LocalizedError {
             return String(
                 localized: "progress.friend_invite.validation.length",
                 defaultValue: "Enter 1-30 characters.",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Validation error for a friend invite display name with an invalid trimmed length"
             )
         case .invalidCharacters:
             return String(
                 localized: "progress.friend_invite.validation.characters",
                 defaultValue: "Newlines and control characters are not allowed.",
-                table: progressStringsTableName,
+                table: "Foundation",
                 comment: "Validation error for a friend invite display name containing control characters or newlines"
             )
         }

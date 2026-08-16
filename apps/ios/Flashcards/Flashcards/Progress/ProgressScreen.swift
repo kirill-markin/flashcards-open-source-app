@@ -76,7 +76,7 @@ struct ProgressScreen: View {
                 String(
                     localized: "progress.screen.title",
                     defaultValue: "Progress",
-                    table: progressStringsTableName,
+                    table: "Foundation",
                     comment: "Progress screen title"
                 )
             )
