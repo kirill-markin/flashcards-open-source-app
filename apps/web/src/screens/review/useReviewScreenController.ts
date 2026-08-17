@@ -1,53 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
-import {
-  loadFeedbackState,
-  loadReviewPlatformSummary,
-  recordFeedbackPromptEvent,
-  submitFeedback,
-} from "../../api";
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard } from "../../appData/domain";
-import { webReviewMobilePromptStoreLinks } from "../../appPlatformLinks";
-import {
-  buildNextAutomaticFeedbackPromptAt,
-  evaluateAutomaticFeedbackPromptEligibility,
-  loadAutomaticFeedbackPromptReviewActivity,
-  shouldRequestAutomaticFeedbackState,
-  type AutomaticFeedbackPromptReviewActivity,
-} from "../../feedback/automaticFeedbackPrompt";
 import type { FeedbackDialogProps } from "../../feedback/FeedbackDialog";
-import {
-  buildFeedbackPromptEventRequest,
-  buildFeedbackSubmissionRequest,
-  feedbackMaximumMessageLength,
-  normalizeFeedbackMessage,
-} from "../../feedback/feedbackSubmission";
 import { useI18n } from "../../i18n";
-import {
-  buildFeedbackPromptIdentityKey,
-  loadFeedbackPromptState,
-  storeAutomaticFeedbackPromptShownAt,
-  storeFeedbackSubmittedAt,
-  storeFetchedFeedbackState,
-  type FeedbackPromptState,
-} from "../../localDb/feedback/feedback";
-import {
-  clearMobileAppPromotionPromptShownIfCurrent,
-  loadMobileAppPromotionState,
-  storeKnownMobileReviewEvent,
-  storeMobileAppPromotionPromptShown,
-  type MobileAppPromotionState,
-} from "../../localDb/mobileAppPromotion/mobileAppPromotion";
-import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { normalizeCaughtError } from "../../observability/webObservability";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
-import type { Card, FeedbackPromptEventType, FeedbackSubmissionRequest } from "../../types";
+import type { Card } from "../../types";
 import { handleRefreshLocalDataError } from "../shared/refreshLocalDataError";
 import { isCardFormStateDirty } from "../cards/form/CardForm";
 import type { ReviewEditorModalProps } from "./components/card/ReviewEditorModal";
@@ -68,13 +32,8 @@ import {
   shouldShowReviewHardReminder,
 } from "./hardReminder/reviewHardReminder";
 import { useReviewKeyboardShortcuts } from "./input/useReviewKeyboardShortcuts";
-import {
-  evaluateMobileAppPromotionEligibility,
-  loadMobileAppPromotionReviewActivity,
-  mobileAppPromotionMinimumReviewCount,
-  type MobileAppPromotionReviewActivity,
-} from "./mobileAppPromo/mobileAppPromotionEligibility";
 import type { MobileAppPromotionDialogProps } from "./mobileAppPromo/MobileAppPromotionDialog";
+import { usePostReviewPrompts } from "./usePostReviewPrompts";
 import { useReviewRatingReactions, type UseReviewRatingReactionsResult } from "./reactions/useReviewRatingReactions";
 import { makeReviewSpeakableText, useReviewSpeech } from "./speech/reviewSpeech";
 
@@ -93,30 +52,6 @@ export type UseReviewScreenControllerResult = Readonly<{
 
 export type UseReviewScreenControllerParams = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
-}>;
-
-type AutomaticFeedbackPromptUiState = Readonly<{
-  isEditorPresented: boolean;
-  isFeedbackDialogOpen: boolean;
-  isHardReminderVisible: boolean;
-  isMobileAppPromotionDialogOpen: boolean;
-  isReviewFilterMenuOpen: boolean;
-}>;
-
-type MobileAppPromotionPromptContext = Readonly<{
-  generation: number;
-  identityKey: string;
-  isMounted: boolean;
-  workspaceId: string | null;
-}>;
-
-type MobileAppPromotionPromptDecision = Readonly<{
-  kind: "cancelled" | "opened" | "skipped";
-}>;
-
-type MobileAppPromotionInFlightCheck = Readonly<{
-  context: MobileAppPromotionPromptContext;
-  promise: Promise<MobileAppPromotionPromptDecision>;
 }>;
 
 export function useReviewScreenController(
@@ -150,27 +85,8 @@ export function useReviewScreenController(
   const [reviewSubmitState, setReviewSubmitState] = useState<ReviewSubmitState>("idle");
   const [lastSubmittedReview, setLastSubmittedReview] = useState<LastSubmittedReview | null>(null);
   const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState<boolean>(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string>("");
-  const [feedbackErrorMessage, setFeedbackErrorMessage] = useState<string>("");
-  const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState<boolean>(false);
-  const [isMobileAppPromotionDialogOpen, setIsMobileAppPromotionDialogOpen] = useState<boolean>(false);
   const [isReviewQueuePanelOpen, setIsReviewQueuePanelOpen] = useState<boolean>(false);
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
-  const automaticFeedbackPromptUiStateRef = useRef<AutomaticFeedbackPromptUiState>({
-    isEditorPresented: false,
-    isFeedbackDialogOpen: false,
-    isHardReminderVisible: false,
-    isMobileAppPromotionDialogOpen: false,
-    isReviewFilterMenuOpen: false,
-  });
-  const mobileAppPromotionPromptContextRef = useRef<MobileAppPromotionPromptContext>({
-    generation: 0,
-    identityKey: "",
-    isMounted: true,
-    workspaceId: null,
-  });
-  const mobileAppPromotionCheckInFlightRef = useRef<MobileAppPromotionInFlightCheck | null>(null);
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
   const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
@@ -284,35 +200,29 @@ export function useReviewScreenController(
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
   const handoffCardToAi = useAiCardHandoff();
-  automaticFeedbackPromptUiStateRef.current = {
-    isEditorPresented,
+  const {
+    feedbackDialogProps,
     isFeedbackDialogOpen,
-    isHardReminderVisible,
     isMobileAppPromotionDialogOpen,
+    maybeOpenPostReviewPrompt,
+    mobileAppPromotionDialogProps,
+  } = usePostReviewPrompts({
+    indexedDbOpenRecoveryState,
+    installationId: cloudSettings?.installationId ?? null,
+    isEditorPresented,
+    isHardReminderVisible,
     isReviewFilterMenuOpen,
-  };
+    linkedUserId: cloudSettings?.linkedUserId ?? null,
+    locale,
+    onFeedbackSubmitted: showReviewFeedbackMessage,
+    userId: session?.userId ?? null,
+    workspaceId: activeWorkspace?.workspaceId ?? null,
+  });
   const nowTimestamp = Date.now();
   const selectedFrontSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.frontText);
   const selectedBackSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.backText);
   const hasCards = localWorkspaceCardCount > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
-  const feedbackPromptIdentityKey = buildFeedbackPromptIdentityKey({
-    sessionUserId: session?.userId ?? null,
-    linkedUserId: cloudSettings?.linkedUserId ?? null,
-  });
-  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
-  const currentMobileAppPromotionPromptContext = mobileAppPromotionPromptContextRef.current;
-  if (
-    currentMobileAppPromotionPromptContext.workspaceId !== activeWorkspaceId
-    || currentMobileAppPromotionPromptContext.identityKey !== feedbackPromptIdentityKey
-  ) {
-    mobileAppPromotionPromptContextRef.current = {
-      generation: currentMobileAppPromotionPromptContext.generation + 1,
-      identityKey: feedbackPromptIdentityKey,
-      isMounted: true,
-      workspaceId: activeWorkspaceId,
-    };
-  }
   const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
   const requestedReviewFilterTitle = resolveReviewFilterTitle(
     selectedReviewFilter,
@@ -341,488 +251,12 @@ export function useReviewScreenController(
     return markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error);
   }
 
-  function captureFeedbackOperationError(
-    error: unknown,
-    operation: "feedback_activity_load" | "feedback_state_load" | "feedback_prompt_event" | "feedback_submit",
-    entityId: string | null,
-  ): void {
-    captureAppOperationError(error, {
-      feature: "feedback",
-      operation,
-      userId: session?.userId ?? null,
-      workspaceId: activeWorkspace?.workspaceId ?? null,
-      installationId: cloudSettings?.installationId ?? null,
-      entityId,
-    });
-  }
-
-  function captureMobileAppPromotionOperationError(
-    error: unknown,
-    operation:
-      | "mobile_app_promo_activity_load"
-      | "mobile_app_promo_state_load"
-      | "mobile_app_promo_status_load"
-      | "mobile_app_promo_state_save",
-    entityId: string | null,
-  ): void {
-    captureAppOperationError(error, {
-      feature: "mobile_app_promo",
-      operation,
-      userId: session?.userId ?? null,
-      workspaceId: activeWorkspace?.workspaceId ?? null,
-      installationId: cloudSettings?.installationId ?? null,
-      entityId,
-    });
-  }
-
-  function isReviewPromptUiBlocked(): boolean {
-    const uiState = automaticFeedbackPromptUiStateRef.current;
-    return uiState.isEditorPresented
-      || uiState.isFeedbackDialogOpen
-      || uiState.isHardReminderVisible
-      || uiState.isMobileAppPromotionDialogOpen
-      || uiState.isReviewFilterMenuOpen;
-  }
-
-  function isMobileAppPromotionPromptContextCurrent(context: MobileAppPromotionPromptContext): boolean {
-    const currentContext = mobileAppPromotionPromptContextRef.current;
-    return currentContext.isMounted
-      && currentContext.generation === context.generation
-      && currentContext.workspaceId === context.workspaceId
-      && currentContext.identityKey === context.identityKey;
-  }
-
-  function isSameMobileAppPromotionPromptContext(
-    leftContext: MobileAppPromotionPromptContext,
-    rightContext: MobileAppPromotionPromptContext,
-  ): boolean {
-    return leftContext.generation === rightContext.generation
-      && leftContext.workspaceId === rightContext.workspaceId
-      && leftContext.identityKey === rightContext.identityKey;
-  }
-
-  function buildSkippedMobileAppPromotionDecision(
-    promptContext: MobileAppPromotionPromptContext,
-  ): MobileAppPromotionPromptDecision {
-    return isMobileAppPromotionPromptContextCurrent(promptContext)
-      ? { kind: "skipped" }
-      : { kind: "cancelled" };
-  }
-
   function handleReviewQueueShortcutClick(): void {
     setIsReviewQueuePanelOpen((currentIsReviewQueuePanelOpen) => !currentIsReviewQueuePanelOpen);
   }
 
   function handleReviewQueuePanelClose(): void {
     setIsReviewQueuePanelOpen(false);
-  }
-
-  async function postAutomaticFeedbackPromptEvent(eventType: FeedbackPromptEventType): Promise<void> {
-    try {
-      indexedDbOpenRecoveryState.throwIfFailed();
-      const now = new Date();
-      const feedbackState = await recordFeedbackPromptEvent(buildFeedbackPromptEventRequest({
-        workspaceId: activeWorkspace?.workspaceId ?? null,
-        locale,
-        eventType,
-        now,
-      }));
-      indexedDbOpenRecoveryState.throwIfFailed();
-      await storeFetchedFeedbackState({
-        identityKey: feedbackPromptIdentityKey,
-        feedbackState,
-        fetchedAt: now.toISOString(),
-      }, indexedDbOpenRecoveryState.throwIfFailed);
-      indexedDbOpenRecoveryState.throwIfFailed();
-    } catch (error) {
-      if (markIndexedDbOpenRecoveryFailure(error)) {
-        return;
-      }
-      captureFeedbackOperationError(error, "feedback_prompt_event", eventType);
-    }
-  }
-
-  async function maybeOpenAutomaticFeedbackPrompt(): Promise<void> {
-    const workspaceId = activeWorkspace?.workspaceId ?? null;
-    if (workspaceId === null || isReviewPromptUiBlocked()) {
-      return;
-    }
-
-    try {
-      indexedDbOpenRecoveryState.throwIfFailed();
-      const now = new Date();
-      const nowMillis = now.getTime();
-      let reviewActivity: AutomaticFeedbackPromptReviewActivity;
-      try {
-        reviewActivity = await loadAutomaticFeedbackPromptReviewActivity(
-          workspaceId,
-          now,
-          indexedDbOpenRecoveryState,
-        );
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return;
-        }
-        captureFeedbackOperationError(error, "feedback_activity_load", null);
-        return;
-      }
-
-      let promptState: FeedbackPromptState;
-      try {
-        promptState = await loadFeedbackPromptState(feedbackPromptIdentityKey);
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return;
-        }
-        captureFeedbackOperationError(error, "feedback_state_load", null);
-        return;
-      }
-
-      let decisionInput = {
-        reviewActivity,
-        promptState,
-        nowMillis,
-      };
-      if (shouldRequestAutomaticFeedbackState(decisionInput)) {
-        try {
-          const feedbackState = await loadFeedbackState();
-          indexedDbOpenRecoveryState.throwIfFailed();
-          promptState = await storeFetchedFeedbackState({
-            identityKey: feedbackPromptIdentityKey,
-            feedbackState,
-            fetchedAt: new Date().toISOString(),
-          }, indexedDbOpenRecoveryState.throwIfFailed);
-          indexedDbOpenRecoveryState.throwIfFailed();
-          decisionInput = {
-            reviewActivity,
-            promptState,
-            nowMillis: Date.now(),
-          };
-        } catch (error) {
-          if (markIndexedDbOpenRecoveryFailure(error)) {
-            return;
-          }
-          captureFeedbackOperationError(error, "feedback_state_load", null);
-          return;
-        }
-      }
-
-      if (evaluateAutomaticFeedbackPromptEligibility(decisionInput).isEligible === false) {
-        return;
-      }
-
-      if (isReviewPromptUiBlocked()) {
-        return;
-      }
-
-      const shownAt = new Date();
-      await storeAutomaticFeedbackPromptShownAt({
-        identityKey: feedbackPromptIdentityKey,
-        shownAt: shownAt.toISOString(),
-        nextAutomaticFeedbackPromptAt: buildNextAutomaticFeedbackPromptAt(shownAt),
-      }, indexedDbOpenRecoveryState.throwIfFailed);
-      indexedDbOpenRecoveryState.throwIfFailed();
-      setFeedbackMessage("");
-      setFeedbackErrorMessage("");
-      setIsFeedbackSubmitting(false);
-      setIsFeedbackDialogOpen(true);
-      void postAutomaticFeedbackPromptEvent("automatic_prompt_shown");
-    } catch (error) {
-      if (markIndexedDbOpenRecoveryFailure(error)) {
-        return;
-      }
-      captureFeedbackOperationError(error, "feedback_state_load", null);
-    }
-  }
-
-  async function runMobileAppPromotionCheck(promptContext: MobileAppPromotionPromptContext): Promise<MobileAppPromotionPromptDecision> {
-    const workspaceId = promptContext.workspaceId;
-    if (
-      workspaceId === null
-      || isReviewPromptUiBlocked()
-    ) {
-      return { kind: "skipped" };
-    }
-
-    if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
-      return { kind: "cancelled" };
-    }
-
-    try {
-      indexedDbOpenRecoveryState.throwIfFailed();
-      const now = new Date();
-      let reviewActivity: MobileAppPromotionReviewActivity;
-      try {
-        reviewActivity = await loadMobileAppPromotionReviewActivity(workspaceId, now);
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return { kind: "cancelled" };
-        }
-        captureMobileAppPromotionOperationError(error, "mobile_app_promo_activity_load", null);
-        return buildSkippedMobileAppPromotionDecision(promptContext);
-      }
-
-      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
-        return { kind: "cancelled" };
-      }
-
-      if (reviewActivity.todayReviewCount < mobileAppPromotionMinimumReviewCount) {
-        return { kind: "skipped" };
-      }
-
-      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
-        return { kind: "cancelled" };
-      }
-
-      let promptState: MobileAppPromotionState;
-      try {
-        promptState = await loadMobileAppPromotionState(promptContext.identityKey);
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return { kind: "cancelled" };
-        }
-        captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
-        return buildSkippedMobileAppPromotionDecision(promptContext);
-      }
-
-      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
-        return { kind: "cancelled" };
-      }
-
-      const localEligibility = evaluateMobileAppPromotionEligibility({
-        reviewActivity,
-        promptState,
-        hasMobileReviewEvent: false,
-      });
-      if (localEligibility.isEligible === false) {
-        return { kind: "skipped" };
-      }
-
-      let hasMobileReviewEvent: boolean;
-      try {
-        hasMobileReviewEvent = (await loadReviewPlatformSummary()).hasMobileReviewEvent;
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return { kind: "cancelled" };
-        }
-        captureMobileAppPromotionOperationError(error, "mobile_app_promo_status_load", null);
-        return buildSkippedMobileAppPromotionDecision(promptContext);
-      }
-
-      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
-        return { kind: "cancelled" };
-      }
-
-      if (hasMobileReviewEvent) {
-        try {
-          await storeKnownMobileReviewEvent({
-            identityKey: promptContext.identityKey,
-          }, indexedDbOpenRecoveryState.throwIfFailed);
-          indexedDbOpenRecoveryState.throwIfFailed();
-        } catch (error) {
-          if (markIndexedDbOpenRecoveryFailure(error)) {
-            return { kind: "cancelled" };
-          }
-          captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
-        }
-        return buildSkippedMobileAppPromotionDecision(promptContext);
-      }
-
-      try {
-        promptState = await loadMobileAppPromotionState(promptContext.identityKey);
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return { kind: "cancelled" };
-        }
-        captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
-        return buildSkippedMobileAppPromotionDecision(promptContext);
-      }
-
-      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
-        return { kind: "cancelled" };
-      }
-
-      const remoteEligibility = evaluateMobileAppPromotionEligibility({
-        reviewActivity,
-        promptState,
-        hasMobileReviewEvent,
-      });
-      if (remoteEligibility.isEligible === false || isReviewPromptUiBlocked()) {
-        return { kind: "skipped" };
-      }
-
-      if (isMobileAppPromotionPromptContextCurrent(promptContext) === false) {
-        return { kind: "cancelled" };
-      }
-
-      const shownAt = new Date();
-      const shownAtIso = shownAt.toISOString();
-      try {
-        await storeMobileAppPromotionPromptShown({
-          identityKey: promptContext.identityKey,
-          localDate: reviewActivity.today,
-          shownAt: shownAtIso,
-        }, indexedDbOpenRecoveryState.throwIfFailed);
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return { kind: "cancelled" };
-        }
-        captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
-        return buildSkippedMobileAppPromotionDecision(promptContext);
-      }
-
-      const isStaleAfterSave = isMobileAppPromotionPromptContextCurrent(promptContext) === false;
-      if (isReviewPromptUiBlocked() || isStaleAfterSave) {
-        try {
-          await clearMobileAppPromotionPromptShownIfCurrent({
-            identityKey: promptContext.identityKey,
-            localDate: reviewActivity.today,
-            shownAt: shownAtIso,
-          }, indexedDbOpenRecoveryState.throwIfFailed);
-          indexedDbOpenRecoveryState.throwIfFailed();
-        } catch (error) {
-          if (markIndexedDbOpenRecoveryFailure(error)) {
-            return { kind: "cancelled" };
-          }
-          captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_save", null);
-        }
-        return buildSkippedMobileAppPromotionDecision(promptContext);
-      }
-
-      setIsMobileAppPromotionDialogOpen(true);
-      return { kind: "opened" };
-    } catch (error) {
-      if (markIndexedDbOpenRecoveryFailure(error)) {
-        return { kind: "cancelled" };
-      }
-      captureMobileAppPromotionOperationError(error, "mobile_app_promo_state_load", null);
-      return buildSkippedMobileAppPromotionDecision(promptContext);
-    }
-  }
-
-  async function maybeOpenMobileAppPromotion(
-    promptContext: MobileAppPromotionPromptContext,
-  ): Promise<MobileAppPromotionPromptDecision> {
-    const currentCheck = mobileAppPromotionCheckInFlightRef.current;
-    if (
-      currentCheck !== null
-      && isSameMobileAppPromotionPromptContext(currentCheck.context, promptContext)
-      && isMobileAppPromotionPromptContextCurrent(currentCheck.context)
-    ) {
-      return currentCheck.promise;
-    }
-
-    const nextPromise = runMobileAppPromotionCheck(promptContext);
-    const nextCheck: MobileAppPromotionInFlightCheck = {
-      context: promptContext,
-      promise: nextPromise,
-    };
-    mobileAppPromotionCheckInFlightRef.current = nextCheck;
-    try {
-      return await nextPromise;
-    } finally {
-      if (mobileAppPromotionCheckInFlightRef.current === nextCheck) {
-        mobileAppPromotionCheckInFlightRef.current = null;
-      }
-    }
-  }
-
-  async function maybeOpenPostReviewPrompt(): Promise<void> {
-    const promptContext = mobileAppPromotionPromptContextRef.current;
-    const mobileAppPromotionDecision = await maybeOpenMobileAppPromotion(promptContext);
-    if (
-      mobileAppPromotionDecision.kind === "cancelled"
-      || indexedDbOpenRecoveryState.hasFailed()
-    ) {
-      return;
-    }
-
-    if (
-      mobileAppPromotionDecision.kind === "skipped"
-      && isMobileAppPromotionPromptContextCurrent(promptContext)
-    ) {
-      await maybeOpenAutomaticFeedbackPrompt();
-    }
-  }
-
-  function closeFeedbackDialog(): void {
-    setIsFeedbackDialogOpen(false);
-    setFeedbackMessage("");
-    setFeedbackErrorMessage("");
-  }
-
-  function dismissAutomaticFeedbackDialog(): void {
-    closeFeedbackDialog();
-    void postAutomaticFeedbackPromptEvent("automatic_prompt_dismissed");
-  }
-
-  function dismissMobileAppPromotionDialog(): void {
-    setIsMobileAppPromotionDialogOpen(false);
-  }
-
-  async function submitAutomaticFeedback(): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
-      return;
-    }
-
-    const normalizedMessage = normalizeFeedbackMessage(feedbackMessage);
-    if (normalizedMessage === "") {
-      setFeedbackErrorMessage(t("feedback.emptyError"));
-      return;
-    }
-
-    if (normalizedMessage.length > feedbackMaximumMessageLength) {
-      setFeedbackErrorMessage(t("feedback.tooLongError"));
-      return;
-    }
-
-    let submissionRequest: FeedbackSubmissionRequest;
-    try {
-      submissionRequest = buildFeedbackSubmissionRequest({
-        workspaceId: activeWorkspace?.workspaceId ?? null,
-        locale,
-        trigger: "automatic",
-        message: normalizedMessage,
-        now: new Date(),
-      });
-    } catch (error) {
-      captureFeedbackOperationError(error, "feedback_submit", null);
-      setFeedbackErrorMessage(t("feedback.submitError"));
-      return;
-    }
-
-    setIsFeedbackSubmitting(true);
-    setFeedbackErrorMessage("");
-    try {
-      indexedDbOpenRecoveryState.throwIfFailed();
-      const feedbackState = await submitFeedback(submissionRequest);
-      indexedDbOpenRecoveryState.throwIfFailed();
-      await storeFeedbackSubmittedAt({
-        identityKey: feedbackPromptIdentityKey,
-        feedbackState,
-        submittedAt: submissionRequest.createdAtClient,
-      }, indexedDbOpenRecoveryState.throwIfFailed);
-      indexedDbOpenRecoveryState.throwIfFailed();
-      closeFeedbackDialog();
-      showReviewFeedbackMessage(t("feedback.success"));
-    } catch (error) {
-      if (markIndexedDbOpenRecoveryFailure(error)) {
-        return;
-      }
-      captureFeedbackOperationError(error, "feedback_submit", submissionRequest.feedbackSubmissionId);
-      setFeedbackErrorMessage(t("feedback.submitError"));
-    } finally {
-      if (indexedDbOpenRecoveryState.hasFailed() === false) {
-        setIsFeedbackSubmitting(false);
-      }
-    }
   }
 
   async function handleReview(card: Card, rating: ReviewRating): Promise<void> {
@@ -973,34 +407,12 @@ export function useReviewScreenController(
 
     stopSpeech();
     dismissReviewReactions();
-    const currentContext = mobileAppPromotionPromptContextRef.current;
-    mobileAppPromotionPromptContextRef.current = {
-      ...currentContext,
-      generation: currentContext.generation + 1,
-    };
-    mobileAppPromotionCheckInFlightRef.current = null;
   }, [dismissReviewReactions, indexedDbOpenRecoveryState.isFailed, stopSpeech]);
 
   useEffect(() => {
     recentReviewRatingsRef.current = [];
     setIsHardReminderVisible(false);
-    setIsFeedbackDialogOpen(false);
-    setFeedbackMessage("");
-    setFeedbackErrorMessage("");
-    setIsFeedbackSubmitting(false);
-    setIsMobileAppPromotionDialogOpen(false);
   }, [activeWorkspace?.workspaceId]);
-
-  useEffect(() => {
-    return () => {
-      const currentContext = mobileAppPromotionPromptContextRef.current;
-      mobileAppPromotionPromptContextRef.current = {
-        ...currentContext,
-        generation: currentContext.generation + 1,
-        isMounted: false,
-      };
-    };
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -1099,24 +511,12 @@ export function useReviewScreenController(
       onSave: handleEditorSave,
       tagSuggestions,
     },
-    feedbackDialogProps: {
-      isOpen: isFeedbackDialogOpen,
-      message: feedbackMessage,
-      errorMessage: feedbackErrorMessage,
-      isSubmitting: isFeedbackSubmitting,
-      onMessageChange: setFeedbackMessage,
-      onSubmit: submitAutomaticFeedback,
-      onDismiss: dismissAutomaticFeedbackDialog,
-    },
+    feedbackDialogProps,
     hardReminderDialogProps: {
       isOpen: isHardReminderVisible,
       onDismiss: handleDismissHardReminder,
     },
-    mobileAppPromotionDialogProps: {
-      isOpen: isMobileAppPromotionDialogOpen,
-      onDismiss: dismissMobileAppPromotionDialog,
-      storeLinks: webReviewMobilePromptStoreLinks,
-    },
+    mobileAppPromotionDialogProps,
     headerProps: {
       filterMenuProps: {
         activeReviewFilterOptionId,
