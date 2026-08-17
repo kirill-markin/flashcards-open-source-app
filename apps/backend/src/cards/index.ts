@@ -60,11 +60,11 @@ export {
   markPendingManagedImageFailedOnCardSideInExecutor,
   markPendingManagedImageReadyOnCardSideInExecutor,
   PendingManagedImageSettlementConflictError,
-} from "./managedImageSettlement";
+} from "./managedMedia";
 
 export type {
   ManagedImageSettlementConflictError,
-} from "./managedImageSettlement";
+} from "./managedMedia";
 
 export {
   createCard,
