@@ -1,6 +1,6 @@
 /**
- * Card domain barrel. Review persistence lives in ./reviews, and persisted
- * FSRS state validation lives in ./fsrs. Those modules enforce the invariants
+ * Card domain barrel. Review persistence and persisted FSRS state validation
+ * live in ./review. Those modules enforce the invariants
  * described in docs/fsrs-scheduling-logic.md.
  */
 export type {
@@ -44,11 +44,6 @@ export {
 } from "./filters";
 
 export {
-  assertConsistentFsrsState,
-  getInvalidFsrsStateReason,
-} from "./fsrs";
-
-export {
   appendManagedImageToCardSideInExecutor,
   appendManagedImageToCardText,
   appendPendingManagedImageToCardSideInExecutor,
@@ -85,16 +80,18 @@ export {
   getCards,
   listCards,
   listCardsInExecutor,
-  listReviewHistoryPage,
-  listReviewQueuePage,
   listWorkspaceTagsSummary,
   queryCardsPage,
-  listReviewQueue,
   searchCards,
   summarizeDeckState,
 } from "./queries";
 
 export {
+  assertConsistentFsrsState,
   appendReviewEventSnapshotInExecutor,
+  getInvalidFsrsStateReason,
+  listReviewHistoryPage,
+  listReviewQueue,
+  listReviewQueuePage,
   submitReview,
-} from "./reviews";
+} from "./review";

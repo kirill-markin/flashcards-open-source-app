@@ -888,7 +888,7 @@ fun createEmptyReviewableCardScheduleState(cardId: String): ReviewableCardSchedu
     )
 }
 
-    // Keep in sync with apps/backend/src/cards/reviews.ts::submitReview, apps/backend/src/scheduling/index.ts::computeReviewSchedule, and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeReviewSchedule(card:settings:rating:now:).
+    // Keep in sync with apps/backend/src/cards/review/reviews.ts::submitReview, apps/backend/src/scheduling/index.ts::computeReviewSchedule, and apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::computeReviewSchedule(card:settings:rating:now:).
 fun computeReviewSchedule(
     card: CardSummary,
     settings: WorkspaceSchedulerSettings,
