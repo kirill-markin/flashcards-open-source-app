@@ -97,8 +97,14 @@ func sanitizeSentryBreadcrumb(_ breadcrumb: Breadcrumb) -> Breadcrumb? {
     breadcrumb.type = breadcrumb.type.map(redactedString)
     breadcrumb.message = breadcrumb.message.map(redactedString)
     breadcrumb.origin = breadcrumb.origin.map(redactedString)
-    breadcrumb.data = sanitizedBreadcrumbData(breadcrumb.data) ?? [:]
+    setSentryBreadcrumbData(sanitizedBreadcrumbData(breadcrumb.data) ?? [:], on: breadcrumb)
     return breadcrumb
+}
+
+func setSentryBreadcrumbData(_ data: [String: Any], on breadcrumb: Breadcrumb) {
+    for (key, value) in data {
+        breadcrumb.setData(value: value, key: key)
+    }
 }
 
 private func sanitizedBreadcrumbData(_ dictionary: [String: Any]?) -> [String: Any]? {
