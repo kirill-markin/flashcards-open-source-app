@@ -7,7 +7,6 @@ import {
   ApiContractError,
   ApiError,
   AuthRedirectError,
-  createNewChatSession,
   startChatRun,
   stopChatRun,
 } from "../../../api";
@@ -56,6 +55,7 @@ import {
   isAiChatRequestTooLargeError,
 } from "../../shared/chatSizePolicy";
 import type { ChatHistoryState } from "../../history/useChatHistory";
+import { useRemoteSessionProvisioning } from "./useRemoteSessionProvisioning";
 
 type FreshSessionErrorPresentation = "new_chat" | "refresh" | "silent";
 
@@ -240,106 +240,25 @@ export function useChatSessionActions(
   const clearConversationRequestSequenceRef = useRef<number>(0);
   const currentUiLocaleRef = useRef<Locale>(uiLocale);
   currentUiLocaleRef.current = uiLocale;
-  const remoteSessionProvisioningRef = useRef<Readonly<{
-    workspaceId: string | null;
-    sessionId: string;
-    uiLocale: Locale;
-    promise: Promise<NewChatSessionResponse>;
-  }> | null>(null);
-
-  type RemoteSessionResolution = Readonly<{
-    sessionId: string;
-    provisionedResponse: NewChatSessionResponse | null;
-  }>;
-
   type SessionConflictRecovery =
     | Readonly<{ status: "not_recoverable" }>
     | Readonly<{ status: "recovered"; session: NewChatSessionResponse }>
     | Readonly<{ status: "stale" }>;
 
-  function createRemoteSessionProvisioningError(message: string): Error {
+  function createChatSessionActionError(message: string): Error {
     return new Error(message);
   }
 
-  function normalizeExistingSessionId(sessionId: string | null): string | null {
-    if (sessionId === null) {
-      return null;
-    }
-
-    const trimmedSessionId = sessionId.trim();
-    return trimmedSessionId === "" ? null : trimmedSessionId;
-  }
-
-  function getActiveProvisioningState(): Readonly<{
-    sessionId: string;
-    promise: Promise<NewChatSessionResponse>;
-  }> | null {
-    const provisioningState = remoteSessionProvisioningRef.current;
-    if (
-      provisioningState === null
-      || provisioningState.workspaceId !== workspaceId
-      || provisioningState.uiLocale !== uiLocale
-    ) {
-      return null;
-    }
-
-    return {
-      sessionId: provisioningState.sessionId,
-      promise: provisioningState.promise,
-    };
-  }
-
-  const provisionRemoteSession = useCallback(async (
-    sessionId: string,
-  ): Promise<NewChatSessionResponse> => {
-    indexedDbOpenRecoveryState.throwIfFailed();
-    if (workspaceId === null) {
-      throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
-    }
-
-    const activeProvisioning = getActiveProvisioningState();
-    if (activeProvisioning !== null && activeProvisioning.sessionId === sessionId) {
-      try {
-        const response = await activeProvisioning.promise;
-        indexedDbOpenRecoveryState.throwIfFailed();
-        return response;
-      } catch (error) {
-        indexedDbOpenRecoveryState.throwIfFailed();
-        indexedDbOpenRecoveryState.markFailed(error);
-        indexedDbOpenRecoveryState.throwIfFailed();
-        throw error;
-      }
-    }
-
-    const nextPromise = createNewChatSession(sessionId, workspaceId, uiLocale);
-    remoteSessionProvisioningRef.current = {
-      workspaceId,
-      sessionId,
-      uiLocale,
-      promise: nextPromise,
-    };
-
-    try {
-      const response = await nextPromise;
-      indexedDbOpenRecoveryState.throwIfFailed();
-      return response;
-    } catch (error) {
-      indexedDbOpenRecoveryState.throwIfFailed();
-      indexedDbOpenRecoveryState.markFailed(error);
-      indexedDbOpenRecoveryState.throwIfFailed();
-      throw error;
-    } finally {
-      const currentProvisioning = remoteSessionProvisioningRef.current;
-      if (
-        currentProvisioning !== null
-        && currentProvisioning.workspaceId === workspaceId
-        && currentProvisioning.sessionId === sessionId
-        && currentProvisioning.uiLocale === uiLocale
-      ) {
-        remoteSessionProvisioningRef.current = null;
-      }
-    }
-  }, [indexedDbOpenRecoveryState, uiLocale, uiMessages, workspaceId]);
+  const {
+    provisionRequestedSession,
+    resolveCurrentOrNewSession,
+  } = useRemoteSessionProvisioning({
+    indexedDbOpenRecoveryState,
+    workspaceId,
+    isRemoteReady,
+    uiLocale,
+    uiMessages,
+  });
 
   const beginFreshSessionRequestSequence = useCallback((): number => {
     const nextSequence = clearConversationRequestSequenceRef.current + 1;
@@ -387,10 +306,9 @@ export function useChatSessionActions(
     invalidatePendingSnapshotRequests();
     resetSnapshotTracking(null);
     const nextSessionId = createClientChatSessionId();
-    remoteSessionProvisioningRef.current = null;
-    const response = await provisionRemoteSession(nextSessionId);
+    const response = await provisionRequestedSession(nextSessionId);
     if (response.sessionId !== nextSessionId) {
-      throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
+      throw createChatSessionActionError(uiMessages.unexpectedSessionId);
     }
 
     if (
@@ -408,7 +326,7 @@ export function useChatSessionActions(
     canRecoverFromSessionIdConflict,
     invalidatePendingSnapshotRequests,
     isRequestSequenceCurrent,
-    provisionRemoteSession,
+    provisionRequestedSession,
     resetSnapshotTracking,
     uiMessages,
   ]);
@@ -438,7 +356,7 @@ export function useChatSessionActions(
     const requestLocale = uiLocale;
     void (async (): Promise<void> => {
       try {
-        const response = await provisionRemoteSession(sessionId);
+        const response = await provisionRequestedSession(sessionId);
         indexedDbOpenRecoveryState.throwIfFailed();
         if (response.sessionId !== sessionId) {
           return;
@@ -485,7 +403,7 @@ export function useChatSessionActions(
         });
       }
     })();
-  }, [dispatch, indexedDbOpenRecoveryState, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages, workspaceId]);
+  }, [dispatch, indexedDbOpenRecoveryState, isFreshSessionEnsureCurrent, provisionRequestedSession, uiMessages, workspaceId]);
 
   const ensureFreshSessionInBackground = useCallback((sessionId: string, requestSequence: number): void => {
     ensureFreshSession(sessionId, requestSequence, "silent");
@@ -496,58 +414,7 @@ export function useChatSessionActions(
   }, [ensureFreshSession]);
 
   const ensureRemoteSession = useCallback(async (): Promise<string> => {
-    indexedDbOpenRecoveryState.throwIfFailed();
-    if (workspaceId === null) {
-      throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
-    }
-
-    if (isRemoteReady === false) {
-      throw createRemoteSessionProvisioningError(uiMessages.remoteNotReady);
-    }
-
-    const resolveRemoteSession = async (): Promise<RemoteSessionResolution> => {
-      const currentSessionId = normalizeExistingSessionId(runtimeRefs.currentSessionIdRef.current);
-      const activeProvisioning = getActiveProvisioningState();
-
-      if (currentSessionId !== null) {
-        if (activeProvisioning !== null && activeProvisioning.sessionId === currentSessionId) {
-          const response = await activeProvisioning.promise;
-          if (response.sessionId !== currentSessionId) {
-            throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
-          }
-        }
-
-        return {
-          sessionId: currentSessionId,
-          provisionedResponse: null,
-        };
-      }
-
-      if (activeProvisioning !== null) {
-        const response = await activeProvisioning.promise;
-        if (response.sessionId !== activeProvisioning.sessionId) {
-          throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
-        }
-
-        return {
-          sessionId: response.sessionId,
-          provisionedResponse: response,
-        };
-      }
-
-      const nextSessionId = createClientChatSessionId();
-      const response = await provisionRemoteSession(nextSessionId);
-      if (response.sessionId !== nextSessionId) {
-        throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
-      }
-
-      return {
-        sessionId: response.sessionId,
-        provisionedResponse: response,
-      };
-    };
-
-    const resolution = await resolveRemoteSession();
+    const resolution = await resolveCurrentOrNewSession(runtimeRefs.currentSessionIdRef.current);
     indexedDbOpenRecoveryState.throwIfFailed();
     if (
       resolution.provisionedResponse !== null
@@ -564,52 +431,13 @@ export function useChatSessionActions(
     }
 
     return resolution.sessionId;
-  }, [dispatch, indexedDbOpenRecoveryState, isRemoteReady, provisionRemoteSession, runtimeRefs, uiMessages, workspaceId]);
+  }, [dispatch, indexedDbOpenRecoveryState, resolveCurrentOrNewSession, runtimeRefs, workspaceId]);
 
   const ensureRemoteSessionForHydration = useCallback(async (): Promise<string> => {
+    const resolution = await resolveCurrentOrNewSession(runtimeRefs.currentSessionIdRef.current);
     indexedDbOpenRecoveryState.throwIfFailed();
-    if (workspaceId === null) {
-      throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
-    }
-
-    if (isRemoteReady === false) {
-      throw createRemoteSessionProvisioningError(uiMessages.remoteNotReady);
-    }
-
-    const currentSessionId = normalizeExistingSessionId(runtimeRefs.currentSessionIdRef.current);
-    const activeProvisioning = getActiveProvisioningState();
-
-    if (currentSessionId !== null) {
-      if (activeProvisioning !== null && activeProvisioning.sessionId === currentSessionId) {
-        const response = await activeProvisioning.promise;
-        indexedDbOpenRecoveryState.throwIfFailed();
-        if (response.sessionId !== currentSessionId) {
-          throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
-        }
-      }
-
-      return currentSessionId;
-    }
-
-    if (activeProvisioning !== null) {
-      const response = await activeProvisioning.promise;
-      indexedDbOpenRecoveryState.throwIfFailed();
-      if (response.sessionId !== activeProvisioning.sessionId) {
-        throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
-      }
-
-      return response.sessionId;
-    }
-
-    const nextSessionId = createClientChatSessionId();
-    const response = await provisionRemoteSession(nextSessionId);
-    indexedDbOpenRecoveryState.throwIfFailed();
-    if (response.sessionId !== nextSessionId) {
-      throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
-    }
-
-    return response.sessionId;
-  }, [indexedDbOpenRecoveryState, isRemoteReady, provisionRemoteSession, runtimeRefs, uiMessages, workspaceId]);
+    return resolution.sessionId;
+  }, [indexedDbOpenRecoveryState, resolveCurrentOrNewSession, runtimeRefs]);
 
   const sendMessage = useCallback(async (
     sendParams: SendChatMessageParams,
@@ -765,7 +593,7 @@ export function useChatSessionActions(
     }
 
     if (sessionId === null) {
-      return failRemoteSessionRequest(createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId));
+      return failRemoteSessionRequest(createChatSessionActionError(uiMessages.unexpectedSessionId));
     }
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -1015,7 +843,7 @@ export function useChatSessionActions(
     dispatch({ type: "stop_requested", runId: requestActiveRunId });
     try {
       if (requestWorkspaceId === null) {
-        throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
+        throw createChatSessionActionError(uiMessages.workspaceRequired);
       }
 
       const response = await stopChatRun(requestSessionId, requestWorkspaceId, requestActiveRunId);
