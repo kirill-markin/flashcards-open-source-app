@@ -178,7 +178,10 @@ extension SentryObservabilityAdapter {
         let breadcrumb: Breadcrumb = Breadcrumb(level: level, category: category)
         breadcrumb.type = "default"
         breadcrumb.message = message
-        breadcrumb.data = sanitizedDictionary(self.dataWithProcessDiagnostics(data)) ?? [:]
+        setSentryBreadcrumbData(
+            sanitizedDictionary(self.dataWithProcessDiagnostics(data)) ?? [:],
+            on: breadcrumb
+        )
         SentrySDK.addBreadcrumb(breadcrumb)
     }
 
