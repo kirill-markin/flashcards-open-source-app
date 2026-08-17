@@ -1,15 +1,15 @@
-import type { DatabaseExecutor } from "../database";
-import { expectUuidString } from "../server/requestParsing";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor } from "../../database";
+import { expectUuidString } from "../../server/requestParsing";
+import { HttpError } from "../../shared/errors";
 import {
   lockWorkspaceSyncMetadataForHotChangesInExecutor,
   type HotChangeWriteLock,
-} from "../sync/replication/changes";
+} from "../../sync/replication/changes";
 import {
   extractMarkdownImageDestinationUrls,
   isMarkdownComplexityLimitError,
   rewriteMarkdownImageDestinationUrl,
-} from "../workspacePackages/markdownMedia";
+} from "../../workspacePackages/markdownMedia";
 import {
   CARD_COLUMNS,
   CARD_SELECT,
@@ -17,7 +17,7 @@ import {
   mapCard,
   normalizeCardMutationMetadata,
   recordCardSyncChange,
-} from "./shared";
+} from "../shared";
 import type {
   AppendManagedImageToCardSideInput,
   AppendManagedImageToCardSideResult,
@@ -25,7 +25,7 @@ import type {
   CardMutationMetadata,
   CardRow,
   CardTextSide,
-} from "./types";
+} from "../types";
 
 type AppendedManagedImageCardText = Readonly<{ text: string; applied: boolean }>;
 

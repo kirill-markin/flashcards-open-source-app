@@ -24,7 +24,7 @@ import {
   persistLocalMediaUpload,
   recoverStaleInProgressMediaTransfersByKind,
   renewInProgressMediaTransferClaim,
-} from "./mediaTransfers";
+} from ".";
 
 const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
   hasFailed: () => false,

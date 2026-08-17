@@ -796,7 +796,7 @@ func createEmptyReviewableCardScheduleState(cardId: String) -> ReviewableCardSch
     )
 }
 
-// Keep in sync with apps/backend/src/cards/reviews.ts::toReviewableCardScheduleState and apps/backend/src/scheduling/index.ts::ReviewableCardScheduleState.
+// Keep in sync with apps/backend/src/cards/review/reviews.ts::toReviewableCardScheduleState and apps/backend/src/scheduling/index.ts::ReviewableCardScheduleState.
 private func makeReviewableCardScheduleState(card: Card) -> ReviewableCardScheduleState {
     ReviewableCardScheduleState(
         cardId: card.cardId,
@@ -811,7 +811,7 @@ private func makeReviewableCardScheduleState(card: Card) -> ReviewableCardSchedu
     )
 }
 
-// Keep in sync with apps/backend/src/cards/reviews.ts::submitReview and apps/backend/src/scheduling/index.ts::computeReviewSchedule.
+// Keep in sync with apps/backend/src/cards/review/reviews.ts::submitReview and apps/backend/src/scheduling/index.ts::computeReviewSchedule.
 func computeReviewSchedule(
     card: Card,
     settings: WorkspaceSchedulerSettings,
