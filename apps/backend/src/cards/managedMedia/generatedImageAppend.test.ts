@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../database";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor, SqlValue } from "../../database";
+import { HttpError } from "../../shared/errors";
 import {
   appendManagedImageToCardSideInExecutor,
   appendManagedImageToCardText,
   buildManagedImageMarkdownReference,
 } from "./managedImageSettlement";
-import type { AppendManagedImageToCardSideInput, CardMutationMetadata, CardRow, CardTextSide } from "./types";
+import type { AppendManagedImageToCardSideInput, CardMutationMetadata, CardRow, CardTextSide } from "../types";
 
 const testWorkspaceId = "22222222-2222-4222-8222-222222222222";
 const testCardId = "33333333-3333-4333-8333-333333333333";

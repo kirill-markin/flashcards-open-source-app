@@ -101,7 +101,7 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0107_catalog_test_collection.sql",
     expectedMigrationCount: 109,
     testFiles: Object.freeze([
-      "src/cards/generatedImageAppend.postgres.integration.ts",
+      "src/cards/managedMedia/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",

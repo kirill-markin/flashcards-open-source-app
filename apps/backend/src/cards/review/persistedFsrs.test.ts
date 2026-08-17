@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
-import type { DatabaseExecutor } from "../database";
-import { HttpError } from "../shared/errors";
+import type { DatabaseExecutor } from "../../database";
+import { HttpError } from "../../shared/errors";
 import {
   getInvalidFsrsStateReason,
   listCardsInExecutor,
   submitReview,
-} from "./index";
-import type { CardMetadata, CardRow, ReviewableCardRow } from "./types";
+} from "../index";
+import type { CardMetadata, CardRow, ReviewableCardRow } from "../types";
 
 type QueryRecord = Readonly<{
   text: string;

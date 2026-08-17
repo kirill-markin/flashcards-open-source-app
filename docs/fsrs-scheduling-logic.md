@@ -14,7 +14,7 @@ Reference implementation:
 Repository implementations:
 
 - backend scheduler: `apps/backend/src/scheduling/index.ts`
-- backend card persistence: `apps/backend/src/cards/reviews.ts` and `apps/backend/src/cards/fsrs.ts`
+- backend card persistence: `apps/backend/src/cards/review/reviews.ts` and `apps/backend/src/cards/review/fsrs.ts`
 - backend workspace scheduler settings: `apps/backend/src/scheduling/workspaceSettings.ts`
 - iOS scheduler: `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`
 - iOS local persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
@@ -39,7 +39,7 @@ Instead, the web review flow reuses the backend scheduler module from `apps/back
 
 Supporting mirrors around the scheduler contract:
 
-- backend review persistence: `apps/backend/src/cards/reviews.ts`
+- backend review persistence: `apps/backend/src/cards/review/reviews.ts`
 - iOS review persistence: `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`
 - Android review persistence: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/LocalRepositories.kt`
 - web local review submit flow reusing backend scheduler: `apps/web/src/appData/sync/local/syncLocalMutations.ts`
@@ -76,8 +76,8 @@ Scheduler-entrypoint parity:
 
 | Backend | iOS |
 | --- | --- |
-| `apps/backend/src/cards/reviews.ts::toReviewableCardScheduleState` | `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::makeReviewableCardScheduleState(card:)` |
-| `apps/backend/src/cards/reviews.ts::submitReview` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::submitReview(workspaceId:reviewSubmission:)` |
+| `apps/backend/src/cards/review/reviews.ts::toReviewableCardScheduleState` | `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift::makeReviewableCardScheduleState(card:)` |
+| `apps/backend/src/cards/review/reviews.ts::submitReview` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::submitReview(workspaceId:reviewSubmission:)` |
 | `apps/backend/src/scheduling/workspaceSettings.ts::parseSteps` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateSchedulerStepList(values:fieldName:)` |
 | `apps/backend/src/scheduling/workspaceSettings.ts::validateWorkspaceSchedulerSettingsInput` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateWorkspaceSchedulerSettingsInput(desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:)` |
 | `apps/backend/src/scheduling/workspaceSettings.ts::getWorkspaceSchedulerSettings` / `getWorkspaceSchedulerConfig` | `apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:)` |

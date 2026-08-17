@@ -2,16 +2,16 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
-import type { DatabaseExecutor, SqlValue } from "../database";
-import { HttpError } from "../shared/errors";
-import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../testSupport/postgresIntegration";
+import type { DatabaseExecutor, SqlValue } from "../../database";
+import { HttpError } from "../../shared/errors";
+import { type PostgresIntegrationFixture, withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import {
   appendManagedImageToCardSideInExecutor,
   appendPendingManagedImageToCardSideInExecutor,
   markPendingManagedImageFailedOnCardSideInExecutor,
   markPendingManagedImageReadyOnCardSideInExecutor,
 } from "./managedImageSettlement";
-import type { AppendManagedImageToCardSideInput, AppendManagedImageToCardSideResult } from "./types";
+import type { AppendManagedImageToCardSideInput, AppendManagedImageToCardSideResult } from "../types";
 
 const futureClientUpdatedAt = "2099-01-01T00:00:00.000Z";
 const expectedGeneratedClientUpdatedAt = "2099-01-01T00:00:00.001Z";

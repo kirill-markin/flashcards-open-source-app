@@ -1,22 +1,22 @@
 import { randomUUID } from "node:crypto";
-import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../database";
+import { transactionWithWorkspaceScope, type DatabaseExecutor } from "../../database";
 import {
   createCurrentUserPublicProfileResolver,
   recordQualifiedReviewActivityFactInExecutor,
   type CurrentUserPublicProfileResolver,
-} from "../community/reviewActivityFacts";
-import { HttpError } from "../shared/errors";
-import { storeActiveReviewDayForReviewEventInExecutor } from "../progress/activeReviewDays/activeReviewDays";
+} from "../../community/reviewActivityFacts";
+import { HttpError } from "../../shared/errors";
+import { storeActiveReviewDayForReviewEventInExecutor } from "../../progress/activeReviewDays/activeReviewDays";
 import {
   computeReviewSchedule,
   type ReviewableCardScheduleState,
-} from "../scheduling";
+} from "../../scheduling";
 import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
-} from "../sync/conflicts/fork";
-import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../sync/replication/changes";
-import { getWorkspaceSchedulerConfig } from "../scheduling/workspaceSettings";
+} from "../../sync/conflicts/fork";
+import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../../sync/replication/changes";
+import { getWorkspaceSchedulerConfig } from "../../scheduling/workspaceSettings";
 import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,
@@ -26,7 +26,7 @@ import {
   normalizeCardMutationMetadata,
   recordCardSyncChange,
   toDate,
-} from "./shared";
+} from "../shared";
 import type {
   CardMutationMetadata,
   CardRow,
@@ -36,7 +36,7 @@ import type {
   ReviewResult,
   ReviewableCardRow,
   SubmitReviewInput,
-} from "./types";
+} from "../types";
 
 type ProgressTimeZoneRow = Readonly<{
   progress_time_zone: string | null;
