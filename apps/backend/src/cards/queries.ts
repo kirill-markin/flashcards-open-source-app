@@ -6,11 +6,6 @@ import {
 } from "../database";
 import { HttpError } from "../shared/errors";
 import {
-  decodeOpaqueCursor,
-  encodeOpaqueCursor,
-  type CursorPageInput,
-} from "../shared/pagination";
-import {
   buildTokenizedAndLikeClause,
   MAX_SEARCH_TOKEN_COUNT,
   tokenizeSearchText,
@@ -18,19 +13,20 @@ import {
 import type { SearchTokenClauseFactory } from "../search/tokens";
 import { normalizeCardFilter } from "./filters";
 import {
+  createCardQueryError,
+  normalizeCardsQueryLimit,
+} from "./querySupport";
+import {
   CARD_COLUMNS,
   CARD_SELECT,
   mapCard,
   mapDeckSummary,
-  mapReviewHistoryItem,
-  toDate,
   toIsoString,
   toNumber,
 } from "./shared";
 import type {
   Card,
   CardFilter,
-  CardListPage,
   CardQuerySort,
   CardQuerySortDirection,
   CardQuerySortKey,
@@ -39,17 +35,12 @@ import type {
   DeckSummaryRow,
   QueryCardsInput,
   QueryCardsPage,
-  ReviewHistoryItem,
-  ReviewHistoryPage,
-  ReviewHistoryRow,
   WorkspaceTagSummary,
   WorkspaceTagsSummary,
 } from "./types";
 
 const defaultCardsQueryPageSize = 50;
-const maximumCardsQueryPageSize = 100;
 const maximumCardsQuerySortCount = 3;
-const recentDuePriorityWindowMillis = 60 * 60 * 1000;
 const cardSearchExpressionFactories: ReadonlyArray<SearchTokenClauseFactory> = [
   (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
   (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
@@ -132,70 +123,6 @@ const sortFieldByKey: Readonly<Record<CardQuerySortKey | "cardId", InternalSortF
   },
 };
 
-function getReviewQueueRank(card: CardRow, nowTimestamp: number): number {
-  if (card.due_at === null) {
-    return 2;
-  }
-
-  const dueAtTimestamp = toDate(card.due_at).getTime();
-  if (dueAtTimestamp > nowTimestamp) {
-    return 3;
-  }
-
-  if (card.fsrs_last_reviewed_at !== null) {
-    const fsrsLastReviewedAtTimestamp = toDate(card.fsrs_last_reviewed_at).getTime();
-    if (
-      fsrsLastReviewedAtTimestamp >= nowTimestamp - recentDuePriorityWindowMillis
-      && fsrsLastReviewedAtTimestamp <= nowTimestamp
-    ) {
-      return 0;
-    }
-  }
-
-  return 1;
-}
-
-function getReviewQueueDueTimestamp(card: CardRow): number {
-  if (card.due_at === null) {
-    return Number.POSITIVE_INFINITY;
-  }
-
-  return toDate(card.due_at).getTime();
-}
-
-function compareCardsForReviewQueue(leftCard: CardRow, rightCard: CardRow, nowTimestamp: number): number {
-  const rankDifference = getReviewQueueRank(leftCard, nowTimestamp) - getReviewQueueRank(rightCard, nowTimestamp);
-  if (rankDifference !== 0) {
-    return rankDifference;
-  }
-
-  const leftDueTimestamp = getReviewQueueDueTimestamp(leftCard);
-  const rightDueTimestamp = getReviewQueueDueTimestamp(rightCard);
-  if (leftDueTimestamp !== rightDueTimestamp) {
-    return leftDueTimestamp - rightDueTimestamp;
-  }
-
-  if (leftCard.due_at === null && rightCard.due_at === null) {
-    const createdAtDifference = toDate(rightCard.created_at).getTime() - toDate(leftCard.created_at).getTime();
-    if (createdAtDifference !== 0) {
-      return createdAtDifference;
-    }
-
-    return leftCard.card_id.localeCompare(rightCard.card_id);
-  }
-
-  const createdAtDifference = toDate(rightCard.created_at).getTime() - toDate(leftCard.created_at).getTime();
-  if (createdAtDifference !== 0) {
-    return createdAtDifference;
-  }
-
-  return leftCard.card_id.localeCompare(rightCard.card_id);
-}
-
-function createCardQueryError(message: string): HttpError {
-  return new HttpError(400, message);
-}
-
 function encodeCardsQueryCursor(values: ReadonlyArray<CursorValue>): string {
   return Buffer.from(JSON.stringify({ values }), "utf8").toString("base64url");
 }
@@ -225,69 +152,6 @@ function decodeCardsQueryCursor(cursor: string): DecodedCursor {
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw createCardQueryError(`cursor is invalid: ${errorMessage}`);
   }
-}
-
-type DueCardsPageCursor = Readonly<{
-  dueAt: string | null;
-  createdAt: string;
-  cardId: string;
-}>;
-
-type ReviewHistoryPageCursor = Readonly<{
-  reviewedAtServer: string;
-  reviewEventId: string;
-}>;
-
-type ReviewHistoryPageRow = ReviewHistoryRow & Readonly<{
-  reviewed_at_server: Date | string;
-}>;
-
-function decodeDueCardsPageCursor(cursor: string): DueCardsPageCursor {
-  const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
-  if (decodedCursor.values.length !== 3) {
-    throw createCardQueryError("cursor does not match the requested due-cards order");
-  }
-
-  const dueAt = decodedCursor.values[0];
-  const createdAt = decodedCursor.values[1];
-  const cardId = decodedCursor.values[2];
-  if ((typeof dueAt !== "string" && dueAt !== null) || typeof createdAt !== "string" || typeof cardId !== "string") {
-    throw createCardQueryError("cursor does not match the requested due-cards order");
-  }
-
-  return {
-    dueAt,
-    createdAt,
-    cardId,
-  };
-}
-
-function decodeReviewHistoryPageCursor(cursor: string): ReviewHistoryPageCursor {
-  const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
-  if (decodedCursor.values.length !== 2) {
-    throw createCardQueryError("cursor does not match the requested review-history order");
-  }
-
-  const reviewedAtServer = decodedCursor.values[0];
-  const reviewEventId = decodedCursor.values[1];
-  if (typeof reviewedAtServer !== "string" || typeof reviewEventId !== "string") {
-    throw createCardQueryError("cursor does not match the requested review-history order");
-  }
-
-  return {
-    reviewedAtServer,
-    reviewEventId,
-  };
-}
-
-function normalizeCardsQueryLimit(limit: number): number {
-  if (!Number.isInteger(limit) || limit < 1 || limit > maximumCardsQueryPageSize) {
-    throw createCardQueryError(
-      `limit must be an integer between 1 and ${maximumCardsQueryPageSize}`,
-    );
-  }
-
-  return limit;
 }
 
 function normalizeCardsQuerySearchTokens(searchText: string | null): ReadonlyArray<string> | null {
@@ -665,77 +529,6 @@ export async function getCards(
   });
 }
 
-/**
- * Materializes the full due-card order for internal callers that must reason
- * about the exact queue as one collection.
- *
- * Keep this helper because `listReviewQueuePage()` currently derives stable
- * cursor pagination from the in-memory due order, which depends on null due
- * dates and `compareCardsForReviewQueue`. API-facing reads should call
- * `listReviewQueuePage()` instead.
- */
-export async function listReviewQueue(
-  userId: string,
-  workspaceId: string,
-  limit: number,
-): Promise<ReadonlyArray<Card>> {
-  return transactionWithWorkspaceScopeReadOnly({ userId, workspaceId }, async (executor) => {
-    const now = new Date();
-    const nowTimestamp = now.getTime();
-    const result = await executor.query<CardRow>(
-      [
-        CARD_SELECT,
-        "WHERE workspace_id = $1",
-        "AND deleted_at IS NULL",
-        "AND (due_at IS NULL OR due_at <= $2 OR fsrs_card_state = 'new')",
-        "ORDER BY created_at DESC, card_id ASC",
-      ].join(" "),
-      [workspaceId, now],
-    );
-
-    return result.rows
-      .filter((row) => row.due_at === null || toDate(row.due_at).getTime() <= nowTimestamp)
-      .sort((leftRow, rightRow) => compareCardsForReviewQueue(leftRow, rightRow, nowTimestamp))
-      .slice(0, limit)
-      .map(mapCard);
-  });
-}
-
-export async function listReviewQueuePage(
-  userId: string,
-  workspaceId: string,
-  input: CursorPageInput,
-): Promise<CardListPage> {
-  const normalizedLimit = normalizeCardsQueryLimit(input.limit);
-  const decodedCursor = input.cursor === null ? null : decodeDueCardsPageCursor(input.cursor);
-  const dueCards = await listReviewQueue(userId, workspaceId, Number.MAX_SAFE_INTEGER);
-  const startIndex = decodedCursor === null
-    ? 0
-    : dueCards.findIndex((card) => (
-      card.dueAt === decodedCursor.dueAt
-      && card.createdAt === decodedCursor.createdAt
-      && card.cardId === decodedCursor.cardId
-    )) + 1;
-  if (decodedCursor !== null && startIndex === 0) {
-    throw createCardQueryError("cursor does not match the requested due-cards order");
-  }
-
-  const visibleCards = dueCards.slice(startIndex, startIndex + normalizedLimit);
-  const nextCard = dueCards[startIndex + normalizedLimit];
-  const nextCursor = nextCard === undefined
-    ? null
-    : encodeOpaqueCursor([
-      visibleCards[visibleCards.length - 1]?.dueAt ?? null,
-      visibleCards[visibleCards.length - 1]?.createdAt ?? "",
-      visibleCards[visibleCards.length - 1]?.cardId ?? "",
-    ]);
-
-  return {
-    cards: visibleCards,
-    nextCursor,
-  };
-}
-
 export async function searchCards(
   userId: string,
   workspaceId: string,
@@ -765,55 +558,6 @@ export async function searchCards(
 
     return result.rows.map(mapCard);
   });
-}
-
-export async function listReviewHistoryPage(
-  userId: string,
-  workspaceId: string,
-  input: CursorPageInput & Readonly<{ cardId: string | null }>,
-): Promise<ReviewHistoryPage> {
-  const normalizedLimit = normalizeCardsQueryLimit(input.limit);
-  const decodedCursor = input.cursor === null ? null : decodeReviewHistoryPageCursor(input.cursor);
-  const cursorClause = decodedCursor === null
-    ? ""
-    : "AND (reviewed_at_server < $2 OR (reviewed_at_server = $2 AND review_event_id < $3))";
-  const cardIdClause = input.cardId === null ? "" : decodedCursor === null ? "AND card_id = $2" : "AND card_id = $4";
-  const params = input.cardId === null
-    ? decodedCursor === null
-      ? [workspaceId, normalizedLimit + 1]
-      : [workspaceId, new Date(decodedCursor.reviewedAtServer), decodedCursor.reviewEventId, normalizedLimit + 1]
-    : decodedCursor === null
-      ? [workspaceId, input.cardId, normalizedLimit + 1]
-      : [workspaceId, new Date(decodedCursor.reviewedAtServer), decodedCursor.reviewEventId, input.cardId, normalizedLimit + 1];
-  const limitParamIndex = input.cardId === null
-    ? decodedCursor === null ? 2 : 4
-    : decodedCursor === null ? 3 : 5;
-
-  const result = await queryWithWorkspaceScopeReadOnly<ReviewHistoryPageRow>(
-    { userId, workspaceId },
-    [
-      "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, reviewed_time_zone",
-      "FROM content.review_events",
-      "WHERE workspace_id = $1",
-      cursorClause,
-      cardIdClause,
-      "ORDER BY reviewed_at_server DESC, review_event_id DESC",
-      `LIMIT $${limitParamIndex}`,
-    ].join(" "),
-    params,
-  );
-
-  const hasNextPage = result.rows.length > normalizedLimit;
-  const visibleRows = hasNextPage ? result.rows.slice(0, normalizedLimit) : result.rows;
-  const nextRow = hasNextPage ? visibleRows[visibleRows.length - 1] : undefined;
-
-  return {
-    history: visibleRows.map(mapReviewHistoryItem),
-    nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
-      toIsoString(nextRow.reviewed_at_server),
-      nextRow.review_event_id,
-    ]),
-  };
 }
 
 export async function summarizeDeckState(userId: string, workspaceId: string): Promise<DeckSummary> {

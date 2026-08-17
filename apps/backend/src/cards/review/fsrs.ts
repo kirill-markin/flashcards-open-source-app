@@ -1,4 +1,4 @@
-import type { FsrsStateSnapshot } from "./types";
+import type { FsrsStateSnapshot } from "../types";
 
 function hasNewCardFsrsValues(card: FsrsStateSnapshot): boolean {
   return (

@@ -16,7 +16,7 @@ import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/conflicts/fork";
-import { assertConsistentFsrsState } from "./fsrs";
+import { assertConsistentFsrsState } from "./review/fsrs";
 import {
   CARD_COLUMNS,
   createDefaultCardMetadata,
