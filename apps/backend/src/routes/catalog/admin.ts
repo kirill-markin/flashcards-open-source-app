@@ -11,6 +11,7 @@ import {
   createCatalogPackageVersionFromCards,
   createCatalogPackageVersionFromWorkspaceSelection,
   delistCatalogPackageVersion,
+  listCatalogPackageVersionsForAudit,
   loadCatalogPackageDraft,
   publishCatalogPackageVersion,
   updateCatalogAuthor,
@@ -27,6 +28,7 @@ import {
   type CatalogPackageMediaAsset,
   type CatalogPackageStatus,
   type CatalogPackageVersion,
+  type CatalogPackageVersionAudit,
   type CreateCatalogPackageDraftInput,
   type CreateCatalogPackageVersionFromWorkspaceInput,
   type CreateCatalogPackageVersionInput,
@@ -55,6 +57,9 @@ type CatalogAdminRoutesOptions = Readonly<{
   createCatalogPackageDraftFn?: (input: CreateCatalogPackageDraftInput) => Promise<CatalogPackage>;
   updateCatalogPackageDraftFn?: (input: UpdateCatalogPackageDraftInput) => Promise<CatalogPackage>;
   loadCatalogPackageDraftFn?: (packageId: string) => Promise<CatalogPackageDraft>;
+  listCatalogPackageVersionsForAuditFn?: (
+    packageId: string,
+  ) => Promise<ReadonlyArray<CatalogPackageVersionAudit>>;
   attachCatalogPackageDraftMediaAssetFn?: (
     packageId: string,
     input: AttachCatalogPackageMediaAssetInput,
@@ -311,6 +316,8 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
   const createCatalogPackageDraftFn = options.createCatalogPackageDraftFn ?? createCatalogPackageDraft;
   const updateCatalogPackageDraftFn = options.updateCatalogPackageDraftFn ?? updateCatalogPackageDraft;
   const loadCatalogPackageDraftFn = options.loadCatalogPackageDraftFn ?? loadCatalogPackageDraft;
+  const listCatalogPackageVersionsForAuditFn = options.listCatalogPackageVersionsForAuditFn
+    ?? listCatalogPackageVersionsForAudit;
   const attachCatalogPackageDraftMediaAssetFn = options.attachCatalogPackageDraftMediaAssetFn
     ?? attachCatalogPackageDraftMediaAsset;
   const createCatalogPackageVersionFromCardsFn = options.createCatalogPackageVersionFromCardsFn
@@ -371,6 +378,13 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
       parsePackageMediaAssetInput(await parseCatalogAdminJsonBody(context.req.raw)),
     );
     return context.json({ mediaAsset }, 201);
+  });
+
+  app.get("/admin/catalog/packages/:packageId/versions", async (context) => {
+    await requireAdminRequestFn(context.req.raw, options.allowedOrigins);
+    const packageId = parseUuidParam(context.req.param("packageId"), "packageId");
+    const packageVersions = await listCatalogPackageVersionsForAuditFn(packageId);
+    return context.json({ packageVersions });
   });
 
   app.post("/admin/catalog/packages/:packageId/versions", async (context) => {

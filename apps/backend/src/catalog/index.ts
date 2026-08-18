@@ -37,6 +37,8 @@ export {
   delistCatalogPackageVersion,
   delistCatalogPackageVersionInExecutor,
   isCatalogPackageVersionStatusTransitionAllowed,
+  listCatalogPackageVersionsForAudit,
+  listCatalogPackageVersionsForAuditInExecutor,
   publishCatalogPackageVersion,
   publishCatalogPackageVersionInExecutor,
   updateCatalogPackageVersionReviewStatus,

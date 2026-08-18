@@ -139,6 +139,10 @@ export function addDirectImageIngestionApiRoutes(
   const catalogPackage = packages.addResource("{packageId}");
   catalogPackage.addMethod("ANY", sharedIntegration);
   catalogPackage.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
+  const catalogPackageVersions = catalogPackage.addResource("versions");
+  catalogPackageVersions.addMethod("ANY", sharedIntegration);
+  catalogPackageVersions.addMethod("GET", sharedIntegration);
+  catalogPackageVersions.addResource("{proxy+}").addMethod("ANY", sharedIntegration);
   const packageMediaAssets = catalogPackage.addResource("media-assets");
   packageMediaAssets.addMethod("ANY", sharedIntegration);
   packageMediaAssets.addResource("{proxy+}").addMethod("ANY", sharedIntegration);

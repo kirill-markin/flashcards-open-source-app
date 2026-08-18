@@ -18,6 +18,11 @@ import {
 } from "./publication";
 
 export {
+  listCatalogPackageVersionsForAudit,
+  listCatalogPackageVersionsForAuditInExecutor,
+} from "./audit";
+
+export {
   createCatalogPackageVersionFromCardsInExecutor,
 } from "./creation";
 export {
