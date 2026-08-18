@@ -26,6 +26,7 @@ import { normalizeCaughtError, setWebObservabilityUser } from "../../../observab
 import { getSyncFailureObservationCaptureState } from "../../sync/observation/syncErrorObservation";
 import { getErrorMessage } from "../../domain";
 import {
+  buildLinkedCloudSettings,
   buildLinkingReadyCloudSettings,
   resolveLocalDataCleanupReasonForVerifiedSession,
 } from "../cloud/workspaceSessionCloud";
@@ -363,6 +364,26 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         }
       }
 
+      const persistedCloudSettings = await loadCloudSettings();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return false;
+      }
+
+      // A long-lived tab can lose the persisted cloud settings record after
+      // startup (storage eviction, another tab clearing browser data). Restore
+      // it here so sync keeps a verified installation id without a reload.
+      if (persistedCloudSettings === null) {
+        const repairedCloudSettings = activeWorkspace === null
+          ? buildLinkingReadyCloudSettings(currentSession)
+          : buildLinkedCloudSettings(currentSession, activeWorkspace.workspaceId);
+        await putCloudSettings(repairedCloudSettings);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return false;
+        }
+
+        setCloudSettings(repairedCloudSettings);
+      }
+
       setSession(currentSession);
       clearBrowserReauthRequired();
       setSessionErrorMessage("");
@@ -380,6 +401,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       throw error;
     }
   }, [
+    activeWorkspace,
     clearConfirmedUserScopedState,
     indexedDbOpenRecoveryState,
     resolveInitialWorkspace,
