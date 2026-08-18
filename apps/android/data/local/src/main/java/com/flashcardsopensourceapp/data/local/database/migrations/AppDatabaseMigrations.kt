@@ -35,7 +35,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration25To26,
         migration26To27,
         migration27To28,
-        migration28To29
+        migration28To29,
+        migration29To30
     )
 }
 
@@ -1022,5 +1023,12 @@ val migration28To29: Migration = object : Migration(28, 29) {
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS index_media_transfer_queue_sha256 ON media_transfer_queue(sha256)")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_media_transfer_queue_mediaAssetId ON media_transfer_queue(mediaAssetId)")
+    }
+}
+
+val migration29To30: Migration = object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DELETE FROM progress_local_cache_state")
+        db.execSQL("DELETE FROM progress_local_day_counts")
     }
 }
