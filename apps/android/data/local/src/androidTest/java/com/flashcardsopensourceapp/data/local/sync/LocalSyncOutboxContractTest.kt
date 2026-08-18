@@ -90,7 +90,7 @@ class LocalSyncOutboxContractTest {
         })
         val deletedPayload = entries
             .map { entry -> JSONObject(entry.payloadJson) }
-            .single { payload -> payload.optString("deletedAt").isNotBlank() }
+            .single { payload -> payload.isNull("deletedAt").not() }
         val deletedTags = deletedPayload.getJSONArray("tags")
         assertEquals(
             setOf("architecture", "data"),
@@ -129,7 +129,7 @@ class LocalSyncOutboxContractTest {
         assertEquals(
             1,
             cardEntries.count { entry ->
-                JSONObject(entry.payloadJson).optString("deletedAt").isNotBlank()
+                JSONObject(entry.payloadJson).isNull("deletedAt").not()
             }
         )
     }
