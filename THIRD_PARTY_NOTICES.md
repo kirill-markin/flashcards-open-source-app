@@ -1,6 +1,34 @@
 # Third-Party Notices
 
-This file lists third-party assets and runtime libraries bundled for the review reaction animations.
+This file lists third-party software, assets, and runtime libraries used by the product.
+
+## FSRS scheduler adaptations
+
+The scheduler adaptations covered by the notices below are carried in these paths:
+
+- Backend: `apps/backend/src/scheduling/index.ts`
+- iOS: `apps/ios/Flashcards/Flashcards/Review/Scheduling/FsrsScheduler.swift`
+- Android: `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/FsrsScheduler.kt`
+
+### `ts-fsrs` 5.2.3
+
+- Component: Open Spaced Repetition `ts-fsrs`
+- Version: 5.2.3
+- Copyright: Copyright (c) 2025 Open Spaced Repetition
+- Source: https://github.com/open-spaced-repetition/ts-fsrs/tree/v5.2.3
+- License: MIT
+- Local license text: [third_party_licenses/ts-fsrs-5.2.3-MIT.txt](third_party_licenses/ts-fsrs-5.2.3-MIT.txt)
+- Changes: The upstream scheduler flow and formulas were adapted into independent backend TypeScript, iOS Swift, and Android Kotlin implementations and integrated with product-specific persisted card state and workspace scheduler settings.
+
+### Alea/Mash
+
+- Component: Alea/Mash seeded pseudorandom number generator
+- Upstream version: `ts-fsrs` 5.2.3, `src/fsrs/alea.ts`
+- Original author and copyright: Copyright (C) 2010 by Johannes Baagøe <baagoe@baagoe.org>
+- Source: https://github.com/open-spaced-repetition/ts-fsrs/blob/v5.2.3/src/fsrs/alea.ts
+- License: MIT
+- Local license text: [third_party_licenses/alea-MIT.txt](third_party_licenses/alea-MIT.txt)
+- Changes: The Alea/Mash implementation used by `ts-fsrs` was adapted into the backend, iOS, and Android schedulers for deterministic interval fuzzing.
 
 ## Review again rain cloud Lottie animation
 
