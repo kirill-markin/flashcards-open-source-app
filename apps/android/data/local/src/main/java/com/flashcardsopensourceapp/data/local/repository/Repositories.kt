@@ -80,6 +80,8 @@ interface CardsRepository {
     fun observeCard(cardId: String): Flow<CardSummary?>
     suspend fun createCard(cardDraft: CardDraft)
     suspend fun updateCard(cardId: String, cardDraft: CardDraft)
+
+    /** Soft-deletes a card. Missing and already deleted cards are successful no-ops. */
     suspend fun deleteCard(cardId: String)
 }
 
