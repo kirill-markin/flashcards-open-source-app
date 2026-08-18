@@ -105,6 +105,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     clearConfirmedUserScopedState,
     indexedDbOpenRecoveryState,
   } = params;
+  // The resume chain feeds the periodic revalidate timer, so it depends on the
+  // active workspace id instead of the workspace object: publishing the same
+  // workspace as a new object must not tear down and restart that timer.
+  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
   const resumePromiseRef = useRef<Promise<void> | null>(null);
 
   const resumeConfirmedAccountDeletion = useCallback(async function resumeConfirmedAccountDeletion(): Promise<void> {
@@ -373,9 +377,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       // startup (storage eviction, another tab clearing browser data). Restore
       // it here so sync keeps a verified installation id without a reload.
       if (persistedCloudSettings === null) {
-        const repairedCloudSettings = activeWorkspace === null
+        const repairedCloudSettings = activeWorkspaceId === null
           ? buildLinkingReadyCloudSettings(currentSession)
-          : buildLinkedCloudSettings(currentSession, activeWorkspace.workspaceId);
+          : buildLinkedCloudSettings(currentSession, activeWorkspaceId);
         await putCloudSettings(repairedCloudSettings);
         if (indexedDbOpenRecoveryState.hasFailed()) {
           return false;
@@ -401,7 +405,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       throw error;
     }
   }, [
-    activeWorkspace,
+    activeWorkspaceId,
     clearConfirmedUserScopedState,
     indexedDbOpenRecoveryState,
     resolveInitialWorkspace,
