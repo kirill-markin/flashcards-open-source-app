@@ -26,6 +26,7 @@ import { normalizeCaughtError, setWebObservabilityUser } from "../../../observab
 import { getSyncFailureObservationCaptureState } from "../../sync/observation/syncErrorObservation";
 import { getErrorMessage } from "../../domain";
 import {
+  buildLinkedCloudSettings,
   buildLinkingReadyCloudSettings,
   resolveLocalDataCleanupReasonForVerifiedSession,
 } from "../cloud/workspaceSessionCloud";
@@ -104,6 +105,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     clearConfirmedUserScopedState,
     indexedDbOpenRecoveryState,
   } = params;
+  // The resume chain feeds the periodic revalidate timer, so it depends on the
+  // active workspace id instead of the workspace object: publishing the same
+  // workspace as a new object must not tear down and restart that timer.
+  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
   const resumePromiseRef = useRef<Promise<void> | null>(null);
 
   const resumeConfirmedAccountDeletion = useCallback(async function resumeConfirmedAccountDeletion(): Promise<void> {
@@ -363,6 +368,26 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         }
       }
 
+      const persistedCloudSettings = await loadCloudSettings();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return false;
+      }
+
+      // A long-lived tab can lose the persisted cloud settings record after
+      // startup (storage eviction, another tab clearing browser data). Restore
+      // it here so sync keeps a verified installation id without a reload.
+      if (persistedCloudSettings === null) {
+        const repairedCloudSettings = activeWorkspaceId === null
+          ? buildLinkingReadyCloudSettings(currentSession)
+          : buildLinkedCloudSettings(currentSession, activeWorkspaceId);
+        await putCloudSettings(repairedCloudSettings);
+        if (indexedDbOpenRecoveryState.hasFailed()) {
+          return false;
+        }
+
+        setCloudSettings(repairedCloudSettings);
+      }
+
       setSession(currentSession);
       clearBrowserReauthRequired();
       setSessionErrorMessage("");
@@ -380,6 +405,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       throw error;
     }
   }, [
+    activeWorkspaceId,
     clearConfirmedUserScopedState,
     indexedDbOpenRecoveryState,
     resolveInitialWorkspace,

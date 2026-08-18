@@ -388,6 +388,10 @@ describe("useWorkspaceSession bootstrap", () => {
       await Promise.resolve();
     });
 
+    await vi.waitFor(() => {
+      expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
+    });
+
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(runSyncMock).not.toHaveBeenCalled();
     expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
