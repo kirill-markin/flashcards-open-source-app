@@ -78,6 +78,20 @@ function ReviewFilterCheckIcon(): ReactElement {
   );
 }
 
+function ReviewFilterChevronIcon(): ReactElement {
+  return (
+    <svg className="review-filter-trigger-chevron" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 6.75L9 11.25L13.5 6.75"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function reviewFilterChoiceClassName(item: ReviewFilterChoiceMenuItem, activeReviewFilterOptionKey: string | null): string {
   const classNames = ["review-filter-menu-entry"];
   if (item.isSelected) {
@@ -137,7 +151,7 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
         data-testid="review-filter-trigger"
       >
         <span className="review-filter-trigger-value">{selectedReviewFilterTitle}</span>
-        <span className="review-filter-trigger-chevron" aria-hidden="true">▾</span>
+        <ReviewFilterChevronIcon />
       </button>
       <AnchoredFloatingOverlay
         isOpen={isReviewFilterMenuOpen}
