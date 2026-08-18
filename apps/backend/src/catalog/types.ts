@@ -411,6 +411,25 @@ export type CatalogPackageCardSnapshotInput = Readonly<{
   mediaAssetKeys: ReadonlyArray<string>;
 }>;
 
+export type CatalogPackageVersionAuditCard = Readonly<{
+  packageCardId: string;
+  stableCardKey: string;
+  ordinal: number;
+  frontText: string;
+  backText: string;
+  cardType: string;
+  metadata: CardMetadata;
+  tags: ReadonlyArray<string>;
+  mediaAssetKeys: ReadonlyArray<string>;
+}>;
+
+export type CatalogPackageVersionAudit = Readonly<{
+  packageVersionId: string;
+  versionNumber: number;
+  status: CatalogPackageStatus;
+  cards: ReadonlyArray<CatalogPackageVersionAuditCard>;
+}>;
+
 export type CreateCatalogPackageVersionInput = Readonly<{
   packageVersionId: string;
   cards: ReadonlyArray<CatalogPackageCardSnapshotInput>;
