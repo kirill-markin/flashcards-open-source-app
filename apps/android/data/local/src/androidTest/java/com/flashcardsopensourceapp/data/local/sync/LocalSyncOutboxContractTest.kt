@@ -88,9 +88,50 @@ class LocalSyncOutboxContractTest {
         assertTrue(entries.any { entry ->
             JSONObject(entry.payloadJson).getString("frontText") == "What is a repository pattern?"
         })
-        assertTrue(entries.any { entry ->
-            JSONObject(entry.payloadJson).optString("deletedAt").isNotBlank()
-        })
+        val deletedPayload = entries
+            .map { entry -> JSONObject(entry.payloadJson) }
+            .single { payload -> payload.isNull("deletedAt").not() }
+        val deletedTags = deletedPayload.getJSONArray("tags")
+        assertEquals(
+            setOf("architecture", "data"),
+            (0 until deletedTags.length()).map { index -> deletedTags.getString(index) }.toSet()
+        )
+        val deletedCard = requireNotNull(database.cardDao().loadCard(cardId = createdCardId))
+        assertEquals(deletedCard.updatedAtMillis, requireNotNull(deletedCard.deletedAtMillis))
+    }
+
+    @Test
+    fun cardDeletionDoesNotRepeatForTombstonedOrPhysicallyAbsentCards(): Unit = runBlocking {
+        val workspaceId = bootstrapTestWorkspace(runtime = runtime, currentTimeMillis = 100L)
+        val cardsRepository = createTestCardsRepository(runtime = runtime)
+
+        cardsRepository.createCard(
+            cardDraft = CardDraft(
+                frontText = "What makes deletion idempotent?",
+                backText = "Repeating it preserves the same deleted state.",
+                tags = listOf("architecture"),
+            )
+        )
+        val cardId = database.cardDao().observeCardsWithRelations().first()
+            .single()
+            .card.cardId
+
+        cardsRepository.deleteCard(cardId = cardId)
+        val deletedCard = requireNotNull(database.cardDao().loadCard(cardId = cardId))
+        cardsRepository.deleteCard(cardId = cardId)
+        assertEquals(deletedCard, database.cardDao().loadCard(cardId = cardId))
+        database.cardDao().deleteCard(cardId = cardId)
+        cardsRepository.deleteCard(cardId = cardId)
+
+        val cardEntries = database.outboxDao().loadOutboxEntries(workspaceId = workspaceId, limit = 20)
+            .filter { entry -> entry.entityId == cardId }
+        assertEquals(2, cardEntries.size)
+        assertEquals(
+            1,
+            cardEntries.count { entry ->
+                JSONObject(entry.payloadJson).isNull("deletedAt").not()
+            }
+        )
     }
 
     @Test

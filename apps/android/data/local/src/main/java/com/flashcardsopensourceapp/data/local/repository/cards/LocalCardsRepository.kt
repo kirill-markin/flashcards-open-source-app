@@ -122,23 +122,26 @@ class LocalCardsRepository(
     }
 
     override suspend fun deleteCard(cardId: String) {
-        val card: CardEntity = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
-            "Cannot delete missing card: $cardId"
-        }
-
         runLocalOutboxMutationTransaction(
             database = database,
             preferencesStore = preferencesStore
         ) {
+            val card: CardEntity = database.cardDao().loadCard(cardId = cardId)
+                ?: return@runLocalOutboxMutationTransaction
+            if (card.deletedAtMillis != null) {
+                return@runLocalOutboxMutationTransaction
+            }
+
+            val deletionTimestampMillis: Long = System.currentTimeMillis()
             val deletedCard: CardEntity = card.copy(
-                updatedAtMillis = System.currentTimeMillis(),
-                deletedAtMillis = System.currentTimeMillis()
+                updatedAtMillis = deletionTimestampMillis,
+                deletedAtMillis = deletionTimestampMillis
             )
-            val cardTags: List<String> = database.cardDao().observeCardWithRelations(cardId = cardId)
-                .first()
-                ?.tags
-                ?.map(TagEntity::name)
-                ?: emptyList()
+            val cardTags: List<String> = requireNotNull(
+                database.cardDao().observeCardWithRelations(cardId = cardId).first()
+            ) {
+                "Cannot load relations for card being deleted: $cardId"
+            }.tags.map(TagEntity::name)
             database.cardDao().updateCard(card = deletedCard)
             syncLocalStore.enqueueCardUpsert(
                 card = deletedCard,
