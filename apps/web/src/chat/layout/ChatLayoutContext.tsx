@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactElement, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 
 type ChatLayoutContextValue = Readonly<{
   isOpen: boolean;
@@ -9,17 +9,17 @@ type ChatLayoutContextValue = Readonly<{
 
 const CHAT_OPEN_KEY = "flashcards-chat-open";
 const CHAT_WIDTH_KEY = "flashcards-chat-width";
-const DEFAULT_CHAT_OPEN = true;
+const MOBILE_CHAT_BREAKPOINT_QUERY = "(max-width: 768px)";
 const DEFAULT_CHAT_WIDTH = 560;
 const MIN_CHAT_WIDTH = 320;
 const MAX_CHAT_WIDTH = 600;
 
 const ChatLayoutContext = createContext<ChatLayoutContextValue | null>(null);
 
-function readStoredBoolean(key: string, fallbackValue: boolean): boolean {
-  const storedValue = localStorage.getItem(key);
+function readInitialChatOpen(): boolean {
+  const storedValue = localStorage.getItem(CHAT_OPEN_KEY);
   if (storedValue === null) {
-    return fallbackValue;
+    return !window.matchMedia(MOBILE_CHAT_BREAKPOINT_QUERY).matches;
   }
 
   return storedValue === "true";
@@ -45,10 +45,28 @@ type Props = Readonly<{
 
 export function ChatLayoutProvider(props: Props): ReactElement {
   const { children } = props;
-  const [isOpen, setIsOpenState] = useState<boolean>(() => readStoredBoolean(CHAT_OPEN_KEY, DEFAULT_CHAT_OPEN));
+  const [isOpen, setIsOpenState] = useState<boolean>(readInitialChatOpen);
   const [chatWidth, setChatWidthState] = useState<number>(() => readStoredNumber(CHAT_WIDTH_KEY, DEFAULT_CHAT_WIDTH));
+  const hasExplicitOpenPreferenceRef = useRef<boolean>(localStorage.getItem(CHAT_OPEN_KEY) !== null);
+
+  useEffect(() => {
+    if (hasExplicitOpenPreferenceRef.current) {
+      return;
+    }
+
+    const mediaQueryList = window.matchMedia(MOBILE_CHAT_BREAKPOINT_QUERY);
+    const handleMediaQueryChange = (event: MediaQueryListEvent): void => {
+      if (!hasExplicitOpenPreferenceRef.current) {
+        setIsOpenState(!event.matches);
+      }
+    };
+
+    mediaQueryList.addEventListener("change", handleMediaQueryChange);
+    return () => mediaQueryList.removeEventListener("change", handleMediaQueryChange);
+  }, []);
 
   function setIsOpen(open: boolean): void {
+    hasExplicitOpenPreferenceRef.current = true;
     setIsOpenState(open);
     localStorage.setItem(CHAT_OPEN_KEY, String(open));
   }
