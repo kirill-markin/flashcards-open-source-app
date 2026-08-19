@@ -9,8 +9,6 @@ import type {
   ReviewEventCohort,
   ReviewEventPlatform,
   ReviewEventsByDateCommunityRow,
-  ReviewEventsByDateFriendInvitationTotal,
-  ReviewEventsByDateFriendshipTotal,
   ReviewEventsByDatePlatformActiveUserTotal,
   ReviewEventsByDatePlatformReviewEventTotal,
   ReviewEventsByDateReport,
@@ -63,11 +61,6 @@ type ReviewEventsByDateAggregateFields = Readonly<Pick<
   | "dailyUniqueUserCohorts"
   | "platformActiveUserTotals"
   | "platformReviewEventTotals"
->>;
-
-type ReviewEventsByDateCommunityAggregateFields = Readonly<Pick<
-  ReviewEventsByDateReport,
-  "friendInvitationTotals" | "friendshipTotals"
 >>;
 
 function parseCalendarDate(date: string): Date {
@@ -306,38 +299,6 @@ function assertCommunityRowsInRange(
   }
 }
 
-function buildFriendInvitationTotals(
-  rows: ReadonlyArray<ReviewEventsByDateCommunityRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<ReviewEventsByDateFriendInvitationTotal> {
-  const countsByDate = new Map<string, number>();
-
-  for (const row of rows) {
-    countsByDate.set(row.date, (countsByDate.get(row.date) ?? 0) + row.friendInvitationCount);
-  }
-
-  return dates.map((date) => ({
-    date,
-    friendInvitationCount: countsByDate.get(date) ?? 0,
-  }));
-}
-
-function buildFriendshipTotals(
-  rows: ReadonlyArray<ReviewEventsByDateCommunityRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<ReviewEventsByDateFriendshipTotal> {
-  const countsByDate = new Map<string, number>();
-
-  for (const row of rows) {
-    countsByDate.set(row.date, (countsByDate.get(row.date) ?? 0) + row.friendshipCount);
-  }
-
-  return dates.map((date) => ({
-    date,
-    friendshipCount: countsByDate.get(date) ?? 0,
-  }));
-}
-
 function buildCommunityOnlyUsers(
   communityRows: ReadonlyArray<ReviewEventsByDateCommunityRow>,
   reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
@@ -362,16 +323,6 @@ function buildCommunityOnlyUsers(
     const rightLabel = right.email === "(no email)" ? right.userId : right.email;
     return leftLabel.localeCompare(rightLabel);
   });
-}
-
-function buildReviewEventsByDateCommunityAggregateFields(
-  communityRows: ReadonlyArray<ReviewEventsByDateCommunityRow>,
-  dates: ReadonlyArray<string>,
-): ReviewEventsByDateCommunityAggregateFields {
-  return {
-    friendInvitationTotals: buildFriendInvitationTotals(communityRows, dates),
-    friendshipTotals: buildFriendshipTotals(communityRows, dates),
-  };
 }
 
 function buildReviewEventsByDateAggregateFields(
@@ -447,7 +398,6 @@ function buildReviewEventsByDateReport(
     to,
     ...aggregateFields,
     communityOnlyUsers: buildCommunityOnlyUsers(communityRows, aggregateFields.users),
-    ...buildReviewEventsByDateCommunityAggregateFields(communityRows, dates),
     rows,
     communityRows,
   };
@@ -531,7 +481,6 @@ export function filterReviewEventsByDateReport(
     rows,
     communityRows,
     ...aggregateFields,
-    ...buildReviewEventsByDateCommunityAggregateFields(communityRows, dates),
   };
 }
 

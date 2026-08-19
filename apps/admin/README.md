@@ -59,8 +59,8 @@ The dashboard shows six charts:
 - stacked review events by user
 - daily active users by platform
 - daily review events by platform
-- daily friend invite links created
-- existing friend connections at the end of each day, counted per user
+- daily friend invite links created, stacked by user
+- existing friend connections at the end of each day, counted per user and stacked by user
 
 The default chart range starts on the first calendar day with any review event, friend invite link, or friendship row and ends on today, inclusive, in the dashboard timezone. The dashboard includes date range filters that can narrow the chart range and reset back to that default.
 The filter panel keeps date, user, new/returning cohort, and platform filters in one compact row. All four filters apply to every chart, including the friend invite and friend connection charts, which carry per-user community rows. A cohort or platform filter keeps community rows only for users that still have review events in range, and the user filter list also offers users with community activity but no review events in range. User emails and user IDs are shown only inside the user filter popup and chart tooltips, not as a persistent page list.
