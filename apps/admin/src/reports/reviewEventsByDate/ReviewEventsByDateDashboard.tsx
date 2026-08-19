@@ -5,6 +5,7 @@ import {
   type ReviewEventCohort,
   type ReviewEventPlatform,
   type ReviewEventsByDateReport,
+  type ReviewEventsByDateUser,
 } from "../../adminApi";
 import { ReviewEventsByDateCharts } from "./charts/ReviewEventsByDateCharts";
 import { buildReviewEventsByDateChartModel } from "./charts/chartModel";
@@ -25,6 +26,15 @@ import {
   filterReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "./query";
+
+function buildUserById(
+  reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
+  communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>,
+): ReadonlyMap<string, ReviewEventsByDateUser> {
+  return new Map<string, ReviewEventsByDateUser>(
+    [...reviewUsers, ...communityOnlyUsers].map((user) => [user.userId, user]),
+  );
+}
 
 function getUpdatedUserFilterSelection(
   currentUserIds: ReadonlyArray<string>,
@@ -177,13 +187,17 @@ export function ReviewEventsByDateDashboard(
     () => new Set(selectedPlatforms),
     [selectedPlatforms],
   );
+  const userFilterOptionUsers = useMemo(
+    () => [...props.report.users, ...props.report.communityOnlyUsers],
+    [props.report.communityOnlyUsers, props.report.users],
+  );
   const reportUserById = useMemo(
-    () => new Map(props.report.users.map((user) => [user.userId, user])),
-    [props.report.users],
+    () => buildUserById(props.report.users, props.report.communityOnlyUsers),
+    [props.report.communityOnlyUsers, props.report.users],
   );
   const filteredUserById = useMemo(
-    () => new Map(filteredReport.users.map((user) => [user.userId, user])),
-    [filteredReport.users],
+    () => buildUserById(filteredReport.users, filteredReport.communityOnlyUsers),
+    [filteredReport.communityOnlyUsers, filteredReport.users],
   );
   const activeUserFilters = useMemo(
     () => buildActiveUserFilters(selectedUserIds, reportUserById),
@@ -194,8 +208,8 @@ export function ReviewEventsByDateDashboard(
     [userFilterSearchValue],
   );
   const searchableUserFilterOptions = useMemo(
-    () => buildSearchableUserFilterOptions(props.report.users),
-    [props.report.users],
+    () => buildSearchableUserFilterOptions(userFilterOptionUsers),
+    [userFilterOptionUsers],
   );
   const matchingUserFilterOptions = useMemo(
     () => searchableUserFilterOptions
@@ -208,21 +222,17 @@ export function ReviewEventsByDateDashboard(
     [matchingUserFilterOptions],
   );
   const hiddenUserFilterOptionCount = matchingUserFilterOptions.length - visibleUserFilterOptions.length;
-  const reviewChartModel = useMemo(
-    () => buildReviewEventsByDateChartModel(filteredReport, props.report.users),
-    [filteredReport, props.report.users],
-  );
-  const communityChartModel = useMemo(
-    () => buildReviewEventsByDateChartModel(props.report, props.report.users),
-    [props.report],
+  const chartModel = useMemo(
+    () => buildReviewEventsByDateChartModel(filteredReport, userFilterOptionUsers),
+    [filteredReport, userFilterOptionUsers],
   );
   const summaryCards = useMemo(
     () => buildReviewEventsByDateSummaryCards(
       filteredReport,
-      reviewChartModel.peakDailyVolume,
-      reviewChartModel.peakDailyUniqueUsers,
+      chartModel.peakDailyVolume,
+      chartModel.peakDailyUniqueUsers,
     ),
-    [reviewChartModel.peakDailyUniqueUsers, reviewChartModel.peakDailyVolume, filteredReport],
+    [chartModel.peakDailyUniqueUsers, chartModel.peakDailyVolume, filteredReport],
   );
 
   return (
@@ -251,7 +261,7 @@ export function ReviewEventsByDateDashboard(
         draftRange={draftRange}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
-        reportUsers={props.report.users}
+        reportUsers={userFilterOptionUsers}
         selectedUserIds={selectedUserIds}
         selectedUserIdSet={selectedUserIdSet}
         selectedCohorts={selectedCohorts}
@@ -263,7 +273,7 @@ export function ReviewEventsByDateDashboard(
         matchingUserFilterOptionCount={matchingUserFilterOptions.length}
         hiddenUserFilterOptionCount={hiddenUserFilterOptionCount}
         activeUserFilters={activeUserFilters}
-        userColorScale={reviewChartModel.userColorScale}
+        userColorScale={chartModel.userColorScale}
         onFromDateChange={handleFromDateChange}
         onToDateChange={handleToDateChange}
         onDateRangeSubmit={handleDateRangeSubmit}
@@ -280,8 +290,7 @@ export function ReviewEventsByDateDashboard(
       <ReviewEventsByDateSummary cards={summaryCards} />
 
       <ReviewEventsByDateCharts
-        reviewChartModel={reviewChartModel}
-        communityChartModel={communityChartModel}
+        chartModel={chartModel}
         generatedAtUtc={props.report.generatedAtUtc}
         isReportLoading={props.isReportLoading}
         userById={filteredUserById}

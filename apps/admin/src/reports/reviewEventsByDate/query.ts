@@ -8,8 +8,7 @@ import type {
   AdminQueryValue,
   ReviewEventCohort,
   ReviewEventPlatform,
-  ReviewEventsByDateFriendInvitationTotal,
-  ReviewEventsByDateFriendshipTotal,
+  ReviewEventsByDateCommunityRow,
   ReviewEventsByDatePlatformActiveUserTotal,
   ReviewEventsByDatePlatformReviewEventTotal,
   ReviewEventsByDateReport,
@@ -32,6 +31,8 @@ type ReviewEventsByDateQueryRow = Readonly<{
 
 type ReviewEventsByDateCommunityQueryRow = Readonly<{
   report_date: string;
+  user_id: string;
+  email: string;
   friend_invitation_count: string | number;
   friendship_count: string | number;
 }>;
@@ -154,6 +155,8 @@ function toReviewEventsByDateCommunityQueryRow(
 ): ReviewEventsByDateCommunityQueryRow {
   return {
     report_date: assertIsString(resultSetRow.report_date ?? null, "report_date"),
+    user_id: assertIsString(resultSetRow.user_id ?? null, "user_id"),
+    email: assertIsString(resultSetRow.email ?? null, "email"),
     friend_invitation_count: toInteger(resultSetRow.friend_invitation_count ?? null, "friend_invitation_count"),
     friendship_count: toInteger(resultSetRow.friendship_count ?? null, "friendship_count"),
   };
@@ -275,50 +278,51 @@ function buildDailyUniqueUserCohorts(
   }));
 }
 
-function buildCommunityRowsByDate(
-  rows: ReadonlyArray<ReviewEventsByDateCommunityQueryRow>,
+function assertCommunityRowsInRange(
+  rows: ReadonlyArray<ReviewEventsByDateCommunityRow>,
   dates: ReadonlyArray<string>,
-): ReadonlyMap<string, ReviewEventsByDateCommunityQueryRow> {
+): void {
   const dateSet = new Set(dates);
-  const rowsByDate = new Map<string, ReviewEventsByDateCommunityQueryRow>();
+  const seenDateUserKeys = new Set<string>();
 
   for (const row of rows) {
-    if (dateSet.has(row.report_date) === false) {
-      throw new Error(`Community report returned a date outside the requested range: ${row.report_date}`);
+    if (dateSet.has(row.date) === false) {
+      throw new Error(`Community report returned a date outside the requested range: ${row.date}`);
     }
 
-    if (rowsByDate.has(row.report_date)) {
-      throw new Error(`Community report returned duplicate rows for date: ${row.report_date}`);
+    const dateUserKey = `${row.date}:${row.userId}`;
+    if (seenDateUserKeys.has(dateUserKey)) {
+      throw new Error(`Community report returned duplicate rows for date and user: ${dateUserKey}`);
     }
 
-    rowsByDate.set(row.report_date, row);
+    seenDateUserKeys.add(dateUserKey);
+  }
+}
+
+function buildCommunityOnlyUsers(
+  communityRows: ReadonlyArray<ReviewEventsByDateCommunityRow>,
+  reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
+): ReadonlyArray<ReviewEventsByDateUser> {
+  const reviewUserIds = new Set(reviewUsers.map((user) => user.userId));
+  const usersByUserId = new Map<string, ReviewEventsByDateUser>();
+
+  for (const row of communityRows) {
+    if (reviewUserIds.has(row.userId) || usersByUserId.has(row.userId)) {
+      continue;
+    }
+
+    usersByUserId.set(row.userId, {
+      userId: row.userId,
+      email: row.email,
+      totalReviewEvents: 0,
+    });
   }
 
-  return rowsByDate;
-}
-
-function buildFriendInvitationTotals(
-  rows: ReadonlyArray<ReviewEventsByDateCommunityQueryRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<ReviewEventsByDateFriendInvitationTotal> {
-  const rowsByDate = buildCommunityRowsByDate(rows, dates);
-
-  return dates.map((date) => ({
-    date,
-    friendInvitationCount: toInteger(rowsByDate.get(date)?.friend_invitation_count ?? 0, "friend_invitation_count"),
-  }));
-}
-
-function buildFriendshipTotals(
-  rows: ReadonlyArray<ReviewEventsByDateCommunityQueryRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<ReviewEventsByDateFriendshipTotal> {
-  const rowsByDate = buildCommunityRowsByDate(rows, dates);
-
-  return dates.map((date) => ({
-    date,
-    friendshipCount: toInteger(rowsByDate.get(date)?.friendship_count ?? 0, "friendship_count"),
-  }));
+  return Array.from(usersByUserId.values()).sort((left, right) => {
+    const leftLabel = left.email === "(no email)" ? left.userId : left.email;
+    const rightLabel = right.email === "(no email)" ? right.userId : right.email;
+    return leftLabel.localeCompare(rightLabel);
+  });
 }
 
 function buildReviewEventsByDateAggregateFields(
@@ -372,16 +376,30 @@ function buildReviewEventsByDateReport(
   const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
   const communityRows = communityResultSet.rows
     .map(toReviewEventsByDateCommunityQueryRow)
-    .sort((left, right) => left.report_date.localeCompare(right.report_date));
+    .map((row) => ({
+      date: row.report_date,
+      userId: row.user_id,
+      email: row.email,
+      friendInvitationCount: toInteger(row.friend_invitation_count, "friend_invitation_count"),
+      friendshipCount: toInteger(row.friendship_count, "friendship_count"),
+    }))
+    .sort((left, right) => {
+      if (left.date !== right.date) {
+        return left.date.localeCompare(right.date);
+      }
+
+      return left.userId.localeCompare(right.userId);
+    });
+  assertCommunityRowsInRange(communityRows, dates);
 
   return {
     generatedAtUtc: executedAtUtc,
     from,
     to,
     ...aggregateFields,
-    friendInvitationTotals: buildFriendInvitationTotals(communityRows, dates),
-    friendshipTotals: buildFriendshipTotals(communityRows, dates),
+    communityOnlyUsers: buildCommunityOnlyUsers(communityRows, aggregateFields.users),
     rows,
+    communityRows,
   };
 }
 
@@ -393,6 +411,24 @@ function isUnfilteredReviewEventsByDateReport(filters: ReviewEventsByDateFilterS
   return filters.selectedUserIds.length === 0
     && filters.selectedCohorts.length === reviewEventCohorts.length
     && filters.selectedPlatforms.length === reviewEventPlatforms.length;
+}
+
+function hasRestrictedReviewEventFilters(filters: ReviewEventsByDateFilterState): boolean {
+  return filters.selectedCohorts.length !== reviewEventCohorts.length
+    || filters.selectedPlatforms.length !== reviewEventPlatforms.length;
+}
+
+function shouldIncludeCommunityRow(
+  row: ReviewEventsByDateCommunityRow,
+  selectedUserIdSet: ReadonlySet<string>,
+  filteredReviewUserIdSet: ReadonlySet<string>,
+  isRestrictedToFilteredReviewUsers: boolean,
+): boolean {
+  if (selectedUserIdSet.size > 0 && selectedUserIdSet.has(row.userId) === false) {
+    return false;
+  }
+
+  return isRestrictedToFilteredReviewUsers === false || filteredReviewUserIdSet.has(row.userId);
 }
 
 function shouldIncludeReviewEventsByDateRow(
@@ -429,12 +465,21 @@ export function filterReviewEventsByDateReport(
     selectedCohortSet,
     selectedPlatformSet,
   ));
+  const filteredReviewUserIdSet = new Set(rows.map((row) => row.userId));
+  const isRestrictedToFilteredReviewUsers = hasRestrictedReviewEventFilters(filters);
+  const communityRows = report.communityRows.filter((row) => shouldIncludeCommunityRow(
+    row,
+    selectedUserIdSet,
+    filteredReviewUserIdSet,
+    isRestrictedToFilteredReviewUsers,
+  ));
   const dates = buildRequestedDateRange(report.from, report.to);
   const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
 
   return {
     ...report,
     rows,
+    communityRows,
     ...aggregateFields,
   };
 }
@@ -536,6 +581,10 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
   ].join("\n");
 }
 
+// Per-user community activity for the admin "Review events by date" report.
+// One row per (report date, user) with at least one non-zero count; the client fills
+// the remaining dates. `friendship_count` counts the directed `community.friendships`
+// rows owned by that viewer, so the sum across users is twice the number of pairs.
 export function buildReviewEventsByDateCommunitySql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "community report");
 
@@ -549,6 +598,7 @@ export function buildReviewEventsByDateCommunitySql(from: string, to: string): s
     "),",
     "real_friend_invitations AS (",
     "  SELECT",
+    "    friend_invitations.inviter_user_id AS user_id,",
     "    (friend_invitations.created_at AT TIME ZONE 'UTC')::date AS created_date",
     "  FROM community.friend_invitations AS friend_invitations",
     "  LEFT JOIN org.user_settings AS inviter_user_settings",
@@ -560,18 +610,18 @@ export function buildReviewEventsByDateCommunitySql(from: string, to: string): s
     "),",
     "daily_friend_invitations AS (",
     "  SELECT",
+    "    real_friend_invitations.user_id,",
     "    real_friend_invitations.created_date,",
     "    COUNT(*)::int AS friend_invitation_count",
     "  FROM real_friend_invitations",
     "  WHERE real_friend_invitations.created_date >= " + escapeSqlStringLiteral(from) + "::date",
     "    AND real_friend_invitations.created_date <= " + escapeSqlStringLiteral(to) + "::date",
-    "  GROUP BY real_friend_invitations.created_date",
+    "  GROUP BY real_friend_invitations.user_id, real_friend_invitations.created_date",
     "),",
-    "real_friendship_pairs AS (",
+    "real_friendships AS (",
     "  SELECT",
-    "    LEAST(friendships.viewer_user_id, friendships.friend_user_id) AS first_user_id,",
-    "    GREATEST(friendships.viewer_user_id, friendships.friend_user_id) AS second_user_id,",
-    "    MIN(friendships.created_at) AS created_at",
+    "    friendships.viewer_user_id AS user_id,",
+    "    friendships.created_at",
     "  FROM community.friendships AS friendships",
     "  LEFT JOIN org.user_settings AS viewer_user_settings",
     "    ON viewer_user_settings.user_id = friendships.viewer_user_id",
@@ -585,24 +635,48 @@ export function buildReviewEventsByDateCommunitySql(from: string, to: string): s
     "      friend_user_settings.email IS NULL",
     "      OR LOWER(btrim(friend_user_settings.email)) NOT LIKE '%@example.com'",
     "    )",
-    "  GROUP BY",
-    "    LEAST(friendships.viewer_user_id, friendships.friend_user_id),",
-    "    GREATEST(friendships.viewer_user_id, friendships.friend_user_id)",
-    ")",
-    "SELECT",
-    "  to_char(requested_dates.report_date, 'YYYY-MM-DD') AS report_date,",
-    "  COALESCE(daily_friend_invitations.friend_invitation_count, 0)::int AS friend_invitation_count,",
-    "  COALESCE((",
-    "    SELECT COUNT(*)",
-    "    FROM real_friendship_pairs",
-    "    WHERE real_friendship_pairs.created_at < (",
+    "),",
+    "daily_friendships AS (",
+    "  SELECT",
+    "    requested_dates.report_date,",
+    "    real_friendships.user_id,",
+    "    COUNT(*)::int AS friendship_count",
+    "  FROM requested_dates",
+    "  INNER JOIN real_friendships",
+    "    ON real_friendships.created_at < (",
     "      (requested_dates.report_date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'",
     "    )",
-    "  ), 0)::int AS friendship_count",
-    "FROM requested_dates",
+    "  GROUP BY requested_dates.report_date, real_friendships.user_id",
+    "),",
+    "community_user_dates AS (",
+    "  SELECT",
+    "    daily_friend_invitations.created_date AS report_date,",
+    "    daily_friend_invitations.user_id",
+    "  FROM daily_friend_invitations",
+    "  UNION",
+    "  SELECT",
+    "    daily_friendships.report_date,",
+    "    daily_friendships.user_id",
+    "  FROM daily_friendships",
+    ")",
+    "SELECT",
+    "  to_char(community_user_dates.report_date, 'YYYY-MM-DD') AS report_date,",
+    "  community_user_dates.user_id,",
+    "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email,",
+    "  COALESCE(daily_friend_invitations.friend_invitation_count, 0)::int AS friend_invitation_count,",
+    "  COALESCE(daily_friendships.friendship_count, 0)::int AS friendship_count",
+    "FROM community_user_dates",
+    "LEFT JOIN org.user_settings AS user_settings",
+    "  ON user_settings.user_id = community_user_dates.user_id",
     "LEFT JOIN daily_friend_invitations",
-    "  ON daily_friend_invitations.created_date = requested_dates.report_date",
-    "ORDER BY requested_dates.report_date ASC",
+    "  ON daily_friend_invitations.user_id = community_user_dates.user_id",
+    "  AND daily_friend_invitations.created_date = community_user_dates.report_date",
+    "LEFT JOIN daily_friendships",
+    "  ON daily_friendships.user_id = community_user_dates.user_id",
+    "  AND daily_friendships.report_date = community_user_dates.report_date",
+    "ORDER BY",
+    "  report_date ASC,",
+    "  community_user_dates.user_id ASC",
   ].join("\n");
 }
 

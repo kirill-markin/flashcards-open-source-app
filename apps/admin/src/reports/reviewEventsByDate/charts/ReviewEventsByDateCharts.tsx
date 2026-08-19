@@ -20,8 +20,7 @@ import {
 import { formatGeneratedAt } from "../formatting";
 
 type ReviewEventsByDateChartsProps = Readonly<{
-  reviewChartModel: ReviewEventsByDateChartModel;
-  communityChartModel: ReviewEventsByDateChartModel;
+  chartModel: ReviewEventsByDateChartModel;
   generatedAtUtc: string;
   isReportLoading: boolean;
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
@@ -130,65 +129,77 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
 
     renderDailyUniqueUsersChart({
       svgElement: uniqueUsersSvgElement,
-      dates: props.reviewChartModel.dates,
-      tickDates: props.reviewChartModel.tickDates,
-      dailyUniqueUserCohortMatrix: props.reviewChartModel.dailyUniqueUserCohortMatrix,
-      dailyUniqueUsersByDate: props.reviewChartModel.dailyUniqueUsersByDate,
-      totalReviewEventsByDate: props.reviewChartModel.totalReviewEventsByDate,
-      peakDailyUniqueUsers: props.reviewChartModel.peakDailyUniqueUsers,
+      dates: props.chartModel.dates,
+      tickDates: props.chartModel.tickDates,
+      dailyUniqueUserCohortMatrix: props.chartModel.dailyUniqueUserCohortMatrix,
+      dailyUniqueUsersByDate: props.chartModel.dailyUniqueUsersByDate,
+      totalReviewEventsByDate: props.chartModel.totalReviewEventsByDate,
+      peakDailyUniqueUsers: props.chartModel.peakDailyUniqueUsers,
       tooltipHandlers,
     });
     renderUserReviewEventsChart({
       svgElement: userReviewEventsSvgElement,
-      dates: props.reviewChartModel.dates,
-      tickDates: props.reviewChartModel.tickDates,
-      userMatrix: props.reviewChartModel.userMatrix,
-      userIds: props.reviewChartModel.userIds,
-      userColorScale: props.reviewChartModel.userColorScale,
+      dates: props.chartModel.dates,
+      tickDates: props.chartModel.tickDates,
+      userMatrix: props.chartModel.userMatrix,
+      userIds: props.chartModel.userIds,
+      userColorScale: props.chartModel.userColorScale,
       userById: props.userById,
-      totalReviewEventsByDate: props.reviewChartModel.totalReviewEventsByDate,
-      peakDailyVolume: props.reviewChartModel.peakDailyVolume,
+      totalReviewEventsByDate: props.chartModel.totalReviewEventsByDate,
+      peakDailyVolume: props.chartModel.peakDailyVolume,
       isReportLoading: props.isReportLoading,
       onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
     renderPlatformActiveUsersChart({
       svgElement: platformUsersSvgElement,
-      dates: props.reviewChartModel.dates,
-      tickDates: props.reviewChartModel.tickDates,
-      platformActiveUsersMatrix: props.reviewChartModel.platformActiveUsersMatrix,
-      dailyUniqueUsersByDate: props.reviewChartModel.dailyUniqueUsersByDate,
-      peakDailyPlatformUsers: props.reviewChartModel.peakDailyPlatformUsers,
+      dates: props.chartModel.dates,
+      tickDates: props.chartModel.tickDates,
+      platformActiveUsersMatrix: props.chartModel.platformActiveUsersMatrix,
+      dailyUniqueUsersByDate: props.chartModel.dailyUniqueUsersByDate,
+      peakDailyPlatformUsers: props.chartModel.peakDailyPlatformUsers,
       tooltipHandlers,
     });
     renderPlatformReviewEventsChart({
       svgElement: platformReviewEventsSvgElement,
-      dates: props.reviewChartModel.dates,
-      tickDates: props.reviewChartModel.tickDates,
-      platformReviewEventsMatrix: props.reviewChartModel.platformReviewEventsMatrix,
-      totalPlatformReviewEventsByDate: props.reviewChartModel.totalPlatformReviewEventsByDate,
-      peakDailyPlatformReviewEvents: props.reviewChartModel.peakDailyPlatformReviewEvents,
+      dates: props.chartModel.dates,
+      tickDates: props.chartModel.tickDates,
+      platformReviewEventsMatrix: props.chartModel.platformReviewEventsMatrix,
+      totalPlatformReviewEventsByDate: props.chartModel.totalPlatformReviewEventsByDate,
+      peakDailyPlatformReviewEvents: props.chartModel.peakDailyPlatformReviewEvents,
       tooltipHandlers,
     });
     renderDailyFriendInvitationsChart({
       svgElement: friendInvitationsSvgElement,
-      dates: props.communityChartModel.dates,
-      tickDates: props.communityChartModel.tickDates,
-      friendInvitationCounts: props.communityChartModel.friendInvitationCounts,
-      peakDailyFriendInvitations: props.communityChartModel.peakDailyFriendInvitations,
+      dates: props.chartModel.dates,
+      tickDates: props.chartModel.tickDates,
+      friendInvitationUserMatrix: props.chartModel.friendInvitationUserMatrix,
+      friendInvitationUserIds: props.chartModel.friendInvitationUserIds,
+      userColorScale: props.chartModel.userColorScale,
+      userById: props.userById,
+      totalFriendInvitationsByDate: props.chartModel.totalFriendInvitationsByDate,
+      friendInvitationTotalsByUserId: props.chartModel.friendInvitationTotalsByUserId,
+      peakDailyFriendInvitations: props.chartModel.peakDailyFriendInvitations,
+      isReportLoading: props.isReportLoading,
+      onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
     renderDailyFriendshipsChart({
       svgElement: friendshipsSvgElement,
-      dates: props.communityChartModel.dates,
-      tickDates: props.communityChartModel.tickDates,
-      friendshipCounts: props.communityChartModel.friendshipCounts,
-      peakDailyFriendships: props.communityChartModel.peakDailyFriendships,
+      dates: props.chartModel.dates,
+      tickDates: props.chartModel.tickDates,
+      friendshipUserMatrix: props.chartModel.friendshipUserMatrix,
+      friendshipUserIds: props.chartModel.friendshipUserIds,
+      userColorScale: props.chartModel.userColorScale,
+      userById: props.userById,
+      totalFriendshipsByDate: props.chartModel.totalFriendshipsByDate,
+      peakDailyFriendships: props.chartModel.peakDailyFriendships,
+      isReportLoading: props.isReportLoading,
+      onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
   }, [
-    props.reviewChartModel,
-    props.communityChartModel,
+    props.chartModel,
     props.isReportLoading,
     props.userById,
     handleUserFilterApply,
@@ -249,7 +260,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
           <div className="chart-meta">
             <span>Friend invite links created</span>
             <div className="chart-meta-right">
-              <span>All users - date filter only</span>
+              <span>Stacked by user &mdash; follows all active filters</span>
             </div>
           </div>
           <div className="chart-scroll">
@@ -261,7 +272,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
           <div className="chart-meta">
             <span>Existing friend connections by day</span>
             <div className="chart-meta-right">
-              <span>All users - date filter only</span>
+              <span>Stacked by user &mdash; follows all active filters</span>
             </div>
           </div>
           <div className="chart-scroll">

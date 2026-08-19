@@ -69,11 +69,11 @@ Current v1 attribution contract for `review-events-by-date`:
 
 - the report is intended for the current single-effective-learner workspace model
 - the default chart range starts on the first calendar day with any `content.review_events.reviewed_at_server`, `community.friend_invitations.created_at`, or `community.friendships.created_at` row and ends on today, inclusive, in the report timezone
-- dashboard filters can narrow date range, user, new/returning cohort, and platform; date filters apply to every chart, while user, cohort, and platform filters apply only to review-event charts; Reset all returns date range to the same first-activity-day-through-today default and restores all local filters
+- dashboard filters can narrow date range, user, new/returning cohort, and platform; all four filters apply to every chart, including the community charts, where a cohort or platform filter keeps community rows only for users that still have review events in range, and the user filter list also offers users with community activity but no review events in range; Reset all returns date range to the same first-activity-day-through-today default and restores all local filters
 - `users[]` and `rows[].userId` are derived from the current `sync.workspace_replicas.user_id` label for stacked per-user event volume
 - platform charts derive `web` / `android` / `ios` from `content.review_events.replica_id -> sync.workspace_replicas.platform`
-- friend invite charts count `community.friend_invitations` rows created on each UTC date
-- friend connection charts count friendship pairs that exist at the end of each UTC date; directed `community.friendships` rows are not double-counted
+- friend invite charts count `community.friend_invitations` rows created on each UTC date, attributed per user to `community.friend_invitations.inviter_user_id`, and stack those per-user counts with the same per-user colors as the review-events chart
+- friend connection charts count directed `community.friendships` rows per `viewer_user_id` that exist at the end of each UTC date and stack them per user, so the all-user column is intentionally twice the number of friendship pairs
 - that label is acceptable for today's product shape, but it is not a durable historical review-author field
 - do not interpret this report as collaborative per-user analytics unless review authorship is stored immutably on each review event
 
@@ -150,5 +150,5 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - the dashboard does not show a persistent email or user list outside the user filter popup
 - unique-users, stacked-by-user, platform-users, platform-events, friend-invite-links, and friend-connections charts all render
 - narrowing the date filter reloads all charts, and Reset all restores the default range and all local filters
-- stacked-by-user hover tooltips may reveal the current email and user ID for the hovered segment
+- hover tooltips on the per-user stacked charts (review events, friend invite links, friend connections) may reveal the current email and user ID for the hovered segment, and clicking a segment applies that user filter
 - backend logs do not show writes through the reporting path

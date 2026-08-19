@@ -58,16 +58,6 @@ export type ReviewEventsByDateUniqueUserCohort = Readonly<{
   returningReviewingUsers: number;
 }>;
 
-export type ReviewEventsByDateFriendInvitationTotal = Readonly<{
-  date: string;
-  friendInvitationCount: number;
-}>;
-
-export type ReviewEventsByDateFriendshipTotal = Readonly<{
-  date: string;
-  friendshipCount: number;
-}>;
-
 export type ReviewEventsByDatePlatformActiveUserTotal = Readonly<{
   date: string;
   platform: ReviewEventPlatform;
@@ -89,19 +79,29 @@ export type ReviewEventsByDateRow = Readonly<{
   firstReviewDate: string;
 }>;
 
+/** One community activity row per report date and user. */
+export type ReviewEventsByDateCommunityRow = Readonly<{
+  date: string;
+  userId: string;
+  email: string;
+  friendInvitationCount: number;
+  friendshipCount: number;
+}>;
+
 export type ReviewEventsByDateReport = Readonly<{
   generatedAtUtc: string;
   from: string;
   to: string;
   totalReviewEvents: number;
   users: ReadonlyArray<ReviewEventsByDateUser>;
+  /** Users with community activity in range but no review events in range. */
+  communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>;
   dateTotals: ReadonlyArray<ReviewEventsByDateTotal>;
   dailyUniqueUserCohorts: ReadonlyArray<ReviewEventsByDateUniqueUserCohort>;
-  friendInvitationTotals: ReadonlyArray<ReviewEventsByDateFriendInvitationTotal>;
-  friendshipTotals: ReadonlyArray<ReviewEventsByDateFriendshipTotal>;
   platformActiveUserTotals: ReadonlyArray<ReviewEventsByDatePlatformActiveUserTotal>;
   platformReviewEventTotals: ReadonlyArray<ReviewEventsByDatePlatformReviewEventTotal>;
   rows: ReadonlyArray<ReviewEventsByDateRow>;
+  communityRows: ReadonlyArray<ReviewEventsByDateCommunityRow>;
 }>;
 
 export class AdminApiError extends Error {

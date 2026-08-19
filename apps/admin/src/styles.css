@@ -717,7 +717,7 @@ h2 {
   opacity: 0.82;
 }
 
-.bar-segment.user-review-events.clickable {
+.bar-segment.clickable {
   cursor: pointer;
 }
 
