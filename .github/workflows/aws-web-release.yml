@@ -443,30 +443,33 @@ jobs:
       - aws_deploy
     if: ${{ needs.changes.outputs.aws_changed == 'true' }}
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --init --ipc=host
     timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v7
+        timeout-minutes: 5
 
       - uses: actions/setup-node@v7
+        timeout-minutes: 5
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
       - name: Install web dependencies
+        timeout-minutes: 5
         run: npm ci --prefix apps/web
 
       - name: Build web app for live smoke
+        timeout-minutes: 5
         env:
           VITE_APP_BASE_URL: https://app.flashcards-open-source-app.com
           VITE_API_BASE_URL: https://api.flashcards-open-source-app.com/v1
           VITE_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
         run: npm run build --prefix apps/web
-
-      - name: Install Playwright Chromium
-        working-directory: apps/web
-        run: npx playwright install --with-deps chromium
 
       - name: Run live web smoke test
         id: live_smoke
@@ -496,11 +499,9 @@ jobs:
             -keyout "${key_path}" \
             -out "${cert_path}"
 
-          printf '127.0.0.1 app.flashcards-open-source-app.com\n' | sudo tee -a /etc/hosts >/dev/null
+          printf '127.0.0.1 app.flashcards-open-source-app.com\n' | tee -a /etc/hosts >/dev/null
 
-          # The log redirect is meant to stay unprivileged; RUNNER_TEMP is runner-writable.
-          # shellcheck disable=SC2024
-          sudo env PATH="${PATH}" node scripts/serve-dist-https.mjs \
+          env PATH="${PATH}" node scripts/serve-dist-https.mjs \
             --host 0.0.0.0 \
             --port 443 \
             --dir dist \
@@ -509,7 +510,7 @@ jobs:
           server_pid=$!
 
           cleanup() {
-            sudo kill "${server_pid}" >/dev/null 2>&1 || true
+            kill "${server_pid}" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
 
