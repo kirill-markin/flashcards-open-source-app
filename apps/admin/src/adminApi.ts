@@ -58,16 +58,6 @@ export type ReviewEventsByDateUniqueUserCohort = Readonly<{
   returningReviewingUsers: number;
 }>;
 
-export type ReviewEventsByDateFriendInvitationTotal = Readonly<{
-  date: string;
-  friendInvitationCount: number;
-}>;
-
-export type ReviewEventsByDateFriendshipTotal = Readonly<{
-  date: string;
-  friendshipCount: number;
-}>;
-
 export type ReviewEventsByDatePlatformActiveUserTotal = Readonly<{
   date: string;
   platform: ReviewEventPlatform;
@@ -108,8 +98,6 @@ export type ReviewEventsByDateReport = Readonly<{
   communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>;
   dateTotals: ReadonlyArray<ReviewEventsByDateTotal>;
   dailyUniqueUserCohorts: ReadonlyArray<ReviewEventsByDateUniqueUserCohort>;
-  friendInvitationTotals: ReadonlyArray<ReviewEventsByDateFriendInvitationTotal>;
-  friendshipTotals: ReadonlyArray<ReviewEventsByDateFriendshipTotal>;
   platformActiveUserTotals: ReadonlyArray<ReviewEventsByDatePlatformActiveUserTotal>;
   platformReviewEventTotals: ReadonlyArray<ReviewEventsByDatePlatformReviewEventTotal>;
   rows: ReadonlyArray<ReviewEventsByDateRow>;

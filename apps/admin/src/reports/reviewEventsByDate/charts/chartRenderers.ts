@@ -7,7 +7,6 @@ import {
 import {
   chartMargin,
   chartWidth,
-  communityMetricColors,
   getPlatformColor,
   platformLabels,
   simpleChartHeight,
@@ -15,7 +14,6 @@ import {
   uniqueUserCohortColors,
   uniqueUserCohortKeys,
   uniqueUserCohortLabels,
-  type DailyValueEntry,
   type GroupedChartRectEntry,
   type MatrixChartEntry,
   type StackedChartRectEntry,
@@ -37,16 +35,21 @@ type ChartTooltipHandlers = Readonly<{
   hideTooltip: () => void;
 }>;
 
-type RenderDailyValueBarChartParams = Readonly<{
+type UserStackedBarChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
-  values: ReadonlyArray<DailyValueEntry>;
-  peakValue: number;
-  color: string;
+  userMatrix: ReadonlyArray<MatrixChartEntry>;
+  userIds: ReadonlyArray<string>;
+  userColorScale: d3.ScaleOrdinal<string, string>;
+  userById: ReadonlyMap<string, ReviewEventsByDateUser>;
+  peakStackedValue: number;
   yAxisLabel: string;
-  tooltipSubtitle: string;
-  tooltipMetricLabel: string;
+  xAxisLabel: string;
+  segmentClass: string;
+  buildTooltipMetricsHtml: (entry: StackedChartRectEntry, user: ReviewEventsByDateUser) => string;
+  isReportLoading: boolean;
+  onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
@@ -80,8 +83,15 @@ export type RenderDailyFriendInvitationsChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
-  friendInvitationCounts: ReadonlyArray<DailyValueEntry>;
+  friendInvitationUserMatrix: ReadonlyArray<MatrixChartEntry>;
+  friendInvitationUserIds: ReadonlyArray<string>;
+  userColorScale: d3.ScaleOrdinal<string, string>;
+  userById: ReadonlyMap<string, ReviewEventsByDateUser>;
+  totalFriendInvitationsByDate: ReadonlyMap<string, number>;
+  friendInvitationTotalsByUserId: ReadonlyMap<string, number>;
   peakDailyFriendInvitations: number;
+  isReportLoading: boolean;
+  onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
@@ -89,8 +99,14 @@ export type RenderDailyFriendshipsChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
-  friendshipCounts: ReadonlyArray<DailyValueEntry>;
+  friendshipUserMatrix: ReadonlyArray<MatrixChartEntry>;
+  friendshipUserIds: ReadonlyArray<string>;
+  userColorScale: d3.ScaleOrdinal<string, string>;
+  userById: ReadonlyMap<string, ReviewEventsByDateUser>;
+  totalFriendshipsByDate: ReadonlyMap<string, number>;
   peakDailyFriendships: number;
+  isReportLoading: boolean;
+  onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
@@ -203,47 +219,71 @@ function renderChartFrame(
   return group;
 }
 
-function renderDailyValueBarChart(params: RenderDailyValueBarChartParams): void {
+function renderUserStackedBarChart(params: UserStackedBarChartParams): void {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
-  const innerHeight = getInnerHeight(simpleChartHeight);
+  const innerHeight = getInnerHeight(stackedChartHeight);
   const y = d3.scaleLinear()
-    .domain([0, Math.max(1, params.peakValue)])
+    .domain([0, Math.max(1, params.peakStackedValue)])
     .nice()
     .range([innerHeight, 0]);
   const group = renderChartFrame(svg, {
-    chartHeight: simpleChartHeight,
+    chartHeight: stackedChartHeight,
     x,
     y,
     tickDates: params.tickDates,
     yAxisLabel: params.yAxisLabel,
-    xAxisLabel: "Date",
+    xAxisLabel: params.xAxisLabel,
   });
-
-  group.selectAll<SVGRectElement, DailyValueEntry>(".bar-segment")
-    .data(params.values.filter((entry) => entry.value > 0))
+  const series = d3.stack<MatrixChartEntry>()
+    .keys(params.userIds)
+    .value((entry, key) => entry.valuesByKey[key] ?? 0)(params.userMatrix);
+  const bars = group.selectAll(".series")
+    .data(series)
+    .join("g")
+    .attr("class", "series")
+    .attr("fill", (segment) => params.userColorScale(segment.key))
+    .selectAll("rect")
+    .data((segment) => segment.map((entry) => ({
+      key: segment.key,
+      date: entry.data.date,
+      y0: entry[0],
+      y1: entry[1],
+      value: entry.data.valuesByKey[segment.key] ?? 0,
+    })).filter((entry) => entry.value > 0))
     .join("rect")
-    .attr("class", "bar-segment")
-    .attr("fill", params.color)
+    .attr("class", `bar-segment ${params.segmentClass}${params.isReportLoading ? "" : " clickable"}`)
     .attr("x", (entry) => x(entry.date) ?? 0)
-    .attr("y", (entry) => y(entry.value))
+    .attr("y", (entry) => y(entry.y1))
     .attr("width", x.bandwidth())
-    .attr("height", (entry) => Math.max(0, innerHeight - y(entry.value)))
-    .attr("rx", 3)
-    .attr("stroke", "rgba(255, 255, 255, 0.18)")
-    .attr("stroke-width", 1)
-    .on("mousemove", (event, entry: DailyValueEntry) => {
+    .attr("height", (entry) => Math.max(0, y(entry.y0) - y(entry.y1)))
+    .attr("rx", 2)
+    .on("mousemove", (event, entry: StackedChartRectEntry) => {
+      const user = params.userById.get(entry.key);
+      if (user === undefined) {
+        return;
+      }
+
       params.tooltipHandlers.showTooltip(
         [
           `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
-          `<p class="tooltip-subtitle">${escapeHtml(params.tooltipSubtitle)}</p>`,
-          `<div class="tooltip-metric"><span>${escapeHtml(params.tooltipMetricLabel)}</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+          `<p class="tooltip-user-primary">${escapeHtml(user.email)}</p>`,
+          `<p class="tooltip-user-secondary">${escapeHtml(user.userId)}</p>`,
+          params.buildTooltipMetricsHtml(entry, user),
         ].join(""),
         event.clientX,
         event.clientY,
       );
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
+
+  if (params.isReportLoading === false) {
+    bars.on("click", (_event: MouseEvent, entry: StackedChartRectEntry) => {
+      params.onUserFilterApply(entry.key);
+    });
+  } else {
+    bars.on("click", null);
+  }
 }
 
 export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartParams): void {
@@ -307,100 +347,73 @@ export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartP
 }
 
 export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartParams): void {
-  const svg = d3.select(params.svgElement);
-  const x = createDateScale(params.dates);
-  const innerHeight = getInnerHeight(stackedChartHeight);
-  const y = d3.scaleLinear()
-    .domain([0, Math.max(1, params.peakDailyVolume)])
-    .nice()
-    .range([innerHeight, 0]);
-  const group = renderChartFrame(svg, {
-    chartHeight: stackedChartHeight,
-    x,
-    y,
-    tickDates: params.tickDates,
-    yAxisLabel: "Review events",
-    xAxisLabel: "Review date",
-  });
-  const series = d3.stack<MatrixChartEntry>()
-    .keys(params.userIds)
-    .value((entry, key) => entry.valuesByKey[key] ?? 0)(params.userMatrix);
-  const bars = group.selectAll(".series")
-    .data(series)
-    .join("g")
-    .attr("class", "series")
-    .attr("fill", (segment) => params.userColorScale(segment.key))
-    .selectAll("rect")
-    .data((segment) => segment.map((entry) => ({
-      key: segment.key,
-      date: entry.data.date,
-      y0: entry[0],
-      y1: entry[1],
-      value: entry.data.valuesByKey[segment.key] ?? 0,
-    })).filter((entry) => entry.value > 0))
-    .join("rect")
-    .attr("class", `bar-segment user-review-events${params.isReportLoading ? "" : " clickable"}`)
-    .attr("x", (entry) => x(entry.date) ?? 0)
-    .attr("y", (entry) => y(entry.y1))
-    .attr("width", x.bandwidth())
-    .attr("height", (entry) => Math.max(0, y(entry.y0) - y(entry.y1)))
-    .attr("rx", 2)
-    .on("mousemove", (event, entry: StackedChartRectEntry) => {
-      const user = params.userById.get(entry.key);
-      if (user === undefined) {
-        return;
-      }
-
-      params.tooltipHandlers.showTooltip(
-        [
-          `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
-          `<p class="tooltip-user-primary">${escapeHtml(user.email)}</p>`,
-          `<p class="tooltip-user-secondary">${escapeHtml(user.userId)}</p>`,
-          `<div class="tooltip-metric"><span>User review events</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-          `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalReviewEventsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
-          `<div class="tooltip-metric"><span>User total</span><strong>${numberFormatter(user.totalReviewEvents)}</strong></div>`,
-        ].join(""),
-        event.clientX,
-        event.clientY,
-      );
-    })
-    .on("mouseleave", params.tooltipHandlers.hideTooltip);
-
-  if (params.isReportLoading === false) {
-    bars.on("click", (_event: MouseEvent, entry: StackedChartRectEntry) => {
-      params.onUserFilterApply(entry.key);
-    });
-  } else {
-    bars.on("click", null);
-  }
-}
-
-export function renderDailyFriendInvitationsChart(params: RenderDailyFriendInvitationsChartParams): void {
-  renderDailyValueBarChart({
+  renderUserStackedBarChart({
     svgElement: params.svgElement,
     dates: params.dates,
     tickDates: params.tickDates,
-    values: params.friendInvitationCounts,
-    peakValue: params.peakDailyFriendInvitations,
-    color: communityMetricColors.friendInvitations,
-    yAxisLabel: "Invite links",
-    tooltipSubtitle: "Invite links",
-    tooltipMetricLabel: "Created invite links",
+    userMatrix: params.userMatrix,
+    userIds: params.userIds,
+    userColorScale: params.userColorScale,
+    userById: params.userById,
+    peakStackedValue: params.peakDailyVolume,
+    yAxisLabel: "Review events",
+    xAxisLabel: "Review date",
+    segmentClass: "user-review-events",
+    buildTooltipMetricsHtml: (entry, user) => [
+      `<div class="tooltip-metric"><span>User review events</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalReviewEventsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>User total</span><strong>${numberFormatter(user.totalReviewEvents)}</strong></div>`,
+    ].join(""),
+    isReportLoading: params.isReportLoading,
+    onUserFilterApply: params.onUserFilterApply,
     tooltipHandlers: params.tooltipHandlers,
   });
 }
 
-export function renderDailyFriendshipsChart(params: RenderDailyFriendshipsChartParams): void {
-  renderDailyValueBarChart({
+export function renderDailyFriendInvitationsChart(params: RenderDailyFriendInvitationsChartParams): void {
+  renderUserStackedBarChart({
     svgElement: params.svgElement,
     dates: params.dates,
     tickDates: params.tickDates,
-    values: params.friendshipCounts,
-    peakValue: params.peakDailyFriendships,
-    color: communityMetricColors.friendships,
+    userMatrix: params.friendInvitationUserMatrix,
+    userIds: params.friendInvitationUserIds,
+    userColorScale: params.userColorScale,
+    userById: params.userById,
+    peakStackedValue: params.peakDailyFriendInvitations,
+    yAxisLabel: "Invite links",
+    xAxisLabel: "Date",
+    segmentClass: "friend-invitations",
+    buildTooltipMetricsHtml: (entry, user) => [
+      `<div class="tooltip-metric"><span>User invite links</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalFriendInvitationsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>User total</span><strong>${numberFormatter(params.friendInvitationTotalsByUserId.get(user.userId) ?? entry.value)}</strong></div>`,
+    ].join(""),
+    isReportLoading: params.isReportLoading,
+    onUserFilterApply: params.onUserFilterApply,
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
+// Friend connections are an end-of-day snapshot per user, so there is no meaningful range total to show.
+export function renderDailyFriendshipsChart(params: RenderDailyFriendshipsChartParams): void {
+  renderUserStackedBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    userMatrix: params.friendshipUserMatrix,
+    userIds: params.friendshipUserIds,
+    userColorScale: params.userColorScale,
+    userById: params.userById,
+    peakStackedValue: params.peakDailyFriendships,
     yAxisLabel: "Connections",
-    tooltipSubtitle: "Friend connections",
-    tooltipMetricLabel: "Per-user connections at end of day",
+    xAxisLabel: "Date",
+    segmentClass: "friend-connections",
+    buildTooltipMetricsHtml: (entry) => [
+      `<div class="tooltip-metric"><span>User connections at end of day</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalFriendshipsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
+    ].join(""),
+    isReportLoading: params.isReportLoading,
+    onUserFilterApply: params.onUserFilterApply,
     tooltipHandlers: params.tooltipHandlers,
   });
 }

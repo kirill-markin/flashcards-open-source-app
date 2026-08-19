@@ -173,16 +173,29 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       svgElement: friendInvitationsSvgElement,
       dates: props.chartModel.dates,
       tickDates: props.chartModel.tickDates,
-      friendInvitationCounts: props.chartModel.friendInvitationCounts,
+      friendInvitationUserMatrix: props.chartModel.friendInvitationUserMatrix,
+      friendInvitationUserIds: props.chartModel.friendInvitationUserIds,
+      userColorScale: props.chartModel.userColorScale,
+      userById: props.userById,
+      totalFriendInvitationsByDate: props.chartModel.totalFriendInvitationsByDate,
+      friendInvitationTotalsByUserId: props.chartModel.friendInvitationTotalsByUserId,
       peakDailyFriendInvitations: props.chartModel.peakDailyFriendInvitations,
+      isReportLoading: props.isReportLoading,
+      onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
     renderDailyFriendshipsChart({
       svgElement: friendshipsSvgElement,
       dates: props.chartModel.dates,
       tickDates: props.chartModel.tickDates,
-      friendshipCounts: props.chartModel.friendshipCounts,
+      friendshipUserMatrix: props.chartModel.friendshipUserMatrix,
+      friendshipUserIds: props.chartModel.friendshipUserIds,
+      userColorScale: props.chartModel.userColorScale,
+      userById: props.userById,
+      totalFriendshipsByDate: props.chartModel.totalFriendshipsByDate,
       peakDailyFriendships: props.chartModel.peakDailyFriendships,
+      isReportLoading: props.isReportLoading,
+      onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
   }, [
@@ -247,7 +260,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
           <div className="chart-meta">
             <span>Friend invite links created</span>
             <div className="chart-meta-right">
-              <span>Follows all active filters</span>
+              <span>Stacked by user &mdash; follows all active filters</span>
             </div>
           </div>
           <div className="chart-scroll">
@@ -259,7 +272,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
           <div className="chart-meta">
             <span>Existing friend connections by day</span>
             <div className="chart-meta-right">
-              <span>Per-user connections - follows all active filters</span>
+              <span>Stacked by user &mdash; follows all active filters</span>
             </div>
           </div>
           <div className="chart-scroll">
