@@ -398,9 +398,9 @@ export function renderDailyFriendshipsChart(params: RenderDailyFriendshipsChartP
     values: params.friendshipCounts,
     peakValue: params.peakDailyFriendships,
     color: communityMetricColors.friendships,
-    yAxisLabel: "Friendships",
-    tooltipSubtitle: "Friendships",
-    tooltipMetricLabel: "Existing friendships at end of day",
+    yAxisLabel: "Connections",
+    tooltipSubtitle: "Friend connections",
+    tooltipMetricLabel: "Per-user connections at end of day",
     tooltipHandlers: params.tooltipHandlers,
   });
 }
