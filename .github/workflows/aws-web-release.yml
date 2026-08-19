@@ -474,6 +474,7 @@ jobs:
       - name: Run live web smoke test
         id: live_smoke
         working-directory: apps/web
+        shell: bash
         env:
           FLASHCARDS_E2E_APP_BASE_URL: https://app.flashcards-open-source-app.com
           FLASHCARDS_E2E_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
