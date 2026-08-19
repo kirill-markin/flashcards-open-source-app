@@ -139,8 +139,16 @@ function captureLiveStreamError(
   });
 }
 
-function isRecoverableLiveTransportError(error: unknown): error is ChatLiveTransportError {
-  return error instanceof ChatLiveTransportError && error.statusCode === 200;
+function isRecoverableLiveTransportError(
+  error: unknown,
+  runId: string,
+  preResponseRecoveryRunId: string | null,
+): error is ChatLiveTransportError {
+  return error instanceof ChatLiveTransportError
+    && (
+      error.statusCode === 200
+      || (error.statusCode === null && preResponseRecoveryRunId !== runId)
+    );
 }
 
 /**
@@ -162,6 +170,7 @@ export function useChatLiveSession(
   } = params;
   const [isLiveStreamConnected, setIsLiveStreamConnected] = useState<boolean>(false);
   const activeLiveConnectionRef = useRef<ActiveLiveStreamConnection | null>(null);
+  const preResponseRecoveryRunIdRef = useRef<string | null>(null);
   const isDocumentVisibleRef = useRef<boolean>(isDocumentVisible());
   const applyLiveEventRef = useRef<(event: ChatLiveEvent) => void>(applyLiveEvent);
   const finalizeInterruptedRunRef = useRef<(message: string) => void>(finalizeInterruptedRun);
@@ -274,6 +283,10 @@ export function useChatLiveSession(
           return;
         }
 
+        if (preResponseRecoveryRunIdRef.current === runId) {
+          preResponseRecoveryRunIdRef.current = null;
+        }
+
         if (event.type === "run_terminal") {
           liveStreamDisposition = "terminal";
         }
@@ -315,7 +328,10 @@ export function useChatLiveSession(
 
       activeLiveConnectionRef.current = null;
       setIsLiveStreamConnected(false);
-      if (isRecoverableLiveTransportError(error)) {
+      if (isRecoverableLiveTransportError(error, runId, preResponseRecoveryRunIdRef.current)) {
+        if (error.statusCode === null) {
+          preResponseRecoveryRunIdRef.current = runId;
+        }
         onRecoverableStreamErrorRef.current(sessionId, runId, error, resumeAttemptId);
         return;
       }
