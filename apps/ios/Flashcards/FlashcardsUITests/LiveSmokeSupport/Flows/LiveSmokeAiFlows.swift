@@ -110,11 +110,11 @@ extension LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
 
-        try self.assertElementExists(
+        try self.assertAiConversationResetElementExists(
             identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.assertElementExists(
+        try self.assertAiConversationResetElementExists(
             identifier: LiveSmokeIdentifier.aiEmptyState,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
@@ -138,6 +138,139 @@ extension LiveSmokeTestCase {
                 step: self.currentStepTitle
             )
         }
+    }
+
+    // Both waits after 'New chat' can fail for very different reasons, and the composer wait fails
+    // first whenever bootstrap failed, because the composer accessory is not rendered in that phase.
+    // Route both through the same diagnosis so either failure reports the observed state.
+    @MainActor
+    func assertAiConversationResetElementExists(identifier: String, timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_ai_conversation_reset.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if self.waitForOptionalElement(element, identifier: identifier, timeout: timeout) {
+                return
+            }
+
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Element '\(identifier)' did not appear within "
+                    + "\(formatDuration(seconds: timeout)) after starting a new chat. "
+                    + self.aiConversationResetDiagnosis(awaitedIdentifier: identifier),
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    // Each branch may only name a cause its own observation proves. Where an observation has more
+    // than one explanation, the branch reports what it saw and lists every explanation instead of
+    // picking one, because a confidently wrong cause is worse than the bare timeout it replaces.
+    // Transcript-hosting wording is gated to the 'ai.emptyState' call site: the composer accessory
+    // is not hosted by the transcript list.
+    @MainActor
+    func aiConversationResetDiagnosis(awaitedIdentifier: String) -> String {
+        guard self.isApplicationRunning else {
+            return "Observed: the application is not in the foreground (\(self.appStateDescription()))."
+        }
+
+        let awaitsTranscriptHostedElement = awaitedIdentifier == LiveSmokeIdentifier.aiEmptyState
+        let bootstrapPhase = self.aiChatBootstrapPhaseObservation()
+        let visibleText = " Visible text: \(self.visibleTextSnapshot())"
+
+        if self.aiElementResolves(identifier: awaitedIdentifier) {
+            return "Observed: '\(awaitedIdentifier)' resolves on re-query immediately after the wait "
+                + "expired. " + bootstrapPhase + visibleText
+        }
+
+        if self.aiElementResolves(identifier: LiveSmokeIdentifier.aiConversationScrollSurface) == false {
+            let hostingClause = awaitsTranscriptHostedElement ? ", so nothing it hosts can render," : ","
+            return "Observed: the transcript list identifier "
+                + "'\(LiveSmokeIdentifier.aiConversationScrollSurface)' does not resolve either. This probe "
+                + "cannot tell its two explanations apart: either the transcript list is genuinely not "
+                + "mounted\(hostingClause) or the list is mounted and XCUITest does not "
+                + "expose that identifier — no other test in this target queries it. "
+                + bootstrapPhase + visibleText
+        }
+
+        let messageRows = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+            .count
+        if messageRows > 0 {
+            if self.aiChatBootstrapIsLoading() == false {
+                let notClearedCause = awaitsTranscriptHostedElement
+                    ? "Cause: the previous conversation was not cleared. " : ""
+                return notClearedCause + "Observed: the transcript list resolves with "
+                    + "\(messageRows) '\(LiveSmokeIdentifier.aiMessageRow)' elements while chat bootstrap is "
+                    + "not loading, so the transcript is genuinely non-empty. "
+                    + bootstrapPhase + visibleText
+            }
+
+            return "Observed: the transcript list resolves with \(messageRows) "
+                + "'\(LiveSmokeIdentifier.aiMessageRow)' elements, and chat bootstrap is not known to have "
+                + "finished. The row count cannot tell the two explanations apart: either a re-bootstrap is "
+                + "still loading over the previous transcript, or the previous conversation was never "
+                + "cleared. " + bootstrapPhase + visibleText
+        }
+
+        let emptyTranscriptExplanations = awaitsTranscriptHostedElement
+            ? "This probe cannot tell its two explanations apart: either the element is rendered and "
+                + "XCUITest does not expose it, or the transcript is not really empty while its rows are "
+                + "not exposed to XCUITest. "
+            : ""
+        return "Observed: the transcript list resolves, zero "
+            + "'\(LiveSmokeIdentifier.aiMessageRow)' elements resolve, and '\(awaitedIdentifier)' still does "
+            + "not resolve. " + emptyTranscriptExplanations + bootstrapPhase + visibleText
+    }
+
+    // The failed-chat and loading-chat surfaces carry no accessibility identifier in app code, so
+    // their English titles are the only handle the tests have on the bootstrap phase.
+    @MainActor
+    func aiChatBootstrapPhaseObservation() -> String {
+        guard self.currentLaunchLocalization == .english else {
+            return "Chat bootstrap phase was not probed: the failed-chat and loading-chat surfaces can only "
+                + "be matched by their English titles and the app launched with localization "
+                + "'\(self.currentLaunchLocalization.rawValue)'."
+        }
+
+        if self.aiChatSurfaceTitleIsVisible(title: aiFailedChatStateTitleText) {
+            return "Chat bootstrap is in the failed phase: an element labelled exactly "
+                + "'\(aiFailedChatStateTitleText)' is on screen, and the app uses that label only for the "
+                + "failed-chat surface title."
+        }
+        if self.aiChatSurfaceTitleIsVisible(title: aiLoadingChatStateTitleText) {
+            return "Chat bootstrap is in the loading phase: an element labelled exactly "
+                + "'\(aiLoadingChatStateTitleText)' is on screen, and the app uses that label only for the "
+                + "loading-chat surface title and for the composer primary button while bootstrap loads."
+        }
+        return "No element labelled exactly '\(aiFailedChatStateTitleText)' or "
+            + "'\(aiLoadingChatStateTitleText)' is on screen. This exact-label probe does not rule out a "
+            + "failed or loading chat surface whose label XCUITest exposes differently."
+    }
+
+    // Returns nil when the English-title probe cannot be trusted, so callers must not read a missing
+    // 'Loading chat' label as proof that bootstrap finished.
+    @MainActor
+    func aiChatBootstrapIsLoading() -> Bool? {
+        guard self.currentLaunchLocalization == .english else {
+            return nil
+        }
+
+        return self.aiChatSurfaceTitleIsVisible(title: aiLoadingChatStateTitleText)
+    }
+
+    @MainActor
+    func aiChatSurfaceTitleIsVisible(title: String) -> Bool {
+        self.app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", title))
+            .firstMatch
+            .exists
+    }
+
+    @MainActor
+    func aiElementResolves(identifier: String) -> Bool {
+        self.app.descendants(matching: .any)
+            .matching(identifier: identifier)
+            .firstMatch
+            .exists
     }
 
     @MainActor
