@@ -130,7 +130,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
       connectionId,
       surface: "agent-rest",
-    }, body.sql);
+    }, body.sql, context.req.url);
 
     return context.json(createAgentEnvelope(context.req.url, result.data, result.instructions));
   });
@@ -145,7 +145,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
       connectionId,
       surface: "agent-rest",
-    }, body.sql);
+    }, body.sql, context.req.url);
 
     return context.json(createAgentEnvelope(context.req.url, result.data, result.instructions));
   });

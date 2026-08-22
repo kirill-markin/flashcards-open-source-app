@@ -9,8 +9,8 @@ export const MAX_SQL_RECORD_LIMIT = 100;
 export const MAX_SQL_BATCH_STATEMENT_COUNT = 50;
 
 /**
- * Maximum serialized size (in UTF-16 code units, i.e. JS string length) of a
- * single agent SQL tool/endpoint result payload.
+ * Maximum serialized size (in UTF-16 code units, i.e. JS string length) of the
+ * agent envelope a single agent SQL tool/endpoint result is emitted in.
  *
  * Reads reject a payload above this budget; writes are already committed when
  * the payload is measured, so they drop the returned rows instead of failing.
@@ -20,10 +20,9 @@ export const MAX_SQL_BATCH_STATEMENT_COUNT = 50;
  * cards with long markdown `back_text` can still overflow that token budget.
  *
  * Sizing: using a conservative ~4 chars/token heuristic, 25k tokens is ~100k
- * chars. We target well under that to leave headroom for the surrounding
- * envelope (`instructions`, `docs`, error metadata) and for tokenization that
- * runs hotter than 4 chars/token on dense JSON/markdown. 48,000 chars (~12k
- * tokens at 4 chars/token) is a safe round number that stays comfortably below
- * the directory limit.
+ * chars. We target well under that to leave headroom for tokenization that runs
+ * hotter than 4 chars/token on dense JSON/markdown. 48,000 chars (~12k tokens
+ * at 4 chars/token) is a safe round number that stays comfortably below the
+ * directory limit.
  */
 export const MAX_SQL_RESULT_CHARS = 48_000;

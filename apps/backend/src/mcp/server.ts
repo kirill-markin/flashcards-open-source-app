@@ -63,8 +63,16 @@ export type McpServerDependencies = Readonly<{
     requestContext: WorkspaceRequestContext,
     explicitWorkspaceId: string | undefined,
   ) => Promise<string>;
-  runSqlQuery: (context: AgentSqlContext, sql: string) => Promise<AgentSqlExecutionResult>;
-  runSqlExecute: (context: AgentSqlContext, sql: string) => Promise<AgentSqlExecutionResult>;
+  runSqlQuery: (
+    context: AgentSqlContext,
+    sql: string,
+    requestUrl: string,
+  ) => Promise<AgentSqlExecutionResult>;
+  runSqlExecute: (
+    context: AgentSqlContext,
+    sql: string,
+    requestUrl: string,
+  ) => Promise<AgentSqlExecutionResult>;
   listUserWorkspacesWithStatsForSelectedWorkspace: (
     userId: string,
     selectedWorkspaceId: string | null,
@@ -108,8 +116,14 @@ function resolveMcpCaller(callerUserAgent: string | null): string | null {
     : trimmedCaller.slice(0, MAX_MCP_CALLER_CHARS);
 }
 
+/**
+ * Serializes compactly on purpose: a tool result is read by programs and
+ * models, never rendered to a human, and indentation is not part of any MCP
+ * revision's tool-result contract. Pretty-printing spent roughly half of every
+ * result's characters on whitespace.
+ */
 function buildToolResultText(payload: unknown): string {
-  return JSON.stringify(payload, null, 2);
+  return JSON.stringify(payload);
 }
 
 function buildToolResult(payload: unknown): CallToolResult {
@@ -460,7 +474,7 @@ export function createMcpServerWithDependencies(
           connectionId: connection.connectionId,
           surface: "mcp",
           caller,
-        }, sql);
+        }, sql, resourceUrl);
 
         return buildToolResult(
           createAgentEnvelope(resourceUrl, result.data, result.instructions),
@@ -511,7 +525,7 @@ export function createMcpServerWithDependencies(
           connectionId: connection.connectionId,
           surface: "mcp",
           caller,
-        }, sql);
+        }, sql, resourceUrl);
 
         return buildToolResult(
           createAgentEnvelope(resourceUrl, result.data, result.instructions),
