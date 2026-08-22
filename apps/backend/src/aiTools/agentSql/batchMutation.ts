@@ -444,6 +444,7 @@ export async function executeSqlMutationBatch(
         statements: payloads,
         statementCount: payloads.length,
         affectedCountTotal,
+        rowsOmitted: false,
       },
       instructions: buildBatchMutationInstructions(),
     };
