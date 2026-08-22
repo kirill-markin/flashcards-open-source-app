@@ -12,6 +12,9 @@ export const MAX_SQL_BATCH_STATEMENT_COUNT = 50;
  * Maximum serialized size (in UTF-16 code units, i.e. JS string length) of a
  * single agent SQL tool/endpoint result payload.
  *
+ * Reads reject a payload above this budget; writes are already committed when
+ * the payload is measured, so they drop the returned rows instead of failing.
+ *
  * The MCP directory caps a tool result at roughly 25k tokens. The row-count
  * limits above (100 rows, 50 statements) do not bound serialized size: 100
  * cards with long markdown `back_text` can still overflow that token budget.

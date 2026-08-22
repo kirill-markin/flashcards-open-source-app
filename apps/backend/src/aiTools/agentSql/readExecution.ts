@@ -26,6 +26,7 @@ import {
   type AgentSqlExecutionResult,
   type AgentSqlReadExecutionResult,
   type AgentSqlReadStatement,
+  type AgentSqlReadStatementPayload,
   type AgentSqlSinglePayload,
 } from "./shared";
 
@@ -140,12 +141,19 @@ export async function loadSelectRows(
   return collectReviewEventRows(dependencies, context.userId, context.workspaceId);
 }
 
-export async function executeSqlReadStatement(
+/**
+ * Runs one read statement into a batch-entry payload, which carries no echo of
+ * the submitted SQL. `executeSqlReadStatement` adds that echo for the
+ * single-statement top-level payload.
+ */
+async function executeReadStatementPayload(
   dependencies: AgentToolOperationDependencies,
   context: AgentSqlContext,
-  sql: string,
   statement: AgentSqlReadStatement,
-): Promise<AgentSqlReadExecutionResult> {
+): Promise<Readonly<{
+  data: AgentSqlReadStatementPayload;
+  instructions: string;
+}>> {
   if (statement.type === "show_tables") {
     const rows = getSqlResourceDescriptors()
       .filter((descriptor) => statement.likePattern === null || likePatternToRegExp(statement.likePattern).test(descriptor.resourceName))
@@ -159,8 +167,6 @@ export async function executeSqlReadStatement(
       data: {
         statementType: "show_tables",
         resource: null,
-        sql,
-        normalizedSql: statement.normalizedSql,
         rows,
         rowCount: rows.length,
         limit: null,
@@ -186,8 +192,6 @@ export async function executeSqlReadStatement(
       data: {
         statementType: "describe",
         resource: statement.resourceName,
-        sql,
-        normalizedSql: statement.normalizedSql,
         rows,
         rowCount: rows.length,
         limit: null,
@@ -204,8 +208,6 @@ export async function executeSqlReadStatement(
     data: {
       statementType: "select",
       resource: statement.source.resourceName,
-      sql,
-      normalizedSql: statement.normalizedSql,
       rows: result.rows,
       rowCount: result.rowCount,
       limit: result.limit,
@@ -213,6 +215,24 @@ export async function executeSqlReadStatement(
       hasMore: result.hasMore,
     },
     instructions: buildReadInstructions("select", result.hasMore),
+  };
+}
+
+export async function executeSqlReadStatement(
+  dependencies: AgentToolOperationDependencies,
+  context: AgentSqlContext,
+  sql: string,
+  statement: AgentSqlReadStatement,
+): Promise<AgentSqlReadExecutionResult> {
+  const result = await executeReadStatementPayload(dependencies, context, statement);
+
+  return {
+    data: {
+      ...result.data,
+      sql,
+      normalizedSql: statement.normalizedSql,
+    },
+    instructions: result.instructions,
   };
 }
 
@@ -227,12 +247,7 @@ export async function executeSqlReadBatch(
 
   for (const [index, statement] of statements.entries()) {
     try {
-      const result = await executeSqlReadStatement(
-        dependencies,
-        context,
-        statementSqls[index] ?? statement.normalizedSql,
-        statement,
-      );
+      const result = await executeReadStatementPayload(dependencies, context, statement);
       payloads.push(result.data);
     } catch (error) {
       wrapBatchExecutionError(error, index, statementSqls[index] ?? statement.normalizedSql);

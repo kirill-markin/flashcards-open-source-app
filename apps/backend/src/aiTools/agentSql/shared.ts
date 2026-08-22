@@ -32,11 +32,9 @@ export type AgentSqlContext = Readonly<{
   caller?: string | null;
 }>;
 
-export type AgentSqlReadPayload = Readonly<{
+export type AgentSqlReadStatementPayload = Readonly<{
   statementType: "show_tables" | "describe" | "select";
   resource: SqlResourceName | null;
-  sql: string;
-  normalizedSql: string;
   rows: ReadonlyArray<SqlRow>;
   rowCount: number;
   limit: number | null;
@@ -44,16 +42,38 @@ export type AgentSqlReadPayload = Readonly<{
   hasMore: boolean;
 }>;
 
-export type AgentSqlMutationPayload = Readonly<{
+/**
+ * Identifier-only row returned by INSERT and UPDATE. The server-generated
+ * identifier is the one value the caller cannot derive; every other column is
+ * one `sql_query` SELECT away, and echoing all of them made a full 50-statement
+ * batch overflow the result-size budget.
+ */
+export type AgentSqlMutationRow =
+  | Readonly<{ card_id: string }>
+  | Readonly<{ deck_id: string }>;
+
+export type AgentSqlMutationStatementPayload = Readonly<{
   statementType: "insert" | "update" | "delete";
   resource: "cards" | "decks";
-  sql: string;
-  normalizedSql: string;
-  rows: ReadonlyArray<SqlRow>;
+  rows: ReadonlyArray<AgentSqlMutationRow>;
   affectedCount: number;
 }>;
 
-export type AgentSqlSinglePayload = AgentSqlReadPayload | AgentSqlMutationPayload;
+/**
+ * The submitted SQL, carried by the top-level payload only. Batch entries omit
+ * it so a batch does not repeat the same statement text once per entry on top
+ * of the two top-level fields.
+ */
+type AgentSqlSubmittedSql = Readonly<{
+  sql: string;
+  normalizedSql: string;
+}>;
+
+export type AgentSqlReadPayload = AgentSqlReadStatementPayload & AgentSqlSubmittedSql;
+
+export type AgentSqlMutationPayload = AgentSqlMutationStatementPayload & AgentSqlSubmittedSql;
+
+export type AgentSqlSinglePayload = AgentSqlReadStatementPayload | AgentSqlMutationStatementPayload;
 
 export type AgentSqlBatchPayload = Readonly<{
   statementType: "batch";
@@ -65,7 +85,7 @@ export type AgentSqlBatchPayload = Readonly<{
   affectedCountTotal: number | null;
 }>;
 
-export type AgentSqlPayload = AgentSqlSinglePayload | AgentSqlBatchPayload;
+export type AgentSqlPayload = AgentSqlReadPayload | AgentSqlMutationPayload | AgentSqlBatchPayload;
 
 export type AgentSqlReadExecutionResult = Readonly<{
   data: AgentSqlReadPayload;
@@ -74,6 +94,11 @@ export type AgentSqlReadExecutionResult = Readonly<{
 
 export type AgentSqlMutationExecutionResult = Readonly<{
   data: AgentSqlMutationPayload;
+  instructions: string;
+}>;
+
+export type AgentSqlBatchExecutionResult = Readonly<{
+  data: AgentSqlBatchPayload;
   instructions: string;
 }>;
 
@@ -155,12 +180,12 @@ function expectLegacyEffortLevel(value: unknown, columnName: string): LegacyEffo
   throw new HttpError(400, `${columnName} must contain only fast, medium, or long`, "QUERY_INVALID_SQL");
 }
 
-export function toCreatedCardRows(cards: ReadonlyArray<Card>): ReadonlyArray<SqlRow> {
-  return cards.map(toCardRow);
+export function toCardIdRows(cards: ReadonlyArray<Card>): ReadonlyArray<AgentSqlMutationRow> {
+  return cards.map((card) => ({ card_id: card.cardId }));
 }
 
-export function toCreatedDeckRows(decks: ReadonlyArray<Deck>): ReadonlyArray<SqlRow> {
-  return decks.map(toDeckRow);
+export function toDeckIdRows(decks: ReadonlyArray<Deck>): ReadonlyArray<AgentSqlMutationRow> {
+  return decks.map((deck) => ({ deck_id: deck.deckId }));
 }
 
 export function buildCreateCardInput(
@@ -408,15 +433,15 @@ export function buildReadInstructions(statementType: "show_tables" | "describe" 
 }
 
 export function buildMutationInstructions(): string {
-  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. If you need the resulting rows, inspect data.rows or run a follow-up SELECT query. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
+  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. INSERT and UPDATE return only the identifier column in data.rows; run a follow-up SELECT query if you need any other column. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
 }
 
 export function buildBatchReadInstructions(): string {
-  return "Read rows from data.statements. Each entry preserves the single-statement payload shape. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
+  return "Read rows from data.statements. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
 }
 
 export function buildBatchMutationInstructions(): string {
-  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
+  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. INSERT and UPDATE return only the identifier column in each entry's rows; run a follow-up SELECT query if you need any other column. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
 }
 
 export function assertSqlMutationRecordLimit(
