@@ -174,8 +174,6 @@ enum UITestIdentifier {
     static let reviewRateGoodButton: String = "review.rateGoodButton"
     static let aiConsentAcceptButton: String = "ai.consentAcceptButton"
     static let aiNewChatButton: String = "ai.newChatButton"
-    static let aiEmptyState: String = "ai.emptyState"
-    static let aiConversationScrollSurface: String = "ai.conversationScrollSurface"
     static let aiMessageRow: String = "ai.messageRow"
     static let aiComposerTextField: String = "ai.composerTextField"
     static let aiComposerSendButton: String = "ai.composerSendButton"

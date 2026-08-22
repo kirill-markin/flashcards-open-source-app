@@ -425,7 +425,6 @@ struct AIChatView: View {
     var emptyChatState: some View {
         ContentUnavailableView {
             Text(aiSettingsLocalized("ai.emptyState.title", "Start a new AI chat"))
-                .accessibilityIdentifier(UITestIdentifier.aiEmptyState)
         } description: {
             Text(
                 aiSettingsLocalized(
@@ -437,7 +436,6 @@ struct AIChatView: View {
             .multilineTextAlignment(.center)
         }
         .padding(.horizontal, aiChatMessageListHorizontalPadding)
-        .accessibilityIdentifier(UITestIdentifier.aiEmptyState)
     }
 
     func acceptExternalAIConsent() {
