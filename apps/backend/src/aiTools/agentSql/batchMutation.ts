@@ -31,13 +31,13 @@ import {
   buildCreateDeckInput,
   makeBatchNormalizedSql,
   requireSqlMutationTargetIds,
+  toCardIdRows,
   toCardRow,
-  toCreatedCardRows,
-  toCreatedDeckRows,
+  toDeckIdRows,
   toDeckRow,
   wrapBatchExecutionError,
+  type AgentSqlBatchExecutionResult,
   type AgentSqlContext,
-  type AgentSqlExecutionResult,
   type AgentSqlMutationAssignment,
   type AgentSqlMutationStatement,
   type AgentSqlSinglePayload,
@@ -233,7 +233,7 @@ export async function executeSqlMutationBatch(
   sql: string,
   statements: ReadonlyArray<AgentSqlMutationStatement>,
   statementSqls: ReadonlyArray<string>,
-): Promise<AgentSqlExecutionResult> {
+): Promise<AgentSqlBatchExecutionResult> {
   const replicaId = await dependencies.ensureAgentSyncReplica(
     context.workspaceId,
     context.userId,
@@ -273,9 +273,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "insert",
             resource: "cards",
-            sql: statementSql,
-            normalizedSql: statement.normalizedSql,
-            rows: toCreatedCardRows(createdCards),
+            rows: toCardIdRows(createdCards),
             affectedCount: createdCards.length,
           });
           continue;
@@ -309,9 +307,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "insert",
             resource: "decks",
-            sql: statementSql,
-            normalizedSql: statement.normalizedSql,
-            rows: toCreatedDeckRows(createdDecks),
+            rows: toDeckIdRows(createdDecks),
             affectedCount: createdDecks.length,
           });
           continue;
@@ -351,9 +347,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "update",
             resource: "cards",
-            sql: statementSql,
-            normalizedSql: statement.normalizedSql,
-            rows: toCreatedCardRows(updatedCards),
+            rows: toCardIdRows(updatedCards),
             affectedCount: updatedCards.length,
           });
           continue;
@@ -385,9 +379,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "update",
             resource: "decks",
-            sql: statementSql,
-            normalizedSql: statement.normalizedSql,
-            rows: toCreatedDeckRows(updatedDecks),
+            rows: toDeckIdRows(updatedDecks),
             affectedCount: updatedDecks.length,
           });
           continue;
@@ -411,8 +403,6 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "delete",
             resource: "cards",
-            sql: statementSql,
-            normalizedSql: statement.normalizedSql,
             rows: [],
             affectedCount: targetIds.length,
           });
@@ -436,8 +426,6 @@ export async function executeSqlMutationBatch(
         payloads.push({
           statementType: "delete",
           resource: "decks",
-          sql: statementSql,
-          normalizedSql: statement.normalizedSql,
           rows: [],
           affectedCount: targetIds.length,
         });

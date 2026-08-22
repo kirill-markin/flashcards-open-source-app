@@ -15,8 +15,10 @@ import { executeSqlReadBatch, executeSqlReadStatement } from "./agentSql/readExe
 import {
   isSqlMutationStatement,
   isSqlReadStatement,
+  type AgentSqlBatchExecutionResult,
   type AgentSqlContext,
   type AgentSqlExecutionResult,
+  type AgentSqlMutationExecutionResult,
   type AgentSqlPayload,
   type AgentSqlSinglePayload,
 } from "./agentSql/shared";
@@ -85,15 +87,18 @@ function toStatementSqls(sql: string, statements: ReadonlyArray<ParsedSqlStateme
 }
 
 /**
- * Single source of truth for the agent SQL result-size budget shared by both
- * the MCP surface (`sql_query` / `sql_execute`) and the REST surface
- * (`POST /agent/sql/query` / `POST /agent/sql/execute`).
+ * Read-path result-size budget shared by the MCP surface (`sql_query`) and the
+ * REST surface (`POST /agent/sql/query`).
  *
  * The agent envelope serializes `result.data`, so the budget is measured
  * against the serialized `data` payload. On overflow we fail with an actionable
  * error (matching the repo's "clear, actionable errors / no silent fallbacks"
  * principle) instead of returning a payload that exceeds the directory's
- * tool-result token limit. The remedies are concrete: narrow the result set.
+ * tool-result token limit. Nothing is committed on a read, and the remedies are
+ * concrete: narrow the result set.
+ *
+ * Writes must never reach this: their transaction is already committed when the
+ * size is measured, so they drop rows instead (see the reducers below).
  */
 function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(result: T): T {
   const serializedLength = JSON.stringify(result.data).length;
@@ -106,6 +111,57 @@ function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(resu
   }
 
   return result;
+}
+
+/**
+ * Appended to the instructions of a committed write whose payload had to shrink,
+ * so the model knows the rows are missing by design and how to get them.
+ */
+const OMITTED_MUTATION_ROWS_INSTRUCTION =
+  "The affected rows were omitted from this result because the payload exceeded the result-size budget. The write itself succeeded, so do not repeat it: run a follow-up SELECT query if you need the affected rows.";
+
+/**
+ * Shrinks an oversized committed write result instead of rejecting it.
+ *
+ * `executeSqlMutationStatement` and `executeSqlMutationBatch` return after their
+ * transaction committed, so answering with `QUERY_RESULT_TOO_LARGE` would report
+ * a successful write as a failure and invite the caller to retry it and
+ * duplicate the data. Only the returned rows are dropped; the counts, the echoed
+ * SQL, and the atomicity contract stay intact.
+ */
+function reduceMutationResultToSizeBudget(
+  result: AgentSqlMutationExecutionResult,
+): AgentSqlMutationExecutionResult {
+  if (JSON.stringify(result.data).length <= MAX_SQL_RESULT_CHARS) {
+    return result;
+  }
+
+  return {
+    data: {
+      ...result.data,
+      rows: [],
+    },
+    instructions: `${result.instructions} ${OMITTED_MUTATION_ROWS_INSTRUCTION}`,
+  };
+}
+
+function reduceBatchMutationResultToSizeBudget(
+  result: AgentSqlBatchExecutionResult,
+): AgentSqlBatchExecutionResult {
+  if (JSON.stringify(result.data).length <= MAX_SQL_RESULT_CHARS) {
+    return result;
+  }
+
+  return {
+    data: {
+      ...result.data,
+      statements: result.data.statements.map((statement) => ({
+        ...statement,
+        rows: [],
+      })),
+    },
+    instructions: `${result.instructions} ${OMITTED_MUTATION_ROWS_INSTRUCTION}`,
+  };
 }
 
 function getAgentSqlFingerprint(sql: string): string {
@@ -320,12 +376,12 @@ export async function runSqlExecute(
 
     if (statements.every(isSqlMutationStatement)) {
       if (statements.length === 1) {
-        return assertSqlResultWithinSizeBudget(
+        return reduceMutationResultToSizeBudget(
           await executeSqlMutationStatement(dependencies, context, sql, statements[0]),
         );
       }
 
-      return assertSqlResultWithinSizeBudget(
+      return reduceBatchMutationResultToSizeBudget(
         await executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls),
       );
     }

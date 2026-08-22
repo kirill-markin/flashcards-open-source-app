@@ -162,9 +162,10 @@ const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
  * agent can size a batch without cross-referencing other description lines.
  *
  * Deliberately limited to the three limits the dialect actually enforces on
- * every write surface. Result-payload budgets differ per surface (the split
- * `sql_query`/`sql_execute` entrypoints reject an oversized payload, while the
- * in-app `sql` tool truncates it), so they are not stated here.
+ * every write surface. Result-payload budgets differ per surface (`sql_query`
+ * rejects an oversized payload, `sql_execute` drops the returned rows of the
+ * already committed write, and the in-app `sql` tool truncates), so they are not
+ * stated here.
  */
 const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
   `Bulk-write split arithmetic: at most ${MAX_SQL_RECORD_LIMIT} rows affected per statement, at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements per batch, and a batch must not mix read and write statements. Split larger work across separate statements or separate tool calls.`;
