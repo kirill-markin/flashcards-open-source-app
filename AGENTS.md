@@ -55,7 +55,7 @@ Swift builds and tests run in Xcode Cloud, whose workflow definitions live in Ap
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 Xcode Cloud iOS test and build workflows are manually started and monitored by a human. Do not trigger or monitor them unless the user explicitly authorizes that exact action. Do not trigger `Android Release` or `MCP Registry Publish` unless the user explicitly authorizes that exact action; agents may monitor and fix automatically triggered GitHub Actions.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
-Agent SQL executions emit one structured CloudWatch record per run on every surface; the record fields and the failure-rate queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
+Agent SQL executions emit one structured CloudWatch record per run on every surface, and every authenticated `/mcp` request emits one more; the record fields and the queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
 iOS `WatchdogTermination` events carry no stack trace by design; the memory fields carried on the app's own breadcrumbs and the decision tree for reading such an event live in [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md).
 
 ## Repository Strategy

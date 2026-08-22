@@ -1,4 +1,5 @@
 import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
+import { getMcpRequestId } from "../mcp/requestTelemetry";
 import { HttpError } from "../shared/errors";
 import { createBackendFailureDetails } from "../observability/failureDetails";
 import { sanitizeBackendTelemetryValue } from "../observability/sanitizer";
@@ -12,6 +13,7 @@ import {
   type BackendObservationScope,
   type BackendService,
   type BackendErrorLogDetails,
+  type McpRequestDetails,
   type RequestErrorDetails,
 } from "../observability/sentry";
 
@@ -34,6 +36,13 @@ type AgentSqlLogPayload = Readonly<{
   userId: string;
   workspaceId: string;
 }> & AgentSqlDetails;
+
+type McpRequestLogPayload = Readonly<{
+  requestId: string;
+  httpMethod: string;
+  userId: string;
+  workspaceId: string | null;
+}> & McpRequestDetails;
 
 export function getErrorLogContext(error: unknown): ErrorLogContext {
   return getBackendErrorLogDetails(error);
@@ -223,7 +232,10 @@ function getAgentSqlService(surface: AgentSqlDetails["surface"]): BackendService
 export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
   const scope: BackendObservationScope = createBackendObservationScope(
     getAgentSqlService(payload.surface),
-    null,
+    // Only the MCP surface publishes a request id, and it is what joins this
+    // record to the `mcp_request` record for the same transport request. The
+    // REST and chat surfaces publish none, so they keep recording null.
+    getMcpRequestId(),
     `agent-sql/${payload.surface}`,
     "POST",
     payload.userId,
@@ -255,6 +267,49 @@ export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
 
   addBackendBreadcrumb({
     action: "agent_sql",
+    scope,
+    details,
+  });
+}
+
+/**
+ * Emits the single structured record for one authenticated `/mcp` request,
+ * following the `logAgentSqlEvent` convention above. It covers what `agent_sql`
+ * cannot see: the negotiated protocol version, the JSON-RPC method, non-SQL
+ * tools such as `list_workspaces`, requests that never reach the transport, and
+ * the size of the response the client received. The shared `requestId` joins
+ * the two record types.
+ *
+ * The scope carries the request's own HTTP method rather than a fixed `POST`,
+ * because a non-POST `/mcp` request is answered with 405 and records too.
+ */
+export function logMcpRequestEvent(payload: McpRequestLogPayload): void {
+  const scope: BackendObservationScope = createBackendObservationScope(
+    "backend-api",
+    payload.requestId,
+    "mcp",
+    payload.httpMethod,
+    payload.userId,
+    payload.workspaceId,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
+  const details: McpRequestDetails = {
+    protocolVersion: payload.protocolVersion,
+    jsonRpcMethod: payload.jsonRpcMethod,
+    toolName: payload.toolName,
+    caller: payload.caller,
+    connectionId: payload.connectionId,
+    statusCode: payload.statusCode,
+    durationMs: payload.durationMs,
+    responseChars: payload.responseChars,
+  };
+
+  addBackendBreadcrumb({
+    action: "mcp_request",
     scope,
     details,
   });
