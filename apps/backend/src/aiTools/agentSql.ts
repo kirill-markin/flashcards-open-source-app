@@ -100,6 +100,19 @@ function measureAgentSqlEnvelopeChars(result: AgentSqlExecutionResult, requestUr
 }
 
 /**
+ * One execution's emitted result paired with the size the budget helpers below
+ * measured for it, so telemetry records the payload the surface really sent
+ * without measuring it a second, possibly different way.
+ *
+ * `resultChars` is null on the in-app chat surface, which builds no agent
+ * envelope and therefore has no emitted envelope to measure.
+ */
+type AgentSqlEmission<Result extends AgentSqlExecutionResult> = Readonly<{
+  result: Result;
+  resultChars: number | null;
+}>;
+
+/**
  * Read-path result-size budget shared by the MCP surface (`sql_query`) and the
  * REST surface (`POST /agent/sql/query`).
  *
@@ -114,17 +127,17 @@ function measureAgentSqlEnvelopeChars(result: AgentSqlExecutionResult, requestUr
 function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(
   result: T,
   requestUrl: string,
-): T {
-  const serializedLength = measureAgentSqlEnvelopeChars(result, requestUrl);
-  if (serializedLength > MAX_SQL_RESULT_CHARS) {
+): AgentSqlEmission<T> {
+  const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
+  if (resultChars > MAX_SQL_RESULT_CHARS) {
     throw new HttpError(
       400,
-      `The result payload is too large (${serializedLength} characters, limit ${MAX_SQL_RESULT_CHARS}). Narrow the query and retry: add or lower LIMIT, SELECT fewer columns, or add WHERE filters to return fewer or smaller rows.`,
+      `The result payload is too large (${resultChars} characters, limit ${MAX_SQL_RESULT_CHARS}). Narrow the query and retry: add or lower LIMIT, SELECT fewer columns, or add WHERE filters to return fewer or smaller rows.`,
       "QUERY_RESULT_TOO_LARGE",
     );
   }
 
-  return result;
+  return { result, resultChars };
 }
 
 /**
@@ -141,42 +154,74 @@ const OMITTED_MUTATION_ROWS_INSTRUCTION =
  * transaction committed, so answering with `QUERY_RESULT_TOO_LARGE` would report
  * a successful write as a failure and invite the caller to retry it and
  * duplicate the data. Only the returned rows are dropped; the counts, the echoed
- * SQL, and the atomicity contract stay intact.
+ * SQL, and the atomicity contract stay intact, and `data.rowsOmitted` records
+ * the reduction structurally so a model and our telemetry can both read it
+ * without parsing the appended instruction prose.
+ *
+ * The rows are the only thing this reducer can drop, so a write that returned
+ * none, such as a DELETE without a RETURNING clause, is emitted untouched with
+ * `rowsOmitted: false` and a `resultChars` above the budget. The marker and the
+ * appended prose report a reduction that happened, never the budget verdict
+ * that asked for one, so they cannot claim rows the caller never had.
  */
 function reduceMutationResultToSizeBudget(
   result: AgentSqlMutationExecutionResult,
   requestUrl: string,
-): AgentSqlMutationExecutionResult {
-  if (measureAgentSqlEnvelopeChars(result, requestUrl) <= MAX_SQL_RESULT_CHARS) {
-    return result;
+): AgentSqlEmission<AgentSqlMutationExecutionResult> {
+  const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
+  const hasRowsToDrop = result.data.rows.length > 0;
+  if (resultChars <= MAX_SQL_RESULT_CHARS || !hasRowsToDrop) {
+    return { result, resultChars };
   }
 
-  return {
+  const reducedResult: AgentSqlMutationExecutionResult = {
     data: {
       ...result.data,
       rows: [],
+      rowsOmitted: true,
     },
     instructions: `${result.instructions} ${OMITTED_MUTATION_ROWS_INSTRUCTION}`,
   };
+
+  return {
+    result: reducedResult,
+    resultChars: measureAgentSqlEnvelopeChars(reducedResult, requestUrl),
+  };
 }
 
+/**
+ * Batch counterpart of the reducer above. The reduction is all-or-nothing: the
+ * budget covers the whole emitted payload, so every statement loses its rows
+ * even when its own rows were small, and the single `data.rowsOmitted` marker
+ * describes exactly that. A batch in which no statement returned a row is
+ * emitted untouched for the same reason the single reducer leaves such a write
+ * alone.
+ */
 function reduceBatchMutationResultToSizeBudget(
   result: AgentSqlBatchExecutionResult,
   requestUrl: string,
-): AgentSqlBatchExecutionResult {
-  if (measureAgentSqlEnvelopeChars(result, requestUrl) <= MAX_SQL_RESULT_CHARS) {
-    return result;
+): AgentSqlEmission<AgentSqlBatchExecutionResult> {
+  const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
+  const hasRowsToDrop = result.data.statements.some((statement) => statement.rows.length > 0);
+  if (resultChars <= MAX_SQL_RESULT_CHARS || !hasRowsToDrop) {
+    return { result, resultChars };
   }
 
-  return {
+  const reducedResult: AgentSqlBatchExecutionResult = {
     data: {
       ...result.data,
       statements: result.data.statements.map((statement) => ({
         ...statement,
         rows: [],
       })),
+      rowsOmitted: true,
     },
     instructions: `${result.instructions} ${OMITTED_MUTATION_ROWS_INSTRUCTION}`,
+  };
+
+  return {
+    result: reducedResult,
+    resultChars: measureAgentSqlEnvelopeChars(reducedResult, requestUrl),
   };
 }
 
@@ -203,6 +248,14 @@ function getAgentSqlRowOrAffectedCount(payload: AgentSqlPayload): number {
 
 function getAgentSqlStatementCount(payload: AgentSqlPayload): number {
   return payload.statementType === "batch" ? payload.statementCount : 1;
+}
+
+/**
+ * Reads the payload's own omission marker. Read payloads carry none, and a read
+ * never omits rows: it rejects an oversized result instead.
+ */
+function getAgentSqlRowsOmitted(payload: AgentSqlPayload): boolean {
+  return "rowsOmitted" in payload ? payload.rowsOmitted : false;
 }
 
 function getAgentSqlErrorCode(error: unknown): string | null {
@@ -254,13 +307,17 @@ function getAgentSqlErrorClass(error: unknown): string {
  * reach Sentry with their full message and stack through
  * `captureBackendException`, so nothing debuggable is lost.
  *
+ * `execute` hands over the emitted result together with the size the budget
+ * helpers already measured for it, so `resultChars` is the size of the payload
+ * the surface really sent and can never drift from the size the guard enforces.
+ *
  * Instrumentation only: the caller's result is returned and the caller's error
  * is rethrown untouched.
  */
 async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
   context: AgentSqlContext,
   sql: string,
-  execute: () => Promise<Result>,
+  execute: () => Promise<AgentSqlEmission<Result>>,
 ): Promise<Result> {
   const startedAt = Date.now();
   const executionDetails = {
@@ -274,7 +331,7 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
   };
 
   try {
-    const result = await execute();
+    const { result, resultChars } = await execute();
     logAgentSqlEvent({
       ...executionDetails,
       succeeded: true,
@@ -282,6 +339,8 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       resource: result.data.resource,
       statementCount: getAgentSqlStatementCount(result.data),
       rowOrAffectedCount: getAgentSqlRowOrAffectedCount(result.data),
+      resultChars,
+      rowsOmitted: getAgentSqlRowsOmitted(result.data),
       durationMs: Date.now() - startedAt,
       errorCode: null,
       dialectReason: null,
@@ -297,6 +356,8 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       resource: null,
       statementCount: null,
       rowOrAffectedCount: null,
+      resultChars: null,
+      rowsOmitted: null,
       durationMs: Date.now() - startedAt,
       errorCode: getAgentSqlErrorCode(error),
       dialectReason: getAgentSqlDialectReason(error),
@@ -307,33 +368,47 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
   }
 }
 
+async function executeAgentSqlStatements(
+  dependencies: AgentToolOperationDependencies,
+  context: AgentSqlContext,
+  sql: string,
+): Promise<AgentSqlExecutionResult> {
+  const statements = parseSqlBatch(sql);
+  const statementSqls = toStatementSqls(sql, statements);
+
+  if (statements.every(isSqlReadStatement)) {
+    if (statements.length === 1) {
+      return executeSqlReadStatement(dependencies, context, sql, statements[0]);
+    }
+
+    return executeSqlReadBatch(dependencies, context, sql, statements, statementSqls);
+  }
+
+  if (statements.every(isSqlMutationStatement)) {
+    if (statements.length === 1) {
+      return executeSqlMutationStatement(dependencies, context, sql, statements[0]);
+    }
+
+    return executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls);
+  }
+
+  throw buildInvalidSqlError("SQL batch must contain only read statements or only mutation statements");
+}
+
+/**
+ * Combined entrypoint for the in-app chat `sql` tool. It builds no agent
+ * envelope and has no result-size budget of its own (the chat surface truncates
+ * the tool output separately), so it reports no emitted size.
+ */
 export async function executeAgentSql(
   context: AgentSqlContext,
   sql: string,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
-  return withAgentSqlTelemetry(context, sql, async () => {
-    const statements = parseSqlBatch(sql);
-    const statementSqls = toStatementSqls(sql, statements);
-
-    if (statements.every(isSqlReadStatement)) {
-      if (statements.length === 1) {
-        return executeSqlReadStatement(dependencies, context, sql, statements[0]);
-      }
-
-      return executeSqlReadBatch(dependencies, context, sql, statements, statementSqls);
-    }
-
-    if (statements.every(isSqlMutationStatement)) {
-      if (statements.length === 1) {
-        return executeSqlMutationStatement(dependencies, context, sql, statements[0]);
-      }
-
-      return executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls);
-    }
-
-    throw buildInvalidSqlError("SQL batch must contain only read statements or only mutation statements");
-  });
+  return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => ({
+    result: await executeAgentSqlStatements(dependencies, context, sql),
+    resultChars: null,
+  }));
 }
 
 /**
@@ -357,7 +432,7 @@ export async function runSqlQuery(
   requestUrl: string,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
-  return withAgentSqlTelemetry(context, sql, async () => {
+  return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => {
     const statements = parseSqlBatch(sql);
     const statementSqls = toStatementSqls(sql, statements);
 
@@ -396,7 +471,7 @@ export async function runSqlExecute(
   requestUrl: string,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
-  return withAgentSqlTelemetry(context, sql, async () => {
+  return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => {
     const statements = parseSqlBatch(sql);
     const statementSqls = toStatementSqls(sql, statements);
 
