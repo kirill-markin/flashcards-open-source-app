@@ -37,6 +37,8 @@ to compare surfaces.
 | `resource` | `cards`, `decks`, and so on; `null` for batches and on failure |
 | `statementCount` | Statements in the submitted SQL; `null` on failure |
 | `rowOrAffectedCount` | Rows read or records affected; `null` on failure |
+| `resultChars` | Characters of the emitted agent envelope, as measured against the result-size budget; `null` on failure and on `chat-tool`, which builds no envelope |
+| `rowsOmitted` | `true` when a committed write's rows were dropped to fit that budget; `null` on failure |
 | `durationMs` | Wall-clock duration of the execution |
 | `sqlLength` | Character length of the submitted SQL |
 | `sqlFingerprint` | SHA-256 hex digest of the submitted SQL |
@@ -60,6 +62,14 @@ needs to be read rather than counted.
 `dialectReason` is recorded as an opaque value. The SQL dialect owns that
 vocabulary and will make it more specific over time; nothing in this record
 depends on which values appear.
+
+A write whose result overflowed the budget still succeeds: `sql_execute` drops
+the returned rows of the already committed write instead of failing it, so such
+an execution is recorded as `succeeded = 1`, with `rowsOmitted = 1` whenever it
+had rows to drop. Reads never omit rows; an oversized read fails with
+`errorCode = "QUERY_RESULT_TOO_LARGE"`.
+`resultChars` is the same measurement the budget enforces, taken on the payload
+that was actually emitted, so it is the post-reduction size on a degraded write.
 
 ## The MCP caller label
 
@@ -95,5 +105,23 @@ filter domain = "backend" and action = "agent_sql" and succeeded = 0
 | limit 20
 ```
 
-If a log group renders `succeeded` as `true`/`false` instead of `1`/`0`, use
-`succeeded = "false"` in both queries.
+## Degraded writes and payload size
+
+```
+filter domain = "backend" and action = "agent_sql" and succeeded = 1
+| stats count(*) as executions,
+        sum(rowsOmitted = 1) as degradedWrites,
+        pct(resultChars, 50) as p50ResultChars,
+        pct(resultChars, 90) as p90ResultChars,
+        max(resultChars) as maxResultChars
+  by surface
+```
+
+`degradedWrites` counts successful writes that answered without their rows. The
+percentiles skip the `chat-tool` surface, whose `resultChars` is always `null`.
+A write that returned no rows has nothing to drop and is emitted untouched, so
+`resultChars` above the 48,000-character budget with `rowsOmitted = 0` is
+expected rather than a broken guard.
+
+If a log group renders `succeeded` and `rowsOmitted` as `true`/`false` instead
+of `1`/`0`, compare them against `"true"` and `"false"` in the queries above.

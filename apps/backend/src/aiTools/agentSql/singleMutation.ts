@@ -77,6 +77,7 @@ export async function executeSqlMutationStatement(
         normalizedSql: statement.normalizedSql,
         rows: toCardMutationRows(payload.cards, statement.returning),
         affectedCount: payload.createdCount,
+        rowsOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -100,6 +101,7 @@ export async function executeSqlMutationStatement(
         normalizedSql: statement.normalizedSql,
         rows: toDeckMutationRows(payload.decks, statement.returning),
         affectedCount: payload.createdCount,
+        rowsOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -131,6 +133,7 @@ export async function executeSqlMutationStatement(
         normalizedSql: statement.normalizedSql,
         rows: toCardMutationRows(payload.cards, statement.returning),
         affectedCount: payload.updatedCount,
+        rowsOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -153,6 +156,7 @@ export async function executeSqlMutationStatement(
         normalizedSql: statement.normalizedSql,
         rows: toDeckMutationRows(payload.decks, statement.returning),
         affectedCount: payload.updatedCount,
+        rowsOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -175,6 +179,7 @@ export async function executeSqlMutationStatement(
         normalizedSql: statement.normalizedSql,
         rows: toDeletedMutationRows("cards", payload.deletedCardIds, matchedRows, statement.returning),
         affectedCount: payload.deletedCount,
+        rowsOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -196,6 +201,7 @@ export async function executeSqlMutationStatement(
       normalizedSql: statement.normalizedSql,
       rows: toDeletedMutationRows("decks", payload.deletedDeckIds, matchedRows, statement.returning),
       affectedCount: payload.deletedCount,
+      rowsOmitted: false,
     },
     instructions: buildMutationInstructions(),
   };

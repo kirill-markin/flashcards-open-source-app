@@ -263,6 +263,7 @@ export async function executeSqlReadBatch(
       statements: payloads,
       statementCount: payloads.length,
       affectedCountTotal: null,
+      rowsOmitted: false,
     },
     instructions: buildBatchReadInstructions(),
   };

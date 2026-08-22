@@ -117,6 +117,7 @@ extension AIChatStore {
             inputText: inputText,
             pendingAttachments: pendingAttachments
         )
+        self.persistStateSynchronously(state: self.currentPersistedState())
     }
 
     func clearLocalHistory() {

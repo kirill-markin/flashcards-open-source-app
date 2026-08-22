@@ -17,6 +17,12 @@ export type AdminQueryDetails = Readonly<{
  * validation-issue code carried by the failure, recorded as an opaque value:
  * the dialect owns that vocabulary and may change it.
  *
+ * `resultChars` and `rowsOmitted` describe the emitted result: the size the
+ * result-size budget measured for the payload the surface really sent, and
+ * whether that payload is a committed write whose rows the budget dropped. Both
+ * are null on failure, and `resultChars` is null on the `chat-tool` surface,
+ * which builds no agent envelope to measure.
+ *
  * Raw SQL text is deliberately absent; `sqlFingerprint` plus `sqlLength` are
  * what make repeated failures groupable, matching `AdminQueryDetails`.
  *
@@ -34,6 +40,8 @@ export type AgentSqlDetails = Readonly<{
   resource: string | null;
   statementCount: number | null;
   rowOrAffectedCount: number | null;
+  resultChars: number | null;
+  rowsOmitted: boolean | null;
   durationMs: number;
   sqlLength: number;
   sqlFingerprint: string;

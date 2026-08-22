@@ -224,6 +224,7 @@ function createFakeDependencies(
           normalizedSql: sql,
           rows: [],
           affectedCount: 1,
+          rowsOmitted: false,
         },
         instructions: "The mutation completed.",
       };
