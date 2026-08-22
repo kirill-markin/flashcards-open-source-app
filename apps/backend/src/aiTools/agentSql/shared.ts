@@ -69,9 +69,26 @@ type AgentSqlSubmittedSql = Readonly<{
   normalizedSql: string;
 }>;
 
+/**
+ * Structural record that the returned rows were dropped to fit the result-size
+ * budget, carried by the whole result rather than by one statement: the batch
+ * reducer in `apps/backend/src/aiTools/agentSql.ts` clears the rows of every
+ * statement at once, so a batch either keeps all of its rows or none of them.
+ *
+ * Counts are never reduced, which is what separates a payload whose rows were
+ * dropped from one whose statement returned no rows of its own. `false` means
+ * no row was dropped rather than that the payload fit, because a write with no
+ * rows to drop is emitted over budget and still marked `false`. Read batches
+ * carry `false` always and single read payloads omit the field entirely, since
+ * an oversized read is rejected instead of shrunk.
+ */
+type AgentSqlRowsOmitted = Readonly<{
+  rowsOmitted: boolean;
+}>;
+
 export type AgentSqlReadPayload = AgentSqlReadStatementPayload & AgentSqlSubmittedSql;
 
-export type AgentSqlMutationPayload = AgentSqlMutationStatementPayload & AgentSqlSubmittedSql;
+export type AgentSqlMutationPayload = AgentSqlMutationStatementPayload & AgentSqlSubmittedSql & AgentSqlRowsOmitted;
 
 export type AgentSqlSinglePayload = AgentSqlReadStatementPayload | AgentSqlMutationStatementPayload;
 
@@ -83,7 +100,7 @@ export type AgentSqlBatchPayload = Readonly<{
   statements: ReadonlyArray<AgentSqlSinglePayload>;
   statementCount: number;
   affectedCountTotal: number | null;
-}>;
+}> & AgentSqlRowsOmitted;
 
 export type AgentSqlPayload = AgentSqlReadPayload | AgentSqlMutationPayload | AgentSqlBatchPayload;
 
@@ -484,7 +501,7 @@ export function buildReadInstructions(statementType: "show_tables" | "describe" 
 }
 
 export function buildMutationInstructions(): string {
-  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. Without a RETURNING clause, INSERT and UPDATE return only the identifier column in data.rows and DELETE returns no rows. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
+  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. Without a RETURNING clause, INSERT and UPDATE return only the identifier column in data.rows and DELETE returns no rows. data.rowsOmitted reports whether the returned rows were dropped to fit the result-size budget; the write succeeded either way. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
 }
 
 export function buildBatchReadInstructions(): string {
@@ -492,7 +509,7 @@ export function buildBatchReadInstructions(): string {
 }
 
 export function buildBatchMutationInstructions(): string {
-  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. Without a RETURNING clause, INSERT and UPDATE return only the identifier column in each entry's rows and DELETE returns no rows. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
+  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. Without a RETURNING clause, INSERT and UPDATE return only the identifier column in each entry's rows and DELETE returns no rows. data.rowsOmitted reports whether the returned rows of every statement were dropped to fit the result-size budget; the batch succeeded either way. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
 }
 
 export function assertSqlMutationRecordLimit(

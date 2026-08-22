@@ -255,6 +255,8 @@ export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
     resource: payload.resource,
     statementCount: payload.statementCount,
     rowOrAffectedCount: payload.rowOrAffectedCount,
+    resultChars: payload.resultChars,
+    rowsOmitted: payload.rowsOmitted,
     durationMs: payload.durationMs,
     sqlLength: payload.sqlLength,
     sqlFingerprint: payload.sqlFingerprint,
