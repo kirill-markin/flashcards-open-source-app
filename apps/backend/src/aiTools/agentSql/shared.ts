@@ -7,6 +7,7 @@ import { isLegacyEffortLevel } from "../../sync/contracts/legacyEffort";
 import type {
   ParsedSqlStatement,
   SqlResourceName,
+  SqlReturningClause,
   SqlRow,
 } from "../sqlDialect";
 import { MAX_SQL_RECORD_LIMIT } from "../toolContract/sqlToolLimits";
@@ -43,14 +44,13 @@ export type AgentSqlReadStatementPayload = Readonly<{
 }>;
 
 /**
- * Identifier-only row returned by INSERT and UPDATE. The server-generated
- * identifier is the one value the caller cannot derive; every other column is
- * one `sql_query` SELECT away, and echoing all of them made a full 50-statement
- * batch overflow the result-size budget.
+ * Row returned by a mutation. Without a RETURNING clause INSERT and UPDATE
+ * return the server-generated identifier alone and DELETE returns nothing,
+ * because echoing every column made a full 50-statement batch overflow the
+ * result-size budget. A RETURNING clause replaces that with the projection the
+ * caller named.
  */
-export type AgentSqlMutationRow =
-  | Readonly<{ card_id: string }>
-  | Readonly<{ deck_id: string }>;
+export type AgentSqlMutationRow = SqlRow;
 
 export type AgentSqlMutationStatementPayload = Readonly<{
   statementType: "insert" | "update" | "delete";
@@ -180,12 +180,63 @@ function expectLegacyEffortLevel(value: unknown, columnName: string): LegacyEffo
   throw new HttpError(400, `${columnName} must contain only fast, medium, or long`, "QUERY_INVALID_SQL");
 }
 
-export function toCardIdRows(cards: ReadonlyArray<Card>): ReadonlyArray<AgentSqlMutationRow> {
-  return cards.map((card) => ({ card_id: card.cardId }));
+function projectReturningRow(returning: SqlReturningClause, row: SqlRow): SqlRow {
+  if (returning.type === "all") {
+    return row;
+  }
+
+  return Object.fromEntries(
+    returning.columnNames.map((columnName) => [columnName, row[columnName] ?? null] as const),
+  );
 }
 
-export function toDeckIdRows(decks: ReadonlyArray<Deck>): ReadonlyArray<AgentSqlMutationRow> {
-  return decks.map((deck) => ({ deck_id: deck.deckId }));
+export function toCardMutationRows(
+  cards: ReadonlyArray<Card>,
+  returning: SqlReturningClause | null,
+): ReadonlyArray<AgentSqlMutationRow> {
+  if (returning === null) {
+    return cards.map((card) => ({ card_id: card.cardId }));
+  }
+
+  return cards.map((card) => projectReturningRow(returning, toCardRow(card)));
+}
+
+export function toDeckMutationRows(
+  decks: ReadonlyArray<Deck>,
+  returning: SqlReturningClause | null,
+): ReadonlyArray<AgentSqlMutationRow> {
+  if (returning === null) {
+    return decks.map((deck) => ({ deck_id: deck.deckId }));
+  }
+
+  return decks.map((deck) => projectReturningRow(returning, toDeckRow(deck)));
+}
+
+/**
+ * Projects the rows a DELETE removed, as they were before it ran. They are the
+ * one mutation result a follow-up SELECT can never recover.
+ *
+ * The projection is filtered to the identifier set that `affectedCount` counts.
+ */
+export function toDeletedMutationRows(
+  resourceName: "cards" | "decks",
+  deletedIds: ReadonlyArray<string>,
+  matchedRows: ReadonlyArray<SqlRow>,
+  returning: SqlReturningClause | null,
+): ReadonlyArray<AgentSqlMutationRow> {
+  if (returning === null) {
+    return [];
+  }
+
+  const idColumnName = resourceName === "cards" ? "card_id" : "deck_id";
+  const deletedIdSet = new Set(deletedIds);
+
+  return matchedRows
+    .filter((row) => {
+      const idValue = row[idColumnName];
+      return typeof idValue === "string" && deletedIdSet.has(idValue);
+    })
+    .map((row) => projectReturningRow(returning, row));
 }
 
 export function buildCreateCardInput(
@@ -433,7 +484,7 @@ export function buildReadInstructions(statementType: "show_tables" | "describe" 
 }
 
 export function buildMutationInstructions(): string {
-  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. INSERT and UPDATE return only the identifier column in data.rows; run a follow-up SELECT query if you need any other column. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
+  return "The mutation succeeded. Read data.affectedCount for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. Without a RETURNING clause, INSERT and UPDATE return only the identifier column in data.rows and DELETE returns no rows. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
 }
 
 export function buildBatchReadInstructions(): string {
@@ -441,7 +492,7 @@ export function buildBatchReadInstructions(): string {
 }
 
 export function buildBatchMutationInstructions(): string {
-  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. INSERT and UPDATE return only the identifier column in each entry's rows; run a follow-up SELECT query if you need any other column. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
+  return "The batch mutation succeeded. Read data.statements for per-statement results and data.affectedCountTotal for the summary. INSERT, UPDATE, and DELETE may affect at most 100 rows per statement. Without a RETURNING clause, INSERT and UPDATE return only the identifier column in each entry's rows and DELETE returns no rows. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
 }
 
 export function assertSqlMutationRecordLimit(

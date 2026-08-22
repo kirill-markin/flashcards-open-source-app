@@ -162,11 +162,25 @@ export type SqlDescribeStatement = Readonly<{
   normalizedSql: string;
 }>;
 
+/**
+ * Trailing RETURNING clause of a mutation. A statement without the clause
+ * carries `null`, which keeps the identifier-only INSERT and UPDATE rows and
+ * the empty DELETE rows; `columns` carries the exact projection the caller
+ * named, in the order it named them.
+ */
+export type SqlReturningClause =
+  | Readonly<{ type: "all" }>
+  | Readonly<{
+    type: "columns";
+    columnNames: ReadonlyArray<string>;
+  }>;
+
 export type SqlInsertStatement = Readonly<{
   type: "insert";
   resourceName: "cards" | "decks";
   columnNames: ReadonlyArray<string>;
   rows: ReadonlyArray<ReadonlyArray<SqlLiteral | ReadonlyArray<string>>>;
+  returning: SqlReturningClause | null;
   normalizedSql: string;
 }>;
 
@@ -178,6 +192,7 @@ export type SqlUpdateStatement = Readonly<{
     value: SqlLiteral | ReadonlyArray<string>;
   }>>;
   predicate: SqlPredicateExpression | null;
+  returning: SqlReturningClause | null;
   normalizedSql: string;
 }>;
 
@@ -185,6 +200,7 @@ export type SqlDeleteStatement = Readonly<{
   type: "delete";
   resourceName: "cards" | "decks";
   predicate: SqlPredicateExpression | null;
+  returning: SqlReturningClause | null;
   normalizedSql: string;
 }>;
 
