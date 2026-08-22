@@ -1,5 +1,10 @@
 package com.flashcardsopensourceapp.feature.ai.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,8 +12,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -19,7 +25,6 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -33,12 +38,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
@@ -57,6 +68,14 @@ import com.flashcardsopensourceapp.data.local.model.ai.aiChatOptimisticAssistant
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 import com.flashcardsopensourceapp.feature.ai.toolcall.ToolCallCard
+
+private val aiTypingIndicatorHeight = 20.dp
+private val aiTypingIndicatorDotSize = 6.dp
+private val aiTypingIndicatorDotSpacing = 5.dp
+private const val aiTypingIndicatorDotCount = 3
+private const val aiTypingIndicatorStepMillis = 300
+private const val aiTypingIndicatorActiveDotAlpha = 1f
+private const val aiTypingIndicatorInactiveDotAlpha = 0.25f
 
 @Composable
 internal fun MessageRow(
@@ -398,19 +417,49 @@ private fun CardContextContentCard(
 
 @Composable
 private fun TypingIndicatorRow() {
+    val indicatorLabel = stringResource(id = R.string.ai_generating_response)
+    val dotColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val transition = rememberInfiniteTransition(label = "aiTypingIndicator")
+    val activeDotProgress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = aiTypingIndicatorDotCount.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = aiTypingIndicatorDotCount * aiTypingIndicatorStepMillis,
+                easing = LinearEasing
+            )
+        ),
+        label = "aiTypingIndicatorActiveDot"
+    )
+
     Row(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(aiTypingIndicatorDotSpacing),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .height(height = aiTypingIndicatorHeight)
+            .semantics {
+                contentDescription = indicatorLabel
+                progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate
+            }
     ) {
-        CircularProgressIndicator(
-            strokeWidth = 2.dp,
-            modifier = Modifier.width(18.dp)
-        )
-        Text(
-            text = stringResource(id = R.string.ai_generating_response),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        repeat(times = aiTypingIndicatorDotCount) { dotIndex ->
+            Box(
+                modifier = Modifier
+                    .size(size = aiTypingIndicatorDotSize)
+                    .graphicsLayer {
+                        val activeDotIndex = activeDotProgress.toInt() % aiTypingIndicatorDotCount
+                        alpha = if (activeDotIndex == dotIndex) {
+                            aiTypingIndicatorActiveDotAlpha
+                        } else {
+                            aiTypingIndicatorInactiveDotAlpha
+                        }
+                    }
+                    .background(
+                        color = dotColor,
+                        shape = CircleShape
+                    )
+            )
+        }
     }
 }
 
