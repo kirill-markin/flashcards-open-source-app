@@ -11,7 +11,6 @@ extension AIChatView {
         // the top instead of resolving the tail.
         ScrollViewReader { proxy in
             self.chatScrollContent
-                .accessibilityIdentifier(UITestIdentifier.aiConversationScrollSurface)
                 .defaultScrollAnchor(.bottom, for: .initialOffset)
                 .defaultScrollAnchor(.bottom, for: .alignment)
                 .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
