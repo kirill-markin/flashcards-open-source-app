@@ -113,7 +113,9 @@ The iOS app uses native Apple test tooling only:
 
 - FSRS parity and scheduler-focused tests live in `apps/ios/Flashcards/FlashcardsTests/Review` as targeted native verification, not as an exhaustive safety net
 - release-gate UI coverage lives in the grouped `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift` files, with shared smoke infrastructure in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport`
-- accessibility identifiers used by the live smoke flows live in `apps/ios/Flashcards/Flashcards/UITestIdentifiers.swift`
+- accessibility identifiers used by the live smoke flows live in `apps/ios/Flashcards/Flashcards/App/UITestIdentifiers.swift`, and because the test target cannot import the app target, `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/Configuration/LiveSmokeIdentifiers.swift` re-declares only the identifiers its own flows use, where a value present in both must match exactly
+
+An accessibility identifier reaches XCUITest only on an accessibility element, usually a leaf such as `Text`, `Button`, or `TextField`, or a plain container whose descendants inherit it. A system container such as `ContentUnavailableView` can merge its subtree and drop the identifier, even from a `Text` inside it, so the smoke query silently finds nothing. `.accessibilityElement(children: .contain)` is the container pattern, used in `apps/ios/Flashcards/Flashcards/AI/Views/Transcript/AIChatMessageViews.swift`, but on some surfaces it fails to expose the identifier or crashes the app outright, so confirm a new identifier on a simulator before a live smoke flow uses it.
 
 The iOS release-gate smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Only one grouped smoke signs into the linked review account and verifies linked workspace lifecycle. The remaining grouped smokes stay guest/local and do not perform login.
 
