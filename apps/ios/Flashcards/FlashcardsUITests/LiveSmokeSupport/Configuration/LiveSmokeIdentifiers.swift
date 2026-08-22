@@ -113,6 +113,7 @@ enum LiveSmokeIdentifier {
     static let aiConsentAcceptButton: String = "ai.consentAcceptButton"
     static let aiNewChatButton: String = "ai.newChatButton"
     static let aiEmptyState: String = "ai.emptyState"
+    static let aiConversationScrollSurface: String = "ai.conversationScrollSurface"
     static let aiMessageRow: String = "ai.messageRow"
     static let aiComposerTextField: String = "ai.composerTextField"
     static let aiComposerSendButton: String = "ai.composerSendButton"
@@ -435,6 +436,12 @@ let aiComposerPlaceholderText: String = "Ask about cards, review history, or pro
 let aiCreatePromptText: String = "Create exactly one flashcard with frontText \"What is the smoke test AI card?\" "
     + "and backText \"The smoke test AI card was created successfully.\"; I approve the create operation; do not ask a follow-up."
 let aiResetPromptText: String = "Reply with exactly: reset ok"
+// The failed and loading chat surfaces carry no accessibility identifier in app code, so their
+// English titles are the only way to name them from the tests; probes using them must first check
+// that the app launched in English. "Loading chat" is also the composer primary button label while
+// bootstrap loads, and both usages mean the same bootstrap phase.
+let aiFailedChatStateTitleText: String = "Chat unavailable"
+let aiLoadingChatStateTitleText: String = "Loading chat"
 let aiCreatePromptMaximumAttempts: Int = 3
 let aiResetPromptMaximumAttempts: Int = 3
 let aiCreateRunCompletionTimeoutSeconds: TimeInterval = 90
