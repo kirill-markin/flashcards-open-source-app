@@ -17,6 +17,7 @@ import {
   type WorkspaceRequestContext,
 } from "../server/requestContext";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
+import { getMcpRequestId } from "./requestTelemetry";
 import { createPublicHttpErrorDetails, HttpError } from "../shared/errors";
 import {
   listUserWorkspacesWithStatsForSelectedWorkspace,
@@ -86,35 +87,28 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
   listUserWorkspacesWithStatsForSelectedWorkspace,
 };
 
-const MAX_MCP_CALLER_CHARS = 120;
-
 /**
- * Caller label recorded on the agent SQL telemetry record so the dialect
- * failure rate can be split per MCP client.
+ * Per-request telemetry channel handed to the server by the entrypoint, which
+ * builds one server per transport request (see
+ * apps/backend/src/entrypoints/lambda-mcp.ts).
  *
- * The `initialize` clientInfo is not reachable here: the MCP Lambda runs the
- * transport statelessly (`sessionIdGenerator: undefined` in
- * apps/backend/src/entrypoints/lambda-mcp.ts), so a `tools/call` arrives as its
- * own HTTP request on a freshly built server that never saw the client's
- * `initialize`. The request `User-Agent` is the one caller signal that is
- * observable without restructuring the entrypoint, so it is what gets recorded,
- * trimmed and capped. Clients that send no `User-Agent` are recorded as null
- * rather than guessed at.
+ * `caller` labels the calling MCP client on the records this request emits. It
+ * is the normalized request `User-Agent`: the `initialize` clientInfo is not
+ * reachable here because the transport runs statelessly
+ * (`sessionIdGenerator: undefined`), so a `tools/call` arrives as its own HTTP
+ * request on a freshly built server that never saw the client's `initialize`.
+ *
+ * `recordInvokedTool` reports the tool a handler is about to run, so the
+ * transport record names the invoked tool whatever the client's protocol
+ * revision is: the `Mcp-Name` header only becomes REQUIRED in MCP revision
+ * 2026-07-28 and most live callers are older. A batched request reports each
+ * tool it runs, and the entrypoint keeps the last one so it still emits exactly
+ * one record.
  */
-function resolveMcpCaller(callerUserAgent: string | null): string | null {
-  if (callerUserAgent === null) {
-    return null;
-  }
-
-  const trimmedCaller = callerUserAgent.trim();
-  if (trimmedCaller === "") {
-    return null;
-  }
-
-  return trimmedCaller.length <= MAX_MCP_CALLER_CHARS
-    ? trimmedCaller
-    : trimmedCaller.slice(0, MAX_MCP_CALLER_CHARS);
-}
+export type McpRequestTelemetryChannel = Readonly<{
+  caller: string | null;
+  recordInvokedTool: (toolName: string) => void;
+}>;
 
 /**
  * Serializes compactly on purpose: a tool result is read by programs and
@@ -208,6 +202,10 @@ async function buildToolErrorResult(
   dependencies: McpServerDependencies,
 ): Promise<CallToolResult> {
   const userId = connection.userId;
+  // A failing tool call is the frequent failure on this surface, so it carries
+  // the id of the MCP transport request it ran in and joins to that request's
+  // `mcp_request` record (see ./requestTelemetry). Null outside the transport.
+  const requestId = getMcpRequestId();
   if (error instanceof HttpError) {
     // Mirror app.onError's shouldCaptureRequestFailureException: report only
     // genuine 5xx HttpErrors (e.g. createWorkspaceInvariantError HttpError(500),
@@ -223,7 +221,7 @@ async function buildToolErrorResult(
           error: normalizedError,
           scope: createBackendObservationScope(
             "backend-api",
-            null,
+            requestId,
             `mcp/${toolName}`,
             "POST",
             userId,
@@ -293,7 +291,7 @@ async function buildToolErrorResult(
           action: "mcp_workspace_selection_enrichment_failed",
           scope: createBackendObservationScope(
             "backend-api",
-            null,
+            requestId,
             `mcp/${toolName}`,
             "POST",
             userId,
@@ -333,7 +331,7 @@ async function buildToolErrorResult(
       error: normalizedError,
       scope: createBackendObservationScope(
         "backend-api",
-        null,
+        requestId,
         `mcp/${toolName}`,
         "POST",
         userId,
@@ -385,23 +383,22 @@ const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
  * (env-driven, see lambda-mcp.ts) surfaced in the MCP implementation metadata.
  * `iconUrl` is the absolute https URL of the served branded SVG icon
  * (`/icon.svg`), advertised as the server `icons` entry so spec-current MCP
- * clients and auto-ingesting catalogs can render the brand.
- * `callerUserAgent` is the request `User-Agent` (see `resolveMcpCaller`), used
- * only to label the SQL telemetry record with the calling client.
+ * clients and auto-ingesting catalogs can render the brand. `telemetry` is the
+ * per-request observation channel (see `McpRequestTelemetryChannel`).
  */
 export function createMcpServer(
   connection: AuthenticatedMcpAccessToken,
   resourceUrl: string,
   websiteUrl: string,
   iconUrl: string,
-  callerUserAgent: string | null,
+  telemetry: McpRequestTelemetryChannel,
 ): McpServer {
   return createMcpServerWithDependencies(
     connection,
     resourceUrl,
     websiteUrl,
     iconUrl,
-    callerUserAgent,
+    telemetry,
     DEFAULT_MCP_SERVER_DEPENDENCIES,
   );
 }
@@ -411,10 +408,10 @@ export function createMcpServerWithDependencies(
   resourceUrl: string,
   websiteUrl: string,
   iconUrl: string,
-  callerUserAgent: string | null,
+  telemetry: McpRequestTelemetryChannel,
   dependencies: McpServerDependencies,
 ): McpServer {
-  const caller = resolveMcpCaller(callerUserAgent);
+  const caller = telemetry.caller;
   const server = new McpServer(
     {
       name: SERVER_NAME,
@@ -465,6 +462,7 @@ export function createMcpServerWithDependencies(
       annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
     },
     async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {
+      telemetry.recordInvokedTool(SQL_QUERY_TOOL_NAME);
       try {
         const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
         const result = await dependencies.runSqlQuery({
@@ -516,6 +514,7 @@ export function createMcpServerWithDependencies(
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
     },
     async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {
+      telemetry.recordInvokedTool(SQL_EXECUTE_TOOL_NAME);
       try {
         const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
         const result = await dependencies.runSqlExecute({
@@ -551,6 +550,7 @@ export function createMcpServerWithDependencies(
       annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
     },
     async (): Promise<CallToolResult> => {
+      telemetry.recordInvokedTool(LIST_WORKSPACES_TOOL_NAME);
       try {
         const workspaces = await dependencies.listUserWorkspacesWithStatsForSelectedWorkspace(
           connection.userId,

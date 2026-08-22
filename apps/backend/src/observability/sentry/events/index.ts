@@ -102,6 +102,7 @@ export type {
   GlobalMetricsS3RetryDetails,
   GlobalMetricsSnapshotFailureDetails,
   GlobalMetricsSnapshotGeneratedDetails,
+  McpRequestDetails,
   MediaAssetStorageRetryDetails,
   MediaAssetStorageTerminalDetails,
   MediaBlobCleanupBatchDetails,

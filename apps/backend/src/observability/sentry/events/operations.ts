@@ -42,6 +42,37 @@ export type AgentSqlDetails = Readonly<{
   errorClass: string | null;
 }>;
 
+/**
+ * One record per authenticated `/mcp` request, emitted whatever the request
+ * turned out to be -- a transport response, a transport fault, or the 405 that
+ * rejects a non-POST request -- so protocol traffic (`initialize`,
+ * `tools/list`), non-SQL tools, and requests that never reach the transport are
+ * visible instead of being invisible between the `agent_sql` records. The scope
+ * `requestId` is what joins this record to the `agent_sql` records the SQL tools
+ * emit underneath it.
+ *
+ * `protocolVersion` and `jsonRpcMethod` come from the `MCP-Protocol-Version`
+ * and `Mcp-Method` request headers, so both are null when the client sends
+ * them empty or not at all (`Mcp-Method` is only REQUIRED from MCP revision
+ * 2026-07-28). `toolName` is observed in process from the tool handler, so it
+ * is present for a tool call regardless of the client's protocol revision, and
+ * falls back to the client's unvalidated `Mcp-Name` header when no handler ran.
+ *
+ * No body content is carried: the transport owns the body, and tool arguments
+ * and results carry flashcard content. `responseChars` is a length measured off
+ * the response and never any of what it contains.
+ */
+export type McpRequestDetails = Readonly<{
+  protocolVersion: string | null;
+  jsonRpcMethod: string | null;
+  toolName: string | null;
+  caller: string | null;
+  connectionId: string;
+  statusCode: number;
+  durationMs: number;
+  responseChars: number | null;
+}>;
+
 export type GlobalMetricsSnapshotGeneratedDetails = Readonly<{
   bucketName: string;
   objectKey: string;
@@ -300,6 +331,7 @@ export type MigrationFailureDetails = Readonly<{
 export type OperationsBreadcrumbEvent =
   | EventByAction<"admin_query", AdminQueryDetails>
   | EventByAction<"agent_sql", AgentSqlDetails>
+  | EventByAction<"mcp_request", McpRequestDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>

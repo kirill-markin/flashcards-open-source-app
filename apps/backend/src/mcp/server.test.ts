@@ -12,6 +12,7 @@ import type { WorkspaceRequestContext } from "../server/requestContext";
 import type { WorkspaceSummaryWithStats } from "../workspaces";
 import {
   createMcpServerWithDependencies,
+  type McpRequestTelemetryChannel,
   type McpServerDependencies,
 } from "./server";
 
@@ -155,6 +156,15 @@ function readWorkspaceIdInputSchema(tool: ListedTool): JsonObject {
   return readJsonObject(properties, "workspaceId");
 }
 
+function createTelemetryChannel(invokedToolNames: Array<string>): McpRequestTelemetryChannel {
+  return {
+    caller: CALLER_USER_AGENT,
+    recordInvokedTool: (toolName) => {
+      invokedToolNames.push(toolName);
+    },
+  };
+}
+
 function createFakeDependencyCalls(): FakeDependencyCalls {
   return {
     resolveAccessibleMcpWorkspaceIds: [],
@@ -262,12 +272,13 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     lastActivityAt: null,
   }];
   const calls = createFakeDependencyCalls();
+  const invokedToolNames: Array<string> = [];
   const server = createMcpServerWithDependencies(
     connection,
     RESOURCE_URL,
     WEBSITE_URL,
     ICON_URL,
-    CALLER_USER_AGENT,
+    createTelemetryChannel(invokedToolNames),
     createFakeDependencies(calls, workspaces),
   );
   const client = new Client({ name: "mcp-protocol-smoke", version: "1.0.0" });
@@ -383,6 +394,11 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
       },
       sql: executeSql,
     }]);
+    assert.deepEqual(invokedToolNames, [
+      LIST_WORKSPACES_TOOL_NAME,
+      SQL_QUERY_TOOL_NAME,
+      SQL_EXECUTE_TOOL_NAME,
+    ]);
   } finally {
     await client.close();
     await server.close();
@@ -402,7 +418,7 @@ test("MCP SQL tools reject malformed workspace IDs before access resolution", as
     RESOURCE_URL,
     WEBSITE_URL,
     ICON_URL,
-    CALLER_USER_AGENT,
+    createTelemetryChannel([]),
     createFakeDependencies(calls, []),
   );
   const client = new Client({ name: "mcp-protocol-smoke", version: "1.0.0" });
