@@ -179,7 +179,7 @@ func expectedProgressSnapshotFactoryLeaderboardUpdatedText(elapsedText: String) 
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at",
         defaultValue: "Updated %@ ago",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard freshness text with localized elapsed time"
     )
     return String(format: localizedFormat, locale: Locale.current, elapsedText)
@@ -190,7 +190,7 @@ func expectedProgressSnapshotFactoryLeaderboardElapsedHourText(hours: Int64) -> 
         return String(
             localized: "progress.screen.leaderboard.updated_at.hour.one",
             defaultValue: "1 hour",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard freshness singular elapsed hour"
         )
     }
@@ -198,7 +198,7 @@ func expectedProgressSnapshotFactoryLeaderboardElapsedHourText(hours: Int64) -> 
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at.hour.other",
         defaultValue: "%lld hours",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard freshness plural elapsed hours"
     )
     return String(format: localizedFormat, locale: Locale.current, hours)
@@ -209,7 +209,7 @@ func expectedProgressSnapshotFactoryLeaderboardElapsedMinuteText(minutes: Int64)
         return String(
             localized: "progress.screen.leaderboard.updated_at.minute.one",
             defaultValue: "1 minute",
-            table: progressStringsTableName,
+            table: "Foundation",
             comment: "Progress leaderboard freshness singular elapsed minute"
         )
     }
@@ -217,7 +217,7 @@ func expectedProgressSnapshotFactoryLeaderboardElapsedMinuteText(minutes: Int64)
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at.minute.other",
         defaultValue: "%lld minutes",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard freshness plural elapsed minutes"
     )
     return String(format: localizedFormat, locale: Locale.current, minutes)
@@ -230,7 +230,7 @@ func expectedProgressSnapshotFactoryLeaderboardElapsedHoursMinutesText(
     let localizedFormat = String(
         localized: "progress.screen.leaderboard.updated_at.elapsed.hours_minutes",
         defaultValue: "%1$@ %2$@",
-        table: progressStringsTableName,
+        table: "Foundation",
         comment: "Progress leaderboard freshness elapsed time with hours and remaining minutes"
     )
     return String(
