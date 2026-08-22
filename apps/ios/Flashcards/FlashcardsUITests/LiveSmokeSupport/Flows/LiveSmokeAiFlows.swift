@@ -114,8 +114,7 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.assertAiConversationResetElementExists(
-            identifier: LiveSmokeIdentifier.aiEmptyState,
+        try self.assertAiConversationResetEmptyChatStateVisible(
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
 
@@ -154,7 +153,51 @@ extension LiveSmokeTestCase {
             throw LiveSmokeFailure.unexpectedAiConversationState(
                 message: "Element '\(identifier)' did not appear within "
                     + "\(formatDuration(seconds: timeout)) after starting a new chat. "
-                    + self.aiConversationResetDiagnosis(awaitedIdentifier: identifier),
+                    + self.aiConversationResetDiagnosis(
+                        awaitedDescription: "'\(identifier)'",
+                        awaitedResolvesOnRequery: self.aiElementResolves(identifier: identifier)
+                    ),
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    // Accepted limitation: a non-English launch gets no empty-state assertion at all, because the
+    // empty chat state is only reachable by its English title. The zero-row and no-new-error checks
+    // still run there, and 'LiveSmokeAiTests' launches English, so the release gate is unaffected.
+    @MainActor
+    func assertAiConversationResetEmptyChatStateVisible(timeout: TimeInterval) throws {
+        guard self.currentLaunchLocalization == .english else {
+            self.logSmokeBreadcrumb(
+                event: "assertion_skipped",
+                action: "assert_ai_conversation_reset.empty_chat_state",
+                identifier: "label==\(aiEmptyChatStateTitleText)",
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "skipped",
+                note: "the empty chat state can only be matched by its English title and the app "
+                    + "launched with localization '\(self.currentLaunchLocalization.rawValue)'"
+            )
+            return
+        }
+
+        try self.runWithInlineRawScreenStateOnFailure(
+            action: "assert_ai_conversation_reset.empty_chat_state"
+        ) {
+            if self.waitForAiChatSurfaceTitle(title: aiEmptyChatStateTitleText, timeout: timeout) {
+                return
+            }
+
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "No element labelled exactly '\(aiEmptyChatStateTitleText)' appeared within "
+                    + "\(formatDuration(seconds: timeout)) after starting a new chat. "
+                    + self.aiConversationResetDiagnosis(
+                        awaitedDescription: "an element labelled exactly '\(aiEmptyChatStateTitleText)'",
+                        awaitedResolvesOnRequery: self.aiChatSurfaceTitleIsVisible(
+                            title: aiEmptyChatStateTitleText
+                        )
+                    ),
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
@@ -164,31 +207,22 @@ extension LiveSmokeTestCase {
     // Each branch may only name a cause its own observation proves. Where an observation has more
     // than one explanation, the branch reports what it saw and lists every explanation instead of
     // picking one, because a confidently wrong cause is worse than the bare timeout it replaces.
-    // Transcript-hosting wording is gated to the 'ai.emptyState' call site: the composer accessory
-    // is not hosted by the transcript list.
+    // The transcript list itself is unobservable from XCUITest, so no branch may claim it did or did
+    // not render; 'ai.messageRow' counts and the English surface titles are the only transcript
+    // observations available.
     @MainActor
-    func aiConversationResetDiagnosis(awaitedIdentifier: String) -> String {
+    func aiConversationResetDiagnosis(awaitedDescription: String, awaitedResolvesOnRequery: Bool) -> String {
         guard self.isApplicationRunning else {
             return "Observed: the application is not in the foreground (\(self.appStateDescription()))."
         }
 
-        let awaitsTranscriptHostedElement = awaitedIdentifier == LiveSmokeIdentifier.aiEmptyState
+        let emptyChatState = self.aiEmptyChatStateObservation()
         let bootstrapPhase = self.aiChatBootstrapPhaseObservation()
         let visibleText = " Visible text: \(self.visibleTextSnapshot())"
 
-        if self.aiElementResolves(identifier: awaitedIdentifier) {
-            return "Observed: '\(awaitedIdentifier)' resolves on re-query immediately after the wait "
-                + "expired. " + bootstrapPhase + visibleText
-        }
-
-        if self.aiElementResolves(identifier: LiveSmokeIdentifier.aiConversationScrollSurface) == false {
-            let hostingClause = awaitsTranscriptHostedElement ? ", so nothing it hosts can render," : ","
-            return "Observed: the transcript list identifier "
-                + "'\(LiveSmokeIdentifier.aiConversationScrollSurface)' does not resolve either. This probe "
-                + "cannot tell its two explanations apart: either the transcript list is genuinely not "
-                + "mounted\(hostingClause) or the list is mounted and XCUITest does not "
-                + "expose that identifier — no other test in this target queries it. "
-                + bootstrapPhase + visibleText
+        if awaitedResolvesOnRequery {
+            return "Observed: \(awaitedDescription) resolves on re-query immediately after the wait "
+                + "expired. " + emptyChatState + " " + bootstrapPhase + visibleText
         }
 
         let messageRows = self.app.descendants(matching: .any)
@@ -196,29 +230,70 @@ extension LiveSmokeTestCase {
             .count
         if messageRows > 0 {
             if self.aiChatBootstrapIsLoading() == false {
-                let notClearedCause = awaitsTranscriptHostedElement
-                    ? "Cause: the previous conversation was not cleared. " : ""
-                return notClearedCause + "Observed: the transcript list resolves with "
-                    + "\(messageRows) '\(LiveSmokeIdentifier.aiMessageRow)' elements while chat bootstrap is "
-                    + "not loading, so the transcript is genuinely non-empty. "
-                    + bootstrapPhase + visibleText
+                return "Observed: \(messageRows) '\(LiveSmokeIdentifier.aiMessageRow)' elements resolve "
+                    + "while chat bootstrap is not loading, so the previous conversation was not cleared. "
+                    + emptyChatState + " " + bootstrapPhase + visibleText
             }
 
-            return "Observed: the transcript list resolves with \(messageRows) "
-                + "'\(LiveSmokeIdentifier.aiMessageRow)' elements, and chat bootstrap is not known to have "
-                + "finished. The row count cannot tell the two explanations apart: either a re-bootstrap is "
-                + "still loading over the previous transcript, or the previous conversation was never "
-                + "cleared. " + bootstrapPhase + visibleText
+            return "Observed: \(messageRows) '\(LiveSmokeIdentifier.aiMessageRow)' elements resolve, and "
+                + "chat bootstrap is not known to have finished. The row count cannot tell the two "
+                + "explanations apart: either a re-bootstrap is still loading over the previous "
+                + "transcript, or the previous conversation was never cleared. "
+                + emptyChatState + " " + bootstrapPhase + visibleText
         }
 
-        let emptyTranscriptExplanations = awaitsTranscriptHostedElement
-            ? "This probe cannot tell its two explanations apart: either the element is rendered and "
-                + "XCUITest does not expose it, or the transcript is not really empty while its rows are "
-                + "not exposed to XCUITest. "
-            : ""
-        return "Observed: the transcript list resolves, zero "
-            + "'\(LiveSmokeIdentifier.aiMessageRow)' elements resolve, and '\(awaitedIdentifier)' still does "
-            + "not resolve. " + emptyTranscriptExplanations + bootstrapPhase + visibleText
+        return "Observed: zero '\(LiveSmokeIdentifier.aiMessageRow)' elements resolve and "
+            + "\(awaitedDescription) still does not resolve. "
+            + emptyChatState + " " + bootstrapPhase + visibleText
+    }
+
+    // The empty chat state exposes no accessibility identifier XCUITest can resolve, so its English
+    // title is the only handle the tests have on it.
+    @MainActor
+    func aiEmptyChatStateObservation() -> String {
+        guard self.currentLaunchLocalization == .english else {
+            return "The empty chat state was not probed: it can only be matched by its English title and "
+                + "the app launched with localization '\(self.currentLaunchLocalization.rawValue)'."
+        }
+
+        if self.aiChatSurfaceTitleIsVisible(title: aiEmptyChatStateTitleText) {
+            return "The empty chat state is on screen: an element labelled exactly "
+                + "'\(aiEmptyChatStateTitleText)' resolves, and the app uses that label only for the "
+                + "empty-chat-state title."
+        }
+        return "The empty chat state is not on screen: no element labelled exactly "
+            + "'\(aiEmptyChatStateTitleText)' resolves. This exact-label probe does not rule out an empty "
+            + "chat state whose label XCUITest exposes differently."
+    }
+
+    @MainActor
+    func waitForAiChatSurfaceTitle(title: String, timeout: TimeInterval) -> Bool {
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_ai_chat_surface_title",
+            identifier: "label==\(title)",
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "wait begins"
+        )
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        var found = self.aiChatSurfaceTitleIsVisible(title: title)
+        while found == false && Date() < deadline {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            found = self.aiChatSurfaceTitleIsVisible(title: title)
+        }
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_ai_chat_surface_title",
+            identifier: "label==\(title)",
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: Date().timeIntervalSince(startedAt)),
+            result: found ? "success" : "failure",
+            note: "wait finished"
+        )
+        return found
     }
 
     // The failed-chat and loading-chat surfaces carry no accessibility identifier in app code, so
