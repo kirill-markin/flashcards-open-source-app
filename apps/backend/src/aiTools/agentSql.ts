@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { createAgentEnvelope } from "../agent/envelope";
 import { HttpError } from "../shared/errors";
 import { logAgentSqlEvent } from "../server/logging";
 import {
@@ -87,21 +88,34 @@ function toStatementSqls(sql: string, statements: ReadonlyArray<ParsedSqlStateme
 }
 
 /**
+ * Measures what a surface actually emits for a result.
+ *
+ * The MCP tools (`buildToolResultText` in apps/backend/src/mcp/server.ts) and
+ * the REST routes (Hono `context.json` in apps/backend/src/routes/agent.ts)
+ * both send `JSON.stringify` of the `createAgentEnvelope` object, so building
+ * the same envelope here is the one measurement both surfaces are bound by.
+ */
+function measureAgentSqlEnvelopeChars(result: AgentSqlExecutionResult, requestUrl: string): number {
+  return JSON.stringify(createAgentEnvelope(requestUrl, result.data, result.instructions)).length;
+}
+
+/**
  * Read-path result-size budget shared by the MCP surface (`sql_query`) and the
  * REST surface (`POST /agent/sql/query`).
  *
- * The agent envelope serializes `result.data`, so the budget is measured
- * against the serialized `data` payload. On overflow we fail with an actionable
- * error (matching the repo's "clear, actionable errors / no silent fallbacks"
- * principle) instead of returning a payload that exceeds the directory's
- * tool-result token limit. Nothing is committed on a read, and the remedies are
- * concrete: narrow the result set.
+ * On overflow we fail with an actionable error (matching the repo's "clear,
+ * actionable errors / no silent fallbacks" principle) instead of returning a
+ * payload that exceeds the directory's tool-result token limit. Nothing is
+ * committed on a read, and the remedies are concrete: narrow the result set.
  *
  * Writes must never reach this: their transaction is already committed when the
  * size is measured, so they drop rows instead (see the reducers below).
  */
-function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(result: T): T {
-  const serializedLength = JSON.stringify(result.data).length;
+function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(
+  result: T,
+  requestUrl: string,
+): T {
+  const serializedLength = measureAgentSqlEnvelopeChars(result, requestUrl);
   if (serializedLength > MAX_SQL_RESULT_CHARS) {
     throw new HttpError(
       400,
@@ -131,8 +145,9 @@ const OMITTED_MUTATION_ROWS_INSTRUCTION =
  */
 function reduceMutationResultToSizeBudget(
   result: AgentSqlMutationExecutionResult,
+  requestUrl: string,
 ): AgentSqlMutationExecutionResult {
-  if (JSON.stringify(result.data).length <= MAX_SQL_RESULT_CHARS) {
+  if (measureAgentSqlEnvelopeChars(result, requestUrl) <= MAX_SQL_RESULT_CHARS) {
     return result;
   }
 
@@ -147,8 +162,9 @@ function reduceMutationResultToSizeBudget(
 
 function reduceBatchMutationResultToSizeBudget(
   result: AgentSqlBatchExecutionResult,
+  requestUrl: string,
 ): AgentSqlBatchExecutionResult {
-  if (JSON.stringify(result.data).length <= MAX_SQL_RESULT_CHARS) {
+  if (measureAgentSqlEnvelopeChars(result, requestUrl) <= MAX_SQL_RESULT_CHARS) {
     return result;
   }
 
@@ -326,6 +342,9 @@ export async function executeAgentSql(
  * mutation with an actionable error that points at `sql_execute`, then runs the
  * existing read executors.
  *
+ * `requestUrl` is the URL the calling surface builds its agent envelope from,
+ * needed here so the result-size budget measures the emitted envelope.
+ *
  * The statement-direction parser guard below (`isSqlReadStatement`) rejects
  * caller-authored writes. The repository read helpers reached from SELECT
  * statements also open repeatable-read `READ ONLY` transactions, so the
@@ -335,6 +354,7 @@ export async function executeAgentSql(
 export async function runSqlQuery(
   context: AgentSqlContext,
   sql: string,
+  requestUrl: string,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
   return withAgentSqlTelemetry(context, sql, async () => {
@@ -345,11 +365,13 @@ export async function runSqlQuery(
       if (statements.length === 1) {
         return assertSqlResultWithinSizeBudget(
           await executeSqlReadStatement(dependencies, context, sql, statements[0]),
+          requestUrl,
         );
       }
 
       return assertSqlResultWithinSizeBudget(
         await executeSqlReadBatch(dependencies, context, sql, statements, statementSqls),
+        requestUrl,
       );
     }
 
@@ -364,10 +386,14 @@ export async function runSqlQuery(
  * tool and `POST /agent/sql/execute`). Parses the batch, rejects any read with
  * an actionable error that points at `sql_query`, then runs the existing atomic
  * mutation executors.
+ *
+ * `requestUrl` is the URL the calling surface builds its agent envelope from,
+ * needed here so the result-size budget measures the emitted envelope.
  */
 export async function runSqlExecute(
   context: AgentSqlContext,
   sql: string,
+  requestUrl: string,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
   return withAgentSqlTelemetry(context, sql, async () => {
@@ -378,11 +404,13 @@ export async function runSqlExecute(
       if (statements.length === 1) {
         return reduceMutationResultToSizeBudget(
           await executeSqlMutationStatement(dependencies, context, sql, statements[0]),
+          requestUrl,
         );
       }
 
       return reduceBatchMutationResultToSizeBudget(
         await executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls),
+        requestUrl,
       );
     }
 
