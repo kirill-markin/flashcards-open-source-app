@@ -309,13 +309,6 @@ internal fun AiComposer(
             ) {
                 Spacer(modifier = Modifier.weight(1f))
 
-                if (uiState.isStreaming) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(aiComposerProgressSize)
-                    )
-                }
-
                 IconButton(
                     onClick = onOpenAttachmentMenu,
                     enabled = uiState.canAddDraftAttachment,
