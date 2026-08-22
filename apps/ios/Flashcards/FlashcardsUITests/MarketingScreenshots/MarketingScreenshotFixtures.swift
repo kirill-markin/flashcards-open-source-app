@@ -644,9 +644,6 @@ extension MarketingManualScreenshotTestCase {
         let dismissalSurface = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiScreen)
             .firstMatch
-        let emptyStateLabel = self.app.staticTexts
-            .matching(identifier: LiveSmokeIdentifier.aiEmptyState)
-            .element(boundBy: 0)
         let navigationBar = self.app.navigationBars.firstMatch
         let composerTextField = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiComposerTextField)
@@ -658,8 +655,6 @@ extension MarketingManualScreenshotTestCase {
                 dismissalSurface.coordinate(
                     withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)
                 ).tap()
-            } else if emptyStateLabel.exists && emptyStateLabel.isHittable {
-                emptyStateLabel.tap()
             } else if navigationBar.exists && navigationBar.isHittable {
                 navigationBar.tap()
             } else {
