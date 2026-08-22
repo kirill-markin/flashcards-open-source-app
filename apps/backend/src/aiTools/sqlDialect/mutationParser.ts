@@ -1,7 +1,11 @@
-import { getSqlColumnDescriptor } from "./schema";
+import {
+  ensureSqlSourceColumnExists,
+  getSqlColumnDescriptor,
+} from "./schema";
 import {
   assert,
   extractTopLevelClauses,
+  findTopLevelClauseMatches,
   splitTopLevel,
 } from "./parserSplitting";
 import {
@@ -13,11 +17,75 @@ import type {
   SqlDeleteStatement,
   SqlFromSource,
   SqlInsertStatement,
+  SqlReturningClause,
   SqlUpdateStatement,
 } from "./types";
 
+const RETURNING_CLAUSE_ERROR = "RETURNING must be followed by * or a comma-separated column list";
+
+/**
+ * Splits the trailing RETURNING clause off an INSERT so the VALUES grammar
+ * below never sees it. UPDATE and DELETE get the same split for free from
+ * `extractTopLevelClauses`, which INSERT does not use.
+ */
+function splitInsertReturningSegment(normalizedSql: string): Readonly<{
+  body: string;
+  returningValue: string | null;
+}> {
+  const matches = findTopLevelClauseMatches(normalizedSql, [{ name: "returning", keyword: "RETURNING" }] as const);
+  const firstMatch = matches[0];
+  if (firstMatch === undefined) {
+    return {
+      body: normalizedSql,
+      returningValue: null,
+    };
+  }
+
+  if (matches.length > 1) {
+    throw new Error("Duplicate INSERT clause: RETURNING");
+  }
+
+  return {
+    body: normalizedSql.slice(0, firstMatch.index).trim(),
+    returningValue: normalizedSql.slice(firstMatch.index + firstMatch.keyword.length).trim(),
+  };
+}
+
+/**
+ * RETURNING is a projection over the read surface, so it accepts every column
+ * a SELECT exposes, including the read-only ones, and rejects the write-only
+ * legacy inputs that `getSqlColumnDescriptor` still accepts in assignments.
+ */
+function parseReturningClause(resourceName: "cards" | "decks", value: string): SqlReturningClause {
+  if (value === "*") {
+    return { type: "all" };
+  }
+
+  const source: SqlFromSource = {
+    resourceName,
+    unnestColumnName: null,
+    unnestAlias: null,
+  };
+  const columnNames = splitTopLevel(value, ",").map((item) => {
+    const columnName = item.trim().toLowerCase();
+    if (/^[a-z_][a-z0-9_]*$/.test(columnName) === false) {
+      throw new Error(`Unsupported RETURNING item: ${item.trim()}. ${RETURNING_CLAUSE_ERROR}`);
+    }
+
+    ensureSqlSourceColumnExists(source, columnName);
+    return columnName;
+  });
+  assert(columnNames.length > 0, RETURNING_CLAUSE_ERROR);
+
+  return {
+    type: "columns",
+    columnNames,
+  };
+}
+
 export function parseInsertStatement(normalizedSql: string): SqlInsertStatement {
-  const match = normalizedSql.match(/^INSERT\s+INTO\s+([a-z_][a-z0-9_]*)\s*\((.+)\)\s+VALUES\s+([\s\S]+)$/i);
+  const { body, returningValue } = splitInsertReturningSegment(normalizedSql);
+  const match = body.match(/^INSERT\s+INTO\s+([a-z_][a-z0-9_]*)\s*\((.+)\)\s+VALUES\s+([\s\S]+)$/i);
   if (match === null) {
     throw new Error(
       "INSERT must list columns explicitly, e.g. INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ('tag')). Array columns use a parenthesized list; () means empty.",
@@ -77,6 +145,7 @@ export function parseInsertStatement(normalizedSql: string): SqlInsertStatement 
     resourceName,
     columnNames,
     rows: parsedRows,
+    returning: returningValue === null ? null : parseReturningClause(resourceName, returningValue),
     normalizedSql,
   };
 }
@@ -124,11 +193,13 @@ export function parseUpdateStatement(normalizedSql: string): SqlUpdateStatement 
     [
       { name: "set", keyword: "SET" },
       { name: "where", keyword: "WHERE" },
+      { name: "returning", keyword: "RETURNING" },
     ] as const,
     "UPDATE",
   );
   const assignmentsValue = extractedClauses.clauseValues.get("set");
   const predicateValue = extractedClauses.clauseValues.get("where");
+  const returningValue = extractedClauses.clauseValues.get("returning");
   if (extractedClauses.leadingSegment !== "" || assignmentsValue === undefined || predicateValue === undefined) {
     throw new Error("Unsupported UPDATE statement");
   }
@@ -138,6 +209,7 @@ export function parseUpdateStatement(normalizedSql: string): SqlUpdateStatement 
     resourceName,
     assignments: parseAssignments(resourceName, assignmentsValue),
     predicate: parseWherePredicate(source, predicateValue),
+    returning: returningValue === undefined ? null : parseReturningClause(resourceName, returningValue),
     normalizedSql,
   };
 }
@@ -160,10 +232,14 @@ export function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement 
   };
   const extractedClauses = extractTopLevelClauses(
     (match[2] ?? "").trim(),
-    [{ name: "where", keyword: "WHERE" }] as const,
+    [
+      { name: "where", keyword: "WHERE" },
+      { name: "returning", keyword: "RETURNING" },
+    ] as const,
     "DELETE",
   );
   const predicateValue = extractedClauses.clauseValues.get("where");
+  const returningValue = extractedClauses.clauseValues.get("returning");
   if (extractedClauses.leadingSegment !== "" || predicateValue === undefined) {
     throw new Error("Unsupported DELETE statement");
   }
@@ -172,6 +248,7 @@ export function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement 
     type: "delete",
     resourceName,
     predicate: parseWherePredicate(source, predicateValue),
+    returning: returningValue === undefined ? null : parseReturningClause(resourceName, returningValue),
     normalizedSql,
   };
 }

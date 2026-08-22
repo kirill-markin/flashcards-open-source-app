@@ -63,6 +63,8 @@ export const SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql_execute => {\"sql\": \"UPDATE cards SET back_text = 'First update' WHERE card_id = '00000000-0000-4000-8000-000000000000'; UPDATE cards SET back_text = 'Second update' WHERE card_id = '00000000-0000-4000-8000-000000000001'\"}",
   "- sql_execute => {\"sql\": \"DELETE FROM decks WHERE deck_id IN ('00000000-0000-4000-8000-000000000000')\"}",
   "- sql_execute => {\"sql\": \"DELETE FROM cards WHERE tags OVERLAP ('some-tag')\"}",
+  "- sql_execute => {\"sql\": \"INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ('grammar')) RETURNING card_id, front_text, back_text\"}",
+  "- sql_execute => {\"sql\": \"DELETE FROM cards WHERE card_id = '00000000-0000-4000-8000-000000000000' RETURNING *\"}",
 ]);
 
 /**
@@ -150,6 +152,12 @@ const SQL_MUTATION_TAG_FILTER_DESCRIPTION =
   "Filter by tag in UPDATE and DELETE with tags OVERLAP ('tag'), because UNNEST is only available in SELECT.";
 
 /**
+ * Write-side result projection, shared by every write surface.
+ */
+export const SQL_RETURNING_DESCRIPTION =
+  "INSERT, UPDATE, and DELETE accept a trailing RETURNING * or RETURNING col1, col2 clause; without it INSERT and UPDATE return only the identifier column and DELETE returns no rows. DELETE RETURNING reports each row as it was before deletion. Prefer a narrow column list over RETURNING *.";
+
+/**
  * Write-side mirror of the WHERE grammar for the MCP `sql_execute` description,
  * composed from the same predicate guidance as the in-app `sql` description.
  * Runtime parsing lives in `apps/backend/src/aiTools/sqlDialect/predicateParser.ts`.
@@ -195,6 +203,7 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
   "Mutation batches are applied atomically: all statements succeed or the whole batch fails.",
   SQL_BULK_WRITE_SPLIT_DESCRIPTION,
   "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
+  SQL_RETURNING_DESCRIPTION,
   SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION,
   "Examples (tool-call JSON):",
   ...SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES,
@@ -214,6 +223,7 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     "UPDATE and DELETE WHERE clauses support the same forms as SELECT WHERE clauses.",
     SQL_MUTATION_TAG_FILTER_DESCRIPTION,
     "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
+    SQL_RETURNING_DESCRIPTION,
     "Examples (tool-call JSON):",
     ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
   ].join(" "),

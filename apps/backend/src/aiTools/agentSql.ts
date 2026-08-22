@@ -129,10 +129,10 @@ function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(
 
 /**
  * Appended to the instructions of a committed write whose payload had to shrink,
- * so the model knows the rows are missing by design and how to get them.
+ * so the model knows the rows are missing by design.
  */
 const OMITTED_MUTATION_ROWS_INSTRUCTION =
-  "The affected rows were omitted from this result because the payload exceeded the result-size budget. The write itself succeeded, so do not repeat it: run a follow-up SELECT query if you need the affected rows.";
+  "The affected rows were omitted from this result because the payload exceeded the result-size budget. The write itself succeeded, so do not repeat it: a follow-up SELECT still recovers the rows an INSERT or UPDATE left in place, but the rows a DELETE removed are gone, so split the work into smaller batches to keep them next time.";
 
 /**
  * Shrinks an oversized committed write result instead of rejecting it.

@@ -31,10 +31,11 @@ import {
   buildCreateDeckInput,
   makeBatchNormalizedSql,
   requireSqlMutationTargetIds,
-  toCardIdRows,
+  toCardMutationRows,
   toCardRow,
-  toDeckIdRows,
+  toDeckMutationRows,
   toDeckRow,
+  toDeletedMutationRows,
   wrapBatchExecutionError,
   type AgentSqlBatchExecutionResult,
   type AgentSqlContext,
@@ -273,7 +274,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "insert",
             resource: "cards",
-            rows: toCardIdRows(createdCards),
+            rows: toCardMutationRows(createdCards, statement.returning),
             affectedCount: createdCards.length,
           });
           continue;
@@ -307,7 +308,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "insert",
             resource: "decks",
-            rows: toDeckIdRows(createdDecks),
+            rows: toDeckMutationRows(createdDecks, statement.returning),
             affectedCount: createdDecks.length,
           });
           continue;
@@ -347,7 +348,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "update",
             resource: "cards",
-            rows: toCardIdRows(updatedCards),
+            rows: toCardMutationRows(updatedCards, statement.returning),
             affectedCount: updatedCards.length,
           });
           continue;
@@ -379,7 +380,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "update",
             resource: "decks",
-            rows: toDeckIdRows(updatedDecks),
+            rows: toDeckMutationRows(updatedDecks, statement.returning),
             affectedCount: updatedDecks.length,
           });
           continue;
@@ -403,7 +404,7 @@ export async function executeSqlMutationBatch(
           payloads.push({
             statementType: "delete",
             resource: "cards",
-            rows: [],
+            rows: toDeletedMutationRows("cards", targetIds, matchedRows, statement.returning),
             affectedCount: targetIds.length,
           });
           continue;
@@ -426,7 +427,7 @@ export async function executeSqlMutationBatch(
         payloads.push({
           statementType: "delete",
           resource: "decks",
-          rows: [],
+          rows: toDeletedMutationRows("decks", targetIds, matchedRows, statement.returning),
           affectedCount: targetIds.length,
         });
       } catch (error) {
