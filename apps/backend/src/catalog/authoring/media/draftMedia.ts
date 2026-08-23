@@ -8,11 +8,11 @@ import {
 } from "../../../mediaAssets/blobLifecycle";
 import { HttpError } from "../../../shared/errors";
 import {
+  containsUnsafePublicPackageMediaReference,
   normalizeNullableString,
   normalizePackageMediaKey,
 } from "../../common";
 import { rethrowCatalogPersistenceError } from "../../errors";
-import { isPublicCatalogTextSafe } from "../../publicSafety";
 import {
   catalogPackageMediaAssetColumns,
   lockCatalogPackageInExecutor,
@@ -54,7 +54,10 @@ function normalizeCatalogPackageMediaMetadata(
     ["license", metadata.license],
   ] as const;
   for (const [field, value] of textFields) {
-    if (isPublicCatalogTextSafe(value) === false) {
+    if (
+      value !== null
+      && containsUnsafePublicPackageMediaReference(value)
+    ) {
       throw new HttpError(
         400,
         `Catalog package media metadata is not eligible for public presentation. field=${field} reason=contains a private or managed-storage media reference`,
