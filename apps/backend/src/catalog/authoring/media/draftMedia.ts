@@ -12,6 +12,7 @@ import {
   normalizePackageMediaKey,
 } from "../../common";
 import { rethrowCatalogPersistenceError } from "../../errors";
+import { isPublicCatalogTextSafe } from "../../publicSafety";
 import {
   catalogPackageMediaAssetColumns,
   lockCatalogPackageInExecutor,
@@ -30,6 +31,39 @@ export type CatalogPackageMediaMutationResult = Readonly<{
   mediaAsset: CatalogPackageMediaAsset;
   applied: boolean;
 }>;
+
+type CatalogPackageMediaMetadata = Readonly<{
+  altText: string | null;
+  credit: string | null;
+  license: string | null;
+}>;
+
+function normalizeCatalogPackageMediaMetadata(
+  altText: string | null,
+  credit: string | null,
+  license: string | null,
+): CatalogPackageMediaMetadata {
+  const metadata = {
+    altText: normalizeNullableString(altText, "altText"),
+    credit: normalizeNullableString(credit, "credit"),
+    license: normalizeNullableString(license, "license"),
+  };
+  const textFields = [
+    ["altText", metadata.altText],
+    ["credit", metadata.credit],
+    ["license", metadata.license],
+  ] as const;
+  for (const [field, value] of textFields) {
+    if (isPublicCatalogTextSafe(value) === false) {
+      throw new HttpError(
+        400,
+        `Catalog package media metadata is not eligible for public presentation. field=${field} reason=contains a private or managed-storage media reference`,
+        "CATALOG_PACKAGE_MEDIA_METADATA_NOT_PUBLICLY_ELIGIBLE",
+      );
+    }
+  }
+  return metadata;
+}
 
 export async function scheduleDisplacedMediaBlobCleanupInExecutor(
   executor: DatabaseExecutor,
@@ -109,6 +143,9 @@ export async function createOrReplayCatalogPackageDraftCardImageInExecutor(
   packageId: string,
   packageMediaKey: string,
   mediaBlobId: string,
+  altText: string | null,
+  credit: string | null,
+  license: string | null,
 ): Promise<CatalogPackageMediaMutationResult> {
   const normalizedPackageMediaKey = normalizePackageMediaKey(
     packageMediaKey,
@@ -121,6 +158,11 @@ export async function createOrReplayCatalogPackageDraftCardImageInExecutor(
       "CATALOG_PACKAGE_MEDIA_KEY_RESERVED",
     );
   }
+  const metadata = normalizeCatalogPackageMediaMetadata(
+    altText,
+    credit,
+    license,
+  );
   try {
     await lockCatalogPackageInExecutor(executor, packageId);
     const existing = await loadCatalogPackageDraftMediaAssetForUpdateInExecutor(
@@ -136,6 +178,18 @@ export async function createOrReplayCatalogPackageDraftCardImageInExecutor(
           "CATALOG_PACKAGE_MEDIA_KEY_CONTENT_CONFLICT",
         );
       }
+      const conflictingMetadataFields = [
+        existing.alt_text === metadata.altText ? null : "altText",
+        existing.credit === metadata.credit ? null : "credit",
+        existing.license === metadata.license ? null : "license",
+      ].filter((field): field is string => field !== null);
+      if (conflictingMetadataFields.length !== 0) {
+        throw new HttpError(
+          409,
+          `Catalog package media key already contains different metadata. packageId=${packageId} packageMediaKey=${normalizedPackageMediaKey} conflictingFields=${conflictingMetadataFields.join(",")}`,
+          "CATALOG_PACKAGE_MEDIA_KEY_METADATA_CONFLICT",
+        );
+      }
       return { mediaAsset: mapCatalogPackageMediaAssetRow(existing), applied: false };
     }
 
@@ -145,9 +199,9 @@ export async function createOrReplayCatalogPackageDraftCardImageInExecutor(
         packageId,
         normalizedPackageMediaKey,
         mediaBlobId,
-        null,
-        null,
-        null,
+        metadata.altText,
+        metadata.credit,
+        metadata.license,
       ),
       applied: true,
     };
