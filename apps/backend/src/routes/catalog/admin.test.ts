@@ -11,6 +11,7 @@ import type {
 } from "../../catalog/types";
 import type {
   CatalogCollectionCoverImageIngestionResult,
+  CatalogPackageCardImageIngestionInput,
   CatalogPackageCoverImageIngestionInput,
   CatalogPackageImageIngestionResult,
 } from "../../catalog/authoring/media/imageIngestion";
@@ -243,7 +244,12 @@ test("POST catalog version from workspace preserves malformed workspace errors",
   assert.equal(processingCalls, 0);
 });
 
-function createCatalogImageResult(packageMediaKey: string): CatalogPackageImageIngestionResult {
+function createCatalogImageResult(
+  packageMediaKey: string,
+  altText: string | null,
+  credit: string | null,
+  license: string | null,
+): CatalogPackageImageIngestionResult {
   const timestamp = "2026-08-11T00:00:00.000Z";
   const mediaAsset: CatalogPackageMediaAsset = {
     packageMediaAssetId: "44444444-4444-4444-8444-444444444444",
@@ -251,9 +257,9 @@ function createCatalogImageResult(packageMediaKey: string): CatalogPackageImageI
     packageVersionId: null,
     packageMediaKey,
     mediaBlobId: "55555555-5555-4555-8555-555555555555",
-    altText: null,
-    credit: null,
-    license: null,
+    altText,
+    credit,
+    license,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -276,7 +282,7 @@ function createCatalogCollectionCoverResult(): CatalogCollectionCoverImageIngest
 
 function createCatalogImageTestApp(
   authorize: () => Promise<AdminRequestContext>,
-  ingestCard: (packageMediaKey: string, imageBytes: Buffer) => Promise<CatalogPackageImageIngestionResult>,
+  ingestCard: (input: CatalogPackageCardImageIngestionInput) => Promise<CatalogPackageImageIngestionResult>,
   replacePackageCover: (input: CatalogPackageCoverImageIngestionInput) => Promise<CatalogPackageImageIngestionResult>,
   replaceCollectionCover: (receivedCollectionId: string, imageBytes: Buffer) => Promise<CatalogCollectionCoverImageIngestionResult>,
 ): Hono<AppEnv> {
@@ -297,10 +303,7 @@ function createCatalogImageTestApp(
   app.route("/", createCatalogAdminImageIngestionRoutes({
     allowedOrigins: [],
     requireAdminRequestFn: authorize,
-    ingestCatalogPackageCardImageFn: async (input) => ingestCard(
-      input.packageMediaKey,
-      input.imageBytes,
-    ),
+    ingestCatalogPackageCardImageFn: ingestCard,
     replaceCatalogPackageCoverImageFn: replacePackageCover,
     replaceCatalogCollectionCoverImageFn: async (input) => replaceCollectionCover(
       input.collectionId,
@@ -318,11 +321,11 @@ test("catalog image routes authorize before validating raw bodies", async () => 
     },
     async () => {
       processingCalls += 1;
-      return createCatalogImageResult("diagram");
+      return createCatalogImageResult("diagram", null, null, null);
     },
     async () => {
       processingCalls += 1;
-      return createCatalogImageResult("cover");
+      return createCatalogImageResult("cover", null, null, null);
     },
     async () => {
       processingCalls += 1;
@@ -345,30 +348,33 @@ test("catalog image routes authorize before validating raw bodies", async () => 
 
 test("catalog image routes validate raw input and never expose media blob IDs", async () => {
   let cardCalls = 0;
+  const cardInputs: Array<CatalogPackageCardImageIngestionInput> = [];
   const coverInputs: Array<CatalogPackageCoverImageIngestionInput> = [];
   let collectionCalls = 0;
   const app = createCatalogImageTestApp(
     async () => createAdminRequestContext(),
-    async (packageMediaKey, imageBytes) => {
+    async (input) => {
       cardCalls += 1;
-      assert.equal(packageMediaKey, "diagram");
-      assert.deepEqual(imageBytes, Buffer.from([1, 2, 3]));
-      return createCatalogImageResult(packageMediaKey);
+      cardInputs.push(input);
+      assert.equal(input.packageMediaKey, "diagram");
+      assert.deepEqual(input.imageBytes, Buffer.from([1, 2, 3]));
+      return createCatalogImageResult(
+        input.packageMediaKey,
+        input.altText,
+        input.credit,
+        input.license,
+      );
     },
     async (input) => {
       coverInputs.push(input);
       assert.equal(input.packageId, packageId);
       assert.deepEqual(input.imageBytes, Buffer.from([1, 2, 3]));
-      const result = createCatalogImageResult("cover");
-      return {
-        ...result,
-        mediaAsset: {
-          ...result.mediaAsset,
-          altText: input.altText,
-          credit: input.credit,
-          license: input.license,
-        },
-      };
+      return createCatalogImageResult(
+        "cover",
+        input.altText,
+        input.credit,
+        input.license,
+      );
     },
     async (receivedCollectionId, imageBytes) => {
       collectionCalls += 1;
@@ -405,6 +411,14 @@ test("catalog image routes validate raw input and never expose media blob IDs", 
     assert.equal("mediaBlobId" in payload.mediaAsset, false);
   }
   assert.deepEqual(
+    cardInputs.map((input) => ({
+      altText: input.altText,
+      credit: input.credit,
+      license: input.license,
+    })),
+    [{ altText: null, credit: null, license: null }],
+  );
+  assert.deepEqual(
     coverInputs.map((input) => ({
       altText: input.altText,
       credit: input.credit,
@@ -418,6 +432,30 @@ test("catalog image routes validate raw input and never expose media blob IDs", 
     credit: "© María Núñez",
     license: "CC BY 4.0",
   };
+  const cardMetadataResponse = await app.request(
+    `http://localhost/admin/catalog/packages/${packageId}/media-assets/images?${new URLSearchParams(coverMetadata)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "image/png", "x-package-media-key": "diagram" },
+      body: Buffer.from([1, 2, 3]),
+    },
+  );
+  const cardMetadataPayload = await cardMetadataResponse.json() as Readonly<{
+    mediaAsset: Readonly<Record<string, unknown>>;
+  }>;
+  assert.equal(cardMetadataResponse.status, 201);
+  assert.equal(cardMetadataPayload.mediaAsset.altText, coverMetadata.altText);
+  assert.equal(cardMetadataPayload.mediaAsset.credit, coverMetadata.credit);
+  assert.equal(cardMetadataPayload.mediaAsset.license, coverMetadata.license);
+  assert.deepEqual(
+    cardInputs.slice(1).map((input) => ({
+      altText: input.altText,
+      credit: input.credit,
+      license: input.license,
+    })),
+    [coverMetadata],
+  );
+
   const metadataResponse = await app.request(
     `http://localhost/admin/catalog/packages/${packageId}/cover?${new URLSearchParams(coverMetadata)}`,
     {
@@ -456,7 +494,7 @@ test("catalog image routes validate raw input and never expose media blob IDs", 
   }>;
   assert.equal(collectionResponse.status, 200);
   assert.equal("coverMediaBlobId" in collectionPayload.collectionCover, false);
-  assert.equal(cardCalls, 1);
+  assert.equal(cardCalls, 2);
   assert.equal(collectionCalls, 1);
 });
 
@@ -471,7 +509,7 @@ test("catalog image routes normalize ingestion deadline errors", async () => {
       async () => {
         throw error;
       },
-      async () => createCatalogImageResult("cover"),
+      async () => createCatalogImageResult("cover", null, null, null),
       async () => createCatalogCollectionCoverResult(),
     );
     const response = await app.request(
