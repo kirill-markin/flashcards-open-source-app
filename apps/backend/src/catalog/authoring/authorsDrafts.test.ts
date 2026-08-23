@@ -483,6 +483,11 @@ test("published catalog packages can stage and replay card images and replace co
     updated_at: testTimestamp,
   };
   let coverPackageMediaKey: string | null = null;
+  const cardMetadata = {
+    altText: "Side-chain diagram with a non-leaking description",
+    credit: "Original deterministic diagram",
+    license: "CC0 1.0",
+  };
   const lifecycleSwapParams: Array<ReadonlyArray<SqlValue>> = [];
   const cleanupParams: Array<ReadonlyArray<SqlValue>> = [];
   const mediaUpdateParams: Array<ReadonlyArray<SqlValue>> = [];
@@ -504,12 +509,22 @@ test("published catalog packages can stage and replay card images and replace co
         return createQueryResult(row === null ? [] : [row as unknown as Row]);
       }
       if (text.includes("INSERT INTO catalog.package_media_assets")) {
-        assert.deepEqual(params, [testPackageId, "diagram", testMediaBlobId, null, null, null]);
+        assert.deepEqual(params, [
+          testPackageId,
+          "diagram",
+          testMediaBlobId,
+          cardMetadata.altText,
+          cardMetadata.credit,
+          cardMetadata.license,
+        ]);
         cardRow = {
           ...coverRow,
           package_media_asset_id: cardMediaAssetId,
           package_media_key: String(params[1]),
           media_blob_id: String(params[2]),
+          alt_text: params[3] as string | null,
+          credit: params[4] as string | null,
+          license: params[5] as string | null,
         };
         assert.match(text, /gen_random_uuid\(\)/u);
         return createQueryResult([cardRow as unknown as Row]);
@@ -547,26 +562,65 @@ test("published catalog packages can stage and replay card images and replace co
     testPackageId,
     " Diagram ",
     testMediaBlobId,
+    `  ${cardMetadata.altText}  `,
+    ` ${cardMetadata.credit} `,
+    ` ${cardMetadata.license} `,
   );
   const replayed = await createOrReplayCatalogPackageDraftCardImageInExecutor(
     executor,
     testPackageId,
     "diagram",
     testMediaBlobId,
+    cardMetadata.altText,
+    cardMetadata.credit,
+    cardMetadata.license,
   );
   assert.equal(created.applied, true);
   assert.equal(replayed.applied, false);
   assert.equal(replayed.mediaAsset.packageMediaAssetId, cardMediaAssetId);
+  assert.equal(replayed.mediaAsset.altText, cardMetadata.altText);
+  await assert.rejects(
+    createOrReplayCatalogPackageDraftCardImageInExecutor(
+      executor,
+      testPackageId,
+      "diagram",
+      testMediaBlobId,
+      "Different accessible description",
+      cardMetadata.credit,
+      cardMetadata.license,
+    ),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 409
+      && error.code === "CATALOG_PACKAGE_MEDIA_KEY_METADATA_CONFLICT"
+      && error.message.includes("conflictingFields=altText"),
+  );
   await assert.rejects(
     createOrReplayCatalogPackageDraftCardImageInExecutor(
       executor,
       testPackageId,
       "diagram",
       replacementBlobId,
+      cardMetadata.altText,
+      cardMetadata.credit,
+      cardMetadata.license,
     ),
     (error: unknown) => error instanceof HttpError
       && error.statusCode === 409
       && error.code === "CATALOG_PACKAGE_MEDIA_KEY_CONTENT_CONFLICT",
+  );
+  await assert.rejects(
+    createOrReplayCatalogPackageDraftCardImageInExecutor(
+      executor,
+      testPackageId,
+      "diagram",
+      testMediaBlobId,
+      `Unsafe ${unsafePublicCatalogStorageReference}`,
+      cardMetadata.credit,
+      cardMetadata.license,
+    ),
+    (error: unknown) => error instanceof HttpError
+      && error.statusCode === 400
+      && error.code === "CATALOG_PACKAGE_MEDIA_METADATA_NOT_PUBLICLY_ELIGIBLE",
   );
 
   const replaced = await replaceCatalogPackageDraftCoverInExecutor(

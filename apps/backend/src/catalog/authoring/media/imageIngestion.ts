@@ -57,6 +57,9 @@ export type CatalogPackageCardImageIngestionInput =
   CatalogImageBlobIngestionInput & Readonly<{
     packageId: string;
     packageMediaKey: string;
+    altText: string | null;
+    credit: string | null;
+    license: string | null;
   }>;
 
 export type CatalogPackageCoverImageIngestionInput =
@@ -522,6 +525,9 @@ export async function ingestCatalogPackageCardImage(
         input.packageId,
         input.packageMediaKey,
         mediaBlob.mediaBlobId,
+        input.altText,
+        input.credit,
+        input.license,
       ),
       deadlineInput.deadlineAtMs,
       deadlineInput.signal,
