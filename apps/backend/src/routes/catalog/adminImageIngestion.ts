@@ -239,11 +239,19 @@ export function createCatalogAdminImageIngestionRoutes(options: CatalogAdminImag
           userId = admin.userId;
           const packageId = parsePackageId(context.req.param("packageId"));
           const packageMediaKey = parsePackageMediaKey(context.req.raw.headers);
+          const requestUrl = new URL(context.req.url);
           const imageBytes = await readMediaAssetImageIngestionBytesWithAbortSignal(
             context.req.raw,
             deadline.preprocessingSignal,
           );
-          return { packageId, packageMediaKey, imageBytes };
+          return {
+            packageId,
+            packageMediaKey,
+            imageBytes,
+            altText: requestUrl.searchParams.get("altText"),
+            credit: requestUrl.searchParams.get("credit"),
+            license: requestUrl.searchParams.get("license"),
+          };
         },
       );
       deadline.disposePreprocessing();
@@ -252,6 +260,9 @@ export function createCatalogAdminImageIngestionRoutes(options: CatalogAdminImag
         packageId: prepared.packageId,
         packageMediaKey: prepared.packageMediaKey,
         imageBytes: prepared.imageBytes,
+        altText: prepared.altText,
+        credit: prepared.credit,
+        license: prepared.license,
         deadlineAtMs: deadline.requestDeadlineAtMs,
         signal: deadline.requestSignal,
         observationScope: scope,
