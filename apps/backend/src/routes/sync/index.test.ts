@@ -11,6 +11,7 @@ import { createSyncRoutes } from "./index";
 
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const legacyWorkspaceId = "35274129-ef97-d366-954c-955b4bb0fbf0";
+const installationId = "22222222-2222-4222-8222-222222222222";
 
 function createCodedError(code: string, message: string): Error & Readonly<{ code: string }> {
   const error = new Error(message) as Error & { code: string };
@@ -157,7 +158,7 @@ test("POST /sync/push accepts card payloads without legacy effortLevel", async (
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      installationId: "install-1",
+      installationId,
       platform: "web",
       appVersion: "1.0.0",
       operations: [
@@ -205,6 +206,44 @@ test("POST /sync/push accepts card payloads without legacy effortLevel", async (
   assert.equal(processCalls, 1);
 });
 
+test("POST /sync/push rejects malformed installationId before sync processing", async () => {
+  let processCalls = 0;
+  const routes = createSyncRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    assertUserHasWorkspaceAccessFn: async () => {},
+    processSyncPushFn: async () => {
+      processCalls += 1;
+      throw new Error("Malformed installationId should be rejected before sync processing");
+    },
+  });
+  const app = createSyncTestApp(routes);
+
+  const response = await app.request(`http://localhost/workspaces/${workspaceId}/sync/push`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      installationId: "flashcards-review-bff-v1",
+      platform: "web",
+      appVersion: "1.0.0",
+      operations: [],
+    }),
+  });
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    error: "Cloud sync failed. Try again.",
+    requestId: "request-1",
+    code: "SYNC_INVALID_INPUT",
+  });
+  assert.equal(processCalls, 0);
+});
+
 test("POST /sync/bootstrap preserves a legacy PostgreSQL workspace ID", async () => {
   let accessCheckCalls = 0;
   let processCalls = 0;
@@ -245,7 +284,7 @@ test("POST /sync/bootstrap preserves a legacy PostgreSQL workspace ID", async ()
       },
       body: JSON.stringify({
         mode: "pull",
-        installationId: "install-1",
+        installationId,
         platform: "web",
         appVersion: "1.0.0",
         cursor: null,
@@ -302,7 +341,7 @@ test("sync routes reject guest web platform before creating a workspace replica"
       name: "push",
       path: `/workspaces/${workspaceId}/sync/push`,
       body: {
-        installationId: "install-1",
+        installationId,
         platform: "web",
         appVersion: "1.0.0",
         operations: [],
@@ -312,7 +351,7 @@ test("sync routes reject guest web platform before creating a workspace replica"
       name: "pull",
       path: `/workspaces/${workspaceId}/sync/pull`,
       body: {
-        installationId: "install-1",
+        installationId,
         platform: "web",
         appVersion: "1.0.0",
         afterHotChangeId: 0,
@@ -324,7 +363,7 @@ test("sync routes reject guest web platform before creating a workspace replica"
       path: `/workspaces/${workspaceId}/sync/bootstrap`,
       body: {
         mode: "pull",
-        installationId: "install-1",
+        installationId,
         platform: "web",
         appVersion: "1.0.0",
         cursor: null,
@@ -335,7 +374,7 @@ test("sync routes reject guest web platform before creating a workspace replica"
       name: "review-history pull",
       path: `/workspaces/${workspaceId}/sync/review-history/pull`,
       body: {
-        installationId: "install-1",
+        installationId,
         platform: "web",
         appVersion: "1.0.0",
         afterReviewSequenceId: 0,
@@ -346,7 +385,7 @@ test("sync routes reject guest web platform before creating a workspace replica"
       name: "review-history import",
       path: `/workspaces/${workspaceId}/sync/review-history/import`,
       body: {
-        installationId: "install-1",
+        installationId,
         platform: "web",
         appVersion: "1.0.0",
         reviewEvents: [],
@@ -409,7 +448,7 @@ for (const platform of ["ios", "android"] as const) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        installationId: "install-1",
+        installationId,
         platform,
         appVersion: "1.0.0",
         afterHotChangeId: 0,
@@ -457,7 +496,7 @@ test("POST /sync/pull rejects guest platform mismatch before sync processing", a
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      installationId: "install-1",
+      installationId,
       platform: "android",
       appVersion: "1.0.0",
       afterHotChangeId: 0,
@@ -514,7 +553,7 @@ test("POST /sync/pull binds a legacy guest session to the first mobile platform"
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      installationId: "install-1",
+      installationId,
       platform: "ios",
       appVersion: "1.0.0",
       afterHotChangeId: 0,
@@ -569,7 +608,7 @@ test("POST /sync/pull allows signed-in web sync without guest platform binding",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      installationId: "install-1",
+      installationId,
       platform: "web",
       appVersion: "1.0.0",
       afterHotChangeId: 0,
@@ -627,7 +666,7 @@ test("POST /sync/pull retries transient database failures during request preflig
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      installationId: "install-1",
+      installationId,
       platform: "web",
       appVersion: "1.0.0",
       afterHotChangeId: 7,
@@ -686,7 +725,7 @@ test("POST /sync/review-history/pull retries transient database failures during 
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      installationId: "install-1",
+      installationId,
       platform: "web",
       appVersion: "1.0.0",
       afterReviewSequenceId: 11,
@@ -749,7 +788,7 @@ test("POST /sync/bootstrap logs successful pull timing and cursor details", asyn
       },
       body: JSON.stringify({
         mode: "pull",
-        installationId: "install-1",
+        installationId,
         platform: "web",
         appVersion: "1.0.0",
         cursor: null,
@@ -807,7 +846,7 @@ test("POST /sync/bootstrap rejects pull limit above bootstrap max", async () => 
     },
     body: JSON.stringify({
       mode: "pull",
-      installationId: "install-1",
+      installationId,
       platform: "web",
       appVersion: "1.0.0",
       cursor: null,
@@ -851,7 +890,7 @@ test("POST /sync/bootstrap logs failure timing before returning sync errors", as
       },
       body: JSON.stringify({
         mode: "push",
-        installationId: "install-1",
+        installationId,
         platform: "web",
         appVersion: "1.0.0",
         entries: [],
