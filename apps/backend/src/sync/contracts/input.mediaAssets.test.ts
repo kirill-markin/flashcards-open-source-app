@@ -12,10 +12,11 @@ import {
 } from "./inputTestSupport";
 
 const mediaAssetSha256 = createMediaAssetPayload(null).sha256;
+const installationId = "22222222-2222-4222-8222-222222222222";
 
 test("parseSyncPushInput accepts media_asset metadata operations", () => {
   const parsedInput = parseSyncPushInput({
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     operations: [
       {
@@ -53,7 +54,7 @@ test("parseSyncPushInput accepts media_asset metadata operations", () => {
 test("parseSyncPushInput rejects non-http media_asset source URLs", () => {
   assert.throws(
     () => parseSyncPushInput({
-      installationId: "installation-1",
+      installationId,
       platform: "ios",
       operations: [
         {
@@ -97,13 +98,13 @@ test("parseSyncPushInput rejects non-http media_asset source URLs", () => {
 
 test("parseSyncPullInput accepts media asset opt-in without requiring it", () => {
   const legacyInput = parseSyncPullInput({
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     afterHotChangeId: 0,
     limit: 100,
   });
   const mediaInput = parseSyncPullInput({
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     afterHotChangeId: 0,
     limit: 100,
@@ -117,7 +118,7 @@ test("parseSyncPullInput accepts media asset opt-in without requiring it", () =>
 test("parseSyncBootstrapInput accepts media asset opt-in for pull", () => {
   const input = parseSyncBootstrapInput({
     mode: "pull",
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     cursor: null,
     limit: 100,
@@ -134,7 +135,7 @@ test("parseSyncBootstrapInput accepts media asset opt-in for pull", () => {
 test("parseSyncBootstrapInput accepts media asset opt-in for push with empty entries", () => {
   const input = parseSyncBootstrapInput({
     mode: "push",
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     includeMediaAssets: true,
     entries: [],
@@ -151,7 +152,7 @@ test("parseSyncBootstrapInput accepts media asset opt-in for push with empty ent
 test("parseSyncBootstrapInput accepts media_asset metadata entries for push", () => {
   const input = parseSyncBootstrapInput({
     mode: "push",
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     entries: [
       {
