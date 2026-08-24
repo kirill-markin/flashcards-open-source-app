@@ -3,6 +3,8 @@ import test from "node:test";
 import { HttpError } from "../../shared/errors";
 import { parseSyncPushInput } from "./input";
 
+const installationId = "22222222-2222-4222-8222-222222222222";
+
 type ReviewEventTimestampFixture = Readonly<{
   clientUpdatedAt: string;
   reviewedAtClient: string;
@@ -31,7 +33,7 @@ function createSyncPushInput(
   }>>;
 }> {
   return {
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     operations: [
       {
