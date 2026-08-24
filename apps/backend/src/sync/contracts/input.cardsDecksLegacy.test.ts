@@ -28,6 +28,8 @@ import {
   toDeckSnapshotInput,
 } from "./snapshots";
 
+const installationId = "22222222-2222-4222-8222-222222222222";
+
 type CardSyncPushPayload = Omit<CardSnapshotInput, "cardType" | "metadata"> & Readonly<{
   cardType?: string;
   metadata?: CardMetadata;
@@ -94,7 +96,7 @@ function createCardSyncPushInput(fixture: CardDueAtFixture): CardSyncPushInput {
 
 function createCardSyncPushInputWithPayload(payload: CardSyncPushPayload): CardSyncPushInput {
   return {
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     operations: [
       {
@@ -121,7 +123,7 @@ function createDeckSnapshotPayload(filterDefinition: DeckSyncFilterDefinition): 
 
 function createDeckSyncPushInputWithPayload(payload: DeckSyncPushPayload): DeckSyncPushInput {
   return {
-    installationId: "installation-1",
+    installationId,
     platform: "ios",
     operations: [
       {
