@@ -333,11 +333,14 @@ private struct CardTextEditorScreen: View {
                         references: self.managedImageReferences,
                         surfaceStyle: self.field.reviewSurfaceStyle,
                         onRemove: { reference in
-                            self.text = cardEditorTextByRemovingManagedImageReference(
+                            let removal = cardEditorTextByRemovingManagedImageReference(
                                 text: self.text,
+                                selection: self.textSelection,
                                 mediaAssetId: reference.mediaAssetId,
                                 occurrence: reference.occurrence
                             )
+                            self.text = removal.text
+                            self.textSelection = removal.selection
                         }
                     )
                 }
@@ -409,13 +412,18 @@ private struct CardTextEditorScreen: View {
         self.cancelImageImport()
         let importId = UUID()
         let editorSessionId = self.editorSessionId
+        let insertionAnchor = cardEditorMarkdownInsertionAnchor(
+            text: self.text,
+            selection: self.textSelection
+        )
         self.activeImageImportId = importId
         self.isImportingImage = true
         self.imageImportTask = Task { @MainActor in
             await self.handleSelectedPhotoItem(
                 item,
                 editorSessionId: editorSessionId,
-                importId: importId
+                importId: importId,
+                insertionAnchor: insertionAnchor
             )
         }
     }
@@ -434,7 +442,8 @@ private struct CardTextEditorScreen: View {
     private func handleSelectedPhotoItem(
         _ item: PhotosPickerItem,
         editorSessionId: UUID,
-        importId: UUID
+        importId: UUID,
+        insertionAnchor: CardEditorMarkdownInsertionAnchor
     ) async {
         defer {
             self.completeImageImport(editorSessionId: editorSessionId, importId: importId)
@@ -474,7 +483,7 @@ private struct CardTextEditorScreen: View {
             let insertion = cardEditorTextByInsertingMarkdown(
                 text: self.text,
                 markdown: authoringResult.markdown,
-                selection: self.textSelection
+                insertionAnchor: insertionAnchor
             )
             self.text = insertion.text
             self.textSelection = insertion.selection
@@ -601,6 +610,11 @@ private struct CardEditorMarkdownInsertion {
     let selection: TextSelection?
 }
 
+private struct CardEditorMarkdownInsertionAnchor {
+    let text: String
+    let selectionUTF8Range: CardEditorTextUTF8Range?
+}
+
 private struct CardEditorManagedImageMatch {
     let occurrence: Int
     let mediaAssetId: String
@@ -622,7 +636,17 @@ private struct CardEditorTextReplacement {
     let text: String
 }
 
-private struct CardEditorTextOffsetReplacement {
+private struct CardEditorTextUTF8Range {
+    let lowerBound: Int
+    let upperBound: Int
+}
+
+private enum CardEditorTextSelectionUTF8Offsets {
+    case selection(CardEditorTextUTF8Range)
+    case multiSelection([CardEditorTextUTF8Range])
+}
+
+private struct CardEditorTextUTF8OffsetReplacement {
     let lowerBound: Int
     let upperBound: Int
     let textCount: Int
@@ -661,12 +685,33 @@ private func cardEditorManagedImageReferences(text: String) -> [CardEditorManage
     }
 }
 
+private func cardEditorMarkdownInsertionAnchor(
+    text: String,
+    selection: TextSelection?
+) -> CardEditorMarkdownInsertionAnchor {
+    let selectionUTF8Range: CardEditorTextUTF8Range?
+    switch cardEditorTextSelectionUTF8Offsets(text: text, selection: selection) {
+    case .some(.selection(let range)):
+        selectionUTF8Range = range
+    case .some(.multiSelection), .none:
+        selectionUTF8Range = nil
+    }
+
+    return CardEditorMarkdownInsertionAnchor(
+        text: text,
+        selectionUTF8Range: selectionUTF8Range
+    )
+}
+
 private func cardEditorTextByInsertingMarkdown(
     text: String,
     markdown: String,
-    selection: TextSelection?
+    insertionAnchor: CardEditorMarkdownInsertionAnchor
 ) -> CardEditorMarkdownInsertion {
-    let replacementRange = cardEditorSingleSelectionRange(text: text, selection: selection)
+    let replacementRange = cardEditorMarkdownInsertionRange(
+        text: text,
+        insertionAnchor: insertionAnchor
+    )
     let insertionText = cardEditorMarkdownInsertionText(
         text: text,
         replacementRange: replacementRange,
@@ -683,21 +728,48 @@ private func cardEditorTextByInsertingMarkdown(
     )
 }
 
+private func cardEditorMarkdownInsertionRange(
+    text: String,
+    insertionAnchor: CardEditorMarkdownInsertionAnchor
+) -> Range<String.Index> {
+    guard text.utf8.elementsEqual(insertionAnchor.text.utf8),
+          let selectionUTF8Range = insertionAnchor.selectionUTF8Range,
+          let selectionRange = cardEditorTextRange(
+              lowerUTF8Offset: selectionUTF8Range.lowerBound,
+              upperUTF8Offset: selectionUTF8Range.upperBound,
+              text: text
+          ) else {
+        return text.endIndex..<text.endIndex
+    }
+
+    return selectionRange
+}
+
 private func cardEditorTextByRemovingManagedImageReference(
     text: String,
+    selection: TextSelection?,
     mediaAssetId: String,
     occurrence: Int
-) -> String {
+) -> CardEditorTextReconciliation {
+    let selectionUTF8Offsets = cardEditorTextSelectionUTF8Offsets(text: text, selection: selection)
     var nextText = text
 
     for match in cardEditorManagedImageMatches(text: text) {
         if match.occurrence == occurrence && match.mediaAssetId == mediaAssetId {
             nextText.removeSubrange(match.range)
-            return nextText
+            return CardEditorTextReconciliation(
+                text: nextText,
+                selection: cardEditorTextSelectionByApplyingReplacements(
+                    selectionUTF8Offsets: selectionUTF8Offsets,
+                    text: text,
+                    nextText: nextText,
+                    replacements: [CardEditorTextReplacement(range: match.range, text: "")]
+                )
+            )
         }
     }
 
-    return text
+    return CardEditorTextReconciliation(text: text, selection: selection)
 }
 
 private func cardEditorTextByReconcilingMediaLifecycle(
@@ -734,6 +806,7 @@ private func cardEditorTextByReconcilingMediaLifecycle(
         return CardEditorTextReconciliation(text: text, selection: selection)
     }
 
+    let selectionUTF8Offsets = cardEditorTextSelectionUTF8Offsets(text: text, selection: selection)
     var nextText = text
     for replacement in replacements.reversed() {
         nextText.replaceSubrange(replacement.range, with: replacement.text)
@@ -742,7 +815,7 @@ private func cardEditorTextByReconcilingMediaLifecycle(
     return CardEditorTextReconciliation(
         text: nextText,
         selection: cardEditorTextSelectionByApplyingReplacements(
-            selection: selection,
+            selectionUTF8Offsets: selectionUTF8Offsets,
             text: text,
             nextText: nextText,
             replacements: replacements
@@ -793,71 +866,138 @@ private func cardEditorManagedImageDestinationTransitions(
     return transitions
 }
 
-private func cardEditorTextSelectionByApplyingReplacements(
-    selection: TextSelection?,
+private func cardEditorTextSelectionUTF8Offsets(
     text: String,
-    nextText: String,
-    replacements: [CardEditorTextReplacement]
-) -> TextSelection? {
+    selection: TextSelection?
+) -> CardEditorTextSelectionUTF8Offsets? {
     guard let selection else {
         return nil
     }
 
-    let offsetReplacements = replacements.map { replacement in
-        CardEditorTextOffsetReplacement(
-            lowerBound: text.distance(from: text.startIndex, to: replacement.range.lowerBound),
-            upperBound: text.distance(from: text.startIndex, to: replacement.range.upperBound),
-            textCount: replacement.text.count
-        )
-    }
-
     switch selection.indices {
     case .selection(let range):
-        return TextSelection(
-            range: cardEditorTextRangeByApplyingReplacements(
-                range: range,
-                text: text,
-                nextText: nextText,
-                replacements: offsetReplacements
-            )
-        )
-    case .multiSelection(let ranges):
-        let nextRanges = ranges.ranges.map { range in
-            cardEditorTextRangeByApplyingReplacements(
-                range: range,
-                text: text,
-                nextText: nextText,
-                replacements: offsetReplacements
-            )
+        guard let range = cardEditorTextRangeIfValid(range: range, text: text) else {
+            return nil
         }
-        return TextSelection(ranges: RangeSet(nextRanges))
+        return .selection(cardEditorTextUTF8Range(range: range, text: text))
+    case .multiSelection(let ranges):
+        var utf8Ranges: [CardEditorTextUTF8Range] = []
+        for range in ranges.ranges {
+            guard let range = cardEditorTextRangeIfValid(range: range, text: text) else {
+                return nil
+            }
+            utf8Ranges.append(cardEditorTextUTF8Range(range: range, text: text))
+        }
+        return .multiSelection(utf8Ranges)
     @unknown default:
         return nil
     }
 }
 
-private func cardEditorTextRangeByApplyingReplacements(
+private func cardEditorTextUTF8Range(
     range: Range<String.Index>,
+    text: String
+) -> CardEditorTextUTF8Range {
+    CardEditorTextUTF8Range(
+        lowerBound: text.utf8.distance(from: text.utf8.startIndex, to: range.lowerBound),
+        upperBound: text.utf8.distance(from: text.utf8.startIndex, to: range.upperBound)
+    )
+}
+
+private func cardEditorTextSelectionByApplyingReplacements(
+    selectionUTF8Offsets: CardEditorTextSelectionUTF8Offsets?,
     text: String,
     nextText: String,
-    replacements: [CardEditorTextOffsetReplacement]
-) -> Range<String.Index> {
-    let lowerOffset = cardEditorTextOffsetByApplyingReplacements(
-        offset: text.distance(from: text.startIndex, to: range.lowerBound),
+    replacements: [CardEditorTextReplacement]
+) -> TextSelection? {
+    guard let selectionUTF8Offsets else {
+        return nil
+    }
+
+    let utf8OffsetReplacements = replacements.map { replacement in
+        CardEditorTextUTF8OffsetReplacement(
+            lowerBound: text.utf8.distance(from: text.utf8.startIndex, to: replacement.range.lowerBound),
+            upperBound: text.utf8.distance(from: text.utf8.startIndex, to: replacement.range.upperBound),
+            textCount: replacement.text.utf8.count
+        )
+    }
+
+    switch selectionUTF8Offsets {
+    case .selection(let range):
+        guard let nextRange = cardEditorTextRangeByApplyingReplacements(
+            range: range,
+            nextText: nextText,
+            replacements: utf8OffsetReplacements
+        ) else {
+            return nil
+        }
+
+        return TextSelection(range: nextRange)
+    case .multiSelection(let ranges):
+        var nextRanges: [Range<String.Index>] = []
+        for range in ranges {
+            guard let nextRange = cardEditorTextRangeByApplyingReplacements(
+                range: range,
+                nextText: nextText,
+                replacements: utf8OffsetReplacements
+            ) else {
+                return nil
+            }
+            nextRanges.append(nextRange)
+        }
+        return TextSelection(ranges: RangeSet(nextRanges))
+    }
+}
+
+private func cardEditorTextRangeByApplyingReplacements(
+    range: CardEditorTextUTF8Range,
+    nextText: String,
+    replacements: [CardEditorTextUTF8OffsetReplacement]
+) -> Range<String.Index>? {
+    let lowerUTF8Offset = cardEditorTextUTF8OffsetByApplyingReplacements(
+        offset: range.lowerBound,
         replacements: replacements
     )
-    let upperOffset = cardEditorTextOffsetByApplyingReplacements(
-        offset: text.distance(from: text.startIndex, to: range.upperBound),
+    let upperUTF8Offset = cardEditorTextUTF8OffsetByApplyingReplacements(
+        offset: range.upperBound,
         replacements: replacements
     )
-    let lowerBound = nextText.index(nextText.startIndex, offsetBy: lowerOffset)
-    let upperBound = nextText.index(nextText.startIndex, offsetBy: upperOffset)
+    return cardEditorTextRange(
+        lowerUTF8Offset: lowerUTF8Offset,
+        upperUTF8Offset: upperUTF8Offset,
+        text: nextText
+    )
+}
+
+private func cardEditorTextRange(
+    lowerUTF8Offset: Int,
+    upperUTF8Offset: Int,
+    text: String
+) -> Range<String.Index>? {
+    guard lowerUTF8Offset >= 0,
+          upperUTF8Offset >= lowerUTF8Offset,
+          let lowerUTF8Index = text.utf8.index(
+              text.utf8.startIndex,
+              offsetBy: lowerUTF8Offset,
+              limitedBy: text.utf8.endIndex
+          ),
+          let upperUTF8Index = text.utf8.index(
+              text.utf8.startIndex,
+              offsetBy: upperUTF8Offset,
+              limitedBy: text.utf8.endIndex
+          ),
+          let lowerBound = String.Index(lowerUTF8Index, within: text),
+          let upperBound = String.Index(upperUTF8Index, within: text),
+          lowerBound <= upperBound else {
+        return nil
+    }
+
     return lowerBound..<upperBound
 }
 
-private func cardEditorTextOffsetByApplyingReplacements(
+private func cardEditorTextUTF8OffsetByApplyingReplacements(
     offset: Int,
-    replacements: [CardEditorTextOffsetReplacement]
+    replacements: [CardEditorTextUTF8OffsetReplacement]
 ) -> Int {
     var appliedOffset = 0
 
@@ -1002,19 +1142,17 @@ private func cardEditorOriginalLineRange(
     return lowerBound..<upperBound
 }
 
-private func cardEditorSingleSelectionRange(text: String, selection: TextSelection?) -> Range<String.Index> {
-    guard let selection else {
-        return text.endIndex..<text.endIndex
+private func cardEditorTextRangeIfValid(
+    range: Range<String.Index>,
+    text: String
+) -> Range<String.Index>? {
+    guard let lowerBound = String.Index(range.lowerBound, within: text),
+          let upperBound = String.Index(range.upperBound, within: text),
+          lowerBound <= upperBound else {
+        return nil
     }
 
-    switch selection.indices {
-    case .selection(let range):
-        return range
-    case .multiSelection:
-        return text.endIndex..<text.endIndex
-    @unknown default:
-        return text.endIndex..<text.endIndex
-    }
+    return lowerBound..<upperBound
 }
 
 private func cardEditorMarkdownInsertionText(
