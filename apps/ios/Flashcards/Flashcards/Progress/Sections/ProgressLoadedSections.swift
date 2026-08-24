@@ -50,15 +50,9 @@ private struct ProgressStreakCard: View {
     private let presentationCalendar: Calendar
 
     init(progressSnapshot: ProgressSnapshot) {
-        let presentationCalendar = requiredProgressPresentationCalendar(
-            timeZoneIdentifier: progressSnapshot.scopeKey.timeZone
-        )
         self.summary = progressSnapshot.summary
-        self.streakWeeks = requiredProgressStreakWeeks(
-            progressSnapshot: progressSnapshot,
-            calendar: presentationCalendar
-        )
-        self.presentationCalendar = presentationCalendar
+        self.streakWeeks = progressSnapshot.streakWeeks
+        self.presentationCalendar = progressSnapshot.presentationCalendar
     }
 
     var body: some View {
@@ -147,9 +141,7 @@ private struct ProgressReviewsCard: View {
     init(progressSnapshot: ProgressSnapshot) {
         self.chartDays = progressSnapshot.chartData.chartDays
         self.selectionResetKey = progressSnapshot.scopeKey.storageKey
-        self.presentationCalendar = requiredProgressPresentationCalendar(
-            timeZoneIdentifier: progressSnapshot.scopeKey.timeZone
-        )
+        self.presentationCalendar = progressSnapshot.presentationCalendar
     }
 
     var body: some View {
