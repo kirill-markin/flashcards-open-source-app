@@ -1,3 +1,4 @@
+import { combineAbortSignals } from "../../../abortSignals";
 import {
   ApiError,
   apiNetworkRetryMaximumAttemptCount,
@@ -173,29 +174,16 @@ export async function completeMultipartUploadSession(
   const request = {
     parts: toCompleteParts(uploadedParts),
   };
-  const completionSignal = AbortSignal.any([signal, heartbeat.failureSignal]);
-  let attemptNumber = 1;
-  let lastRetryableCompletionError: ApiError | null = null;
+  const {
+    signal: completionSignal,
+    dispose: disposeCompletionSignal,
+  } = combineAbortSignals([signal, heartbeat.failureSignal]);
 
-  while (true) {
-    if (hasFailed()) {
-      return null;
-    }
-    await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
-    if (hasFailed()) {
-      return null;
-    }
+  try {
+    let attemptNumber = 1;
+    let lastRetryableCompletionError: ApiError | null = null;
 
-    try {
-      if (hasFailed()) {
-        return null;
-      }
-      const result = await completeMediaAssetUploadSession(
-        transfer.workspaceId,
-        uploadSession.sessionId,
-        request,
-        completionSignal,
-      );
+    while (true) {
       if (hasFailed()) {
         return null;
       }
@@ -203,77 +191,98 @@ export async function completeMultipartUploadSession(
       if (hasFailed()) {
         return null;
       }
-      return {
-        mediaAsset: result.mediaAsset,
-        retryableCompletionCause: lastRetryableCompletionError,
-      };
-    } catch (error) {
-      if (isIndexedDbOpenRecoveryError(error)) {
-        throw error;
-      }
-      if (hasFailed()) {
-        throw error;
-      }
 
-      if (error instanceof MediaUploadCompletionTerminalError) {
-        throw error;
-      }
-      if (isSameSessionCompletionRetryError(error) === false) {
+      try {
+        if (hasFailed()) {
+          return null;
+        }
+        const result = await completeMediaAssetUploadSession(
+          transfer.workspaceId,
+          uploadSession.sessionId,
+          request,
+          completionSignal,
+        );
+        if (hasFailed()) {
+          return null;
+        }
+        await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
+        if (hasFailed()) {
+          return null;
+        }
+        return {
+          mediaAsset: result.mediaAsset,
+          retryableCompletionCause: lastRetryableCompletionError,
+        };
+      } catch (error) {
+        if (isIndexedDbOpenRecoveryError(error)) {
+          throw error;
+        }
+        if (hasFailed()) {
+          throw error;
+        }
+
+        if (error instanceof MediaUploadCompletionTerminalError) {
+          throw error;
+        }
+        if (isSameSessionCompletionRetryError(error) === false) {
+          await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
+          if (hasFailed()) {
+            throw error;
+          }
+          if (lastRetryableCompletionError !== null) {
+            throw new MediaUploadCompletionTerminalError(
+              "interrupted",
+              lastRetryableCompletionError,
+              normalizeMediaUploadError(error),
+            );
+          }
+          throw error;
+        }
+        lastRetryableCompletionError = error;
         await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
         if (hasFailed()) {
           throw error;
         }
-        if (lastRetryableCompletionError !== null) {
+        if (attemptNumber >= apiNetworkRetryMaximumAttemptCount) {
+          throw new MediaUploadCompletionTerminalError("retry_exhausted", error, null);
+        }
+
+        const delayMs = error.retryAfterMs ?? createApiNetworkRetryDelayMs(attemptNumber);
+        console.warn("Media upload completion retry", {
+          transferId: transfer.transferId,
+          workspaceId: transfer.workspaceId,
+          mediaAssetId: transfer.mediaAssetId,
+          sessionId: uploadSession.sessionId,
+          code: error.code,
+          attemptNumber,
+          maximumAttemptCount: apiNetworkRetryMaximumAttemptCount,
+          nextAttemptNumber: attemptNumber + 1,
+          delayMs,
+        });
+        try {
+          await waitForCompletionRetry(delayMs, heartbeat, signal, hasFailed);
+          if (hasFailed()) {
+            throw error;
+          }
+        } catch (interruptionError) {
+          if (isIndexedDbOpenRecoveryError(interruptionError)) {
+            throw interruptionError;
+          }
+          if (hasFailed()) {
+            throw interruptionError;
+          }
+
           throw new MediaUploadCompletionTerminalError(
             "interrupted",
-            lastRetryableCompletionError,
-            normalizeMediaUploadError(error),
+            error,
+            normalizeMediaUploadError(interruptionError),
           );
         }
-        throw error;
+        attemptNumber += 1;
       }
-      lastRetryableCompletionError = error;
-      await validateCompletionOwnership(heartbeat, signal, lastRetryableCompletionError, hasFailed);
-      if (hasFailed()) {
-        throw error;
-      }
-      if (attemptNumber >= apiNetworkRetryMaximumAttemptCount) {
-        throw new MediaUploadCompletionTerminalError("retry_exhausted", error, null);
-      }
-
-      const delayMs = error.retryAfterMs ?? createApiNetworkRetryDelayMs(attemptNumber);
-      console.warn("Media upload completion retry", {
-        transferId: transfer.transferId,
-        workspaceId: transfer.workspaceId,
-        mediaAssetId: transfer.mediaAssetId,
-        sessionId: uploadSession.sessionId,
-        code: error.code,
-        attemptNumber,
-        maximumAttemptCount: apiNetworkRetryMaximumAttemptCount,
-        nextAttemptNumber: attemptNumber + 1,
-        delayMs,
-      });
-      try {
-        await waitForCompletionRetry(delayMs, heartbeat, signal, hasFailed);
-        if (hasFailed()) {
-          throw error;
-        }
-      } catch (interruptionError) {
-        if (isIndexedDbOpenRecoveryError(interruptionError)) {
-          throw interruptionError;
-        }
-        if (hasFailed()) {
-          throw interruptionError;
-        }
-
-        throw new MediaUploadCompletionTerminalError(
-          "interrupted",
-          error,
-          normalizeMediaUploadError(interruptionError),
-        );
-      }
-      attemptNumber += 1;
     }
+  } finally {
+    disposeCompletionSignal();
   }
 }
 
