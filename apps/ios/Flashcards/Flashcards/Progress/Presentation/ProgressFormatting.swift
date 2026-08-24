@@ -26,35 +26,6 @@ func progressReviewChartDateLabel(date: Date, calendar: Calendar) -> String {
     return formatter.string(from: date)
 }
 
-func requiredProgressPresentationCalendar(
-    timeZoneIdentifier: String
-) -> Calendar {
-    do {
-        return try makeProgressPresentationCalendar(
-            timeZoneIdentifier: timeZoneIdentifier,
-            userCalendar: Calendar.autoupdatingCurrent
-        )
-    } catch {
-        preconditionFailure("Progress presentation calendar is invalid: \(error.localizedDescription)")
-    }
-}
-
-func requiredProgressStreakWeeks(
-    progressSnapshot: ProgressSnapshot,
-    calendar: Calendar
-) -> [ProgressCalendarWeek] {
-    do {
-        return try makeProgressStreakWeeks(
-            chartDays: progressSnapshot.chartData.chartDays,
-            rangeStartLocalDate: progressSnapshot.scopeKey.from,
-            todayLocalDate: progressSnapshot.scopeKey.to,
-            calendar: calendar
-        )
-    } catch {
-        preconditionFailure("Progress streak weeks are invalid: \(error.localizedDescription)")
-    }
-}
-
 func progressWeekdayLabel(date: Date, calendar: Calendar) -> String {
     let formatter = DateFormatter()
     formatter.calendar = calendar
