@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.observability
 
 import android.app.Application
+import android.provider.Settings
 import com.flashcardsopensourceapp.app.BuildConfig
 import com.flashcardsopensourceapp.app.runtime.isAndroidRuntimeSupported
 import com.flashcardsopensourceapp.core.observability.AppObservability
@@ -29,6 +30,8 @@ private const val flashcardsOfficialAuthTraceTarget: String =
 private const val sentryHttpUrlSpanDataKey: String = "http.url"
 private const val sentryUrlFullSpanDataKey: String = "url.full"
 private const val sentryUrlSpanDataKey: String = "url"
+private const val firebaseTestLabSettingName: String = "firebase.test.lab"
+private const val firebaseTestLabSentryEnvironment: String = "firebase-test-lab"
 
 data class AndroidObservabilityStartup(
     val observability: AppObservability,
@@ -43,10 +46,12 @@ fun startAndroidObservability(application: Application): AndroidObservabilitySta
     // capture, which a beforeSend filter cannot reach.
     val isSentryEnabled = sentryDsn.isNotBlank() && isAndroidRuntimeSupported()
     if (isSentryEnabled) {
+        val resolvedSentryEnvironment = sentryEnvironment(application = application)
         SentryAndroid.init(application) { options ->
             configureSentryOptions(
                 options = options,
-                sentryDsn = sentryDsn
+                sentryDsn = sentryDsn,
+                sentryEnvironment = resolvedSentryEnvironment
             )
         }
     }
@@ -63,12 +68,13 @@ fun startAndroidObservability(application: Application): AndroidObservabilitySta
 
 private fun configureSentryOptions(
     options: io.sentry.android.core.SentryAndroidOptions,
-    sentryDsn: String
+    sentryDsn: String,
+    sentryEnvironment: String
 ) {
     options.dsn = sentryDsn
     options.release = "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}"
     options.dist = BuildConfig.VERSION_CODE.toString()
-    options.environment = sentryEnvironment()
+    options.environment = sentryEnvironment
     options.setSendDefaultPii(false)
     options.setMaxRequestBodySize(SentryOptions.RequestSize.NONE)
     options.setAttachScreenshot(false)
@@ -85,10 +91,14 @@ private fun configureSentryOptions(
     }
 }
 
-private fun sentryEnvironment(): String {
+private fun sentryEnvironment(application: Application): String {
     val overrideEnvironment = androidSentryEnvironmentOverride()
     if (overrideEnvironment != null) {
         return overrideEnvironment
+    }
+
+    if (Settings.System.getString(application.contentResolver, firebaseTestLabSettingName) == "true") {
+        return firebaseTestLabSentryEnvironment
     }
 
     val configuredEnvironment = BuildConfig.ANDROID_SENTRY_ENVIRONMENT.trim()

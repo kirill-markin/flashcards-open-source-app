@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
 } from "react";
+import { combineAbortSignals } from "../../../abortSignals";
 import {
   isIndexedDbOpenRecoveryFailureMark,
   type IndexedDbOpenRecoveryMarkResult,
@@ -320,7 +321,10 @@ export function useMediaUploadLifecycle(params: UseMediaUploadLifecycleParams): 
 
     const lifecycleGeneration = lifecycleGenerationRef.current;
     const abortController = new AbortController();
-    const mediaUploadSignal = AbortSignal.any([
+    const {
+      signal: mediaUploadSignal,
+      dispose: disposeMediaUploadSignal,
+    } = combineAbortSignals([
       indexedDbOpenRecoveryState.signal,
       abortController.signal,
     ]);
@@ -349,6 +353,7 @@ export function useMediaUploadLifecycle(params: UseMediaUploadLifecycleParams): 
       indexedDbOpenRecoveryState.throwIfFailed();
       throw error;
     }).finally(() => {
+      disposeMediaUploadSignal();
       if (mediaUploadAbortControllersRef.current.get(workspace.workspaceId) === abortController) {
         mediaUploadAbortControllersRef.current.delete(workspace.workspaceId);
       }

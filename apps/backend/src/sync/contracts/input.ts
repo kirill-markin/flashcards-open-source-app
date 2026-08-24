@@ -14,6 +14,7 @@ const effortLevelSchema = z.enum(["fast", "medium", "long"]);
 const fsrsCardStateSchema = z.enum(["new", "learning", "review", "relearning"]);
 const reviewRatingSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 const platformSchema = z.enum(["ios", "android", "web"]);
+const installationIdSchema = z.string().uuid();
 const isoTimestampStringSchema = z.string().datetime();
 const cardTypeSchema = z.string();
 const mediaAssetMimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/i;
@@ -351,7 +352,7 @@ const syncPushOperationSchema = z.discriminatedUnion("entityType", [
 ]);
 
 const syncPushInputBaseSchema = z.object({
-  installationId: z.string().min(1),
+  installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   operations: z.array(syncPushOperationSchema),
@@ -385,7 +386,7 @@ function validateSyncPushReviewEventTimestamps(
 const syncPushInputSchema = syncPushInputBaseSchema.superRefine(validateSyncPushReviewEventTimestamps);
 
 const syncPullInputSchema = z.object({
-  installationId: z.string().min(1),
+  installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   afterHotChangeId: z.number().int().nonnegative(),
@@ -395,7 +396,7 @@ const syncPullInputSchema = z.object({
 
 const syncBootstrapPullInputSchema = z.object({
   mode: z.literal("pull"),
-  installationId: z.string().min(1),
+  installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   cursor: z.string().min(1).nullable(),
@@ -405,7 +406,7 @@ const syncBootstrapPullInputSchema = z.object({
 
 const syncBootstrapPushInputSchema = z.object({
   mode: z.literal("push"),
-  installationId: z.string().min(1),
+  installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   includeMediaAssets: z.boolean().optional(),
@@ -440,7 +441,7 @@ const syncBootstrapPushInputSchema = z.object({
 });
 
 const syncReviewHistoryPullInputSchema = z.object({
-  installationId: z.string().min(1),
+  installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   afterReviewSequenceId: z.number().int().nonnegative(),
@@ -448,7 +449,7 @@ const syncReviewHistoryPullInputSchema = z.object({
 });
 
 const syncReviewHistoryImportInputSchema = z.object({
-  installationId: z.string().min(1),
+  installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   reviewEvents: z.array(reviewEventImportPayloadSchema),

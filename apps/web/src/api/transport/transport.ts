@@ -1,3 +1,4 @@
+import { combineAbortSignals } from "../../abortSignals";
 import { parseSessionInfoResponse } from "../../apiContracts/account";
 import { markBrowserReauthRequired } from "../../accountDeletion";
 import { getAppConfig } from "../../config";
@@ -26,6 +27,14 @@ export type NetworkRetryMode = "none" | "transient";
 type NavigateToUrl = (url: string) => void;
 type PrepareForAuthRedirect = () => void;
 type NetworkRequestAttempt<Result> = (attemptCount: number) => Promise<Result>;
+type RequestSignalBinding = Readonly<{
+  signal: AbortSignal | undefined;
+  dispose: () => void;
+}>;
+type RequestInitBinding = Readonly<{
+  requestInit: RequestInit;
+  dispose: () => void;
+}>;
 export type BlobResponsePayload = Readonly<{
   blob: Blob;
   headers: Headers;
@@ -98,20 +107,31 @@ function throwIfRequestAborted(signal: AbortSignal | null): void {
   }
 }
 
-function mergeRequestSignal(lifecycleSignal: AbortSignal | null | undefined): AbortSignal | undefined {
+const noRequestSignalDisposal = (): void => undefined;
+
+function mergeRequestSignal(lifecycleSignal: AbortSignal | null | undefined): RequestSignalBinding {
   const recoverySignal = indexedDbOpenRecoverySignal;
   if (recoverySignal === null) {
-    return lifecycleSignal ?? undefined;
+    return {
+      signal: lifecycleSignal ?? undefined,
+      dispose: noRequestSignalDisposal,
+    };
   }
   if (lifecycleSignal === undefined || lifecycleSignal === null || lifecycleSignal === recoverySignal) {
-    return recoverySignal;
+    return {
+      signal: recoverySignal,
+      dispose: noRequestSignalDisposal,
+    };
   }
-  return AbortSignal.any([recoverySignal, lifecycleSignal]);
+  return combineAbortSignals([recoverySignal, lifecycleSignal]);
 }
 
-function attachRecoverySignal(init: RequestInit): RequestInit {
-  const signal = mergeRequestSignal(init.signal);
-  return signal === init.signal ? init : { ...init, signal };
+function attachRecoverySignal(init: RequestInit): RequestInitBinding {
+  const { signal, dispose } = mergeRequestSignal(init.signal);
+  return {
+    requestInit: signal === init.signal ? init : { ...init, signal },
+    dispose,
+  };
 }
 
 function waitForSharedTransportTask<ResultType>(
@@ -850,19 +870,23 @@ export async function requestJson(
   init: RequestInit,
   options: RequestOptions,
 ): Promise<ParsedResponsePayload> {
-  const requestInit = attachRecoverySignal(init);
-  const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
-  return performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
-    const response = await requestResponse(pathname, requestInit, options, attemptCount);
-    return parseJsonPayload(
-      response,
-      buildRequestEndpoint(pathname, requestInit),
-      {
-        attemptCount,
-        endpoint,
-      },
-    );
-  });
+  const { requestInit, dispose: disposeRequestSignal } = attachRecoverySignal(init);
+  try {
+    const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
+    return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
+      const response = await requestResponse(pathname, requestInit, options, attemptCount);
+      return parseJsonPayload(
+        response,
+        buildRequestEndpoint(pathname, requestInit),
+        {
+          attemptCount,
+          endpoint,
+        },
+      );
+    });
+  } finally {
+    disposeRequestSignal();
+  }
 }
 
 /**
@@ -870,20 +894,24 @@ export async function requestJson(
  * credential-free CORS and intentionally do not participate in auth recovery.
  */
 export async function requestPublicJson(pathname: string): Promise<ParsedResponsePayload> {
-  const init = attachRecoverySignal({ method: "GET" });
-  const options = skipAuthRecoveryWithTransientNetworkRetry;
-  const endpoint = buildSanitizedRequestEndpoint(pathname, init);
-  return performWithNetworkRetry(endpoint, init, options, async (attemptCount: number) => {
-    const response = await performFetch(pathname, init, "omit", attemptCount);
-    return parseJsonPayload(
-      response,
-      buildRequestEndpoint(pathname, init),
-      {
-        attemptCount,
-        endpoint,
-      },
-    );
-  });
+  const { requestInit, dispose: disposeRequestSignal } = attachRecoverySignal({ method: "GET" });
+  try {
+    const options = skipAuthRecoveryWithTransientNetworkRetry;
+    const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
+    return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
+      const response = await performFetch(pathname, requestInit, "omit", attemptCount);
+      return parseJsonPayload(
+        response,
+        buildRequestEndpoint(pathname, requestInit),
+        {
+          attemptCount,
+          endpoint,
+        },
+      );
+    });
+  } finally {
+    disposeRequestSignal();
+  }
 }
 
 export async function requestBlob(
@@ -891,28 +919,32 @@ export async function requestBlob(
   init: RequestInit,
   options: RequestOptions,
 ): Promise<BlobResponsePayload> {
-  const requestInit = attachRecoverySignal(init);
-  const endpoint = buildRequestEndpoint(pathname, requestInit);
-  const sanitizedEndpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
-  return performWithNetworkRetry(sanitizedEndpoint, requestInit, options, async (attemptCount: number) => {
-    const response = await requestResponse(pathname, requestInit, options, attemptCount);
-    if (!response.ok) {
-      await parseJsonPayload(response, endpoint, {
-        attemptCount,
-        endpoint: sanitizedEndpoint,
-      });
-      throw new Error(`Non-OK blob response for ${endpoint} did not raise an API error`);
-    }
+  const { requestInit, dispose: disposeRequestSignal } = attachRecoverySignal(init);
+  try {
+    const endpoint = buildRequestEndpoint(pathname, requestInit);
+    const sanitizedEndpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
+    return await performWithNetworkRetry(sanitizedEndpoint, requestInit, options, async (attemptCount: number) => {
+      const response = await requestResponse(pathname, requestInit, options, attemptCount);
+      if (!response.ok) {
+        await parseJsonPayload(response, endpoint, {
+          attemptCount,
+          endpoint: sanitizedEndpoint,
+        });
+        throw new Error(`Non-OK blob response for ${endpoint} did not raise an API error`);
+      }
 
-    return {
-      blob: await readBlobResponse(response, {
-        attemptCount,
-        endpoint: sanitizedEndpoint,
-      }),
-      headers: response.headers,
-      statusCode: response.status,
-    };
-  });
+      return {
+        blob: await readBlobResponse(response, {
+          attemptCount,
+          endpoint: sanitizedEndpoint,
+        }),
+        headers: response.headers,
+        statusCode: response.status,
+      };
+    });
+  } finally {
+    disposeRequestSignal();
+  }
 }
 
 /**
