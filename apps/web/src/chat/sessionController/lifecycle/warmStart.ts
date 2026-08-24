@@ -52,6 +52,23 @@ function getBrowserStorage(): Storage | null {
   return storageValue;
 }
 
+function isQuotaExceededError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "QuotaExceededError";
+}
+
+function toPersistableMessages(
+  messages: ChatSessionSnapshot["conversation"]["messages"],
+): ChatSessionSnapshot["conversation"]["messages"] {
+  return messages.map((message) => ({
+    ...message,
+    content: message.content.map((part) => (
+      part.type === "image" || part.type === "file"
+        ? { ...part, base64Data: "" }
+        : part
+    )),
+  }));
+}
+
 function parsePersistedChatSessionWarmStartSnapshot(
   rawValue: string | null,
 ): PersistedChatSessionWarmStartSnapshot | null {
@@ -144,12 +161,25 @@ export function storeChatSessionWarmStartSnapshot(
     pendingToolRunPostSync,
     snapshot: {
       ...snapshot,
+      conversation: {
+        ...snapshot.conversation,
+        messages: toPersistableMessages(snapshot.conversation.messages),
+      },
       composerSuggestions: [],
       activeRun: null,
     },
   };
 
-  browserStorage.setItem(CHAT_SESSION_WARM_START_STORAGE_KEY, JSON.stringify(persistedSnapshot));
+  const serializedSnapshot = JSON.stringify(persistedSnapshot);
+  try {
+    browserStorage.setItem(CHAT_SESSION_WARM_START_STORAGE_KEY, serializedSnapshot);
+  } catch (error) {
+    if (isQuotaExceededError(error) === false) {
+      throw error;
+    }
+
+    browserStorage.removeItem(CHAT_SESSION_WARM_START_STORAGE_KEY);
+  }
 }
 
 export function clearChatSessionWarmStartSnapshot(): void {
