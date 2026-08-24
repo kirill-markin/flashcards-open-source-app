@@ -65,8 +65,13 @@ extension FlashcardsStore {
             observedCloudState = scopeKey.cloudState
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
             let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
+            let presentationCalendar = try makeProgressPresentationCalendar(
+                timeZoneIdentifier: scopeKey.timeZone,
+                userCalendar: Calendar.autoupdatingCurrent
+            )
 
-            if self.progressSnapshot?.scopeKey != scopeKey {
+            if self.progressSnapshot?.scopeKey != scopeKey
+                || self.progressSnapshot?.presentationCalendar != presentationCalendar {
                 try self.publishProgressSnapshot(scopeKey: scopeKey)
             }
             if self.reviewScheduleSnapshot?.scopeKey != scheduleScopeKey
