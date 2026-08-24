@@ -466,26 +466,27 @@ final class ProgressSnapshotValidationTests: XCTestCase {
         calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
         let scopeKey = makeProgressScopeKeyForTests(
             timeZone: "UTC",
-            from: "2026-02-03",
+            from: "2025-12-31",
             to: "2026-02-03"
+        )
+        let zeroFilledDays = try makeZeroFilledProgressDays(
+            requestRange: ProgressRequestRange(
+                timeZone: scopeKey.timeZone,
+                from: scopeKey.from,
+                to: scopeKey.to
+            )
         )
         let series = makeProgressSeries(
             timeZone: scopeKey.timeZone,
             from: scopeKey.from,
             to: scopeKey.to,
-            dailyReviews: [
-                ProgressDay(
-                    date: "2026-02-03",
-                    reviewCount: 0,
-                    againCount: 0,
-                    hardCount: 0,
-                    goodCount: 0,
-                    easyCount: 0
-                )
-            ],
-            streakDays: [
-                ProgressStreakDay(date: "2026-02-03", state: .reviewed)
-            ],
+            dailyReviews: zeroFilledDays,
+            streakDays: makeProgressStreakDays(
+                range: zeroFilledDays.map(\.date),
+                activeReviewDates: ["2026-02-03"],
+                evaluatedStreakDays: [],
+                today: scopeKey.to
+            ),
             summary: nil,
             generatedAt: nil,
             reviewHistoryWatermarks: []

@@ -34,11 +34,23 @@ func makeProgressSnapshot(
     let chartData = ProgressChartData(
         chartDays: chartDays
     )
+    let presentationCalendar = try makeProgressPresentationCalendar(
+        timeZoneIdentifier: scopeKey.timeZone,
+        userCalendar: Calendar.autoupdatingCurrent
+    )
+    let streakWeeks = try makeProgressStreakWeeks(
+        chartDays: chartDays,
+        rangeStartLocalDate: scopeKey.from,
+        todayLocalDate: scopeKey.to,
+        calendar: presentationCalendar
+    )
 
     return ProgressSnapshot(
         scopeKey: scopeKey,
         summary: summary,
         chartData: chartData,
+        streakWeeks: streakWeeks,
+        presentationCalendar: presentationCalendar,
         summarySourceState: summarySourceState,
         seriesSourceState: seriesSourceState,
         isApproximate: summarySourceState == .localOnly || seriesSourceState == .localOnly,
