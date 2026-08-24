@@ -5,6 +5,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import { combineAbortSignals } from "../../../abortSignals";
 import {
   isAuthRedirectError,
 } from "../../../api";
@@ -542,7 +543,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     syncingWorkspaceIdsRef.current.add(workspaceId);
     refreshSyncIndicator();
     const syncAbortController = new AbortController();
-    const syncSignal = AbortSignal.any([
+    const {
+      signal: syncSignal,
+      dispose: disposeSyncSignal,
+    } = combineAbortSignals([
       indexedDbOpenRecoveryState.signal,
       syncAbortController.signal,
     ]);
@@ -654,6 +658,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
         throw observeAndReportSyncFailure(normalizedError);
       } finally {
+        disposeSyncSignal();
         if (syncAbortControllersRef.current.get(workspaceId) === syncAbortController) {
           syncAbortControllersRef.current.delete(workspaceId);
           syncPromisesRef.current.delete(workspaceId);

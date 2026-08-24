@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
+import { combineAbortSignals } from "../../../abortSignals";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { ChatLiveStream } from "../../../types";
 import {
@@ -255,7 +256,10 @@ export function useChatLiveSession(
     }
 
     const abortController = new AbortController();
-    const liveStreamSignal = AbortSignal.any([
+    const {
+      signal: liveStreamSignal,
+      dispose: disposeLiveStreamSignal,
+    } = combineAbortSignals([
       indexedDbOpenRecoveryState.signal,
       abortController.signal,
     ]);
@@ -339,6 +343,8 @@ export function useChatLiveSession(
       const normalizedError = normalizeCaughtError(error);
       captureLiveStreamError(normalizedError, sessionId, runId, resumeAttemptId);
       finalizeInterruptedRunRef.current(normalizedError.message);
+    }).finally(() => {
+      disposeLiveStreamSignal();
     });
   }, [detachLiveStream, indexedDbOpenRecoveryState]);
 
