@@ -4,7 +4,7 @@ The sync layer now treats installation identity and workspace actor identity as 
 
 ## Installation Id
 
-`installationId` is a stable physical app or browser identity.
+`installationId` is a stable UUID identifying a physical app installation or browser profile.
 
 - It is generated once per Android install, iOS install, or browser profile.
 - It is global across users and workspaces.
