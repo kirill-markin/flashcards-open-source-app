@@ -316,9 +316,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       userId: session?.userId ?? null,
       workspaceId: identity.workspaceId,
       installationId: identity.installationId,
-      entityId: catalogContext.packageVersion.packageVersionId,
+      entityId: catalogContext.packageVersionId,
     });
-  }, [catalogContext.packageVersion.packageVersionId, session?.userId]);
+  }, [catalogContext.packageVersionId, session?.userId]);
 
   const runPostInstallSync = useCallback(async function runPostInstallSync(
     identity: CatalogWorkspaceIdentity,
@@ -412,12 +412,12 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       indexedDbOpenRecoveryState.throwIfFailed();
       const response = await previewCatalogPackageInstall(
         requestIdentity.workspaceId,
-        catalogContext.packageVersion.packageVersionId,
+        catalogContext.packageVersionId,
       );
       indexedDbOpenRecoveryState.throwIfFailed();
-      if (response.packageVersion.packageVersionId !== catalogContext.packageVersion.packageVersionId) {
+      if (response.packageVersion.packageVersionId !== catalogContext.packageVersionId) {
         throw new Error(
-          `Catalog install preview returned a different package version. expected=${catalogContext.packageVersion.packageVersionId} actual=${response.packageVersion.packageVersionId}`,
+          `Catalog install preview returned a different package version. expected=${catalogContext.packageVersionId} actual=${response.packageVersion.packageVersionId}`,
         );
       }
       if (
@@ -467,7 +467,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     }
   }, [
     captureCatalogImportError,
-    catalogContext.packageVersion.packageVersionId,
+    catalogContext.packageVersionId,
     indexedDbOpenRecoveryState,
     isImportAvailable,
     showCapturedTechnicalError,
@@ -668,7 +668,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       indexedDbOpenRecoveryState.throwIfFailed();
       const result = await confirmCatalogPackageInstall(
         requestAttempt.identity.workspaceId,
-        catalogContext.packageVersion.packageVersionId,
+        catalogContext.packageVersionId,
         requestAttempt.options,
       );
       indexedDbOpenRecoveryState.throwIfFailed();
@@ -678,9 +678,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       ) {
         return;
       }
-      if (result.packageVersion.packageVersionId !== catalogContext.packageVersion.packageVersionId) {
+      if (result.packageVersion.packageVersionId !== catalogContext.packageVersionId) {
         throw new Error(
-          `Catalog install returned a different package version. expected=${catalogContext.packageVersion.packageVersionId} actual=${result.packageVersion.packageVersionId}`,
+          `Catalog install returned a different package version. expected=${catalogContext.packageVersionId} actual=${result.packageVersion.packageVersionId}`,
         );
       }
       if (result.summary.installId !== requestAttempt.options.installId) {

@@ -1,13 +1,13 @@
 import {
   parseCatalogPackageInstallConfirmResponse,
   parseCatalogPackageInstallPreviewResponse,
-  parseCatalogPublicSnapshotResponse,
+  parseCatalogPublicPackageVersionResponse,
 } from "../../apiContracts/catalog";
 import type {
   CatalogPackageInstallConfirmOptions,
   CatalogPackageInstallConfirmResponse,
   CatalogPackageInstallPreviewResponse,
-  CatalogPublicSnapshot,
+  CatalogPublicPackageVersion,
 } from "../../types";
 import { parseContractResponse } from "../transport/response";
 import {
@@ -20,12 +20,16 @@ function encodePathSegment(value: string): string {
   return encodeURIComponent(value);
 }
 
-export async function loadPublicCatalog(): Promise<CatalogPublicSnapshot> {
-  return parseContractResponse(
-    await requestPublicJson("/catalog"),
-    "GET /catalog",
-    parseCatalogPublicSnapshotResponse,
+export async function loadPublicCatalogPackageVersion(
+  packageVersionId: string,
+): Promise<CatalogPublicPackageVersion> {
+  const pathname = `/catalog/package-versions/${encodePathSegment(packageVersionId)}`;
+  const payload = parseContractResponse(
+    await requestPublicJson(pathname),
+    "GET /catalog/package-versions/{id}",
+    parseCatalogPublicPackageVersionResponse,
   );
+  return payload.catalogPackageVersion;
 }
 
 export async function previewCatalogPackageInstall(
