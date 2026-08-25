@@ -1,20 +1,20 @@
 import type { ReactElement } from "react";
 import { ApiError } from "../../api";
 import { useI18n } from "../../i18n";
-import type {
-  CatalogPublicSnapshotAuthor,
-  CatalogPublicSnapshotPackage,
-  CatalogPublicSnapshotPackageVersion,
-} from "../../types";
 
 export type CatalogImportContext = Readonly<{
-  author: CatalogPublicSnapshotAuthor;
-  catalogPackage: CatalogPublicSnapshotPackage;
-  packageVersion: CatalogPublicSnapshotPackageVersion;
+  packageVersionId: string;
+  title: string;
+  cardCount: number;
+  authorDisplayName: string;
 }>;
 
 export function getCatalogImportErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+export function isCatalogPublicVersionNotFoundError(error: unknown): boolean {
+  return error instanceof ApiError && error.code === "CATALOG_PUBLIC_PACKAGE_VERSION_NOT_FOUND";
 }
 
 export function isCatalogVersionUnavailableError(error: unknown): boolean {
@@ -31,19 +31,19 @@ export function CatalogImportContextCard(props: Readonly<{
 }>): ReactElement {
   const { catalogContext, accountEmail } = props;
   const { messages, t, formatCount } = useI18n();
-  const cardCount = formatCount(catalogContext.packageVersion.cardCount, messages.common.countLabels.card);
+  const cardCount = formatCount(catalogContext.cardCount, messages.common.countLabels.card);
 
   return (
     <section className="content-card invite-panel" data-testid="catalog-import-context">
       <h1 className="title">{t("catalogImport.title")}</h1>
       <p className="subtitle" data-testid="catalog-import-package-summary">
         {t("catalogImport.packageSummary", {
-          title: catalogContext.packageVersion.title,
+          title: catalogContext.title,
           count: cardCount,
         })}
       </p>
       <p className="subtitle" data-testid="catalog-import-author">
-        {t("catalogImport.author", { author: catalogContext.author.displayName })}
+        {t("catalogImport.author", { author: catalogContext.authorDisplayName })}
       </p>
       {accountEmail === null ? null : (
         <p className="subtitle catalog-import-account-email" data-testid="catalog-import-account-email">

@@ -56,8 +56,10 @@ export {
   loadPublicCatalogPackageDetailInExecutor,
   loadPublicCatalogPackageMediaForDownload,
   loadPublicCatalogPackageMediaForDownloadInExecutor,
+  loadPublicCatalogPackageVersion,
   loadPublicCatalogPackageVersionCardPreview,
   loadPublicCatalogPackageVersionCardPreviewInExecutor,
+  loadPublicCatalogPackageVersionInExecutor,
 } from "./distribution/public";
 export {
   catalogPackageInstallOperationIdPrefixMaximumLength,
