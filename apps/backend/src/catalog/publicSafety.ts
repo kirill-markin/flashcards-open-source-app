@@ -1,8 +1,10 @@
+// Not the `../workspacePackages` barrel: it pulls the image ingestion graph, which
+// resolves `sharp` at load time, into every bundle reaching the public catalog snapshot.
 import {
   extractMarkdownLinkDestinationUrls,
   extractMarkdownNonCodeTextSegments,
-} from "../workspacePackages";
-import { isMarkdownComplexityLimitError } from "../workspacePackages/markdownMedia";
+  isMarkdownComplexityLimitError,
+} from "../workspacePackages/markdownMedia";
 import {
   containsUnsafePublicPackageMediaReference,
   isUnsafePublicPackageMediaKey,

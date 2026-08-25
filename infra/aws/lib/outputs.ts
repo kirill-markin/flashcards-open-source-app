@@ -32,6 +32,9 @@ export interface OutputsProps {
   communityLeaderboardSnapshotFunction: lambda.IFunction;
   streakLeaderboardSnapshotFunction: lambda.IFunction;
   progressActiveDaysBackfillFunction: lambda.IFunction;
+  catalogDumpBucket: s3.IBucket;
+  catalogDumpDistribution: cloudfront.Distribution;
+  catalogDumpFunction: lambda.IFunction;
   globalMetricsVisible: boolean;
   userPoolId: string;
   userPoolClientId: string;
@@ -189,6 +192,26 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "ProgressActiveDaysBackfillFunctionName", {
     value: props.progressActiveDaysBackfillFunction.functionName,
     description: "Lambda function name for Progress active review days backfill",
+  });
+
+  new cdk.CfnOutput(scope, "CatalogDumpBucketName", {
+    value: props.catalogDumpBucket.bucketName,
+    description: "Private S3 bucket for public catalog dump artifacts",
+  });
+
+  new cdk.CfnOutput(scope, "CatalogDumpDistributionId", {
+    value: props.catalogDumpDistribution.distributionId,
+    description: "CloudFront distribution ID for the public catalog dump",
+  });
+
+  new cdk.CfnOutput(scope, "CatalogDumpDistributionDomainName", {
+    value: props.catalogDumpDistribution.domainName,
+    description: "CloudFront distribution domain name for the public catalog dump",
+  });
+
+  new cdk.CfnOutput(scope, "CatalogDumpFunctionName", {
+    value: props.catalogDumpFunction.functionName,
+    description: "Lambda function name for public catalog dump generation",
   });
 
   new cdk.CfnOutput(scope, "GlobalMetricsVisible", {
