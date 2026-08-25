@@ -120,7 +120,7 @@ test("backend, direct ingestion, and chat worker package sharp with ARM64 Docker
 
   assert.match(
     backendConfiguration,
-    /mediaAssetsBucket: props\.mediaAssetsBucket[\s\S]*memorySize: 1024[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
+    /mediaAssetsBucket: props\.mediaAssetsBucket[\s\S]*memorySize: 2048[\s\S]*architecture: lambda\.Architecture\.ARM_64[\s\S]*nodeModules: \["sharp"\][\s\S]*forceDockerBundling: true/,
   );
   assert.match(
     chatWorkerConfiguration,
