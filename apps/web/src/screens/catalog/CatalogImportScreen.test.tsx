@@ -12,7 +12,7 @@ import type {
   CatalogPackageInstallConfirmOptions,
   CatalogPackageInstallConfirmResponse,
   CatalogPackageInstallPreviewResponse,
-  CatalogPublicSnapshot,
+  CatalogPublicPackageVersion,
   Deck,
   ResetWorkspaceProgressResponse,
   ReviewFilter,
@@ -31,7 +31,7 @@ const {
   buildLoginUrlMock,
   confirmCatalogPackageInstallMock,
   getOptionalSessionMock,
-  loadPublicCatalogMock,
+  loadPublicCatalogPackageVersionMock,
   previewCatalogPackageInstallMock,
   useAppDataMock,
 } = vi.hoisted(() => ({
@@ -42,7 +42,9 @@ const {
     options: CatalogPackageInstallConfirmOptions,
   ) => Promise<CatalogPackageInstallConfirmResponse>>(),
   getOptionalSessionMock: vi.fn<() => Promise<SessionInfo | null>>(),
-  loadPublicCatalogMock: vi.fn<() => Promise<CatalogPublicSnapshot>>(),
+  loadPublicCatalogPackageVersionMock: vi.fn<(
+    requestedPackageVersionId: string,
+  ) => Promise<CatalogPublicPackageVersion>>(),
   previewCatalogPackageInstallMock: vi.fn<(
     workspaceId: string,
     requestedPackageVersionId: string,
@@ -58,7 +60,7 @@ vi.mock("../../api", async (importOriginal) => {
     confirmCatalogPackageInstall: confirmCatalogPackageInstallMock,
     getOptionalSession: getOptionalSessionMock,
     isAuthRedirectError: (_error: unknown): boolean => false,
-    loadPublicCatalog: loadPublicCatalogMock,
+    loadPublicCatalogPackageVersion: loadPublicCatalogPackageVersionMock,
     previewCatalogPackageInstall: previewCatalogPackageInstallMock,
   };
 });
@@ -100,48 +102,22 @@ function createWorkspace(workspaceId: string, name: string, isSelected: boolean)
   };
 }
 
-function createCatalogSnapshot(includeVersion: boolean): CatalogPublicSnapshot {
+function createCatalogPackageVersion(): CatalogPublicPackageVersion {
   return {
-    schemaVersion: 2,
-    generatedAt: "2026-08-02T10:00:00.000Z",
-    authors: [{
+    packageVersionId,
+    packageId,
+    versionNumber: 1,
+    slug: "test-package",
+    title: "тест",
+    summary: "Test package",
+    languageTags: ["ru"],
+    cardCount: 2,
+    publishedAt: "2026-08-01T10:00:00.000Z",
+    author: {
       authorId,
       slug: "test-author",
       displayName: "Test Author",
-      bio: null,
-      websiteUrl: null,
-    }],
-    packages: [{
-      packageId,
-      authorId,
-      slug: "test-package",
-      status: "published",
-      latestPackageVersionId: packageVersionId,
-      versionCount: 1,
-      publishedAt: "2026-08-01T10:00:00.000Z",
-    }],
-    packageVersions: includeVersion ? [{
-      packageVersionId,
-      packageId,
-      versionNumber: 1,
-      status: "published",
-      slug: "test-package",
-      title: "тест",
-      summary: "Test package",
-      description: "Test package",
-      languageTags: ["ru"],
-      license: "CC0-1.0",
-      contentWarning: null,
-      coverMediaAssetId: null,
-      cardCount: 2,
-      updatedAt: "2026-08-01T10:00:00.000Z",
-      publishedAt: "2026-08-01T10:00:00.000Z",
-      installUrl: `http://localhost:3000/catalog/import/${packageVersionId}`,
-    }] : [],
-    cards: [],
-    mediaAssets: [],
-    collections: [],
-    collectionPackages: [],
+    },
   };
 }
 
@@ -228,6 +204,18 @@ function createDeferred<Result>(): Deferred<Result> {
       rejectPromise(error);
     },
   };
+}
+
+function createCatalogPublicVersionNotFoundError(): ApiError {
+  return new ApiError({
+    statusCode: 404,
+    message: "Published catalog package version not found.",
+    code: "CATALOG_PUBLIC_PACKAGE_VERSION_NOT_FOUND",
+    requestId: "request-1",
+    retryAfterMs: null,
+    endpoint: `GET /catalog/package-versions/${packageVersionId}`,
+    responseBodyKind: "json",
+  });
 }
 
 function createCatalogInstallConflict(code: string): ApiError {
@@ -335,8 +323,8 @@ describe("CatalogImportScreen", () => {
     useAppDataMock.mockImplementation(() => appData);
     buildLoginUrlMock.mockReset();
     buildLoginUrlMock.mockReturnValue("https://auth.example.test/login");
-    loadPublicCatalogMock.mockReset();
-    loadPublicCatalogMock.mockResolvedValue(createCatalogSnapshot(true));
+    loadPublicCatalogPackageVersionMock.mockReset();
+    loadPublicCatalogPackageVersionMock.mockResolvedValue(createCatalogPackageVersion());
     getOptionalSessionMock.mockReset();
     getOptionalSessionMock.mockResolvedValue(createSession());
     previewCatalogPackageInstallMock.mockReset();
@@ -388,11 +376,11 @@ describe("CatalogImportScreen", () => {
     await waitForCondition("Malformed version error was not rendered", () => (
       container.querySelector("[data-testid='catalog-import-error']") !== null
     ));
-    expect(loadPublicCatalogMock).not.toHaveBeenCalled();
+    expect(loadPublicCatalogPackageVersionMock).not.toHaveBeenCalled();
   });
 
   it("reports a missing exact version before loading auth", async () => {
-    loadPublicCatalogMock.mockResolvedValue(createCatalogSnapshot(false));
+    loadPublicCatalogPackageVersionMock.mockRejectedValue(createCatalogPublicVersionNotFoundError());
     await renderRoute(`/catalog/import/${packageVersionId}`);
     await waitForCondition("Missing version state was not rendered", () => (
       container.querySelector("[data-testid='catalog-import-not-found']") !== null

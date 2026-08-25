@@ -5,25 +5,17 @@ import type {
   CatalogPackageInstallPackageVersion,
   CatalogPackageInstallPreviewResponse,
   CatalogPackageInstallTagCount,
-  CatalogPublicSnapshot,
-  CatalogPublicSnapshotAuthor,
-  CatalogPublicSnapshotCard,
-  CatalogPublicSnapshotCollection,
-  CatalogPublicSnapshotCollectionPackage,
-  CatalogPublicSnapshotMediaAsset,
-  CatalogPublicSnapshotPackage,
-  CatalogPublicSnapshotPackageVersion,
+  CatalogPublicPackageVersion,
+  CatalogPublicPackageVersionAuthor,
 } from "../types";
 import {
   ApiContractError,
   type JsonObject,
   parseArray,
   parseBoolean,
-  parseLiteral,
   parseNonNegativeInteger,
   parseNullableString,
   parseObject,
-  parseOptionalField,
   parseRequiredField,
   parseString,
   parseStringArray,
@@ -36,157 +28,6 @@ function parsePositiveInteger(value: unknown, endpoint: string, path: string): n
   }
 
   return parsedValue;
-}
-
-function parseCatalogPublicSnapshotAuthor(
-  value: unknown,
-  endpoint: string,
-  path: string,
-): CatalogPublicSnapshotAuthor {
-  const objectValue = parseObject(value, endpoint, path);
-  return {
-    authorId: parseRequiredField(objectValue, "authorId", endpoint, path, parseString),
-    slug: parseRequiredField(objectValue, "slug", endpoint, path, parseString),
-    displayName: parseRequiredField(objectValue, "displayName", endpoint, path, parseString),
-    bio: parseRequiredField(objectValue, "bio", endpoint, path, parseNullableString),
-    websiteUrl: parseRequiredField(objectValue, "websiteUrl", endpoint, path, parseNullableString),
-  };
-}
-
-function parseCatalogPublicSnapshotPackage(
-  value: unknown,
-  endpoint: string,
-  path: string,
-): CatalogPublicSnapshotPackage {
-  const objectValue = parseObject(value, endpoint, path);
-  return {
-    packageId: parseRequiredField(objectValue, "packageId", endpoint, path, parseString),
-    authorId: parseRequiredField(objectValue, "authorId", endpoint, path, parseString),
-    slug: parseRequiredField(objectValue, "slug", endpoint, path, parseString),
-    status: parseLiteral(
-      parseRequiredField(objectValue, "status", endpoint, path, parseString),
-      endpoint,
-      `${path}.status`,
-      "published",
-    ),
-    latestPackageVersionId: parseRequiredField(objectValue, "latestPackageVersionId", endpoint, path, parseString),
-    versionCount: parseRequiredField(objectValue, "versionCount", endpoint, path, parsePositiveInteger),
-    publishedAt: parseRequiredField(objectValue, "publishedAt", endpoint, path, parseString),
-  };
-}
-
-function parseCatalogPublicSnapshotPackageVersion(
-  value: unknown,
-  endpoint: string,
-  path: string,
-): CatalogPublicSnapshotPackageVersion {
-  const objectValue = parseObject(value, endpoint, path);
-  return {
-    packageVersionId: parseRequiredField(objectValue, "packageVersionId", endpoint, path, parseString),
-    packageId: parseRequiredField(objectValue, "packageId", endpoint, path, parseString),
-    versionNumber: parseRequiredField(objectValue, "versionNumber", endpoint, path, parsePositiveInteger),
-    status: parseLiteral(
-      parseRequiredField(objectValue, "status", endpoint, path, parseString),
-      endpoint,
-      `${path}.status`,
-      "published",
-    ),
-    slug: parseRequiredField(objectValue, "slug", endpoint, path, parseString),
-    title: parseRequiredField(objectValue, "title", endpoint, path, parseString),
-    summary: parseRequiredField(objectValue, "summary", endpoint, path, parseString),
-    description: parseRequiredField(objectValue, "description", endpoint, path, parseString),
-    languageTags: parseRequiredField(objectValue, "languageTags", endpoint, path, parseStringArray),
-    license: parseRequiredField(objectValue, "license", endpoint, path, parseString),
-    contentWarning: parseRequiredField(objectValue, "contentWarning", endpoint, path, parseNullableString),
-    coverMediaAssetId: parseRequiredField(objectValue, "coverMediaAssetId", endpoint, path, parseNullableString),
-    cardCount: parseRequiredField(objectValue, "cardCount", endpoint, path, parseNonNegativeInteger),
-    updatedAt: parseRequiredField(objectValue, "updatedAt", endpoint, path, parseString),
-    publishedAt: parseRequiredField(objectValue, "publishedAt", endpoint, path, parseString),
-    installUrl: parseRequiredField(objectValue, "installUrl", endpoint, path, parseString),
-  };
-}
-
-function parseCatalogPublicSnapshotCard(
-  value: unknown,
-  endpoint: string,
-  path: string,
-): CatalogPublicSnapshotCard {
-  const objectValue = parseObject(value, endpoint, path);
-  return {
-    packageCardId: parseRequiredField(objectValue, "packageCardId", endpoint, path, parseString),
-    packageVersionId: parseRequiredField(objectValue, "packageVersionId", endpoint, path, parseString),
-    ordinal: parseRequiredField(objectValue, "ordinal", endpoint, path, parsePositiveInteger),
-    frontText: parseRequiredField(objectValue, "frontText", endpoint, path, parseString),
-    backText: parseRequiredField(objectValue, "backText", endpoint, path, parseString),
-    cardType: parseRequiredField(objectValue, "cardType", endpoint, path, parseString),
-    tags: parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray),
-    mediaAssetIds: parseRequiredField(objectValue, "mediaAssetIds", endpoint, path, parseStringArray),
-  };
-}
-
-function parseCatalogPublicSnapshotMediaAsset(
-  value: unknown,
-  endpoint: string,
-  path: string,
-): CatalogPublicSnapshotMediaAsset {
-  const objectValue = parseObject(value, endpoint, path);
-  return {
-    packageMediaAssetId: parseRequiredField(objectValue, "packageMediaAssetId", endpoint, path, parseString),
-    packageVersionId: parseRequiredField(objectValue, "packageVersionId", endpoint, path, parseString),
-    packageMediaKey: parseRequiredField(objectValue, "packageMediaKey", endpoint, path, parseString),
-    altText: parseRequiredField(objectValue, "altText", endpoint, path, parseNullableString),
-    credit: parseRequiredField(objectValue, "credit", endpoint, path, parseNullableString),
-    license: parseRequiredField(objectValue, "license", endpoint, path, parseNullableString),
-    mimeType: parseRequiredField(objectValue, "mimeType", endpoint, path, parseString),
-    sizeBytes: parseRequiredField(objectValue, "sizeBytes", endpoint, path, parseNonNegativeInteger),
-    downloadUrl: parseRequiredField(objectValue, "downloadUrl", endpoint, path, parseString),
-  };
-}
-
-function parseCatalogPublicSnapshotCollection(
-  value: unknown,
-  endpoint: string,
-  path: string,
-): CatalogPublicSnapshotCollection {
-  const objectValue = parseObject(value, endpoint, path);
-  const coverDownloadUrl = parseOptionalField(
-    objectValue,
-    "coverDownloadUrl",
-    endpoint,
-    path,
-    parseString,
-  );
-  return {
-    collectionId: parseRequiredField(objectValue, "collectionId", endpoint, path, parseString),
-    slug: parseRequiredField(objectValue, "slug", endpoint, path, parseString),
-    title: parseRequiredField(objectValue, "title", endpoint, path, parseString),
-    summary: parseRequiredField(objectValue, "summary", endpoint, path, parseString),
-    description: parseRequiredField(objectValue, "description", endpoint, path, parseString),
-    languageTags: parseRequiredField(objectValue, "languageTags", endpoint, path, parseStringArray),
-    coverPackageId: parseRequiredField(objectValue, "coverPackageId", endpoint, path, parseNullableString),
-    ...(coverDownloadUrl === undefined ? {} : { coverDownloadUrl }),
-    status: parseLiteral(
-      parseRequiredField(objectValue, "status", endpoint, path, parseString),
-      endpoint,
-      `${path}.status`,
-      "published",
-    ),
-    updatedAt: parseRequiredField(objectValue, "updatedAt", endpoint, path, parseString),
-    publishedAt: parseRequiredField(objectValue, "publishedAt", endpoint, path, parseString),
-  };
-}
-
-function parseCatalogPublicSnapshotCollectionPackage(
-  value: unknown,
-  endpoint: string,
-  path: string,
-): CatalogPublicSnapshotCollectionPackage {
-  const objectValue = parseObject(value, endpoint, path);
-  return {
-    collectionId: parseRequiredField(objectValue, "collectionId", endpoint, path, parseString),
-    packageId: parseRequiredField(objectValue, "packageId", endpoint, path, parseString),
-    ordinal: parseRequiredField(objectValue, "ordinal", endpoint, path, parsePositiveInteger),
-  };
 }
 
 function parseCatalogArray<ParsedValue>(
@@ -204,23 +45,51 @@ function parseCatalogArray<ParsedValue>(
   );
 }
 
-export function parseCatalogPublicSnapshotResponse(value: unknown, endpoint: string): CatalogPublicSnapshot {
+function parseCatalogPublicPackageVersionAuthor(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): CatalogPublicPackageVersionAuthor {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    authorId: parseRequiredField(objectValue, "authorId", endpoint, path, parseString),
+    slug: parseRequiredField(objectValue, "slug", endpoint, path, parseString),
+    displayName: parseRequiredField(objectValue, "displayName", endpoint, path, parseString),
+  };
+}
+
+function parseCatalogPublicPackageVersion(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): CatalogPublicPackageVersion {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    packageVersionId: parseRequiredField(objectValue, "packageVersionId", endpoint, path, parseString),
+    packageId: parseRequiredField(objectValue, "packageId", endpoint, path, parseString),
+    versionNumber: parseRequiredField(objectValue, "versionNumber", endpoint, path, parsePositiveInteger),
+    slug: parseRequiredField(objectValue, "slug", endpoint, path, parseString),
+    title: parseRequiredField(objectValue, "title", endpoint, path, parseString),
+    summary: parseRequiredField(objectValue, "summary", endpoint, path, parseString),
+    languageTags: parseRequiredField(objectValue, "languageTags", endpoint, path, parseStringArray),
+    cardCount: parseRequiredField(objectValue, "cardCount", endpoint, path, parseNonNegativeInteger),
+    publishedAt: parseRequiredField(objectValue, "publishedAt", endpoint, path, parseString),
+    author: parseRequiredField(objectValue, "author", endpoint, path, parseCatalogPublicPackageVersionAuthor),
+  };
+}
+
+export function parseCatalogPublicPackageVersionResponse(value: unknown, endpoint: string): Readonly<{
+  catalogPackageVersion: CatalogPublicPackageVersion;
+}> {
   const objectValue = parseObject(value, endpoint, "");
   return {
-    schemaVersion: parseLiteral(
-      parseRequiredField(objectValue, "schemaVersion", endpoint, "", parseNonNegativeInteger),
+    catalogPackageVersion: parseRequiredField(
+      objectValue,
+      "catalogPackageVersion",
       endpoint,
-      "schemaVersion",
-      2,
+      "",
+      parseCatalogPublicPackageVersion,
     ),
-    generatedAt: parseRequiredField(objectValue, "generatedAt", endpoint, "", parseString),
-    authors: parseCatalogArray(objectValue, "authors", endpoint, parseCatalogPublicSnapshotAuthor),
-    packages: parseCatalogArray(objectValue, "packages", endpoint, parseCatalogPublicSnapshotPackage),
-    packageVersions: parseCatalogArray(objectValue, "packageVersions", endpoint, parseCatalogPublicSnapshotPackageVersion),
-    cards: parseCatalogArray(objectValue, "cards", endpoint, parseCatalogPublicSnapshotCard),
-    mediaAssets: parseCatalogArray(objectValue, "mediaAssets", endpoint, parseCatalogPublicSnapshotMediaAsset),
-    collections: parseCatalogArray(objectValue, "collections", endpoint, parseCatalogPublicSnapshotCollection),
-    collectionPackages: parseCatalogArray(objectValue, "collectionPackages", endpoint, parseCatalogPublicSnapshotCollectionPackage),
   };
 }
 

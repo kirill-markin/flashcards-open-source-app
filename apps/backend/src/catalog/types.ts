@@ -232,6 +232,25 @@ export type CatalogPublicPackageVersionSummary = Readonly<{
   publishedAt: string;
 }>;
 
+export type CatalogPublicPackageVersionAuthor = Readonly<{
+  authorId: string;
+  slug: string;
+  displayName: string;
+}>;
+
+export type CatalogPublicPackageVersionDetail = Readonly<{
+  packageVersionId: string;
+  packageId: string;
+  versionNumber: number;
+  slug: string;
+  title: string;
+  summary: string;
+  languageTags: ReadonlyArray<string>;
+  cardCount: number;
+  publishedAt: string;
+  author: CatalogPublicPackageVersionAuthor;
+}>;
+
 export type CatalogPublicPackageSummary = Readonly<{
   packageId: string;
   slug: string;
