@@ -93,6 +93,7 @@ export type {
   AgentSqlDetails,
   CatalogDumpFailureDetails,
   CatalogDumpGeneratedDetails,
+  CatalogDumpRefreshFailureDetails,
   CatalogDumpS3RetryDetails,
   CommunityLeaderboardSnapshotFailureDetails,
   CommunityLeaderboardSnapshotGeneratedDetails,

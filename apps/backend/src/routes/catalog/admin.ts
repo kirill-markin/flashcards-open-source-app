@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import {
   requireCatalogAdminRequest,
   type CatalogAdminRequestContext,
@@ -18,6 +18,10 @@ import {
   updateCatalogPackageDraft,
   updateCatalogPackageVersionReviewStatus,
 } from "../../catalog";
+import {
+  refreshPublicCatalogDump,
+  type CatalogDumpRefreshTrigger,
+} from "../../catalog/distribution/public/dumpRefresh";
 import {
   catalogPackageStatuses,
   type AttachCatalogPackageMediaAssetInput,
@@ -90,6 +94,7 @@ type CatalogAdminRoutesOptions = Readonly<{
     adminEmail: string,
     note: string | null,
   ) => Promise<CatalogPackageVersion>;
+  refreshPublicCatalogDumpFn?: (trigger: CatalogDumpRefreshTrigger) => Promise<void>;
 }>;
 
 const catalogAdminMaximumBodyBytes = 2_000_000;
@@ -308,6 +313,14 @@ function parseNoteInput(record: Readonly<Record<string, unknown>>): string | nul
   return expectNullableNonEmptyString(record.note, "note");
 }
 
+function createCatalogDumpRefreshTrigger(context: Context<AppEnv>): CatalogDumpRefreshTrigger {
+  return {
+    route: context.req.path,
+    method: context.req.method,
+    requestId: context.get("requestId"),
+  };
+}
+
 export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const requireAdminRequestFn = options.requireAdminRequestFn ?? requireCatalogAdminRequest;
@@ -328,6 +341,7 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
     ?? updateCatalogPackageVersionReviewStatus;
   const publishCatalogPackageVersionFn = options.publishCatalogPackageVersionFn ?? publishCatalogPackageVersion;
   const delistCatalogPackageVersionFn = options.delistCatalogPackageVersionFn ?? delistCatalogPackageVersion;
+  const refreshPublicCatalogDumpFn = options.refreshPublicCatalogDumpFn ?? refreshPublicCatalogDump;
 
   app.post("/admin/catalog/authors", async (context) => {
     await requireAdminRequestFn(context.req.raw, options.allowedOrigins);
@@ -342,6 +356,8 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
       authorId,
       await parseCatalogAdminJsonBody(context.req.raw),
     ));
+    // Author edits reach the snapshot of every already-published package.
+    await refreshPublicCatalogDumpFn(createCatalogDumpRefreshTrigger(context));
     return context.json({ author });
   });
 
@@ -367,6 +383,17 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
       packageId,
       await parseCatalogAdminJsonBody(context.req.raw),
     ));
+    if (catalogPackage.status === "published") {
+      // The package slug and author feed the snapshot, but every snapshot query
+      // requires `packages.status = 'published'`, so editing a package in any other
+      // status provably cannot change the artifact. Skipping those keeps a batch of
+      // draft saves from queuing no-op 15 s rebuilds ahead of the publish that
+      // matters on a builder limited to one concurrent run. The transitions in and
+      // out of published output are hooked by publish and delist instead, which
+      // stay unconditional.
+      await refreshPublicCatalogDumpFn(createCatalogDumpRefreshTrigger(context));
+    }
+
     return context.json({ catalogPackage });
   });
 
@@ -429,6 +456,7 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
       adminContext.email,
       parseNoteInput(await parseCatalogAdminJsonBody(context.req.raw)),
     );
+    await refreshPublicCatalogDumpFn(createCatalogDumpRefreshTrigger(context));
     return context.json({ packageVersion });
   });
 
@@ -440,6 +468,7 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
       adminContext.email,
       parseNoteInput(await parseCatalogAdminJsonBody(context.req.raw)),
     );
+    await refreshPublicCatalogDumpFn(createCatalogDumpRefreshTrigger(context));
     return context.json({ packageVersion });
   });
 
