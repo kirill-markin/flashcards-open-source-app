@@ -806,7 +806,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       snapshotObjectKey: props.globalMetricsSnapshotObjectKey,
     },
     mediaAssetsBucket: props.mediaAssetsBucket,
-    memorySize: 1024,
+    memorySize: 2048,
     architecture: lambda.Architecture.ARM_64,
     bundling: createLambdaBundling({
       nodeModules: ["sharp"],
