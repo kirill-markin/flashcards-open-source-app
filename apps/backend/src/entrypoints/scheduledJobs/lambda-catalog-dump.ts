@@ -11,6 +11,8 @@ import {
 
 initializeBackendSentry("catalog-dump");
 
+const maximumTriggerRouteLength = 200;
+
 type CatalogDumpResponse = Readonly<{
   ok: true;
   bucketName: string;
@@ -50,14 +52,42 @@ function readOptionalTrimmedEnv(env: NodeJS.ProcessEnv, name: string): string | 
   return value.trim();
 }
 
-function createCatalogDumpFailureDetails(error: Error): CatalogDumpFailureDetails {
+function createCatalogDumpFailureDetails(
+  error: Error,
+  triggerRoute: string | null,
+): CatalogDumpFailureDetails {
   return {
     bucketName: readOptionalTrimmedEnv(process.env, "CATALOG_DUMP_S3_BUCKET_NAME"),
+    triggerRoute,
     message: error.message,
   };
 }
 
-const catalogDumpHandler: Handler<unknown, CatalogDumpResponse> = async (_event, context) => {
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && Array.isArray(value) === false;
+}
+
+/**
+ * Reads the admin route that triggered this rebuild, so a stale artifact can be
+ * traced back to the operation that should have refreshed it. The deploy-time
+ * seed sends an empty payload, and a malformed payload must never fail a
+ * rebuild, so both degrade to no attribution.
+ */
+function readTriggerRoute(event: unknown): string | null {
+  if (!isRecord(event)) {
+    return null;
+  }
+
+  const triggerRoute = event.triggerRoute;
+  if (typeof triggerRoute !== "string" || triggerRoute.trim() === "") {
+    return null;
+  }
+
+  return triggerRoute.trim().slice(0, maximumTriggerRouteLength);
+}
+
+const catalogDumpHandler: Handler<unknown, CatalogDumpResponse> = async (event, context) => {
+  const triggerRoute = readTriggerRoute(event);
   const observationScope = createBackendObservationScope(
     "catalog-dump",
     context.awsRequestId ?? null,
@@ -84,6 +114,7 @@ const catalogDumpHandler: Handler<unknown, CatalogDumpResponse> = async (_event,
         sha256: result.sha256,
         generatedAt: result.generatedAt,
         byteLength: result.byteLength,
+        triggerRoute,
       },
     });
 
@@ -101,7 +132,7 @@ const catalogDumpHandler: Handler<unknown, CatalogDumpResponse> = async (_event,
       action: "catalog_dump_failed",
       error: normalizedError,
       scope: observationScope,
-      details: createCatalogDumpFailureDetails(normalizedError),
+      details: createCatalogDumpFailureDetails(normalizedError, triggerRoute),
     });
     throw error;
   }

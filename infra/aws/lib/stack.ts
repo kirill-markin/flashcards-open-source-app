@@ -373,6 +373,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       globalMetricsSnapshotBucket: globalMetricsResult.snapshotBucket,
       globalMetricsSnapshotObjectKey: globalMetricsResult.snapshotObjectKey,
       mediaAssetsBucket: mediaAssetsResult.bucket,
+      catalogDumpFunction: catalogDumpResult.dumpFunction,
       userPoolId: authResult.userPool.userPoolId,
       userPoolArn: authResult.userPool.userPoolArn,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,

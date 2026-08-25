@@ -309,6 +309,7 @@ function createCatalogImageTestApp(
       input.collectionId,
       input.imageBytes,
     ),
+    refreshPublicCatalogDumpFn: async () => {},
   }));
   return app;
 }

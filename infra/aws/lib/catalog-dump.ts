@@ -115,6 +115,13 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),
     memorySize: 2048,
+    // Admin operations trigger rebuilds, so runs can now overlap. Two overlapping
+    // runs interleave the `latest.json` and `pointer.json` writes and can leave the
+    // pointer naming one build while `latest.json` holds another. One reserved
+    // execution serializes them without a lock: throttled asynchronous triggers stay
+    // queued and are retried by Lambda, and the run that wins is the one that read
+    // Postgres last.
+    reservedConcurrentExecutions: 1,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
