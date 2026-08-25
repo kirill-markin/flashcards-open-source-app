@@ -73,7 +73,7 @@ export {
 } from "./api/endpoints/workspacePackageImport";
 export {
   confirmCatalogPackageInstall,
-  loadPublicCatalog,
+  loadPublicCatalogPackageVersion,
   previewCatalogPackageInstall,
 } from "./api/endpoints/catalog";
 export {

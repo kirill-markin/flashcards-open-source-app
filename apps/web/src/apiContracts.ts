@@ -53,7 +53,7 @@ export {
 export {
   parseCatalogPackageInstallConfirmResponse,
   parseCatalogPackageInstallPreviewResponse,
-  parseCatalogPublicSnapshotResponse,
+  parseCatalogPublicPackageVersionResponse,
 } from "./apiContracts/catalog";
 export {
   parseProgressReviewScheduleResponse,

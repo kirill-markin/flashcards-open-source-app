@@ -5,6 +5,7 @@ import {
   loadPublicCatalogSnapshot,
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageMediaForDownload,
+  loadPublicCatalogPackageVersion,
   loadPublicCatalogPackageVersionCardPreview,
 } from "../../catalog";
 import {
@@ -23,6 +24,7 @@ import type {
   CatalogPublicPackageListInput,
   CatalogPublicPackageMediaDownloadSource,
   CatalogPublicPackageSummary,
+  CatalogPublicPackageVersionDetail,
   CatalogPublicSnapshot,
 } from "../../catalog/types";
 import {
@@ -51,6 +53,9 @@ type CatalogPublicRoutesOptions = Readonly<{
     input: CatalogPublicPackageListInput,
   ) => Promise<ReadonlyArray<CatalogPublicPackageSummary>>;
   loadPublicCatalogPackageDetailFn?: (packageSlug: string) => Promise<CatalogPublicPackageDetail>;
+  loadPublicCatalogPackageVersionFn?: (
+    packageVersionId: string,
+  ) => Promise<CatalogPublicPackageVersionDetail>;
   loadPublicCatalogPackageVersionCardPreviewFn?: (
     input: Readonly<{ packageVersionId: string; limit: number }>,
   ) => Promise<ReadonlyArray<CatalogPublicPackageCardPreview>>;
@@ -278,6 +283,8 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
   const listPublicCatalogPackagesFn = options.listPublicCatalogPackagesFn ?? listPublicCatalogPackages;
   const loadPublicCatalogPackageDetailFn = options.loadPublicCatalogPackageDetailFn
     ?? loadPublicCatalogPackageDetail;
+  const loadPublicCatalogPackageVersionFn = options.loadPublicCatalogPackageVersionFn
+    ?? loadPublicCatalogPackageVersion;
   const loadPublicCatalogPackageVersionCardPreviewFn = options.loadPublicCatalogPackageVersionCardPreviewFn
     ?? loadPublicCatalogPackageVersionCardPreview;
   const loadPublicCatalogPackageMediaForDownloadFn = options.loadPublicCatalogPackageMediaForDownloadFn
@@ -306,6 +313,12 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     const packageSlug = parsePackageSlugParam(context.req.param("packageSlug"));
     const catalogPackage = await loadPublicCatalogPackageDetailFn(packageSlug);
     return context.json({ catalogPackage });
+  });
+
+  app.get("/catalog/package-versions/:packageVersionId", async (context) => {
+    const packageVersionId = parsePackageVersionIdParam(context.req.param("packageVersionId"));
+    const catalogPackageVersion = await loadPublicCatalogPackageVersionFn(packageVersionId);
+    return context.json({ catalogPackageVersion });
   });
 
   app.get("/catalog/package-versions/:packageVersionId/cards", async (context) => {

@@ -9,7 +9,7 @@ import type {
 import { primeSessionCsrfToken } from "../transport/transport";
 import {
   confirmCatalogPackageInstall,
-  loadPublicCatalog,
+  loadPublicCatalogPackageVersion,
   previewCatalogPackageInstall,
 } from "./catalog";
 
@@ -17,7 +17,6 @@ const workspaceId = "11111111-1111-4111-8111-111111111111";
 const packageVersionId = "22222222-2222-4222-8222-222222222222";
 const packageId = "33333333-3333-4333-8333-333333333333";
 const authorId = "44444444-4444-4444-8444-444444444444";
-const collectionId = "99999999-9999-4999-8999-999999999999";
 
 function createPackageVersion(): CatalogPackageInstallPackageVersion {
   return {
@@ -44,7 +43,23 @@ function createPackageVersion(): CatalogPackageInstallPackageVersion {
 }
 
 describe("catalog API endpoints", () => {
-  it("validates the public snapshot and exact-version preview and confirm responses", async () => {
+  it("validates the public package version lookup and exact-version preview and confirm responses", async () => {
+    const catalogPackageVersion = {
+      packageVersionId,
+      packageId,
+      versionNumber: 1,
+      slug: "test-package",
+      title: "тест",
+      summary: "Test package",
+      languageTags: ["ru"],
+      cardCount: 2,
+      publishedAt: "2026-08-01T10:00:00.000Z",
+      author: {
+        authorId,
+        slug: "test-author",
+        displayName: "Test Author",
+      },
+    };
     const previewResponse = {
       packageVersion: createPackageVersion(),
       summary: { cardCount: 2, mediaAssetCount: 0 },
@@ -76,60 +91,7 @@ describe("catalog API endpoints", () => {
       },
     };
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        schemaVersion: 2,
-        generatedAt: "2026-08-02T10:00:00.000Z",
-        authors: [{
-          authorId,
-          slug: "test-author",
-          displayName: "Test Author",
-          bio: null,
-          websiteUrl: null,
-        }],
-        packages: [{
-          packageId,
-          authorId,
-          slug: "test-package",
-          status: "published",
-          latestPackageVersionId: packageVersionId,
-          versionCount: 1,
-          publishedAt: "2026-08-01T10:00:00.000Z",
-        }],
-        packageVersions: [{
-          ...createPackageVersion(),
-          status: "published",
-          coverMediaAssetId: null,
-          updatedAt: "2026-08-01T10:00:00.000Z",
-          installUrl: `http://localhost:3000/catalog/import/${packageVersionId}`,
-        }],
-        cards: [],
-        mediaAssets: [],
-        collections: [{
-          collectionId,
-          slug: "test-collection",
-          title: "Test collection",
-          summary: "Test collection",
-          description: "Test collection",
-          languageTags: ["en"],
-          coverPackageId: packageId,
-          coverDownloadUrl: `http://localhost:8080/v1/catalog/collections/${collectionId}/cover/download`,
-          status: "published",
-          updatedAt: "2026-08-01T10:00:00.000Z",
-          publishedAt: "2026-08-01T10:00:00.000Z",
-        }, {
-          collectionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-          slug: "legacy-collection",
-          title: "Legacy collection",
-          summary: "Legacy collection",
-          description: "Legacy collection",
-          languageTags: ["en"],
-          coverPackageId: packageId,
-          status: "published",
-          updatedAt: "2026-08-01T10:00:00.000Z",
-          publishedAt: "2026-08-01T10:00:00.000Z",
-        }],
-        collectionPackages: [],
-      }), {
+      .mockResolvedValueOnce(new Response(JSON.stringify({ catalogPackageVersion }), {
         status: 200,
         headers: {
           "Access-Control-Allow-Origin": "http://localhost:3000",
@@ -153,18 +115,13 @@ describe("catalog API endpoints", () => {
       operationIdPrefix: "77777777-7777-4777-8777-777777777777",
     };
 
-    const catalog = await loadPublicCatalog();
-    expect(catalog).toMatchObject({ schemaVersion: 2 });
-    expect(catalog.collections[0]?.coverDownloadUrl).toBe(
-      `http://localhost:8080/v1/catalog/collections/${collectionId}/cover/download`,
-    );
-    expect("coverDownloadUrl" in (catalog.collections[1] ?? {})).toBe(false);
+    await expect(loadPublicCatalogPackageVersion(packageVersionId)).resolves.toEqual(catalogPackageVersion);
     await expect(previewCatalogPackageInstall(workspaceId, packageVersionId)).resolves.toEqual(previewResponse);
     await expect(confirmCatalogPackageInstall(workspaceId, packageVersionId, options)).resolves.toEqual(confirmResponse);
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "http://localhost:8080/v1/catalog",
+      `http://localhost:8080/v1/catalog/package-versions/${packageVersionId}`,
       expect.objectContaining({
         credentials: "omit",
         method: "GET",
@@ -205,9 +162,9 @@ describe("catalog API endpoints", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(loadPublicCatalog()).rejects.toMatchObject({
+    await expect(loadPublicCatalogPackageVersion(packageVersionId)).rejects.toMatchObject({
       code: "INVALID_CATALOG_REQUEST",
-      endpoint: "GET /catalog",
+      endpoint: `GET /catalog/package-versions/${packageVersionId}`,
       message: "Catalog request is invalid.",
       requestId: "header-request-id",
       responseBodyKind: "json",
@@ -216,7 +173,7 @@ describe("catalog API endpoints", () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8080/v1/catalog",
+      `http://localhost:8080/v1/catalog/package-versions/${packageVersionId}`,
       expect.objectContaining({
         credentials: "omit",
         method: "GET",
