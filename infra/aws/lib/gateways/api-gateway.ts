@@ -37,6 +37,7 @@ export interface ApiGatewayProps {
   globalMetricsSnapshotBucket: s3.IBucket;
   globalMetricsSnapshotObjectKey: string;
   mediaAssetsBucket: s3.IBucket;
+  catalogDumpFunction: lambda.IFunction;
   userPoolId: string;
   userPoolArn: string;
   userPoolClientId: string;
@@ -79,6 +80,7 @@ interface BackendFunctionProps {
   guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsConfig: GlobalMetricsConfig | undefined;
   mediaAssetsBucket: s3.IBucket | undefined;
+  catalogDumpFunction: lambda.IFunction | undefined;
   memorySize: number;
   architecture: lambda.Architecture;
   bundling: lambdaNodejs.BundlingOptions;
@@ -98,6 +100,7 @@ interface DirectImageIngestionFunctionProps {
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   mediaAssetsBucket: s3.IBucket;
+  catalogDumpFunction: lambda.IFunction;
 }
 
 export const publicRestApiDefaultIntegrationTimeoutSeconds = 29;
@@ -471,6 +474,23 @@ function addGlobalMetricsEnvironment(
   }));
 }
 
+/**
+ * Lets one request-serving function trigger a public catalog dump rebuild after
+ * an admin operation changed published catalog output. Nothing rebuilds the
+ * artifact on a schedule, so only the functions serving those admin routes get
+ * the function name and the invoke permission, scoped to the builder alone.
+ */
+function addCatalogDumpRefreshEnvironment(
+  fn: lambdaNodejs.NodejsFunction,
+  catalogDumpFunction: lambda.IFunction,
+): void {
+  fn.addEnvironment("CATALOG_DUMP_FUNCTION_NAME", catalogDumpFunction.functionName);
+  fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: ["lambda:InvokeFunction"],
+    resources: [catalogDumpFunction.functionArn],
+  }));
+}
+
 export function createMediaAssetsObjectPolicyStatement(bucket: s3.IBucket): cdk.aws_iam.PolicyStatement {
   return new cdk.aws_iam.PolicyStatement({
     actions: [
@@ -651,6 +671,9 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
   if (props.mediaAssetsBucket !== undefined) {
     addMediaAssetsEnvironment(fn, props.mediaAssetsBucket);
   }
+  if (props.catalogDumpFunction !== undefined) {
+    addCatalogDumpRefreshEnvironment(fn, props.catalogDumpFunction);
+  }
 
   return fn;
 }
@@ -718,6 +741,10 @@ function createDirectImageIngestionFunction(
   fn.addToRolePolicy(
     createDirectImageIngestionObjectPolicyStatement(props.mediaAssetsBucket),
   );
+  // This function, not the shared backend handler, serves
+  // PUT /admin/catalog/collections/{collectionId}/cover, which changes the
+  // published collection cover.
+  addCatalogDumpRefreshEnvironment(fn, props.catalogDumpFunction);
   return fn;
 }
 
@@ -806,6 +833,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       snapshotObjectKey: props.globalMetricsSnapshotObjectKey,
     },
     mediaAssetsBucket: props.mediaAssetsBucket,
+    catalogDumpFunction: props.catalogDumpFunction,
     memorySize: 2048,
     architecture: lambda.Architecture.ARM_64,
     bundling: createLambdaBundling({
@@ -827,6 +855,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     mediaAssetsBucket: props.mediaAssetsBucket,
+    catalogDumpFunction: props.catalogDumpFunction,
   });
   const chatWorkerFn = createBackendFunction(scope, {
     constructId: "ChatRunWorkerHandler",
@@ -861,6 +890,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
     mediaAssetsBucket: props.mediaAssetsBucket,
+    catalogDumpFunction: undefined,
     memorySize: 1024,
     architecture: lambda.Architecture.ARM_64,
     bundling: createLambdaBundling({
@@ -901,6 +931,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
     mediaAssetsBucket: undefined,
+    catalogDumpFunction: undefined,
     memorySize: 256,
     architecture: lambda.Architecture.X86_64,
     bundling: createLambdaBundling({

@@ -104,10 +104,19 @@ export type CatalogDumpGeneratedDetails = Readonly<{
   sha256: string;
   generatedAt: string;
   byteLength: number;
+  /** Admin route that triggered the rebuild, or `null` for a deploy-time seed. */
+  triggerRoute: string | null;
 }>;
 
 export type CatalogDumpFailureDetails = Readonly<{
   bucketName: string | null;
+  triggerRoute: string | null;
+  message: string;
+}>;
+
+export type CatalogDumpRefreshFailureDetails = Readonly<{
+  functionName: string | null;
+  route: string;
   message: string;
 }>;
 
@@ -399,6 +408,7 @@ export type OperationsWarningEvent =
 export type OperationsExceptionEvent =
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_failed", CatalogDumpFailureDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"catalog_dump_refresh_failed", CatalogDumpRefreshFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"community_leaderboard_snapshot_failed", CommunityLeaderboardSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"streak_leaderboard_snapshot_failed", StreakLeaderboardSnapshotFailureDetails> & Readonly<{
     error: Error;
