@@ -347,6 +347,11 @@ async function handleMcpTransportRequest(
 
 function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
   app.get("/health", (c) => c.json({ status: "ok" }));
+  app.get("/robots.txt", (c) =>
+    c.body("User-agent: *\nDisallow:\n", 200, {
+      "Content-Type": "text/plain; charset=utf-8",
+    }),
+  );
 
   // Serve PRM at both the RFC 9728 path-aware location (`/mcp` suffix, used by
   // spec-current clients) and the legacy path-less location (older clients).
