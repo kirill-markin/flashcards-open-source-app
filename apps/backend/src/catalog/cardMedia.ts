@@ -1,4 +1,6 @@
-import { extractMarkdownFcAssetIds } from "../workspacePackages";
+// Not the `../workspacePackages` barrel: it pulls the image ingestion graph, which
+// resolves `sharp` at load time, into every bundle reaching the public catalog snapshot.
+import { extractMarkdownFcAssetIds } from "../workspacePackages/markdownMedia";
 
 export type CatalogCardMediaReferenceInput = Readonly<{
   frontText: string;
