@@ -1,6 +1,5 @@
 import type { DatabaseExecutor, SqlValue } from "../../../database";
 import { unsafeRepeatableReadReadOnlyTransaction } from "../../../database/core";
-import { HttpError } from "../../../shared/errors";
 import {
   isUnsafePublicPackageMediaKey,
   toIsoString,
@@ -12,7 +11,6 @@ import {
 import {
   getPublicCatalogAuthorEligibilityIssue,
   getPublicCatalogVersionEligibilityIssue,
-  isPublicCatalogCardMarkdownSafe,
   isPublicCatalogTextArraySafe,
   isPublicCatalogTextSafe,
 } from "../../publicSafety";
@@ -116,49 +114,6 @@ type CatalogPublicSnapshotLoadInput = Readonly<{
   publicAppBaseUrl: string;
   generatedAt: string;
 }>;
-
-
-function assertPublicCardMarkdownSafe(packageVersionId: string, markdown: string): void {
-  if (isPublicCatalogCardMarkdownSafe(markdown)) {
-    return;
-  }
-
-  throw new HttpError(
-    409,
-    `Published catalog package card contains a non-public media reference. packageVersionId=${packageVersionId}`,
-    "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
-  );
-}
-
-function assertPublicCatalogTextSafe(
-  packageVersionId: string,
-  value: string | null,
-): void {
-  if (isPublicCatalogTextSafe(value)) {
-    return;
-  }
-
-  throw new HttpError(
-    409,
-    `Published catalog package contains a non-public media reference. packageVersionId=${packageVersionId}`,
-    "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
-  );
-}
-
-function assertPublicCatalogTextArraySafe(
-  packageVersionId: string,
-  values: ReadonlyArray<string>,
-): void {
-  if (isPublicCatalogTextArraySafe(values)) {
-    return;
-  }
-
-  throw new HttpError(
-    409,
-    `Published catalog package contains a non-public media reference. packageVersionId=${packageVersionId}`,
-    "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
-  );
-}
 
 
 function buildPublicCatalogSnapshotPackageVersionsQuery(): PublicCatalogQuery {
@@ -311,20 +266,6 @@ function buildPublicCatalogSnapshotCollectionPackagesQuery(): PublicCatalogQuery
   };
 }
 
-function mapCatalogPublicAuthor(row: CatalogPublicPackageRow): CatalogPublicSnapshotAuthor {
-  assertPublicCatalogTextSafe(row.package_version_id, row.author_display_name);
-  assertPublicCatalogTextSafe(row.package_version_id, row.author_bio);
-  assertPublicCatalogTextSafe(row.package_version_id, row.author_website_url);
-
-  return {
-    authorId: row.author_id,
-    slug: row.author_slug,
-    displayName: row.author_display_name,
-    bio: row.author_bio,
-    websiteUrl: row.author_website_url,
-  };
-}
-
 function mapCatalogPublicSnapshotAuthor(
   row: CatalogPublicSnapshotPackageVersionRow,
 ): CatalogPublicSnapshotAuthor {
@@ -340,7 +281,13 @@ function mapCatalogPublicSnapshotAuthor(
     );
   }
 
-  return mapCatalogPublicAuthor(row);
+  return {
+    authorId: row.author_id,
+    slug: row.author_slug,
+    displayName: row.author_display_name,
+    bio: row.author_bio,
+    websiteUrl: row.author_website_url,
+  };
 }
 
 function buildSnapshotMediaAssetLookupKey(
@@ -475,10 +422,6 @@ function mapCatalogPublicSnapshotMediaAssets(
       continue;
     }
 
-    assertPublicCatalogTextSafe(row.package_version_id, row.alt_text);
-    assertPublicCatalogTextSafe(row.package_version_id, row.credit);
-    assertPublicCatalogTextSafe(row.package_version_id, row.license);
-    assertPublicCatalogTextSafe(row.package_version_id, row.mime_type);
     mediaAssets.push({
       packageMediaAssetId: row.package_media_asset_id,
       packageVersionId: row.package_version_id,
@@ -575,7 +518,6 @@ function mapCatalogPublicSnapshotPackages(
 ): ReadonlyArray<CatalogPublicSnapshotPackage> {
   const packagesById = new Map<string, CatalogPublicSnapshotPackageAccumulator>();
   for (const row of rows) {
-    assertPublicCatalogTextSafe(row.package_version_id, row.package_slug);
     const versionNumber = toSafeNumber(row.version_number, "version_number");
     const existingPackage = packagesById.get(row.package_id);
     if (existingPackage === undefined) {
@@ -618,13 +560,6 @@ function mapCatalogPublicSnapshotPackageVersions(
   publicAppBaseUrl: string,
 ): ReadonlyArray<CatalogPublicSnapshotPackageVersion> {
   return rows.map((row) => {
-    assertPublicCatalogTextSafe(row.package_version_id, row.version_slug);
-    assertPublicCatalogTextSafe(row.package_version_id, row.title);
-    assertPublicCatalogTextSafe(row.package_version_id, row.summary);
-    assertPublicCatalogTextSafe(row.package_version_id, row.description);
-    assertPublicCatalogTextArraySafe(row.package_version_id, row.language_tags);
-    assertPublicCatalogTextSafe(row.package_version_id, row.license);
-    assertPublicCatalogTextSafe(row.package_version_id, row.content_warning);
     const coverMediaAssetId = row.cover_package_media_key === null
       ? null
       : mediaAssetIdsByKey.get(buildSnapshotMediaAssetLookupKey(
@@ -662,41 +597,20 @@ function mapCatalogPublicSnapshotCards(
   rows: ReadonlyArray<CatalogPublicSnapshotCardRow>,
   mediaAssetIdsByKey: ReadonlyMap<string, string>,
 ): ReadonlyArray<CatalogPublicSnapshotCard> {
-  return rows.map((row) => {
-    assertPublicCardMarkdownSafe(row.package_version_id, row.front_text);
-    assertPublicCardMarkdownSafe(row.package_version_id, row.back_text);
-    assertPublicCatalogTextSafe(row.package_version_id, row.card_type);
-    assertPublicCatalogTextArraySafe(row.package_version_id, row.tags);
-    return {
-      packageCardId: row.package_card_id,
-      packageVersionId: row.package_version_id,
-      ordinal: toSafeNumber(row.ordinal, "ordinal"),
-      frontText: row.front_text,
-      backText: row.back_text,
-      cardType: row.card_type,
-      tags: [...row.tags],
-      mediaAssetIds: resolveSnapshotMediaAssetIds(
-        row.package_version_id,
-        getSnapshotCardRequiredMediaAssetKeys(row),
-        mediaAssetIdsByKey,
-      ),
-    };
-  });
-}
-
-function assertPublicSnapshotCollectionTextSafe(
-  collectionId: string,
-  value: string | null,
-): void {
-  if (isPublicCatalogTextSafe(value)) {
-    return;
-  }
-
-  throw new HttpError(
-    409,
-    `Published catalog collection contains a non-public media reference. collectionId=${collectionId}`,
-    "CATALOG_PUBLIC_MEDIA_KEY_NOT_PUBLIC",
-  );
+  return rows.map((row) => ({
+    packageCardId: row.package_card_id,
+    packageVersionId: row.package_version_id,
+    ordinal: toSafeNumber(row.ordinal, "ordinal"),
+    frontText: row.front_text,
+    backText: row.back_text,
+    cardType: row.card_type,
+    tags: [...row.tags],
+    mediaAssetIds: resolveSnapshotMediaAssetIds(
+      row.package_version_id,
+      getSnapshotCardRequiredMediaAssetKeys(row),
+      mediaAssetIdsByKey,
+    ),
+  }));
 }
 
 function mapCatalogPublicSnapshotCollections(
@@ -705,36 +619,26 @@ function mapCatalogPublicSnapshotCollections(
   collectionCoverIds: ReadonlySet<string>,
   publicApiBaseUrl: string,
 ): ReadonlyArray<CatalogPublicSnapshotCollection> {
-  return rows.map((row) => {
-    assertPublicSnapshotCollectionTextSafe(row.collection_id, row.slug);
-    assertPublicSnapshotCollectionTextSafe(row.collection_id, row.title);
-    assertPublicSnapshotCollectionTextSafe(row.collection_id, row.summary);
-    assertPublicSnapshotCollectionTextSafe(row.collection_id, row.description);
-    for (const languageTag of row.language_tags) {
-      assertPublicSnapshotCollectionTextSafe(row.collection_id, languageTag);
-    }
-
-    return {
-      collectionId: row.collection_id,
-      slug: row.slug,
-      title: row.title,
-      summary: row.summary,
-      description: row.description,
-      languageTags: [...row.language_tags],
-      coverPackageId: row.cover_package_id !== null && publicPackageIds.has(row.cover_package_id)
-        ? row.cover_package_id
-        : null,
-      ...(collectionCoverIds.has(row.collection_id) ? {
-        coverDownloadUrl: buildSnapshotCollectionCoverDownloadUrl(
-          publicApiBaseUrl,
-          row.collection_id,
-        ),
-      } : {}),
-      status: "published",
-      updatedAt: toIsoString(row.updated_at),
-      publishedAt: toIsoString(row.published_at),
-    };
-  });
+  return rows.map((row) => ({
+    collectionId: row.collection_id,
+    slug: row.slug,
+    title: row.title,
+    summary: row.summary,
+    description: row.description,
+    languageTags: [...row.language_tags],
+    coverPackageId: row.cover_package_id !== null && publicPackageIds.has(row.cover_package_id)
+      ? row.cover_package_id
+      : null,
+    ...(collectionCoverIds.has(row.collection_id) ? {
+      coverDownloadUrl: buildSnapshotCollectionCoverDownloadUrl(
+        publicApiBaseUrl,
+        row.collection_id,
+      ),
+    } : {}),
+    status: "published",
+    updatedAt: toIsoString(row.updated_at),
+    publishedAt: toIsoString(row.published_at),
+  }));
 }
 
 function mapCatalogPublicSnapshotCollectionPackages(
