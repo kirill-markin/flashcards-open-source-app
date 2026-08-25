@@ -12,13 +12,23 @@
  * Import this module by its narrow path only. Do not re-export it from the
  * `catalog` or public-catalog barrels: those barrels are imported by Lambdas
  * that must not pull in the sharp-dependent authoring graph.
+ *
+ * Report through `observability/runtime`, never through `observability/sentry`.
+ * The collection-cover trigger runs inside `DirectImageIngestionHandler`, whose
+ * bundle deliberately excludes the Sentry SDK — `entrypoints/directImageIngestion/lambda.test.ts`
+ * asserts that its import graph reaches no `observability/sentry/capture`,
+ * `config` or `tracing` module. The runtime indirection keeps that true without
+ * costing the heavy handler anything: `BackendHandler` calls
+ * `initializeBackendSentry`, which installs `captureBackendException` as the
+ * runtime sink, so triggers there still reach Sentry, while the lean handler
+ * falls back to the same structured CloudWatch exception record.
  */
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import {
-  captureBackendException,
+  captureBackendRuntimeException,
   createBackendObservationScope,
   normalizeCaughtError,
-} from "../../../observability/sentry";
+} from "../../../observability/runtime";
 
 export type CatalogDumpRefreshTrigger = Readonly<{
   route: string;
@@ -98,7 +108,7 @@ export async function refreshPublicCatalogDump(
     );
   } catch (error) {
     const refreshError = normalizeCaughtError(error);
-    captureBackendException({
+    captureBackendRuntimeException({
       action: "catalog_dump_refresh_failed",
       error: refreshError,
       scope: createBackendObservationScope(
