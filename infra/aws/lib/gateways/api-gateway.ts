@@ -103,6 +103,7 @@ interface DirectImageIngestionFunctionProps {
 export const publicRestApiDefaultIntegrationTimeoutSeconds = 29;
 export const directImageIngestionMaximumOnDemandInitSeconds = 10;
 export const directImageIngestionLambdaTimeoutSeconds = 15;
+const allowAllRobotsBody = "User-agent: *\nDisallow:\n";
 
 export type DirectImageIngestionApiRoutes = Readonly<{
   workspaceImages: apigw.Resource;
@@ -1027,6 +1028,47 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       certificate,
       endpointType: apigw.EndpointType.REGIONAL,
       basePath: "v1",
+    });
+
+    const robotsApi = new apigw.RestApi(scope, "ApiRobots", {
+      restApiName: "flashcards-open-source-app-api-robots",
+      description: "Static robots.txt for the public API host",
+      cloudWatchRole: false,
+      endpointConfiguration: {
+        types: [apigw.EndpointType.REGIONAL],
+      },
+    });
+    robotsApi.root.addMethod(
+      "GET",
+      new apigw.MockIntegration({
+        requestTemplates: {
+          "application/json": '{"statusCode": 200}',
+        },
+        integrationResponses: [
+          {
+            statusCode: "200",
+            responseParameters: {
+              "method.response.header.Content-Type": "'text/plain; charset=utf-8'",
+            },
+            responseTemplates: {
+              "text/plain": allowAllRobotsBody,
+            },
+          },
+        ],
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: "200",
+            responseParameters: {
+              "method.response.header.Content-Type": true,
+            },
+          },
+        ],
+      },
+    );
+    domain.addBasePathMapping(robotsApi, {
+      basePath: "robots.txt",
     });
 
     new cdk.CfnOutput(scope, "ApiCustomDomainTarget", {
