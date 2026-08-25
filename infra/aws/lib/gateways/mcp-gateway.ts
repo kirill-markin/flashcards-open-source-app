@@ -50,6 +50,10 @@ const mcpHttpApiMappings: ReadonlyArray<McpHttpApiMapping> = [
     apiMappingKey: "health",
   },
   {
+    constructId: "McpHttpRobotsApiMapping",
+    apiMappingKey: "robots.txt",
+  },
+  {
     constructId: "McpHttpProtectedResourceApiMapping",
     apiMappingKey: ".well-known/oauth-protected-resource",
   },
@@ -172,6 +176,11 @@ export function addMcpHttpApiRoutes(
   });
   httpApi.addRoutes({
     path: "/health",
+    methods: [apigwv2.HttpMethod.GET],
+    integration,
+  });
+  httpApi.addRoutes({
+    path: "/robots.txt",
     methods: [apigwv2.HttpMethod.GET],
     integration,
   });
