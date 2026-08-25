@@ -44,6 +44,7 @@ export interface MonitoringProps {
   progressActiveDaysBackfillFn: lambda.IFunction;
   generatedMediaPromotionFn: lambda.IFunction;
   multipartCompletionReconciliationFn: lambda.Function;
+  catalogDumpFn: lambda.IFunction;
 }
 
 export interface MonitoringResult {
@@ -294,6 +295,18 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     threshold: 1,
     evaluationPeriods: 1,
     alarmDescription: "Global metrics snapshot Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  // The catalog dump has no schedule, so only failures of an actual run can alarm here.
+  new cloudwatch.Alarm(scope, "CatalogDumpLambdaErrorAlarm", {
+    metric: props.catalogDumpFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Public catalog dump Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
