@@ -70,6 +70,9 @@ test("MCP HTTP API synthesizes explicit public routes and default mapped-path ro
   template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
     RouteKey: "GET /health",
   });
+  template.hasResourceProperties("AWS::ApiGatewayV2::Route", {
+    RouteKey: "GET /robots.txt",
+  });
 });
 
 test("MCP HTTP API mappings synthesize for public route prefixes without a v2 custom domain", () => {
@@ -80,6 +83,7 @@ test("MCP HTTP API mappings synthesize for public route prefixes without a v2 cu
   for (const apiMappingKey of [
     "mcp",
     "health",
+    "robots.txt",
     ".well-known/oauth-protected-resource",
     ".well-known/oauth-protected-resource/mcp",
   ]) {
