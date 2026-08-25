@@ -38,8 +38,11 @@ function invoke_lambda_and_print_payload() {
   local response_file
   response_file=$(mktemp)
 
+  # The builder holds one reserved execution so admin-triggered rebuilds cannot
+  # overlap, so this synchronous invoke is throttled while such a rebuild runs.
+  # Retry TooManyRequestsException long enough to outlast a queued rebuild.
   local invoke_metadata
-  invoke_metadata=$(aws lambda invoke \
+  invoke_metadata=$(AWS_RETRY_MODE=standard AWS_MAX_ATTEMPTS=10 aws lambda invoke \
     --function-name "$function_name" \
     --cli-read-timeout 900 \
     --cli-binary-format raw-in-base64-out \
