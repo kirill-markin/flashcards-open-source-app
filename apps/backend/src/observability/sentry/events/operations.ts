@@ -98,6 +98,19 @@ export type GlobalMetricsSnapshotFailureDetails = Readonly<{
   message: string;
 }>;
 
+export type CatalogDumpGeneratedDetails = Readonly<{
+  bucketName: string;
+  objectKey: string;
+  sha256: string;
+  generatedAt: string;
+  byteLength: number;
+}>;
+
+export type CatalogDumpFailureDetails = Readonly<{
+  bucketName: string | null;
+  message: string;
+}>;
+
 export type CommunityLeaderboardSnapshotGeneratedDetails = Readonly<{
   metricVersion: string;
   generatedAtUtc: string;
@@ -282,6 +295,16 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
   errorMessage: string;
 }>;
 
+export type CatalogDumpS3RetryDetails = Readonly<{
+  attempt: number;
+  maxAttempts: number;
+  bucketName: string;
+  objectKey: string;
+  statusCode: number | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
 export type MediaAssetStorageRetryDetails = Readonly<{
   operation:
     | "create_presigned_upload"
@@ -341,6 +364,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"agent_sql", AgentSqlDetails>
   | EventByAction<"mcp_request", McpRequestDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
+  | EventByAction<"catalog_dump_generated", CatalogDumpGeneratedDetails>
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
@@ -352,6 +376,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"multipart_completion_reconciliation_job_terminally_failed", MultipartCompletionReconciliationTerminalFailureDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
+  | EventByAction<"catalog_dump_s3_retry", CatalogDumpS3RetryDetails>
   | EventByAction<"media_asset_storage_retry", MediaAssetStorageRetryDetails>
   | EventByAction<"media_asset_storage_terminal", MediaAssetStorageTerminalDetails>;
 
@@ -373,6 +398,7 @@ export type OperationsWarningEvent =
 
 export type OperationsExceptionEvent =
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"catalog_dump_failed", CatalogDumpFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"community_leaderboard_snapshot_failed", CommunityLeaderboardSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"streak_leaderboard_snapshot_failed", StreakLeaderboardSnapshotFailureDetails> & Readonly<{
     error: Error;

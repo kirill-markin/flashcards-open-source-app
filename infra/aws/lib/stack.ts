@@ -32,6 +32,7 @@ import {
   type MultipartCompletionReconciliationScheduleState,
 } from "./scheduled-jobs/multipart-completion-reconciliation";
 import { mediaAssets } from "./media-assets";
+import { catalogDump } from "./catalog-dump";
 import { parsePublicOrigin } from "./public-origin";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
@@ -266,6 +267,14 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
         scheduleState: multipartCompletionReconciliationScheduleState,
         ...sentryContext,
       });
+    const catalogDumpResult = catalogDump(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      baseDomain,
+      ...sentryContext,
+    });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
     if (analyticsAccessRequested) {
       if (analyticsSshPublicKeysValue === undefined) {
@@ -401,6 +410,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,
       multipartCompletionReconciliationFn:
         multipartCompletionReconciliationResult.reconciliationFunction,
+      catalogDumpFn: catalogDumpResult.dumpFunction,
     });
 
     ciCd(this, {
@@ -414,6 +424,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
+      catalogDumpFn: catalogDumpResult.dumpFunction,
       migrationFn,
       generatedMediaPromotionScheduleArn:
         generatedMediaPromotionResult.promotionScheduleArn,
@@ -450,6 +461,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFunction: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFunction: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFunction: progressActiveDaysBackfillResult.backfillFunction,
+      catalogDumpBucket: catalogDumpResult.bucket,
+      catalogDumpDistribution: catalogDumpResult.distribution,
+      catalogDumpFunction: catalogDumpResult.dumpFunction,
       globalMetricsVisible,
       userPoolId: authResult.userPool.userPoolId,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,

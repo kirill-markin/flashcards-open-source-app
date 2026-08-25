@@ -5,6 +5,7 @@ export type BackendService =
   | "chat-worker"
   | "chat-live"
   | "global-metrics-snapshot"
+  | "catalog-dump"
   | "community-leaderboard-snapshot"
   | "streak-leaderboard-snapshot"
   | "progress-active-days-backfill"
