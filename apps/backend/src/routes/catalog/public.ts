@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import {
   listPublicCatalogPackages,
   loadPublicCatalogCollectionCoverForDownload,
-  loadPublicCatalogSnapshot,
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageMediaForDownload,
   loadPublicCatalogPackageVersion,
@@ -13,6 +12,13 @@ import {
   normalizePackageMediaKey,
   normalizeSlug,
 } from "../../catalog/common";
+// Narrow path on purpose: the catalog barrels must not start carrying the dump
+// storage module into Lambdas that never touch the artifact bucket.
+import {
+  catalogDumpPointerUnavailableCode,
+  loadCatalogDumpPointerFromS3,
+  type CatalogDumpPointer,
+} from "../../catalog/distribution/public/dumpStorage";
 import {
   getPublicCatalogMediaDeliveryIssue,
   maximumPublicCatalogMediaDownloadBytes,
@@ -25,7 +31,6 @@ import type {
   CatalogPublicPackageMediaDownloadSource,
   CatalogPublicPackageSummary,
   CatalogPublicPackageVersionDetail,
-  CatalogPublicSnapshot,
 } from "../../catalog/types";
 import {
   loadMediaAssetObjectBytes,
@@ -33,22 +38,19 @@ import {
   type LoadMediaAssetObjectBytesInput,
 } from "../../mediaAssets/storage";
 import {
+  captureBackendWarning,
   createBackendObservationScope,
   type BackendObservationScope,
 } from "../../observability/sentry";
 import type { AppEnv } from "../../server/app";
 import { expectUuidString } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
-import {
-  getPublicApiBaseUrl,
-  getPublicAppBaseUrl,
-} from "../../shared/publicUrls";
+import { getPublicApiBaseUrl } from "../../shared/publicUrls";
 
 type CatalogPublicRoutesOptions = Readonly<{
-  loadPublicCatalogSnapshotFn?: (
-    publicApiBaseUrl: string,
-    publicAppBaseUrl: string,
-  ) => Promise<CatalogPublicSnapshot>;
+  loadCatalogDumpPointerFn?: (
+    observationScope: BackendObservationScope,
+  ) => Promise<CatalogDumpPointer>;
   listPublicCatalogPackagesFn?: (
     input: CatalogPublicPackageListInput,
   ) => Promise<ReadonlyArray<CatalogPublicPackageSummary>>;
@@ -74,6 +76,7 @@ type CatalogPublicRoutesOptions = Readonly<{
 const defaultPackageListLimit = 50;
 const defaultCardPreviewLimit = 25;
 const maximumPublicCatalogLimit = 100;
+const catalogSnapshotUnavailableMessage = "Public catalog snapshot is unavailable.";
 
 function parseLimitQuery(
   value: string | undefined,
@@ -245,6 +248,12 @@ function rethrowCollectionCoverObjectLoadError(error: unknown, collectionId: str
   throw error;
 }
 
+function isCatalogDumpPointerUnavailableError(error: unknown): error is HttpError {
+  return error instanceof HttpError
+    && error.statusCode === 503
+    && error.code === catalogDumpPointerUnavailableCode;
+}
+
 function assertPublicCatalogMediaDownloadSupported(
   mediaDownloadSource: CatalogPublicPackageMediaDownloadSource,
 ): void {
@@ -278,8 +287,7 @@ function assertPublicCatalogMediaDownloadSupported(
 
 export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
-  const loadPublicCatalogSnapshotFn = options.loadPublicCatalogSnapshotFn
-    ?? loadPublicCatalogSnapshot;
+  const loadCatalogDumpPointerFn = options.loadCatalogDumpPointerFn ?? loadCatalogDumpPointerFromS3;
   const listPublicCatalogPackagesFn = options.listPublicCatalogPackagesFn ?? listPublicCatalogPackages;
   const loadPublicCatalogPackageDetailFn = options.loadPublicCatalogPackageDetailFn
     ?? loadPublicCatalogPackageDetail;
@@ -293,10 +301,48 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     ?? loadPublicCatalogCollectionCoverForDownload;
   const loadMediaAssetObjectBytesFn = options.loadMediaAssetObjectBytesFn ?? loadMediaAssetObjectBytes;
 
-  app.get("/catalog", async (context) => context.json(await loadPublicCatalogSnapshotFn(
-    getPublicApiBaseUrl(context.req.url),
-    getPublicAppBaseUrl(context.req.url),
-  )));
+  /**
+   * Redirects to the immutable catalog artifact instead of recomputing the
+   * multi-megabyte snapshot per request. Clients that follow redirects need no
+   * change; a plain `curl` needs `-L`.
+   */
+  app.get("/catalog", async (context) => {
+    const observationScope = createCatalogPublicScope(
+      context.get("requestId"),
+      context.req.path,
+      context.req.method,
+      context.get("clientAppVersion"),
+      context.get("clientPlatform"),
+    );
+
+    let pointer: CatalogDumpPointer;
+    try {
+      pointer = await loadCatalogDumpPointerFn(observationScope);
+    } catch (error) {
+      if (!isCatalogDumpPointerUnavailableError(error)) {
+        throw error;
+      }
+
+      captureBackendWarning({
+        action: "catalog_snapshot_pointer_error",
+        message: catalogSnapshotUnavailableMessage,
+        scope: observationScope,
+        details: {
+          statusCode: error.statusCode,
+          code: error.code,
+          storageErrorMessage: error.message,
+        },
+      });
+
+      return context.json({
+        error: catalogSnapshotUnavailableMessage,
+        requestId: context.get("requestId"),
+        code: catalogDumpPointerUnavailableCode,
+      }, 503);
+    }
+
+    return context.redirect(pointer.url, 302);
+  });
 
   app.get("/catalog/packages", async (context) => {
     rejectRemovedTopicTagQuery(context.req.query("topicTag"));

@@ -95,6 +95,7 @@ export type {
   CatalogDumpGeneratedDetails,
   CatalogDumpRefreshFailureDetails,
   CatalogDumpS3RetryDetails,
+  CatalogSnapshotPointerErrorDetails,
   CommunityLeaderboardSnapshotFailureDetails,
   CommunityLeaderboardSnapshotGeneratedDetails,
   DatabasePoolErrorDetails,

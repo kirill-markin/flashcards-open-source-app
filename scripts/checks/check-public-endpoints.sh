@@ -677,6 +677,44 @@ check_api_route_absent() {
   echo "Public API route absence check passed: ${description} (${url}) returned ${http_status}"
 }
 
+# GET /v1/catalog answers 302 to the immutable catalog artifact on the CDN. The
+# artifact is content-addressed, so the Location target changes on every rebuild
+# and only its shape can be asserted: an https URL under the `catalog/` key
+# prefix the builder writes, naming a `.json` object. This is the one place the
+# 3xx pass-through is proven against the real API Gateway.
+check_catalog_snapshot_redirect() {
+  local url="$1"
+  local description="$2"
+  local response_file
+  local headers_file
+  local http_status
+  local attempt
+  local location
+
+  response_file=$(mktemp)
+  headers_file=$(mktemp)
+  trap 'rm -f "$response_file" "$headers_file"' RETURN
+
+  for ((attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1)); do
+    http_status=$(curl_with_dns_resolution_and_headers "$url" "$response_file" "$headers_file" || true)
+    location=$(get_header_value "$headers_file" "location")
+
+    if [[ "$http_status" == "302" && "$location" == https://*/catalog/*.json ]]; then
+      echo "Public catalog redirect check passed: ${description} (${url}) -> ${location}"
+      return 0
+    fi
+
+    echo "Public catalog redirect check attempt ${attempt}/${MAX_ATTEMPTS} failed for ${description}: status ${http_status}, location ${location}, url ${url}" >&2
+    if [[ "$attempt" -lt "$MAX_ATTEMPTS" ]]; then
+      sleep "$SLEEP_SECONDS"
+    fi
+  done
+
+  echo "ERROR: Public catalog redirect check failed for ${description}: expected 302 with an https Location matching https://*/catalog/*.json, url ${url}" >&2
+  cat "$headers_file" >&2 || true
+  return 1
+}
+
 check_redirect_url() {
   local url="$1"
   local expected_status="$2"
@@ -738,6 +776,7 @@ WORKSPACES_URL="${API_PUBLIC_BASE%/}/workspaces"
 ME_URL="${API_PUBLIC_BASE%/}/me"
 GLOBAL_SNAPSHOT_URL="${API_PUBLIC_BASE%/}/global/snapshot"
 LEGACY_GLOBAL_SNAPSHOT_URL="${API_PUBLIC_BASE%/}/public/global/snapshot"
+CATALOG_SNAPSHOT_URL="${API_PUBLIC_BASE%/}/catalog"
 
 check_url "${API_PUBLIC_BASE}/health" "200" "public API health"
 check_url "${AUTH_PUBLIC_BASE}/health" "200" "public auth health"
@@ -760,6 +799,7 @@ else
 fi
 
 check_api_route_absent "$LEGACY_GLOBAL_SNAPSHOT_URL" "$WEB_PUBLIC_BASE" "legacy public global metrics snapshot endpoint"
+check_catalog_snapshot_redirect "$CATALOG_SNAPSHOT_URL" "public catalog snapshot endpoint"
 
 if [[ "$SKIP_STATIC_SITES" != "true" ]]; then
   check_url "${WEB_PUBLIC_BASE}" "200" "public web root"
