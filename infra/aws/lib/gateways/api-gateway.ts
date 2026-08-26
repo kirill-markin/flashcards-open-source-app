@@ -7,6 +7,7 @@ import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
+import { catalogDumpPointerObjectKey } from "../catalog-dump";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
@@ -38,6 +39,7 @@ export interface ApiGatewayProps {
   globalMetricsSnapshotObjectKey: string;
   mediaAssetsBucket: s3.IBucket;
   catalogDumpFunction: lambda.IFunction;
+  catalogDumpArtifact: CatalogDumpArtifactConfig;
   userPoolId: string;
   userPoolArn: string;
   userPoolClientId: string;
@@ -81,6 +83,7 @@ interface BackendFunctionProps {
   globalMetricsConfig: GlobalMetricsConfig | undefined;
   mediaAssetsBucket: s3.IBucket | undefined;
   catalogDumpFunction: lambda.IFunction | undefined;
+  catalogDumpArtifactConfig: CatalogDumpArtifactConfig | undefined;
   memorySize: number;
   architecture: lambda.Architecture;
   bundling: lambdaNodejs.BundlingOptions;
@@ -177,6 +180,11 @@ interface GlobalMetricsConfig {
   visible: boolean;
   snapshotBucket: s3.IBucket;
   snapshotObjectKey: string;
+}
+
+interface CatalogDumpArtifactConfig {
+  bucket: s3.IBucket;
+  cdnBaseUrl: string;
 }
 
 export interface BackendSentryConfig {
@@ -475,6 +483,24 @@ function addGlobalMetricsEnvironment(
 }
 
 /**
+ * Lets `GET /v1/catalog` redirect to the current immutable catalog artifact
+ * instead of recomputing the snapshot per request. The route reads only the
+ * pointer alias, so the grant names that single object rather than the prefix
+ * the builder writes.
+ */
+function addCatalogDumpArtifactEnvironment(
+  fn: lambdaNodejs.NodejsFunction,
+  config: CatalogDumpArtifactConfig,
+): void {
+  fn.addEnvironment("CATALOG_DUMP_S3_BUCKET_NAME", config.bucket.bucketName);
+  fn.addEnvironment("CATALOG_DUMP_CDN_BASE_URL", config.cdnBaseUrl);
+  fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: ["s3:GetObject"],
+    resources: [config.bucket.arnForObjects(catalogDumpPointerObjectKey)],
+  }));
+}
+
+/**
  * Lets one request-serving function trigger a public catalog dump rebuild after
  * an admin operation changed published catalog output. Nothing rebuilds the
  * artifact on a schedule, so only the functions serving those admin routes get
@@ -674,6 +700,9 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
   if (props.catalogDumpFunction !== undefined) {
     addCatalogDumpRefreshEnvironment(fn, props.catalogDumpFunction);
   }
+  if (props.catalogDumpArtifactConfig !== undefined) {
+    addCatalogDumpArtifactEnvironment(fn, props.catalogDumpArtifactConfig);
+  }
 
   return fn;
 }
@@ -834,6 +863,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     },
     mediaAssetsBucket: props.mediaAssetsBucket,
     catalogDumpFunction: props.catalogDumpFunction,
+    catalogDumpArtifactConfig: props.catalogDumpArtifact,
     memorySize: 2048,
     architecture: lambda.Architecture.ARM_64,
     bundling: createLambdaBundling({
@@ -891,6 +921,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     globalMetricsConfig: undefined,
     mediaAssetsBucket: props.mediaAssetsBucket,
     catalogDumpFunction: undefined,
+    catalogDumpArtifactConfig: undefined,
     memorySize: 1024,
     architecture: lambda.Architecture.ARM_64,
     bundling: createLambdaBundling({
@@ -932,6 +963,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     globalMetricsConfig: undefined,
     mediaAssetsBucket: undefined,
     catalogDumpFunction: undefined,
+    catalogDumpArtifactConfig: undefined,
     memorySize: 256,
     architecture: lambda.Architecture.X86_64,
     bundling: createLambdaBundling({
