@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@floating-ui/react-dom": "^2.1.9",
-    "@sentry/react": "^10.70.0",
+    "@sentry/react": "^10.71.0",
     "heic-to": "^1.5.2",
     "lottie-web": "^5.13.0",
     "micromark": "^4.0.2",
@@ -34,12 +34,12 @@
     "@playwright/test": "1.62.1",
     "@sentry/vite-plugin": "^5.4.0",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.0.5",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.0",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
     "typescript": "^7.0.2",
-    "vite": "^8.2.1",
+    "vite": "^8.2.2",
     "vitest": "4.1.11"
   },
   "engines": {
