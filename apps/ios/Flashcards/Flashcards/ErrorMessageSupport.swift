@@ -420,6 +420,27 @@ func isRetryableNetworkTransportFailure(code: URLError.Code) -> Bool {
     }
 }
 
+func isSilentlyIgnorableNetworkTransportFailure(error: Error) -> Bool {
+    if isRetryableNetworkTransportFailure(error: error) {
+        return true
+    }
+
+    guard let urlErrorCode: URLError.Code = flashcardsURLErrorCode(error: error, remainingDepth: 4) else {
+        return false
+    }
+
+    switch urlErrorCode {
+    case .secureConnectionFailed,
+         .serverCertificateHasBadDate,
+         .serverCertificateUntrusted,
+         .serverCertificateHasUnknownRoot,
+         .serverCertificateNotYetValid:
+        return true
+    default:
+        return false
+    }
+}
+
 func makeCloudAuthInlineErrorPresentation(
     error: Error,
     context: CloudAuthInlineErrorContext
