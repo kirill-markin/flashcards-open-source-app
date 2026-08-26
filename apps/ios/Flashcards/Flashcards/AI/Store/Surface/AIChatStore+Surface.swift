@@ -853,7 +853,7 @@ extension AIChatStore {
         if isAIChatRequestCancellationError(error: error) {
             return true
         }
-        if isRetryableNetworkTransportFailure(error: error) {
+        if isSilentlyIgnorableNetworkTransportFailure(error: error) {
             return true
         }
         return self.isAIChatPassiveSnapshotRefreshBlockedGateFailure(error: error)
