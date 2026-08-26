@@ -3,8 +3,10 @@ export {
   listPublicCatalogPackagesInExecutor,
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageDetailInExecutor,
+  loadPublicCatalogPackageVersion,
   loadPublicCatalogPackageVersionCardPreview,
   loadPublicCatalogPackageVersionCardPreviewInExecutor,
+  loadPublicCatalogPackageVersionInExecutor,
   normalizeCatalogPublicPackageCardPreviewInput,
   normalizeCatalogPublicPackageListInput,
 } from "./browse";

@@ -3,6 +3,7 @@ import test from "node:test";
 import type pg from "pg";
 import type { DatabaseExecutor, SqlValue } from "../../../database";
 import { createCatalogPublicRoutes } from "../../../routes/catalog/public";
+import { HttpError } from "../../../shared/errors";
 import { maximumPublicCatalogMediaDownloadBytes } from "../../publicMediaDelivery";
 import { loadPublicCatalogSnapshotInExecutor } from "./index";
 import {
@@ -665,44 +666,39 @@ for (const [fixtureName, ineligibleFixture] of ineligibleSnapshotMediaFixtures) 
   });
 }
 
-test("public catalog snapshot route serves the exact unversioned catalog path", async () => {
+test("public catalog snapshot route redirects the exact unversioned catalog path to the artifact", async () => {
+  const artifactObjectKey = `catalog/${"a".repeat(64)}.json`;
+  const artifactUrl = `https://cdn.example.test/${artifactObjectKey}`;
   const app = createPublicCatalogRouteTestApp(createCatalogPublicRoutes({
-    loadPublicCatalogSnapshotFn: async (publicApiBaseUrl, publicAppBaseUrl) => {
-      assert.equal(publicApiBaseUrl, "https://api.example.com/v1");
-      assert.equal(publicAppBaseUrl, "https://app.example.com");
-      return {
-        schemaVersion: 2,
-        generatedAt: testTimestamp,
-        authors: [],
-        packages: [],
-        packageVersions: [],
-        cards: [],
-        mediaAssets: [],
-        collections: [],
-        collectionPackages: [],
-      };
+    loadCatalogDumpPointerFn: async () => ({
+      objectKey: artifactObjectKey,
+      url: artifactUrl,
+      generatedAt: testTimestamp,
+    }),
+  }));
+
+  const response = await app.request("https://api.example.com/catalog");
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get("location"), artifactUrl);
+  assert.equal(await response.text(), "");
+});
+
+test("public catalog snapshot route fails loudly when the artifact pointer is unavailable", async () => {
+  const app = createPublicCatalogRouteTestApp(createCatalogPublicRoutes({
+    loadCatalogDumpPointerFn: async () => {
+      throw new HttpError(
+        503,
+        "Public catalog dump pointer is unavailable from s3://bucket/catalog/pointer.json: NoSuchKey",
+        "CATALOG_DUMP_POINTER_UNAVAILABLE",
+      );
     },
   }));
 
-  const originalPublicAppBaseUrl = process.env.PUBLIC_APP_BASE_URL;
-  const originalPublicApiBaseUrl = process.env.PUBLIC_API_BASE_URL;
-  process.env.PUBLIC_APP_BASE_URL = "https://app.example.com";
-  process.env.PUBLIC_API_BASE_URL = "https://api.example.com/v1";
-  try {
-    const response = await app.request("https://api.example.com/catalog");
-    const payload = await response.json() as Readonly<Record<string, unknown>>;
-    assert.equal(response.status, 200);
-    assert.equal(payload.schemaVersion, 2);
-  } finally {
-    if (originalPublicAppBaseUrl === undefined) {
-      delete process.env.PUBLIC_APP_BASE_URL;
-    } else {
-      process.env.PUBLIC_APP_BASE_URL = originalPublicAppBaseUrl;
-    }
-    if (originalPublicApiBaseUrl === undefined) {
-      delete process.env.PUBLIC_API_BASE_URL;
-    } else {
-      process.env.PUBLIC_API_BASE_URL = originalPublicApiBaseUrl;
-    }
-  }
+  const response = await app.request("https://api.example.com/catalog");
+  const payload = await response.json() as Readonly<Record<string, unknown>>;
+
+  assert.equal(response.status, 503);
+  assert.equal(payload.code, "CATALOG_DUMP_POINTER_UNAVAILABLE");
+  assert.equal(payload.error, "Public catalog snapshot is unavailable.");
 });

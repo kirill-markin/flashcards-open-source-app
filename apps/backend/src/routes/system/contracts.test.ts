@@ -45,6 +45,7 @@ const expectedAgentDiscoverySurfaceTemplates = {
   catalogSnapshotUrl: "/catalog",
   catalogPackagesUrl: "/catalog/packages",
   catalogPackageDetailUrlTemplate: "/catalog/packages/{packageSlug}",
+  catalogPackageVersionUrlTemplate: "/catalog/package-versions/{packageVersionId}",
   catalogPackageVersionCardsUrlTemplate: "/catalog/package-versions/{packageVersionId}/cards",
   catalogPackageMediaDownloadUrlTemplate: "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download-url",
   catalogPackageMediaDownloadTemplate: "/catalog/package-versions/{packageVersionId}/media-assets/{packageMediaKey}/download",
@@ -364,6 +365,8 @@ test("agent discovery advertises the published media, package, and catalog surfa
   assert.match(discoveryEnvelope.instructions, /packages\/import\/preview/);
   assert.match(discoveryEnvelope.instructions, /packages\/import/);
   assert.match(discoveryEnvelope.instructions, /catalog for the complete normalized snapshot/);
+  assert.match(discoveryEnvelope.instructions, /answers 302 with a Location header/);
+  assert.match(discoveryEnvelope.instructions, /a plain curl needs -L/);
   assert.match(discoveryEnvelope.instructions, /catalog\/packages/);
   assert.match(discoveryEnvelope.instructions, /catalog\/packages\/\{packageSlug\}/);
   assert.match(discoveryEnvelope.instructions, /catalog\/package-versions\/\{packageVersionId\}\/cards/);

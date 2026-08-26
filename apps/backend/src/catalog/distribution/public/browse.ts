@@ -19,6 +19,7 @@ import type {
   CatalogPublicPackageDetail,
   CatalogPublicPackageListInput,
   CatalogPublicPackageSummary,
+  CatalogPublicPackageVersionDetail,
   CatalogPublicPackageVersionSummary,
   TimestampValue,
 } from "../../types";
@@ -55,6 +56,21 @@ type CatalogPublicPackageRow = Readonly<{
   published_at: TimestampValue;
 }>;
 
+type CatalogPublicPackageVersionDetailRow = Readonly<{
+  package_version_id: string;
+  package_id: string;
+  version_number: string | number;
+  slug: string;
+  title: string;
+  summary: string;
+  language_tags: ReadonlyArray<string>;
+  card_count: string | number;
+  published_at: TimestampValue;
+  author_id: string;
+  author_slug: string;
+  author_display_name: string;
+}>;
+
 type CatalogPublicPackageCardPreviewRow = Readonly<{
   ordinal: string | number;
   front_text: string;
@@ -85,6 +101,21 @@ const publicCatalogPackageSelectColumns = [
   "versions.card_count AS card_count",
   "versions.updated_at AS updated_at",
   "versions.published_at AS published_at",
+].join(", ");
+
+const publicCatalogPackageVersionDetailSelectColumns = [
+  "versions.package_version_id AS package_version_id",
+  "versions.package_id AS package_id",
+  "versions.version_number AS version_number",
+  "versions.slug AS slug",
+  "versions.title AS title",
+  "versions.summary AS summary",
+  "versions.language_tags AS language_tags",
+  "versions.card_count AS card_count",
+  "versions.published_at AS published_at",
+  "authors.author_id AS author_id",
+  "authors.slug AS author_slug",
+  "authors.display_name AS author_display_name",
 ].join(", ");
 
 const latestPublishedVersionsCte = [
@@ -282,6 +313,32 @@ function mapCatalogPublicPackageVersionSummary(
   };
 }
 
+function mapCatalogPublicPackageVersionDetail(
+  row: CatalogPublicPackageVersionDetailRow,
+): CatalogPublicPackageVersionDetail {
+  assertPublicCatalogTextSafe(row.package_version_id, row.title);
+  assertPublicCatalogTextSafe(row.package_version_id, row.summary);
+  assertPublicCatalogTextArraySafe(row.package_version_id, row.language_tags);
+  assertPublicCatalogTextSafe(row.package_version_id, row.author_display_name);
+
+  return {
+    packageVersionId: row.package_version_id,
+    packageId: row.package_id,
+    versionNumber: toSafeNumber(row.version_number, "version_number"),
+    slug: row.slug,
+    title: row.title,
+    summary: row.summary,
+    languageTags: [...row.language_tags],
+    cardCount: toSafeNumber(row.card_count, "card_count"),
+    publishedAt: toIsoString(row.published_at),
+    author: {
+      authorId: row.author_id,
+      slug: row.author_slug,
+      displayName: row.author_display_name,
+    },
+  };
+}
+
 function mapCatalogPublicPackageSummary(row: CatalogPublicPackageRow): CatalogPublicPackageSummary {
   const latestVersion = mapCatalogPublicPackageVersionSummary(row);
   return {
@@ -401,6 +458,36 @@ export async function loadPublicCatalogPackageDetailInExecutor(
   };
 }
 
+export async function loadPublicCatalogPackageVersionInExecutor(
+  executor: DatabaseExecutor,
+  packageVersionId: string,
+): Promise<CatalogPublicPackageVersionDetail> {
+  await assertPublicPackageVersionPublishedInExecutor(executor, packageVersionId);
+  const result = await executor.query<CatalogPublicPackageVersionDetailRow>(
+    [
+      "SELECT",
+      publicCatalogPackageVersionDetailSelectColumns,
+      "FROM catalog.package_versions AS versions",
+      "INNER JOIN catalog.packages AS packages",
+      "ON packages.package_id = versions.package_id",
+      "INNER JOIN catalog.authors AS authors",
+      "ON authors.author_id = packages.author_id",
+      "WHERE versions.package_version_id = $1",
+      "LIMIT 1",
+    ].join(" "),
+    [packageVersionId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error(
+      `Expected published catalog package version to return a row. packageVersionId=${packageVersionId}`,
+    );
+  }
+
+  return mapCatalogPublicPackageVersionDetail(row);
+}
+
 export async function loadPublicCatalogPackageVersionCardPreviewInExecutor(
   executor: DatabaseExecutor,
   input: CatalogPublicPackageCardPreviewInput,
@@ -436,6 +523,14 @@ export async function loadPublicCatalogPackageDetail(
 ): Promise<CatalogPublicPackageDetail> {
   return unsafeRepeatableReadReadOnlyTransaction(async (executor) => (
     loadPublicCatalogPackageDetailInExecutor(executor, packageSlug)
+  ));
+}
+
+export async function loadPublicCatalogPackageVersion(
+  packageVersionId: string,
+): Promise<CatalogPublicPackageVersionDetail> {
+  return unsafeRepeatableReadReadOnlyTransaction(async (executor) => (
+    loadPublicCatalogPackageVersionInExecutor(executor, packageVersionId)
   ));
 }
 
