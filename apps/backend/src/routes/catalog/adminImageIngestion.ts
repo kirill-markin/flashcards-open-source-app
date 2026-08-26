@@ -14,6 +14,10 @@ import {
   type CatalogPackageImageIngestionResult,
 } from "../../catalog/authoring/media/imageIngestion";
 import { normalizePackageMediaKey } from "../../catalog/common";
+import {
+  refreshPublicCatalogDump,
+  type CatalogDumpRefreshTrigger,
+} from "../../catalog/distribution/public/dumpRefresh";
 import type {
   CatalogCollectionCover,
   CatalogPackageMediaAsset,
@@ -53,6 +57,7 @@ export type CatalogAdminImageIngestionRoutesOptions = Readonly<{
   ingestCatalogPackageCardImageFn?: (input: CatalogPackageCardImageIngestionInput) => Promise<CatalogPackageImageIngestionResult>;
   replaceCatalogPackageCoverImageFn?: (input: CatalogPackageCoverImageIngestionInput) => Promise<CatalogPackageImageIngestionResult>;
   replaceCatalogCollectionCoverImageFn?: (input: CatalogCollectionCoverImageIngestionInput) => Promise<CatalogCollectionCoverImageIngestionResult>;
+  refreshPublicCatalogDumpFn?: (trigger: CatalogDumpRefreshTrigger) => Promise<void>;
 }>;
 
 function parsePackageId(value: string | undefined): string {
@@ -122,6 +127,14 @@ function createCatalogImageIngestionScope(context: Context<AppEnv>, userId: stri
     sessionId: null,
     clientAppVersion: context.get("clientAppVersion"),
     clientPlatform: context.get("clientPlatform"),
+  };
+}
+
+function createCatalogDumpRefreshTrigger(context: Context<AppEnv>): CatalogDumpRefreshTrigger {
+  return {
+    route: context.req.path,
+    method: context.req.method,
+    requestId: context.get("requestId"),
   };
 }
 
@@ -227,6 +240,7 @@ export function createCatalogAdminImageIngestionRoutes(options: CatalogAdminImag
     ?? replaceCatalogPackageCoverImage;
   const replaceCatalogCollectionCoverImageFn = options.replaceCatalogCollectionCoverImageFn
     ?? replaceCatalogCollectionCoverImage;
+  const refreshPublicCatalogDumpFn = options.refreshPublicCatalogDumpFn ?? refreshPublicCatalogDump;
 
   app.post("/admin/catalog/packages/:packageId/media-assets/images", async (context) => {
     const deadline = createRequestDeadline();
@@ -353,6 +367,10 @@ export function createCatalogAdminImageIngestionRoutes(options: CatalogAdminImag
         observationScope: scope,
       });
       addCatalogCollectionCoverIngestionSuccess(scope, result, 200);
+      if (result.applied) {
+        // Only a real cover swap changes `collections[].coverDownloadUrl`.
+        await refreshPublicCatalogDumpFn(createCatalogDumpRefreshTrigger(context));
+      }
       return context.json({
         collectionCover: toPublicCatalogCollectionCover(result.collectionCover),
       });

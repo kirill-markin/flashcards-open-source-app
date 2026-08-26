@@ -4,19 +4,20 @@ import {
   buildLoginUrl,
   getOptionalSession,
   isAuthRedirectError,
-  loadPublicCatalog,
+  loadPublicCatalogPackageVersion,
 } from "../../api";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
-import type { CatalogPublicSnapshot, SessionInfo } from "../../types";
+import type { SessionInfo } from "../../types";
 import { CatalogImportAuthenticatedFlow } from "./CatalogImportAuthenticatedFlow";
 import {
   CatalogImportContextCard,
   CatalogImportStatePanel,
   getCatalogImportErrorMessage,
+  isCatalogPublicVersionNotFoundError,
   type CatalogImportContext,
 } from "./catalogImportShared";
 
@@ -30,28 +31,6 @@ function parsePackageVersionId(value: string | undefined): string | null {
   }
 
   return value.toLowerCase();
-}
-
-function resolveCatalogImportContext(
-  snapshot: CatalogPublicSnapshot,
-  packageVersionId: string,
-): CatalogImportContext | null {
-  const packageVersion = snapshot.packageVersions.find((version) => version.packageVersionId === packageVersionId) ?? null;
-  if (packageVersion === null) {
-    return null;
-  }
-
-  const catalogPackage = snapshot.packages.find((item) => item.packageId === packageVersion.packageId) ?? null;
-  if (catalogPackage === null) {
-    throw new Error(`Catalog snapshot package is missing. packageId=${packageVersion.packageId}`);
-  }
-
-  const author = snapshot.authors.find((item) => item.authorId === catalogPackage.authorId) ?? null;
-  if (author === null) {
-    throw new Error(`Catalog snapshot author is missing. authorId=${catalogPackage.authorId}`);
-  }
-
-  return { author, catalogPackage, packageVersion };
 }
 
 function CatalogImportSignedOutScreen(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
@@ -107,14 +86,9 @@ export function CatalogImportScreen(): ReactElement {
     setErrorMessage("");
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
-      const snapshot = await loadPublicCatalog();
+      const packageVersion = await loadPublicCatalogPackageVersion(packageVersionId);
       indexedDbOpenRecoveryState.throwIfFailed();
       if (loadRequestGenerationRef.current !== requestGeneration) {
-        return;
-      }
-      const nextCatalogContext = resolveCatalogImportContext(snapshot, packageVersionId);
-      if (nextCatalogContext === null) {
-        setLoadState("not_found");
         return;
       }
 
@@ -123,7 +97,12 @@ export function CatalogImportScreen(): ReactElement {
       if (loadRequestGenerationRef.current !== requestGeneration) {
         return;
       }
-      setCatalogContext(nextCatalogContext);
+      setCatalogContext({
+        packageVersionId: packageVersion.packageVersionId,
+        title: packageVersion.title,
+        cardCount: packageVersion.cardCount,
+        authorDisplayName: packageVersion.author.displayName,
+      });
       setSession(optionalSession);
       setLoadState(optionalSession === null ? "signed_out" : "signed_in");
     } catch (error) {
@@ -134,6 +113,10 @@ export function CatalogImportScreen(): ReactElement {
         return;
       }
       if (isAuthRedirectError(error)) {
+        return;
+      }
+      if (isCatalogPublicVersionNotFoundError(error)) {
+        setLoadState("not_found");
         return;
       }
       const wasCaptured = showTechnicalError(error, {

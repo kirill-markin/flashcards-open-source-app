@@ -91,6 +91,11 @@ export type {
 export type {
   AdminQueryDetails,
   AgentSqlDetails,
+  CatalogDumpFailureDetails,
+  CatalogDumpGeneratedDetails,
+  CatalogDumpRefreshFailureDetails,
+  CatalogDumpS3RetryDetails,
+  CatalogSnapshotPointerErrorDetails,
   CommunityLeaderboardSnapshotFailureDetails,
   CommunityLeaderboardSnapshotGeneratedDetails,
   DatabasePoolErrorDetails,
