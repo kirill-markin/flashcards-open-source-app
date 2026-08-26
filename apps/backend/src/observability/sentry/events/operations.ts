@@ -120,6 +120,18 @@ export type CatalogDumpRefreshFailureDetails = Readonly<{
   message: string;
 }>;
 
+/**
+ * Emitted when `GET /v1/catalog` cannot read the pointer naming the current
+ * immutable artifact and answers 503 instead of redirecting. Distinct from
+ * `catalog_dump_failed`: that one is the builder failing to publish an
+ * artifact, this one is the public route failing to serve the published one.
+ */
+export type CatalogSnapshotPointerErrorDetails = Readonly<{
+  statusCode: number;
+  code: string | null;
+  storageErrorMessage: string;
+}>;
+
 export type CommunityLeaderboardSnapshotGeneratedDetails = Readonly<{
   metricVersion: string;
   generatedAtUtc: string;
@@ -305,6 +317,8 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
 }>;
 
 export type CatalogDumpS3RetryDetails = Readonly<{
+  /** The retry helper is shared by the artifact write and the pointer read. */
+  operation: "get_object" | "put_object";
   attempt: number;
   maxAttempts: number;
   bucketName: string;
@@ -395,6 +409,8 @@ export type OperationsWarningEvent =
     code: string | null;
     storageErrorMessage: string;
   }>> & Readonly<{ message: string }>)
+  | (EventByAction<"catalog_snapshot_pointer_error", CatalogSnapshotPointerErrorDetails>
+    & Readonly<{ message: string }>)
   | EventByAction<"unsafe_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | EventByAction<"database_pool_error", DatabasePoolErrorDetails>
   | EventByAction<"feedback_notification_email_retry", FeedbackEmailRetryDetails>
