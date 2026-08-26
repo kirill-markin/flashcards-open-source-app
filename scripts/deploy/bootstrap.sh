@@ -162,6 +162,11 @@ bash "${ROOT_DIR}/scripts/checks/check-multipart-completion-reconciliation-sched
 echo "=== Seed global metrics snapshot ==="
 bash "${ROOT_DIR}/scripts/generate/generate-global-metrics-snapshot.sh" --stack-name "$STACK_NAME"
 
+# GET /v1/catalog redirects to this artifact and has no live-computation
+# fallback, so a fresh environment has to build it before any endpoint check.
+echo "=== Seed public catalog dump ==="
+bash "${ROOT_DIR}/scripts/generate/generate-catalog-dump.sh" --stack-name "$STACK_NAME"
+
 echo "=== Check API health ==="
 bash "${ROOT_DIR}/scripts/checks/check-api-health.sh" --stack-name "$STACK_NAME"
 

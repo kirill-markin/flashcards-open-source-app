@@ -28,10 +28,18 @@ export interface CatalogDumpResult {
   bucket: s3.Bucket;
   distribution: cloudfront.Distribution;
   dumpFunction: lambdaNodejs.NodejsFunction;
+  cdnBaseUrl: string;
 }
 
 // Must stay in sync with the object key prefix written by the backend dump storage.
 const catalogDumpObjectKeyPrefix = "catalog";
+
+/**
+ * Alias object naming the current immutable artifact. `GET /v1/catalog` reads
+ * only this one object, so the API handler is granted it on its own rather than
+ * through the builder's write prefix.
+ */
+export const catalogDumpPointerObjectKey = `${catalogDumpObjectKeyPrefix}/pointer.json`;
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
@@ -109,6 +117,8 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
     },
   });
 
+  const cdnBaseUrl = `https://${distribution.distributionDomainName}`;
+
   const dumpFunction = new lambdaNodejs.NodejsFunction(scope, "CatalogDumpHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-catalog-dump.ts"),
     handler: "handler",
@@ -135,7 +145,7 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       PUBLIC_APP_BASE_URL: parsePublicOrigin(`https://app.${props.baseDomain}`, "appBaseUrl"),
       CATALOG_DUMP_S3_BUCKET_NAME: bucket.bucketName,
-      CATALOG_DUMP_CDN_BASE_URL: `https://${distribution.distributionDomainName}`,
+      CATALOG_DUMP_CDN_BASE_URL: cdnBaseUrl,
     },
   });
 
@@ -150,5 +160,6 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
     bucket,
     distribution,
     dumpFunction,
+    cdnBaseUrl,
   };
 }
