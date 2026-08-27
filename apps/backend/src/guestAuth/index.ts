@@ -1,5 +1,10 @@
 import { unsafeTransaction } from "../database/unsafe";
 import {
+  deriveServerDerivedProductAnalyticsEventId,
+  emitServerDerivedProductAnalyticsEvent,
+  linkServerDerivedProductAnalyticsIdentity,
+} from "../productAnalytics/serverEvents";
+import {
   deleteGuestSessionInExecutor,
 } from "./delete/index";
 import {
@@ -51,13 +56,78 @@ export async function prepareGuestUpgrade(
   );
 }
 
+/**
+ * Records one completed guest upgrade for product analytics.
+ *
+ * Runs only after the upgrade transaction committed. The analytics writer commits on its own pool,
+ * so emitting from inside the upgrade transaction would leave a permanent event and a permanent
+ * identity link behind an upgrade that then rolled back. Neither can be taken back:
+ * analytics.product_events is append-only, and analytics.product_events_resolved attributes a guest
+ * to the earliest link on its id, so a link from an upgrade that never happened would silently
+ * misattribute that guest's whole history if the guest later upgraded into a different account.
+ * Keeping the writes out here also keeps the Cognito identity lifecycle lock and both users'
+ * org.user_settings row locks from being held across the analytics connection acquisitions.
+ *
+ * Only a fresh completion is recorded: an idempotent replay returns an upgrade that already
+ * happened. That gate is not enough on its own, because the same-user bound path never revokes the
+ * guest session and returns a fresh completion again on every repeat of
+ * POST /guest-auth/upgrade/complete, so a client retry after a timeout would report a second
+ * conversion that never took place. The event id is therefore derived from the guest session id,
+ * which is stable across retries on both the bound and the merge path, and the writer drops the
+ * replay on the event_id conflict.
+ *
+ * Both writes are best effort, so a failing analytics database never fails an upgrade that is
+ * already committed, and neither is ever retried: on the merge path the guest session is revoked by
+ * the time this runs, so any repeat of POST /guest-auth/upgrade/complete returns an idempotent
+ * replay and never reaches this producer again. The identity link is therefore written first. A lost
+ * event costs one row of a conversion metric, while a lost link leaves that guest's whole
+ * pre-upgrade history resolving to the guest id instead of the account, so the link is the write
+ * that should survive when only one of the two does. auth.guest_upgrade_history keeps
+ * source_guest_user_id, target_user_id and source_guest_session_id, so either write can be
+ * reconstructed from it afterwards; docs/analytics-db-access.md documents that route.
+ */
+async function recordGuestUpgradeCompletedAnalytics(
+  completion: GuestUpgradeCompletion,
+): Promise<void> {
+  // The bound path keeps the guest user id as the account id, so the guest's earlier events already
+  // resolve to this account and a link would map the identity to itself.
+  if (completion.guestUserId !== completion.targetUserId) {
+    // The client's own anonymous_id is not known here, so the link is keyed on the guest user id
+    // that the guest's events carried as subject_user_id. analytics.product_events_resolved reads
+    // that shape as well as the anonymous_id shape an authenticated ingest request writes, and a
+    // guest-transport request writes the guest user id into user_id and subject_user_id alike, so
+    // this one link resolves the guest's client events and the events the backend emitted for that
+    // guest.
+    await linkServerDerivedProductAnalyticsIdentity({
+      anonymousId: completion.guestUserId,
+      userId: completion.targetUserId,
+    });
+  }
+
+  await emitServerDerivedProductAnalyticsEvent({
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      "guest_upgrade_completed",
+      [completion.guestSessionId],
+    ),
+    eventName: "guest_upgrade_completed",
+    occurredAt: new Date(),
+    userId: completion.targetUserId,
+    // The guest identity the client's earlier events already carried, so the row names both sides of
+    // the upgrade on its own.
+    subjectUserId: completion.guestUserId,
+    guestSessionId: completion.guestSessionId,
+    workspaceId: completion.targetWorkspaceId,
+    properties: {},
+  });
+}
+
 export async function completeGuestUpgrade(
   guestToken: string,
   cognitoSubject: string,
   selection: GuestUpgradeSelection,
   capabilities: GuestUpgradeCompleteCapabilities,
 ): Promise<GuestUpgradeCompletion> {
-  return unsafeTransaction(
+  const completion = await unsafeTransaction(
     async (executor) => completeGuestUpgradeInExecutor(
       executor,
       guestToken,
@@ -66,6 +136,11 @@ export async function completeGuestUpgrade(
       capabilities,
     ),
   );
+  if (completion.outcome === "fresh_completion") {
+    await recordGuestUpgradeCompletedAnalytics(completion);
+  }
+
+  return completion;
 }
 
 export async function deleteGuestSession(guestToken: string): Promise<void> {

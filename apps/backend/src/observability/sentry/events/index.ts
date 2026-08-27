@@ -91,6 +91,7 @@ export type {
 export type {
   AdminQueryDetails,
   AgentSqlDetails,
+  CatalogDeckInstalledAnalyticsSkippedDetails,
   CatalogDumpFailureDetails,
   CatalogDumpGeneratedDetails,
   CatalogDumpRefreshFailureDetails,
@@ -117,6 +118,8 @@ export type {
   MultipartCompletionFailureReportBatchDetails,
   MultipartCompletionReconciliationBatchDetails,
   MultipartCompletionReconciliationTerminalFailureDetails,
+  ProductAnalyticsIdentityLinkWriteFailureDetails,
+  ProductAnalyticsServerEventWriteFailureDetails,
   ProgressActiveDaysBackfillCandidateFailureDetails,
   ProgressActiveDaysBackfillCompletedDetails,
   ProgressActiveDaysBackfillFailureDetails,
