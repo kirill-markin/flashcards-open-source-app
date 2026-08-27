@@ -165,6 +165,10 @@ export function createCatalogInstallRoutes(options: CatalogInstallRoutesOptions)
       workspaceId,
       packageVersionId,
       input,
+      {
+        subjectUserId: loadedContext.requestContext.subjectUserId,
+        guestSessionId: loadedContext.requestContext.guestSessionId,
+      },
     );
 
     return context.json(result satisfies CatalogPackageInstallConfirmResponse);

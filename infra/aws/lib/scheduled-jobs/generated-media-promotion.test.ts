@@ -98,7 +98,7 @@ test("release disables cleanup until the latest migration is confirmed", () => {
   for (const { relativePath, requiredMigration } of [
     {
       relativePath: "../../.github/workflows/aws-web-release.yml",
-      requiredMigration: "0114_product_analytics_storage.sql",
+      requiredMigration: "0115_product_analytics_resolved_view.sql",
     },
     {
       relativePath: "../../scripts/deploy/bootstrap.sh",

@@ -7,6 +7,15 @@ import {
   isValidMediaAssetLastOperationIdPrefix,
   maximumMediaAssetLastOperationIdLength,
 } from "../../../mediaAssets/lastOperationId";
+import {
+  captureBackendWarning,
+  createBackendObservationScope,
+  getBackendErrorLogDetails,
+} from "../../../observability/sentry";
+import {
+  deriveServerDerivedProductAnalyticsEventId,
+  emitServerDerivedProductAnalyticsEvent,
+} from "../../../productAnalytics/serverEvents";
 import { HttpError } from "../../../shared/errors";
 import { normalizeCardImportTagOptions } from "../../../shared/cardImportTags";
 import { normalizeIsoTimestamp } from "../../../sync/conflicts/lww";
@@ -17,6 +26,7 @@ import {
 } from "../../../workspaces/identity";
 import { normalizeNonEmptyString } from "../../common";
 import type {
+  CatalogPackageInstallActor,
   CatalogPackageInstallConfirmInput,
   CatalogPackageInstallPreview,
   CatalogPackageInstallPreviewInput,
@@ -26,6 +36,7 @@ import {
   createCatalogPackageInstallTagPlan,
   loadCatalogPackageInstallPreviewInExecutor,
   loadCatalogPackageInstallVersionForInstallInExecutor,
+  loadCatalogPackageSlugInExecutor,
   loadCatalogPackageVersionCardsInExecutor,
   loadCatalogPackageVersionMediaAssetsInExecutor,
   mapCatalogPackageInstallPackageVersion,
@@ -292,14 +303,137 @@ export async function previewCatalogPackageInstall(
   ));
 }
 
+// Resolution of the one property catalog_deck_installed cannot state without a second read. It is
+// kept out of CatalogPackageInstallResult on purpose: a replay returns the result JSON stored in
+// sync.catalog_package_install_idempotency, and rows written before this change carry no package
+// slug, so a slug taken from the result would be undefined on those replays and the emission would
+// die inside its own non-fatal wrapper without ever saying why.
+type CatalogDeckInstalledPackageSlug =
+  | Readonly<{ resolved: true; packageSlug: string }>
+  | Readonly<{
+    resolved: false;
+    reason: "catalog_package_row_missing" | "catalog_package_slug_read_failed";
+    errorClass: string | null;
+    errorMessage: string | null;
+  }>;
+
+/**
+ * Reads catalog.packages.slug for an install that already committed.
+ *
+ * Deliberately outside the install transaction: this read exists only for analytics, and analytics
+ * must never turn a committed install, or a healthy idempotent replay of one, into a failed request.
+ * Every way it can come back without a slug is reported by the caller instead of thrown.
+ */
+async function loadCatalogDeckInstalledPackageSlug(
+  userId: string,
+  workspaceId: string,
+  packageId: string,
+): Promise<CatalogDeckInstalledPackageSlug> {
+  let packageSlug: string | null;
+  try {
+    packageSlug = await transactionWithWorkspaceScopeReadOnly(
+      { userId, workspaceId },
+      async (executor) => loadCatalogPackageSlugInExecutor(executor, packageId),
+    );
+  } catch (error) {
+    const errorDetails = getBackendErrorLogDetails(error);
+    return {
+      resolved: false,
+      reason: "catalog_package_slug_read_failed",
+      errorClass: errorDetails.errorClass,
+      errorMessage: errorDetails.errorMessage,
+    };
+  }
+
+  if (packageSlug === null) {
+    return {
+      resolved: false,
+      reason: "catalog_package_row_missing",
+      errorClass: null,
+      errorMessage: null,
+    };
+  }
+
+  return { resolved: true, packageSlug };
+}
+
 export async function installCatalogPackageVersion(
   userId: string,
   workspaceId: string,
   packageVersionId: string,
   input: CatalogPackageInstallConfirmInput,
+  actor: CatalogPackageInstallActor,
 ): Promise<CatalogPackageInstallResult> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => (
+  const result = await transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => (
     installCatalogPackageVersionInExecutor(executor, workspaceId, packageVersionId, input)
   ));
+  // The same normalization already succeeded inside the transaction, so it cannot throw here.
+  const normalizedWorkspaceId = normalizeCatalogWorkspaceId(workspaceId);
+  // package_slug means catalog.packages.slug across this repository, and the client's
+  // catalog_deck_install_started carries that same value, so the pair only joins into a funnel when
+  // this event carries it too. result.packageVersion.slug is the package version's frozen copy of
+  // it, which the authoring path leaves behind on the next deck rename.
+  const packageSlug = await loadCatalogDeckInstalledPackageSlug(
+    userId,
+    workspaceId,
+    result.packageVersion.packageId,
+  );
+  if (packageSlug.resolved === false) {
+    // A named skip rather than a swallowed write. The event is dropped instead of emitted with the
+    // version's stale slug, because a wrong slug joins to the wrong deck forever on an append-only
+    // table while a missing row only undercounts. catalog_package_row_missing is only reachable on a
+    // replay of an install whose package was deleted afterwards, and that replay's row would have
+    // conflicted on event_id with the original emission anyway.
+    captureBackendWarning({
+      action: "catalog_deck_installed_analytics_skipped",
+      scope: createBackendObservationScope(
+        "backend-api",
+        null,
+        null,
+        null,
+        userId,
+        normalizedWorkspaceId,
+        null,
+        null,
+        actor.guestSessionId,
+        null,
+        null,
+      ),
+      details: {
+        packageId: result.packageVersion.packageId,
+        installId: result.summary.installId,
+        reason: packageSlug.reason,
+        errorClass: packageSlug.errorClass,
+        errorMessage: packageSlug.errorMessage,
+      },
+    });
+    return result;
+  }
+
+  // Emitted after the transaction committed, so the analytics row only ever reports an install the
+  // workspace actually kept.
+  await emitServerDerivedProductAnalyticsEvent({
+    // The install is idempotent, so a client retry replays the stored result and reaches this
+    // emission again. The install id is the same across those retries, so the derived id makes the
+    // replay conflict on event_id and keeps exactly one installed event per install.
+    eventId: deriveServerDerivedProductAnalyticsEventId(
+      "catalog_deck_installed",
+      [normalizedWorkspaceId, result.summary.installId],
+    ),
+    eventName: "catalog_deck_installed",
+    occurredAt: new Date(),
+    userId,
+    // The identity the install acted as, which for a guest install is the guest user id that the
+    // guest upgrade later links to the account. Together with guestSessionId this is what keeps a
+    // guest install distinguishable from an account install on an append-only table.
+    subjectUserId: actor.subjectUserId,
+    guestSessionId: actor.guestSessionId,
+    workspaceId: normalizedWorkspaceId,
+    properties: {
+      package_slug: packageSlug.packageSlug,
+      card_count: result.summary.cardCount,
+    },
+  });
+  return result;
 }
 
