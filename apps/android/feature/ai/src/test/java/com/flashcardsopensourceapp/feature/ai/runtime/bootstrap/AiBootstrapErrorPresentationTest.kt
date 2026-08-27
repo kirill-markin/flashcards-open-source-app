@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
@@ -201,7 +202,7 @@ class AiBootstrapErrorPresentationTest {
         assertEquals("AI chat could not be loaded. Try again.", presentation.message)
         assertTrue(
             presentation.technicalDetails.orEmpty().contains(
-                "type: com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
+                "type: ${CloudContractMismatchException::class.java.name}"
             )
         )
         assertFalse(presentation.technicalDetails.orEmpty().contains("message:"))
@@ -235,14 +236,5 @@ class AiBootstrapErrorPresentationTest {
             AiChatFailureIssueDisposition.NONE,
             aiChatFailureIssueDisposition(error = error)
         )
-    }
-
-    private fun makeCloudContractMismatchException(message: String): Exception {
-        val errorClass = Class.forName(
-            "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
-        )
-        val constructor = errorClass.getDeclaredConstructor(String::class.java, Throwable::class.java)
-        constructor.isAccessible = true
-        return constructor.newInstance(message, null) as Exception
     }
 }
