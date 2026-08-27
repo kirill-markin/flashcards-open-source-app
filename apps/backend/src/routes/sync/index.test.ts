@@ -5,6 +5,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "../../server/app";
 import { HttpError } from "../../shared/errors";
 import { isTransientDatabaseError } from "../../database/transient";
+import { formatCapturedConsoleMessage } from "../../observability/consoleCapture.testSupport";
 import type { RequestContext } from "../../server/requestContext";
 import type { GuestSessionPlatform } from "../../guestAuth";
 import { createSyncRoutes } from "./index";
@@ -79,7 +80,7 @@ async function captureConsoleLogAsync(run: () => Promise<void>): Promise<Readonl
   const originalLog = console.log;
   const messages: Array<string> = [];
   console.log = (message?: unknown): void => {
-    messages.push(typeof message === "string" ? message : String(message));
+    messages.push(formatCapturedConsoleMessage(message));
   };
 
   try {

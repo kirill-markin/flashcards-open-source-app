@@ -34,6 +34,9 @@ test("multipart completion reconciliation Lambda has bounded runtime and exact S
   const source = readLibSource(
     "lib/scheduled-jobs/multipart-completion-reconciliation.ts",
   );
+  // The JSON log format and the log levels moved into the shared props this function spreads, so
+  // that is where they are asserted; the metric filter below only resolves under that format.
+  const loggingSource = readLibSource("lib/backend-lambda-logging.ts");
 
   assert.match(
     source,
@@ -45,13 +48,13 @@ test("multipart completion reconciliation Lambda has bounded runtime and exact S
   );
   assert.match(source, /timeout: cdk\.Duration\.minutes\(2\)/);
   assert.match(source, /memorySize: 512/);
-  assert.match(source, /loggingFormat: lambda\.LoggingFormat\.JSON/);
+  assert.match(source, /\.\.\.backendStructuredLoggingProps/);
   assert.match(
-    source,
+    loggingSource,
     /applicationLogLevelV2: lambda\.ApplicationLogLevel\.INFO/,
   );
   assert.match(
-    source,
+    loggingSource,
     /systemLogLevelV2: lambda\.SystemLogLevel\.INFO/,
   );
   assert.match(source, /subnetType: ec2\.SubnetType\.PRIVATE_WITH_EGRESS/);

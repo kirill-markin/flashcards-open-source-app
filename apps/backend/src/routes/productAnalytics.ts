@@ -540,6 +540,18 @@ function captureBatchViolation(
   }, fingerprint);
 }
 
+// An occurred_at_out_of_window rejection means a device clock rather than a client off contract, so
+// the two are counted apart on the ingest record: the clock signal is routed to its own alarm and is
+// deliberately kept out of Sentry, while every other rejection reason is a broken client release.
+// infra/aws/lib/monitoring.ts alarms on the difference directly, so the record carries it as its own
+// field: a CloudWatch metric filter can read a field but cannot subtract one field from another, and
+// this is the only place that knows the two counts describe the same batch.
+function countOutOfWindowRejections(
+  rejected: ReadonlyArray<ProductAnalyticsRejectedEvent>,
+): number {
+  return rejected.filter((event) => event.reason === "occurred_at_out_of_window").length;
+}
+
 function toIdentityLinkPairKey(anonymousId: string, userId: string): string {
   return `${anonymousId}|${userId}`;
 }
@@ -760,6 +772,7 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
         );
       }
 
+      const outOfWindowCount = countOutOfWindowRejections(rejected);
       addBackendBreadcrumb({
         action: "analytics_events_ingest",
         scope,
@@ -772,8 +785,8 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
           eventCount: rows.length + rejected.length,
           acceptedCount: rows.length,
           rejectedCount: rejected.length,
-          outOfWindowCount: rejected
-            .filter((event) => event.reason === "occurred_at_out_of_window").length,
+          outOfWindowCount,
+          contractRejectedCount: rejected.length - outOfWindowCount,
           storedCount: stored.storedEventCount,
           // null when this batch carried no link statement, false when the pair was already linked.
           identityLinked: identityLink === null ? null : stored.storedIdentityLinkCount > 0,
@@ -796,6 +809,7 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
       );
       const authTransport = requestContext === null ? "unknown" : requestContext.transport;
       captureBatchViolation(error, facts, authTransport, scope);
+      const failedOutOfWindowCount = countOutOfWindowRejections(rejected);
       const details = {
         authTransport,
         trustLevel: toFailureTrustLevel(requestContext),
@@ -804,7 +818,8 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
         eventCount: validation === null ? null : validation.accepted.length + validation.rejected.length,
         acceptedCount: rows.length,
         rejectedCount: rejected.length,
-        outOfWindowCount: rejected.filter((event) => event.reason === "occurred_at_out_of_window").length,
+        outOfWindowCount: failedOutOfWindowCount,
+        contractRejectedCount: rejected.length - failedOutOfWindowCount,
         storedCount: null,
         identityLinked: null,
         ...createBackendFailureDetails(error),

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import * as Sentry from "@sentry/aws-serverless";
+import { formatCapturedConsoleMessage } from "../../../observability/consoleCapture.testSupport";
 import { HttpError } from "../../../shared/errors";
 import { transcribeChatAudioUploadWithDependencies } from "../../transcriptions";
 
@@ -54,7 +55,7 @@ function withCapturedConsole<Result>(
   const originalMethod = console[method];
   const messages: Array<string> = [];
   console[method] = (message?: unknown): void => {
-    messages.push(typeof message === "string" ? message : String(message));
+    messages.push(formatCapturedConsoleMessage(message));
   };
 
   return fn().then(

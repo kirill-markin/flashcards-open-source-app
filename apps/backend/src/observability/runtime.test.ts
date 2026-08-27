@@ -11,6 +11,7 @@ import {
   type BackendRuntimeObservabilitySink,
 } from "./runtime";
 import { hasCapturedBackendException } from "./sentry/errorNormalization";
+import { formatCapturedConsoleMessage } from "./consoleCapture.testSupport";
 import type {
   BackendBreadcrumbEvent,
   BackendExceptionEvent,
@@ -27,7 +28,7 @@ function withCapturedConsole(
   const originalMethod = console[method];
   const messages: Array<string> = [];
   console[method] = (message?: unknown): void => {
-    messages.push(typeof message === "string" ? message : String(message));
+    messages.push(formatCapturedConsoleMessage(message));
   };
 
   try {

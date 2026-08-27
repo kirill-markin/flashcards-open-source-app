@@ -9,6 +9,7 @@ import * as rds from "aws-cdk-lib/aws-rds";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
+import { backendStructuredLoggingProps } from "./backend-lambda-logging";
 import { parsePublicOrigin } from "./public-origin";
 import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
 
@@ -125,6 +126,7 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),
     memorySize: 2048,
+    ...backendStructuredLoggingProps,
     // Admin operations trigger rebuilds, so runs can now overlap. Two overlapping
     // runs interleave the `latest.json` and `pointer.json` writes and can leave the
     // pointer naming one build while `latest.json` holds another. One reserved
