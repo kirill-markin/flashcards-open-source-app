@@ -20,6 +20,7 @@ import { communityLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/comm
 import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
 
+const restApiNoTrafficEvaluationPeriods = 4;
 const communityLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const streakLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const progressActiveDaysBackfillStaleEvaluationPeriods = 2;
@@ -138,6 +139,28 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "API Gateway returned 5+ server errors in 5 minutes",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  // Every other API alarm needs traffic to observe a failure, so a dead edge (expired TLS
+  // certificate, broken DNS, detached custom domain) stays silent because API Gateway then
+  // publishes no datapoints at all. Missing data is treated as breaching here on purpose,
+  // and a full hour of zero requests keeps quiet organic traffic hours below the threshold.
+  new cloudwatch.Alarm(scope, "ApiGatewayNoTrafficAlarm", {
+    metric: new cloudwatch.Metric({
+      namespace: "AWS/ApiGateway",
+      metricName: "Count",
+      dimensionsMap: { ApiName: props.restApi.restApiName },
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 0,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
+    evaluationPeriods: restApiNoTrafficEvaluationPeriods,
+    datapointsToAlarm: restApiNoTrafficEvaluationPeriods,
+    alarmDescription:
+      "API Gateway received no requests for one hour, so the public API edge is unreachable " +
+      "(expired TLS certificate, broken DNS, or detached custom domain)",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
   new cloudwatch.Alarm(scope, "AuthApiGateway5xxAlarm", {
