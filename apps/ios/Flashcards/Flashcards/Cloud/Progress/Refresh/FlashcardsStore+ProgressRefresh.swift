@@ -19,7 +19,7 @@ extension FlashcardsStore {
             return false
         }
 
-        if self.isNonCriticalProgressRefreshTransportFailure(error: error) {
+        if isSilentlyIgnorableNetworkTransportFailure(error: error) {
             return false
         }
 
