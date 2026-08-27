@@ -65,9 +65,15 @@ internal fun prepareReviewContent(
     text: String,
     mediaAssetsById: Map<String, MediaAsset>
 ): PreparedReviewContent {
-    val mathExtraction: ReviewMathBlockExtraction = extractReviewMathBlocks(markdown = text)
+    // An accepted inline formula stands in as one marker character, so a marker the card text
+    // already holds would consume a formula slot. Removing it once, before segmentation, keeps
+    // every offset that segmentation, rendering and speech derive from this text consistent.
+    val sanitizedText: String = removeReviewInlineMathMarkers(text = text)
+    val mathExtraction: ReviewMathBlockExtraction = extractReviewMathBlocks(
+        markdown = sanitizedText
+    )
     val renderedContent: ReviewRenderedContent = makeReviewRenderedContent(
-        text = text,
+        text = sanitizedText,
         mediaAssetsById = mediaAssetsById,
         mathBlocks = mathExtraction.blocks,
         requiresMarkdownRendering = mathExtraction.requiresMarkdownRendering
@@ -93,6 +99,7 @@ private fun makeReviewRenderedContent(
 
     val managedMarkdown: ReviewRenderedContent.ManagedMarkdown? = makeReviewManagedMarkdownContent(
         text = text,
+        inlineFormulas = emptyList(),
         mediaAssetsById = mediaAssetsById
     )
     if (managedMarkdown != null) {
@@ -117,18 +124,43 @@ private fun makeReviewMathMarkdownContent(
     mathBlocks: List<ReviewMathBlock>,
     mediaAssetsById: Map<String, MediaAsset>
 ): ReviewRenderedContent.ManagedMarkdown {
-    val renderedBlocks: List<ReviewManagedMarkdownBlock> = buildList {
-        mathBlocks.forEach { block ->
-            when (block) {
-                is ReviewMathBlock.Markdown -> addAll(
-                    reviewManagedMarkdownBlocks(
-                        text = block.markdown,
-                        mediaAssetsById = mediaAssetsById
+    val renderedBlocks: MutableList<ReviewManagedMarkdownBlock> = mutableListOf()
+    val pendingMarkdown: StringBuilder = StringBuilder()
+    val pendingFormulas: MutableList<ReviewInlineMathFormula> = mutableListOf()
+    var inlineFormulaIndex: Int = 0
+
+    fun flushPendingMarkdown() {
+        renderedBlocks.addAll(
+            elements = reviewManagedMarkdownBlocks(
+                text = pendingMarkdown.toString(),
+                inlineFormulas = pendingFormulas.toList(),
+                mediaAssetsById = mediaAssetsById
+            )
+        )
+        pendingMarkdown.clear()
+        pendingFormulas.clear()
+    }
+
+    mathBlocks.forEach { block ->
+        when (block) {
+            is ReviewMathBlock.Markdown -> pendingMarkdown.append(block.markdown)
+
+            // An accepted inline span stays inside its paragraph, standing in as one marker
+            // character; only display math is its own top-level block.
+            is ReviewMathBlock.Formula -> if (block.continuesParagraph) {
+                pendingFormulas.add(
+                    element = ReviewInlineMathFormula(
+                        tag = reviewInlineMathTag(index = inlineFormulaIndex),
+                        source = block.source,
+                        delimitedSource = block.delimitedSource
                     )
                 )
-
-                is ReviewMathBlock.Formula -> add(
-                    ReviewManagedMarkdownBlock.Formula(
+                inlineFormulaIndex += 1
+                pendingMarkdown.append(reviewInlineMathMarker)
+            } else {
+                flushPendingMarkdown()
+                renderedBlocks.add(
+                    element = ReviewManagedMarkdownBlock.Formula(
                         source = block.source,
                         delimitedSource = block.delimitedSource
                     )
@@ -136,15 +168,19 @@ private fun makeReviewMathMarkdownContent(
             }
         }
     }
-    return ReviewRenderedContent.ManagedMarkdown(blocks = renderedBlocks)
+    flushPendingMarkdown()
+
+    return ReviewRenderedContent.ManagedMarkdown(blocks = renderedBlocks.toList())
 }
 
 private fun reviewManagedMarkdownBlocks(
     text: String,
+    inlineFormulas: List<ReviewInlineMathFormula>,
     mediaAssetsById: Map<String, MediaAsset>
 ): List<ReviewManagedMarkdownBlock> {
     val managedContent: ReviewRenderedContent.ManagedMarkdown? = makeReviewManagedMarkdownContent(
         text = text,
+        inlineFormulas = inlineFormulas,
         mediaAssetsById = mediaAssetsById
     )
     if (managedContent != null) {
@@ -153,7 +189,12 @@ private fun reviewManagedMarkdownBlocks(
     return if (text.isBlank()) {
         emptyList()
     } else {
-        listOf(ReviewManagedMarkdownBlock.Markdown(markdown = text))
+        listOf(
+            ReviewManagedMarkdownBlock.Markdown(
+                markdown = text,
+                inlineFormulas = inlineFormulas
+            )
+        )
     }
 }
 
@@ -203,6 +244,7 @@ internal fun parseReviewManagedMediaAssetId(reference: String): String? {
 
 private fun makeReviewManagedMarkdownContent(
     text: String,
+    inlineFormulas: List<ReviewInlineMathFormula>,
     mediaAssetsById: Map<String, MediaAsset>
 ): ReviewRenderedContent.ManagedMarkdown? {
     val matches: List<ReviewManagedMediaMatch> = findReviewManagedMediaMatches(
@@ -214,22 +256,41 @@ private fun makeReviewManagedMarkdownContent(
     }
 
     var currentIndex: Int = 0
+    var formulaIndex: Int = 0
     val blocks: List<ReviewManagedMarkdownBlock> = buildList {
         matches.forEach { match ->
             val precedingMarkdown: String = text.substring(
                 startIndex = currentIndex,
                 endIndex = match.range.first
             )
+            val precedingFormulaCount: Int = countReviewInlineMathMarkers(text = precedingMarkdown)
             if (precedingMarkdown.isNotBlank()) {
-                add(ReviewManagedMarkdownBlock.Markdown(markdown = precedingMarkdown))
+                add(
+                    ReviewManagedMarkdownBlock.Markdown(
+                        markdown = precedingMarkdown,
+                        inlineFormulas = inlineFormulas.subList(
+                            fromIndex = formulaIndex,
+                            toIndex = formulaIndex + precedingFormulaCount
+                        )
+                    )
+                )
             }
+            formulaIndex += precedingFormulaCount
             add(ReviewManagedMarkdownBlock.ManagedMedia(reference = match.reference))
             currentIndex = match.range.last + 1
         }
 
         val trailingMarkdown: String = text.substring(startIndex = currentIndex)
         if (trailingMarkdown.isNotBlank()) {
-            add(ReviewManagedMarkdownBlock.Markdown(markdown = trailingMarkdown))
+            add(
+                ReviewManagedMarkdownBlock.Markdown(
+                    markdown = trailingMarkdown,
+                    inlineFormulas = inlineFormulas.subList(
+                        fromIndex = formulaIndex,
+                        toIndex = inlineFormulas.size
+                    )
+                )
+            )
         }
     }
 
