@@ -47,14 +47,33 @@
   overflow-x: auto;
 }
 
-.review-math-block-canvas {
+.review-math-inline {
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  color: var(--text);
+}
+
+.review-math-inline[data-render-status="failed"] {
+  display: inline;
+  overflow-x: visible;
+  color: var(--danger);
+}
+
+.review-math-inline-error-message {
+  margin-inline-start: 0.35em;
+}
+
+.review-math-block-canvas,
+.review-math-inline-canvas {
   display: block;
   width: auto;
   max-width: none;
   height: auto;
 }
 
-.review-math-block-canvas[hidden] {
+.review-math-block-canvas[hidden],
+.review-math-inline-canvas[hidden] {
   display: none;
 }
 
