@@ -78,6 +78,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
+      "src/productAnalytics/writer.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

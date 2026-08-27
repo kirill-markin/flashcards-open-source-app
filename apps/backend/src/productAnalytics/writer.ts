@@ -1,6 +1,12 @@
 import pg from "pg";
 import { getDatabaseUrl } from "../database/config";
-import { logDatabasePoolError, toDatabaseBoundaryError } from "../database/transient";
+import {
+  getDatabaseErrorFields,
+  logDatabasePoolError,
+  toDatabaseBoundaryError,
+  TransientDatabaseHttpError,
+  type DatabaseBoundaryErrorFields,
+} from "../database/transient";
 import { HttpError } from "../shared/errors";
 import {
   findProductAnalyticsEventDefinition,
@@ -15,6 +21,11 @@ import type { ProductAnalyticsEventRow, ProductAnalyticsIdentityLink } from "./t
 // lose data silently. Client-side batching is the only batching.
 const analyticsPoolMaxConnections = 4;
 const analyticsPoolConnectionTimeoutMs = 2_000;
+
+// pg-pool answers a failed acquisition with a bare Error carrying no code and no SQLSTATE, so it
+// matches nothing isTransientDatabaseError recognises and would otherwise reach a caller as an
+// unclassified failure. The message is the only thing that names it.
+const analyticsPoolAcquisitionTimeoutMessage = "timeout exceeded when trying to connect";
 
 type ProductAnalyticsParameterValue = string | number | Date | null;
 
@@ -121,25 +132,69 @@ async function getAnalyticsPool(): Promise<pg.Pool> {
   return analyticsPool;
 }
 
-// The cap is the protection, so an exhausted pool fails immediately instead of queueing behind
-// product traffic. The caller turns this into a 429 and the client retries from its own queue.
-function assertAnalyticsPoolCapacity(pool: pg.Pool): void {
-  const busyConnectionCount = pool.totalCount - pool.idleCount;
-  if (pool.waitingCount > 0 || busyConnectionCount >= analyticsPoolMaxConnections) {
-    throw new HttpError(
+// The 429 message is a fixed public string, so it is the only thing a caller that logs the raised
+// error would otherwise record. Two very different failures reach it: the pool cap refusing a batch
+// before a connection is requested, and an acquisition that timed out, which is what a slow connect
+// during an RDS capacity or failover window looks like. The source error therefore travels on the
+// same side fields TransientDatabaseHttpError carries and getDatabaseErrorFields reads, and never in
+// the message: app.onError renders an HttpError message to the client verbatim.
+class AnalyticsWriterBusyHttpError extends HttpError implements DatabaseBoundaryErrorFields {
+  readonly sqlState: string | null;
+  readonly errorCode: string | null;
+  readonly databaseErrorClass: string;
+  readonly databaseErrorMessage: string;
+
+  constructor(sourceError: unknown | null) {
+    super(
       429,
       "Analytics ingestion is saturated. Retry this batch shortly.",
       "ANALYTICS_WRITER_BUSY",
       { retryAfterSeconds: 1 },
     );
+    if (sourceError === null) {
+      this.sqlState = null;
+      this.errorCode = null;
+      this.databaseErrorClass = "AnalyticsPoolCapacityExceeded";
+      this.databaseErrorMessage = "The analytics pool cap refused the batch before a connection was requested.";
+      return;
+    }
+
+    const fields = getDatabaseErrorFields(sourceError);
+    this.sqlState = fields.sqlState;
+    this.errorCode = fields.errorCode;
+    this.databaseErrorClass = fields.errorClass;
+    this.databaseErrorMessage = fields.errorMessage;
   }
+}
+
+// The cap is the protection, so an exhausted pool fails immediately instead of queueing behind
+// product traffic. The caller turns this into a 429 and the client retries from its own queue.
+function assertAnalyticsPoolCapacity(pool: pg.Pool): void {
+  const busyConnectionCount = pool.totalCount - pool.idleCount;
+  if (pool.waitingCount > 0 || busyConnectionCount >= analyticsPoolMaxConnections) {
+    throw new AnalyticsWriterBusyHttpError(null);
+  }
+}
+
+// The counters above are sampled before the connection is taken, so two callers can both pass the
+// assertion in one container and the loser waits out connectionTimeoutMillis here instead. That
+// timeout is the same saturation the assertion refuses, so it answers with the same 429 and the
+// same Retry-After rather than as an unclassified failure. Every other reason an acquisition fails
+// is the database being unreachable, which is a 503, and the source error's class, message and
+// SQLSTATE travel on the raised error either way.
+function toAnalyticsConnectError(error: unknown): HttpError {
+  if (error instanceof Error && error.message.includes(analyticsPoolAcquisitionTimeoutMessage)) {
+    return new AnalyticsWriterBusyHttpError(error);
+  }
+
+  return new TransientDatabaseHttpError(error);
 }
 
 async function connectAnalyticsClient(pool: pg.Pool): Promise<pg.PoolClient> {
   try {
     return await pool.connect();
   } catch (error) {
-    throw toDatabaseBoundaryError(error);
+    throw toAnalyticsConnectError(error);
   }
 }
 
@@ -163,9 +218,9 @@ function buildInsertParameters(
 // Every analytics write runs with the same guards: the pool cap fails a saturated writer instead of
 // queueing it behind product traffic, and the statement timeout keeps one slow write from holding a
 // connection while the request that carried it waits.
-async function runAnalyticsWrite(
-  write: (client: pg.PoolClient) => Promise<number>,
-): Promise<number> {
+async function runAnalyticsWrite<Result>(
+  write: (client: pg.PoolClient) => Promise<Result>,
+): Promise<Result> {
   const pool = await getAnalyticsPool();
   assertAnalyticsPoolCapacity(pool);
 
@@ -174,15 +229,34 @@ async function runAnalyticsWrite(
   try {
     await client.query("BEGIN");
     await client.query("SET LOCAL statement_timeout = '2s'");
-    const writtenRowCount = await write(client);
+    const writeResult = await write(client);
     await client.query("COMMIT");
-    return writtenRowCount;
+    return writeResult;
   } catch (error) {
     releaseError = await rollbackAnalyticsTransaction(client);
     throw toDatabaseBoundaryError(error);
   } finally {
     client.release(releaseError === null ? undefined : releaseError);
   }
+}
+
+async function insertEventRowsInTransaction(
+  client: pg.PoolClient,
+  rows: ReadonlyArray<ProductAnalyticsEventRow>,
+): Promise<number> {
+  const result = await client.query(insertProductAnalyticsEventsSql, buildInsertParameters(rows));
+  return result.rowCount ?? 0;
+}
+
+async function insertIdentityLinkInTransaction(
+  client: pg.PoolClient,
+  link: ProductAnalyticsIdentityLink,
+): Promise<number> {
+  const result = await client.query(
+    insertProductAnalyticsIdentityLinkSql,
+    [link.linkId, link.anonymousId, link.userId, link.source],
+  );
+  return result.rowCount ?? 0;
 }
 
 // Every producer reaches Postgres through this function, so the catalog contract is enforced here
@@ -259,9 +333,40 @@ export async function insertProductAnalyticsEvents(
     assertProductAnalyticsRowMatchesCatalog(row);
   }
 
+  return runAnalyticsWrite((client) => insertEventRowsInTransaction(client, rows));
+}
+
+export type ProductAnalyticsClientBatchResult = Readonly<{
+  storedEventCount: number;
+  storedIdentityLinkCount: number;
+}>;
+
+// The ingest route's write: one client batch and the identity link the same request carried, in one
+// transaction on one connection. Two sequential calls would take two of the pool's four connections
+// per authenticated batch and sample the capacity counters twice, which is what widens the window in
+// which two callers both pass the assertion; they would also leave a link committed for events that
+// then failed to store. A batch redelivered after a failure conflicts on event_id and on the
+// (anonymous_id, user_id) pair alike, so retrying the whole write stores nothing twice.
+export async function insertProductAnalyticsClientBatch(
+  rows: ReadonlyArray<ProductAnalyticsEventRow>,
+  identityLink: ProductAnalyticsIdentityLink | null,
+): Promise<ProductAnalyticsClientBatchResult> {
+  if (rows.length === 0 && identityLink === null) {
+    return { storedEventCount: 0, storedIdentityLinkCount: 0 };
+  }
+
+  for (const row of rows) {
+    assertProductAnalyticsRowMatchesCatalog(row);
+  }
+
   return runAnalyticsWrite(async (client) => {
-    const result = await client.query(insertProductAnalyticsEventsSql, buildInsertParameters(rows));
-    return result.rowCount ?? 0;
+    const storedEventCount = rows.length === 0
+      ? 0
+      : await insertEventRowsInTransaction(client, rows);
+    const storedIdentityLinkCount = identityLink === null
+      ? 0
+      : await insertIdentityLinkInTransaction(client, identityLink);
+    return { storedEventCount, storedIdentityLinkCount };
   });
 }
 
@@ -271,11 +376,5 @@ export async function insertProductAnalyticsEvents(
 export async function insertProductAnalyticsIdentityLink(
   link: ProductAnalyticsIdentityLink,
 ): Promise<number> {
-  return runAnalyticsWrite(async (client) => {
-    const result = await client.query(
-      insertProductAnalyticsIdentityLinkSql,
-      [link.linkId, link.anonymousId, link.userId, link.source],
-    );
-    return result.rowCount ?? 0;
-  });
+  return runAnalyticsWrite((client) => insertIdentityLinkInTransaction(client, link));
 }
