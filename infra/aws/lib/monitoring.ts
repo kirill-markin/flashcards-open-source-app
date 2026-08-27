@@ -21,6 +21,7 @@ import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
 
 const restApiNoTrafficEvaluationPeriods = 4;
+const certificateExpiryAlarmThresholdDays = 45;
 const communityLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const streakLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const progressActiveDaysBackfillStaleEvaluationPeriods = 2;
@@ -46,6 +47,10 @@ export interface MonitoringProps {
   generatedMediaPromotionFn: lambda.IFunction;
   multipartCompletionReconciliationFn: lambda.Function;
   catalogDumpFn: lambda.IFunction;
+  baseDomain: string;
+  apiCertificateArn: string | undefined;
+  authCertificateArn: string | undefined;
+  mcpCertificateArn: string | undefined;
 }
 
 export interface MonitoringResult {
@@ -96,6 +101,43 @@ logs.IFilterPattern {
       "multipart_completion_reconciliation_job_terminally_failed",
     ),
   );
+}
+
+interface CertificateExpiryAlarmProps {
+  alertTopic: sns.Topic;
+  alarmId: string;
+  certificateArn: string;
+  host: string;
+}
+
+// ACM publishes DaysToExpiry about once a day, so a daily period with a single evaluated
+// datapoint is the earliest this metric can be read at all, and the number only falls by one
+// per day, so waiting for more datapoints would just delay the page. Managed renewal starts
+// around 60 days before expiry, so a certificate still below the threshold has been failing to
+// renew for weeks (usually a missing DNS validation record) while leaving that many days to fix
+// it before the host goes down. Missing datapoints keep the current alarm state: the metric only
+// stops for a certificate that no longer exists, which ACM does not allow while an API Gateway
+// custom domain still uses it, and treating those as breaching would page on ACM publication
+// jitter and on planned certificate replacements while treating them as OK would clear a real
+// breach.
+function createCertificateExpiryAlarm(scope: Construct, props: CertificateExpiryAlarmProps): void {
+  new cloudwatch.Alarm(scope, props.alarmId, {
+    metric: new cloudwatch.Metric({
+      namespace: "AWS/CertificateManager",
+      metricName: "DaysToExpiry",
+      dimensionsMap: { CertificateArn: props.certificateArn },
+      period: cdk.Duration.days(1),
+      statistic: "Minimum",
+    }),
+    threshold: certificateExpiryAlarmThresholdDays,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: 1,
+    datapointsToAlarm: 1,
+    alarmDescription:
+      `TLS certificate for ${props.host} expires in fewer than ` +
+      `${certificateExpiryAlarmThresholdDays} days, so ACM auto-renewal has not completed`,
+    treatMissingData: cloudwatch.TreatMissingData.MISSING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(props.alertTopic));
 }
 
 export function monitoring(scope: Construct, props: MonitoringProps): MonitoringResult {
@@ -187,6 +229,33 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     alarmDescription: "MCP API Gateway returned 3+ server errors in 5 minutes",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  if (props.apiCertificateArn) {
+    createCertificateExpiryAlarm(scope, {
+      alertTopic,
+      alarmId: "ApiCertificateExpiryAlarm",
+      certificateArn: props.apiCertificateArn,
+      host: `api.${props.baseDomain}`,
+    });
+  }
+
+  if (props.authCertificateArn) {
+    createCertificateExpiryAlarm(scope, {
+      alertTopic,
+      alarmId: "AuthCertificateExpiryAlarm",
+      certificateArn: props.authCertificateArn,
+      host: `auth.${props.baseDomain}`,
+    });
+  }
+
+  if (props.mcpCertificateArn) {
+    createCertificateExpiryAlarm(scope, {
+      alertTopic,
+      alarmId: "McpCertificateExpiryAlarm",
+      certificateArn: props.mcpCertificateArn,
+      host: `mcp.${props.baseDomain}`,
+    });
+  }
 
   const authApiAccessLog5xxMetricFilter = new logs.MetricFilter(scope, "AuthApiAccessLog5xxMetricFilter", {
     logGroup: props.authApiAccessLogGroup,
