@@ -104,6 +104,14 @@ Top-level release workflow Firebase job: `.github/workflows/android-release.yml`
 - Reuses the shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>` in Firebase result naming and traces results under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>`
 - Requires Firebase Test Lab submission before the Play draft upload starts; the submission is asynchronous, so review the Firebase matrix result before publishing from Play Console
 
+Top-level release workflow Play job: `.github/workflows/android-release.yml` job `publish_android`
+
+- Builds and uploads the signed Android App Bundle artifact, then gates R8 optimization coverage before anything reaches Google Play
+- Reads the R8 run summary AGP embeds at `BUNDLE-METADATA/com.android.tools/r8.json` inside that exact bundle, so the reported numbers describe the artifact being uploaded rather than a separate analysis run
+- Converts `noShrinkingPercentage`, `noOptimizationPercentage`, and `noObfuscationPercentage` into coverage percentages, prints them to the run summary, and fails the run when any category is below Google Play's 25% minimum
+- Fails loudly when the R8 metadata is missing or unreadable, so a silently unoptimized bundle cannot be published
+- Runs after the bundle artifact upload, so a failed gate still leaves the exact bundle attached to the run for debugging
+
 The pull-request Android flow is:
 
 1. `pr-checks.yml` starts on every pull request and detects the affected areas
@@ -126,8 +134,10 @@ The manual Android release flow is:
 2. The workflow resolves one shared `ANDROID_VERSION_CODE` and one shared Android release identifier for the run
 3. The reusable Android CI gate runs for the target SHA
 4. Firebase Test Lab app instrumentation is submitted for the debug APKs produced by the CI gate
-5. After Firebase submission succeeds, the signed Android App Bundle is uploaded as a Google Play production-track draft
-6. Review the Firebase matrix result and Play Console draft before publishing manually
+5. After Firebase submission succeeds, the signed Android App Bundle is built and uploaded as a workflow artifact
+6. The R8 optimization coverage gate reads `BUNDLE-METADATA/com.android.tools/r8.json` from that bundle and fails the run when shrinking, optimization, or obfuscation coverage is below Google's 25% minimum
+7. Only then is the bundle uploaded as a Google Play production-track draft
+8. Review the Firebase matrix result and Play Console draft before publishing manually
 
 After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
 
