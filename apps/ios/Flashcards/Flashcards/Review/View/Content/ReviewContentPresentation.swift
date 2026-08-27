@@ -33,9 +33,17 @@ struct ReviewManagedMarkdownContent {
 }
 
 enum ReviewManagedMarkdownBlock {
-    case markdown(MarkdownContent)
+    /// A Markdown fragment together with only the accepted inline formulas it references.
+    case markdown(MarkdownContent, inlineMath: [ReviewInlineMathReference])
     case formula(ReviewFormulaContent)
     case managedMedia(ReviewManagedMediaReference)
+}
+
+/// An accepted inline formula together with the `fcmath:` source that addresses it from the
+/// Markdown fragment it lives in.
+struct ReviewInlineMathReference {
+    let source: String
+    let formula: ReviewFormulaContent
 }
 
 struct ReviewFormulaContent {
@@ -246,31 +254,110 @@ private func makeReviewSpeakableTextWithoutMath(
     return normalizeReviewSpeakableLines(lines: speakableLines)
 }
 
+/// Private scheme for accepted inline formulas routed through the Markdown inline image path.
+/// It never reaches card storage, and managed media parsing ignores it because
+/// `managedMediaAssetId(reference:)` requires the `fcasset:` prefix.
+let reviewInlineMathImageScheme = "fcmath"
+
+/// ASCII punctuation, which CommonMark lets a backslash escape back to the literal character.
+/// Escaping all of it keeps a LaTeX alt text from breaking out of the `![alt](url)` syntax.
+private let reviewMarkdownEscapableCharacters: Set<Character> = Set(##"!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"##)
+
+/// The reference is content-derived so that two cards whose only difference is the formula parse
+/// to different inline nodes. Equal nodes would keep MarkdownUI's view identity, its cached
+/// `inlineImages` state, and its `.task(id:)`, and the previous card's formula would keep showing.
+private func reviewInlineMathImageSource(index: Int, latex: String) -> String {
+    "\(reviewInlineMathImageScheme):\(index)-\(reviewInlineMathDigest(latex: latex))"
+}
+
+/// FNV-1a over UTF-8. Deterministic across process launches, unlike Swift's seeded `Hasher`.
+private func reviewInlineMathDigest(latex: String) -> String {
+    var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+    for byte in latex.utf8 {
+        hash ^= UInt64(byte)
+        hash = hash &* 0x0000_0100_0000_01b3
+    }
+
+    let hexDigest = String(hash, radix: 16)
+    return String(repeating: "0", count: max(0, 16 - hexDigest.count)) + hexDigest
+}
+
+/// The alt text carries the LaTeX because a paragraph holding nothing but the formula reaches
+/// MarkdownUI's `ImageView`, which overrides the image label with `.accessibilityLabel(alt)`.
+private func makeReviewInlineMathImageReference(source: String, latex: String) -> String {
+    "![\(reviewMarkdownEscapedAltText(text: latex))](\(source))"
+}
+
+private func reviewMarkdownEscapedAltText(text: String) -> String {
+    var escapedText = ""
+    escapedText.reserveCapacity(text.count * 2)
+
+    for character in text {
+        if reviewMarkdownEscapableCharacters.contains(character) {
+            escapedText.append("\\")
+        }
+        escapedText.append(character)
+    }
+
+    return escapedText
+}
+
 private func makeReviewSegmentedMarkdownContent(
     mathBlocks: [ReviewMathBlock]
 ) -> ReviewManagedMarkdownContent {
     var blocks: [ReviewManagedMarkdownBlock] = []
-    var normalizesNextMarkdownFragment = false
+    var inlineMath: [ReviewInlineMathReference] = []
+    var pendingMarkdown = ""
+
+    func flushPendingMarkdown() {
+        let markdownText = pendingMarkdown
+        pendingMarkdown = ""
+        guard markdownText.isEmpty == false else {
+            return
+        }
+
+        if let managedMarkdownContent = makeReviewManagedMarkdownContent(
+            text: markdownText,
+            inlineMath: inlineMath
+        ) {
+            blocks.append(contentsOf: managedMarkdownContent.blocks)
+        } else {
+            appendReviewMarkdownBlock(text: markdownText, inlineMath: inlineMath, blocks: &blocks)
+        }
+    }
 
     for mathBlock in mathBlocks {
         switch mathBlock {
         case .markdown(let text):
-            let renderedText = normalizesNextMarkdownFragment
-                ? normalizeReviewInlineMathParagraphContinuation(markdown: text)
-                : text
-            if let managedMarkdownContent = makeReviewManagedMarkdownContent(text: renderedText) {
-                blocks.append(contentsOf: managedMarkdownContent.blocks)
-            } else {
-                appendReviewMarkdownBlock(text: renderedText, blocks: &blocks)
-            }
-            normalizesNextMarkdownFragment = false
+            pendingMarkdown += text
+        case .formula(let formula) where formula.continuesParagraph:
+            // An accepted inline formula stays inside its paragraph as an inline image reference.
+            let source = reviewInlineMathImageSource(index: inlineMath.count, latex: formula.latex)
+            pendingMarkdown += makeReviewInlineMathImageReference(source: source, latex: formula.latex)
+            inlineMath.append(ReviewInlineMathReference(source: source, formula: formula))
         case .formula(let formula):
+            flushPendingMarkdown()
             blocks.append(.formula(formula))
-            normalizesNextMarkdownFragment = formula.continuesParagraph
         }
     }
+    flushPendingMarkdown()
 
     return ReviewManagedMarkdownContent(blocks: blocks)
+}
+
+/// Each Markdown block gets only the formulas its own fragment addresses, so a render failure is
+/// reported once, under the block that actually holds the broken formula.
+private func reviewInlineMathReferences(
+    text: String,
+    inlineMath: [ReviewInlineMathReference]
+) -> [ReviewInlineMathReference] {
+    guard inlineMath.isEmpty == false else {
+        return []
+    }
+
+    return inlineMath.filter { reference in
+        text.contains(reference.source)
+    }
 }
 
 private func hasStrongMarkdownCue(text: String) -> Bool {
@@ -314,7 +401,10 @@ private func normalizeReviewSpeakableInlineText(text: String) -> String {
         .trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
-private func makeReviewManagedMarkdownContent(text: String) -> ReviewManagedMarkdownContent? {
+private func makeReviewManagedMarkdownContent(
+    text: String,
+    inlineMath: [ReviewInlineMathReference] = []
+) -> ReviewManagedMarkdownContent? {
     var activeFence: ReviewMathFence? = nil
     var pendingMarkdownLines: [String] = []
     var blocks: [ReviewManagedMarkdownBlock] = []
@@ -335,7 +425,7 @@ private func makeReviewManagedMarkdownContent(text: String) -> ReviewManagedMark
             continue
         }
 
-        let lineBlocks = splitReviewManagedMediaLine(line: line)
+        let lineBlocks = splitReviewManagedMediaLine(line: line, inlineMath: inlineMath)
         if lineBlocks.contains(where: { block in
             if case .managedMedia = block {
                 return true
@@ -346,12 +436,20 @@ private func makeReviewManagedMarkdownContent(text: String) -> ReviewManagedMark
             continue
         }
 
-        appendReviewPendingMarkdownBlocks(lines: &pendingMarkdownLines, blocks: &blocks)
+        appendReviewPendingMarkdownBlocks(
+            lines: &pendingMarkdownLines,
+            inlineMath: inlineMath,
+            blocks: &blocks
+        )
         blocks.append(contentsOf: lineBlocks)
         didFindManagedMedia = true
     }
 
-    appendReviewPendingMarkdownBlocks(lines: &pendingMarkdownLines, blocks: &blocks)
+    appendReviewPendingMarkdownBlocks(
+        lines: &pendingMarkdownLines,
+        inlineMath: inlineMath,
+        blocks: &blocks
+    )
     guard didFindManagedMedia else {
         return nil
     }
@@ -359,11 +457,14 @@ private func makeReviewManagedMarkdownContent(text: String) -> ReviewManagedMark
     return ReviewManagedMarkdownContent(blocks: blocks)
 }
 
-private func splitReviewManagedMediaLine(line: String) -> [ReviewManagedMarkdownBlock] {
+private func splitReviewManagedMediaLine(
+    line: String,
+    inlineMath: [ReviewInlineMathReference]
+) -> [ReviewManagedMarkdownBlock] {
     let fullRange = NSRange(line.startIndex..<line.endIndex, in: line)
     let matches = reviewManagedMediaReferenceExpression.matches(in: line, options: [], range: fullRange)
     guard matches.isEmpty == false else {
-        return [.markdown(makeReviewMarkdownContent(text: line))]
+        return makeReviewMarkdownOnlyBlocks(text: line, inlineMath: inlineMath)
     }
 
     var blocks: [ReviewManagedMarkdownBlock] = []
@@ -382,7 +483,7 @@ private func splitReviewManagedMediaLine(line: String) -> [ReviewManagedMarkdown
         }
 
         let precedingText = String(line[currentIndex..<matchRange.lowerBound])
-        appendReviewMarkdownBlock(text: precedingText, blocks: &blocks)
+        appendReviewMarkdownBlock(text: precedingText, inlineMath: inlineMath, blocks: &blocks)
 
         let label = reviewManagedMediaLabel(line: line, match: match)
         let isImageSyntax = match.range(at: 1).location != NSNotFound
@@ -401,28 +502,54 @@ private func splitReviewManagedMediaLine(line: String) -> [ReviewManagedMarkdown
     }
 
     guard didFindManagedMedia else {
-        return [.markdown(makeReviewMarkdownContent(text: line))]
+        return makeReviewMarkdownOnlyBlocks(text: line, inlineMath: inlineMath)
     }
 
-    appendReviewMarkdownBlock(text: String(line[currentIndex..<line.endIndex]), blocks: &blocks)
+    appendReviewMarkdownBlock(
+        text: String(line[currentIndex..<line.endIndex]),
+        inlineMath: inlineMath,
+        blocks: &blocks
+    )
     return blocks
+}
+
+private func makeReviewMarkdownOnlyBlocks(
+    text: String,
+    inlineMath: [ReviewInlineMathReference]
+) -> [ReviewManagedMarkdownBlock] {
+    [
+        .markdown(
+            makeReviewMarkdownContent(text: text),
+            inlineMath: reviewInlineMathReferences(text: text, inlineMath: inlineMath)
+        )
+    ]
 }
 
 private func appendReviewPendingMarkdownBlocks(
     lines: inout [String],
+    inlineMath: [ReviewInlineMathReference],
     blocks: inout [ReviewManagedMarkdownBlock]
 ) {
     let markdownText = lines.joined(separator: "\n")
     lines.removeAll()
-    appendReviewMarkdownBlock(text: markdownText, blocks: &blocks)
+    appendReviewMarkdownBlock(text: markdownText, inlineMath: inlineMath, blocks: &blocks)
 }
 
-private func appendReviewMarkdownBlock(text: String, blocks: inout [ReviewManagedMarkdownBlock]) {
+private func appendReviewMarkdownBlock(
+    text: String,
+    inlineMath: [ReviewInlineMathReference],
+    blocks: inout [ReviewManagedMarkdownBlock]
+) {
     guard text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
         return
     }
 
-    blocks.append(.markdown(makeReviewMarkdownContent(text: text)))
+    blocks.append(
+        .markdown(
+            makeReviewMarkdownContent(text: text),
+            inlineMath: reviewInlineMathReferences(text: text, inlineMath: inlineMath)
+        )
+    )
 }
 
 private func reviewManagedMediaLabel(line: String, match: NSTextCheckingResult) -> String? {

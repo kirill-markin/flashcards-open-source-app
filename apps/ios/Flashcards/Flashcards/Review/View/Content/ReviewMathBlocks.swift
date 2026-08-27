@@ -31,6 +31,17 @@ private struct ReviewInlineMathLine {
     let containsFormula: Bool
 }
 
+private struct ReviewMathDisplayConstruct {
+    let closingIndex: Int
+    let latex: String
+}
+
+private enum ReviewInlineMathClosingScan {
+    case candidate(String.Index)
+    case displayRun(String.Index)
+    case none
+}
+
 private let reviewMathReferenceDefinitionExpression = makeReviewContentRegularExpression(
     pattern: #"^ {0,3}\[(?:\\.|[^\\\]])+\]:"#
 )
@@ -61,7 +72,7 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
     while lineIndex < lines.count {
         let line = lines[lineIndex]
 
-        if line.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if reviewMathLineIsBlank(line: line.content) {
             pendingMarkdown += line.content + line.separator
             lineIndex += 1
             continue
@@ -96,13 +107,8 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
             continue
         }
 
-        if reviewMathLineIsDisplayDelimiter(line: line.content) {
-            guard let closingIndex = reviewMathDisplayClosingIndex(lines: lines, openingIndex: lineIndex) else {
-                pendingMarkdown += line.content + line.separator
-                lineIndex += 1
-                continue
-            }
-
+        // A display construct that fails any source rule stays literal and is rescanned as prose.
+        if let construct = reviewMathDisplayConstruct(lines: lines, openingIndex: lineIndex) {
             if pendingMarkdown.isEmpty == false {
                 blocks.append(.markdown(pendingMarkdown))
                 pendingMarkdown = ""
@@ -111,25 +117,20 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
             let originalSource = reviewMathDisplaySource(
                 lines: lines,
                 openingIndex: lineIndex,
-                closingIndex: closingIndex
-            )
-            let latex = reviewMathDisplayLatex(
-                lines: lines,
-                openingIndex: lineIndex,
-                closingIndex: closingIndex
+                closingIndex: construct.closingIndex
             )
             blocks.append(
                 .formula(
                     ReviewFormulaContent(
                         originalSource: originalSource,
-                        latex: latex,
+                        latex: construct.latex,
                         continuesParagraph: false
                     )
                 )
             )
-            pendingMarkdown += lines[closingIndex].separator
+            pendingMarkdown += lines[construct.closingIndex].separator
             didFindFormula = true
-            lineIndex = closingIndex + 1
+            lineIndex = construct.closingIndex + 1
             continue
         }
 
@@ -139,7 +140,7 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
 
             while lineIndex < lines.count {
                 while lineIndex < lines.count
-                    && lines[lineIndex].content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+                    && reviewMathLineIsBlank(line: lines[lineIndex].content) == false {
                     let containerLine = lines[lineIndex]
                     pendingMarkdown += containerLine.content + containerLine.separator
 
@@ -161,7 +162,7 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
                 }
 
                 while lineIndex < lines.count
-                    && lines[lineIndex].content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    && reviewMathLineIsBlank(line: lines[lineIndex].content) {
                     pendingMarkdown += lines[lineIndex].content + lines[lineIndex].separator
                     lineIndex += 1
                 }
@@ -186,7 +187,7 @@ func extractReviewMathBlocks(text: String) -> ReviewMathBlockExtraction {
         let paragraphStartIndex = lineIndex
         lineIndex += 1
         while lineIndex < lines.count
-            && lines[lineIndex].content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+            && reviewMathLineIsBlank(line: lines[lineIndex].content) == false {
             if reviewMathSetextHeadingExpression.matches(lines[lineIndex].content) {
                 lineIndex += 1
                 break
@@ -331,22 +332,138 @@ private func reviewMathLineIsIndentedCode(line: String) -> Bool {
     return false
 }
 
-private func reviewMathLineIsDisplayDelimiter(line: String) -> Bool {
-    guard reviewMathLineIsIndentedCode(line: line) == false else {
-        return false
-    }
-
-    return line.trimmingCharacters(in: .whitespacesAndNewlines) == "$$"
+// The contract defines *space* as exactly U+0020 and U+0009, so a general whitespace
+// predicate must never stand in for this check.
+private func reviewMathCharacterIsSpace(_ character: Character) -> Bool {
+    character == " " || character == "\t"
 }
 
-private func reviewMathDisplayClosingIndex(
+private func reviewMathCharacterIsDigit(_ character: Character) -> Bool {
+    character.isASCII && character.isNumber
+}
+
+// CommonMark's blank line: a line holding only spaces and tabs, not only a zero-length line.
+private func reviewMathLineIsBlank(line: String) -> Bool {
+    line.allSatisfy { character in
+        reviewMathCharacterIsSpace(character)
+    }
+}
+
+private func reviewMathDollarRunLength(line: String, from index: String.Index) -> Int {
+    var length = 0
+    var cursor = index
+
+    while cursor < line.endIndex, line[cursor] == "$" {
+        length += 1
+        cursor = line.index(after: cursor)
+    }
+    return length
+}
+
+/// Start of the line content when at most three spaces and no tab precede it.
+private func reviewMathDisplayIndentationEnd(line: String) -> String.Index? {
+    var index = line.startIndex
+    var spaceCount = 0
+
+    while index < line.endIndex, line[index] == " " {
+        spaceCount += 1
+        index = line.index(after: index)
+    }
+    return spaceCount <= 3 ? index : nil
+}
+
+private func reviewMathDisplayOpeningRun(line: String) -> (contentStart: String.Index, length: Int)? {
+    guard let start = reviewMathDisplayIndentationEnd(line: line), start < line.endIndex, line[start] == "$" else {
+        return nil
+    }
+
+    let length = reviewMathDollarRunLength(line: line, from: start)
+    guard length >= 2 else {
+        return nil
+    }
+    return (line.index(start, offsetBy: length), length)
+}
+
+/// Length of the `$` run on a line whose whole content is that run.
+private func reviewMathDisplayClosingRunLength(line: String) -> Int? {
+    guard let start = reviewMathDisplayIndentationEnd(line: line), start < line.endIndex, line[start] == "$" else {
+        return nil
+    }
+
+    let length = reviewMathDollarRunLength(line: line, from: start)
+    let trailingContent = line[line.index(start, offsetBy: length)...]
+    guard trailingContent.allSatisfy({ character in reviewMathCharacterIsSpace(character) }) else {
+        return nil
+    }
+    return length
+}
+
+private func reviewMathUnescapedDollarIndex(line: String, from startIndex: String.Index) -> String.Index? {
+    var index = startIndex
+
+    while index < line.endIndex {
+        if line[index] == "$", reviewMathCharacterIsUnescaped(text: line, index: index) {
+            return index
+        }
+        index = line.index(after: index)
+    }
+    return nil
+}
+
+private func reviewMathDisplayConstruct(
     lines: [ReviewMathSourceLine],
     openingIndex: Int
-) -> Int? {
+) -> ReviewMathDisplayConstruct? {
+    guard reviewMathLineIsIndentedCode(line: lines[openingIndex].content) == false,
+          openingIndex == 0 || reviewMathLineIsBlank(line: lines[openingIndex - 1].content),
+          let opening = reviewMathDisplayOpeningRun(line: lines[openingIndex].content) else {
+        return nil
+    }
+
+    let openingLine = lines[openingIndex].content
+    let openingRemainder = openingLine[opening.contentStart...]
+    guard openingRemainder.allSatisfy({ character in reviewMathCharacterIsSpace(character) }) == false else {
+        return reviewMathMultipleLineDisplayConstruct(
+            lines: lines,
+            openingIndex: openingIndex,
+            openingRunLength: opening.length
+        )
+    }
+
+    guard let closingStart = reviewMathUnescapedDollarIndex(line: openingLine, from: opening.contentStart),
+          reviewMathDollarRunLength(line: openingLine, from: closingStart) == opening.length else {
+        return nil
+    }
+
+    let afterClosing = openingLine.index(closingStart, offsetBy: opening.length)
+    guard openingLine[afterClosing...].allSatisfy({ character in reviewMathCharacterIsSpace(character) }),
+          openingIndex == lines.count - 1 || reviewMathLineIsBlank(line: lines[openingIndex + 1].content) else {
+        return nil
+    }
+
+    return ReviewMathDisplayConstruct(
+        closingIndex: openingIndex,
+        latex: String(openingLine[opening.contentStart..<closingStart])
+    )
+}
+
+private func reviewMathMultipleLineDisplayConstruct(
+    lines: [ReviewMathSourceLine],
+    openingIndex: Int,
+    openingRunLength: Int
+) -> ReviewMathDisplayConstruct? {
     var index = openingIndex + 1
+
     while index < lines.count {
-        if reviewMathLineIsDisplayDelimiter(line: lines[index].content) {
-            return index
+        if let closingRunLength = reviewMathDisplayClosingRunLength(line: lines[index].content) {
+            guard closingRunLength == openingRunLength else {
+                return nil
+            }
+
+            return ReviewMathDisplayConstruct(
+                closingIndex: index,
+                latex: lines[(openingIndex + 1)..<index].map(\.content).joined(separator: "\n")
+            )
         }
         index += 1
     }
@@ -369,20 +486,6 @@ private func reviewMathDisplaySource(
         index += 1
     }
     return source
-}
-
-private func reviewMathDisplayLatex(
-    lines: [ReviewMathSourceLine],
-    openingIndex: Int,
-    closingIndex: Int
-) -> String {
-    guard closingIndex > openingIndex + 1 else {
-        return ""
-    }
-
-    return lines[(openingIndex + 1)..<closingIndex]
-        .map(\.content)
-        .joined(separator: "\n")
 }
 
 private func reviewMathLineStartsContainer(line: String) -> Bool {
@@ -408,9 +511,9 @@ private func reviewMathLineContinuesContainerAfterBlank(line: String) -> Bool {
     return firstCharacter == " " || firstCharacter == "\t" || reviewMathLineStartsContainer(line: line)
 }
 
+// A display opening run must be preceded by a blank line, so it never interrupts a paragraph.
 private func reviewMathLineStartsParagraphBoundary(line: String) -> Bool {
     if reviewMathLineIsIndentedCode(line: line)
-        || reviewMathLineIsDisplayDelimiter(line: line)
         || reviewMathFence(line: line) != nil {
         return true
     }
@@ -436,12 +539,8 @@ private func splitReviewMathParagraph(lines: [ReviewMathSourceLine]) -> [ReviewM
         return nil
     }
 
-    var parsedLines: [ReviewInlineMathLine] = []
-    for line in lines {
-        guard let parsedLine = splitReviewInlineMathLine(line: line.content) else {
-            return nil
-        }
-        parsedLines.append(parsedLine)
+    let parsedLines = lines.map { line in
+        splitReviewInlineMathLine(line: line.content)
     }
 
     guard parsedLines.contains(where: \.containsFormula) else {
@@ -493,7 +592,7 @@ private func reviewMathParagraphIsEligible(lines: [ReviewInlineMathLine]) -> Boo
     }
 }
 
-private func splitReviewInlineMathLine(line: String) -> ReviewInlineMathLine? {
+private func splitReviewInlineMathLine(line: String) -> ReviewInlineMathLine {
     var parts: [ReviewInlineMathPart] = []
     var pendingTextStart = line.startIndex
     var index = line.startIndex
@@ -505,34 +604,51 @@ private func splitReviewInlineMathLine(line: String) -> ReviewInlineMathLine? {
             continue
         }
 
-        let afterDollar = line.index(after: index)
-        if afterDollar < line.endIndex, line[afterDollar] == "$" {
-            index = line.index(after: afterDollar)
+        // A run of two or more `$` is always a display fence sequence, never an inline delimiter.
+        let openingRunLength = reviewMathDollarRunLength(line: line, from: index)
+        if openingRunLength >= 2 {
+            index = line.index(index, offsetBy: openingRunLength)
             continue
         }
 
-        guard let closingIndex = reviewInlineMathClosingIndex(line: line, openingIndex: index) else {
-            return nil
-        }
-
-        if pendingTextStart < index {
-            parts.append(.text(String(line[pendingTextStart..<index])))
-        }
-
+        // Pandoc opening guard: a non-space character immediately to the right.
         let latexStart = line.index(after: index)
-        let afterClosing = line.index(after: closingIndex)
-        parts.append(
-            .formula(
-                ReviewFormulaContent(
-                    originalSource: String(line[index..<afterClosing]),
-                    latex: String(line[latexStart..<closingIndex]),
-                    continuesParagraph: true
+        guard latexStart < line.endIndex, reviewMathCharacterIsSpace(line[latexStart]) == false else {
+            index = latexStart
+            continue
+        }
+
+        switch reviewInlineMathClosingScan(line: line, latexStart: latexStart) {
+        case .none:
+            // No later `$` on this line, so nothing on it is left to scan.
+            index = line.endIndex
+        case .displayRun(let resumeIndex):
+            index = resumeIndex
+        case .candidate(let closingIndex):
+            guard reviewInlineMathClosingGuardsHold(line: line, closingIndex: closingIndex) else {
+                // The `$` that failed as a closer is itself the next candidate opener.
+                index = closingIndex
+                continue
+            }
+
+            if pendingTextStart < index {
+                parts.append(.text(String(line[pendingTextStart..<index])))
+            }
+
+            let afterClosing = line.index(after: closingIndex)
+            parts.append(
+                .formula(
+                    ReviewFormulaContent(
+                        originalSource: String(line[index..<afterClosing]),
+                        latex: String(line[latexStart..<closingIndex]),
+                        continuesParagraph: true
+                    )
                 )
             )
-        )
-        didFindFormula = true
-        pendingTextStart = afterClosing
-        index = afterClosing
+            didFindFormula = true
+            pendingTextStart = afterClosing
+            index = afterClosing
+        }
     }
 
     if pendingTextStart < line.endIndex {
@@ -545,8 +661,8 @@ private func splitReviewInlineMathLine(line: String) -> ReviewInlineMathLine? {
     return ReviewInlineMathLine(parts: parts, containsFormula: didFindFormula)
 }
 
-private func reviewInlineMathClosingIndex(line: String, openingIndex: String.Index) -> String.Index? {
-    var index = line.index(after: openingIndex)
+private func reviewInlineMathClosingScan(line: String, latexStart: String.Index) -> ReviewInlineMathClosingScan {
+    var index = latexStart
 
     while index < line.endIndex {
         guard line[index] == "$", reviewMathCharacterIsUnescaped(text: line, index: index) else {
@@ -554,15 +670,27 @@ private func reviewInlineMathClosingIndex(line: String, openingIndex: String.Ind
             continue
         }
 
-        let afterDollar = line.index(after: index)
-        if afterDollar < line.endIndex, line[afterDollar] == "$" {
-            index = line.index(after: afterDollar)
-            continue
+        let runLength = reviewMathDollarRunLength(line: line, from: index)
+        if runLength >= 2 {
+            return .displayRun(line.index(index, offsetBy: runLength))
         }
-        return index
+        return .candidate(index)
     }
 
-    return nil
+    return .none
+}
+
+// Pandoc closing guard: a non-space character immediately to the left, and no digit to the right.
+private func reviewInlineMathClosingGuardsHold(line: String, closingIndex: String.Index) -> Bool {
+    guard reviewMathCharacterIsSpace(line[line.index(before: closingIndex)]) == false else {
+        return false
+    }
+
+    let afterClosingIndex = line.index(after: closingIndex)
+    guard afterClosingIndex < line.endIndex else {
+        return true
+    }
+    return reviewMathCharacterIsDigit(line[afterClosingIndex]) == false
 }
 
 private func reviewMathContainsUnsupportedInlineSyntax(text: String) -> Bool {
@@ -593,49 +721,6 @@ private func reviewMathLineHasHardBreak(line: String) -> Bool {
         return true
     }
     return line.reversed().prefix(while: { character in character == "\\" }).count.isMultiple(of: 2) == false
-}
-
-func normalizeReviewInlineMathParagraphContinuation(markdown: String) -> String {
-    guard let firstCharacter = markdown.first, firstCharacter != "\r", firstCharacter != "\n" else {
-        return markdown
-    }
-
-    // A mid-paragraph fragment must not acquire document-level block syntax after splitting.
-    let leadingWhitespaceCount = markdown.prefix(while: { character in
-        character == " " || character == "\t"
-    }).count
-    let content = String(markdown.dropFirst(leadingWhitespaceCount))
-    let normalizedPrefix = leadingWhitespaceCount == 0 ? "" : " "
-    let startsHeading = makeReviewContentRegularExpression(
-        pattern: #"^#{1,6}(?:[ \t]+|$)"#
-    ).matches(content)
-    let startsUnorderedList = makeReviewContentRegularExpression(
-        pattern: #"^[-+*](?:[ \t]+|$)"#
-    ).matches(content)
-    let startsThematicBreak = makeReviewContentRegularExpression(
-        pattern: #"^(?:-[ \t]*){3,}(?:\r?\n|$)"#
-    ).matches(content)
-    if startsHeading || startsUnorderedList || startsThematicBreak {
-        return normalizedPrefix + "\\" + content
-    }
-
-    let digitCount = content.prefix(while: { character in
-        "0123456789".contains(character)
-    }).count
-    guard digitCount > 0, digitCount <= 9, digitCount < content.count else {
-        return normalizedPrefix + content
-    }
-    let punctuationIndex = content.index(content.startIndex, offsetBy: digitCount)
-    let afterPunctuationIndex = content.index(after: punctuationIndex)
-    guard (content[punctuationIndex] == "." || content[punctuationIndex] == ")"),
-          afterPunctuationIndex == content.endIndex
-            || " \t\r\n".contains(content[afterPunctuationIndex]) else {
-        return normalizedPrefix + content
-    }
-
-    var escapedContent = content
-    escapedContent.insert("\\", at: punctuationIndex)
-    return normalizedPrefix + escapedContent
 }
 
 private func reviewMathSource(lines: [ReviewMathSourceLine]) -> String {
