@@ -452,7 +452,7 @@ func makeCloudAuthInlineErrorPresentation(
         )
     }
 
-    if isRetryableNetworkTransportFailure(error: error) {
+    if isSilentlyIgnorableNetworkTransportFailure(error: error) {
         return CloudAuthInlineErrorPresentation(
             message: makeCloudAuthTransportFailureMessage(context: context),
             technicalError: nil
