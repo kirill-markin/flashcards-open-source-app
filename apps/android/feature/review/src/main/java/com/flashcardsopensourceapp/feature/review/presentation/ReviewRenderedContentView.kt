@@ -39,6 +39,7 @@ fun ReviewRenderedContentView(
         is ReviewRenderedContent.Markdown -> {
             ReviewMarkdownText(
                 markdown = content.markdown,
+                inlineFormulas = emptyList(),
                 modifier = modifier.fillMaxWidth()
             )
         }
@@ -53,6 +54,7 @@ fun ReviewRenderedContentView(
                         when (block) {
                             is ReviewManagedMarkdownBlock.Markdown -> ReviewMarkdownText(
                                 markdown = block.markdown,
+                                inlineFormulas = block.inlineFormulas,
                                 modifier = Modifier.fillMaxWidth()
                             )
 
