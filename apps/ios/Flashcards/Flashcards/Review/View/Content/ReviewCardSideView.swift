@@ -116,13 +116,16 @@ struct ReviewCardSideView: View {
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(managedMarkdownContent.blocks.indices, id: \.self) { index in
                     switch managedMarkdownContent.blocks[index] {
-                    case .markdown(let markdownContent):
+                    case .markdown(let markdownContent, let inlineMath):
                         ReviewMarkdownText(
                             markdownContent: markdownContent,
-                            surfaceStyle: surfaceStyle
+                            surfaceStyle: surfaceStyle,
+                            inlineMath: inlineMath
                         )
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                     case .formula(let formula):
+                        // Only display formulas remain standalone blocks; inline formulas stay
+                        // inside their paragraph.
                         ReviewMathFormulaView(
                             formula: formula,
                             surfaceStyle: surfaceStyle
