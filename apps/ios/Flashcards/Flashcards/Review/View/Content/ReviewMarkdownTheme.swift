@@ -2,6 +2,7 @@ import MarkdownUI
 import OSLog
 import RaTeX
 import SwiftUI
+import UIKit
 
 private let reviewMathFormulaLogger: Logger = Logger(
     subsystem: appBundleIdentifier(),
@@ -26,7 +27,7 @@ private func makeReviewMarkdownTheme(surfaceStyle: ReviewCardSurfaceStyle) -> Th
         .text {
             ForegroundColor(reviewMarkdownTextColor(surfaceStyle: surfaceStyle))
             BackgroundColor(nil)
-            FontSize(surfaceStyle == .front ? 18 : 17)
+            FontSize(reviewMarkdownTextFontSize(surfaceStyle: surfaceStyle))
         }
         .code {
             FontFamilyVariant(.monospaced)
@@ -164,6 +165,15 @@ private func makeReviewMarkdownTheme(surfaceStyle: ReviewCardSurfaceStyle) -> Th
         }
 }
 
+private func reviewMarkdownTextFontSize(surfaceStyle: ReviewCardSurfaceStyle) -> CGFloat {
+    switch surfaceStyle {
+    case .front:
+        return 18
+    case .back:
+        return 17
+    }
+}
+
 private func reviewMarkdownTextColor(surfaceStyle: ReviewCardSurfaceStyle) -> Color {
     switch surfaceStyle {
     case .front:
@@ -239,11 +249,84 @@ private func reviewMarkdownBorderColor(surfaceStyle: ReviewCardSurfaceStyle) -> 
 struct ReviewMarkdownText: View {
     let markdownContent: MarkdownContent
     let surfaceStyle: ReviewCardSurfaceStyle
+    let inlineMath: [ReviewInlineMathReference]
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.displayScale) private var displayScale
+    // Rasterized formulas must match the surrounding Markdown text, so both sizes come from
+    // `reviewMarkdownTextFontSize`. The theme applies it as an absolute `FontSize`, while
+    // `@ScaledMetric` additionally scales it with Dynamic Type.
+    @ScaledMetric(relativeTo: .body)
+    private var frontInlineFormulaFontSize: CGFloat = reviewMarkdownTextFontSize(surfaceStyle: .front)
+    @ScaledMetric(relativeTo: .body)
+    private var backInlineFormulaFontSize: CGFloat = reviewMarkdownTextFontSize(surfaceStyle: .back)
+
+    init(
+        markdownContent: MarkdownContent,
+        surfaceStyle: ReviewCardSurfaceStyle,
+        inlineMath: [ReviewInlineMathReference] = []
+    ) {
+        self.markdownContent = markdownContent
+        self.surfaceStyle = surfaceStyle
+        self.inlineMath = inlineMath
+    }
+
+    private var inlineFormulaFontSize: CGFloat {
+        switch self.surfaceStyle {
+        case .front:
+            return self.frontInlineFormulaFontSize
+        case .back:
+            return self.backInlineFormulaFontSize
+        }
+    }
+
+    private var inlineFormulaColor: UIColor {
+        UIColor(reviewMarkdownTextColor(surfaceStyle: self.surfaceStyle)).resolvedColor(
+            with: UITraitCollection { traits in
+                traits.userInterfaceStyle = self.colorScheme == .dark ? .dark : .light
+            }
+        )
+    }
+
+    // Inline formulas are rasterized, so the rendered Markdown must be rebuilt whenever the
+    // appearance, the Dynamic Type size, or the screen scale changes. The formula sources are
+    // folded in as well so that moving to a card whose only difference is the formula content
+    // cannot reuse the previous card's view identity and its cached inline images.
+    private var inlineFormulaRenderIdentity: String {
+        let sources = self.inlineMath.map(\.source).joined(separator: ",")
+        return "\(self.colorScheme)-\(self.inlineFormulaFontSize)-\(self.displayScale)-\(sources)"
+    }
+
+    private var localizedRenderError: String {
+        String(
+            localized: "Formula couldn't be rendered. Check the LaTeX syntax.",
+            table: "ReviewCards"
+        )
+    }
 
     var body: some View {
-        Markdown(markdownContent)
-            .markdownTheme(makeReviewMarkdownTheme(surfaceStyle: surfaceStyle))
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+        let rendering = makeReviewInlineMathRendering(
+            references: self.inlineMath,
+            fontSize: self.inlineFormulaFontSize,
+            color: self.inlineFormulaColor,
+            displayScale: self.displayScale
+        )
+
+        VStack(alignment: .leading, spacing: 6) {
+            Markdown(self.markdownContent)
+                .markdownTheme(makeReviewMarkdownTheme(surfaceStyle: self.surfaceStyle))
+                .markdownInlineImageProvider(ReviewMathInlineImageProvider(images: rendering.images))
+                .markdownImageProvider(ReviewMathBlockImageProvider(images: rendering.images))
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .id(self.inlineFormulaRenderIdentity)
+
+            if rendering.didFailRendering {
+                Label(self.localizedRenderError, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 
