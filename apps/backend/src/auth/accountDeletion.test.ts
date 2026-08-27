@@ -96,6 +96,9 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
         text === "DELETE FROM org.workspaces WHERE workspace_id = ANY($1::uuid[])"
         || text === "SELECT auth.delete_user_auth_artifacts($1, $2)"
         || text === "DELETE FROM org.user_settings WHERE user_id = $1"
+        || text.includes("FROM auth.guest_upgrade_history")
+        || text.includes("UPDATE analytics.product_events")
+        || text.includes("DELETE FROM analytics.identity_links")
       ) {
         return createQueryResult<Row>([]);
       }
@@ -178,6 +181,9 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
         || text === "SELECT auth.delete_user_auth_artifacts($1, $2)"
         || text === "DELETE FROM org.user_settings WHERE user_id = $1"
         || text.includes("INSERT INTO auth.deleted_subjects")
+        || text.includes("FROM auth.guest_upgrade_history")
+        || text.includes("UPDATE analytics.product_events")
+        || text.includes("DELETE FROM analytics.identity_links")
       ) {
         return createQueryResult<Row>([]);
       }
