@@ -43,10 +43,14 @@ private data class ReviewMathExtraction(
     val escapedDollarOffsets: List<Int>
 )
 
-private data class ReviewInlineMathExtraction(
-    val candidates: List<ReviewMathCandidate>,
-    val escapedDollarOffsets: List<Int>,
-    val hasUnmatchedOpener: Boolean
+private data class ReviewMathDollarRun(
+    val startIndex: Int,
+    val length: Int
+)
+
+private data class ReviewLineDollars(
+    val runs: List<ReviewMathDollarRun>,
+    val escapingBackslashIndices: List<Int>
 )
 
 private const val reviewProtectedProseCharacters: String = "[]`|<>*_~"
@@ -110,6 +114,7 @@ private fun hasReviewReferenceDefinitionOutsideProtectedContexts(
                 line.contentEndOffset <= candidate.endOffset
         }
         val fenceMarker: String? = reviewFenceMarker(line = line.content)
+        val displayFenceRunLength: Int? = reviewDisplayFenceRunLength(line = line.content)
         when {
             isInsideDisplayMath -> lineIndex += 1
             isReviewIndentedCodeLine(line = line.content) -> lineIndex += 1
@@ -120,10 +125,12 @@ private fun hasReviewReferenceDefinitionOutsideProtectedContexts(
                     marker = fenceMarker
                 )
             }
-            isReviewDisplayDelimiterLine(line = line.content) -> {
+            displayFenceRunLength != null &&
+                isReviewTopLevelBlockStart(lines = lines, lineIndex = lineIndex) -> {
                 val closingLineIndex: Int? = findReviewDisplayClosingLine(
                     lines = lines,
-                    openingLineIndex = lineIndex
+                    openingLineIndex = lineIndex,
+                    openingRunLength = displayFenceRunLength
                 )
                 if (closingLineIndex == null) {
                     // The unmatched display tail is literal, including reference-looking lines.
@@ -151,8 +158,13 @@ private fun extractReviewMathCandidates(
     while (lineIndex < lines.size) {
         val line: ReviewMathLine = lines[lineIndex]
         val fenceMarker: String? = reviewFenceMarker(line = line.content)
+        val displayFenceRunLength: Int? = reviewDisplayFenceRunLength(line = line.content)
+        val singleLineDisplayCandidate: ReviewMathCandidate? = makeReviewSingleLineDisplayCandidate(
+            lines = lines,
+            lineIndex = lineIndex
+        )
         when {
-            line.content.isBlank() -> lineIndex += 1
+            isReviewBlankLine(line = line.content) -> lineIndex += 1
 
             isReviewIndentedCodeLine(line = line.content) -> lineIndex += 1
 
@@ -171,10 +183,12 @@ private fun extractReviewMathCandidates(
                 )
             }
 
-            isReviewDisplayDelimiterLine(line = line.content) -> {
+            displayFenceRunLength != null &&
+                isReviewTopLevelBlockStart(lines = lines, lineIndex = lineIndex) -> {
                 val closingLineIndex: Int? = findReviewDisplayClosingLine(
                     lines = lines,
-                    openingLineIndex = lineIndex
+                    openingLineIndex = lineIndex,
+                    openingRunLength = displayFenceRunLength
                 )
                 if (closingLineIndex == null) {
                     // V1 avoids tail Markdown reconstruction; the unmatched tail stays byte-for-byte literal.
@@ -187,6 +201,11 @@ private fun extractReviewMathCandidates(
                     )?.let(candidates::add)
                     lineIndex = closingLineIndex + 1
                 }
+            }
+
+            singleLineDisplayCandidate != null -> {
+                candidates.add(element = singleLineDisplayCandidate)
+                lineIndex += 1
             }
 
             isReviewContainerLine(line = line.content) || isReviewRawHtmlLine(line = line.content) -> {
@@ -209,8 +228,7 @@ private fun extractReviewMathCandidates(
                         reviewTableDelimiterRegex.matches(nextLine.content)
                     )
                 if (isSetextOrTable.not()) {
-                    val paragraphExtraction: ReviewInlineMathExtraction? = extractReviewInlineParagraph(
-                        markdown = markdown,
+                    val paragraphExtraction: ReviewMathExtraction? = extractReviewInlineParagraph(
                         lines = lines.subList(
                             fromIndex = lineIndex,
                             toIndex = paragraphEndIndex
@@ -286,7 +304,7 @@ private fun reviewLineIndexAfterLiteralBlock(
     startLineIndex: Int
 ): Int {
     var lineIndex: Int = startLineIndex + 1
-    while (lineIndex < lines.size && lines[lineIndex].content.isNotBlank()) {
+    while (lineIndex < lines.size && isReviewBlankLine(line = lines[lineIndex].content).not()) {
         lineIndex += 1
     }
     return lineIndex
@@ -294,12 +312,15 @@ private fun reviewLineIndexAfterLiteralBlock(
 
 private fun findReviewDisplayClosingLine(
     lines: List<ReviewMathLine>,
-    openingLineIndex: Int
+    openingLineIndex: Int,
+    openingRunLength: Int
 ): Int? {
     var lineIndex: Int = openingLineIndex + 1
     while (lineIndex < lines.size) {
-        if (isReviewDisplayDelimiterLine(line = lines[lineIndex].content)) {
-            return lineIndex
+        val closingRunLength: Int? = reviewDisplayFenceRunLength(line = lines[lineIndex].content)
+        if (closingRunLength != null) {
+            // Only the first later delimiter-only line can close, and it has to hold the same run length.
+            return if (closingRunLength == openingRunLength) lineIndex else null
         }
         lineIndex += 1
     }
@@ -332,6 +353,87 @@ private fun makeReviewDisplayCandidate(
     )
 }
 
+private fun makeReviewSingleLineDisplayCandidate(
+    lines: List<ReviewMathLine>,
+    lineIndex: Int
+): ReviewMathCandidate? {
+    if (isReviewTopLevelBlockStart(lines = lines, lineIndex = lineIndex).not()) {
+        return null
+    }
+    if (isReviewTopLevelBlockEnd(lines = lines, lineIndex = lineIndex).not()) {
+        return null
+    }
+    val line: ReviewMathLine = lines[lineIndex]
+    val bodyRange: IntRange = reviewSingleLineDisplayBodyRange(line = line.content) ?: return null
+    val source: String = line.content.substring(
+        startIndex = bodyRange.first,
+        endIndex = bodyRange.last + 1
+    )
+    if (source.isBlank()) {
+        return null
+    }
+    return ReviewMathCandidate(
+        startOffset = line.startOffset,
+        endOffset = line.contentEndOffset,
+        source = source,
+        delimitedSource = line.content,
+        kind = ReviewMathCandidateKind.DISPLAY
+    )
+}
+
+/**
+ * Body of `$$X$$` written on one line, where the closing run is the first later run on that line,
+ * holds as many `$` as the opening run, and is followed only by spaces or tabs.
+ */
+private fun reviewSingleLineDisplayBodyRange(line: String): IntRange? {
+    val runs: List<ReviewMathDollarRun> = reviewLineDollars(line = line).runs
+    val openingRun: ReviewMathDollarRun = runs.getOrNull(index = 0) ?: return null
+    val closingRun: ReviewMathDollarRun = runs.getOrNull(index = 1) ?: return null
+    if (openingRun.startIndex != 0 || openingRun.length < 2) {
+        return null
+    }
+    if (closingRun.length != openingRun.length) {
+        return null
+    }
+    val trailing: String = line.substring(startIndex = closingRun.startIndex + closingRun.length)
+    if (trailing.all { character -> isReviewMathSpace(character = character) }.not()) {
+        return null
+    }
+    return openingRun.length..(closingRun.startIndex - 1)
+}
+
+/**
+ * Length of the `$` run on a line that holds nothing but that run.
+ *
+ * V1 requires an unindented run: it approximates the contract's "direct top-level block" test
+ * without reconstructing container blocks, so an indented `$$` inside a list item stays literal.
+ */
+private fun reviewDisplayFenceRunLength(line: String): Int? {
+    val run: ReviewMathDollarRun = reviewLineDollars(line = line).runs.singleOrNull() ?: return null
+    if (run.startIndex != 0 || run.length < 2) {
+        return null
+    }
+    val trailing: String = line.substring(startIndex = run.length)
+    if (trailing.all { character -> isReviewMathSpace(character = character) }.not()) {
+        return null
+    }
+    return run.length
+}
+
+private fun isReviewTopLevelBlockStart(
+    lines: List<ReviewMathLine>,
+    lineIndex: Int
+): Boolean {
+    return lineIndex == 0 || isReviewBlankLine(line = lines[lineIndex - 1].content)
+}
+
+private fun isReviewTopLevelBlockEnd(
+    lines: List<ReviewMathLine>,
+    lineIndex: Int
+): Boolean {
+    return lineIndex == lines.size - 1 || isReviewBlankLine(line = lines[lineIndex + 1].content)
+}
+
 private fun findReviewParagraphEndIndex(
     lines: List<ReviewMathLine>,
     startLineIndex: Int
@@ -344,121 +446,172 @@ private fun findReviewParagraphEndIndex(
 }
 
 private fun extractReviewInlineParagraph(
-    markdown: String,
     lines: List<ReviewMathLine>
-): ReviewInlineMathExtraction? {
+): ReviewMathExtraction? {
     if (lines.dropLast(n = 1).any { line -> hasReviewMarkdownHardBreak(line = line.content) }) {
         return null
     }
     val candidates: MutableList<ReviewMathCandidate> = mutableListOf()
     val escapedDollarOffsets: MutableList<Int> = mutableListOf()
-    var hasUnmatchedOpener: Boolean = false
     lines.forEach { line ->
-        val lineExtraction: ReviewInlineMathExtraction = extractReviewInlineLine(
-            markdown = markdown,
+        val lineExtraction: ReviewMathExtraction = extractReviewInlineLine(
             line = line
         ) ?: return null
         candidates.addAll(lineExtraction.candidates)
         escapedDollarOffsets.addAll(lineExtraction.escapedDollarOffsets)
-        hasUnmatchedOpener = hasUnmatchedOpener || lineExtraction.hasUnmatchedOpener
     }
-    return ReviewInlineMathExtraction(
-        candidates = if (hasUnmatchedOpener) emptyList() else candidates,
-        escapedDollarOffsets = escapedDollarOffsets,
-        hasUnmatchedOpener = hasUnmatchedOpener
+    return ReviewMathExtraction(
+        candidates = candidates,
+        escapedDollarOffsets = escapedDollarOffsets
     )
 }
 
-private fun extractReviewInlineLine(
-    markdown: String,
-    line: ReviewMathLine
-): ReviewInlineMathExtraction? {
-    val leadingWhitespace: String = line.content.takeWhile { character -> character.isWhitespace() }
-    if (leadingWhitespace.any { character -> character != ' ' } || leadingWhitespace.length > 3) {
+private fun extractReviewInlineLine(line: ReviewMathLine): ReviewMathExtraction? {
+    val leadingSpaces: String = line.content.takeWhile { character ->
+        isReviewMathSpace(character = character)
+    }
+    if (leadingSpaces.contains(char = '\t') || leadingSpaces.length > 3) {
         return null
     }
-    val candidates: MutableList<ReviewMathCandidate> = mutableListOf()
-    val escapedDollarOffsets: MutableList<Int> = mutableListOf()
-    val prose: StringBuilder = StringBuilder()
-    var openingDollarOffset: Int? = null
-    var literalDoubleDollarSecondOffset: Int? = null
+    val dollars: ReviewLineDollars = reviewLineDollars(line = line.content)
+    val spans: List<IntRange> = reviewAcceptedInlineMathSpans(
+        line = line.content,
+        runs = dollars.runs
+    )
+    val prose: String = reviewInlineMathProse(line = line.content, spans = spans)
+    if (containsReviewProtectedProse(source = prose)) {
+        return null
+    }
+    return ReviewMathExtraction(
+        candidates = spans.map { span ->
+            ReviewMathCandidate(
+                startOffset = line.startOffset + span.first,
+                endOffset = line.startOffset + span.last + 1,
+                source = line.content.substring(
+                    startIndex = span.first + 1,
+                    endIndex = span.last
+                ),
+                delimitedSource = line.content.substring(
+                    startIndex = span.first,
+                    endIndex = span.last + 1
+                ),
+                kind = ReviewMathCandidateKind.INLINE
+            )
+        },
+        escapedDollarOffsets = dollars.escapingBackslashIndices.map { index ->
+            line.startOffset + index
+        }
+    )
+}
+
+/**
+ * Ranges from an accepted opening `$` to its closing `$`, both inclusive.
+ *
+ * Follows the pandoc `tex_math_dollars` guards: the opener needs a non-space character to its
+ * right, the closer needs a non-space character to its left and no digit to its right, and a `$`
+ * that fails as a closer is re-tested from scratch as the next opener.
+ */
+private fun reviewAcceptedInlineMathSpans(
+    line: String,
+    runs: List<ReviewMathDollarRun>
+): List<IntRange> {
+    val spans: MutableList<IntRange> = mutableListOf()
+    var openingIndex: Int = -1
+    runs.forEach { run ->
+        val index: Int = run.startIndex
+        openingIndex = when {
+            // A run of two or more `$` is a display fence sequence and never an inline delimiter.
+            run.length > 1 -> -1
+
+            openingIndex < 0 -> if (hasReviewInlineOpeningGuard(line = line, index = index)) {
+                index
+            } else {
+                -1
+            }
+
+            hasReviewInlineClosingGuard(line = line, index = index) -> {
+                spans.add(element = openingIndex..index)
+                -1
+            }
+
+            hasReviewInlineOpeningGuard(line = line, index = index) -> index
+
+            else -> -1
+        }
+    }
+    return spans
+}
+
+private fun hasReviewInlineOpeningGuard(line: String, index: Int): Boolean {
+    val rightCharacter: Char = line.getOrNull(index = index + 1) ?: return false
+    return isReviewMathSpace(character = rightCharacter).not()
+}
+
+private fun hasReviewInlineClosingGuard(line: String, index: Int): Boolean {
+    val leftCharacter: Char = line.getOrNull(index = index - 1) ?: return false
+    if (isReviewMathSpace(character = leftCharacter)) {
+        return false
+    }
+    val rightCharacter: Char = line.getOrNull(index = index + 1) ?: return true
+    return rightCharacter !in '0'..'9'
+}
+
+private fun reviewInlineMathProse(line: String, spans: List<IntRange>): String {
+    if (spans.isEmpty()) {
+        return line
+    }
+    return buildString(capacity = line.length) {
+        var currentIndex: Int = 0
+        spans.forEach { span ->
+            append(line.substring(startIndex = currentIndex, endIndex = span.first))
+            currentIndex = span.last + 1
+        }
+        append(line.substring(startIndex = currentIndex))
+    }
+}
+
+private fun reviewLineDollars(line: String): ReviewLineDollars {
+    val runs: MutableList<ReviewMathDollarRun> = mutableListOf()
+    val escapingBackslashIndices: MutableList<Int> = mutableListOf()
+    var index: Int = 0
     var precedingBackslashCount: Int = 0
-
-    line.content.forEachIndexed { index, character ->
-        if (character == '\\') {
-            precedingBackslashCount += 1
-            if (openingDollarOffset == null) {
-                prose.append(character)
+    while (index < line.length) {
+        val character: Char = line[index]
+        when {
+            character == '\\' -> {
+                precedingBackslashCount += 1
+                index += 1
             }
-            return@forEachIndexed
-        }
 
-        val isEscaped: Boolean = precedingBackslashCount % 2 == 1
-        precedingBackslashCount = 0
-        if (character != '$') {
-            if (openingDollarOffset == null) {
-                prose.append(character)
+            character != '$' -> {
+                precedingBackslashCount = 0
+                index += 1
             }
-            return@forEachIndexed
-        }
 
-        if (literalDoubleDollarSecondOffset == index) {
-            literalDoubleDollarSecondOffset = null
-            return@forEachIndexed
-        }
-
-        if (isEscaped) {
-            escapedDollarOffsets.add(line.startOffset + index - 1)
-            if (openingDollarOffset == null) {
-                prose.append(character)
+            precedingBackslashCount % 2 == 1 -> {
+                precedingBackslashCount = 0
+                escapingBackslashIndices.add(element = index - 1)
+                index += 1
             }
-            return@forEachIndexed
-        }
 
-        if (line.content.getOrNull(index = index + 1) == '$') {
-            if (openingDollarOffset != null) {
-                return null
-            }
-            prose.append("$$")
-            literalDoubleDollarSecondOffset = index + 1
-            return@forEachIndexed
-        }
-
-        val openingOffset: Int? = openingDollarOffset
-        if (openingOffset == null) {
-            openingDollarOffset = index
-        } else {
-            val source: String = line.content.substring(
-                startIndex = openingOffset + 1,
-                endIndex = index
-            )
-            if (source.isBlank()) {
-                return null
-            }
-            candidates.add(
-                ReviewMathCandidate(
-                    startOffset = line.startOffset + openingOffset,
-                    endOffset = line.startOffset + index + 1,
-                    source = source,
-                    delimitedSource = markdown.substring(
-                        startIndex = line.startOffset + openingOffset,
-                        endIndex = line.startOffset + index + 1
-                    ),
-                    kind = ReviewMathCandidateKind.INLINE
+            else -> {
+                var runEndIndex: Int = index
+                while (runEndIndex < line.length && line[runEndIndex] == '$') {
+                    runEndIndex += 1
+                }
+                runs.add(
+                    ReviewMathDollarRun(
+                        startIndex = index,
+                        length = runEndIndex - index
+                    )
                 )
-            )
-            openingDollarOffset = null
+                index = runEndIndex
+            }
         }
     }
-
-    if (containsReviewProtectedProse(source = prose.toString())) {
-        return null
-    }
-    val hasUnmatchedOpener: Boolean = openingDollarOffset != null
-    return ReviewInlineMathExtraction(
-        candidates = if (hasUnmatchedOpener) emptyList() else candidates,
-        escapedDollarOffsets = escapedDollarOffsets,
-        hasUnmatchedOpener = hasUnmatchedOpener
+    return ReviewLineDollars(
+        runs = runs,
+        escapingBackslashIndices = escapingBackslashIndices
     )
 }
 
@@ -489,10 +642,9 @@ private fun hasReviewMarkdownHardBreak(line: String): Boolean {
 }
 
 private fun isReviewParagraphBoundary(line: String): Boolean {
-    return line.isBlank() ||
+    return isReviewBlankLine(line = line) ||
         reviewFenceMarker(line = line) != null ||
         isReviewIndentedCodeLine(line = line) ||
-        isReviewDisplayDelimiterLine(line = line) ||
         isReviewContainerLine(line = line) ||
         isReviewRawHtmlLine(line = line) ||
         isReviewSingleLineBoundary(line = line)
@@ -528,8 +680,17 @@ private fun isReviewIndentedCodeLine(line: String): Boolean {
     return false
 }
 
-private fun isReviewDisplayDelimiterLine(line: String): Boolean {
-    return line.trimEnd(chars = charArrayOf(' ', '\t')) == "$$"
+/**
+ * The contract defines a space as exactly U+0020, U+0009, and the line break. A general whitespace
+ * predicate also accepts U+00A0, which the delimiter guards and the blank-line test must reject.
+ */
+private fun isReviewMathSpace(character: Char): Boolean {
+    return character == ' ' || character == '\t'
+}
+
+/** CommonMark blank line: a line holding only spaces and tabs, not only a zero-length line. */
+private fun isReviewBlankLine(line: String): Boolean {
+    return line.all { character -> isReviewMathSpace(character = character) }
 }
 
 private fun makeReviewMathBlocks(
@@ -543,14 +704,12 @@ private fun makeReviewMathBlocks(
                 markdown = markdown,
                 startOffset = 0,
                 endOffset = markdown.length,
-                escapedDollarOffsets = escapedDollarOffsets,
-                continuesInlineParagraph = false
+                escapedDollarOffsets = escapedDollarOffsets
             )
         )
     }
 
     var currentOffset: Int = 0
-    var continuesInlineParagraph: Boolean = false
     return buildList {
         candidates.forEach { candidate ->
             if (currentOffset < candidate.startOffset) {
@@ -559,8 +718,7 @@ private fun makeReviewMathBlocks(
                         markdown = markdown,
                         startOffset = currentOffset,
                         endOffset = candidate.startOffset,
-                        escapedDollarOffsets = escapedDollarOffsets,
-                        continuesInlineParagraph = continuesInlineParagraph
+                        escapedDollarOffsets = escapedDollarOffsets
                     )
                 )
             }
@@ -572,7 +730,6 @@ private fun makeReviewMathBlocks(
                 )
             )
             currentOffset = candidate.endOffset
-            continuesInlineParagraph = candidate.kind == ReviewMathCandidateKind.INLINE
         }
         if (currentOffset < markdown.length) {
             add(
@@ -580,8 +737,7 @@ private fun makeReviewMathBlocks(
                     markdown = markdown,
                     startOffset = currentOffset,
                     endOffset = markdown.length,
-                    escapedDollarOffsets = escapedDollarOffsets,
-                    continuesInlineParagraph = continuesInlineParagraph
+                    escapedDollarOffsets = escapedDollarOffsets
                 )
             )
         }
@@ -592,8 +748,7 @@ private fun makeReviewMarkdownBlock(
     markdown: String,
     startOffset: Int,
     endOffset: Int,
-    escapedDollarOffsets: List<Int>,
-    continuesInlineParagraph: Boolean
+    escapedDollarOffsets: List<Int>
 ): ReviewMathBlock.Markdown {
     val rawMarkdown: String = markdown.substring(startIndex = startOffset, endIndex = endOffset)
     val removedOffsets: Set<Int> = escapedDollarOffsets.filter { offset ->
@@ -607,33 +762,7 @@ private fun makeReviewMarkdownBlock(
         }
     }
     return ReviewMathBlock.Markdown(
-        markdown = if (continuesInlineParagraph) {
-            normalizeReviewInlineMathParagraphContinuation(markdown = rawMarkdown)
-        } else {
-            rawMarkdown
-        },
+        markdown = rawMarkdown,
         normalizedMarkdown = normalizedMarkdown
     )
-}
-
-private fun normalizeReviewInlineMathParagraphContinuation(markdown: String): String {
-    if (markdown.isEmpty() || markdown.first() == '\r' || markdown.first() == '\n') {
-        return markdown
-    }
-    // A mid-paragraph fragment must not acquire document-level block syntax after splitting.
-    val leadingWhitespaceLength: Int = markdown.takeWhile { character ->
-        character == ' ' || character == '\t'
-    }.length
-    val content: String = markdown.drop(n = leadingWhitespaceLength)
-    val normalizedPrefix: String = if (leadingWhitespaceLength == 0) "" else " "
-    val escapedContent: String = when {
-        Regex(pattern = """^#{1,6}(?:[ \t]+|$)""").containsMatchIn(content) -> "\\$content"
-        Regex(pattern = """^[-+*](?:[ \t]+|$)""").containsMatchIn(content) -> "\\$content"
-        Regex(pattern = """^(?:-[ \t]*){3,}(?:\r?\n|$)""").containsMatchIn(content) -> "\\$content"
-        else -> Regex(pattern = """^(\d{1,9})([.)])(?=[ \t]+|\r\n|\r|\n|$)""").replaceFirst(
-            input = content,
-            replacement = "$1\\\\$2"
-        )
-    }
-    return normalizedPrefix + escapedContent
 }
