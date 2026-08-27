@@ -107,6 +107,13 @@ interface DirectImageIngestionFunctionProps {
 }
 
 export const publicRestApiDefaultIntegrationTimeoutSeconds = 29;
+// Product analytics ingest is the one route whose traffic scales with client instrumentation rather
+// than with product use, so it is throttled tighter than the stage-wide limit. The real protection
+// for the database is the analytics writer's own capped pool; this keeps a broken client release
+// from spending the stage's shared budget before that cap is reached.
+const productAnalyticsIngestMethodPath = "/analytics/events/POST";
+const productAnalyticsIngestThrottlingRateLimit = 20;
+const productAnalyticsIngestThrottlingBurstLimit = 40;
 export const directImageIngestionMaximumOnDemandInitSeconds = 10;
 export const directImageIngestionLambdaTimeoutSeconds = 15;
 const allowAllRobotsBody = "User-agent: *\nDisallow:\n";
@@ -996,6 +1003,17 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       stageName: "v1",
       throttlingRateLimit: 50,
       throttlingBurstLimit: 100,
+      methodOptions: {
+        // A per-method entry overrides the stage-wide `*/*` settings for this method instead of
+        // merging with them, so metrics are restated here. Without it the method falls back to the
+        // service default of no detailed metrics, and the analytics alarms in
+        // infra/aws/lib/monitoring.ts read exactly the per-method dimensions this enables.
+        [productAnalyticsIngestMethodPath]: {
+          metricsEnabled: true,
+          throttlingRateLimit: productAnalyticsIngestThrottlingRateLimit,
+          throttlingBurstLimit: productAnalyticsIngestThrottlingBurstLimit,
+        },
+      },
       metricsEnabled: true,
       dataTraceEnabled: false,
       tracingEnabled: false,
@@ -1067,6 +1085,25 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
   legacyAuth.addResource("{proxy+}").addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
+
+  // The root {proxy+} below already forwards this path, so this resource exists to name the method
+  // the stage throttles by path and to keep this file in sync with the backend routes. The greedy
+  // ancestor still wins for everything these entries do not name: a deeper unmatched segment under
+  // a concrete leaf resource reaches the backend's own 404 rather than a gateway 403, which the
+  // deployed /workspaces/{workspaceId}/media-assets/images subtree, shaped exactly like this one,
+  // answers today. The subtree fallbacks below are restated the way the workspace and admin subtrees
+  // restate theirs, so this subtree keeps forwarding on its own if the root proxy ever narrows.
+  //
+  // POST /analytics/events/ is one such deeper path: the trailing slash misses the concrete resource
+  // and reaches the backend through {proxy+}, outside this method's throttle and outside the
+  // ProductAnalyticsIngest* alarm dimensions. The route refuses that form with a 404 in
+  // apps/backend/src/routes/productAnalytics.ts, which is the only layer that sees the raw path.
+  const analytics = restApi.root.addResource("analytics");
+  analytics.addMethod("ANY", integration);
+  analytics.addResource("{proxy+}").addMethod("ANY", integration);
+  const analyticsEvents = analytics.addResource("events");
+  analyticsEvents.addMethod("ANY", integration);
+  analyticsEvents.addMethod("POST", integration);
 
   addDirectImageIngestionApiRoutes(
     restApi,

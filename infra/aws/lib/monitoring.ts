@@ -81,6 +81,26 @@ const multipartCompletionReconciliationFailureMetricName: string =
   "FailedJobs";
 export const multipartCompletionReconciliationFailureMetricValue: string =
   "1";
+// The analytics ingest method is watched through the metrics API Gateway publishes for it, so
+// nothing here depends on the shape of a log line. The resource path and the method must stay equal
+// to the resource declared in infra/aws/lib/gateways/api-gateway.ts, whose stage method options keep
+// metrics enabled for this method so the per-method dimensions are published at all.
+const productAnalyticsIngestResourcePath: string = "/analytics/events";
+const productAnalyticsIngestMethod: string = "POST";
+const productAnalyticsAlarmPeriodMinutes = 5;
+const productAnalyticsIngest5xxThreshold = 5;
+// A saturated analytics pool answers 429 rather than 5xx, so this threshold is not a share of the
+// route's traffic but the point at which batches are being refused systematically rather than one
+// at a time. It is the only signal this route publishes for its own database capacity, and the
+// per-method throttle is 20 rps, so anything tuned to the throttle instead would need a full outage
+// at peak traffic before it fired.
+const productAnalyticsIngestClientErrorThreshold = 25;
+const productAnalyticsIngestClientErrorEvaluationPeriods = 2;
+// Half of the 20 rps per-method throttle declared in infra/aws/lib/gateways/api-gateway.ts, summed
+// over the alarm period. A batch carries up to 50 events, so this rate is already six figures of
+// appended rows per period and is far above what product use explains at this stage.
+const productAnalyticsIngestRequestVolumeThreshold = 3000;
+const productAnalyticsIngestRequestVolumeEvaluationPeriods = 2;
 
 function createAuthApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
   return logs.FilterPattern.any(
@@ -157,6 +177,27 @@ function createCertificateExpiryAlarm(scope: Construct, props: CertificateExpiry
       `${certificateExpiryAlarmThresholdDays} days, so ACM auto-renewal has not completed`,
     treatMissingData: cloudwatch.TreatMissingData.MISSING,
   }), props.alertTopic);
+}
+
+// API Gateway publishes Count, 4XXError and 5XXError per method once the stage keeps metrics
+// enabled for it, so the analytics ingest alarms read metrics the service emits on its own instead
+// of anything derived from a log line.
+function createProductAnalyticsIngestMetric(
+  restApi: apigw.RestApi,
+  metricName: string,
+): cloudwatch.Metric {
+  return new cloudwatch.Metric({
+    namespace: "AWS/ApiGateway",
+    metricName,
+    dimensionsMap: {
+      ApiName: restApi.restApiName,
+      Stage: restApi.deploymentStage.stageName,
+      Resource: productAnalyticsIngestResourcePath,
+      Method: productAnalyticsIngestMethod,
+    },
+    period: cdk.Duration.minutes(productAnalyticsAlarmPeriodMinutes),
+    statistic: "Sum",
+  });
 }
 
 export function monitoring(scope: Construct, props: MonitoringProps): MonitoringResult {
@@ -368,6 +409,61 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription:
       "Direct image ingestion returned a handled HTTP 5xx response",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  // What reaches this metric is the database being unreachable, which the writer answers with 503,
+  // and a defect. A saturated or slow-connecting database is refused with 429 by the analytics
+  // writer instead and is watched by the client-error alarm below, so a low count here already means
+  // something no retry from the client's queue is going to fix.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ProductAnalyticsIngest5xxAlarm", {
+    metric: createProductAnalyticsIngestMetric(props.restApi, "5XXError"),
+    threshold: productAnalyticsIngest5xxThreshold,
+    evaluationPeriods: 1,
+    alarmDescription:
+      `Product analytics ingest answered ${productAnalyticsIngest5xxThreshold}+ requests with a 5xx in ` +
+      `${productAnalyticsAlarmPeriodMinutes} minutes, so the analytics database is unreachable for this route ` +
+      "or the route itself is failing",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  // A REST API publishes no throttle-only metric, so a throttled request is counted inside the
+  // method's 4XXError along with the auth rejections. Everything that protects this route answers
+  // 429 here: the per-method stage throttle, the analytics writer's pool cap, and a pool acquisition
+  // that times out because the database is saturated or connecting slowly. That last one is why the
+  // threshold is low: this is where a database-capacity incident on this route now surfaces, and the
+  // 5xx alarm above no longer sees it. A contract violation answers 200 with per-event results and
+  // never reaches this metric, so a sustained 4xx rate on this method means batches are being
+  // refused rather than adjudicated. Two consecutive periods keep a client release rolling out
+  // behind an expired token from paging on one spike, and a capacity incident is sustained.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ProductAnalyticsIngestClientErrorAlarm", {
+    metric: createProductAnalyticsIngestMetric(props.restApi, "4XXError"),
+    threshold: productAnalyticsIngestClientErrorThreshold,
+    evaluationPeriods: productAnalyticsIngestClientErrorEvaluationPeriods,
+    datapointsToAlarm: productAnalyticsIngestClientErrorEvaluationPeriods,
+    alarmDescription:
+      `Product analytics ingest refused ${productAnalyticsIngestClientErrorThreshold}+ requests with a 4xx per ` +
+      `${productAnalyticsAlarmPeriodMinutes} minutes for two consecutive periods, so the method throttle, the ` +
+      "analytics writer pool, a database too saturated to hand out a connection, or client authentication is " +
+      "rejecting whole batches",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  // An accepted batch answers 200, so a broken client stuck in a redelivery loop or an abusive
+  // caller touches neither 4XXError nor 5XXError and shows up only as append-only row growth and a
+  // bill. This route ships no per-identity rate limiting by design, which makes this static
+  // high-water mark the compensating control for that decision. Two consecutive periods keep a
+  // queue flush after an outage, which is exactly the traffic the offline-first clients are built
+  // to produce, from paging on a single period.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ProductAnalyticsIngestRequestVolumeAlarm", {
+    metric: createProductAnalyticsIngestMetric(props.restApi, "Count"),
+    threshold: productAnalyticsIngestRequestVolumeThreshold,
+    evaluationPeriods: productAnalyticsIngestRequestVolumeEvaluationPeriods,
+    datapointsToAlarm: productAnalyticsIngestRequestVolumeEvaluationPeriods,
+    alarmDescription:
+      `Product analytics ingest took ${productAnalyticsIngestRequestVolumeThreshold}+ requests per ` +
+      `${productAnalyticsAlarmPeriodMinutes} minutes for two consecutive periods, so batches are arriving far ` +
+      "faster than product use explains and analytics rows are growing unwatched",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
