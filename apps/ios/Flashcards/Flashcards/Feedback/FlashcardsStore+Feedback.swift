@@ -300,7 +300,7 @@ extension FlashcardsStore {
         if isRequestCancellationError(error: error) {
             return true
         }
-        if isRetryableNetworkTransportFailure(error: error) {
+        if isSilentlyIgnorableNetworkTransportFailure(error: error) {
             return true
         }
         if let statusCode = feedbackFailureDiagnostics(error: error).statusCode,
