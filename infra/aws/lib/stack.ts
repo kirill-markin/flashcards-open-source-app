@@ -351,7 +351,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const migrationGate = databaseMigrationGate(
       this,
       migrationFn,
-      "0114_product_analytics_storage.sql",
+      "0115_product_analytics_resolved_view.sql",
     );
     const api = apiGateway(this, {
       vpc: net.vpc,

@@ -3,7 +3,10 @@ import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import { HttpError } from "../../../shared/errors";
-import type { CatalogPackageInstallConfirmInput } from "../../types";
+import type {
+  CatalogPackageInstallActor,
+  CatalogPackageInstallConfirmInput,
+} from "../../types";
 import { installCatalogPackageVersion } from "./install";
 
 type InstallEffectCounts = Readonly<{
@@ -11,6 +14,8 @@ type InstallEffectCounts = Readonly<{
   media_asset_count: string;
   hot_change_count: string;
   idempotency_count: string;
+  analytics_event_count: string;
+  analytics_package_slug: string | null;
 }>;
 
 function requireTestDatabaseAdminUrl(): string {
@@ -32,11 +37,18 @@ test("catalog install atomically replays one request and rejects key or operatio
     application_name: "catalog-install-idempotency-integration-owner",
   });
   const suffix = randomUUID().replaceAll("-", "");
-  const userId = `catalog-install-idempotency-${suffix}`;
+  // A real UUID rather than a readable label: the install now writes a server-derived analytics row
+  // whose user_id and subject_user_id are uuid columns, and a non-UUID id would fail that cast and
+  // be swallowed by the non-fatal emission wrapper, leaving this test covering only the failure
+  // path of the code it is supposed to exercise.
+  const userId = randomUUID();
   const workspaceId = randomUUID();
   const replicaId = randomUUID();
   const authorId = randomUUID();
   const packageId = randomUUID();
+  // The package slug and the version's own copy of it are deliberately different here: only
+  // catalog.packages.slug is what catalog_deck_installed.package_slug has to report.
+  const packageSlug = `idempotency-package-${suffix}`;
   const packageVersionId = randomUUID();
   const packageCardId = randomUUID();
   const packageMediaAssetId = randomUUID();
@@ -54,6 +66,10 @@ test("catalog install atomically replays one request and rejects key or operatio
     addImportTag: true,
     importTag: " imported ",
     removeTags: ["temporary"],
+  };
+  const installActor: CatalogPackageInstallActor = {
+    subjectUserId: userId,
+    guestSessionId: null,
   };
 
   try {
@@ -99,7 +115,7 @@ test("catalog install atomically replays one request and rejects key or operatio
           "(package_id, author_id, slug, title, summary, description, language_tags, license, status, published_at)",
           "VALUES ($1, $2, $3, 'Idempotency package', 'Summary', 'Description', ARRAY['en'], 'CC0-1.0', 'published', $4)",
         ].join(" "),
-        [packageId, authorId, `idempotency-package-${suffix}`, installedAt],
+        [packageId, authorId, packageSlug, installedAt],
       );
       await setupClient.query(
         [
@@ -109,7 +125,7 @@ test("catalog install atomically replays one request and rejects key or operatio
           "VALUES ($1, $2, 1, 'draft', $3, 'Idempotency package', 'Summary', 'Description',",
           "ARRAY['en'], 'CC0-1.0', 1, $4)",
         ].join(" "),
-        [packageVersionId, packageId, `idempotency-package-${suffix}-v1`, "catalog@example.test"],
+        [packageVersionId, packageId, `${packageSlug}-v1`, "catalog@example.test"],
       );
       await setupClient.query(
         [
@@ -157,12 +173,14 @@ test("catalog install atomically replays one request and rejects key or operatio
       workspaceId,
       packageVersionId,
       installInput,
+      installActor,
     );
     const replayResult = await installCatalogPackageVersion(
       userId,
       workspaceId,
       packageVersionId,
       installInput,
+      installActor,
     );
     assert.deepEqual(replayResult, firstResult);
     assert.equal(firstResult.installedCards.length, 1);
@@ -176,7 +194,16 @@ test("catalog install atomically replays one request and rejects key or operatio
           "(SELECT COUNT(*) FROM content.cards WHERE workspace_id = $1 AND metadata->'source'->>'importId' = $2) AS card_count,",
           "(SELECT COUNT(*) FROM content.media_assets WHERE workspace_id = $1 AND last_operation_id LIKE $3) AS media_asset_count,",
           "(SELECT COUNT(*) FROM sync.hot_changes WHERE workspace_id = $1 AND operation_id LIKE $3) AS hot_change_count,",
-          "(SELECT COUNT(*) FROM sync.catalog_package_install_idempotency WHERE workspace_id = $1) AS idempotency_count",
+          "(SELECT COUNT(*) FROM sync.catalog_package_install_idempotency WHERE workspace_id = $1) AS idempotency_count,",
+          // One row across both installs, because the install emission derives its event_id from the
+          // install id and the replay therefore conflicts on it instead of counting a second install.
+          "(SELECT COUNT(*) FROM analytics.product_events",
+          "WHERE workspace_id = $1 AND event_name = 'catalog_deck_installed') AS analytics_event_count,",
+          // The package's slug, never the version's `-v1` copy of it: the client's
+          // catalog_deck_install_started carries the package slug, so only that value joins the pair
+          // into a funnel, and the two stop agreeing as soon as a published deck is renamed.
+          "(SELECT event_properties->>'package_slug' FROM analytics.product_events",
+          "WHERE workspace_id = $1 AND event_name = 'catalog_deck_installed') AS analytics_package_slug",
         ].join(" "),
         [workspaceId, installId, `${operationIdPrefix}:%`],
       );
@@ -192,6 +219,8 @@ test("catalog install atomically replays one request and rejects key or operatio
       media_asset_count: "1",
       hot_change_count: "2",
       idempotency_count: "1",
+      analytics_event_count: "1",
+      analytics_package_slug: packageSlug,
     });
 
     await assert.rejects(
@@ -200,6 +229,7 @@ test("catalog install atomically replays one request and rejects key or operatio
         workspaceId,
         packageVersionId,
         { ...installInput, importTag: "different" },
+        installActor,
       ),
       (error: unknown): boolean => {
         assert.ok(error instanceof HttpError);
@@ -222,6 +252,7 @@ test("catalog install atomically replays one request and rejects key or operatio
           installedAt: "2026-08-02T10:00:01.000Z",
           clientUpdatedAt: "2026-08-02T10:00:01.000Z",
         },
+        installActor,
       ),
       (error: unknown): boolean => {
         assert.ok(error instanceof HttpError);
@@ -236,6 +267,8 @@ test("catalog install atomically replays one request and rejects key or operatio
       media_asset_count: "1",
       hot_change_count: "2",
       idempotency_count: "1",
+      analytics_event_count: "1",
+      analytics_package_slug: packageSlug,
     });
   } finally {
     await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
@@ -243,6 +276,9 @@ test("catalog install atomically replays one request and rejects key or operatio
     await ownerPool.query("DELETE FROM catalog.authors WHERE author_id = $1", [authorId]);
     await ownerPool.query("DELETE FROM content.media_blobs WHERE media_blob_id = $1", [mediaBlobId]);
     await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = $1", [userId]);
+    // The install emits its analytics row on the writer's own pool, outside the install
+    // transaction, so it is removed here like every other row this test created.
+    await ownerPool.query("DELETE FROM analytics.product_events WHERE workspace_id = $1", [workspaceId]);
     await ownerPool.end();
   }
 });

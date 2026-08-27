@@ -54,6 +54,7 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       ? state.guestUpgradeHistory.find((row) => row.source_guest_session_id === guestSessionId)
       : undefined;
     const rows = guestUpgradeHistory === undefined ? [] : [{
+      source_guest_user_id: guestUpgradeHistory.source_guest_user_id,
       source_guest_session_id: guestUpgradeHistory.source_guest_session_id,
       target_subject_user_id: guestUpgradeHistory.target_subject_user_id,
       target_user_id: guestUpgradeHistory.target_user_id,
@@ -72,6 +73,7 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       ? state.guestUpgradeHistory.find((row) => row.source_guest_session_secret_hash === guestSessionSecretHash)
       : undefined;
     const rows = guestUpgradeHistory === undefined ? [] : [{
+      source_guest_user_id: guestUpgradeHistory.source_guest_user_id,
       source_guest_session_id: guestUpgradeHistory.source_guest_session_id,
       target_subject_user_id: guestUpgradeHistory.target_subject_user_id,
       target_user_id: guestUpgradeHistory.target_user_id,

@@ -567,3 +567,11 @@ export type CatalogPackageInstallResult = Readonly<{
   installedMediaAssets: ReadonlyArray<CatalogInstalledMediaAsset>;
   summary: CatalogPackageInstallResultSummary;
 }>;
+
+// Who the install ran as, taken from the request context and never from the request body. An
+// install is one half of the guest-conversion funnel, so a guest install has to stay
+// distinguishable from an account install; userId alone cannot tell them apart.
+export type CatalogPackageInstallActor = Readonly<{
+  subjectUserId: string;
+  guestSessionId: string | null;
+}>;

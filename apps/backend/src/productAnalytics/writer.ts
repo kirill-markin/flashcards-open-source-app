@@ -7,7 +7,7 @@ import {
   parseProductAnalyticsExperimentAssignments,
   productAnalyticsSchemaVersion,
 } from "./catalog";
-import type { ProductAnalyticsEventRow } from "./types";
+import type { ProductAnalyticsEventRow, ProductAnalyticsIdentityLink } from "./types";
 
 // The analytics writer owns its own small pool so an analytics spike can never starve product
 // requests of database connections. Events are written on the request that carried them: a Lambda
@@ -76,6 +76,25 @@ const insertProductAnalyticsEventsSql = [
   ") ON CONFLICT (event_id) DO NOTHING",
 ].join("");
 
+// A link is a fact about one anonymous_id and one account, so a repeated observation of the same
+// pair is not a new fact. The first link keeps its linked_at, which is what bounds how far back the
+// resolved read view lets a link claim history, and link_id keeps naming the first observation.
+//
+// source is the one column a repeat may rewrite, and only towards the server. A server_derived link
+// is something the backend watched happen during a guest upgrade, while an authenticated_client link
+// is a claim a request carried, so the pair's trust must not be decided by whichever of the two
+// happened to arrive first. Without this, a client that used a guest user id as its anonymous_id
+// could land the authenticated_client row first, and analytics.product_events_resolved reads the
+// server namespace through source = 'server_derived', so that guest's whole tail would silently stop
+// resolving to the account. 0115 grants the matching column-scoped UPDATE privilege and policy.
+const insertProductAnalyticsIdentityLinkSql = [
+  "INSERT INTO analytics.identity_links (link_id, anonymous_id, user_id, source)",
+  " VALUES ($1::uuid, $2::uuid, $3::uuid, $4::text)",
+  " ON CONFLICT (anonymous_id, user_id) DO UPDATE SET source = EXCLUDED.source",
+  " WHERE identity_links.source <> 'server_derived'",
+  " AND EXCLUDED.source = 'server_derived'",
+].join("");
+
 let analyticsPool: pg.Pool | undefined;
 
 async function getAnalyticsPool(): Promise<pg.Pool> {
@@ -141,6 +160,31 @@ function buildInsertParameters(
   );
 }
 
+// Every analytics write runs with the same guards: the pool cap fails a saturated writer instead of
+// queueing it behind product traffic, and the statement timeout keeps one slow write from holding a
+// connection while the request that carried it waits.
+async function runAnalyticsWrite(
+  write: (client: pg.PoolClient) => Promise<number>,
+): Promise<number> {
+  const pool = await getAnalyticsPool();
+  assertAnalyticsPoolCapacity(pool);
+
+  const client = await connectAnalyticsClient(pool);
+  let releaseError: Error | null = null;
+  try {
+    await client.query("BEGIN");
+    await client.query("SET LOCAL statement_timeout = '2s'");
+    const writtenRowCount = await write(client);
+    await client.query("COMMIT");
+    return writtenRowCount;
+  } catch (error) {
+    releaseError = await rollbackAnalyticsTransaction(client);
+    throw toDatabaseBoundaryError(error);
+  } finally {
+    client.release(releaseError === null ? undefined : releaseError);
+  }
+}
+
 // Every producer reaches Postgres through this function, so the catalog contract is enforced here
 // instead of being an obligation each new producer has to remember. Client batches are already
 // checked in validation.ts, but server-derived producers build rows directly and
@@ -151,6 +195,9 @@ function buildInsertParameters(
 // design keeps both columns in full because of that promise, so a row that breaks it must never be
 // stored. A violation is a defect in the calling code rather than anything a retry can fix, so it
 // fails loudly with no fallback.
+// The table's own column-shape rules stay with the table: product_events_client_columns_shape and
+// product_events_backfill_id_shape hold for every writer, including a backfill that never calls this
+// function, so repeating them here would duplicate a rule that already cannot be skipped.
 function assertProductAnalyticsRowMatchesCatalog(row: ProductAnalyticsEventRow): void {
   // schema_version records the catalog version that accepted the row, so a row stamped with any
   // other version claims an acceptance this catalog never gave it.
@@ -212,21 +259,23 @@ export async function insertProductAnalyticsEvents(
     assertProductAnalyticsRowMatchesCatalog(row);
   }
 
-  const pool = await getAnalyticsPool();
-  assertAnalyticsPoolCapacity(pool);
-
-  const client = await connectAnalyticsClient(pool);
-  let releaseError: Error | null = null;
-  try {
-    await client.query("BEGIN");
-    await client.query("SET LOCAL statement_timeout = '2s'");
+  return runAnalyticsWrite(async (client) => {
     const result = await client.query(insertProductAnalyticsEventsSql, buildInsertParameters(rows));
-    await client.query("COMMIT");
     return result.rowCount ?? 0;
-  } catch (error) {
-    releaseError = await rollbackAnalyticsTransaction(client);
-    throw toDatabaseBoundaryError(error);
-  } finally {
-    client.release(releaseError === null ? undefined : releaseError);
-  }
+  });
+}
+
+// Returns the number of rows the statement changed: 1 when the link was stored, 1 when an existing
+// client-claimed link for the same pair was raised to the server's own observation, and 0 when the
+// pair was already recorded at the same or higher trust.
+export async function insertProductAnalyticsIdentityLink(
+  link: ProductAnalyticsIdentityLink,
+): Promise<number> {
+  return runAnalyticsWrite(async (client) => {
+    const result = await client.query(
+      insertProductAnalyticsIdentityLinkSql,
+      [link.linkId, link.anonymousId, link.userId, link.source],
+    );
+    return result.rowCount ?? 0;
+  });
 }
