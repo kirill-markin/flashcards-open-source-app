@@ -246,6 +246,37 @@ private func reviewMarkdownBorderColor(surfaceStyle: ReviewCardSurfaceStyle) -> 
     }
 }
 
+/// Makes a `UIColor` safe to hand to RaTeX as a formula colour.
+///
+/// Do not simplify this clamp away. RaTeX's FFI validates red, green, blue, and alpha against
+/// `[0, 1]` strictly and rejects the whole formula otherwise, while a dynamic SwiftUI `Color`
+/// resolved through `UIColor` can come back a colour-space-conversion rounding step outside that
+/// range: an observed `red == 1.0000001` made every inline formula fail with `invalid color.r`.
+func reviewMathRenderableColor(_ color: UIColor) -> UIColor {
+    // RaTeX rejects a non-finite component too, and `min`/`max` propagate `NaN`.
+    func clamped(_ value: CGFloat) -> CGFloat {
+        value.isFinite ? min(max(value, 0), 1) : 0
+    }
+
+    var red: CGFloat = 0
+    var green: CGFloat = 0
+    var blue: CGFloat = 0
+    var alpha: CGFloat = 0
+    // A pattern colour, or one in a colour space `getRed` cannot convert, leaves the components
+    // undefined, so the display formula colour — a literal safely inside `[0, 1]` — stands in
+    // rather than unvalidated garbage reaching RaTeX.
+    guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+        return UIColor(reviewMathFormulaColor)
+    }
+
+    return UIColor(
+        red: clamped(red),
+        green: clamped(green),
+        blue: clamped(blue),
+        alpha: clamped(alpha)
+    )
+}
+
 struct ReviewMarkdownText: View {
     let markdownContent: MarkdownContent
     let surfaceStyle: ReviewCardSurfaceStyle
@@ -281,10 +312,12 @@ struct ReviewMarkdownText: View {
     }
 
     private var inlineFormulaColor: UIColor {
-        UIColor(reviewMarkdownTextColor(surfaceStyle: self.surfaceStyle)).resolvedColor(
-            with: UITraitCollection { traits in
-                traits.userInterfaceStyle = self.colorScheme == .dark ? .dark : .light
-            }
+        reviewMathRenderableColor(
+            UIColor(reviewMarkdownTextColor(surfaceStyle: self.surfaceStyle)).resolvedColor(
+                with: UITraitCollection { traits in
+                    traits.userInterfaceStyle = self.colorScheme == .dark ? .dark : .light
+                }
+            )
         )
     }
 
