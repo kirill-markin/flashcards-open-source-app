@@ -4,6 +4,7 @@ import java.util.Locale
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.androidx.baselineprofile)
     alias(libs.plugins.sentry.android)
 }
 
@@ -50,9 +51,22 @@ fun toAndroidLocaleFilter(localeTag: String): String {
     }
 }
 
+// Build types the `androidx.baselineprofile` plugin derives from `release` for local profile
+// generation. They are never released.
+val baselineProfileNonMinifiedBuildTypePrefix = "nonMinified"
+val baselineProfileGeneratedBuildTypes: Set<String> = setOf("nonMinifiedRelease", "benchmarkRelease")
+
+// Baseline-profile generation runs against those local-only build types, so the plugin's task
+// names contain "Release" (`:app:assembleNonMinifiedRelease`, `:app:assembleBenchmarkRelease`,
+// `:baselineprofile:connectedNonMinifiedReleaseAndroidTest`) without ever producing a shipped
+// artifact. They need none of the release secrets, so keep them out of the release guard below.
+val baselineProfileTaskNameMarkers: List<String> =
+    listOf("BaselineProfile") + baselineProfileGeneratedBuildTypes
+
 val requestedTaskNames: List<String> = gradle.startParameter.taskNames
 val isReleaseTaskRequested: Boolean = requestedTaskNames.any { taskName ->
-    taskName.contains("Release", ignoreCase = true)
+    taskName.contains("Release", ignoreCase = true) &&
+        baselineProfileTaskNameMarkers.none { marker -> taskName.contains(marker, ignoreCase = true) }
 }
 val isMarketingScreenshotTaskRequested: Boolean = requestedTaskNames.any { taskName ->
     taskName.contains("MarketingScreenshot", ignoreCase = true)
@@ -248,11 +262,43 @@ android {
     }
 }
 
+baselineProfile {
+    // The profiles are committed artifacts, regenerated on demand from `:baselineprofile`.
+    // No build, and no CI job, ever needs a device.
+    automaticGenerationDuringBuild = false
+    saveInSrc = true
+    mergeIntoMain = true
+    // Consume the generated startup profile for release dex layout.
+    dexLayoutOptimization = true
+}
+
+// The `androidx.baselineprofile` plugin derives extra build types from `release` to run the
+// generator against an unminified app. They are local-only and never shipped, so keep them off
+// release signing material and out of Sentry processing.
+androidComponents {
+    finalizeDsl { extension ->
+        extension.buildTypes.configureEach {
+            if (name in baselineProfileGeneratedBuildTypes) {
+                signingConfig = extension.signingConfigs.getByName("debug")
+            }
+
+            // The plugin turns off the legacy `minifyEnabled` flag, but `initWith(release)` also
+            // copies the `optimization` block, so R8 would still obfuscate the profiled app and
+            // the collected profile would name classes that no release build ever produces.
+            if (name.startsWith(baselineProfileNonMinifiedBuildTypePrefix)) {
+                optimization {
+                    enable = false
+                }
+            }
+        }
+    }
+}
+
 sentry {
     org = providers.environmentVariable("SENTRY_ORG").orNull
     projectName = providers.environmentVariable("SENTRY_ANDROID_PROJECT").orNull
     authToken = providers.environmentVariable("SENTRY_AUTH_TOKEN").orNull
-    ignoredBuildTypes = setOf("debug", "marketingScreenshot")
+    ignoredBuildTypes = setOf("debug", "marketingScreenshot") + baselineProfileGeneratedBuildTypes
     includeProguardMapping = true
     autoUploadProguardMapping = true
     includeSourceContext = true
@@ -268,6 +314,8 @@ sentry {
 }
 
 dependencies {
+    baselineProfile(project(":baselineprofile"))
+
     implementation(project(":core:observability"))
     implementation(project(":core:ui"))
     implementation(project(":data:local"))
