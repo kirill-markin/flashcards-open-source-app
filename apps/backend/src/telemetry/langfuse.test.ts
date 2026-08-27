@@ -321,10 +321,10 @@ test("Langfuse flush logs and swallows force-flush failures", async () => {
   } as BasicTracerProvider;
 
   console.warn = (message?: unknown): void => {
-    if (typeof message !== "string") {
-      throw new Error("Expected Langfuse flush warning log to be a JSON string.");
+    if (typeof message !== "object" || message === null) {
+      throw new Error("Expected Langfuse flush warning log to be a structured record object.");
     }
-    warningRecords.push(JSON.parse(message) as Readonly<Record<string, unknown>>);
+    warningRecords.push(message as Readonly<Record<string, unknown>>);
   };
 
   try {

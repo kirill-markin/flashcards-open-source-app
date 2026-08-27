@@ -109,11 +109,11 @@ test("retryTransientDatabaseOperationWithDependencies retries transient DB error
   );
 
   console.log = (message?: unknown): void => {
-    if (typeof message !== "string") {
-      throw new Error("Expected retry breadcrumb log to be a JSON string.");
+    if (typeof message !== "object" || message === null) {
+      throw new Error("Expected retry breadcrumb log to be a structured record object.");
     }
 
-    breadcrumbRecords.push(JSON.parse(message) as Readonly<Record<string, unknown>>);
+    breadcrumbRecords.push(message as Readonly<Record<string, unknown>>);
   };
 
   try {

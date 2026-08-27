@@ -9,6 +9,7 @@ import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
 import * as path from "path";
 import { backendNodejsProjectPaths, infraAwsNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 
 export interface GlobalMetricsProps {
@@ -106,6 +107,7 @@ export function globalMetrics(scope: Construct, props: GlobalMetricsProps): Glob
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),
     memorySize: 512,
+    ...backendStructuredLoggingProps,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],

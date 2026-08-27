@@ -11,6 +11,7 @@ import {
   backendNodejsProjectPaths,
   resolveFromRepoRoot,
 } from "../nodejs-project-paths";
+import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 
 export interface MultipartCompletionReconciliationProps {
@@ -83,9 +84,7 @@ export function multipartCompletionReconciliation(
       runtime: lambda.Runtime.NODEJS_24_X,
       timeout: cdk.Duration.minutes(2),
       memorySize: 512,
-      loggingFormat: lambda.LoggingFormat.JSON,
-      applicationLogLevelV2: lambda.ApplicationLogLevel.INFO,
-      systemLogLevelV2: lambda.SystemLogLevel.INFO,
+      ...backendStructuredLoggingProps,
       vpc: props.vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [props.lambdaSg],

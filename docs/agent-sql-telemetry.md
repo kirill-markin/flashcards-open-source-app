@@ -15,6 +15,39 @@ that identifies the failure, no Sentry event, and no Langfuse trace. The
 transport's own `statusCode` 200, because a rejected tool call is a successful
 JSON-RPC response.
 
+## Record envelope
+
+Every backend Lambda is created with `backendStructuredLoggingProps`
+(`infra/aws/lib/backend-lambda-logging.ts`), which puts it on the Lambda JSON
+log format, and `writeCloudWatchRecord`
+(`apps/backend/src/observability/cloudWatch.ts`) hands the record to `console`
+as an object rather than as pre-serialized JSON. The runtime therefore nests the
+record under `message` and the whole log event is one JSON document:
+
+```json
+{
+  "timestamp": "2026-08-27T09:15:00.000Z",
+  "level": "INFO",
+  "requestId": "<Lambda invocation id>",
+  "message": { "domain": "backend", "action": "agent_sql", "...": "..." }
+}
+```
+
+Two consequences run through everything below.
+
+- Every field named in this document lives one level down. Address it as
+  `message.<field>` in Logs Insights and as `$.message.<field>` in a CloudWatch
+  metric filter, which is what makes a metric filter over these records possible
+  at all.
+- The envelope's own `requestId` is the Lambda invocation id and is not the
+  request id these records mean. The record's own is `message.requestId`, it is
+  the id returned as the `X-Request-Id` response header, and it is the one that
+  joins a record to its Sentry captures.
+
+`level` follows the severity the record was emitted at: `INFO` for a breadcrumb,
+`WARN` for a warning, `ERROR` for an exception. The shape is the same on every
+backend surface, which is what makes querying the log groups together valid.
+
 ## Where the records are
 
 - `action = "agent_sql"`, `domain = "backend"`
@@ -28,6 +61,17 @@ JSON-RPC response.
 The function names are the `BackendFunctionName`, `McpFunctionName`, and
 `ChatWorkerFunctionName` CDK stack outputs. Query the three log groups together
 to compare surfaces.
+
+Retention on the backend API group is owned by CDK, not by the console.
+`infra/aws/lib/monitoring.ts` reads `backendFn.logGroup` to attach the product
+analytics metric filters, which makes the stack declare that group's retention,
+and what it declares is never-expire. It is not re-asserted on every deploy:
+the retention is applied by a CloudFormation custom resource, and CloudFormation
+re-invokes one only when that resource's own properties change. A finite
+retention set on the group by hand therefore keeps working, silently diverging
+from the stack, until something next changes that resource, at which point it is
+reverted with no signal that it happened. A cost-driven retention change has to
+be made in the stack. The MCP and chat worker groups are not managed this way.
 
 ## Record fields
 
@@ -51,9 +95,9 @@ to compare surfaces.
 | `errorClass` | `error.name` on failure, else `null`; coarse by design, so group failures by `errorCode` and `dialectReason` |
 
 `userId`, `workspaceId`, and the synthetic route `agent-sql/<surface>` come from
-the shared observation scope on every record, and so does `requestId`: the MCP
-surface publishes one per transport request, so `agent_sql` records emitted
-there carry it and the REST and chat surfaces record null.
+the shared observation scope on every record, and so does the record's own
+`requestId`: the MCP surface publishes one per transport request, so `agent_sql`
+records emitted there carry it and the REST and chat surfaces record null.
 
 Raw SQL text is never logged. `sqlFingerprint` plus `errorCode` and
 `dialectReason` are what make repeated failures groupable, the same choice the
@@ -120,11 +164,11 @@ record: a response body that could not be measured is recorded as a `null`
 
 `requestId`, `userId`, `workspaceId`, the route `mcp`, and `method` (the
 request's own HTTP method, so non-POST traffic is groupable) come from the
-shared observation scope. Every `/mcp` response returns that id as the
-`X-Request-Id` response header, error responses included, because the entrypoint
-sets it before the handler runs. The same id is carried by every `agent_sql`
-record and every Sentry capture the request produced, which is what joins them
-to this record.
+shared observation scope, and are read as `message.requestId` and so on. Every
+`/mcp` response returns that id as the `X-Request-Id` response header, error
+responses included, because the entrypoint sets it before the handler runs. The
+same id is carried by every `agent_sql` record and every Sentry capture the
+request produced, which is what joins them to this record.
 
 Header values are client-controlled, so they are trimmed, capped at 120
 characters, and recorded as `null` when absent or empty. They are never
@@ -136,20 +180,21 @@ never parsed for telemetry, and tool arguments and results carry flashcard
 content; `responseChars` is a length measured off the response and never any of
 what it contains.
 
-A `method = "GET"` row is a client trying to open the standalone SSE stream that
-MCP revisions 2025-03-26 through 2025-11-25 allow and revision 2026-07-28
-removed. This surface runs the transport statelessly and answers 405, which
-those clients accept, so a run of such rows is a client-compatibility signal
-rather than an incident.
+A `message.method = "GET"` row is a client trying to open the standalone SSE
+stream that MCP revisions 2025-03-26 through 2025-11-25 allow and revision
+2026-07-28 removed. This surface runs the transport statelessly and answers 405,
+which those clients accept, so a run of such rows is a client-compatibility
+signal rather than an incident.
 
 ## Request mix on the MCP surface
 
 ```
-filter domain = "backend" and action = "mcp_request"
+filter message.domain = "backend" and message.action = "mcp_request"
 | stats count(*) as requests,
-        avg(responseChars) as avgResponseChars,
-        avg(durationMs) as avgDurationMs
-  by method, jsonRpcMethod, toolName, protocolVersion, caller
+        avg(message.responseChars) as avgResponseChars,
+        avg(message.durationMs) as avgDurationMs
+  by message.method, message.jsonRpcMethod, message.toolName,
+     message.protocolVersion, message.caller
 | sort requests desc
 | limit 20
 ```
@@ -165,21 +210,24 @@ until callers start sending `Mcp-Method`.
 ## Failure share by surface
 
 ```
-filter domain = "backend" and action = "agent_sql"
+filter message.domain = "backend" and message.action = "agent_sql"
 | stats count(*) as executions,
-        sum(succeeded = 0) as failures,
-        sum(succeeded = 0) * 100 / count(*) as failureSharePct
-  by surface
+        sum(message.succeeded = 0) as failures,
+        sum(message.succeeded = 0) * 100 / count(*) as failureSharePct
+  by message.surface
 | sort failureSharePct desc
 ```
 
-Add `, caller` to the `by` clause to split the MCP surface per client.
+Add `, message.caller` to the `by` clause to split the MCP surface per
+client.
 
 ## Top failure causes
 
 ```
-filter domain = "backend" and action = "agent_sql" and succeeded = 0
-| stats count(*) as failures by surface, errorCode, dialectReason, caller
+filter message.domain = "backend" and message.action = "agent_sql"
+       and message.succeeded = 0
+| stats count(*) as failures
+  by message.surface, message.errorCode, message.dialectReason, message.caller
 | sort failures desc
 | limit 20
 ```
@@ -187,13 +235,14 @@ filter domain = "backend" and action = "agent_sql" and succeeded = 0
 ## Degraded writes and payload size
 
 ```
-filter domain = "backend" and action = "agent_sql" and succeeded = 1
+filter message.domain = "backend" and message.action = "agent_sql"
+       and message.succeeded = 1
 | stats count(*) as executions,
-        sum(rowsOmitted = 1) as degradedWrites,
-        pct(resultChars, 50) as p50ResultChars,
-        pct(resultChars, 90) as p90ResultChars,
-        max(resultChars) as maxResultChars
-  by surface
+        sum(message.rowsOmitted = 1) as degradedWrites,
+        pct(message.resultChars, 50) as p50ResultChars,
+        pct(message.resultChars, 90) as p90ResultChars,
+        max(message.resultChars) as maxResultChars
+  by message.surface
 ```
 
 `degradedWrites` counts successful writes that answered without their rows. The
@@ -202,5 +251,6 @@ A write that returned no rows has nothing to drop and is emitted untouched, so
 `resultChars` above the 48,000-character budget with `rowsOmitted = 0` is
 expected rather than a broken guard.
 
-If a log group renders `succeeded` and `rowsOmitted` as `true`/`false` instead
-of `1`/`0`, compare them against `"true"` and `"false"` in the queries above.
+If a log group renders `message.succeeded` and `message.rowsOmitted` as
+`true`/`false` instead of `1`/`0`, compare them against `"true"` and `"false"`
+in the queries above.

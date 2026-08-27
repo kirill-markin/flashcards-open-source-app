@@ -87,11 +87,11 @@ test("unsafeTransaction classifies transaction failures and discards clients whe
   (pg as unknown as { Pool: typeof pg.Pool }).Pool = FakePool as unknown as typeof pg.Pool;
   initializeBackendSentryWithDeps("backend-api", {}, { init: () => {} });
   console.warn = (message?: unknown): void => {
-    if (typeof message !== "string") {
-      throw new Error("Expected rollback warning log to be a JSON string.");
+    if (typeof message !== "object" || message === null) {
+      throw new Error("Expected rollback warning log to be a structured record object.");
     }
 
-    warningRecords.push(JSON.parse(message) as Readonly<Record<string, unknown>>);
+    warningRecords.push(message as Readonly<Record<string, unknown>>);
   };
 
   try {
