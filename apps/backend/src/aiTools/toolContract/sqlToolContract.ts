@@ -19,10 +19,10 @@ export const FRONT_BACK_CONTRACT =
  * Card content stays untouched; agents author decoded values and verify writes.
  */
 export const CARD_AUTHORING_CONTRACT =
-  "Card fields hold decoded Markdown, real LFs, supported LaTeX. One LF stays within its Markdown paragraph; two make a blank line/new paragraph; literal `\\n` never lays out content. At JSON boundary, `\\n` becomes LF, `\\\\frac` becomes stored `\\frac`, while double-escaped `\\\\n` stores literal `\\n`. Use `$...$` and top-level delimiter-only `$$` lines as standalone blocks. Keep math outside other Markdown. After multiline/LaTeX writes, compare read-back with intended decoded text; repair only accidental transport double-escaping, preserving literal escapes intentionally requested/taught by user/card.";
+  "Card fields hold decoded Markdown, real LFs, supported LaTeX. One LF stays within its Markdown paragraph; two make a blank line/new paragraph; literal `\\n` never lays out content. At JSON boundary, `\\n` becomes LF, `\\\\frac` becomes stored `\\frac`, while double-escaped `\\\\n` stores literal `\\n`. Use `$...$` inline for a short expression inside a sentence, with no space just inside either `$` and no digit right after the closing `$`; write a standalone display formula as its own block, with `$$` alone on the opening and closing lines and a blank line before and after it or the start or end of the field, because a `$$` block that does not stand alone stays literal. Escape a currency `$` as `\\$` (`\\\\$` at the JSON boundary). Put math only in a plain paragraph that holds no link, image, bold, italic, strikethrough, or code anywhere in it, and keep it out of headings, lists, tables, blockquotes, code blocks, and raw HTML, and off any side using reference-style link or image definitions; anywhere else it stays literal. After multiline/LaTeX writes, compare read-back with intended decoded text; repair only accidental transport double-escaping, preserving literal escapes intentionally requested/taught by user/card.";
 
 export const CARD_AUTHORING_TOOL_CALL_EXAMPLE =
-  "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer\\n\\n$$\\n\\\\frac{a}{b}\\n$$', ('math'))\"}";
+  "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer: the ratio $a/b$ is written as\\n\\n$$\\n\\\\frac{a}{b}\\n$$', ('math'))\"}";
 
 export const SQL_TOOL_ARGUMENT_VALIDATOR = z.object({
   sql: z.string().trim().min(1),

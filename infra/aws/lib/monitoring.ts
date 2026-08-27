@@ -16,11 +16,20 @@ import {
   globalMetricsSnapshotFreshnessMetricNamespace,
   globalMetricsSnapshotFreshnessMetricStackDimensionName,
 } from "./scheduled-jobs/global-metrics";
+import {
+  createPublicEndpointHeartbeatTargets,
+  publicEndpointHeartbeatIntervalMinutes,
+  publicEndpointHeartbeatMetricHostDimensionName,
+  publicEndpointHeartbeatMetricName,
+  publicEndpointHeartbeatMetricNamespace,
+} from "./scheduled-jobs/public-endpoint-heartbeat";
 import { communityLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
 
 const restApiNoTrafficEvaluationPeriods = 4;
+const publicEndpointHeartbeatEvaluationPeriods = 3;
+const publicEndpointHeartbeatDatapointsToAlarm = 2;
 const certificateExpiryAlarmThresholdDays = 45;
 const communityLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const streakLeaderboardSnapshotStaleEvaluationPeriods = 2;
@@ -103,6 +112,16 @@ logs.IFilterPattern {
   );
 }
 
+// CloudWatch notifies only on state transitions, so an alarm without an OK action sends alert
+// mail that no recovery mail ever follows and the operator cannot tell a healed alarm from an
+// ongoing outage without opening the console. Every alarm in this stack routes both transitions
+// to the same alert topic.
+function notifyAlertTopic(alarm: cloudwatch.Alarm, alertTopic: sns.Topic): void {
+  const alertAction = new cloudwatchActions.SnsAction(alertTopic);
+  alarm.addAlarmAction(alertAction);
+  alarm.addOkAction(alertAction);
+}
+
 interface CertificateExpiryAlarmProps {
   alertTopic: sns.Topic;
   alarmId: string;
@@ -121,7 +140,7 @@ interface CertificateExpiryAlarmProps {
 // jitter and on planned certificate replacements while treating them as OK would clear a real
 // breach.
 function createCertificateExpiryAlarm(scope: Construct, props: CertificateExpiryAlarmProps): void {
-  new cloudwatch.Alarm(scope, props.alarmId, {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, props.alarmId, {
     metric: new cloudwatch.Metric({
       namespace: "AWS/CertificateManager",
       metricName: "DaysToExpiry",
@@ -137,7 +156,7 @@ function createCertificateExpiryAlarm(scope: Construct, props: CertificateExpiry
       `TLS certificate for ${props.host} expires in fewer than ` +
       `${certificateExpiryAlarmThresholdDays} days, so ACM auto-renewal has not completed`,
     treatMissingData: cloudwatch.TreatMissingData.MISSING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(props.alertTopic));
+  }), props.alertTopic);
 }
 
 export function monitoring(scope: Construct, props: MonitoringProps): MonitoringResult {
@@ -146,7 +165,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
   });
   alertTopic.addSubscription(new snsSubscriptions.EmailSubscription(props.alertEmail));
 
-  new cloudwatch.Alarm(scope, "DbConnectionsAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "DbConnectionsAlarm", {
     metric: props.db.metricDatabaseConnections({
       period: cdk.Duration.minutes(5),
       statistic: "Average",
@@ -155,9 +174,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 2,
     alarmDescription: "RDS connections above 80% capacity",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "DbStorageAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "DbStorageAlarm", {
     metric: props.db.metricFreeStorageSpace({
       period: cdk.Duration.minutes(15),
       statistic: "Average",
@@ -167,9 +186,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "RDS free storage below 2 GB",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "ApiGateway5xxAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ApiGateway5xxAlarm", {
     metric: new cloudwatch.Metric({
       namespace: "AWS/ApiGateway",
       metricName: "5XXError",
@@ -181,13 +200,13 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "API Gateway returned 5+ server errors in 5 minutes",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
   // Every other API alarm needs traffic to observe a failure, so a dead edge (expired TLS
   // certificate, broken DNS, detached custom domain) stays silent because API Gateway then
   // publishes no datapoints at all. Missing data is treated as breaching here on purpose,
   // and a full hour of zero requests keeps quiet organic traffic hours below the threshold.
-  new cloudwatch.Alarm(scope, "ApiGatewayNoTrafficAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ApiGatewayNoTrafficAlarm", {
     metric: new cloudwatch.Metric({
       namespace: "AWS/ApiGateway",
       metricName: "Count",
@@ -203,9 +222,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       "API Gateway received no requests for one hour, so the public API edge is unreachable " +
       "(expired TLS certificate, broken DNS, or detached custom domain)",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "AuthApiGateway5xxAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "AuthApiGateway5xxAlarm", {
     metric: new cloudwatch.Metric({
       namespace: "AWS/ApiGateway",
       metricName: "5XXError",
@@ -217,9 +236,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Auth API Gateway returned 3+ server errors in 5 minutes",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "McpApiGateway5xxAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "McpApiGateway5xxAlarm", {
     metric: props.mcpHttpApi.metricServerError({
       period: cdk.Duration.minutes(5),
       statistic: "Sum",
@@ -228,7 +247,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "MCP API Gateway returned 3+ server errors in 5 minutes",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
   if (props.apiCertificateArn) {
     createCertificateExpiryAlarm(scope, {
@@ -257,6 +276,34 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     });
   }
 
+  // The heartbeat publishes one datapoint per host every five minutes from outside AWS, so this
+  // is the only alarm that can see a host that stopped serving entirely: a broken Cloudflare
+  // CNAME, a detached API Gateway custom domain or a TLS failure produces no requests at all,
+  // which every request-driven alarm reads as silence. Two breaching datapoints out of three
+  // five-minute periods absorb a single transient blip or one skipped run while a genuine outage
+  // pages after two consecutive failures, inside fifteen minutes. Missing data breaches on
+  // purpose, unlike the certificate alarms above: a heartbeat that is not running leaves the
+  // hosts unwatched, and that silence is exactly what this alarm exists to report.
+  for (const target of createPublicEndpointHeartbeatTargets(props.baseDomain)) {
+    notifyAlertTopic(new cloudwatch.Alarm(scope, `${target.id}PublicEndpointHeartbeatAlarm`, {
+      metric: new cloudwatch.Metric({
+        namespace: publicEndpointHeartbeatMetricNamespace,
+        metricName: publicEndpointHeartbeatMetricName,
+        dimensionsMap: { [publicEndpointHeartbeatMetricHostDimensionName]: target.host },
+        period: cdk.Duration.minutes(publicEndpointHeartbeatIntervalMinutes),
+        statistic: "Minimum",
+      }),
+      threshold: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+      evaluationPeriods: publicEndpointHeartbeatEvaluationPeriods,
+      datapointsToAlarm: publicEndpointHeartbeatDatapointsToAlarm,
+      alarmDescription:
+        `Public host ${target.host} did not answer ${target.probeUrl} with HTTP 200 for two ` +
+        "external heartbeat probes, or the heartbeat itself stopped reporting",
+      treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+    }), alertTopic);
+  }
+
   const authApiAccessLog5xxMetricFilter = new logs.MetricFilter(scope, "AuthApiAccessLog5xxMetricFilter", {
     logGroup: props.authApiAccessLogGroup,
     filterPattern: createAuthApiAccessLog5xxFilterPattern(),
@@ -266,7 +313,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     defaultValue: 0,
   });
 
-  new cloudwatch.Alarm(scope, "AuthApiAccessLog5xxAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "AuthApiAccessLog5xxAlarm", {
     metric: authApiAccessLog5xxMetricFilter.metric({
       period: cdk.Duration.minutes(5),
       statistic: "Sum",
@@ -275,9 +322,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Auth API access logs include a 5xx response",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "BackendLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "BackendLambdaErrorAlarm", {
     metric: props.backendFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -286,9 +333,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Backend Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "DirectImageIngestionLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "DirectImageIngestionLambdaErrorAlarm", {
     metric: props.directImageIngestionFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -297,7 +344,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Direct image ingestion Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
   const directImageIngestionHandled5xxMetricFilter = new logs.MetricFilter(
     scope,
@@ -312,7 +359,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     },
   );
 
-  new cloudwatch.Alarm(scope, "DirectImageIngestionHandled5xxAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "DirectImageIngestionHandled5xxAlarm", {
     metric: directImageIngestionHandled5xxMetricFilter.metric({
       period: cdk.Duration.minutes(5),
       statistic: "Sum",
@@ -322,9 +369,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     alarmDescription:
       "Direct image ingestion returned a handled HTTP 5xx response",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "AuthLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "AuthLambdaErrorAlarm", {
     metric: props.authFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -333,9 +380,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Auth Lambda had unhandled errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "McpLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "McpLambdaErrorAlarm", {
     metric: props.mcpFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -344,9 +391,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "MCP Lambda had unhandled errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "CustomEmailSenderLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "CustomEmailSenderLambdaErrorAlarm", {
     metric: props.customEmailSenderFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -355,9 +402,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Custom email sender Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "ChatWorkerLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ChatWorkerLambdaErrorAlarm", {
     metric: props.chatWorkerFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -366,9 +413,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Chat worker Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "ChatLiveLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ChatLiveLambdaErrorAlarm", {
     metric: props.chatLiveFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -377,9 +424,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Chat live SSE Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "GlobalMetricsSnapshotLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "GlobalMetricsSnapshotLambdaErrorAlarm", {
     metric: props.globalMetricsSnapshotFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -388,10 +435,10 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Global metrics snapshot Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
   // The catalog dump has no schedule, so only failures of an actual run can alarm here.
-  new cloudwatch.Alarm(scope, "CatalogDumpLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "CatalogDumpLambdaErrorAlarm", {
     metric: props.catalogDumpFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -400,9 +447,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Public catalog dump Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "GlobalMetricsSnapshotFreshnessAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "GlobalMetricsSnapshotFreshnessAlarm", {
     metric: new cloudwatch.Metric({
       namespace: globalMetricsSnapshotFreshnessMetricNamespace,
       metricName: globalMetricsSnapshotFreshnessMetricName,
@@ -420,9 +467,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       `Global metrics snapshot S3 object is older than ${globalMetricsSnapshotFreshnessMaxAgeHours} hours ` +
       "for two consecutive hourly checks or the freshness checker is not reporting",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "CommunityLeaderboardSnapshotLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "CommunityLeaderboardSnapshotLambdaErrorAlarm", {
     metric: props.communityLeaderboardSnapshotFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -431,14 +478,14 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Community leaderboard snapshot Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
   // The leaderboard snapshot lives in Postgres, refreshed by this hourly Lambda. A run
   // that does not happen leaves the snapshot stale, so a missing hourly invocation for two
   // consecutive hours (missing data treated as breaching) raises the staleness alarm. Run
   // failures are caught by the error alarm above because failed runs still count as
   // invocations.
-  new cloudwatch.Alarm(scope, "CommunityLeaderboardSnapshotStaleAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "CommunityLeaderboardSnapshotStaleAlarm", {
     metric: props.communityLeaderboardSnapshotFn.metricInvocations({
       period: cdk.Duration.hours(communityLeaderboardSnapshotScheduleHours),
       statistic: "Sum",
@@ -451,9 +498,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       "Community leaderboard snapshot Lambda has not run for two consecutive hours, " +
       "so the stored leaderboard snapshot is going stale",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "StreakLeaderboardSnapshotLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "StreakLeaderboardSnapshotLambdaErrorAlarm", {
     metric: props.streakLeaderboardSnapshotFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -462,9 +509,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Streak leaderboard snapshot Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "StreakLeaderboardSnapshotStaleAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "StreakLeaderboardSnapshotStaleAlarm", {
     metric: props.streakLeaderboardSnapshotFn.metricInvocations({
       period: cdk.Duration.hours(streakLeaderboardSnapshotScheduleHours),
       statistic: "Sum",
@@ -477,9 +524,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       "Streak leaderboard snapshot Lambda has not run for two consecutive days, " +
       "so the stored streak leaderboard snapshot is going stale",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "ProgressActiveDaysBackfillLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ProgressActiveDaysBackfillLambdaErrorAlarm", {
     metric: props.progressActiveDaysBackfillFn.metricErrors({
       period: cdk.Duration.minutes(15),
       statistic: "Sum",
@@ -488,9 +535,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Progress active review days backfill Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "ProgressActiveDaysBackfillStaleAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ProgressActiveDaysBackfillStaleAlarm", {
     metric: props.progressActiveDaysBackfillFn.metricInvocations({
       period: cdk.Duration.hours(progressActiveDaysBackfillScheduleHours),
       statistic: "Sum",
@@ -503,17 +550,17 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       "Progress active review days backfill Lambda has not run for two consecutive hours, " +
       "so known-timezone users may keep missing active-day materialization",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "GeneratedMediaPromotionLambdaErrorAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "GeneratedMediaPromotionLambdaErrorAlarm", {
     metric: props.generatedMediaPromotionFn.metricErrors(
       { period: cdk.Duration.minutes(5), statistic: "Sum" },
     ),
     threshold: 1, evaluationPeriods: 1, alarmDescription: "Generated-media promotion Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(scope, "GeneratedMediaPromotionStaleAlarm", {
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "GeneratedMediaPromotionStaleAlarm", {
     metric: props.generatedMediaPromotionFn.metricInvocations(
       { period: cdk.Duration.minutes(5), statistic: "Sum" },
     ),
@@ -521,9 +568,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 2, datapointsToAlarm: 2,
     alarmDescription: "Generated-media promotion Lambda has not run for ten minutes",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
-  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  }), alertTopic);
 
-  new cloudwatch.Alarm(
+  notifyAlertTopic(new cloudwatch.Alarm(
     scope,
     "MultipartCompletionReconciliationLambdaErrorAlarm",
     {
@@ -537,9 +584,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
         "Multipart completion reconciliation Lambda had unhandled errors",
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     },
-  ).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  ), alertTopic);
 
-  new cloudwatch.Alarm(
+  notifyAlertTopic(new cloudwatch.Alarm(
     scope,
     "MultipartCompletionReconciliationStaleAlarm",
     {
@@ -556,7 +603,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
         "Multipart completion reconciliation Lambda has not run for ten minutes",
       treatMissingData: cloudwatch.TreatMissingData.BREACHING,
     },
-  ).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  ), alertTopic);
 
   const multipartCompletionReconciliationFailureMetricFilter =
     new logs.MetricFilter(
@@ -573,7 +620,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
         defaultValue: 0,
       },
     );
-  new cloudwatch.Alarm(
+  notifyAlertTopic(new cloudwatch.Alarm(
     scope,
     "MultipartCompletionReconciliationFailedJobsAlarm",
     {
@@ -587,7 +634,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
         "Multipart completion reconciliation terminally failed one or more jobs",
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     },
-  ).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+  ), alertTopic);
 
   return { alertTopic };
 }
