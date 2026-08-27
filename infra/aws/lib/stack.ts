@@ -23,6 +23,7 @@ import { globalMetrics } from "./scheduled-jobs/global-metrics";
 import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
+import { publicEndpointHeartbeat } from "./scheduled-jobs/public-endpoint-heartbeat";
 import {
   generatedMediaPromotion,
   type GeneratedMediaPromotionScheduleState,
@@ -244,6 +245,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
     });
+    publicEndpointHeartbeat(this, { baseDomain });
     const mediaAssetsResult = mediaAssets(this, {
       baseDomain,
     });
