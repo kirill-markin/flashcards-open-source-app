@@ -18,6 +18,7 @@ dependencyResolutionManagement {
 rootProject.name = "flashcards-open-source-app-android"
 
 include(":app")
+include(":baselineprofile")
 include(":core:ui")
 include(":core:observability")
 include(":data:local")
