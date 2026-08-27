@@ -168,11 +168,12 @@ async function anonymizeProductAnalyticsInExecutor(
   // workspace-level aggregates.
   //
   // Matching user_id alone is enough, and it keeps the predicate to one column so a single-column
-  // index can serve it. Every producer in auth/index.ts writes subject_user_id either equal to
-  // user_id (the none, api_key and guest transports) or as the Cognito subject of an account whose
-  // app user id is already in this set (the bearer and session transports), so no row can name this
-  // person in subject_user_id without also naming them in user_id. subject_user_id is still
-  // rewritten below, because the Cognito subject it carries identifies the person just as directly.
+  // index can serve it. No producer can name this person in subject_user_id without naming one of
+  // the ids above in user_id: a row carrying a request context repeats user_id or the Cognito
+  // subject of the account itself, and the server-derived guest_upgrade_completed row pairs the
+  // account in user_id with the guest id in subject_user_id, which the recursive query above already
+  // collected. subject_user_id is still rewritten below, because the Cognito subject it carries
+  // identifies the person just as directly.
   await executor.query(
     [
       "UPDATE analytics.product_events SET",

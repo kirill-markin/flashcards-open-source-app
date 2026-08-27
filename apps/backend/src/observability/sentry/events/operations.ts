@@ -376,14 +376,18 @@ export type FeedbackEmailFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
+// errorClass and errorMessage describe the database failure the analytics writer wrapped, not the
+// wrapper: its own message is a fixed public string that would name every refused write the same.
 export type ProductAnalyticsServerEventWriteFailureDetails = Readonly<{
   eventName: string;
+  sqlState: string | null;
   errorClass: string;
   errorMessage: string;
 }>;
 
 export type ProductAnalyticsIdentityLinkWriteFailureDetails = Readonly<{
   source: string;
+  sqlState: string | null;
   errorClass: string;
   errorMessage: string;
 }>;

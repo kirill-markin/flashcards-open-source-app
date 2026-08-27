@@ -77,14 +77,18 @@ export async function prepareGuestUpgrade(
  * replay on the event_id conflict.
  *
  * Both writes are best effort, so a failing analytics database never fails an upgrade that is
- * already committed, and neither is ever retried: on the merge path the guest session is revoked by
- * the time this runs, so any repeat of POST /guest-auth/upgrade/complete returns an idempotent
- * replay and never reaches this producer again. The identity link is therefore written first. A lost
- * event costs one row of a conversion metric, while a lost link leaves that guest's whole
- * pre-upgrade history resolving to the guest id instead of the account, so the link is the write
- * that should survive when only one of the two does. auth.guest_upgrade_history keeps
- * source_guest_user_id, target_user_id and source_guest_session_id, so either write can be
- * reconstructed from it afterwards; docs/analytics-db-access.md documents that route.
+ * already committed. On the merge path neither is ever retried, because the guest session is
+ * revoked by the time this runs and any repeat of POST /guest-auth/upgrade/complete returns an
+ * idempotent replay that never reaches this producer again. The identity link is therefore written
+ * first. A lost event costs one row of a conversion metric, while a lost link leaves that guest's
+ * whole pre-upgrade history resolving to the guest id instead of the account, so the link is the
+ * write that should survive when only one of the two does. That path also records
+ * auth.guest_upgrade_history, whose source_guest_user_id, target_user_id and source_guest_session_id
+ * reconstruct either write afterwards; docs/analytics-db-access.md documents that route.
+ *
+ * A bound completion records no history row and writes no link, since the guest user id is already
+ * the account id. Its repeat does reach this producer again, and the event id derived from the guest
+ * session id is the only thing that keeps the conversion counted once.
  */
 async function recordGuestUpgradeCompletedAnalytics(
   completion: GuestUpgradeCompletion,
