@@ -194,16 +194,17 @@ android {
         }
 
         release {
-            isMinifyEnabled = false
+            // R8 code shrinking, optimization, obfuscation, and resource shrinking.
+            // Default keep rules (equivalent to proguard-android-optimize.txt) are included
+            // by default via optimization.keepRules.includeDefault.
+            optimization {
+                enable = true
+            }
             signingConfig = signingConfigs.getByName("release")
             buildConfigField(
                 "double",
                 "ANDROID_SENTRY_TRACES_SAMPLE_RATE",
                 sentryTracesSampleRateLiteral(name)
-            )
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
             )
         }
     }
