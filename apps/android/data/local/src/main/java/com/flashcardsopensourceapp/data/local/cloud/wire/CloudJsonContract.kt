@@ -4,7 +4,8 @@ import com.flashcardsopensourceapp.data.local.model.cloud.parseIsoTimestamp
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal class CloudContractMismatchException(
+/** Public so consumer modules can identify this failure by type instead of by class name. */
+class CloudContractMismatchException(
     message: String,
     cause: Throwable? = null
 ) : IllegalStateException(message, cause)
