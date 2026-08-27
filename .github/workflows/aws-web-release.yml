@@ -388,7 +388,7 @@ jobs:
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
-            --require-migration 0113_drop_catalog_topic_tags.sql
+            --require-migration 0114_product_analytics_storage.sql
 
       - name: CDK deploy with reconciliation schedule enabled
         working-directory: infra/aws
