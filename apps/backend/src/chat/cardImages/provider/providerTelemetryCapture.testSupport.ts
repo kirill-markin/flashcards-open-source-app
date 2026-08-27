@@ -1,6 +1,9 @@
 import type { LangfuseObservation } from "@langfuse/tracing";
 import * as Sentry from "@sentry/aws-serverless";
 import {
+  formatCapturedConsoleMessage,
+} from "../../../observability/consoleCapture.testSupport";
+import {
   sentryModule,
 } from "../../../observability/sentry/testHelpers";
 
@@ -81,10 +84,10 @@ export async function withProviderTelemetryCapture<Result>(
 
   try {
     console.log = (message?: unknown): void => {
-      capture.cloudWatchLogs.push(typeof message === "string" ? message : String(message));
+      capture.cloudWatchLogs.push(formatCapturedConsoleMessage(message));
     };
     console.warn = (message?: unknown): void => {
-      capture.cloudWatchWarnings.push(typeof message === "string" ? message : String(message));
+      capture.cloudWatchWarnings.push(formatCapturedConsoleMessage(message));
     };
     mutableSentryModule.addBreadcrumb = (breadcrumb): void => {
       capture.sentryBreadcrumbs.push(breadcrumb);

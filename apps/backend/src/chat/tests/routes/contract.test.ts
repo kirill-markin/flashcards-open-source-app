@@ -135,9 +135,9 @@ async function withCapturedLogs(
   const records: Array<StructuredLogRecord> = [];
 
   const captureMessage = (message: unknown, consoleMethod: ConsoleMethod): void => {
-    if (typeof message === "string") {
+    if (typeof message === "object" && message !== null) {
       records.push({
-        ...(JSON.parse(message) as Record<string, unknown>),
+        ...(message as Record<string, unknown>),
         consoleMethod,
       });
     }

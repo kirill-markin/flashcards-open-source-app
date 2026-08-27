@@ -8,6 +8,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
 export interface GeneratedMediaPromotionProps {
   vpc: ec2.Vpc; lambdaSg: ec2.SecurityGroup; db: rds.DatabaseInstance;
@@ -34,6 +35,7 @@ export function generatedMediaPromotion(
       ),
       handler: "handler", runtime: lambda.Runtime.NODEJS_24_X,
       timeout: cdk.Duration.minutes(2), memorySize: 512,
+      ...backendStructuredLoggingProps,
       vpc: props.vpc, vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       securityGroups: [props.lambdaSg],
       ...backendNodejsProjectPaths,

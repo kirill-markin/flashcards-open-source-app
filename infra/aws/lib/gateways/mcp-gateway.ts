@@ -13,6 +13,7 @@ import {
   createSafeHttpApiAccessLogFormat,
 } from "./api-gateway-access-log";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 
 export interface McpGatewayProps {
   vpc: ec2.Vpc;
@@ -193,6 +194,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(30),
     memorySize: 256,
+    ...backendStructuredLoggingProps,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
