@@ -376,6 +376,30 @@ export type FeedbackEmailFailureDetails = Readonly<{
   errorMessage: string;
 }>;
 
+export type ProductAnalyticsServerEventWriteFailureDetails = Readonly<{
+  eventName: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type ProductAnalyticsIdentityLinkWriteFailureDetails = Readonly<{
+  source: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+// A deliberate skip, not a dropped write: the install committed and no catalog_deck_installed row
+// was attempted, because the package slug the event has to carry could not be read. It is reported
+// under its own action so it never looks like product_analytics_server_event_write_failed, which
+// means the opposite - a row that was attempted and rejected.
+export type CatalogDeckInstalledAnalyticsSkippedDetails = Readonly<{
+  packageId: string;
+  installId: string;
+  reason: "catalog_package_row_missing" | "catalog_package_slug_read_failed";
+  errorClass: string | null;
+  errorMessage: string | null;
+}>;
+
 export type MigrationFailureDetails = Readonly<{
   migrationSurface: "lambda";
   operation: "run_migrations";
@@ -416,6 +440,9 @@ export type OperationsWarningEvent =
   | EventByAction<"feedback_notification_email_retry", FeedbackEmailRetryDetails>
   | EventByAction<"feedback_notification_email_failed", FeedbackEmailFailureDetails>
   | EventByAction<"reporting_read_only_transaction_rollback_failed", DatabaseRollbackFailureDetails>
+  | EventByAction<"product_analytics_server_event_write_failed", ProductAnalyticsServerEventWriteFailureDetails>
+  | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
+  | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>
   | (EventByAction<
     "progress_active_days_backfill_candidate_failed",
     ProgressActiveDaysBackfillCandidateFailureDetails

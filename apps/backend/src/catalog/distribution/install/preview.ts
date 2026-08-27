@@ -182,6 +182,34 @@ export async function loadCatalogPackageInstallVersionForInstallInExecutor(
   return row;
 }
 
+/**
+ * Reads the owning package's own slug, which is the value this repository calls `package_slug`:
+ * `catalog.packages.slug` is what the public snapshot aliases under that name, what browse looks a
+ * deck up by, and the only one of the two catalog slugs with a uniqueness constraint.
+ * `catalog.package_versions.slug` is a copy taken when the version was created and frozen at
+ * publication, so it drifts from the package slug after a deck rename.
+ *
+ * Returns null when the package row is gone. `catalog.package_versions` cascades away with it while
+ * `sync.catalog_package_install_idempotency` keeps no foreign key to either, so a stored install can
+ * still be replayed after its package was deleted.
+ */
+export async function loadCatalogPackageSlugInExecutor(
+  executor: DatabaseExecutor,
+  packageId: string,
+): Promise<string | null> {
+  const result = await executor.query<Readonly<{ slug: string }>>(
+    [
+      "SELECT slug",
+      "FROM catalog.packages",
+      "WHERE package_id = $1",
+    ].join(" "),
+    [packageId],
+  );
+  const row = result.rows[0];
+
+  return row === undefined ? null : row.slug;
+}
+
 async function countCatalogPackageVersionMediaAssetsInExecutor(
   executor: DatabaseExecutor,
   packageVersionId: string,
