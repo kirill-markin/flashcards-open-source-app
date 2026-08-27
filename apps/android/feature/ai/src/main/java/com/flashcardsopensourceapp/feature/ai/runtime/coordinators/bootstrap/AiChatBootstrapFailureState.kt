@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap
 
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatPersistedState
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiChatRuntimeState
@@ -73,6 +74,5 @@ internal fun freshSessionDraftToPreserveOnBootstrapFailure(
 }
 
 private fun isConversationPreservableBootstrapFailure(error: Exception): Boolean {
-    return error is AiChatBootstrapSessionMismatchException ||
-        error::class.java.name == "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
+    return error is AiChatBootstrapSessionMismatchException || error is CloudContractMismatchException
 }
