@@ -16,11 +16,20 @@ import {
   globalMetricsSnapshotFreshnessMetricNamespace,
   globalMetricsSnapshotFreshnessMetricStackDimensionName,
 } from "./scheduled-jobs/global-metrics";
+import {
+  createPublicEndpointHeartbeatTargets,
+  publicEndpointHeartbeatIntervalMinutes,
+  publicEndpointHeartbeatMetricHostDimensionName,
+  publicEndpointHeartbeatMetricName,
+  publicEndpointHeartbeatMetricNamespace,
+} from "./scheduled-jobs/public-endpoint-heartbeat";
 import { communityLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
 
 const restApiNoTrafficEvaluationPeriods = 4;
+const publicEndpointHeartbeatEvaluationPeriods = 3;
+const publicEndpointHeartbeatDatapointsToAlarm = 2;
 const certificateExpiryAlarmThresholdDays = 45;
 const communityLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const streakLeaderboardSnapshotStaleEvaluationPeriods = 2;
@@ -255,6 +264,34 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       certificateArn: props.mcpCertificateArn,
       host: `mcp.${props.baseDomain}`,
     });
+  }
+
+  // The heartbeat publishes one datapoint per host every five minutes from outside AWS, so this
+  // is the only alarm that can see a host that stopped serving entirely: a broken Cloudflare
+  // CNAME, a detached API Gateway custom domain or a TLS failure produces no requests at all,
+  // which every request-driven alarm reads as silence. Two breaching datapoints out of three
+  // five-minute periods absorb a single transient blip or one skipped run while a genuine outage
+  // pages after two consecutive failures, inside fifteen minutes. Missing data breaches on
+  // purpose, unlike the certificate alarms above: a heartbeat that is not running leaves the
+  // hosts unwatched, and that silence is exactly what this alarm exists to report.
+  for (const target of createPublicEndpointHeartbeatTargets(props.baseDomain)) {
+    new cloudwatch.Alarm(scope, `${target.id}PublicEndpointHeartbeatAlarm`, {
+      metric: new cloudwatch.Metric({
+        namespace: publicEndpointHeartbeatMetricNamespace,
+        metricName: publicEndpointHeartbeatMetricName,
+        dimensionsMap: { [publicEndpointHeartbeatMetricHostDimensionName]: target.host },
+        period: cdk.Duration.minutes(publicEndpointHeartbeatIntervalMinutes),
+        statistic: "Minimum",
+      }),
+      threshold: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+      evaluationPeriods: publicEndpointHeartbeatEvaluationPeriods,
+      datapointsToAlarm: publicEndpointHeartbeatDatapointsToAlarm,
+      alarmDescription:
+        `Public host ${target.host} did not answer ${target.probeUrl} with HTTP 200 for two ` +
+        "external heartbeat probes, or the heartbeat itself stopped reporting",
+      treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+    }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
   }
 
   const authApiAccessLog5xxMetricFilter = new logs.MetricFilter(scope, "AuthApiAccessLog5xxMetricFilter", {
