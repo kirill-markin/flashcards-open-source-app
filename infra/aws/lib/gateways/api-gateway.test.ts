@@ -206,7 +206,11 @@ test("direct ingestion monitoring covers handled HTTP 5xx and thrown Lambda fail
   );
   assert.match(
     loadApiGatewaySource(),
-    /DirectImageIngestionHandler[\s\S]*loggingFormat: lambda\.LoggingFormat\.JSON/,
+    /DirectImageIngestionHandler[\s\S]*\.\.\.backendStructuredLoggingProps/,
+  );
+  assert.match(
+    readFileSync(resolve(process.cwd(), "lib/backend-lambda-logging.ts"), "utf8"),
+    /loggingFormat: lambda\.LoggingFormat\.JSON/,
   );
 });
 

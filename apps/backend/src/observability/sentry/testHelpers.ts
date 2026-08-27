@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/aws-serverless";
+import { formatCapturedConsoleMessage } from "../consoleCapture.testSupport";
 
 export type ConsoleMethod = "log" | "warn" | "error";
 export type MutableSentryModule = typeof Sentry & {
@@ -77,7 +78,7 @@ export function withCapturedConsole(
   const originalMethod = console[method];
   const messages: Array<string> = [];
   console[method] = (message?: unknown): void => {
-    messages.push(typeof message === "string" ? message : String(message));
+    messages.push(formatCapturedConsoleMessage(message));
   };
 
   try {

@@ -9,6 +9,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { catalogDumpPointerObjectKey } from "../catalog-dump";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
@@ -621,6 +622,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     architecture: props.architecture,
     timeout: cdk.Duration.minutes(15),
     memorySize: props.memorySize,
+    ...backendStructuredLoggingProps,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
@@ -740,7 +742,7 @@ function createDirectImageIngestionFunction(
     architecture: lambda.Architecture.ARM_64,
     timeout: cdk.Duration.seconds(directImageIngestionLambdaTimeoutSeconds),
     memorySize: 1024,
-    loggingFormat: lambda.LoggingFormat.JSON,
+    ...backendStructuredLoggingProps,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],

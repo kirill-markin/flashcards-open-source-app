@@ -164,10 +164,12 @@ export function logRequestError(
     method,
   };
 
-  console.error(JSON.stringify({
+  // Emitted as an object for the same reason `writeCloudWatchRecord` is: the record shape has to be
+  // identical on every backend surface for `$.message.<field>` to address a field at all.
+  console.error({
     ...baseRecord,
     ...createErrorLevelRequestErrorDetails(details),
-  }));
+  });
 }
 
 export function logAdminQueryEvent(
@@ -194,12 +196,12 @@ export function logAdminQueryEvent(
     sqlFingerprint: payload.sqlFingerprint,
   };
 
-  console.log(JSON.stringify({
+  console.log({
     domain: "backend",
     action: "admin_query",
     ...scope,
     ...createCloudWatchAdminQueryDetails(details),
-  }));
+  });
 
   addBackendSentryBreadcrumb({
     action: "admin_query",

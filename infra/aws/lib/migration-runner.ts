@@ -6,6 +6,7 @@ import * as customResources from "aws-cdk-lib/custom-resources";
 import * as rds from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
+import { backendStructuredLoggingProps } from "./backend-lambda-logging";
 import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
 
 export interface MigrationRunnerProps {
@@ -93,6 +94,7 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),
     memorySize: 512,
+    ...backendStructuredLoggingProps,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
