@@ -169,6 +169,7 @@ The role gets `SELECT` on these tables only:
 - selected metadata columns on `sync.applied_operations_current`
 - `analytics.product_events`
 - `analytics.identity_links`
+- `analytics.product_events_resolved`, the view that resolves anonymous events to their eventual account at read time
 
 No write access is granted.
 
@@ -319,3 +320,5 @@ Use current sync diagnostic tables when the investigation needs sync retention m
 - `sync.applied_operations_current`
 
 Sync diagnostics intentionally do not expose the superseded `sync.changes` payload feed or legacy `sync.applied_operations` table.
+
+Product analytics writes on the guest upgrade path are best effort and are never retried: they run after the upgrade transaction already committed, and the merge path revokes the guest session, so a client retry returns an idempotent replay and never reaches the producer again. `auth.guest_upgrade_history` is the reconstruction source for either loss. `source_guest_user_id` and `target_user_id` rebuild a missing `analytics.identity_links` row, which is what makes that guest's pre-upgrade history resolve to the account instead of the guest id in `analytics.product_events_resolved`; those columns together with `source_guest_session_id`, `target_workspace_id`, and `merged_at` rebuild a missing `guest_upgrade_completed` row in `analytics.product_events`, whose `event_id` is derived from the guest session id by `apps/backend/src/productAnalytics/serverEvents.ts`. All of these columns are already granted to `reporting_readonly`.

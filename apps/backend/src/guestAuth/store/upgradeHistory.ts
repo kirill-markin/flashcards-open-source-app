@@ -6,6 +6,7 @@ import type {
 } from "../types";
 
 type GuestUpgradeHistoryReplayRow = Readonly<{
+  source_guest_user_id: string;
   source_guest_session_id: string;
   target_subject_user_id: string;
   target_user_id: string;
@@ -14,6 +15,7 @@ type GuestUpgradeHistoryReplayRow = Readonly<{
 }>;
 
 export type GuestUpgradeReplayRecord = Readonly<{
+  sourceGuestUserId: string;
   sourceGuestSessionId: string;
   targetSubjectUserId: string;
   targetUserId: string;
@@ -23,6 +25,7 @@ export type GuestUpgradeReplayRecord = Readonly<{
 
 function mapGuestUpgradeReplayRecord(row: GuestUpgradeHistoryReplayRow): GuestUpgradeReplayRecord {
   return {
+    sourceGuestUserId: row.source_guest_user_id,
     sourceGuestSessionId: row.source_guest_session_id,
     targetSubjectUserId: row.target_subject_user_id,
     targetUserId: row.target_user_id,
@@ -42,7 +45,7 @@ export async function loadGuestUpgradeReplayInExecutor(
   // guest session was already revoked.
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
-      "SELECT source_guest_session_id, target_subject_user_id, target_user_id, target_workspace_id, dropped_entities",
+      "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id, target_workspace_id, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_id = $1",
       "LIMIT 1",
@@ -60,7 +63,7 @@ export async function loadGuestUpgradeReplayByGuestTokenInExecutor(
 ): Promise<GuestUpgradeReplayRecord | null> {
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
-      "SELECT source_guest_session_id, target_subject_user_id, target_user_id, target_workspace_id, dropped_entities",
+      "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id, target_workspace_id, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_secret_hash = $1",
       "LIMIT 1",

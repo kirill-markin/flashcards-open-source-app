@@ -176,6 +176,7 @@ function logSuspiciousGuestUpgradeReplay(
 async function createGuestUpgradeReplayCompletionInExecutor(
   executor: DatabaseExecutor,
   replay: Readonly<{
+    sourceGuestUserId: string;
     sourceGuestSessionId: string;
     targetSubjectUserId: string;
     targetUserId: string;
@@ -196,6 +197,7 @@ async function createGuestUpgradeReplayCompletionInExecutor(
     ),
     outcome: "idempotent_replay",
     guestSessionId: replay.sourceGuestSessionId,
+    guestUserId: replay.sourceGuestUserId,
     targetSubjectUserId: replay.targetSubjectUserId,
     targetUserId: replay.targetUserId,
     targetWorkspaceId: replay.targetWorkspaceId,
@@ -493,6 +495,7 @@ export async function completeGuestUpgradeInExecutor(
       workspace: await loadWorkspaceSummaryInExecutor(executor, guestSession.userId, guestWorkspaceId),
       outcome: "fresh_completion",
       guestSessionId: guestSession.sessionId,
+      guestUserId: guestSession.userId,
       targetSubjectUserId: cognitoSubject,
       targetUserId,
       targetWorkspaceId: guestWorkspaceId,
@@ -604,6 +607,7 @@ export async function completeGuestUpgradeInExecutor(
     ),
     outcome: "fresh_completion",
     guestSessionId: guestSession.sessionId,
+    guestUserId: guestSession.userId,
     targetSubjectUserId: cognitoSubject,
     targetUserId: guestUpgradeResolution.targetUserId,
     targetWorkspaceId: guestUpgradeResolution.targetWorkspaceId,

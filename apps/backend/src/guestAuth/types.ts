@@ -47,6 +47,9 @@ export type GuestUpgradeCompletion = Readonly<{
   }>;
   outcome: "fresh_completion" | "idempotent_replay";
   guestSessionId: string;
+  // The guest identity that was upgraded. The caller needs it after the transaction commits to
+  // record the conversion and to link the guest's earlier analytics events to the account.
+  guestUserId: string;
   targetSubjectUserId: string;
   targetUserId: string;
   targetWorkspaceId: string;
