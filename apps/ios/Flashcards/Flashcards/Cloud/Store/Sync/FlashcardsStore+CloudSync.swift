@@ -1021,7 +1021,7 @@ extension FlashcardsStore {
     }
 
     private func captureMediaUploadTransferProcessingFailure(error: Error, linkedSession: CloudLinkedSession) {
-        if isRetryableNetworkTransportFailure(error: error) {
+        if isSilentlyIgnorableNetworkTransportFailure(error: error) {
             return
         }
 
