@@ -416,6 +416,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       multipartCompletionReconciliationFn:
         multipartCompletionReconciliationResult.reconciliationFunction,
       catalogDumpFn: catalogDumpResult.dumpFunction,
+      baseDomain,
+      apiCertificateArn,
+      authCertificateArn,
+      mcpCertificateArn,
     });
 
     ciCd(this, {
