@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
+import { getDatabaseErrorFields } from "../database/transient";
 import {
   captureBackendWarning,
   createBackendObservationScope,
-  getBackendErrorLogDetails,
 } from "../observability/sentry";
 import {
   productAnalyticsSchemaVersion,
@@ -124,7 +124,11 @@ export async function emitServerDerivedProductAnalyticsEvent(
   try {
     await insertProductAnalyticsEvents([createServerDerivedProductAnalyticsRow(event)]);
   } catch (error) {
-    const errorDetails = getBackendErrorLogDetails(error);
+    // Read through the database boundary fields rather than off the error itself. The analytics
+    // writer answers a refused connection with its own HttpError whose message is a fixed public
+    // string, so only these fields name the failure that actually happened; they fall back to the
+    // error's own class and message when it carries none.
+    const errorDetails = getDatabaseErrorFields(error);
     captureBackendWarning({
       action: "product_analytics_server_event_write_failed",
       scope: createBackendObservationScope(
@@ -144,6 +148,7 @@ export async function emitServerDerivedProductAnalyticsEvent(
       ),
       details: {
         eventName: event.eventName,
+        sqlState: errorDetails.sqlState,
         errorClass: errorDetails.errorClass,
         errorMessage: errorDetails.errorMessage,
       },
@@ -168,7 +173,7 @@ export async function linkServerDerivedProductAnalyticsIdentity(
       source: "server_derived",
     });
   } catch (error) {
-    const errorDetails = getBackendErrorLogDetails(error);
+    const errorDetails = getDatabaseErrorFields(error);
     captureBackendWarning({
       action: "product_analytics_identity_link_write_failed",
       scope: createBackendObservationScope(
@@ -186,6 +191,7 @@ export async function linkServerDerivedProductAnalyticsIdentity(
       ),
       details: {
         source: "server_derived",
+        sqlState: errorDetails.sqlState,
         errorClass: errorDetails.errorClass,
         errorMessage: errorDetails.errorMessage,
       },

@@ -25,6 +25,7 @@ import { createCardsRoutes } from "../routes/cards";
 import { createFeedbackRoutes } from "../routes/feedback";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
 import { createMediaAssetsRoutes } from "../routes/mediaAssets";
+import { createProductAnalyticsRoutes } from "../routes/productAnalytics";
 import { createWorkspacePackageRoutes } from "../routes/workspacePackages";
 import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
@@ -410,6 +411,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createFeedbackRoutes({ allowedOrigins }));
   app.route("/", createWorkspacePackageRoutes({ allowedOrigins }));
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
+  app.route("/", createProductAnalyticsRoutes({ allowedOrigins }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());
   app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));

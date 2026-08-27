@@ -8,6 +8,20 @@ import { z } from "zod";
 // anonymization deliberately keeps intact.
 export const productAnalyticsSchemaVersion = 1;
 
+// event_id is the primary key of an append-only table, so time-ordered ids are the only thing that
+// keeps insert locality sequential, and a row written with any other UUID version cannot be repaired
+// afterwards. Every client that mirrors this file must generate UUIDv7 event ids: ingest rejects any
+// other version and reports that event as invalid_event, which is indistinguishable from a
+// malformed event in the response, so the version is a client obligation rather than a hint.
+export const productAnalyticsEventIdUuidVersion = 7;
+
+// The version nibble of a canonical UUID string is its fifteenth character.
+const uuidVersionCharacterIndex = 14;
+
+export function isProductAnalyticsEventIdVersionValid(eventId: string): boolean {
+  return eventId[uuidVersionCharacterIndex] === String(productAnalyticsEventIdUuidVersion);
+}
+
 export const productAnalyticsPropertyStringMaxLength = 200;
 export const productAnalyticsPropertyKeyLimit = 25;
 

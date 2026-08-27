@@ -46,6 +46,8 @@ export type {
   MediaAssetRouteDetails,
   MultipartCompletionRenewalRejectedDetails,
   MultipartCompletionResolutionRetryDetails,
+  ProductAnalyticsContractViolationDetails,
+  ProductAnalyticsIngestDetails,
   ProgressLeaderboardDetails,
   ProgressReviewScheduleDetails,
   ProgressSeriesDetails,

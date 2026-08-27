@@ -317,6 +317,45 @@ export type WorkspaceTransactionDetails = Readonly<{
   deletedCardsCount: number | null;
 }> & BackendDatabaseDetails;
 
+export type ProductAnalyticsIngestDetails = Readonly<{
+  statusCode: number;
+  authTransport: string;
+  trustLevel: string;
+  platform: string | null;
+  appVersion: string | null;
+  eventCount: number | null;
+  acceptedCount: number | null;
+  rejectedCount: number | null;
+  outOfWindowCount: number | null;
+  storedCount: number | null;
+  // null when the batch carried no identity link statement at all, which is every guest batch, every
+  // batch that stored no events, and every repeat from a device this container already linked.
+  identityLinked: boolean | null;
+}>;
+
+// A contract violation is reported so a broken client release can be found, which means none of
+// these fields may carry a rejected value: the path that refuses something because it looks like
+// personal data would otherwise carry exactly that data into Sentry. eventName is reported only
+// when it is a catalog name, and a property is described by its key, its type, and its length.
+// propertyKeyShape is the bounded descriptor that stands in for the key inside the fingerprint;
+// propertyKey itself is truncated client text and is reported only as a detail, so an invented key
+// never opens a Sentry issue of its own. rawEventName carries the same treatment for a name outside
+// the catalog: eventName is null for that violation by definition, so without it the report would
+// not name what was sent, and it stays a truncated detail rather than a fingerprint slot.
+export type ProductAnalyticsContractViolationDetails = Readonly<{
+  eventName: string | null;
+  rawEventName: string | null;
+  violation: string;
+  propertyKey: string | null;
+  propertyKeyShape: string | null;
+  propertyType: string | null;
+  propertyLength: number | null;
+  platform: string | null;
+  appVersion: string | null;
+  authTransport: string;
+  occurrenceCount: number;
+}>;
+
 export type ProductBreadcrumbEvent =
   | EventByAction<"sync_push", SyncPushDetails>
   | EventByAction<"sync_push_error", SyncConflictFailureDetailsFor<SyncPushDetails>>
@@ -378,6 +417,8 @@ export type ProductBreadcrumbEvent =
   | EventByAction<"media_asset_download_url_create_error", FailureDetailsFor<MediaAssetRouteDetails>>
   | EventByAction<"guest_upgrade_complete", GuestUpgradeCompleteDetails>
   | EventByAction<"guest_upgrade_complete_error", FailureDetailsFor<GuestUpgradeCompleteDetails>>
+  | EventByAction<"analytics_events_ingest", ProductAnalyticsIngestDetails>
+  | EventByAction<"analytics_events_ingest_error", FailureDetailsFor<ProductAnalyticsIngestDetails>>
   | EventByAction<"workspaces_list", WorkspacesListDetails>
   | EventByAction<"workspaces_list_error", FailureDetailsFor<WorkspacesListDetails>>
   | EventByAction<"workspace_create", WorkspaceIdDetails>
@@ -423,7 +464,8 @@ export type ProductWarningEvent =
   )
   | (EventByAction<"guest_upgrade_complete_suspicious", GuestUpgradeCompleteSuspiciousDetails> & Readonly<{
     message: string;
-  }>);
+  }>)
+  | EventByAction<"analytics_contract_violation", ProductAnalyticsContractViolationDetails>;
 
 export type ProductExceptionEvent =
   | (EventByAction<"sync_push_error", SyncConflictFailureDetailsFor<SyncPushDetails>> & Readonly<{ error: Error }>)
@@ -494,6 +536,10 @@ export type ProductExceptionEvent =
     & Readonly<{ error: Error }>
   )
   | (EventByAction<"guest_upgrade_complete_error", FailureDetailsFor<GuestUpgradeCompleteDetails>> & Readonly<{ error: Error }>)
+  | (
+    EventByAction<"analytics_events_ingest_error", FailureDetailsFor<ProductAnalyticsIngestDetails>>
+    & Readonly<{ error: Error }>
+  )
   | (EventByAction<"workspaces_list_error", FailureDetailsFor<WorkspacesListDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspace_create_error", FailureDetailsFor<WorkspaceIdDetails>> & Readonly<{ error: Error }>)
   | (EventByAction<"workspace_select_error", FailureDetailsFor<WorkspaceIdDetails>> & Readonly<{ error: Error }>)
