@@ -23,6 +23,10 @@ junit4 = "4.13.2"
 junitExt = "1.3.0"
 espresso = "3.7.0"
 uiautomator = "2.4.0"
+# Deliberate pre-stable exception to the stable-version rule: 1.5.0 is the first androidx.benchmark
+# line that supports AGP 9, and stable 1.4.1 hard-fails configuration. Do not downgrade.
+# See "Dependency Version Pin" in apps/android/README.md.
+benchmark = "1.5.0-rc02"
 testOrchestrator = "1.6.1"
 securityCrypto = "1.1.0"
 json = "20260814"
@@ -74,12 +78,15 @@ junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmark" }
 androidx-test-orchestrator = { group = "androidx.test", name = "orchestrator", version.ref = "testOrchestrator" }
 org-json = { group = "org.json", name = "json", version.ref = "json" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmark" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
