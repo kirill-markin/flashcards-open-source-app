@@ -1,14 +1,10 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 
-internal fun makeCloudContractMismatchException(message: String): Exception {
-    val errorClass = Class.forName(
-        "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
-    )
-    val constructor = errorClass.getDeclaredConstructor(String::class.java, Throwable::class.java)
-    constructor.isAccessible = true
-    return constructor.newInstance(message, null) as Exception
+internal fun makeCloudContractMismatchException(message: String): CloudContractMismatchException {
+    return CloudContractMismatchException(message = message, cause = null)
 }
 
 internal fun makeCloudRemoteException(statusCode: Int): CloudRemoteException {
