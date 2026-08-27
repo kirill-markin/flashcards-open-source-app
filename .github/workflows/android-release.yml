@@ -536,6 +536,67 @@ jobs:
           if-no-files-found: error
           path: apps/android/app/build/outputs/bundle/release/app-release.aab
 
+      - name: Report and gate R8 optimization coverage
+        env:
+          ANDROID_R8_MIN_COVERAGE_PERCENT: '25'
+        run: |
+          set -euo pipefail
+
+          bundle_path="apps/android/app/build/outputs/bundle/release/app-release.aab"
+          r8_metadata_path="${RUNNER_TEMP}/android-release-r8.json"
+
+          # AGP embeds the R8 run summary in the bundle it just built, so the numbers below describe
+          # exactly the artifact that is about to be uploaded to Google Play.
+          if ! unzip -p "${bundle_path}" "BUNDLE-METADATA/com.android.tools/r8.json" > "${r8_metadata_path}"; then
+            echo "BUNDLE-METADATA/com.android.tools/r8.json is missing from ${bundle_path}. R8 optimization coverage cannot be verified." >&2
+            exit 1
+          fi
+
+          if [[ "$(jq -r 'try ((.stats.noShrinkingPercentage | numbers) != null) catch false' "${r8_metadata_path}")" != "true" ]]; then
+            echo "R8 metadata in ${bundle_path} has no usable stats object." >&2
+            cat "${r8_metadata_path}" >&2
+            exit 1
+          fi
+
+          r8_version="$(jq -r '.version // "unknown"' "${r8_metadata_path}")"
+          coverage_report="$(
+            jq -r '
+              .stats
+              | [
+                  ["Shrinking", ((100 - .noShrinkingPercentage) * 100 | round / 100)],
+                  ["Optimization", ((100 - .noOptimizationPercentage) * 100 | round / 100)],
+                  ["Obfuscation", ((100 - .noObfuscationPercentage) * 100 | round / 100)]
+                ]
+              | .[]
+              | "\(.[0])\t\(.[1])"
+            ' "${r8_metadata_path}"
+          )"
+
+          summary_lines=()
+          failures=()
+
+          while IFS=$'\t' read -r category coverage; do
+            summary_lines+=("- ${category} coverage: \`${coverage}%\`")
+            if ! awk -v value="${coverage}" -v minimum="${ANDROID_R8_MIN_COVERAGE_PERCENT}" 'BEGIN { exit !(value >= minimum) }'; then
+              failures+=("${category} coverage ${coverage}% is below the required ${ANDROID_R8_MIN_COVERAGE_PERCENT}%")
+            fi
+          done <<< "${coverage_report}"
+
+          {
+            echo "## Android R8 optimization coverage"
+            echo ""
+            echo "- R8 version: \`${r8_version}\`"
+            echo "- Google Play minimum per category: \`${ANDROID_R8_MIN_COVERAGE_PERCENT}%\`"
+            printf '%s\n' "${summary_lines[@]}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          printf '%s\n' "${summary_lines[@]}"
+
+          if [[ "${#failures[@]}" -gt 0 ]]; then
+            printf 'R8 optimization coverage gate failed: %s\n' "${failures[*]}" >&2
+            exit 1
+          fi
+
       - name: Upload bundle to Google Play production track as draft release
         uses: r0adkll/upload-google-play@v1.1.5
         with:
