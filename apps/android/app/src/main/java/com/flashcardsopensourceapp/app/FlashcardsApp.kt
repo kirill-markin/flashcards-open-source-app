@@ -47,6 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -532,6 +534,9 @@ fun FlashcardsApp(
         }
 
         NavigationSuiteScaffold(
+            // Publishes Compose test tags as accessibility resource ids so UiAutomator-driven
+            // flows, such as the baseline profile generator, can reuse the same tags.
+            modifier = Modifier.semantics { testTagsAsResourceId = true },
             state = navigationSuiteState,
             layoutType = navigationSuiteType,
             navigationSuiteItems = {
