@@ -4,21 +4,18 @@ import com.flashcardsopensourceapp.core.observability.alreadyObservedAndroidThro
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.isExpectedAiChatRemoteUserError
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.feature.ai.AiBootstrapErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapBlockedException
+import com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapSessionMismatchException
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiErrorSurface
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiUserFacingErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.aiChatAvailabilityMessage
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.makeAiChatUserFacingErrorPresentation
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import java.io.IOException
-
-private const val cloudContractMismatchExceptionName: String =
-    "com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException"
-private const val aiChatBootstrapSessionMismatchExceptionName: String =
-    "com.flashcardsopensourceapp.feature.ai.runtime.coordinators.bootstrap.AiChatBootstrapSessionMismatchException"
 
 internal fun makeAiUserFacingErrorPresentation(
     error: Exception,
@@ -166,12 +163,11 @@ private fun shouldIncludeLocalErrorMessage(error: Exception): Boolean {
     if (message.isNullOrBlank()) {
         return false
     }
-    if (error::class.java.name == cloudContractMismatchExceptionName) {
+    if (error is CloudContractMismatchException) {
         return false
     }
 
-    return error is IOException ||
-        error::class.java.name == aiChatBootstrapSessionMismatchExceptionName
+    return error is IOException || error is AiChatBootstrapSessionMismatchException
 }
 
 private fun formatTechnicalDetails(fields: List<Pair<String, String?>>): String {
