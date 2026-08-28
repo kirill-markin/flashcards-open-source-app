@@ -1,10 +1,10 @@
 import SwiftUI
 
-private struct CloudSignInPostAuthTaskHandle {
-    let stateId: String
-    let task: Task<Void, Never>
-}
-
+/**
+ * The sign-in sheet's content, which SwiftUI may destroy and rebuild while the sheet stays on
+ * screen. Everything that describes the attempt lives in `store.cloudSignInAttempt` so that rebuild
+ * is invisible to the person; only what describes this view instance is `@State` here.
+ */
 struct CloudSignInSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
@@ -12,35 +12,24 @@ struct CloudSignInSheet: View {
 
     let presentationContext: CloudSignInPresentationContext
 
-    @State private var email: String = ""
-    @State private var otpSheetState: CloudOtpSheetState?
-    @State private var postAuthLoadingState: CloudPostAuthLoadingState?
-    @State private var postAuthGuestLocalRecoveryPreparationState: CloudPostAuthGuestLocalRecoveryPreparationState?
-    @State private var postAuthSyncState: CloudPostAuthSyncState?
-    @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
-    @State private var postAuthRecoveryNeededState: CloudPostAuthRecoveryNeededState?
-    @State private var postAuthFailureState: CloudPostAuthFailureState?
-    @State private var authErrorPresentation: CloudAuthInlineErrorPresentation?
     @State private var technicalErrorPresentation: TechnicalErrorPresentation?
-    @State private var isSendingCode: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
     @State private var hasRecordedSurfacePresence: Bool = false
-    @State private var postAuthLoadingTask: CloudSignInPostAuthTaskHandle?
-    @State private var postAuthGuestLocalRecoveryPreparationTask: CloudSignInPostAuthTaskHandle?
-    @State private var postAuthSyncTask: CloudSignInPostAuthTaskHandle?
 
     init(presentationContext: CloudSignInPresentationContext) {
         self.presentationContext = presentationContext
     }
 
     var body: some View {
+        @Bindable var store = self.store
+
         NavigationStack {
             ReadableContentLayout(
                 maxWidth: flashcardsReadableFormMaxWidth,
                 horizontalPadding: 0
             ) {
                 Form {
-                    if let authErrorPresentation = self.authErrorPresentation {
+                    if let authErrorPresentation = self.store.cloudSignInAttempt.authErrorPresentation {
                         Section {
                             CloudAuthInlineErrorView(
                                 presentation: authErrorPresentation,
@@ -62,7 +51,7 @@ struct CloudSignInSheet: View {
                     }
 
                     Section(aiSettingsLocalized("common.email", "Email")) {
-                        TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: self.$email)
+                        TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: $store.cloudSignInAttempt.email)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .keyboardType(.emailAddress)
@@ -79,7 +68,10 @@ struct CloudSignInSheet: View {
                         Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
                             self.sendCode()
                         }
-                        .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
+                        .disabled(
+                            self.store.cloudSignInAttempt.isSendingCode
+                                || isValidCloudEmail(self.store.cloudSignInAttempt.email) == false
+                        )
                         .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
                     }
                 }
@@ -87,63 +79,73 @@ struct CloudSignInSheet: View {
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.title", "Sign in"))
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
-            .interactiveDismissDisabled(self.isPostAuthActionInFlight)
+            .interactiveDismissDisabled(self.store.cloudSignInAttempt.isPostAuthActionInFlight)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(aiSettingsLocalized("common.close", "Close")) {
                         self.dismiss()
                     }
-                    .disabled(self.isSendingCode || self.isPostAuthActionInFlight)
+                    .disabled(
+                        self.store.cloudSignInAttempt.isSendingCode
+                            || self.store.cloudSignInAttempt.isPostAuthActionInFlight
+                    )
                 }
             }
-            .sheet(item: self.$otpSheetState) { otpState in
+            .sheet(item: $store.cloudSignInAttempt.otpSheetState) { otpState in
+                // The code step's requests outlive it exactly as `sendCode`'s do — the OTP sheet has
+                // no `interactiveDismissDisabled`, so a slow verify can still be in flight when the
+                // person swipes it and the sign-in sheet away. Its write-backs carry the attempt they
+                // belong to for the same reason `sendCode` does.
+                let attemptId = self.store.cloudSignInAttempt.id
+
                 CloudOtpVerificationSheet(
-                    otpSheetState: self.$otpSheetState,
+                    attemptId: attemptId,
+                    otpSheetState: $store.cloudSignInAttempt.otpSheetState,
                     onVerified: { verifiedContext in
-                        self.handleVerifiedAuthContext(verifiedContext)
+                        self.handleVerifiedAuthContext(verifiedContext, attemptId: attemptId)
                     },
                     onReturnToEmail: {
                         self.cancelPostAuthTasksAndClearInFlightState()
-                        self.otpSheetState = nil
-                        self.workspaceLinkContext = nil
-                        self.postAuthRecoveryNeededState = nil
-                        self.postAuthFailureState = nil
+                        self.store.cloudSignInAttempt.otpSheetState = nil
+                        self.store.cloudSignInAttempt.workspaceLinkContext = nil
+                        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
+                        self.store.cloudSignInAttempt.postAuthFailureState = nil
                         self.scheduleEmailFieldFocus()
                     }
                 )
                 .environment(self.store)
             }
-            .sheet(item: self.$postAuthLoadingState) { loadingState in
+            .sheet(item: $store.cloudSignInAttempt.postAuthLoadingState) { loadingState in
                 CloudPostAuthLoadingSheet()
                     .interactiveDismissDisabled(true)
             }
-            .sheet(item: self.$postAuthGuestLocalRecoveryPreparationState) { recoveryState in
+            .sheet(item: $store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState) { recoveryState in
                 CloudPostAuthGuestLocalRecoveryPreparationSheet()
                     .interactiveDismissDisabled(true)
             }
-            .sheet(item: self.$postAuthSyncState) { syncState in
+            .sheet(item: $store.cloudSignInAttempt.postAuthSyncState) { syncState in
                 CloudPostAuthSyncSheet(operation: syncState.operation)
                     .interactiveDismissDisabled(true)
             }
-            .sheet(item: self.$workspaceLinkContext) { linkContext in
+            .sheet(item: $store.cloudSignInAttempt.workspaceLinkContext) { linkContext in
                 CloudWorkspaceSelectionSheet(
                     linkContext: linkContext,
-                    isSelectionDisabled: self.isPostAuthActionInFlight,
+                    isSelectionDisabled: self.store.cloudSignInAttempt.isPostAuthActionInFlight,
                     onSelection: { selection in
                         self.completeLink(linkContext: linkContext, selection: selection)
                     },
                     onCancelled: {
-                        self.workspaceLinkContext = nil
+                        self.store.cloudSignInAttempt.workspaceLinkContext = nil
                     }
                 )
                 .environment(self.store)
             }
-            .sheet(item: self.$postAuthRecoveryNeededState) { recoveryState in
+            .sheet(item: $store.cloudSignInAttempt.postAuthRecoveryNeededState) { recoveryState in
                 CloudPostAuthRecoveryNeededSheet(
                     state: recoveryState,
                     allowsLogoutAction: self.isStandardPresentation,
                     onClose: {
-                        self.postAuthRecoveryNeededState = nil
+                        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
                         self.dismiss()
                     },
                     onLogout: {
@@ -151,10 +153,10 @@ struct CloudSignInSheet: View {
                     }
                 )
             }
-            .sheet(item: self.$postAuthFailureState) { failureState in
+            .sheet(item: $store.cloudSignInAttempt.postAuthFailureState) { failureState in
                 CloudPostAuthFailureSheet(
                     state: failureState,
-                    isRetryDisabled: self.isPostAuthActionInFlight,
+                    isRetryDisabled: self.store.cloudSignInAttempt.isPostAuthActionInFlight,
                     allowsCloseAction: failureState.allowsAccountExitActions
                         || self.presentationContext == .credentialRecoveryGate,
                     allowsLogoutAction: failureState.allowsAccountExitActions
@@ -163,7 +165,7 @@ struct CloudSignInSheet: View {
                         self.retryPostAuthFailure(failureState)
                     },
                     onClose: {
-                        self.postAuthFailureState = nil
+                        self.store.cloudSignInAttempt.postAuthFailureState = nil
                         self.dismiss()
                     },
                     onLogout: {
@@ -189,98 +191,105 @@ struct CloudSignInSheet: View {
                     }
                 )
             }
+            // The attempt decides when the presentation closes, because the work that finishes it
+            // may well have been started by a view instance that no longer exists.
+            .onChange(of: self.store.cloudSignInAttempt.isCompleted, initial: true) { _, isCompleted in
+                guard isCompleted else {
+                    return
+                }
+
+                self.dismiss()
+            }
             .onAppear {
                 self.recordSurfacePresenceIfNeeded()
-                self.scheduleEmailFieldFocus()
+                self.scheduleEmailFieldFocusIfShowingEmailForm()
             }
             .onDisappear {
-                self.cancelPostAuthTasksAndClearInFlightState()
                 self.clearSurfacePresenceIfNeeded()
             }
         }
         .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
     }
 
-    private var isPostAuthActionInFlight: Bool {
-        self.postAuthLoadingState != nil
-            || self.postAuthGuestLocalRecoveryPreparationState != nil
-            || self.postAuthSyncState != nil
-    }
-
-    private func cancelPostAuthTasks() {
-        self.postAuthLoadingTask?.task.cancel()
-        self.postAuthLoadingTask = nil
-        self.postAuthGuestLocalRecoveryPreparationTask?.task.cancel()
-        self.postAuthGuestLocalRecoveryPreparationTask = nil
-        self.postAuthSyncTask?.task.cancel()
-        self.postAuthSyncTask = nil
-    }
-
     private func cancelPostAuthTasksAndClearInFlightState() {
-        self.cancelPostAuthTasks()
-        self.postAuthLoadingState = nil
-        self.postAuthGuestLocalRecoveryPreparationState = nil
-        self.postAuthSyncState = nil
+        self.store.cancelCloudSignInPostAuthTasks()
+        self.store.cloudSignInAttempt.postAuthLoadingState = nil
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nil
+        self.store.cloudSignInAttempt.postAuthSyncState = nil
     }
 
     private func clearPostAuthLoadingTaskIfCurrent(stateId: String) {
-        guard self.postAuthLoadingTask?.stateId == stateId else {
+        guard self.store.cloudSignInAttempt.postAuthLoadingTask?.stateId == stateId else {
             return
         }
-        self.postAuthLoadingTask = nil
+        self.store.cloudSignInAttempt.postAuthLoadingTask = nil
     }
 
     private func clearPostAuthGuestLocalRecoveryPreparationTaskIfCurrent(stateId: String) {
-        guard self.postAuthGuestLocalRecoveryPreparationTask?.stateId == stateId else {
+        guard self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationTask?.stateId == stateId else {
             return
         }
-        self.postAuthGuestLocalRecoveryPreparationTask = nil
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationTask = nil
     }
 
     private func clearPostAuthSyncTaskIfCurrent(stateId: String) {
-        guard self.postAuthSyncTask?.stateId == stateId else {
+        guard self.store.cloudSignInAttempt.postAuthSyncTask?.stateId == stateId else {
             return
         }
-        self.postAuthSyncTask = nil
+        self.store.cloudSignInAttempt.postAuthSyncTask = nil
     }
 
     private func startPostAuthLoadingTask(_ loadingState: CloudPostAuthLoadingState) {
-        self.postAuthLoadingTask?.task.cancel()
+        self.store.cloudSignInAttempt.postAuthLoadingTask?.task.cancel()
         let task = Task { @MainActor in
             await self.prepareCloudLink(loadingState)
             self.clearPostAuthLoadingTaskIfCurrent(stateId: loadingState.id)
         }
-        self.postAuthLoadingTask = CloudSignInPostAuthTaskHandle(stateId: loadingState.id, task: task)
+        self.store.cloudSignInAttempt.postAuthLoadingTask = CloudSignInPostAuthTaskHandle(
+            stateId: loadingState.id,
+            task: task
+        )
     }
 
     private func startPostAuthGuestLocalRecoveryPreparationTask(
         _ recoveryState: CloudPostAuthGuestLocalRecoveryPreparationState
     ) {
-        self.postAuthGuestLocalRecoveryPreparationTask?.task.cancel()
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationTask?.task.cancel()
         let task = Task { @MainActor in
             await Task.yield()
             await self.runGuestLocalRecoveryPreparation(recoveryState)
             self.clearPostAuthGuestLocalRecoveryPreparationTaskIfCurrent(stateId: recoveryState.id)
         }
-        self.postAuthGuestLocalRecoveryPreparationTask = CloudSignInPostAuthTaskHandle(
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationTask = CloudSignInPostAuthTaskHandle(
             stateId: recoveryState.id,
             task: task
         )
     }
 
     private func startPostAuthSyncTask(_ syncState: CloudPostAuthSyncState) {
-        self.postAuthSyncTask?.task.cancel()
+        self.store.cloudSignInAttempt.postAuthSyncTask?.task.cancel()
         let task = Task { @MainActor in
             await self.runPostAuthSync(syncState)
             self.clearPostAuthSyncTaskIfCurrent(stateId: syncState.id)
         }
-        self.postAuthSyncTask = CloudSignInPostAuthTaskHandle(stateId: syncState.id, task: task)
+        self.store.cloudSignInAttempt.postAuthSyncTask = CloudSignInPostAuthTaskHandle(
+            stateId: syncState.id,
+            task: task
+        )
     }
 
     private func scheduleEmailFieldFocus() {
         DispatchQueue.main.async {
             self.isEmailFieldFocused = true
         }
+    }
+
+    private func scheduleEmailFieldFocusIfShowingEmailForm() {
+        guard self.store.cloudSignInAttempt.isStepAboveEmailFormPresented == false else {
+            return
+        }
+
+        self.scheduleEmailFieldFocus()
     }
 
     private var isStandardPresentation: Bool {
@@ -313,25 +322,33 @@ struct CloudSignInSheet: View {
     private func sendCode() {
         self.isEmailFieldFocused = false
 
-        guard isValidCloudEmail(self.email) else {
-            self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+        guard isValidCloudEmail(self.store.cloudSignInAttempt.email) else {
+            self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
                 message: aiSettingsLocalized("settings.account.cloudSignIn.enterValidEmail", "Enter a valid email address"),
                 technicalError: nil
             )
             return
         }
 
-        let nextEmail = normalizedCloudEmail(self.email)
+        let attemptId = self.store.cloudSignInAttempt.id
+        let nextEmail = normalizedCloudEmail(self.store.cloudSignInAttempt.email)
         let nextOtpSheetState = CloudOtpSheetState(email: nextEmail, challenge: nil)
-        self.email = nextEmail
-        self.authErrorPresentation = nil
-        self.otpSheetState = nextOtpSheetState
+        self.store.cloudSignInAttempt.email = nextEmail
+        self.store.cloudSignInAttempt.authErrorPresentation = nil
+        self.store.cloudSignInAttempt.otpSheetState = nextOtpSheetState
+        // Raised here rather than inside the task, so it is always the attempt that owns the request
+        // that carries the flag. `finishSendingCode` lowers it only for that same attempt, and a
+        // raise deferred to the task's first hop could land on an attempt that replaced this one and
+        // leave it with both "Send one-time code" and Close disabled for good.
+        self.store.cloudSignInAttempt.isSendingCode = true
 
+        // This request is deliberately not tied to the sheet's lifetime: it outlives a rebuilt view
+        // instance, and its result now reaches the attempt that started it instead of a view nobody
+        // can see. The `attemptId` guards keep it out of whichever attempt replaced that one.
         Task { @MainActor in
-            self.isSendingCode = true
             let captureContext = self.store.beginTechnicalErrorCaptureContext()
             defer {
-                self.isSendingCode = false
+                self.finishSendingCode(attemptId: attemptId)
             }
 
             do {
@@ -340,34 +357,39 @@ struct CloudSignInSheet: View {
                     captureContext: captureContext
                 )
 
+                guard self.store.cloudSignInAttempt.id == attemptId else {
+                    return
+                }
+
                 switch sendCodeResult {
                 case .otpChallenge(let nextChallenge):
-                    guard self.otpSheetState?.id == nextOtpSheetState.id else {
+                    guard self.store.cloudSignInAttempt.otpSheetState?.id == nextOtpSheetState.id else {
                         return
                     }
 
-                    self.email = nextChallenge.email
-                    self.otpSheetState = nextOtpSheetState.withChallenge(nextChallenge)
+                    self.store.cloudSignInAttempt.email = nextChallenge.email
+                    self.store.cloudSignInAttempt.otpSheetState = nextOtpSheetState.withChallenge(nextChallenge)
                 case .verifiedCredentials(let credentials):
                     // This intentionally insecure path exists only for
                     // configured review account emails on the auth service.
-                    self.otpSheetState = nil
+                    self.store.cloudSignInAttempt.otpSheetState = nil
                     self.handleVerifiedAuthContext(
                         CloudVerifiedAuthContext(
                             apiBaseUrl: try self.store.currentCloudServiceConfiguration().apiBaseUrl,
                             credentials: credentials
-                        )
+                        ),
+                        attemptId: attemptId
                     )
                 }
             } catch {
-                if isRequestCancellationError(error: error) {
-                    if self.otpSheetState?.id == nextOtpSheetState.id {
-                        self.otpSheetState = nil
-                    }
+                guard self.store.cloudSignInAttempt.id == attemptId else {
                     return
                 }
-                if self.otpSheetState?.id == nextOtpSheetState.id {
-                    self.otpSheetState = nil
+                if self.store.cloudSignInAttempt.otpSheetState?.id == nextOtpSheetState.id {
+                    self.store.cloudSignInAttempt.otpSheetState = nil
+                }
+                if isRequestCancellationError(error: error) {
+                    return
                 }
                 self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
                 self.presentAuthErrorPresentation(
@@ -381,12 +403,20 @@ struct CloudSignInSheet: View {
         }
     }
 
+    private func finishSendingCode(attemptId: String) {
+        guard self.store.cloudSignInAttempt.id == attemptId else {
+            return
+        }
+
+        self.store.cloudSignInAttempt.isSendingCode = false
+    }
+
     private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
-        self.authErrorPresentation = nil
-        self.postAuthLoadingState = nil
-        self.postAuthGuestLocalRecoveryPreparationState = nil
-        self.postAuthRecoveryNeededState = nil
-        self.postAuthFailureState = nil
+        self.store.cloudSignInAttempt.authErrorPresentation = nil
+        self.store.cloudSignInAttempt.postAuthLoadingState = nil
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nil
+        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
+        self.store.cloudSignInAttempt.postAuthFailureState = nil
 
         switch makeCloudWorkspacePostAuthRoute(linkContext: linkContext) {
         case .autoLink(let selection):
@@ -395,33 +425,51 @@ struct CloudSignInSheet: View {
                     linkContext: linkContext,
                     selection: selection
                 )
-                self.postAuthGuestLocalRecoveryPreparationState = nextState
+                self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nextState
                 self.startPostAuthGuestLocalRecoveryPreparationTask(nextState)
             } else {
                 self.completeLink(linkContext: linkContext, selection: selection)
             }
         case .chooseWorkspace:
-            self.workspaceLinkContext = linkContext
+            self.store.cloudSignInAttempt.workspaceLinkContext = linkContext
         case .guestLocalRecoveryNeeded:
-            self.postAuthRecoveryNeededState = CloudPostAuthRecoveryNeededState(
+            self.store.cloudSignInAttempt.postAuthRecoveryNeededState = CloudPostAuthRecoveryNeededState(
                 title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
                 message: localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)
             )
-            self.workspaceLinkContext = nil
+            self.store.cloudSignInAttempt.workspaceLinkContext = nil
         }
     }
 
-    private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
+    /**
+     * Credentials came back verified. Both callers reach here from a request that outlives the view
+     * that started it, so the attempt this verification belongs to is checked before anything is
+     * written: a verification that lands after its attempt was cancelled must not settle the attempt
+     * that replaced it, and must not start post-auth work — linking a workspace and uploading local
+     * data — behind a presentation nobody is showing.
+     *
+     * The per-state `id` guards further down cannot stand in for this one. They compare against state
+     * this call would have just written, so they all pass; this is the entry point where the attempt
+     * is still the only thing that can be compared.
+     */
+    private func handleVerifiedAuthContext(
+        _ verifiedContext: CloudVerifiedAuthContext,
+        attemptId: String
+    ) {
+        guard self.store.cloudSignInAttempt.id == attemptId else {
+            return
+        }
+
         self.store.recordCloudSignInVerified()
 
         let loadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
-        self.otpSheetState = nil
-        self.postAuthLoadingState = loadingState
-        self.postAuthGuestLocalRecoveryPreparationState = nil
-        self.postAuthSyncState = nil
-        self.workspaceLinkContext = nil
-        self.postAuthRecoveryNeededState = nil
-        self.authErrorPresentation = nil
+        self.store.cloudSignInAttempt.otpSheetState = nil
+        self.store.cloudSignInAttempt.postAuthLoadingState = loadingState
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nil
+        self.store.cloudSignInAttempt.postAuthSyncState = nil
+        self.store.cloudSignInAttempt.workspaceLinkContext = nil
+        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
+        self.store.cloudSignInAttempt.authErrorPresentation = nil
 
         self.startPostAuthLoadingTask(loadingState)
     }
@@ -429,18 +477,18 @@ struct CloudSignInSheet: View {
     private func prepareCloudLink(_ loadingState: CloudPostAuthLoadingState) async {
         do {
             let linkContext = try await self.store.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
-            guard self.postAuthLoadingState?.id == loadingState.id else {
+            guard self.store.cloudSignInAttempt.postAuthLoadingState?.id == loadingState.id else {
                 return
             }
-            self.postAuthFailureState = nil
+            self.store.cloudSignInAttempt.postAuthFailureState = nil
             self.handlePreparedLinkContext(linkContext)
         } catch {
-            guard self.postAuthLoadingState?.id == loadingState.id else {
+            guard self.store.cloudSignInAttempt.postAuthLoadingState?.id == loadingState.id else {
                 return
             }
-            self.postAuthLoadingState = nil
-            self.postAuthGuestLocalRecoveryPreparationState = nil
-            self.postAuthSyncState = nil
+            self.store.cloudSignInAttempt.postAuthLoadingState = nil
+            self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nil
+            self.store.cloudSignInAttempt.postAuthSyncState = nil
             if isRequestCancellationError(error: error) {
                 return
             }
@@ -472,7 +520,7 @@ struct CloudSignInSheet: View {
     }
 
     private func completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection) {
-        guard self.isPostAuthActionInFlight == false else {
+        guard self.store.cloudSignInAttempt.isPostAuthActionInFlight == false else {
             return
         }
 
@@ -484,11 +532,11 @@ struct CloudSignInSheet: View {
     }
 
     private func runGuestLocalRecoveryPreparation(_ recoveryState: CloudPostAuthGuestLocalRecoveryPreparationState) async {
-        guard self.postAuthGuestLocalRecoveryPreparationState?.id == recoveryState.id else {
+        guard self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState?.id == recoveryState.id else {
             return
         }
 
-        self.postAuthGuestLocalRecoveryPreparationState = nil
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nil
         self.presentPostAuthSync(
             operation: .completeLink(
                 linkContext: recoveryState.linkContext,
@@ -498,12 +546,12 @@ struct CloudSignInSheet: View {
     }
 
     private func retryPostAuthFailure(_ failureState: CloudPostAuthFailureState) {
-        self.postAuthFailureState = nil
+        self.store.cloudSignInAttempt.postAuthFailureState = nil
 
         switch failureState.retryAction {
         case .prepareLink(let verifiedContext):
             let loadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
-            self.postAuthLoadingState = loadingState
+            self.store.cloudSignInAttempt.postAuthLoadingState = loadingState
             self.startPostAuthLoadingTask(loadingState)
         case .completeLink(let linkContext, let selection):
             self.completeLink(linkContext: linkContext, selection: selection)
@@ -517,14 +565,14 @@ struct CloudSignInSheet: View {
     private func presentPostAuthSync(operation: CloudPostAuthSyncOperation) {
         let nextState = CloudPostAuthSyncState(operation: operation)
 
-        self.authErrorPresentation = nil
-        self.postAuthLoadingState = nil
-        self.postAuthGuestLocalRecoveryPreparationState = nil
-        self.postAuthSyncState = nil
-        self.workspaceLinkContext = nil
-        self.postAuthRecoveryNeededState = nil
-        self.postAuthFailureState = nil
-        self.postAuthSyncState = nextState
+        self.store.cloudSignInAttempt.authErrorPresentation = nil
+        self.store.cloudSignInAttempt.postAuthLoadingState = nil
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nil
+        self.store.cloudSignInAttempt.postAuthSyncState = nil
+        self.store.cloudSignInAttempt.workspaceLinkContext = nil
+        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
+        self.store.cloudSignInAttempt.postAuthFailureState = nil
+        self.store.cloudSignInAttempt.postAuthSyncState = nextState
 
         self.startPostAuthSyncTask(nextState)
     }
@@ -554,19 +602,19 @@ struct CloudSignInSheet: View {
                 )
             }
 
-            guard self.postAuthSyncState?.id == syncState.id else {
+            guard self.store.cloudSignInAttempt.postAuthSyncState?.id == syncState.id else {
                 return
             }
 
-            self.postAuthFailureState = nil
-            self.postAuthSyncState = nil
-            self.dismiss()
+            self.store.cloudSignInAttempt.postAuthFailureState = nil
+            self.store.cloudSignInAttempt.postAuthSyncState = nil
+            self.store.cloudSignInAttempt.isCompleted = true
         } catch {
-            guard self.postAuthSyncState?.id == syncState.id else {
+            guard self.store.cloudSignInAttempt.postAuthSyncState?.id == syncState.id else {
                 return
             }
             if isRequestCancellationError(error: error) {
-                self.postAuthSyncState = nil
+                self.store.cloudSignInAttempt.postAuthSyncState = nil
                 return
             }
 
@@ -575,7 +623,7 @@ struct CloudSignInSheet: View {
                 cloudState: self.store.cloudSettings?.cloudState
             )
 
-            self.postAuthSyncState = nil
+            self.store.cloudSignInAttempt.postAuthSyncState = nil
             self.presentPostAuthFailure(
                 title: failurePresentation.title,
                 message: failurePresentation.message ?? makeCloudPostAuthVisibleFailureMessage(error: error),
@@ -598,13 +646,13 @@ struct CloudSignInSheet: View {
         retryAction: CloudPostAuthRetryAction,
         kind: CloudPostAuthFailureKind
     ) {
-        self.cancelPostAuthTasks()
-        self.authErrorPresentation = nil
-        self.postAuthLoadingState = nil
-        self.postAuthGuestLocalRecoveryPreparationState = nil
-        self.postAuthSyncState = nil
-        self.postAuthRecoveryNeededState = nil
-        self.postAuthFailureState = CloudPostAuthFailureState(
+        self.store.cancelCloudSignInPostAuthTasks()
+        self.store.cloudSignInAttempt.authErrorPresentation = nil
+        self.store.cloudSignInAttempt.postAuthLoadingState = nil
+        self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nil
+        self.store.cloudSignInAttempt.postAuthSyncState = nil
+        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
+        self.store.cloudSignInAttempt.postAuthFailureState = CloudPostAuthFailureState(
             title: title,
             message: message,
             technicalError: technicalError.map { action in
@@ -632,7 +680,7 @@ struct CloudSignInSheet: View {
         _ presentation: CloudAuthInlineErrorPresentation,
         captureContext: TechnicalErrorCaptureContext
     ) {
-        self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+        self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
             message: presentation.message,
             technicalError: presentation.technicalError.map { action in
                 self.store.captureTechnicalErrorActionIfNeeded(
@@ -654,16 +702,16 @@ struct CloudSignInSheet: View {
         do {
             try self.store.logoutCloudAccount()
         } catch {
-            self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+            self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
                 message: Flashcards.errorMessage(error: error),
                 technicalError: nil
             )
         }
 
-        self.postAuthFailureState = nil
-        self.workspaceLinkContext = nil
-        self.postAuthRecoveryNeededState = nil
-        self.otpSheetState = nil
+        self.store.cloudSignInAttempt.postAuthFailureState = nil
+        self.store.cloudSignInAttempt.workspaceLinkContext = nil
+        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
+        self.store.cloudSignInAttempt.otpSheetState = nil
         self.dismiss()
     }
 }
@@ -674,7 +722,8 @@ struct CloudSignInSheet: View {
  * `onDismiss` fires when the presentation itself goes away. The sheet's own `onAppear`/`onDisappear`
  * do not mean that: SwiftUI rebuilds the sheet's content while the sheet stays on screen — switching
  * tabs under the Settings presenter is enough — and reading a dismissal from that reports an
- * abandoned sign-in for a sheet the person is still typing in.
+ * abandoned sign-in for a sheet the person is still typing in. `CloudSignInSheet` keeps nothing of
+ * the attempt for the same reason, so ending the attempt here is what tears its work down.
  *
  * Every presentation this modifier makes opens exactly one attempt, and it opens it before the sheet
  * can be closed. That needs both halves of `onChange(initial:)`, because a presentation does not
@@ -688,8 +737,9 @@ struct CloudSignInSheet: View {
  *
  * `hasOpenedAttemptForCurrentPresentation` is what keeps that safe. `beginCloudSignInAttempt` starts
  * a *new* attempt — it re-reads the credential-recovery gate into the latch that decides whether a
- * later dismissal is the person or the system — so running it twice inside one presentation would
- * re-latch the gate mid-attempt and turn a system-caused teardown back into a reported cancellation.
+ * later dismissal is the person or the system, and it clears the attempt's screen state and work —
+ * so running it twice inside one presentation would re-latch the gate mid-attempt, turn a
+ * system-caused teardown back into a reported cancellation, and throw away what the person typed.
  * The flag makes "one begin per presentation" a property of this modifier rather than of SwiftUI's
  * delivery order: it is `@State`, so a modifier that is destroyed and reinstalled starts clear and
  * arms its new presentation, while one that merely re-evaluates does not re-arm the presentation it
