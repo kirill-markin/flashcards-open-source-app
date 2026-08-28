@@ -100,11 +100,13 @@ func analyticsSyncFailureReason(error: Error) -> AnalyticsSyncFailureReason {
 /**
  * Maps a sign-in failure onto the shared `signin_failed` reasons, using the backend code where the
  * server named the cause and the local classification otherwise.
+ *
+ * It deliberately never returns `.cancelled`. That reason means the person walked away from the
+ * sign-in surface, which no thrown error can tell us; a transport cancellation is not the same
+ * event and would be indistinguishable from an abandonment in the funnel. Every call site already
+ * drops cancelled requests through `isRequestCancellationError` before reporting anything.
  */
 func analyticsSignInFailureReason(error: Error) -> AnalyticsSignInFailureReason {
-    if isRequestCancellationError(error: error) {
-        return .cancelled
-    }
     if isRetryableNetworkTransportFailure(error: error) {
         return .offline
     }

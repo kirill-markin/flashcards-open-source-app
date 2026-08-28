@@ -22,6 +22,17 @@ export type ChatRunStatus =
 
 export type ChatRunClaimToken = string;
 
+// The identity the turn was sent by, taken from the request context and carried alongside the
+// workspace-scoped `userId`, because the analytics row a prepared run emits has to name a guest as
+// precisely as an account. For a guest turn `subjectUserId` is the guest user id that guest's own
+// client events already carry, and it is the key the upgrade's identity link resolves to the
+// account. `guestSessionId` only records which guest session the turn came from; no attribution
+// resolves through it.
+export type ChatRunActor = Readonly<{
+  subjectUserId: string;
+  guestSessionId: string | null;
+}>;
+
 export type PreparedChatRun = Readonly<{
   sessionId: string;
   runId: string;

@@ -3,6 +3,10 @@
  * (`apps/backend/src/productAnalytics/catalog.ts`). The union is closed on `name`, so an event the
  * server would reject cannot be constructed. `guest_upgrade_completed` and `catalog_deck_installed`
  * are server-derived and deliberately absent.
+ *
+ * `signin_failed` is declared but never tracked from here. The web sign-in surface is the auth
+ * service's own login page on a different origin, reached by a full page navigation, so this app
+ * observes neither a sign-in attempt nor its dismissal.
  */
 
 export type AnalyticsSurface =

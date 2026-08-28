@@ -78,8 +78,16 @@ internal fun CloudCredentialRecoveryGateContainer(
         mutableStateOf(null)
     }
 
-    LaunchedEffect(recoveryState) {
+    // Leaves the gate's sign-in surface without recording an abandonment. The step and the sign-in
+    // draft are reset together on purpose: `resetSignInState` closes the latch that a later
+    // `returnToOverview` reports through, so resetting the draft while the person stayed on the
+    // email or code step would silently swallow the cancel they go on to make.
+    fun leaveSignInSurfaceWithoutAbandonment() {
         gateStep = CloudCredentialRecoveryGateStep.OVERVIEW
+        signInViewModel.resetSignInState()
+    }
+
+    LaunchedEffect(recoveryState) {
         isEraseConfirmationVisible = false
         isErasing = false
         eraseErrorMessage = ""
@@ -87,7 +95,7 @@ internal fun CloudCredentialRecoveryGateContainer(
         eraseErrorTechnicalDetailsReportId = null
         // Entering the gate composition, which also happens on every configuration change and on
         // every process start while recovery is active. Not a cancelled sign-in.
-        signInViewModel.resetSignInState()
+        leaveSignInSurfaceWithoutAbandonment()
     }
 
     LaunchedEffect(postAuthUiState.completionToken) {
@@ -117,7 +125,7 @@ internal fun CloudCredentialRecoveryGateContainer(
         eraseErrorTechnicalDetailsReportId = eraseErrorTechnicalDetailsReportId,
         onSignIn = {
             // The person is starting a sign-in, not abandoning one.
-            signInViewModel.resetSignInState()
+            signInViewModel.startSignIn()
             eraseErrorMessage = ""
             eraseErrorTechnicalDetails = null
             eraseErrorTechnicalDetailsReportId = null
@@ -190,7 +198,7 @@ internal fun CloudCredentialRecoveryGateContainer(
                 try {
                     appGraph.cloudAccountRepository.eraseLocalDataForCredentialRecovery()
                     // The erase succeeded and the gate is finished; no sign-in was abandoned.
-                    signInViewModel.resetSignInState()
+                    leaveSignInSurfaceWithoutAbandonment()
                     isEraseConfirmationVisible = false
                     onRecoveryGateFinished()
                 } catch (error: CancellationException) {

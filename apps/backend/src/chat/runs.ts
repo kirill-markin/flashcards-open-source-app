@@ -3,6 +3,7 @@
  * Internal implementation is split across focused modules under `./runs/`.
  */
 export type {
+  ChatRunActor,
   ChatRunClaimToken,
   ChatRunHeartbeatState,
   ChatRunSnapshot,
@@ -12,6 +13,8 @@ export type {
   PreparedChatRun,
   RecoveredPaginatedSession,
 } from "./runs/types";
+
+export { recordAiMessageSentAnalytics } from "./runs/analytics";
 
 export {
   assertActiveChatRunClaimWithExecutor,
