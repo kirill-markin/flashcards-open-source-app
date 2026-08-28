@@ -63,7 +63,7 @@ The function names are the `BackendFunctionName`, `McpFunctionName`, and
 to compare surfaces.
 
 Retention on the backend API group is owned by CDK, not by the console.
-`infra/aws/lib/monitoring.ts` reads `backendFn.logGroup` to attach the product
+`infra/aws/lib/product-analytics-monitoring.ts` reads `backendFn.logGroup` to attach the product
 analytics metric filters, which makes the stack declare that group's retention,
 and what it declares is never-expire. It is not re-asserted on every deploy:
 the retention is applied by a CloudFormation custom resource, and CloudFormation
