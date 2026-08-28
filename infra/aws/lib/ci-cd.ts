@@ -16,6 +16,7 @@ export interface CiCdProps {
   communityLeaderboardSnapshotFn: lambda.IFunction;
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
+  webGuestReaperFn: lambda.IFunction;
   catalogDumpFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
   generatedMediaPromotionScheduleArn: string;
@@ -176,6 +177,12 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
     sid: "InvokeProgressActiveDaysBackfillLambda",
     actions: ["lambda:InvokeFunction"],
     resources: [props.progressActiveDaysBackfillFn.functionArn],
+  }));
+
+  cdkDeployStatements.push(new iam.PolicyStatement({
+    sid: "InvokeWebGuestReaperLambda",
+    actions: ["lambda:InvokeFunction"],
+    resources: [props.webGuestReaperFn.functionArn],
   }));
 
   cdkDeployStatements.push(new iam.PolicyStatement({
