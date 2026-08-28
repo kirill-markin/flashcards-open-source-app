@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router";
+import { track } from "../../../analytics";
 import { useAppData } from "../../../appData";
 import { normalizeTagKey } from "../../../appData/domain";
 import {
@@ -871,7 +872,14 @@ export function CardsScreen(): ReactElement {
           </div>
           <div className="screen-actions">
             <span className="badge">{visibleCountLabel}</span>
-            <Link className="primary-btn" to="/cards/new" data-testid="cards-new-card">{t("cardForm.title.new")}</Link>
+            <Link
+              className="primary-btn"
+              to="/cards/new"
+              data-testid="cards-new-card"
+              onClick={() => track({ name: "card_create_started", entryPoint: "cards" })}
+            >
+              {t("cardForm.title.new")}
+            </Link>
           </div>
         </div>
 

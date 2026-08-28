@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
+import { useReviewSessionAnalytics } from "../../analytics";
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -199,6 +200,10 @@ export function useReviewScreenController(
     userId: session?.userId ?? null,
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
+  const { recordReviewAnswerSettled, recordReviewAnswerStarted } = useReviewSessionAnalytics({
+    reviewFilter: hasLoadedReviewData ? resolvedReviewFilter : null,
+    isReviewQueueEmpty: activeReviewQueue.length === 0,
+  });
   const handoffCardToAi = useAiCardHandoff();
   const {
     feedbackDialogProps,
@@ -272,6 +277,10 @@ export function useReviewScreenController(
       rating,
     });
     let reviewSubmissionOutcome: ReviewSubmissionOutcome = "failed";
+    // Claimed before the submit: `handleReviewData` removes the card from the queue optimistically
+    // and only then awaits the IndexedDB write, so the review session must already know an answer is
+    // in flight by the time an empty queue becomes observable.
+    recordReviewAnswerStarted();
 
     try {
       reviewSubmissionOutcome = await handleReviewData(card, rating);
@@ -301,6 +310,7 @@ export function useReviewScreenController(
         void maybeOpenPostReviewPrompt();
       }
     } finally {
+      recordReviewAnswerSettled(reviewSubmissionOutcome === "saved");
       if (reviewSubmissionOutcome !== "cancelled" && indexedDbOpenRecoveryState.hasFailed() === false) {
         setIsSubmitting(false);
         if (reviewSubmissionOutcome === "stale") {
