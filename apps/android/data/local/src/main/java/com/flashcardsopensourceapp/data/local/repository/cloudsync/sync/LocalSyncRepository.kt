@@ -207,7 +207,10 @@ class LocalSyncRepository(
                 throw error
             } catch (error: Exception) {
                 if (isRemoteAccountDeletedError(error = error)) {
-                    resetCoordinator.disconnectCloudIdentityPreservingLocalState()
+                    // The server account is gone, so this is an identity boundary and not a local
+                    // inconsistency: local data is still preserved, but every account-scoped
+                    // listener has to see the boundary before the next credential is obtained.
+                    resetCoordinator.disconnectDeletedCloudIdentityPreservingLocalState()
                     syncStatusState.value = SyncStatusSnapshot(
                         status = SyncStatus.Idle,
                         lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,

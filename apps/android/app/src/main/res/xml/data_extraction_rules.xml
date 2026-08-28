@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Keeps the analytics install identity and its queue off cloud backup and device-to-device
+  transfer. A restored `anonymous_id` would appear on a second device, and identity resolution in
+  `analytics.identity_links` is first-link-wins with no repair path, so a shared id merges two
+  people permanently. Everything not listed here is still backed up as before.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude
+            domain="sharedpref"
+            path="flashcards-analytics-identity.xml" />
+        <exclude
+            domain="database"
+            path="flashcards-analytics-queue.db" />
+        <exclude
+            domain="database"
+            path="flashcards-analytics-queue.db-wal" />
+        <exclude
+            domain="database"
+            path="flashcards-analytics-queue.db-shm" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude
+            domain="sharedpref"
+            path="flashcards-analytics-identity.xml" />
+        <exclude
+            domain="database"
+            path="flashcards-analytics-queue.db" />
+        <exclude
+            domain="database"
+            path="flashcards-analytics-queue.db-wal" />
+        <exclude
+            domain="database"
+            path="flashcards-analytics-queue.db-shm" />
+    </device-transfer>
+</data-extraction-rules>
