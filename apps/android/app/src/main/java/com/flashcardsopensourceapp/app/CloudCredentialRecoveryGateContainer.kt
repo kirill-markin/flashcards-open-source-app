@@ -54,6 +54,8 @@ internal fun CloudCredentialRecoveryGateContainer(
             syncRepository = appGraph.syncRepository,
             messageController = appGraph.appMessageBus,
             analytics = appGraph.analytics,
+            // The gate replaces the app's root at launch, so no product surface opened this sign-in.
+            originSurface = null,
             applicationContext = context.applicationContext
         )
     )

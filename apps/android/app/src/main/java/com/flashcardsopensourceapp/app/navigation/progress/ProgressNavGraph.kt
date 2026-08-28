@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsLeaderboardParticipationDestination
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationViewModel
 import com.flashcardsopensourceapp.feature.friendinvite.createFriendInvitationViewModelFactory
 import com.flashcardsopensourceapp.feature.progress.ProgressRoute
@@ -65,7 +66,9 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
             onClearFriendInvitationFailure = friendInvitationViewModel::clearFriendInvitationFailure,
             onFriendInvitationShared = friendInvitationViewModel::markFriendInvitationShared,
             onOpenSignIn = {
-                navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                navController.navigate(
+                    route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.PROGRESS)
+                )
             },
             onOpenLeaderboardSettings = {
                 navController.navigate(route = SettingsLeaderboardParticipationDestination.route)
