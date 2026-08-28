@@ -42,6 +42,11 @@ import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.prepareCloudP
 import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.requiresCloudGuestUpgrade
 import com.flashcardsopensourceapp.feature.settings.cloud.postAuth.resolveCloudPostAuthFailureAction
 import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSignInFailureReason
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
+import java.net.SocketTimeoutException
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +76,7 @@ class CloudSignInViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
     private val messageController: TransientMessageController,
+    private val analytics: Analytics,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -293,6 +299,7 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return CloudSendCodeNavigationOutcome.NoNavigation
             }
+            trackSignInFailed(reason = analyticsSignInFailureReason(error = error))
             val errorPresentation = createSendCodeErrorPresentation(
                 error = error,
                 strings = strings
@@ -348,6 +355,7 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return false
             }
+            trackSignInFailed(reason = analyticsSignInFailureReason(error = error))
             val errorPresentation = createVerifyCodeErrorPresentation(
                 error = error,
                 strings = strings
@@ -461,6 +469,9 @@ class CloudSignInViewModel(
             }
 
             CloudPostAuthFailureAction.LOGOUT -> {
+                // No analytics call belongs here. There is deliberately no flush-before-logout
+                // trigger, and the identity boundary is handled where logout actually clears the
+                // account, in `AppGraph`'s `onCloudIdentityReset` hook.
                 cloudAccountRepository.logout()
                 clearPostAuthState()
                 messageController.showMessage(
@@ -470,8 +481,35 @@ class CloudSignInViewModel(
         }
     }
 
+    /**
+     * The person deliberately backed out of a sign-in they had started. This is the only path that
+     * records `signin_failed(cancelled)`, so `cancelled` keeps meaning an abandonment.
+     */
     fun cancelSignIn() {
+        trackSignInFailed(reason = AnalyticsSignInFailureReason.CANCELLED)
         clearPostAuthState()
+    }
+
+    /**
+     * Clears the sign-in draft without recording an abandonment.
+     *
+     * Entering a surface that hosts sign-in, starting the flow and finishing a local erase all need
+     * a clean draft, and none of them is a person giving up: a composition entered on every
+     * configuration change and every process start, a tap on *Sign in*, and a completed erase would
+     * otherwise fill the `cancelled` bucket on an append-only table with rows that mean the
+     * opposite of what they say.
+     */
+    fun resetSignInState() {
+        clearPostAuthState()
+    }
+
+    private fun trackSignInFailed(reason: AnalyticsSignInFailureReason) {
+        analytics.track(
+            event = AnalyticsEvent.SignInFailed(
+                reason = reason,
+                screen = AnalyticsSurface.SETTINGS
+            )
+        )
     }
 
     fun acknowledgePostAuthCompletion() {
@@ -892,6 +930,7 @@ fun createCloudSignInViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
+    analytics: Analytics,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
@@ -900,9 +939,43 @@ fun createCloudSignInViewModelFactory(
                 cloudAccountRepository = cloudAccountRepository,
                 syncRepository = syncRepository,
                 messageController = messageController,
+                analytics = analytics,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }
+    }
+}
+
+private const val maxAnalyticsSignInFailureCauseDepth: Int = 8
+
+/** Maps a sign-in failure onto the closed reason set the server catalog declares. */
+private fun analyticsSignInFailureReason(error: Throwable): AnalyticsSignInFailureReason {
+    var currentError: Throwable? = error
+    var depth = 0
+    while (currentError != null && depth < maxAnalyticsSignInFailureCauseDepth) {
+        val inspectedError: Throwable = currentError
+        when (inspectedError) {
+            is SocketTimeoutException -> return AnalyticsSignInFailureReason.OFFLINE
+            is IOException -> return AnalyticsSignInFailureReason.OFFLINE
+            is CloudRemoteException -> return analyticsCloudSignInFailureReason(error = inspectedError)
+            else -> Unit
+        }
+        currentError = inspectedError.cause
+        depth += 1
+    }
+    return AnalyticsSignInFailureReason.SERVER_ERROR
+}
+
+private fun analyticsCloudSignInFailureReason(error: CloudRemoteException): AnalyticsSignInFailureReason {
+    if (error.statusCode == 429) {
+        return AnalyticsSignInFailureReason.RATE_LIMITED
+    }
+
+    return when (error.errorCode?.trim()?.uppercase()) {
+        "OTP_CODE_INVALID", "OTP_VERIFY_FAILED", "INVALID_EMAIL" -> AnalyticsSignInFailureReason.INVALID_CODE
+        "OTP_SESSION_EXPIRED", "OTP_CHALLENGE_CONSUMED" -> AnalyticsSignInFailureReason.EXPIRED_CODE
+        "OTP_TOO_MANY_ATTEMPTS", "RATE_LIMITED" -> AnalyticsSignInFailureReason.RATE_LIMITED
+        else -> AnalyticsSignInFailureReason.SERVER_ERROR
     }
 }
 

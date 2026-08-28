@@ -8,6 +8,9 @@ import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsNavigationTarget
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCardCreateEntryPoint
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.feature.cards.createCardsViewModelFactory
 import com.flashcardsopensourceapp.feature.cards.list.CardsRoute
 import com.flashcardsopensourceapp.feature.cards.list.CardsViewModel
@@ -36,6 +39,12 @@ internal fun NavGraphBuilder.registerCardsRootDestination(
             onApplyFilter = cardsViewModel::applyFilter,
             onClearFilter = cardsViewModel::clearFilter,
             onCreateCard = {
+                appGraph.analytics.track(
+                    event = AnalyticsEvent.CardCreateStarted(
+                        entryPoint = AnalyticsCardCreateEntryPoint.CARDS,
+                        screen = AnalyticsSurface.CARDS
+                    )
+                )
                 appGraph.appHandoffCoordinator.requestCardEditor(cardId = null)
             },
             onOpenCard = { cardId ->

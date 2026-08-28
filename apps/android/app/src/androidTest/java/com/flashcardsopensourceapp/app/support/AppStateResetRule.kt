@@ -9,6 +9,8 @@ import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.currentBlockingSystemDialogSummaryOrNull
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.dismissBlockingSystemDialogIfPresent
 import com.flashcardsopensourceapp.app.prompts.guestreview.guestSignInAfterReviewPromptPreferencesName
+import com.flashcardsopensourceapp.core.observability.analytics.analyticsIdentityPreferencesName
+import com.flashcardsopensourceapp.core.observability.analytics.analyticsQueueDatabaseName
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch
@@ -22,7 +24,8 @@ private val testOnlyPreferenceNames: List<String> = listOf(
     guestSignInAfterReviewPromptPreferencesName,
     "flashcards-ai-chat-preferences",
     "flashcards-ai-chat-history",
-    "flashcards-ai-chat-guest-session"
+    "flashcards-ai-chat-guest-session",
+    analyticsIdentityPreferencesName
 )
 
 open class AppStateResetRule : ExternalResource() {
@@ -45,6 +48,7 @@ internal fun resetAndroidTestAppState() {
         withTimeout(appResetTimeoutMillis) {
             application.closeAppGraph()
             clearTestOnlySharedPreferences(context = context)
+            clearAnalyticsQueueDatabase(context = context)
             application.recreateAppGraphAndAwaitStartup()
             application.appGraph.cloudAccountRepository.logout()
             application.closeAppGraph()
@@ -74,6 +78,15 @@ private fun waitForAndroidTestUiIdle(phase: String) {
                 "blockingSystemDialog=$blockingSystemDialogSummary"
         )
     }
+}
+
+/**
+ * `FlashcardsAndroidTestRunner` disables product analytics for the whole instrumentation process,
+ * so nothing should be queued here. This clears anything an earlier build of the app left on the
+ * device, so a run can never inherit a queue or an analytics identity from outside the suite.
+ */
+private fun clearAnalyticsQueueDatabase(context: Context) {
+    context.deleteDatabase(analyticsQueueDatabaseName)
 }
 
 private fun clearTestOnlySharedPreferences(context: Context) {

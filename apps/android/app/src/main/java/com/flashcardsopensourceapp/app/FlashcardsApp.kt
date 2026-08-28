@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.ui.Alignment
@@ -56,6 +57,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.flashcardsopensourceapp.app.analytics.analyticsSurfaceForRoute
+import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
@@ -88,6 +91,8 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncSource
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
@@ -98,6 +103,7 @@ import com.flashcardsopensourceapp.feature.settings.SettingsAttentionBadge
 import com.flashcardsopensourceapp.feature.settings.SettingsAttentionSummary
 import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionIssues
 import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionSummary
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -344,6 +350,34 @@ fun FlashcardsApp(
             )
         }
 
+        val currentAnalyticsSurface: AnalyticsSurface? = analyticsSurfaceForRoute(route = currentRoute)
+        // Saved, not remembered: a configuration change rebuilds the composition, and re-emitting
+        // the surface already reported would put a duplicate `screen_viewed` into an append-only
+        // table for every rotation.
+        var lastEmittedAnalyticsSurfaceName: String? by rememberSaveable {
+            mutableStateOf<String?>(value = null)
+        }
+
+        LaunchedEffect(currentRoute) {
+            val visitedSurface: AnalyticsSurface? = currentAnalyticsSurface
+            if (visitedSurface == null) {
+                // A route that exists but maps onto no shared surface still ends the previous
+                // surface's visit, so `review -> unmapped -> review` records two views rather than
+                // one. Every destination registered today does map; this keeps the count honest
+                // when one is added that does not. A null route is the frame before the graph
+                // settles — not a visit, and clearing on it would re-emit on every rotation.
+                if (currentRoute.isNullOrBlank().not()) {
+                    lastEmittedAnalyticsSurfaceName = null
+                }
+                return@LaunchedEffect
+            }
+            if (lastEmittedAnalyticsSurfaceName == visitedSurface.name) {
+                return@LaunchedEffect
+            }
+            lastEmittedAnalyticsSurfaceName = visitedSurface.name
+            appGraph.analytics.track(event = AnalyticsEvent.ScreenViewed(screen = visitedSurface))
+        }
+
         LaunchedEffect(isAppResumed, appGraph.reviewReminderAttentionController) {
             if (isAppResumed.not()) {
                 return@LaunchedEffect
@@ -529,6 +563,17 @@ fun FlashcardsApp(
                 delay(foregroundSyncPollingIntervalMillis(destination = currentDestination))
                 runCatching {
                     appGraph.syncRepository.syncNow()
+                }.onSuccess {
+                    appGraph.syncFailureAnalyticsReporter.reportSuccess()
+                }.onFailure { error ->
+                    if (error !is CancellationException) {
+                        // This loop polls every 15 s on Review and Cards. Reporting through the
+                        // shared gate makes an offline stretch cost one `sync_failed`, not one per
+                        // poll, so the event keeps measuring failure incidence.
+                        appGraph.syncFailureAnalyticsReporter.reportFailure(
+                            reason = analyticsSyncFailureReason(error = error)
+                        )
+                    }
                 }
             }
         }
