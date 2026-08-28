@@ -120,6 +120,99 @@ extension FlashcardsStore {
         return storedGuestSession
     }
 
+    /**
+     * The stored guest session, but only when this install has adopted it as its cloud session.
+     *
+     * A credential minted to authenticate analytics is not a cloud session: it must never restore
+     * guest cloud state, migrate the local workspace or start a sync. `loadOrCreateGuestCloudSession`
+     * adopts that same credential when the person opts into AI chat, feedback or cloud sync, so an
+     * install still only ever has one guest identity.
+     */
+    func loadUsableCloudGuestSessionForCurrentConfiguration() throws -> StoredGuestCloudSession? {
+        guard let storedGuestSession = try self.loadUsableGuestSessionForCurrentConfiguration() else {
+            // Nothing is stored, so any marker left behind names a token this install no longer has.
+            // Swept opportunistically, so the sidecar stops carrying a dead token — not because that
+            // marker could capture anything: `isAnalyticsOnlyGuestSession` is authoritative only by
+            // value, and a marker whose token is gone can never match a later credential. Best-effort
+            // for the same reason: the answer is already correct without it, this is hygiene the next
+            // read performs again, and this loader runs on every sync, so an unreadable sidecar must
+            // not be allowed to fail all of them.
+            try? self.dependencies.guestCredentialStore.clearAnalyticsOnlyGuestToken()
+            return nil
+        }
+        // A credential this install already runs its cloud session on is a cloud session whatever it
+        // was originally created for.
+        if self.cloudSettings?.cloudState == .guest {
+            return storedGuestSession
+        }
+        // A marker that cannot be read answers "analytics-only". This loader only ever widens what
+        // the app may adopt as a cloud session, so treating an unclassifiable credential as a cloud
+        // session is the one outcome the marker exists to prevent, and throwing instead would fail
+        // every sync on the install for as long as the sidecar stays unreadable.
+        //
+        // An unreadable sidecar is unreachable by construction; `GuestCloudCredentialStore.loadSidecar`
+        // states what keeps it that way. This is the direction to fall in if that ever stops holding,
+        // not a state the code is expected to reach.
+        let isAnalyticsOnly = (
+            try? self.isAnalyticsOnlyGuestSession(storedGuestSession: storedGuestSession)
+        ) ?? true
+        guard isAnalyticsOnly == false else {
+            return nil
+        }
+
+        return storedGuestSession
+    }
+
+    /// The stored guest session when this install created it to authenticate analytics and has not
+    /// adopted it as its cloud session. Such a credential owns nothing, which is what makes it safe to
+    /// hand to the identity link route instead of the guest upgrade flow.
+    func loadAnalyticsOnlyGuestSessionForCurrentConfiguration() throws -> StoredGuestCloudSession? {
+        guard let storedGuestSession = try self.loadGuestSessionForCurrentConfiguration() else {
+            return nil
+        }
+        guard try self.isAnalyticsOnlyGuestSession(storedGuestSession: storedGuestSession) else {
+            return nil
+        }
+
+        return storedGuestSession
+    }
+
+    /**
+     * Whether the stored guest session is the analytics-only credential, sweeping the marker whenever
+     * it names something else.
+     *
+     * The marker is authoritative only by value: this answers `true` only for the exact token the
+     * session record holds. Every guest token the server hands out is freshly random, on a first
+     * create and on an idempotency-key rotation alike, so a marker that outlives its session names a
+     * value nothing will ever hold again. That is what makes a diverged marker harmless — it
+     * mismatches, answers `false`, and is swept right here.
+     *
+     * The marker and the session record are two Keychain items, so they do diverge: a session record
+     * written straight from an active cloud session, a clear that removed only one of the two, or a
+     * failed write between them. The sweeps that follow such a divergence — here, in
+     * `loadUsableCloudGuestSessionForCurrentConfiguration`, in `clearGuestSessionIfNeeded`, in
+     * `createAndStoreGuestCloudSession`'s rollback and in
+     * `loadUsableGuestSessionForCurrentConfiguration` — are opportunistic hygiene that stop the
+     * sidecar carrying a dead token. They are best-effort because no answer depends on them.
+     *
+     * Do not replace the value comparison with a presence check. Presence is what would let a stale
+     * marker capture the next credential, and it is what would turn those hygiene sweeps into
+     * load-bearing steps that must not be skipped. The one sweep that is load-bearing today is the
+     * fatal clear in `loadOrCreateGuestCloudSession`, and it is load-bearing precisely because the
+     * marker there names the very token being adopted, so the two values do match.
+     */
+    private func isAnalyticsOnlyGuestSession(storedGuestSession: StoredGuestCloudSession) throws -> Bool {
+        guard let analyticsOnlyGuestToken = try self.dependencies.guestCredentialStore.loadAnalyticsOnlyGuestToken() else {
+            return false
+        }
+        guard analyticsOnlyGuestToken == storedGuestSession.guestToken else {
+            try? self.dependencies.guestCredentialStore.clearAnalyticsOnlyGuestToken()
+            return false
+        }
+
+        return true
+    }
+
     private func loadAuthenticatedCloudAccountSnapshot(
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration
@@ -194,6 +287,10 @@ extension FlashcardsStore {
                 trigger: trigger
             )
         }
+        // This install has just become `linked` without passing through sign-in. The startup call has
+        // already returned, because the state was still `disconnected` when it ran, so without this
+        // the claim would wait a whole cold start. Started, never awaited, exactly as at sign-in.
+        self.resumeAnalyticsGuestIdentityLinkIfNeeded()
     }
 
     func restoreAuthenticatedCloudSessionAfterReinstall(
@@ -333,11 +430,36 @@ extension FlashcardsStore {
         } else {
             try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
         }
+        // The other silent restore into a linked session, for the same reason: whatever ran at startup
+        // saw the state before this. Started, never awaited, and a no-op unless a claim is owed.
+        self.resumeAnalyticsGuestIdentityLinkIfNeeded()
     }
 
     func clearGuestSessionIfNeeded() throws {
-        if try self.dependencies.guestCredentialStore.loadGuestSession() != nil {
-            try self.dependencies.guestCredentialStore.clearGuestSession()
+        guard try self.dependencies.guestCredentialStore.loadGuestSession() != nil else {
+            // No session record to remove, but the analytics-only marker lives in its own Keychain
+            // item and can outlive one. It is swept so the sidecar stops carrying a dead token, not
+            // because it could name the next stored session: `isAnalyticsOnlyGuestSession` matches by
+            // value and the token it names is gone for good. Best-effort for that reason, and because
+            // this runs at the end of a completed cloud link, where credentials are already saved and
+            // sync has already started, and no analytics bookkeeping question may fail a sign-in.
+            try? self.dependencies.guestCredentialStore.clearAnalyticsOnlyGuestToken()
+            return
         }
+
+        try self.dependencies.guestCredentialStore.clearGuestSession()
+    }
+
+    /// Clears the stored guest session only while it is still the one named.
+    ///
+    /// The analytics identity claim suspends, and a logout during it resets local state and lets the
+    /// next flush mint a fresh credential. Clearing whatever is stored when the claim finally returns
+    /// would destroy that new identity, so the claim clears only the credential it actually linked.
+    func clearGuestSessionIfStillStored(guestToken: String) throws {
+        guard try self.dependencies.guestCredentialStore.loadGuestSession()?.guestToken == guestToken else {
+            return
+        }
+
+        try self.dependencies.guestCredentialStore.clearGuestSession()
     }
 }

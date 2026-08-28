@@ -406,6 +406,14 @@ extension FlashcardsStore {
         }
 
         try self.dependencies.guestCredentialStore.saveGuestSession(session: activeGuestSession)
+        // The record now names the session this install is already running its cloud state on, so an
+        // analytics-only marker from the credential it replaced describes nothing: it names a token
+        // the record no longer holds, and `isAnalyticsOnlyGuestSession` matches by value, so it
+        // mismatches rather than hiding this session. Swept here only so the sidecar stops carrying a
+        // dead token, and best-effort for that reason — this loader gates guest upgrade and cloud
+        // session paths that must not fail on an analytics bookkeeping question, and the next read
+        // recognises and sweeps it again.
+        try? self.dependencies.guestCredentialStore.clearAnalyticsOnlyGuestToken()
         return activeGuestSession
     }
 

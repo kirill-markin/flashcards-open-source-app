@@ -142,6 +142,29 @@ final class AnalyticsQueue: @unchecked Sendable {
     }
 
     /**
+     * Whether this identity has anything waiting to be sent. Read before a guest credential is
+     * created, because that credential is a permanent server-side identity and a launch that recorded
+     * nothing must not create one.
+     *
+     * Deliberately does not exclude TTL-expired rows, and that is only safe because of where it is
+     * read: `runFlush` sweeps expiry before it reaches the mint, so an expired row is already deleted
+     * by the time this runs. The ordering is load-bearing. A mint gate moved ahead of that sweep would
+     * let a queue holding nothing but rows about to be deleted buy a permanent guest user, workspace
+     * and membership for events that are never sent.
+     */
+    func hasPendingEvents(anonymousId: String) throws -> Bool {
+        let connection = try self.openedConnection()
+        let rows = try self.query(
+            connection: connection,
+            sql: "SELECT 1 FROM analytics_events WHERE anonymous_id = ? LIMIT 1",
+            values: [.text(anonymousId)]
+        ) { _ in
+            true
+        }
+        return rows.isEmpty == false
+    }
+
+    /**
      * Oldest events first, restricted to the identity pair of the oldest row so the batch envelope can
      * carry one `anonymousId` and one `sessionId` truthfully.
      *

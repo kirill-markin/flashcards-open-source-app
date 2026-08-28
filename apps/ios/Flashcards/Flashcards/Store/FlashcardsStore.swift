@@ -130,6 +130,12 @@ final class FlashcardsStore {
     @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
     /// Whether the presented sign-in sheet still owes one `signin_failed`.
     @ObservationIgnored var isCloudSignInAttemptOpen: Bool
+    /// Whether a background analytics guest identity claim is already in flight. Sign-in and startup
+    /// both start one, and two claims racing would send the same guest token twice.
+    @ObservationIgnored var isAnalyticsGuestIdentityLinkResumeRunning: Bool
+    /// The analytics guest credential stages that have already reported a failure in this process, so
+    /// a stage that repeats every flush or every launch costs one report rather than one per attempt.
+    @ObservationIgnored var reportedAnalyticsGuestCredentialFailureStages: Set<String>
     @ObservationIgnored var cachedAIChatStore: AIChatStore?
     @ObservationIgnored var currentVisibleTab: AppTab
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
@@ -472,6 +478,8 @@ final class FlashcardsStore {
         self.isAccountDeletionRunning = false
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
         self.isCloudSignInAttemptOpen = false
+        self.isAnalyticsGuestIdentityLinkResumeRunning = false
+        self.reportedAnalyticsGuestCredentialFailureStages = []
         self.currentVisibleTab = .review
         self.lastImmediateCloudSyncTriggerAt = nil
         self.activeReviewNotificationsRescheduleTask = nil

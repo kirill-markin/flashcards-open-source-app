@@ -7,6 +7,19 @@ private struct LegacyStoredGuestCloudSession: Codable {
     let workspaceId: String
 }
 
+/**
+ * State that belongs to the guest credential without belonging to the session record: the key an
+ * outstanding creation attempt reuses, and the token of a session this install created to
+ * authenticate analytics and has not adopted as its cloud session.
+ *
+ * It lives in its own Keychain item so the session record keeps the shape every stored credential
+ * already has, and so it travels with that credential across an app reinstall.
+ */
+private struct StoredGuestCloudSessionSidecar: Codable {
+    let creationIdempotencyKey: String?
+    let analyticsOnlyGuestToken: String?
+}
+
 enum GuestCloudCredentialStoreError: LocalizedError {
     case encodingFailed
     case decodingFailed
@@ -55,23 +68,154 @@ final class GuestCloudCredentialStore {
         self.service.hasPrefix("tests-")
     }
 
-    private var testStorageUrl: URL {
-        let fileName = "\(self.service)-\(self.account)-guest-cloud-session.json"
-            .replacingOccurrences(of: "/", with: "-")
-        return FileManager.default.temporaryDirectory
-            .appendingPathComponent(fileName, isDirectory: false)
+    private var sidecarAccount: String {
+        self.account + ".sidecar"
     }
 
     func loadGuestSession() throws -> StoredGuestCloudSession? {
+        guard let data = try self.loadData(account: self.account) else {
+            return nil
+        }
+
+        return try self.decodeGuestSession(data: data)
+    }
+
+    func saveGuestSession(session: StoredGuestCloudSession) throws {
+        let data: Data
+        do {
+            data = try self.encoder.encode(session)
+        } catch {
+            throw GuestCloudCredentialStoreError.encodingFailed
+        }
+
+        try self.saveData(data: data, account: self.account)
+    }
+
+    /**
+     * Clears the sidecar with the session.
+     *
+     * The analytics-only marker only ever describes the credential being removed, so it has to go
+     * with it. The creation key is different: `createAndStoreGuestCloudSession` clears it as soon as
+     * a session is stored, so a key still here names a creation attempt whose outcome this install
+     * never learned, not the credential being removed. It is dropped with it deliberately, because
+     * the identity boundary this clear usually serves must not let the next creation rotate a guest
+     * that belongs to the person who just left. The cost is accepted: if that attempt did create a
+     * guest, the only handle that could have reclaimed it by rotation is gone, and it stays a
+     * permanent orphan user and workspace, which the reaper never collects for mobile guests.
+     */
+    func clearGuestSession() throws {
+        try self.deleteData(account: self.account)
+        try self.deleteData(account: self.sidecarAccount)
+    }
+
+    func loadGuestSessionCreationIdempotencyKey() throws -> String? {
+        try self.loadSidecar()?.creationIdempotencyKey
+    }
+
+    func saveGuestSessionCreationIdempotencyKey(idempotencyKey: String) throws {
+        let sidecar = try self.loadSidecar()
+        try self.saveSidecar(
+            sidecar: StoredGuestCloudSessionSidecar(
+                creationIdempotencyKey: idempotencyKey,
+                analyticsOnlyGuestToken: sidecar?.analyticsOnlyGuestToken
+            )
+        )
+    }
+
+    func clearGuestSessionCreationIdempotencyKey() throws {
+        guard let sidecar = try self.loadSidecar(), sidecar.creationIdempotencyKey != nil else {
+            return
+        }
+
+        try self.saveSidecar(
+            sidecar: StoredGuestCloudSessionSidecar(
+                creationIdempotencyKey: nil,
+                analyticsOnlyGuestToken: sidecar.analyticsOnlyGuestToken
+            )
+        )
+    }
+
+    func loadAnalyticsOnlyGuestToken() throws -> String? {
+        try self.loadSidecar()?.analyticsOnlyGuestToken
+    }
+
+    func saveAnalyticsOnlyGuestToken(guestToken: String) throws {
+        let sidecar = try self.loadSidecar()
+        try self.saveSidecar(
+            sidecar: StoredGuestCloudSessionSidecar(
+                creationIdempotencyKey: sidecar?.creationIdempotencyKey,
+                analyticsOnlyGuestToken: guestToken
+            )
+        )
+    }
+
+    func clearAnalyticsOnlyGuestToken() throws {
+        guard let sidecar = try self.loadSidecar(), sidecar.analyticsOnlyGuestToken != nil else {
+            return
+        }
+
+        try self.saveSidecar(
+            sidecar: StoredGuestCloudSessionSidecar(
+                creationIdempotencyKey: sidecar.creationIdempotencyKey,
+                analyticsOnlyGuestToken: nil
+            )
+        )
+    }
+
+    /**
+     * Returns nil when no sidecar is stored, and throws only in a state this store makes unreachable.
+     *
+     * `decodingFailed` needs sidecar bytes nothing here can write. `saveSidecar` is the only writer of
+     * the `.sidecar` account — nothing outside this type touches this Keychain service — and it always
+     * encodes exactly `StoredGuestCloudSessionSidecar`, whose every field is optional, so bytes
+     * written by any other build of this app still decode. Keep every field optional for that reason:
+     * a required one would make this throw for every install that already stored a sidecar, and
+     * nothing here repairs a sidecar that will not decode.
+     *
+     * `unexpectedStatus` needs the Keychain to refuse this item while allowing the session record,
+     * which every caller reads first. Both items share `service` and
+     * `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, so no status can separate them: a refusal
+     * reaches the session record and the sidecar is never asked for.
+     *
+     * If that ever stops holding, this needs a self-healing read rather than a throw, because the
+     * consequences are permanent. `loadOrCreateGuestCloudSession` clears the marker fatally, so a
+     * `.guest` install would fail every sync and every AI-chat and feedback guest preparation, and the
+     * `?? true` fallback in `loadUsableCloudGuestSessionForCurrentConfiguration` would silently skip
+     * the guest cloud restore of a reinstalled real guest install.
+     */
+    private func loadSidecar() throws -> StoredGuestCloudSessionSidecar? {
+        guard let data = try self.loadData(account: self.sidecarAccount) else {
+            return nil
+        }
+
+        do {
+            return try self.decoder.decode(StoredGuestCloudSessionSidecar.self, from: data)
+        } catch {
+            throw GuestCloudCredentialStoreError.decodingFailed
+        }
+    }
+
+    private func saveSidecar(sidecar: StoredGuestCloudSessionSidecar) throws {
+        let data: Data
+        do {
+            data = try self.encoder.encode(sidecar)
+        } catch {
+            throw GuestCloudCredentialStoreError.encodingFailed
+        }
+
+        try self.saveData(data: data, account: self.sidecarAccount)
+    }
+
+    private func loadData(account: String) throws -> Data? {
         if self.usesTestFileStorage {
-            return try self.loadGuestSessionFromTestFile()
+            return try self.loadTestFileData(account: account)
         }
 
         var result: CFTypeRef?
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.service,
-            kSecAttrAccount: self.account,
+            kSecAttrAccount: account,
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne,
         ]
@@ -89,26 +233,19 @@ final class GuestCloudCredentialStore {
             throw GuestCloudCredentialStoreError.decodingFailed
         }
 
-        return try self.decodeGuestSession(data: data)
+        return data
     }
 
-    func saveGuestSession(session: StoredGuestCloudSession) throws {
+    private func saveData(data: Data, account: String) throws {
         if self.usesTestFileStorage {
-            try self.saveGuestSessionToTestFile(session: session)
+            try data.write(to: self.testStorageUrl(account: account), options: .atomic)
             return
-        }
-
-        let data: Data
-        do {
-            data = try self.encoder.encode(session)
-        } catch {
-            throw GuestCloudCredentialStoreError.encodingFailed
         }
 
         let baseQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.service,
-            kSecAttrAccount: self.account,
+            kSecAttrAccount: account,
         ]
         let attributes: [CFString: Any] = [
             kSecValueData: data,
@@ -129,16 +266,16 @@ final class GuestCloudCredentialStore {
         }
     }
 
-    func clearGuestSession() throws {
+    private func deleteData(account: String) throws {
         if self.usesTestFileStorage {
-            try self.clearGuestSessionFromTestFile()
+            try self.deleteTestFileData(account: account)
             return
         }
 
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: self.service,
-            kSecAttrAccount: self.account,
+            kSecAttrAccount: account,
         ]
 
         let status = SecItemDelete(query as CFDictionary)
@@ -149,29 +286,24 @@ final class GuestCloudCredentialStore {
         throw GuestCloudCredentialStoreError.unexpectedStatus(status, "delete")
     }
 
-    private func loadGuestSessionFromTestFile() throws -> StoredGuestCloudSession? {
-        let fileUrl = self.testStorageUrl
+    private func testStorageUrl(account: String) -> URL {
+        let fileName = "\(self.service)-\(account)-guest-cloud-session.json"
+            .replacingOccurrences(of: "/", with: "-")
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent(fileName, isDirectory: false)
+    }
+
+    private func loadTestFileData(account: String) throws -> Data? {
+        let fileUrl = self.testStorageUrl(account: account)
         guard FileManager.default.fileExists(atPath: fileUrl.path) else {
             return nil
         }
 
-        let data = try Data(contentsOf: fileUrl)
-        return try self.decodeGuestSession(data: data)
+        return try Data(contentsOf: fileUrl)
     }
 
-    private func saveGuestSessionToTestFile(session: StoredGuestCloudSession) throws {
-        let data: Data
-        do {
-            data = try self.encoder.encode(session)
-        } catch {
-            throw GuestCloudCredentialStoreError.encodingFailed
-        }
-
-        try data.write(to: self.testStorageUrl, options: .atomic)
-    }
-
-    private func clearGuestSessionFromTestFile() throws {
-        let fileUrl = self.testStorageUrl
+    private func deleteTestFileData(account: String) throws {
+        let fileUrl = self.testStorageUrl(account: account)
         guard FileManager.default.fileExists(atPath: fileUrl.path) else {
             return
         }

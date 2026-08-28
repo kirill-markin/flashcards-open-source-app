@@ -6,9 +6,16 @@ extension FlashcardsStore {
      * The credential the analytics client posts with, read without touching the network.
      *
      * The endpoint accepts `bearer`, `session` and `guest`, and a guest credential is enough, so this
-     * prefers the live session and falls back to the stored guest session. It deliberately never
-     * refreshes a token and never creates a guest session: analytics must not drive cloud work of its
-     * own, and events simply wait in the queue until the app has a credential for its own reasons.
+     * prefers the live session and falls back to the stored guest session whatever `cloudState` is —
+     * that session is now commonly the credential minted for analytics alone on an install that is not
+     * a cloud guest. It deliberately never refreshes a token and never creates one: creation is
+     * `mintAnalyticsGuestCredential()`, which the flush reaches only when this read finds nothing.
+     *
+     * The stored-session read is not side-effect free. It can persist the active cloud session into
+     * the credential record, sweep an analytics-only marker that no longer describes it, and drop a
+     * record left behind by a different service configuration. Its failures are contained here rather
+     * than raised: a flush that cannot answer this question sends nothing and leaves the events
+     * queued, which is the same outcome as having no credential at all.
      */
     func analyticsCredentials() -> AnalyticsCredentials? {
         if let activeSession = self.cloudRuntime.activeCloudSession() {

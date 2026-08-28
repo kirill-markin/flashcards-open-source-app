@@ -15,6 +15,7 @@ struct CloudSessionRuntimeState {
     var activeWorkspaceCompletionTask: CloudWorkspaceCompletionState?
     var activeAIChatSessionPreparation: AIChatSessionPreparationState?
     var activeGuestCloudSessionPreparation: GuestCloudSessionPreparationState?
+    var activeGuestCloudSessionCreation: GuestCloudSessionCreationState?
 }
 
 @MainActor
@@ -39,7 +40,8 @@ final class CloudSessionRuntime {
             activeCloudLinkTask: nil,
             activeWorkspaceCompletionTask: nil,
             activeAIChatSessionPreparation: nil,
-            activeGuestCloudSessionPreparation: nil
+            activeGuestCloudSessionPreparation: nil,
+            activeGuestCloudSessionCreation: nil
         )
     }
 
@@ -213,6 +215,43 @@ final class CloudSessionRuntime {
         } catch {
             if self.state.activeGuestCloudSessionPreparation?.id == preparation.id {
                 self.state.activeGuestCloudSessionPreparation = nil
+            }
+            throw error
+        }
+    }
+
+    /**
+     * The single gate every guest session creation on this install enters.
+     *
+     * Two creations running at once carry the same persisted idempotency key, and the second one
+     * rotates the session the first one created: the same guest user and workspace come back, but the
+     * token that was already stored is revoked. A caller that arrives while a creation is in flight
+     * therefore joins it and receives that one session instead of starting a second creation.
+     */
+    func createGuestCloudSession(
+        operation: @escaping @MainActor () async throws -> StoredGuestCloudSession
+    ) async throws -> StoredGuestCloudSession {
+        if let activeCreation = self.state.activeGuestCloudSessionCreation {
+            return try await activeCreation.task.value
+        }
+
+        let creation = GuestCloudSessionCreationState(
+            id: UUID().uuidString.lowercased(),
+            task: Task { @MainActor in
+                try await operation()
+            }
+        )
+        self.state.activeGuestCloudSessionCreation = creation
+
+        do {
+            let createdGuestSession = try await creation.task.value
+            if self.state.activeGuestCloudSessionCreation?.id == creation.id {
+                self.state.activeGuestCloudSessionCreation = nil
+            }
+            return createdGuestSession
+        } catch {
+            if self.state.activeGuestCloudSessionCreation?.id == creation.id {
+                self.state.activeGuestCloudSessionCreation = nil
             }
             throw error
         }
@@ -780,6 +819,8 @@ final class CloudSessionRuntime {
         self.state.activeAIChatSessionPreparation = nil
         self.state.activeGuestCloudSessionPreparation?.task.cancel()
         self.state.activeGuestCloudSessionPreparation = nil
+        self.state.activeGuestCloudSessionCreation?.task.cancel()
+        self.state.activeGuestCloudSessionCreation = nil
     }
 
     func cancelForAccountDeletion() {
@@ -790,6 +831,8 @@ final class CloudSessionRuntime {
         self.state.activeAIChatSessionPreparation = nil
         self.state.activeGuestCloudSessionPreparation?.task.cancel()
         self.state.activeGuestCloudSessionPreparation = nil
+        self.state.activeGuestCloudSessionCreation?.task.cancel()
+        self.state.activeGuestCloudSessionCreation = nil
         self.state.activeCloudSession = nil
         self.cloudAuthService.resetChallengeSession()
         FlashcardsObservability.setIdentity(nil)

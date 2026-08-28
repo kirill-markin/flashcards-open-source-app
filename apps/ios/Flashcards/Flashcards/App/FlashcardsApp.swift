@@ -60,9 +60,18 @@ struct FlashcardsApp: App {
             // drive the same flows, so the kill switch goes on before anything can be recorded.
             Analytics.setEnabled(false)
         } else {
-            Analytics.configure { [weak store] in
-                store?.analyticsCredentials()
-            }
+            Analytics.configure(
+                credentialsProvider: { [weak store] in
+                    store?.analyticsCredentials()
+                },
+                guestCredentialMinter: { [weak store] in
+                    guard let store else {
+                        return .skipped
+                    }
+
+                    return await store.mintAnalyticsGuestCredential()
+                }
+            )
             // Process start is the cold launch. Emitting it here rather than at startup-ready keeps
             // it ahead of the first screen_viewed instead of landing after it.
             Analytics.track(.appOpened(launchType: .cold))
@@ -371,6 +380,9 @@ struct FlashcardsApp: App {
 
             self.store.updateCurrentVisibleTab(tab: self.navigation.selectedTab)
             await self.store.resumePendingAccountDeletionIfNeeded()
+            // Finishes a guest identity claim a retryable failure left behind at sign-in. Started, not
+            // awaited: it must not delay startup and cannot fail it.
+            self.store.resumeAnalyticsGuestIdentityLinkIfNeeded()
 
             let now = Date()
             logAppLifecycleBreadcrumb(
