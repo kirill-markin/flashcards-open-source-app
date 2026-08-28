@@ -22,24 +22,70 @@ struct CloudOtpSheetState: Identifiable, Hashable {
 
 @MainActor
 extension FlashcardsStore {
-    func beginCloudSignInSheetPresentation(originSurface: AnalyticsSurface?) {
+    /**
+     * A sign-in attempt begins when a presenter asks for the sheet, not when the sheet's content
+     * appears. SwiftUI tears that content down and rebuilds it while the presentation stays on
+     * screen — a tab switch under the Settings presenter is enough — so an attempt anchored to the
+     * content would re-open on every rebuild and owe a `signin_failed` for each one.
+     *
+     * This starts an attempt from scratch: it writes all three fields the attempt is made of, so a
+     * presentation that ended without a dismissal — the credential-recovery gate swapping the tab
+     * root out from under a presented sheet is the one way that happens — cannot leave an origin
+     * surface or a gate latch behind for the next presentation to be judged on. Because it re-reads
+     * the gate into the latch, the caller owes exactly one call per presentation:
+     * `CloudSignInSheetModifier` is the only caller and holds that guarantee.
+     */
+    func beginCloudSignInAttempt(originSurface: AnalyticsSurface?) {
+        self.isCloudSignInAttemptOpen = true
+        self.cloudSignInOriginSurface = originSurface
+        self.wasCredentialRecoveryGateActiveAtSignInStart = self.isCloudCredentialRecoveryGateActive
+    }
+
+    /**
+     * The sheet was dismissed. This is the one place that sees every way it can go: the Close
+     * button, the interactive swipe, and the programmatic dismissals that follow success, logout or
+     * a post-auth failure. Backgrounding the app does not reach it, so an attempt still open here
+     * was abandoned by the person — with one exception. A dismissal that follows success or a
+     * reported failure finds the attempt settled and reports nothing.
+     *
+     * The exception is the credential-recovery gate. `RootTabView.body` swaps its whole tab root for
+     * `CloudCredentialRecoveryGateView` the moment `cloudCredentialRecoveryState` becomes non-nil,
+     * and swaps it back when the state clears; either swap takes away whichever sheet the other
+     * branch was presenting, and a background poll can flip that state while the person is typing.
+     * That is the system taking the surface away, not a person closing it, so the gate's activation
+     * is latched when the attempt begins and a mismatch here reports nothing. Android's gate sits
+     * above its navigation host and reports nothing for the same swap, so the two clients agree.
+     */
+    func endCloudSignInAttempt() {
+        if self.isCloudSignInAttemptOpen,
+           self.isCloudCredentialRecoveryGateActive == self.wasCredentialRecoveryGateActiveAtSignInStart {
+            self.trackCloudSignInFailed(reason: .cancelled)
+        }
+
+        self.isCloudSignInAttemptOpen = false
+        self.cloudSignInOriginSurface = nil
+        self.wasCredentialRecoveryGateActiveAtSignInStart = false
+    }
+
+    /**
+     * The sheet's content is on screen. SwiftUI can take that content away and bring it back within
+     * one presentation, so this tracks the surface and says nothing about the attempt.
+     */
+    func beginCloudSignInSurfacePresence() {
         assert(
             self.activeCloudSignInSheetCount == 0,
             "A second cloud sign-in sheet was presented while one was already on screen."
         )
         self.activeCloudSignInSheetCount += 1
-        self.isCloudSignInAttemptOpen = true
-        self.cloudSignInOriginSurface = originSurface
     }
 
-    func endCloudSignInSheetPresentation() {
+    func endCloudSignInSurfacePresence() {
         guard self.activeCloudSignInSheetCount > 0 else {
-            assertionFailure("Cloud sign-in sheet presentation ended without a matching begin.")
+            assertionFailure("Cloud sign-in surface presence ended without a matching begin.")
             return
         }
 
         self.activeCloudSignInSheetCount -= 1
-        self.cloudSignInOriginSurface = nil
     }
 
     /**
@@ -49,7 +95,7 @@ extension FlashcardsStore {
      * otherwise a counter: the credential-recovery gate and the tab root are the two mutually
      * exclusive branches of `RootTabView.body`, the guest-sign-in prompt is blocked outright while
      * this count is non-zero, and a presented sheet covers the tab bar, so no second presenter can
-     * be reached. `beginCloudSignInSheetPresentation` asserts on the overlap rather than leaving
+     * be reached. `beginCloudSignInSurfacePresence` asserts on the overlap rather than leaving
      * that as an assumption.
      */
     var isCloudSignInSurfacePresented: Bool {
@@ -79,17 +125,8 @@ extension FlashcardsStore {
         self.isCloudSignInAttemptOpen = false
     }
 
-    /**
-     * The person closed the sign-in sheet on an attempt that had neither failed nor been verified.
-     * A programmatic dismissal after success or after a reported failure finds the attempt settled
-     * and reports nothing.
-     */
-    func reportCloudSignInAbandonment() {
-        guard self.isCloudSignInAttemptOpen else {
-            return
-        }
-
-        self.trackCloudSignInFailed(reason: .cancelled)
+    private var isCloudCredentialRecoveryGateActive: Bool {
+        self.cloudCredentialRecoveryState != nil
     }
 
     private func trackCloudSignInFailed(reason: AnalyticsSignInFailureReason) {
