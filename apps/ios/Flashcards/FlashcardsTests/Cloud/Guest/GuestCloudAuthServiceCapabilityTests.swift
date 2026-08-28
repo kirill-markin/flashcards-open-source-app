@@ -40,7 +40,8 @@ final class GuestCloudAuthServiceCapabilityTests: XCTestCase {
         do {
             _ = try await service.createGuestSession(
                 apiBaseUrl: "https://api.example.test/v1",
-                configurationMode: .official
+                configurationMode: .official,
+                idempotencyKey: nil
             )
             XCTFail("Expected guest auth response decode failure")
         } catch let error as GuestCloudAuthError {

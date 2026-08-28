@@ -9,6 +9,7 @@ enum CloudFlowPhase: String, Sendable, Hashable {
     case guestSessionDelete = "guest_session_delete"
     case guestUpgradePrepare = "guest_upgrade_prepare"
     case guestUpgradeComplete = "guest_upgrade_complete"
+    case guestIdentityLink = "guest_identity_link"
     case guestAuthRequest = "guest_auth_request"
     case workspaceList = "workspace_list"
     case workspaceCreate = "workspace_create"
@@ -100,6 +101,7 @@ func cloudObservationFeature(phase: CloudFlowPhase) -> IOSObservationFeature {
             .guestSessionDelete,
             .guestUpgradePrepare,
             .guestUpgradeComplete,
+            .guestIdentityLink,
             .guestAuthRequest:
         return .cloudAuth
     case .workspaceList,

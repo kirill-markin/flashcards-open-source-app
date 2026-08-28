@@ -459,6 +459,11 @@ extension FlashcardsStore {
             trigger: trigger
         )
 
+        // Unconditional, unlike the sign-in site in `completeCloudLink`, which keeps an
+        // analytics-only credential for its background claim. Safe only because this route is reached
+        // from `guest` alone, where `loadOrCreateGuestCloudSession`'s fatal clear has already removed
+        // the marker, so no credential here can be analytics-only. Re-check this site, and the same
+        // call in `completeGuestLocalRecoveryCloudLink`, if that clear point ever moves.
         try self.clearGuestSessionIfNeeded()
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
         self.clearCloudCredentialRecoveryState()
