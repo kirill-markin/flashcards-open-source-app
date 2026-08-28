@@ -482,6 +482,19 @@ export type CatalogDeckInstalledAnalyticsSkippedDetails = Readonly<{
   errorMessage: string | null;
 }>;
 
+// A deliberate skip, not a dropped write: the acceptance committed and neither friendship_created
+// row was attempted, because the directed community.friendships row both events are derived from
+// could not be read. Reported under its own action so it never looks like
+// product_analytics_server_event_write_failed, which means the opposite - a row that was attempted
+// and rejected. friendship_row_read_failed is the savepoint-guarded read failing; the error fields
+// are null for friendship_row_missing, where the read succeeded and returned nothing.
+export type FriendshipCreatedAnalyticsSkippedDetails = Readonly<{
+  reason: "friendship_row_missing" | "friendship_row_read_failed";
+  sqlState: string | null;
+  errorClass: string | null;
+  errorMessage: string | null;
+}>;
+
 export type MigrationFailureDetails = Readonly<{
   migrationSurface: "lambda";
   operation: "run_migrations";
@@ -526,6 +539,7 @@ export type OperationsWarningEvent =
   | EventByAction<"product_analytics_server_event_write_failed", ProductAnalyticsServerEventWriteFailureDetails>
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>
+  | EventByAction<"friendship_created_analytics_skipped", FriendshipCreatedAnalyticsSkippedDetails>
   | (EventByAction<
     "progress_active_days_backfill_candidate_failed",
     ProgressActiveDaysBackfillCandidateFailureDetails
