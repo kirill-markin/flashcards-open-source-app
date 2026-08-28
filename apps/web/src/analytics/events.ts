@@ -2,7 +2,9 @@
  * Hand-written mirror of the backend product analytics catalog
  * (`apps/backend/src/productAnalytics/catalog.ts`). The union is closed on `name`, so an event the
  * server would reject cannot be constructed. `guest_upgrade_completed` and `catalog_deck_installed`
- * are server-derived and deliberately absent.
+ * are server-derived and deliberately absent. `onboarding_step_completed`,
+ * `review_session_started` and `review_session_ended` are still declared by the server but retired,
+ * so no client sends them.
  *
  * `signin_failed` is declared but never tracked from here. The web sign-in surface is the auth
  * service's own login page on a different origin, reached by a full page navigation, so this app
@@ -24,16 +26,6 @@ export type AnalyticsNetworkState = "wifi" | "cellular" | "offline" | "unknown";
 
 export type AnalyticsLaunchType = "cold" | "warm";
 
-export type AnalyticsOnboardingStep =
-  | "language"
-  | "goal"
-  | "notifications"
-  | "first_deck"
-  | "first_review"
-  | "signin";
-
-export type AnalyticsOnboardingOutcome = "completed" | "skipped";
-
 export type AnalyticsSignInFailureReason =
   | "invalid_code"
   | "expired_code"
@@ -41,10 +33,6 @@ export type AnalyticsSignInFailureReason =
   | "offline"
   | "server_error"
   | "cancelled";
-
-export type AnalyticsDeckScope = "all" | "deck" | "filter";
-
-export type AnalyticsReviewSessionEndReason = "completed" | "abandoned" | "interrupted";
 
 export type AnalyticsReviewAnswerFailureReason =
   | "offline"
@@ -84,23 +72,8 @@ export type AnalyticsEvent =
     screen: AnalyticsSurface;
   }>
   | Readonly<{
-    name: "onboarding_step_completed";
-    step: AnalyticsOnboardingStep;
-    outcome: AnalyticsOnboardingOutcome;
-  }>
-  | Readonly<{
     name: "signin_failed";
     reason: AnalyticsSignInFailureReason;
-  }>
-  | Readonly<{
-    name: "review_session_started";
-    deckScope: AnalyticsDeckScope;
-  }>
-  | Readonly<{
-    name: "review_session_ended";
-    endReason: AnalyticsReviewSessionEndReason;
-    answeredCount: number;
-    durationMs: number;
   }>
   | Readonly<{
     name: "review_answer_failed";
@@ -161,18 +134,8 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
       return { launch_type: event.launchType };
     case "screen_viewed":
       return null;
-    case "onboarding_step_completed":
-      return { step: event.step, outcome: event.outcome };
     case "signin_failed":
       return { reason: event.reason };
-    case "review_session_started":
-      return { deck_scope: event.deckScope };
-    case "review_session_ended":
-      return {
-        end_reason: event.endReason,
-        answered_count: event.answeredCount,
-        duration_ms: event.durationMs,
-      };
     case "review_answer_failed":
       return { reason: event.reason };
     case "card_create_started":

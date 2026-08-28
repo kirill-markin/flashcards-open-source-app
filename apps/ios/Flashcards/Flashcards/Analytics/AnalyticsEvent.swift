@@ -9,18 +9,14 @@ import Foundation
  *
  * `guest_upgrade_completed` and `catalog_deck_installed` are server-derived and are absent here on
  * purpose: a client batch that carries one is rejected `server_only_event`.
+ *
+ * `onboarding_step_completed`, `review_session_started` and `review_session_ended` are still
+ * declared by the server but retired, so no client sends them.
  */
 enum AnalyticsEvent: Sendable, Equatable {
     case appOpened(launchType: AnalyticsLaunchType)
     case screenViewed(screen: AnalyticsSurface)
-    case onboardingStepCompleted(step: AnalyticsOnboardingStep, outcome: AnalyticsOnboardingOutcome)
     case signInFailed(reason: AnalyticsSignInFailureReason)
-    case reviewSessionStarted(deckScope: AnalyticsReviewDeckScope)
-    case reviewSessionEnded(
-        endReason: AnalyticsReviewSessionEndReason,
-        answeredCount: Int,
-        durationMilliseconds: Int
-    )
     case reviewAnswerFailed(reason: AnalyticsReviewAnswerFailureReason)
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
     /// Emit only through `Analytics.reportSyncFailure(reason:)`. Sync is retried on a timer, so a
@@ -64,20 +60,6 @@ enum AnalyticsLaunchType: String, Sendable, Equatable {
     case warm
 }
 
-enum AnalyticsOnboardingStep: String, Sendable, Equatable {
-    case language
-    case goal
-    case notifications
-    case firstDeck = "first_deck"
-    case firstReview = "first_review"
-    case signin
-}
-
-enum AnalyticsOnboardingOutcome: String, Sendable, Equatable {
-    case completed
-    case skipped
-}
-
 enum AnalyticsSignInFailureReason: String, Sendable, Equatable {
     case invalidCode = "invalid_code"
     case expiredCode = "expired_code"
@@ -85,18 +67,6 @@ enum AnalyticsSignInFailureReason: String, Sendable, Equatable {
     case offline
     case serverError = "server_error"
     case cancelled
-}
-
-enum AnalyticsReviewDeckScope: String, Sendable, Equatable {
-    case all
-    case deck
-    case filter
-}
-
-enum AnalyticsReviewSessionEndReason: String, Sendable, Equatable {
-    case completed
-    case abandoned
-    case interrupted
 }
 
 enum AnalyticsReviewAnswerFailureReason: String, Sendable, Equatable {
@@ -169,14 +139,8 @@ extension AnalyticsEvent {
             return "app_opened"
         case .screenViewed:
             return "screen_viewed"
-        case .onboardingStepCompleted:
-            return "onboarding_step_completed"
         case .signInFailed:
             return "signin_failed"
-        case .reviewSessionStarted:
-            return "review_session_started"
-        case .reviewSessionEnded:
-            return "review_session_ended"
         case .reviewAnswerFailed:
             return "review_answer_failed"
         case .cardCreateStarted:
@@ -215,21 +179,8 @@ extension AnalyticsEvent {
             return ["launch_type": .string(launchType.rawValue)]
         case .screenViewed:
             return [:]
-        case .onboardingStepCompleted(let step, let outcome):
-            return [
-                "step": .string(step.rawValue),
-                "outcome": .string(outcome.rawValue)
-            ]
         case .signInFailed(let reason):
             return ["reason": .string(reason.rawValue)]
-        case .reviewSessionStarted(let deckScope):
-            return ["deck_scope": .string(deckScope.rawValue)]
-        case .reviewSessionEnded(let endReason, let answeredCount, let durationMilliseconds):
-            return [
-                "end_reason": .string(endReason.rawValue),
-                "answered_count": .integer(max(0, answeredCount)),
-                "duration_ms": .integer(max(0, durationMilliseconds))
-            ]
         case .reviewAnswerFailed(let reason):
             return ["reason": .string(reason.rawValue)]
         case .cardCreateStarted(let entryPoint):

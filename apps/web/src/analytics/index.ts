@@ -15,4 +15,3 @@ export {
   toAnalyticsSyncFailureReason,
 } from "./failureReasons";
 export { AnalyticsLifecycle } from "./AnalyticsLifecycle";
-export { useReviewSessionAnalytics } from "./useReviewSessionAnalytics";

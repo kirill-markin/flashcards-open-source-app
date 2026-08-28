@@ -137,11 +137,6 @@ struct ReviewView: View {
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
         .onAppear {
-            // A review session is the user's contiguous stay on this screen. It ends when they leave
-            // it, when the queue is exhausted, or when the app is backgrounded.
-            Analytics.startReviewSession(
-                deckScope: analyticsReviewDeckScope(reviewFilter: store.selectedReviewFilter)
-            )
             if self.areReviewReactionAnimationsEnabled {
                 self.prewarmReviewReactionLottieAssets()
             }
@@ -159,7 +154,6 @@ struct ReviewView: View {
             self.reviewSpeechController.stopSpeech()
         }
         .onDisappear {
-            Analytics.endReviewSession(reason: .abandoned)
             self.reviewSpeechController.stopSpeech()
             self.cancelReviewReactionLottiePrewarm()
         }
@@ -825,11 +819,6 @@ struct ReviewView: View {
                     .buttonStyle(.glass)
                 }
             }
-        }
-        .onAppear {
-            // The queue ran out while the user was here, so the session finished rather than being
-            // abandoned.
-            Analytics.completeReviewSessionIfAnswered()
         }
     }
 
