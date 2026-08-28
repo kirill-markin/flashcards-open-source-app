@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -18,4 +19,18 @@ android {
     kotlin {
         jvmToolchain(17)
     }
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.org.jetbrains.kotlinx.coroutines.android)
+
+    // The analytics queue is durable and lives on its own Room database, deliberately separate from
+    // the product data layer in `:data:local`.
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // `OkHttpClient` appears in the public analytics client constructor.
+    api(libs.okhttp)
 }

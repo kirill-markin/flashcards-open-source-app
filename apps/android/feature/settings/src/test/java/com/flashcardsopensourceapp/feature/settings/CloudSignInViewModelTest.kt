@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import com.flashcardsopensourceapp.core.observability.analytics.NoOpAnalytics
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
@@ -48,6 +49,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -114,6 +116,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -157,6 +160,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = syncRepository,
             messageController = TransientMessageController { message -> messages += message },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -238,6 +242,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = syncRepository,
             messageController = TransientMessageController { message -> messages += message },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -303,6 +308,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -350,6 +356,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { message -> messages.add(message) },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -399,6 +406,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = syncRepository,
             messageController = TransientMessageController { message -> messages += message },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -447,6 +455,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -497,6 +506,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -547,6 +557,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = syncRepository,
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -594,6 +605,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -646,6 +658,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = syncRepository,
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -698,6 +711,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -738,6 +752,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -771,6 +786,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -813,6 +829,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -849,6 +866,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -887,6 +905,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -940,6 +959,7 @@ class CloudSignInViewModelTest {
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
             messageController = TransientMessageController { },
+            analytics = NoOpAnalytics,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {

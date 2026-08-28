@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
@@ -187,12 +188,14 @@ fun createCloudSignInViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
+    analytics: Analytics,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return com.flashcardsopensourceapp.feature.settings.cloud.signIn.createCloudSignInViewModelFactory(
         cloudAccountRepository = cloudAccountRepository,
         syncRepository = syncRepository,
         messageController = messageController,
+        analytics = analytics,
         applicationContext = applicationContext
     )
 }

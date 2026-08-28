@@ -329,6 +329,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
+    // `ProcessLifecycleOwner`: `app_opened` must follow the process entering the foreground, not an
+    // activity resume, which also fires on a rotation and on returning from a system dialog.
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

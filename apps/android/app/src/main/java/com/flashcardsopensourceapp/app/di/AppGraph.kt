@@ -19,7 +19,16 @@ import com.flashcardsopensourceapp.app.prompts.guestreview.SharedPreferencesGues
 import com.flashcardsopensourceapp.app.store.NoOpStoreReviewAnalyticsReporter
 import com.flashcardsopensourceapp.app.store.StoreReviewActivityProvider
 import com.flashcardsopensourceapp.app.store.StoreReviewRequestManager
+import com.flashcardsopensourceapp.app.analytics.AppAnalyticsCredentialProvider
+import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
+import com.flashcardsopensourceapp.app.analytics.isProductAnalyticsDisabledForProcess
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsClient
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsForegroundTransitions
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsIdentity
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNetworkMonitor
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReporter
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.observability.shouldCaptureAndroidThrowable
@@ -188,6 +197,31 @@ class AppGraph(
     private val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
+    private val analyticsNetworkMonitor = AnalyticsNetworkMonitor(context = context, scope = appScope)
+    private val analyticsClient = AnalyticsClient(
+        context = context,
+        appScope = appScope,
+        okHttpClient = okHttpClient,
+        identity = AnalyticsIdentity(context = context),
+        credentialProvider = AppAnalyticsCredentialProvider(
+            cloudPreferencesStore = cloudPreferencesStore,
+            guestAiSessionStore = guestAiSessionStore
+        ),
+        networkStateProvider = analyticsNetworkMonitor,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
+    )
+    val analytics: Analytics = analyticsClient
+
+    /**
+     * Delivers the process leaving and re-entering the foreground to whoever holds an open
+     * measurement. `FlashcardsApplication` notifies it from its `ProcessLifecycleOwner` observer,
+     * synchronously and before the background flush, so a session closed there is queued in time to
+     * go out with that flush.
+     */
+    val analyticsForegroundTransitions = AnalyticsForegroundTransitions()
+    val syncFailureAnalyticsReporter = AnalyticsSyncFailureReporter(analytics = analytics)
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
     val storeReviewRequestStore: StoreReviewRequestStore = SharedPreferencesStoreReviewRequestStore(context = context)
     private val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
@@ -285,6 +319,33 @@ class AppGraph(
         guestAiSessionStore = guestAiSessionStore,
         onCloudIdentityReset = {
             strictRemindersManager.clearForCloudIdentityReset()
+            // Queued events belong to the person who is leaving, and the server attributes a batch
+            // to the credential that carries it, so they must never survive an identity boundary.
+            // `reset()` returns immediately and does no network work, so this never delays the
+            // action.
+            //
+            // Reached from exactly the three `CloudIdentityResetCoordinator` entry points that end
+            // one person's use of this install: `resetLocalStateForCloudIdentityChange` (logout, an
+            // account switch detected mid-sync or mid-refresh, an account deletion, a server
+            // change), `eraseLocalDataForCredentialRecovery` (the credential-recovery erase) and
+            // `disconnectDeletedCloudIdentityPreservingLocalState` (a `410 ACCOUNT_DELETED` sync
+            // answer, i.e. the account was deleted elsewhere).
+            //
+            // `disconnectCloudIdentityPreservingLocalState` deliberately does not reach here, and
+            // its callers are the complete "not a boundary" set:
+            //
+            // - reconciliation failures, where the same person recovers from a locally inconsistent
+            //   state and signs back into the same account, so rotating `anonymous_id` would split
+            //   one person's history instead of protecting the next person's;
+            // - `CloudGuestSessionCoordinator.clearStoredGuestCloudSessionLocalState`, which
+            //   disconnects a guest whose session the server answered `GUEST_AUTH_INVALID` for.
+            //   This is the least obvious member and the reason the set is enumerated rather than
+            //   claimed: queued events keep the guest's `anonymous_id` into the next credential on
+            //   purpose. It is the same install and the same person losing a server-side session,
+            //   not a person leaving — the same reasoning that keeps the guest-to-account upgrade
+            //   off this hook, where the `anonymous_id` has to carry through for
+            //   `analytics.identity_links` to join the guest and the account at all.
+            analytics.reset()
         }
     )
     private val cloudGuestSessionCoordinator = CloudGuestSessionCoordinator(
@@ -343,7 +404,13 @@ class AppGraph(
     val autoSyncEventRepository: AutoSyncEventRepository = localSyncRepository
     val autoSyncController = AutoSyncController(
         appScope = appScope,
-        autoSyncEventRepository = autoSyncEventRepository
+        autoSyncEventRepository = autoSyncEventRepository,
+        reportSyncFailure = { error ->
+            syncFailureAnalyticsReporter.reportFailure(
+                reason = analyticsSyncFailureReason(error = error)
+            )
+        },
+        reportSyncSucceeded = syncFailureAnalyticsReporter::reportSuccess
     )
     val cardsRepository: CardsRepository = LocalCardsRepository(
         database = database,
@@ -437,6 +504,13 @@ class AppGraph(
     val startupState: StateFlow<AppStartupState> = startupStateMutable.asStateFlow()
 
     init {
+        if (isProductAnalyticsDisabledForProcess()) {
+            // Instrumentation must never post synthetic rows into production `product_events`.
+            analytics.setEnabled(enabled = false)
+        }
+        analyticsNetworkMonitor.startObservingConnectivityRestored(
+            onConnectivityRestored = analytics::onConnectivityRestored
+        )
         startReviewHistoryAppliedObserver()
         startStartup()
     }
@@ -753,6 +827,7 @@ class AppGraph(
     }
 
     suspend fun close() {
+        analyticsNetworkMonitor.stopObservingConnectivityRestored()
         cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
         startupJob?.cancelAndJoin()
         cloudIdentityObserverJob?.cancelAndJoin()
@@ -761,6 +836,8 @@ class AppGraph(
         reviewNotificationsManager.close()
         strictRemindersManager.close()
         appJob.cancelAndJoin()
+        // After the scope that owns the analytics worker is gone, so nothing is using the queue.
+        analyticsClient.close()
         closeAppDatabase(database = database)
     }
 }

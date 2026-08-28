@@ -471,6 +471,24 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
             feedback = null,
             technicalError = null
         )
+        is AndroidWarningIssueEvent.AnalyticsPipelineWarning -> SentryAndroidObservationContext(
+            feature = event.feature.tagValue,
+            action = event.action.tagValue,
+            http = null,
+            ai = null,
+            progress = null,
+            notifications = null,
+            feedback = null,
+            technicalError = null,
+            analytics = SentryAnalyticsContext(
+                analyticsAction = sanitizeSentryContextValue(
+                    fieldName = "analyticsAction",
+                    value = event.name.tagValue
+                ),
+                eventCount = event.eventCount,
+                statusCode = event.statusCode
+            )
+        )
         is AndroidWarningIssueEvent.NotificationSchedulingWarning -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
             action = event.action.tagValue,
@@ -939,6 +957,7 @@ private fun warningIssueGroupKey(event: AndroidWarningIssueEvent): String? {
         is AndroidWarningIssueEvent.ProgressRepositoryWarning -> event.repositoryAction
         is AndroidWarningIssueEvent.AiRuntimeWarning -> event.name.tagValue
         is AndroidWarningIssueEvent.NotificationSchedulingWarning -> event.diagnostic.notificationKind
+        is AndroidWarningIssueEvent.AnalyticsPipelineWarning -> event.name.tagValue
     }
     return sanitizeSentryTagValue(fieldName = "warningGroup", value = rawGroupKey)
 }
@@ -975,7 +994,14 @@ private data class SentryAndroidObservationContext(
     val progress: SentryProgressContext?,
     val notifications: SentryNotificationSchedulingContext?,
     val feedback: SentryFeedbackContext?,
-    val technicalError: SentryTechnicalErrorContext?
+    val technicalError: SentryTechnicalErrorContext?,
+    val analytics: SentryAnalyticsContext? = null
+)
+
+private data class SentryAnalyticsContext(
+    val analyticsAction: String?,
+    val eventCount: Int?,
+    val statusCode: Int?
 )
 
 private data class SentryHttpContext(
