@@ -954,7 +954,7 @@ private func makeSnapshotProgressDailyReviews(
             throw LocalStoreError.validation("Progress date range could not be advanced")
         }
 
-        currentDate = nextDate
+        currentDate = calendar.startOfDay(for: nextDate)
     }
 
     return progressDays
