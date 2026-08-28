@@ -160,6 +160,11 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  ai_message_sent: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
   sync_failed: {
     serverOnly: false,
     requiresScreen: false,
