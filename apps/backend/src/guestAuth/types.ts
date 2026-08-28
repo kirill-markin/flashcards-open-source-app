@@ -1,4 +1,11 @@
-export type GuestSessionPlatform = "ios" | "android";
+/**
+ * Platform bound to a guest session. `ios` and `android` guest sessions own an offline workspace and
+ * can be upgraded into an account. `web` is deliberately narrower: it exists only so a signed-out
+ * browser can authenticate an analytics batch against an endpoint that always requires a credential.
+ * `guestAuth/webPlatform.ts` is the single gate that enforces that, refused by default on every
+ * authenticated surface and opted into only by analytics ingest.
+ */
+export type GuestSessionPlatform = "ios" | "android" | "web";
 
 export type GuestUpgradeMode = "bound" | "merge_required";
 

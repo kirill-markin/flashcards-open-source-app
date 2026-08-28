@@ -149,12 +149,12 @@ test("POST /guest-auth/session creates a platform-bound native guest session", a
   });
 });
 
-test("POST /guest-auth/session rejects web guest sessions", async () => {
-  let createCalls = 0;
+test("POST /guest-auth/session creates a platform-bound web guest session", async () => {
+  let receivedPlatform: GuestSessionPlatform | null | undefined;
   const app = createGuestAuthTestApp({
     authResult: createAuthResult("none"),
     onCreateGuestSession: async (platform) => {
-      createCalls += 1;
+      receivedPlatform = platform;
       return createGuestSessionSnapshot(platform);
     },
   });
@@ -167,12 +167,12 @@ test("POST /guest-auth/session rejects web guest sessions", async () => {
     body: JSON.stringify({ platform: "web" }),
   });
 
-  assert.equal(response.status, 403);
-  assert.equal(createCalls, 0);
+  assert.equal(response.status, 200);
+  assert.equal(receivedPlatform, "web");
   assert.deepEqual(await response.json(), {
-    error: "Guest web sessions are not supported. Sign in before using cloud sync on the web app.",
-    requestId: "request-1",
-    code: "GUEST_WEB_SESSION_UNSUPPORTED",
+    guestToken: "guest-token-create-route",
+    userId: "guest-user-create-route",
+    workspaceId: "guest-workspace-create-route",
   });
 });
 
