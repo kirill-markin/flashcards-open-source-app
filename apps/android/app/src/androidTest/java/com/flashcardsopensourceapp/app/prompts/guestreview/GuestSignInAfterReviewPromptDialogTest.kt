@@ -9,12 +9,15 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInEmailRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInUiState
@@ -83,12 +86,25 @@ class GuestSignInAfterReviewPromptDialogTest : FirebaseAppInstrumentationTimeout
                         GuestSignInAfterReviewPromptDialog(
                             onSignIn = {
                                 signInCalls += 1
-                                navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                                navController.navigate(
+                                    route = SettingsAccountSignInEmailDestination.createRoute(
+                                        origin = AnalyticsSurface.REVIEW
+                                    )
+                                )
                             },
                             onLater = {}
                         )
                     }
-                    composable(route = SettingsAccountSignInEmailDestination.route) {
+                    composable(
+                        route = SettingsAccountSignInEmailDestination.routePattern,
+                        arguments = listOf(
+                            navArgument(name = SettingsAccountSignInEmailDestination.routeArgument) {
+                                type = NavType.StringType
+                                nullable = true
+                                defaultValue = null
+                            }
+                        )
+                    ) {
                         CloudSignInEmailRoute(
                             uiState = CloudSignInUiState(
                                 email = "",
