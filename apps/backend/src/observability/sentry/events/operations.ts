@@ -188,6 +188,84 @@ export type ProgressActiveDaysBackfillFailureDetails = Readonly<{
   message: string;
 }>;
 
+/**
+ * The one record the web guest reaper emits per run. `candidatesExamined` is the denominator the
+ * other counters are read against: `deleted` plus `skipped` plus `failed` equals it, while
+ * `interrupted` counts the candidates the run loaded but could not settle before its deadline,
+ * including one whose own transaction ran out of time and rolled back. The `skipped*` counters are
+ * the reasons, and each skipped guest also carries its own `web_guest_reaper_candidate_skipped`
+ * record with its id, because most skips mean the invariant that a web guest workspace stays empty
+ * broke somewhere else.
+ *
+ * `finished` is the saturation signal and the one field to alert on: `false` means the run stopped
+ * on `maxPages` or on its deadline with candidates still waiting, so web guest rows are being
+ * minted faster than this schedule reaps them and the accumulation the job exists to stop is still
+ * running. No count on its own can distinguish that from a run that simply had a busy day, and such
+ * a run is a successful invocation with no errors, so neither Lambda alarm sees it:
+ * `WebGuestReaperSaturatedAlarm` in `infra/aws/lib/monitoring.ts` is the metric filter that does.
+ *
+ * `scanFailed` separates the two ways a run can end with `finished: false`. It means the run
+ * stopped because a candidate scan threw, so the counters above cover only the pages it got
+ * through, and its own `web_guest_reaper_scan_failed` record carries the error. Such a run reports
+ * `finished: false` as well, because candidates really were left behind, so it raises the
+ * saturation alarm too; it is also an errored invocation, because the entrypoint throws on this
+ * flag after emitting this record.
+ */
+export type WebGuestReaperCompletedDetails = Readonly<{
+  batchSize: number;
+  maxPages: number;
+  inactivityThresholdDays: number;
+  inactiveBeforeUtc: string;
+  pagesScanned: number;
+  candidatesExamined: number;
+  deleted: number;
+  skipped: number;
+  skippedWorkspaceHasContent: number;
+  skippedWorkspaceNotSoleOwned: number;
+  skippedWorkspaceMissing: number;
+  skippedNoLongerCandidate: number;
+  interrupted: number;
+  failed: number;
+  scanFailed: boolean;
+  finished: boolean;
+}>;
+
+export type WebGuestReaperCandidateSkippedDetails = Readonly<{
+  guestUserId: string;
+  workspaceId: string | null;
+  reason:
+    | "workspace_has_content"
+    | "workspace_not_sole_owned"
+    | "workspace_missing"
+    | "no_longer_a_candidate";
+  lastActiveAtUtc: string;
+}>;
+
+export type WebGuestReaperCandidateFailureDetails = Readonly<{
+  guestUserId: string;
+  lastActiveAtUtc: string;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+/**
+ * Why a run ended early with `scanFailed: true`. It is a warning rather than an exception because
+ * the run itself continues to its completion record, which reports what it already deleted; the
+ * entrypoint's `web_guest_reaper_failed` exception follows immediately after and is what the Lambda
+ * error alarm sees.
+ */
+export type WebGuestReaperScanFailureDetails = Readonly<{
+  pagesScanned: number;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type WebGuestReaperFailureDetails = Readonly<{
+  batchSize: number | null;
+  maxPages: number | null;
+  message: string;
+}>;
+
 export type GeneratedMediaPromotionBatchDetails = Readonly<{
   maximumJobs: number; claimed: number; applied: number; ambiguous: number;
   failed: number; interrupted: number; leaseLost: number; rescheduled: number;
@@ -419,6 +497,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
+  | EventByAction<"web_guest_reaper_completed", WebGuestReaperCompletedDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
   | EventByAction<"media_blob_cleanup_retry", MediaBlobCleanupRetryDetails>
@@ -450,6 +529,18 @@ export type OperationsWarningEvent =
   | (EventByAction<
     "progress_active_days_backfill_candidate_failed",
     ProgressActiveDaysBackfillCandidateFailureDetails
+  > & Readonly<{ message: string }>)
+  | (EventByAction<
+    "web_guest_reaper_candidate_skipped",
+    WebGuestReaperCandidateSkippedDetails
+  > & Readonly<{ message: string }>)
+  | (EventByAction<
+    "web_guest_reaper_candidate_failed",
+    WebGuestReaperCandidateFailureDetails
+  > & Readonly<{ message: string }>)
+  | (EventByAction<
+    "web_guest_reaper_scan_failed",
+    WebGuestReaperScanFailureDetails
   > & Readonly<{ message: string }>);
 
 export type OperationsExceptionEvent =
@@ -461,6 +552,9 @@ export type OperationsExceptionEvent =
     error: Error;
   }>)
   | (EventByAction<"progress_active_days_backfill_failed", ProgressActiveDaysBackfillFailureDetails> & Readonly<{
+    error: Error;
+  }>)
+  | (EventByAction<"web_guest_reaper_failed", WebGuestReaperFailureDetails> & Readonly<{
     error: Error;
   }>)
   | (EventByAction<"generated_media_promotion_batch_failed", GeneratedMediaPromotionBatchDetails> & Readonly<{

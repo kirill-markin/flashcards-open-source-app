@@ -32,6 +32,7 @@ export interface OutputsProps {
   communityLeaderboardSnapshotFunction: lambda.IFunction;
   streakLeaderboardSnapshotFunction: lambda.IFunction;
   progressActiveDaysBackfillFunction: lambda.IFunction;
+  webGuestReaperFunction: lambda.IFunction;
   catalogDumpBucket: s3.IBucket;
   catalogDumpDistribution: cloudfront.Distribution;
   catalogDumpFunction: lambda.IFunction;
@@ -192,6 +193,11 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "ProgressActiveDaysBackfillFunctionName", {
     value: props.progressActiveDaysBackfillFunction.functionName,
     description: "Lambda function name for Progress active review days backfill",
+  });
+
+  new cdk.CfnOutput(scope, "WebGuestReaperFunctionName", {
+    value: props.webGuestReaperFunction.functionName,
+    description: "Lambda function name for the never-converted web guest reaper",
   });
 
   new cdk.CfnOutput(scope, "CatalogDumpBucketName", {

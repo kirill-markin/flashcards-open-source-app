@@ -23,6 +23,7 @@ import { globalMetrics } from "./scheduled-jobs/global-metrics";
 import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
+import { webGuestReaper } from "./scheduled-jobs/web-guest-reaper";
 import { publicEndpointHeartbeat } from "./scheduled-jobs/public-endpoint-heartbeat";
 import {
   generatedMediaPromotion,
@@ -245,6 +246,14 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
     });
+    const webGuestReaperResult = webGuestReaper(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      reportingDbSecret: dbResult.reportingDbSecret,
+      ...sentryContext,
+    });
     publicEndpointHeartbeat(this, { baseDomain });
     const mediaAssetsResult = mediaAssets(this, {
       baseDomain,
@@ -386,6 +395,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     });
     addDatabaseMigrationDependency(api.backendFn, migrationGate);
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
+    addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
     const web = webApp(this, {
       baseDomain,
       webCertificateArnUsEast1,
@@ -414,6 +424,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
+      webGuestReaperFn: webGuestReaperResult.reaperFunction,
       generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,
       multipartCompletionReconciliationFn:
         multipartCompletionReconciliationResult.reconciliationFunction,
@@ -435,6 +446,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
+      webGuestReaperFn: webGuestReaperResult.reaperFunction,
       catalogDumpFn: catalogDumpResult.dumpFunction,
       migrationFn,
       generatedMediaPromotionScheduleArn:
@@ -472,6 +484,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFunction: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFunction: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFunction: progressActiveDaysBackfillResult.backfillFunction,
+      webGuestReaperFunction: webGuestReaperResult.reaperFunction,
       catalogDumpBucket: catalogDumpResult.bucket,
       catalogDumpDistribution: catalogDumpResult.distribution,
       catalogDumpFunction: catalogDumpResult.dumpFunction,
