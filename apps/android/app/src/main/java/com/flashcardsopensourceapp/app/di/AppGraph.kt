@@ -22,7 +22,9 @@ import com.flashcardsopensourceapp.app.store.StoreReviewRequestManager
 import com.flashcardsopensourceapp.app.analytics.AppAnalyticsCredentialProvider
 import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
 import com.flashcardsopensourceapp.app.analytics.isProductAnalyticsDisabledForProcess
+import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsClient
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsForegroundTransitions
@@ -74,7 +76,9 @@ import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.AnalyticsGuestSessionMinter
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionCreationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
@@ -169,6 +173,7 @@ class AppGraph(
     private val startupStateMutable = MutableStateFlow<AppStartupState>(AppStartupState.Loading)
     private var startupJob: Job? = null
     private var cloudIdentityObserverJob: Job? = null
+    private var analyticsGuestIdentityLinkJob: Job? = null
     private var reviewHistoryAppliedObserverJob: Job? = null
     private var notificationsWorkspaceObserverJob: Job? = null
 
@@ -197,6 +202,38 @@ class AppGraph(
     private val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
+    private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
+    private val aiChatLiveRemoteService = AiChatLiveRemoteService(
+        dispatchers = aiCoroutineDispatchers,
+        okHttpClient = okHttpClient,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
+    )
+    private val aiChatRemoteService = AiChatRemoteService(
+        dispatchers = aiCoroutineDispatchers,
+        liveRemoteService = aiChatLiveRemoteService,
+        okHttpClient = okHttpClient,
+        observability = observability,
+        appVersion = appPackageInfo.versionName,
+        versionCode = appPackageInfo.longVersionCode.toInt()
+    )
+    // One instance per graph, shared by both creators: its mutex is the lock that keeps the
+    // analytics mint and the cloud guest restore from creating two permanent guest identities for
+    // one install. `AppGraph` is rebuilt inside a running process, so this is not process-wide the
+    // way `hasAttemptedAnalyticsGuestMint` in `AppAnalyticsSupport` is; two instances would each
+    // hold their own mutex. Nothing can overlap across a rebuild in practice: `close()` awaits
+    // `appJob.cancelAndJoin()` before the graph is dropped, so no mint of the old graph is still in
+    // flight, and the only place a graph is rebuilt inside a live process is instrumentation, where
+    // `isProductAnalyticsDisabledForProcess()` means the mint never runs at all.
+    private val guestCloudSessionCreationCoordinator = GuestCloudSessionCreationCoordinator(
+        guestSessionStore = guestAiSessionStore,
+        guestSessionCreator = aiChatRemoteService
+    )
+    private val analyticsGuestSessionMinter = AnalyticsGuestSessionMinter(
+        preferencesStore = cloudPreferencesStore,
+        creationCoordinator = guestCloudSessionCreationCoordinator
+    )
     private val analyticsNetworkMonitor = AnalyticsNetworkMonitor(context = context, scope = appScope)
     private val analyticsClient = AnalyticsClient(
         context = context,
@@ -205,7 +242,9 @@ class AppGraph(
         identity = AnalyticsIdentity(context = context),
         credentialProvider = AppAnalyticsCredentialProvider(
             cloudPreferencesStore = cloudPreferencesStore,
-            guestAiSessionStore = guestAiSessionStore
+            guestAiSessionStore = guestAiSessionStore,
+            analyticsGuestSessionMinter = analyticsGuestSessionMinter,
+            reportGuestSessionMintFailure = ::reportAnalyticsGuestSessionMintFailure
         ),
         networkStateProvider = analyticsNetworkMonitor,
         observability = observability,
@@ -237,25 +276,9 @@ class AppGraph(
         reviewLogDao = database.reviewLogDao(),
         notificationDeliveryGate = notificationDeliveryGate
     )
-    private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
     private val localProgressCacheStore = LocalProgressCacheStore(
         database = database,
         timeProvider = SystemTimeProvider
-    )
-    private val aiChatLiveRemoteService = AiChatLiveRemoteService(
-        dispatchers = aiCoroutineDispatchers,
-        okHttpClient = okHttpClient,
-        observability = observability,
-        appVersion = appPackageInfo.versionName,
-        versionCode = appPackageInfo.longVersionCode.toInt()
-    )
-    private val aiChatRemoteService = AiChatRemoteService(
-        dispatchers = aiCoroutineDispatchers,
-        liveRemoteService = aiChatLiveRemoteService,
-        okHttpClient = okHttpClient,
-        observability = observability,
-        appVersion = appPackageInfo.versionName,
-        versionCode = appPackageInfo.longVersionCode.toInt()
     )
     internal val syncLocalStore = SyncLocalStore(
         database = database,
@@ -356,7 +379,7 @@ class AppGraph(
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
-        guestSessionCreator = aiChatRemoteService,
+        creationCoordinator = guestCloudSessionCreationCoordinator,
         appVersion = appPackageInfo.versionName
     )
     val mediaUploadTransferRepository = LocalMediaUploadTransferRepository(
@@ -387,7 +410,8 @@ class AppGraph(
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
-        appVersion = appPackageInfo.versionName
+        appVersion = appPackageInfo.versionName,
+        onAnalyticsGuestIdentityLinkRequested = ::requestAnalyticsGuestIdentityLink
     )
     private val localSyncRepository = LocalSyncRepository(
         database = database,
@@ -538,6 +562,69 @@ class AppGraph(
         }
     }
 
+    /**
+     * Claims the analytics guest identity for the signed-in account, on the two occasions that can
+     * produce one: a completed sign-in, and each app start, which is the retry the link needs. It is
+     * a no-op once that credential is gone, once cloud state is not `LINKED`, and for any guest that
+     * owns cloud data.
+     *
+     * Requested explicitly rather than collected off cloud settings. Sign-in emits several settings
+     * changes in quick succession, and a `collectLatest` over them cancels an in-flight link on each
+     * one — exactly when the link is most wanted; the sign-in's own `LINKED` write also lands one
+     * statement before its credentials are stored.
+     *
+     * It runs on a job of its own so nothing awaits it: a failure only leaves the credential in
+     * place for the next attempt. Concurrent requests do not race — the coordinator serializes them
+     * on its own mutex — and cancelling the job cancels at most the attempt in flight. A second
+     * request replaces the field without cancelling the job it held, so `close()` joins only the
+     * newest one; `appJob.cancelAndJoin()` right below it cancels and awaits every other launch on
+     * this scope, which is what covers the rest. A change that gives this link a scope of its own,
+     * or drops that join, has to cancel the previous job here instead.
+     *
+     * The process-wide analytics kill switch stops it before the identity is requested, not merely
+     * before the events leave: `POST /v1/guest-auth/identity/link` writes an append-only,
+     * first-link-wins `analytics.identity_links` row with no repair path, and
+     * `flashcards-ai-chat-guest-session` survives `adb install -r`, so an instrumentation run
+     * finding an earlier normal launch's analytics guest would permanently claim a real person's
+     * pre-sign-in tail for the account it signs into. Nothing about an opted-out process may reach
+     * the backend, which is the same rule the mint in `AppAnalyticsCredentialProvider` follows.
+     */
+    private fun requestAnalyticsGuestIdentityLink() {
+        if (isProductAnalyticsDisabledForProcess()) {
+            return
+        }
+        analyticsGuestIdentityLinkJob = appScope.launch {
+            try {
+                cloudGuestSessionCoordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                Log.w(
+                    appGraphLogTag,
+                    "event=analytics_guest_identity_link_retry " +
+                        renderSanitizedThrowableLogFields(error = error)
+                )
+            }
+        }
+    }
+
+    /**
+     * The analytics credential provider's only request, reported under its own name so an offline
+     * first launch is not filed as an analytics queue-store read failure.
+     */
+    private fun reportAnalyticsGuestSessionMintFailure() {
+        observability.captureWarning(
+            event = AndroidWarningIssueEvent.AnalyticsPipelineWarning(
+                name = AndroidAnalyticsObservationName.GUEST_CREDENTIAL_MINT_FAILED,
+                eventCount = null,
+                statusCode = null,
+                appVersion = appPackageInfo.versionName,
+                clientVersion = appPackageInfo.versionName,
+                versionCode = appPackageInfo.longVersionCode.toInt()
+            )
+        )
+    }
+
     private fun startReviewHistoryAppliedObserver() {
         reviewHistoryAppliedObserverJob?.cancel()
         reviewHistoryAppliedObserverJob = appScope.launch {
@@ -570,6 +657,7 @@ class AppGraph(
                 ensureLocalWorkspaceShell(currentTimeMillis = System.currentTimeMillis())
                 cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
                 cloudGuestSessionCoordinator.reconcilePersistedCloudStateForStartup()
+                requestAnalyticsGuestIdentityLink()
                 val initialWorkspaceId = workspaceRepository.observeWorkspace().first()?.workspaceId
                 if (initialWorkspaceId != null) {
                     reviewNotificationsStore.migrateLegacySettings(
@@ -831,6 +919,7 @@ class AppGraph(
         cloudCredentialRecoveryGateViewModelStoreOwner.viewModelStore.clear()
         startupJob?.cancelAndJoin()
         cloudIdentityObserverJob?.cancelAndJoin()
+        analyticsGuestIdentityLinkJob?.cancelAndJoin()
         reviewHistoryAppliedObserverJob?.cancelAndJoin()
         notificationsWorkspaceObserverJob?.cancelAndJoin()
         reviewNotificationsManager.close()

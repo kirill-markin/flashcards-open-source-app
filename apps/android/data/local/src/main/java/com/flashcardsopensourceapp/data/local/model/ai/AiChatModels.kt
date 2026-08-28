@@ -334,7 +334,24 @@ data class StoredGuestAiSession(
     val userId: String,
     val workspaceId: String,
     val configurationMode: CloudServiceConfigurationMode,
-    val apiBaseUrl: String
+    val apiBaseUrl: String,
+    /**
+     * True only while this guest exists solely to authenticate product analytics: minted by
+     * `AnalyticsGuestSessionMinter`, never migrated onto a local workspace, never behind
+     * `CloudAccountState.GUEST`.
+     *
+     * It is the single fact that separates such a guest from one that owns cloud data, and
+     * `cloudState` cannot stand in for it: `finishGuestCloudLink` persists the session before
+     * marking guest state, and the marking is skipped under `LINKED`/`LINKING_READY`, so a guest
+     * that owns a real workspace can sit under a non-`GUEST` state.
+     *
+     * Only an analytics-only guest may be claimed through `/guest-auth/identity/link`; every other
+     * guest converts through `/guest-auth/upgrade/complete`. The marker is therefore dropped the
+     * moment a session reaches `finishGuestCloudLink`, and defaults to `false` so a session stored
+     * before this field existed, or carried inside a pending guest upgrade, reads as a data-owning
+     * guest.
+     */
+    val isAnalyticsOnly: Boolean = false
 )
 
 fun makeDefaultAiChatPersistedState(): AiChatPersistedState {

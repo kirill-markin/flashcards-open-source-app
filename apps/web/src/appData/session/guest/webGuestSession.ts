@@ -22,13 +22,16 @@ import { hasLoggedInCookie } from "../activation/warmStart";
  * guest platform by default on every authenticated backend surface — sync, chat and its AI quota,
  * guest upgrade, every account surface — and analytics ingest is the only route that opts in.
  *
- * The stored session is deliberately not cleared when the person signs in. It is the record that
- * lets the analytics client recognise, on the next page load, that the queue's previous owner was
- * this browser's own guest rather than a different account — which is what keeps `anonymous_id`
- * alive across the sign-in, so the guest's tail and the account's rows carry the same raw
- * `anonymous_id` in `analytics.product_events` and can be joined on it. It does not resolve the
- * guest into the account in `analytics.product_events_resolved`; `analytics/client.ts` documents
- * why, at the rotation exception that decides it.
+ * The stored session survives the sign-in itself and is dropped only once
+ * `POST /guest-auth/identity/link` has bound it to the account server-side, or answered that it
+ * never can be. Until then it is the record that lets the analytics client recognise that the
+ * queue's previous owner was this browser's own guest rather than a different account, which is what
+ * keeps `anonymous_id` alive across the boundary so the guest's tail and the account's rows carry
+ * the same raw `anonymous_id` in `analytics.product_events`. The link is what additionally resolves
+ * the guest into the account in `analytics.product_events_resolved`; `webGuestIdentityLink.ts` owns
+ * that call and its retry rules. An envelope kept across loads by an unfinished link carries the
+ * account it was offered to beside it, because a guest may be bound to exactly one account and
+ * nothing else survives a reload to say which.
  *
  * Every real identity boundary drops it: `resetWebGuestSession` removes it synchronously alongside
  * the analytics reset, and the key also carries the `flashcards-` prefix that
@@ -38,6 +41,20 @@ import { hasLoggedInCookie } from "../activation/warmStart";
 const guestSessionStorageKey = "flashcards-web-guest-session";
 /** Carries the `flashcards-` prefix too, so a probe left behind by a crash is swept like the rest. */
 const guestSessionStorageProbeKey = "flashcards-web-guest-session-probe";
+/**
+ * The creation idempotency key, kept beside the envelope rather than inside it: it exists only while
+ * no envelope does, and it is dropped the moment one arrives.
+ */
+const guestSessionIdempotencyKeyStorageKey = "flashcards-web-guest-session-idempotency-key";
+/**
+ * The account the stored envelope has already been offered to for linking, kept beside the envelope
+ * for the same reason the idempotency key is: it describes one envelope and is meaningless without
+ * it. `resetWebGuestSession` drops it with the envelope, so it can never outlive what it describes.
+ */
+const guestSessionLinkAccountStorageKey = "flashcards-web-guest-session-link-account";
+/** 16 random bytes, which the route's 32-to-200 lowercase-hex shape accepts at its lower bound. */
+const guestSessionIdempotencyKeyByteCount = 16;
+const guestSessionIdempotencyKeyPattern = /^[0-9a-f]{32,200}$/u;
 
 /** A failed attempt must not turn a click-happy visitor into a burst of session requests. */
 const guestSessionRetryDelayMs = 30 * 1000;
@@ -47,9 +64,9 @@ type WebGuestSessionState = "idle" | "requesting" | "settled";
 let state: WebGuestSessionState = "idle";
 let retryNotBeforeMs = 0;
 /**
- * Bumped by every identity boundary. A request captures it before it starts, so work that began
- * before the boundary can neither store nor publish the identity it obtained under the person who
- * has since left.
+ * Advanced by every `resetWebGuestSession()` — see `readWebGuestIdentityGeneration` for what that
+ * does and does not cover. A request captures it before it starts, so work that began before a reset
+ * can neither store nor publish an identity that is no longer this browser's.
  */
 let identityGeneration = 0;
 /**
@@ -169,7 +186,11 @@ function toWebGuestSession(value: unknown): WebGuestSessionEnvelope | null {
   return { guestToken, userId };
 }
 
-function readStoredWebGuestSession(): WebGuestSessionEnvelope | null {
+/**
+ * The guest identity this browser holds, if any. Read it before any identity-boundary cleanup runs:
+ * that cleanup clears the envelope, and the sign-in link needs the token it carries.
+ */
+export function readStoredWebGuestSession(): WebGuestSessionEnvelope | null {
   const storedValue = readBrowserStorageItem(guestSessionStorageKey);
   if (storedValue === null) {
     return null;
@@ -180,6 +201,119 @@ function readStoredWebGuestSession(): WebGuestSessionEnvelope | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * A monotonic count of the drops this module performed. Every `resetWebGuestSession()` advances it,
+ * which covers each identity boundary, an ingest refusal of the credential, and a finished or
+ * refused link — several of those fire for the same visitor, so this is deliberately not a count of
+ * identity boundaries.
+ *
+ * Only the unequal direction is a fact consumers may rely on. Anything that captures a guest
+ * envelope and then does asynchronous work with it captures this number beside it, and a capture
+ * that reads unequal here is stale and must be dropped, never used: the envelope it names is no
+ * longer the envelope in storage, and may not be in storage at all.
+ *
+ * An equal read proves nothing, and reading it as "the envelope is unchanged" is the mistake to
+ * avoid. `clearAllLocalBrowserData` sweeps every `flashcards-` key — the envelope, the idempotency
+ * key and the link-account stamp among them — and never touches this counter, and the account
+ * deletion gate calls that sweep with no `resetWebGuestSession()` in front of it, so storage can
+ * empty while this number stands still. That is why every storage operation here re-reads the stored
+ * token rather than trusting an equal generation, and why the link task carries an account assertion
+ * of its own instead of inferring the account from this.
+ */
+export function readWebGuestIdentityGeneration(): number {
+  return identityGeneration;
+}
+
+/**
+ * The account this browser's stored guest envelope has already been offered to, if any.
+ *
+ * A guest identity may be bound to exactly one account, in an append-only, first-link-wins table
+ * with no repair path, so an envelope that survived an unfinished link is no longer offerable to
+ * whoever signs in next: it is a specific person's signed-out tail, already claimed for a specific
+ * account. Nothing else on this browser can say so on a later page load — the identity generation is
+ * in-memory and starts at zero on every load, and the cloud-settings record the sign-in path detects
+ * account switches from lives in IndexedDB, which can be lost while `localStorage` survives.
+ */
+export function readWebGuestSessionLinkAccountId(): string | null {
+  const storedValue = readBrowserStorageItem(guestSessionLinkAccountStorageKey);
+  if (storedValue === null || storedValue.trim() === "") {
+    return null;
+  }
+
+  return storedValue;
+}
+
+/**
+ * Records the account an envelope is being offered to, before the offer is made rather than after it
+ * is answered: a `5xx` may commit the link and lose the revoke, and a tab closed mid-retry runs no
+ * completion path at all, so an envelope that is still in storage afterwards must already carry the
+ * account it was spent on.
+ *
+ * Guarded on the stored envelope still being the one that is being offered, so that this can only
+ * ever describe what is actually in storage: a stamp written over a dropped envelope would outlive
+ * it and refuse the next visitor's. Two paths retire it — `resetWebGuestSession`, and the
+ * `flashcards-` prefix sweep in `clearAllLocalBrowserData` — and each takes the envelope in the same
+ * pass, which is what keeps the two from outliving each other.
+ *
+ * The write itself may be silently lost: `writeBrowserStorageItem` swallows a full quota or a
+ * private-mode refusal, and the caller offers the envelope whether or not the stamp landed. The
+ * asymmetry with `persistWebGuestSession`'s read-back is deliberate. There a lost write mints a
+ * second permanent guest user, workspace and membership; here it only falls back to the server's own
+ * first-link-wins rule, under which the same guest offered to a second account writes a losing
+ * append-only row rather than a wrong binding. The cost is an undercounted tail, never a
+ * misattributed one.
+ */
+export function markWebGuestSessionLinkAccount(guestToken: string, accountUserId: string): void {
+  if (readStoredWebGuestSession()?.guestToken !== guestToken) {
+    return;
+  }
+
+  writeBrowserStorageItem(guestSessionLinkAccountStorageKey, accountUserId);
+}
+
+/**
+ * Stores the envelope and reports whether it can actually be read back.
+ *
+ * The read-back is not a repeat of `canPersistWebGuestSession()`. That probe ran before the creation
+ * request, several awaits earlier, and `writeBrowserStorageItem` swallows its own failure, so a quota
+ * that filled up in between leaves this browser holding no envelope at all — silently. It is what
+ * decides whether the idempotency key may be released, and releasing it over an envelope that was
+ * never stored is exactly the second permanent guest user, workspace and membership the key exists to
+ * prevent.
+ */
+function persistWebGuestSession(guestSession: WebGuestSessionEnvelope): boolean {
+  writeBrowserStorageItem(guestSessionStorageKey, JSON.stringify(guestSession));
+  return readStoredWebGuestSession()?.guestToken === guestSession.guestToken;
+}
+
+function createGuestSessionIdempotencyKey(): string {
+  const randomBytes = new Uint8Array(guestSessionIdempotencyKeyByteCount);
+  crypto.getRandomValues(randomBytes);
+  return Array.from(randomBytes, (byte: number): string => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * The key for the creation attempt that is currently open, generating one when none is.
+ *
+ * It is reused across attempts on purpose: a response lost after the server committed leaves this
+ * browser with no envelope and a live guest session, and replaying the same key rotates that
+ * session's secret and returns the same guest instead of minting a second permanent set of rows. It
+ * must never be derived from an install id, a device id, or anything else stable — rotation hands
+ * whoever presents the key a fresh valid token for that guest, so a predictable key is a bearer
+ * credential for the identity behind it. A stored value that is not the shape the route accepts is
+ * not this module's, and is replaced rather than sent.
+ */
+function readGuestSessionIdempotencyKey(): string {
+  const storedValue = readBrowserStorageItem(guestSessionIdempotencyKeyStorageKey);
+  if (storedValue !== null && guestSessionIdempotencyKeyPattern.test(storedValue)) {
+    return storedValue;
+  }
+
+  const idempotencyKey = createGuestSessionIdempotencyKey();
+  writeBrowserStorageItem(guestSessionIdempotencyKeyStorageKey, idempotencyKey);
+  return idempotencyKey;
 }
 
 /**
@@ -277,25 +411,35 @@ async function resolveWebGuestSession(requestGeneration: number): Promise<void> 
     return;
   }
 
-  const guestSession = await createWebGuestSession();
+  const guestSession = await createWebGuestSession(readGuestSessionIdempotencyKey());
   // An identity boundary crossed while the request was in flight. This guest belongs to nobody on
   // this browser now, so it is neither stored nor published; the next interaction starts over.
   if (requestGeneration !== identityGeneration) {
     return;
   }
 
-  writeBrowserStorageItem(guestSessionStorageKey, JSON.stringify(guestSession));
+  // The key is released only once the envelope is provably readable again. The creation attempt
+  // succeeding is not enough on its own: a browser left with neither envelope nor key mints a second
+  // permanent guest user, workspace and membership on its next attempt, which is the one outcome the
+  // key exists to prevent. Where the envelope did persist the key has done its job and keeping it
+  // would leave a credential that can rotate this guest's token lying in `localStorage` for no
+  // purpose. Publishing happens either way: this load is measured even when nothing about it can be
+  // remembered for the next one.
+  if (persistWebGuestSession(guestSession)) {
+    removeBrowserStorageItem(guestSessionIdempotencyKeyStorageKey);
+  }
+
   publishWebGuestOwner(guestSession);
 }
 
 /**
- * Drops this browser's guest identity at an identity boundary.
+ * Drops this browser's guest identity.
  *
- * Synchronous, and called next to `reset()` in the analytics client rather than left to the
- * `flashcards-` prefix sweep in `clearAllLocalBrowserData`. That sweep runs several awaits later and
- * is skipped entirely when the IndexedDB recovery guard fires first, and until the key is gone an
- * interaction inside that window would read the outgoing person's guest session back out of storage
- * and publish it as the confirmed owner for the rest of the page load.
+ * At an identity boundary it is synchronous, and called next to `reset()` in the analytics client
+ * rather than left to the `flashcards-` prefix sweep in `clearAllLocalBrowserData`. That sweep runs
+ * several awaits later and is skipped entirely when the IndexedDB recovery guard fires first, and
+ * until the key is gone an interaction inside that window would read the outgoing person's guest
+ * session back out of storage and publish it as the confirmed owner for the rest of the page load.
  *
  * The module state goes back to idle with it: this browser now holds no guest identity, so a later
  * interaction by a signed-out visitor may obtain a fresh one, exactly as it would on a new load.
@@ -306,15 +450,48 @@ export function resetWebGuestSession(): void {
     state = "idle";
     retryNotBeforeMs = 0;
     removeBrowserStorageItem(guestSessionStorageKey);
+    // The key goes with the envelope. It names a creation attempt made for the person who is
+    // leaving, and replaying it for the next one would hand them that guest's identity.
+    removeBrowserStorageItem(guestSessionIdempotencyKeyStorageKey);
+    // So does the account the envelope was offered to: it describes an envelope that no longer
+    // exists. A stamp left behind would outlive its envelope and refuse a later, unrelated one, so
+    // the two only ever leave together — here, and in the `flashcards-` prefix sweep.
+    removeBrowserStorageItem(guestSessionLinkAccountStorageKey);
   } catch {
     // Identity-boundary cleanup must not fail because the guest record could not be removed.
   }
 }
 
 /**
- * Obtains and publishes the guest identity, at most once per browser load and once more after each
- * identity boundary. Returns immediately: the request runs in the background, because no user action
- * may be blocked, delayed, or failed by anything analytics needs.
+ * Drops a guest identity the ingest endpoint has refused as a credential — a `401` or a `410`, which
+ * for a guest means the session no longer exists server-side. Without this the envelope is
+ * republished on every later load and the browser measures nothing for good.
+ *
+ * It goes through `resetWebGuestSession` so the generation counter and the storage keys stay
+ * consistent, and then closes the module for the rest of this load. Returning to idle is right for
+ * an identity boundary, where a new person may obtain a guest of their own, and wrong here: a
+ * refused credential is the same visitor, and re-arming would put minting on a path a repeating
+ * refusal can drive, one permanent guest user, workspace and membership per interaction. The rest of
+ * this load goes unmeasured and the next one mints a fresh guest, which is the trade
+ * `requestWebGuestSessionOnInteraction` already documents.
+ */
+export function discardRefusedWebGuestSession(): void {
+  try {
+    resetWebGuestSession();
+    state = "settled";
+  } catch {
+    // Nothing on the analytics delivery path may surface as an uncaught error.
+  }
+}
+
+/**
+ * Obtains and publishes the guest identity, at most once per browser load and once more each time
+ * `resetWebGuestSession()` puts this module back to idle. That is every identity boundary, and also
+ * the link paths that drop a spent envelope — a finished link, a terminal refusal — which re-arm on
+ * a load that is signed in by then, where `hasVerifiedBrowserSession()` stops the mint before it
+ * starts. `discardRefusedWebGuestSession` is the one drop that deliberately does not re-arm.
+ * Returns immediately: the request runs in the background, because no user action may be blocked,
+ * delayed, or failed by anything analytics needs.
  *
  * Settling once per load is the bound that keeps server-side rows finite, and it is kept even though
  * it has a cost: if the published identity is invalidated later in the same load — the session

@@ -82,6 +82,15 @@ enum class AndroidAnalyticsObservationName(
 ) {
     QUEUE_STORE_WRITE_FAILED(tagValue = "analytics_queue_store_write_failed"),
     QUEUE_STORE_READ_FAILED(tagValue = "analytics_queue_store_read_failed"),
+
+    /**
+     * The guest credential an install that never signed in authenticates with could not be minted.
+     * Its own name because the credential provider now performs a request: without it the failure
+     * reaches the client's command loop and is reported as a queue-store read failure, so an
+     * offline first launch would look like a SQLite fault. Ordinary offline and transient transport
+     * failures are filtered out before this is reported, like everywhere else in this repository.
+     */
+    GUEST_CREDENTIAL_MINT_FAILED(tagValue = "analytics_guest_credential_mint_failed"),
     QUEUE_OVERFLOW(tagValue = "analytics_queue_overflow"),
     QUEUE_TTL_EXPIRED(tagValue = "analytics_queue_ttl_expired"),
 
