@@ -171,18 +171,17 @@ distribution.
 ## Local Testing Rules
 
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
-Running iOS simulator-backed tests and local smoke flows is resource-heavy in this repository.
-Do not run iOS simulator `xcodebuild test`, XCUITest, screenshot-generation, or local smoke flows unless the user explicitly allows that simulator-backed run for the current task.
-When allowed, choose the narrowest iOS simulator run that validates the change, and avoid broad iOS test runs without a clear reason.
+Running iOS simulator-backed tests and local smoke flows is resource-heavy in this repository, so do not run `xcodebuild test`, XCUITest, screenshot-generation, or local smoke flows reflexively after every edit.
+When a simulator-backed run genuinely helps validate a change, run it: choose the narrowest iOS simulator run that validates the change, and avoid broad iOS test runs without a clear reason.
 iOS full test runs can take a bit more than 2 minutes locally, and that is normal.
-If an iOS simulator-backed run is explicitly allowed, run it only on one specific iPhone simulator runtime that is already downloaded locally.
+Run on one specific iPhone simulator runtime that is already downloaded locally.
 Prefer an already booted local iPhone simulator on the final supported iOS runtime. Reuse that exact device instead of booting a different one when possible.
 Prefer the background CLI flow over opening heavy Xcode UI: `xcrun simctl bootstatus`, then `xcodebuild test`.
 Do not open a visible iOS Simulator window for test runs unless the user explicitly asks for a visible simulator at that time.
 Pass `-derivedDataPath "tmp/ios-derived-data"` for local CLI builds and tests so repeated runs reuse repo-local build artifacts instead of creating new global DerivedData directories.
 If an iOS test fails, inspect the generated `.xcresult` bundle and read the relevant screenshots, attachments, and logs before changing code.
 If a suitable simulator is already warmed, keep using it and avoid rebuilding unnecessarily.
-If no suitable local iPhone simulator runtime is already available, do not trigger extra runtime downloads or installations. Stop and ask the user how to proceed.
+If no suitable local iPhone simulator runtime is already available, downloading one is slow and large, so tell the user before starting that download.
 For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.
 Preferred local CLI examples:
 
