@@ -1108,6 +1108,21 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   analyticsEvents.addMethod("ANY", integration);
   analyticsEvents.addMethod("POST", integration);
 
+  // POST /guest-auth/identity/link, which lets a freshly signed-in browser or install claim the
+  // analytics history of the guest identity it held. The root {proxy+} already forwards it, so this
+  // subtree exists to keep this file in sync with the backend routes, as CLAUDE.md requires. The
+  // subtree fallbacks are restated the way the analytics, workspace and admin subtrees restate
+  // theirs, so /guest-auth/session, /guest-auth/session/delete and the upgrade routes keep being
+  // forwarded here if the root proxy ever narrows.
+  const guestAuth = restApi.root.addResource("guest-auth");
+  guestAuth.addMethod("ANY", integration);
+  guestAuth.addResource("{proxy+}").addMethod("ANY", integration);
+  const guestAuthIdentity = guestAuth.addResource("identity");
+  guestAuthIdentity.addMethod("ANY", integration);
+  const guestAuthIdentityLink = guestAuthIdentity.addResource("link");
+  guestAuthIdentityLink.addMethod("ANY", integration);
+  guestAuthIdentityLink.addMethod("POST", integration);
+
   addDirectImageIngestionApiRoutes(
     restApi,
     integration,
