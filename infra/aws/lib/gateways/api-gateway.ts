@@ -1009,7 +1009,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
         // A per-method entry overrides the stage-wide `*/*` settings for this method instead of
         // merging with them, so metrics are restated here. Without it the method falls back to the
         // service default of no detailed metrics, and the analytics alarms in
-        // infra/aws/lib/monitoring.ts read exactly the per-method dimensions this enables.
+        // infra/aws/lib/product-analytics-monitoring.ts read exactly the per-method dimensions this
+        // enables.
         [productAnalyticsIngestMethodPath]: {
           metricsEnabled: true,
           throttlingRateLimit: productAnalyticsIngestThrottlingRateLimit,
