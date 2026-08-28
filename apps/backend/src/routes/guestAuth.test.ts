@@ -23,8 +23,15 @@ type GuestAuthTestAppOptions = Readonly<{
     selection: GuestUpgradeSelection,
     capabilities: GuestUpgradeCompleteCapabilities,
   ) => Promise<GuestUpgradeCompletion>;
-  onCreateGuestSession?: (platform: GuestSessionPlatform | null) => Promise<GuestSessionSnapshot>;
+  onCreateGuestSession?: (
+    platform: GuestSessionPlatform | null,
+    idempotencyKey: string | null,
+  ) => Promise<GuestSessionSnapshot>;
   onDeleteGuestSession?: (guestToken: string) => Promise<void>;
+  onLinkGuestAnalyticsIdentity?: (
+    guestToken: string,
+    cognitoSubject: string,
+  ) => Promise<void>;
 }>;
 
 function createGuestSessionSnapshot(platform: GuestSessionPlatform | null): GuestSessionSnapshot {
@@ -70,9 +77,9 @@ function createGuestAuthTestApp(options: GuestAuthTestAppOptions): Hono<AppEnv> 
   });
   app.route("/", createGuestAuthRoutes({
     authenticateRequestFn: async () => options.authResult,
-    createGuestSessionFn: async (platform) => {
+    createGuestSessionFn: async (platform, idempotencyKey) => {
       if (options.onCreateGuestSession !== undefined) {
-        return options.onCreateGuestSession(platform);
+        return options.onCreateGuestSession(platform, idempotencyKey);
       }
 
       return createGuestSessionSnapshot(platform);
@@ -80,6 +87,9 @@ function createGuestAuthTestApp(options: GuestAuthTestAppOptions): Hono<AppEnv> 
     completeGuestUpgradeFn: options.onCompleteGuestUpgrade,
     deleteGuestSessionFn: async (guestToken) => {
       await options.onDeleteGuestSession?.(guestToken);
+    },
+    linkGuestAnalyticsIdentityFn: async (guestToken, cognitoSubject) => {
+      await options.onLinkGuestAnalyticsIdentity?.(guestToken, cognitoSubject);
     },
   }));
   return app;
@@ -176,6 +186,91 @@ test("POST /guest-auth/session creates a platform-bound web guest session", asyn
   });
 });
 
+const guestSessionIdempotencyKeyForTest = "b3f1c0d2e4a5968778695a4e3c2d1b0af9e8d7c6b5a4938271605f4e3d2c1b0a";
+
+test("POST /guest-auth/session forwards an idempotency key and defaults it to absent", async () => {
+  const receivedKeys: Array<string | null> = [];
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("none"),
+    onCreateGuestSession: async (platform, idempotencyKey) => {
+      receivedKeys.push(idempotencyKey);
+      return createGuestSessionSnapshot(platform);
+    },
+  });
+
+  const keyedResponse = await app.request("http://localhost/guest-auth/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ platform: "web", idempotencyKey: guestSessionIdempotencyKeyForTest }),
+  });
+  const unkeyedResponse = await app.request("http://localhost/guest-auth/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ platform: "web" }),
+  });
+  // Serializers that encode an unset optional field rather than omitting it send an explicit null on
+  // every no-key call, so that has to mean absent too instead of failing the shape check.
+  const nullKeyResponse = await app.request("http://localhost/guest-auth/session", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ platform: "web", idempotencyKey: null }),
+  });
+
+  assert.equal(keyedResponse.status, 200);
+  assert.equal(unkeyedResponse.status, 200);
+  assert.equal(nullKeyResponse.status, 200);
+  assert.deepEqual(receivedKeys, [guestSessionIdempotencyKeyForTest, null, null]);
+});
+
+// The key is a bearer credential for the guest identity it names, so the obviously non-random shapes
+// a client might reach for are refused at the boundary rather than stored. The check is only that
+// floor: a hex-normalised install id would pass it, which is why per-attempt randomness stays a
+// client obligation in docs/auth-service.md.
+test("POST /guest-auth/session rejects an idempotency key that is not a random token", async () => {
+  let created = false;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("none"),
+    onCreateGuestSession: async (platform) => {
+      created = true;
+      return createGuestSessionSnapshot(platform);
+    },
+  });
+
+  const rejectedKeys = [
+    // A label, a canonical install id, too little entropy, and an over-long value.
+    "creation-attempt-1",
+    "1b4e28ba-2fa1-11d2-883f-0016d3cca427",
+    "b3f1c0d2e4a59687",
+    "f".repeat(201),
+  ];
+  const responses = await Promise.all(rejectedKeys.map(async (idempotencyKey) => app.request(
+    "http://localhost/guest-auth/session",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ platform: "web", idempotencyKey }),
+    },
+  )));
+
+  for (const response of responses) {
+    assert.equal(response.status, 400);
+  }
+  assert.equal(created, false);
+  assert.deepEqual(await responses[0].json(), {
+    error: "idempotencyKey must be 32 to 200 lowercase hexadecimal characters generated randomly for one creation attempt",
+    requestId: "request-1",
+    code: "GUEST_SESSION_IDEMPOTENCY_KEY_INVALID",
+  });
+});
+
 test("POST /guest-auth/session/delete deletes a guest session with Guest authentication", async () => {
   let deletedGuestToken: string | null = null;
   const app = createGuestAuthTestApp({
@@ -246,6 +341,97 @@ test("POST /guest-auth/session/delete returns 409 for a guest session already li
     error: "Guest session is already linked to a signed-in account. Use /me/delete from that account instead.",
     requestId: "request-1",
     code: "GUEST_SESSION_DELETE_LINKED_ACCOUNT",
+  });
+});
+
+test("POST /guest-auth/identity/link links the guest identity to the signed-in account", async () => {
+  let receivedLink: Readonly<{
+    guestToken: string;
+    cognitoSubject: string;
+  }> | null = null;
+  const app = createGuestAuthTestApp({
+    authResult: {
+      ...createAuthResult("bearer"),
+      userId: "account-user",
+      subjectUserId: "account-subject",
+    },
+    onLinkGuestAnalyticsIdentity: async (guestToken, cognitoSubject) => {
+      receivedLink = { guestToken, cognitoSubject };
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/identity/link", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer jwt-token",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ guestToken: "guest-token-identity-link" }),
+  });
+
+  assert.equal(response.status, 200);
+  // The route passes the Cognito subject and nothing else: the account user id is resolved inside
+  // the writer's transaction, under the identity lifecycle lock.
+  assert.deepEqual(receivedLink, {
+    guestToken: "guest-token-identity-link",
+    cognitoSubject: "account-subject",
+  });
+  assert.deepEqual(await response.json(), { ok: true });
+});
+
+test("POST /guest-auth/identity/link rejects guest authentication", async () => {
+  let linked = false;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("guest"),
+    onLinkGuestAnalyticsIdentity: async () => {
+      linked = true;
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/identity/link", {
+    method: "POST",
+    headers: {
+      authorization: "Guest guest-token-identity-link",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ guestToken: "guest-token-identity-link" }),
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(linked, false);
+  assert.deepEqual(await response.json(), {
+    error: "Sign in before linking this guest identity.",
+    requestId: "request-1",
+    code: "GUEST_IDENTITY_LINK_HUMAN_AUTH_REQUIRED",
+  });
+});
+
+test("POST /guest-auth/identity/link reports a guest that owns data the upgrade transfers", async () => {
+  const app = createGuestAuthTestApp({
+    authResult: { ...createAuthResult("bearer"), userId: "account-user" },
+    onLinkGuestAnalyticsIdentity: async () => {
+      throw new HttpError(
+        409,
+        "This guest session owns data that the upgrade transfers and cannot be linked for analytics only. Convert it through /guest-auth/upgrade/complete instead.",
+        "GUEST_IDENTITY_LINK_UPGRADE_REQUIRED",
+      );
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/identity/link", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer jwt-token",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ guestToken: "guest-token-identity-link" }),
+  });
+
+  assert.equal(response.status, 409);
+  assert.deepEqual(await response.json(), {
+    error: "This guest session owns data that the upgrade transfers and cannot be linked for analytics only. Convert it through /guest-auth/upgrade/complete instead.",
+    requestId: "request-1",
+    code: "GUEST_IDENTITY_LINK_UPGRADE_REQUIRED",
   });
 });
 

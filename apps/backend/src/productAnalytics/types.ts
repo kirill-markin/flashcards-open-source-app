@@ -91,9 +91,10 @@ export type ProductAnalyticsEventRow = Readonly<{
   requestId: string | null;
 }>;
 
-// server_derived comes from the guest upgrade itself, which is the only place the backend observes
-// the pair; authenticated_client comes from an authenticated ingest request, which is a client claim
-// the server only framed.
+// server_derived comes from the two places the backend observes the pair itself: the guest upgrade,
+// and the /guest-auth/identity/link route a signed-in account calls to claim the guest identity its
+// browser or install held. authenticated_client comes from an authenticated ingest request, which is
+// a client claim the server only framed.
 export type ProductAnalyticsIdentityLinkSource = "server_derived" | "authenticated_client";
 
 // One row of analytics.identity_links. linked_at is owned by the database so no caller can date a
