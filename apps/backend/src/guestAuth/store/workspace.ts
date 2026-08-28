@@ -1,5 +1,6 @@
 import {
   applyUserDatabaseScopeInExecutor,
+  applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../../database";
 import { HttpError } from "../../shared/errors";
@@ -17,6 +18,10 @@ type WorkspaceSummaryRow = Readonly<{
   created_at: Date | string;
 }>;
 
+type GuestContentProbeRow = Readonly<{
+  has_content: boolean;
+}>;
+
 export async function loadGuestWorkspaceIdInExecutor(
   executor: DatabaseExecutor,
   guestUserId: string,
@@ -32,6 +37,59 @@ export async function loadGuestWorkspaceIdInExecutor(
   }
 
   return workspaceId;
+}
+
+/**
+ * Reports whether a guest owns anything `/guest-auth/upgrade/complete` would have to carry.
+ *
+ * The probe covers every table that upgrade transfers, not only the workspace-scoped ones, because
+ * the caller uses this to decide whether revoking a guest session would strand data and the revoke
+ * strands a row wherever it sits. Four tables are workspace-scoped and follow the merge:
+ * `content.cards`, `content.decks`, `content.review_events` and `content.media_assets`. Three carry
+ * no `workspace_id` at all and follow the guest user id through `support.transfer_guest_feedback`
+ * and `community.transfer_guest_public_profile`: `support.feedback_prompt_events`,
+ * `support.feedback_submissions` and `community.public_profiles`. A web guest cannot reach the
+ * feedback or community surfaces, but an `ios`/`android` analytics-only guest can, and it would
+ * otherwise pass a workspace-only guard with an empty workspace and lose those rows.
+ *
+ * Tombstoned rows count. A deleted card is still a row `/guest-auth/upgrade/complete` moves into the
+ * destination workspace, so the safe answer for a row that exists is that it exists.
+ *
+ * The workspace scope applied below also fixes `security.current_user_id()` to the guest, which is
+ * what the user-scoped row-level security policies on the `support` and `community` tables read, so
+ * one scope serves both halves of the probe.
+ */
+export async function guestOwnsUpgradeTransferableDataInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  guestWorkspaceId: string,
+): Promise<boolean> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: guestUserId,
+    workspaceId: guestWorkspaceId,
+  });
+
+  const result = await executor.query<GuestContentProbeRow>(
+    [
+      "SELECT",
+      "EXISTS (SELECT 1 FROM content.cards WHERE workspace_id = $1)",
+      "OR EXISTS (SELECT 1 FROM content.decks WHERE workspace_id = $1)",
+      "OR EXISTS (SELECT 1 FROM content.review_events WHERE workspace_id = $1)",
+      "OR EXISTS (SELECT 1 FROM content.media_assets WHERE workspace_id = $1)",
+      "OR EXISTS (SELECT 1 FROM support.feedback_prompt_events WHERE user_id = $2)",
+      "OR EXISTS (SELECT 1 FROM support.feedback_submissions WHERE user_id = $2)",
+      "OR EXISTS (SELECT 1 FROM community.public_profiles WHERE user_id = $2)",
+      "AS has_content",
+    ].join(" "),
+    [guestWorkspaceId, guestUserId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw new Error(`Guest content probe returned no row for workspace ${guestWorkspaceId}`);
+  }
+
+  return row.has_content;
 }
 
 export async function loadWorkspaceSummaryInExecutor(

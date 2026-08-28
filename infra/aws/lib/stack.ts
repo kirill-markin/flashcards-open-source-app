@@ -351,7 +351,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const migrationGate = databaseMigrationGate(
       this,
       migrationFn,
-      "0116_guest_session_web_platform.sql",
+      "0117_guest_session_creation_idempotency.sql",
     );
     const api = apiGateway(this, {
       vpc: net.vpc,

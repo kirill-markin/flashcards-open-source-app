@@ -92,12 +92,14 @@ const insertProductAnalyticsEventsSql = [
 // resolved read view lets a link claim history, and link_id keeps naming the first observation.
 //
 // source is the one column a repeat may rewrite, and only towards the server. A server_derived link
-// is something the backend watched happen during a guest upgrade, while an authenticated_client link
-// is a claim a request carried, so the pair's trust must not be decided by whichever of the two
-// happened to arrive first. Without this, a client that used a guest user id as its anonymous_id
-// could land the authenticated_client row first, and analytics.product_events_resolved reads the
-// server namespace through source = 'server_derived', so that guest's whole tail would silently stop
-// resolving to the account. 0115 grants the matching column-scoped UPDATE privilege and policy.
+// is something the backend watched happen, during a guest upgrade or in the
+// /guest-auth/identity/link route where a signed-in account claims the guest identity its browser or
+// install held, while an authenticated_client link is a claim a request carried, so the pair's trust
+// must not be decided by whichever of the two happened to arrive first. Without this, a client that
+// used a guest user id as its anonymous_id could land the authenticated_client row first, and
+// analytics.product_events_resolved reads the server namespace through source = 'server_derived', so
+// that guest's whole tail would silently stop resolving to the account. 0115 grants the matching
+// column-scoped UPDATE privilege and policy.
 const insertProductAnalyticsIdentityLinkSql = [
   "INSERT INTO analytics.identity_links (link_id, anonymous_id, user_id, source)",
   " VALUES ($1::uuid, $2::uuid, $3::uuid, $4::text)",

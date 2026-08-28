@@ -8,6 +8,9 @@ import {
   deleteGuestSessionInExecutor,
 } from "./delete/index";
 import {
+  linkGuestAnalyticsIdentityInExecutor,
+} from "./identityLink/index";
+import {
   authenticateGuestSession,
   bindGuestSessionPlatform,
   createGuestSessionInExecutor,
@@ -39,11 +42,26 @@ export {
   bindGuestSessionPlatform,
   completeGuestUpgradeInExecutor,
   deleteGuestSessionInExecutor,
+  linkGuestAnalyticsIdentityInExecutor,
   prepareGuestUpgradeInExecutor,
 };
 
-export async function createGuestSession(platform: GuestSessionPlatform | null): Promise<GuestSessionSnapshot> {
-  return unsafeTransaction(async (executor) => createGuestSessionInExecutor(executor, platform));
+export async function createGuestSession(
+  platform: GuestSessionPlatform | null,
+  creationIdempotencyKey: string | null,
+): Promise<GuestSessionSnapshot> {
+  return unsafeTransaction(
+    async (executor) => createGuestSessionInExecutor(executor, platform, creationIdempotencyKey),
+  );
+}
+
+export async function linkGuestAnalyticsIdentity(
+  guestToken: string,
+  cognitoSubject: string,
+): Promise<void> {
+  return unsafeTransaction(
+    async (executor) => linkGuestAnalyticsIdentityInExecutor(executor, guestToken, cognitoSubject),
+  );
 }
 
 export async function prepareGuestUpgrade(
