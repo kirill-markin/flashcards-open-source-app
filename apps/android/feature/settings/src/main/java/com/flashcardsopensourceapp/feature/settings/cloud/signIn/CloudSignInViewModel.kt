@@ -73,11 +73,17 @@ private val cloudVerifyCodeUserCorrectableErrorCodes: Set<String> = setOf(
     "OTP_VERIFY_FAILED"
 )
 
+/**
+ * [originSurface] is the product surface the person opened this sign-in from, and it is what
+ * `signin_failed` reports. The credential-recovery gate replaces the app's root at launch instead
+ * of opening from a surface, so it passes `null` rather than naming one.
+ */
 class CloudSignInViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
     private val messageController: TransientMessageController,
     private val analytics: Analytics,
+    private val originSurface: AnalyticsSurface?,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -574,7 +580,7 @@ class CloudSignInViewModel(
         analytics.track(
             event = AnalyticsEvent.SignInFailed(
                 reason = reason,
-                screen = AnalyticsSurface.SETTINGS
+                screen = originSurface
             )
         )
     }
@@ -998,6 +1004,7 @@ fun createCloudSignInViewModelFactory(
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
     analytics: Analytics,
+    originSurface: AnalyticsSurface?,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
@@ -1007,6 +1014,7 @@ fun createCloudSignInViewModelFactory(
                 syncRepository = syncRepository,
                 messageController = messageController,
                 analytics = analytics,
+                originSurface = originSurface,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }
