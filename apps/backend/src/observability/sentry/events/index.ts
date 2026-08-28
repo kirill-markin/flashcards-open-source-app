@@ -106,6 +106,7 @@ export type {
   DatabaseTransientRetryDetails,
   FeedbackEmailFailureDetails,
   FeedbackEmailRetryDetails,
+  FriendshipCreatedAnalyticsSkippedDetails,
   GeneratedMediaPromotionBatchDetails,
   GlobalMetricsS3RetryDetails,
   GlobalMetricsSnapshotFailureDetails,

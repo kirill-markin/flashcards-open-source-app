@@ -6,8 +6,19 @@ import {
   type SqlValue,
   type UserDatabaseScope,
 } from "../database";
+import { getDatabaseErrorFields } from "../database/transient";
 import { unsafeQuery } from "../database/unsafe";
+import {
+  captureBackendWarning,
+  createBackendObservationScope,
+} from "../observability/sentry";
 import { HttpError } from "../shared/errors";
+import {
+  recordFriendInvitationCreatedAnalytics,
+  recordFriendshipCreatedAnalytics,
+  type FriendInvitationCreatedFact,
+  type FriendshipCreatedFact,
+} from "./analytics";
 import {
   ensurePublicProfileIdForCurrentUserInExecutor,
   type CurrentUserPublicProfileId,
@@ -17,6 +28,10 @@ export const activeFriendInvitationLimit = 20;
 export const friendInvitationDisplayNameMaxLength = 30;
 export const friendInviteTokenByteLength = 32;
 export const friendInviteUrlBase = "https://app.flashcards-open-source-app.com/invite";
+
+// A savepoint name is an identifier and cannot be parameterized, so it is this fixed literal and
+// nothing a request supplied ever reaches the statements built from it.
+const friendshipAnalyticsFactSavepoint = "friendship_analytics_fact";
 
 const displayNameControlCharacterPattern = /[\u0000-\u001F\u007F]/u;
 
@@ -59,10 +74,18 @@ type EnsureCurrentUserPublicProfileFn = (
   executor: DatabaseExecutor,
 ) => Promise<CurrentUserPublicProfileId>;
 
+type RecordFriendInvitationCreatedAnalyticsFn = (
+  invitation: FriendInvitationCreatedFact,
+) => Promise<void>;
+
+type RecordFriendshipCreatedAnalyticsFn = (friendship: FriendshipCreatedFact) => Promise<void>;
+
 export type FriendInvitationServiceDependencies = Readonly<{
   transactionWithUserScopeFn: UserScopedTransactionFn;
   unsafeQueryFn: UnsafeQueryFn;
   ensureCurrentUserPublicProfileFn: EnsureCurrentUserPublicProfileFn;
+  recordFriendInvitationCreatedAnalyticsFn: RecordFriendInvitationCreatedAnalyticsFn;
+  recordFriendshipCreatedAnalyticsFn: RecordFriendshipCreatedAnalyticsFn;
   randomBytesFn: (byteCount: number) => Buffer;
   randomUuidFn: () => string;
   inviteUrlBase: string;
@@ -74,7 +97,21 @@ type ActiveInvitationCountRow = pg.QueryResultRow & Readonly<{
 }>;
 
 type CreatedInvitationRow = pg.QueryResultRow & Readonly<{
+  friend_invitation_id: string;
+  created_at: Date | string;
   expires_at: Date | string;
+}>;
+
+type CreatedFriendshipRow = pg.QueryResultRow & Readonly<{
+  friend_user_id: string;
+  created_from_invitation_id: string;
+  created_at: Date | string;
+}>;
+
+type InsertedFriendInvitation = Readonly<{
+  friendInvitationId: string;
+  createdAt: Date;
+  expiresAt: string;
 }>;
 
 type PreviewInvitationRow = pg.QueryResultRow & Readonly<{
@@ -96,6 +133,8 @@ export const defaultFriendInvitationServiceDependencies: FriendInvitationService
   transactionWithUserScopeFn: transactionWithUserScope,
   unsafeQueryFn: unsafeQuery,
   ensureCurrentUserPublicProfileFn: ensurePublicProfileIdForCurrentUserInExecutor,
+  recordFriendInvitationCreatedAnalyticsFn: recordFriendInvitationCreatedAnalytics,
+  recordFriendshipCreatedAnalyticsFn: recordFriendshipCreatedAnalytics,
   randomBytesFn: randomBytes,
   randomUuidFn: randomUUID,
   inviteUrlBase: friendInviteUrlBase,
@@ -144,13 +183,17 @@ function createFriendInviteUrl(inviteUrlBase: string, rawInviteToken: string): s
   return `${inviteUrlBase}/${rawInviteToken}`;
 }
 
-function normalizeTimestamp(value: Date | string, fieldName: string): string {
+function normalizeTimestampDate(value: Date | string, fieldName: string): Date {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) {
     throw new Error(`Invalid friend invitation timestamp for ${fieldName}: ${String(value)}.`);
   }
 
-  return date.toISOString();
+  return date;
+}
+
+function normalizeTimestamp(value: Date | string, fieldName: string): string {
+  return normalizeTimestampDate(value, fieldName).toISOString();
 }
 
 function normalizeActiveInvitationCount(value: number | string): number {
@@ -218,13 +261,13 @@ async function insertFriendInvitationInExecutor(
   inviteTokenHash: string,
   inviteeDisplayName: string,
   dependencies: FriendInvitationServiceDependencies,
-): Promise<string> {
+): Promise<InsertedFriendInvitation> {
   const result = await executor.query<CreatedInvitationRow>(
     [
       "INSERT INTO community.friend_invitations",
       "(friend_invitation_id, inviter_user_id, invite_token_hash, invitee_display_name_for_inviter, expires_at)",
       "VALUES ($1, $2, $3, $4, now() + interval '2 days')",
-      "RETURNING expires_at",
+      "RETURNING friend_invitation_id, created_at, expires_at",
     ].join(" "),
     [dependencies.randomUuidFn(), inviterUserId, inviteTokenHash, inviteeDisplayName],
   );
@@ -234,7 +277,11 @@ async function insertFriendInvitationInExecutor(
     throw new Error(`Failed to create friend invitation for inviter user ${inviterUserId}.`);
   }
 
-  return normalizeTimestamp(row.expires_at, "expires_at");
+  return {
+    friendInvitationId: row.friend_invitation_id,
+    createdAt: normalizeTimestampDate(row.created_at, "created_at"),
+    expiresAt: normalizeTimestamp(row.expires_at, "expires_at"),
+  };
 }
 
 function assertActiveInvitationLimitNotReached(activeInvitationCount: number, activeInviteLimit: number): void {
@@ -249,6 +296,16 @@ function assertActiveInvitationLimitNotReached(activeInvitationCount: number, ac
   );
 }
 
+/**
+ * Reads the display name an existing friendship already stores, which is the whole already_friends
+ * response.
+ *
+ * Deliberately not wrapped in the savepoint readCreatedFriendshipFactInExecutor below uses, even
+ * though the two reads sit next to each other over the same table with the same scoping. This one is
+ * product-required and its result is what the caller answers with, so a failure here has to fail the
+ * request. The savepoint next door exists only because that read serves analytics, which must never
+ * be what fails a user operation.
+ */
 async function readExistingFriendDisplayNameInExecutor(
   executor: DatabaseExecutor,
   viewerUserId: string,
@@ -273,6 +330,131 @@ async function readExistingFriendDisplayNameInExecutor(
   }
 
   return existingFriendDisplayName;
+}
+
+/**
+ * Reports one acceptance whose friendship_created events were dropped before either of them was
+ * attempted.
+ *
+ * Named after the skipped fact rather than after a failed write, because it is the opposite of
+ * product_analytics_server_event_write_failed: no row reached the writer at all. Both directed
+ * events are derived from the single row this reports on, so they are always lost together, and the
+ * acceptance itself still succeeded, which leaves this warning as the only trace either was owed.
+ */
+function captureFriendshipCreatedAnalyticsSkipped(
+  accepterUserId: string,
+  reason: "friendship_row_missing" | "friendship_row_read_failed",
+  error: unknown,
+): void {
+  const errorDetails = error === null ? null : getDatabaseErrorFields(error);
+  captureBackendWarning({
+    action: "friendship_created_analytics_skipped",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      accepterUserId,
+      // community.friendships is account-scoped, so there is no workspace, and the accept route
+      // takes only signed-in human transport, so there is no guest session to correlate this with.
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      reason,
+      sqlState: errorDetails?.sqlState ?? null,
+      errorClass: errorDetails?.errorClass ?? null,
+      errorMessage: errorDetails?.errorMessage ?? null,
+    },
+  });
+}
+
+async function selectCreatedFriendshipFactInExecutor(
+  executor: DatabaseExecutor,
+  accepterUserId: string,
+  inviterPublicProfileId: string,
+): Promise<FriendshipCreatedFact | null> {
+  const result = await executor.query<CreatedFriendshipRow>(
+    [
+      "SELECT friend_user_id, created_from_invitation_id, created_at",
+      "FROM community.friendships",
+      "WHERE viewer_user_id = $1",
+      "AND friend_public_profile_id = $2",
+      "LIMIT 1",
+    ].join(" "),
+    [accepterUserId, inviterPublicProfileId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    return null;
+  }
+
+  return {
+    friendInvitationId: row.created_from_invitation_id,
+    inviterUserId: row.friend_user_id,
+    accepterUserId,
+    createdAt: normalizeTimestampDate(row.created_at, "created_at"),
+  };
+}
+
+/**
+ * Reads the accepter's own directed friendship row, which is the only place the accepter may learn
+ * the invitation id and the inviter's user id from.
+ *
+ * community.accept_friend_invitation returns public profile ids only, and the SELECT policy on
+ * community.friend_invitations admits the inviter alone and only while accepted_at is NULL, so the
+ * invitation row is unreadable here by design. The accepter's community.friendships row carries the
+ * same two ids and is theirs to read.
+ *
+ * The read runs inside the acceptance's own transaction, which is the cheapest place those rows are
+ * readable, and the savepoint is what keeps that from coupling the acceptance to an analytics-only
+ * statement. A plain try/catch would be worse than no guard at all: these routes take the
+ * non-deadline path, whose commitTransaction issues COMMIT and reports success without inspecting
+ * the returned command, so a swallowed statement error would leave the transaction aborted and
+ * report an acceptance that Postgres had silently turned into a ROLLBACK. ROLLBACK TO SAVEPOINT
+ * clears that aborted state instead, which is what makes swallowing the failure safe here: the
+ * acceptance's own statements survive it and COMMIT still commits them.
+ */
+async function readCreatedFriendshipFactInExecutor(
+  executor: DatabaseExecutor,
+  accepterUserId: string,
+  inviterPublicProfileId: string,
+): Promise<FriendshipCreatedFact | null> {
+  // Outside the guard on purpose, as is the RELEASE below. Both can only fail on a transaction that
+  // can no longer commit anyway, and swallowing a failed SAVEPOINT would leave nothing to roll back
+  // to, which is the aborted-transaction hazard this function exists to avoid.
+  await executor.query(`SAVEPOINT ${friendshipAnalyticsFactSavepoint}`, []);
+
+  let friendship: FriendshipCreatedFact | null;
+  try {
+    friendship = await selectCreatedFriendshipFactInExecutor(
+      executor,
+      accepterUserId,
+      inviterPublicProfileId,
+    );
+  } catch (error) {
+    await executor.query(`ROLLBACK TO SAVEPOINT ${friendshipAnalyticsFactSavepoint}`, []);
+    captureFriendshipCreatedAnalyticsSkipped(accepterUserId, "friendship_row_read_failed", error);
+    return null;
+  }
+
+  await executor.query(`RELEASE SAVEPOINT ${friendshipAnalyticsFactSavepoint}`, []);
+
+  if (friendship === null) {
+    // Unreachable today: community.accept_friend_invitation inserted this exact row in this
+    // transaction before it reported the acceptance, and the read's two predicates match it exactly.
+    // It gives up the fact instead of throwing because the acceptance has already happened and
+    // analytics must never be what takes it back, so the warning is what keeps that from becoming a
+    // silent loss of both events if the premise ever stops holding.
+    captureFriendshipCreatedAnalyticsSkipped(accepterUserId, "friendship_row_missing", null);
+  }
+
+  return friendship;
 }
 
 function assertAcceptProfileIdsPresent(
@@ -330,7 +512,7 @@ export async function createFriendInvitationWithDependencies(
   assertValidActiveInviteLimit(dependencies.activeInviteLimit);
   const inviteeDisplayName = parseFriendInvitationDisplayName(input.inviteeDisplayName, "inviteeDisplayName");
 
-  return dependencies.transactionWithUserScopeFn({ userId: input.userId }, async (executor) => {
+  const created = await dependencies.transactionWithUserScopeFn({ userId: input.userId }, async (executor) => {
     const currentProfile = await dependencies.ensureCurrentUserPublicProfileFn(executor);
     assertCurrentUserProfileMatchesRequestUser(currentProfile, input.userId);
 
@@ -340,7 +522,7 @@ export async function createFriendInvitationWithDependencies(
 
     const rawInviteToken = createRawFriendInviteToken(dependencies);
     const inviteTokenHash = hashFriendInviteToken(rawInviteToken);
-    const expiresAt = await insertFriendInvitationInExecutor(
+    const invitation = await insertFriendInvitationInExecutor(
       executor,
       input.userId,
       inviteTokenHash,
@@ -349,10 +531,23 @@ export async function createFriendInvitationWithDependencies(
     );
 
     return {
-      inviteUrl: createFriendInviteUrl(dependencies.inviteUrlBase, rawInviteToken),
-      expiresAt,
+      invitation,
+      response: {
+        inviteUrl: createFriendInviteUrl(dependencies.inviteUrlBase, rawInviteToken),
+        expiresAt: invitation.expiresAt,
+      },
     };
   });
+
+  // Emitted after the transaction committed, so the row only ever reports a link the inviter really
+  // got back. The emission never throws.
+  await dependencies.recordFriendInvitationCreatedAnalyticsFn({
+    friendInvitationId: created.invitation.friendInvitationId,
+    inviterUserId: input.userId,
+    createdAt: created.invitation.createdAt,
+  });
+
+  return created.response;
 }
 
 export async function createFriendInvitation(
@@ -407,7 +602,7 @@ export async function acceptFriendInvitationWithDependencies(
   const inviterDisplayName = parseFriendInvitationDisplayName(input.inviterDisplayName, "inviterDisplayName");
   const inviteTokenHash = hashFriendInviteToken(input.rawInviteToken);
 
-  return dependencies.transactionWithUserScopeFn({ userId: input.userId }, async (executor) => {
+  const accepted = await dependencies.transactionWithUserScopeFn({ userId: input.userId }, async (executor) => {
     const currentProfile = await dependencies.ensureCurrentUserPublicProfileFn(executor);
     assertCurrentUserProfileMatchesRequestUser(currentProfile, input.userId);
 
@@ -424,8 +619,36 @@ export async function acceptFriendInvitationWithDependencies(
       throw new Error("community.accept_friend_invitation returned no row.");
     }
 
-    return mapAcceptInvitationRow(executor, input.userId, row);
+    const response = await mapAcceptInvitationRow(executor, input.userId, row);
+    if (response.status !== "accepted") {
+      return { response, friendship: null };
+    }
+
+    assertAcceptProfileIdsPresent(row);
+
+    // Read inside the acceptance's own transaction, which is the cheapest place these rows are
+    // readable, and behind a savepoint so this analytics-only read can never be what undoes the
+    // acceptance the same transaction already performed.
+    return {
+      response,
+      friendship: await readCreatedFriendshipFactInExecutor(
+        executor,
+        input.userId,
+        row.inviter_public_profile_id,
+      ),
+    };
   });
+
+  if (accepted.friendship !== null) {
+    // Emitted after the transaction committed, so the two rows only report a friendship the database
+    // kept. Both emissions never throw, so a lost analytics write cannot take the acceptance with
+    // it. One of the two is the inviter's, which makes it the first event in this system attributed
+    // to somebody who did not make the request; recordFriendshipCreatedAnalytics says why account
+    // deletion still reaches it.
+    await dependencies.recordFriendshipCreatedAnalyticsFn(accepted.friendship);
+  }
+
+  return accepted.response;
 }
 
 export async function acceptFriendInvitation(

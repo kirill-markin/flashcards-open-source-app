@@ -7,6 +7,10 @@ import type {
   UserDatabaseScope,
 } from "../database";
 import { HttpError } from "../shared/errors";
+import type {
+  FriendInvitationCreatedFact,
+  FriendshipCreatedFact,
+} from "./analytics";
 import {
   acceptFriendInvitationWithDependencies,
   createFriendInvitationWithDependencies,
@@ -54,6 +58,8 @@ type MutableFriendInvitationState = {
   previewRows: Array<PreviewInvitationFixtureRow>;
   acceptRows: Array<AcceptInvitationFixtureRow>;
   existingFriendDisplayName: string | null;
+  invitationAnalytics: Array<FriendInvitationCreatedFact>;
+  friendshipAnalytics: Array<FriendshipCreatedFact>;
   operationOrder: Array<string>;
   queries: Array<RecordedQuery>;
   scopes: Array<UserDatabaseScope>;
@@ -61,9 +67,12 @@ type MutableFriendInvitationState = {
   requestedTokenByteCounts: Array<number>;
 };
 
+const createdAt = new Date("2026-06-15T10:00:00.000Z");
 const expiresAt = new Date("2026-06-17T10:00:00.000Z");
+const friendshipCreatedAt = new Date("2026-06-16T09:00:00.000Z");
 const inviterPublicProfileId = "00000000-0000-4000-8000-0000000000a1";
 const inviteePublicProfileId = "00000000-0000-4000-8000-0000000000b2";
+const acceptedInvitationId = "00000000-0000-4000-8000-0000000000c3";
 
 function createQueryResult<Row extends QueryResultRow>(rows: ReadonlyArray<Row>): pg.QueryResult<Row> {
   return {
@@ -83,6 +92,8 @@ function createFriendInvitationState(): MutableFriendInvitationState {
     previewRows: [],
     acceptRows: [],
     existingFriendDisplayName: null,
+    invitationAnalytics: [],
+    friendshipAnalytics: [],
     operationOrder: [],
     queries: [],
     scopes: [],
@@ -123,13 +134,18 @@ function createFriendInvitationExecutor(state: MutableFriendInvitationState): Da
 
       if (text.startsWith("INSERT INTO community.friend_invitations")) {
         state.operationOrder.push("insert");
+        const friendInvitationId = readStringParam(params, 0, "friendInvitationId");
         state.createdInvitations.push({
-          invitationId: readStringParam(params, 0, "friendInvitationId"),
+          invitationId: friendInvitationId,
           inviterUserId: readStringParam(params, 1, "inviterUserId"),
           inviteTokenHash: readStringParam(params, 2, "inviteTokenHash"),
           inviteeDisplayName: readStringParam(params, 3, "inviteeDisplayName"),
         });
-        return createQueryResult([{ expires_at: expiresAt }]) as unknown as pg.QueryResult<Row>;
+        return createQueryResult([{
+          friend_invitation_id: friendInvitationId,
+          created_at: createdAt,
+          expires_at: expiresAt,
+        }]) as unknown as pg.QueryResult<Row>;
       }
 
       if (text.includes("community.preview_friend_invitation")) {
@@ -140,6 +156,25 @@ function createFriendInvitationExecutor(state: MutableFriendInvitationState): Da
       if (text.includes("community.accept_friend_invitation")) {
         state.operationOrder.push("accept");
         return createQueryResult(state.acceptRows) as unknown as pg.QueryResult<Row>;
+      }
+
+      if (text === "SAVEPOINT friendship_analytics_fact") {
+        state.operationOrder.push("savepoint");
+        return createQueryResult([]) as unknown as pg.QueryResult<Row>;
+      }
+
+      if (text === "RELEASE SAVEPOINT friendship_analytics_fact") {
+        state.operationOrder.push("release_savepoint");
+        return createQueryResult([]) as unknown as pg.QueryResult<Row>;
+      }
+
+      if (text.includes("created_from_invitation_id")) {
+        state.operationOrder.push("friendship_fact");
+        return createQueryResult([{
+          friend_user_id: "user-inviter",
+          created_from_invitation_id: acceptedInvitationId,
+          created_at: friendshipCreatedAt,
+        }]) as unknown as pg.QueryResult<Row>;
       }
 
       if (text.includes("FROM community.friendships")) {
@@ -181,6 +216,12 @@ function createFriendInvitationDependencies(
         userId: state.currentProfileUserId,
         publicProfileId: "00000000-0000-4000-8000-000000000001",
       };
+    },
+    recordFriendInvitationCreatedAnalyticsFn: async (invitation) => {
+      state.invitationAnalytics.push(invitation);
+    },
+    recordFriendshipCreatedAnalyticsFn: async (friendship) => {
+      state.friendshipAnalytics.push(friendship);
     },
     randomBytesFn: (byteCount) => {
       state.requestedTokenByteCounts.push(byteCount);
@@ -225,6 +266,11 @@ test("createFriendInvitation stores only the token hash and returns the raw toke
   assert.deepEqual(state.scopes, [{ userId: "user-1" }]);
   assert.deepEqual(state.operationOrder, ["ensure", "lock", "count", "insert"]);
   assert.deepEqual(state.requestedTokenByteCounts, [friendInviteTokenByteLength]);
+  assert.deepEqual(state.invitationAnalytics, [{
+    friendInvitationId: "00000000-0000-4000-8000-000000000099",
+    inviterUserId: "user-1",
+    createdAt,
+  }]);
 
   const createdInvitation = state.createdInvitations[0];
   assert.notEqual(createdInvitation, undefined);
@@ -306,8 +352,25 @@ test("acceptFriendInvitation returns accepted after ensuring the invitee public 
 
   assert.deepEqual(response, { status: "accepted" });
   assert.deepEqual(state.scopes, [{ userId: "user-1" }]);
-  assert.deepEqual(state.operationOrder, ["ensure", "accept"]);
+  // The analytics-only read is bracketed by its savepoint, so a failure of it can be swallowed
+  // without leaving the acceptance's transaction aborted.
+  assert.deepEqual(state.operationOrder, [
+    "ensure",
+    "accept",
+    "savepoint",
+    "friendship_fact",
+    "release_savepoint",
+  ]);
   assert.deepEqual(state.queries[0]?.params, [hashFriendInviteToken("raw-token"), "Alex"]);
+  assert.deepEqual(state.queries[2]?.params, ["user-1", inviterPublicProfileId]);
+  // One fact naming both directed community.friendships rows, so the producer emits one event for
+  // the accepter and one for the inviter who did not make this request.
+  assert.deepEqual(state.friendshipAnalytics, [{
+    friendInvitationId: acceptedInvitationId,
+    inviterUserId: "user-inviter",
+    accepterUserId: "user-1",
+    createdAt: friendshipCreatedAt,
+  }]);
 });
 
 test("acceptFriendInvitation rejects self invite links with a clear typed error", async () => {
@@ -361,6 +424,7 @@ test("acceptFriendInvitation returns the existing stored display name for alread
     existingFriendDisplayName: "Stored Alex",
   });
   assert.deepEqual(state.operationOrder, ["ensure", "accept", "existing_friend"]);
+  assert.deepEqual(state.friendshipAnalytics, []);
 });
 
 test("acceptFriendInvitation maps inactive and already-accepted links to inactive", async () => {
