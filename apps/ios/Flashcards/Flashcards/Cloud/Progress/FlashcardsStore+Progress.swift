@@ -74,6 +74,23 @@ extension FlashcardsStore {
         tab: AppTab,
         now: Date
     ) {
+        // Single funnel for every top-level destination, including the one selected at launch.
+        //
+        // Tapping the tab the user is already on reaches this too, because that is how SwiftUI reports
+        // a re-selection: through the selection binding's setter, with the tab unchanged. The user is
+        // then not necessarily on that tab's root — a pushed deck detail stays pushed — so reporting
+        // it would name a screen they are not looking at and hide their genuine next view of it behind
+        // the dedupe. If SwiftUI instead pops the stack to its root, the detail screen's own dismissal
+        // restores the surface, so staying silent here is right whichever way that behaves.
+        //
+        // The tab shown at launch arrives with the tab already stored, and is the only such call that
+        // must still be reported. Nothing has been viewed yet at that point, which is what the initial
+        // report keys on.
+        if self.currentVisibleTab == tab {
+            Analytics.trackInitialScreenViewed(analyticsSurface(tab: tab))
+        } else {
+            Analytics.trackScreenViewed(analyticsSurface(tab: tab))
+        }
         self.updateCurrentVisibleTab(tab: tab)
 
         guard isProgressConsumerTab(tab: tab) else {

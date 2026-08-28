@@ -360,6 +360,7 @@ struct CloudSignInSheet: View {
                 if self.otpSheetState?.id == nextOtpSheetState.id {
                     self.otpSheetState = nil
                 }
+                Analytics.track(.signInFailed(reason: analyticsSignInFailureReason(error: error)))
                 self.presentAuthErrorPresentation(
                     makeCloudAuthInlineErrorPresentation(
                         error: error,

@@ -4,6 +4,40 @@
 <dict>
 	<key>NSPrivacyTracking</key>
 	<false/>
+	<!-- Product analytics posts app opens, screen views, review sessions, card-create intents and
+	     sign-in/sync failures to our own server over an authenticated request from which the server
+	     derives user_id and workspace_id, so the data is collected and linked. anonymous_id is
+	     declared as a device ID because it is a client-generated identifier we transmit and join to
+	     the account; the reading is arguable, but under-declaring is the only side of it that costs
+	     anything at review. Nothing here is used for tracking: no data leaves for a third party and
+	     there is no advertising identifier. -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>
