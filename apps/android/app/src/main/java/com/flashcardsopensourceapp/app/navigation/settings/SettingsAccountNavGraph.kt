@@ -10,6 +10,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneRoute
 import com.flashcardsopensourceapp.feature.settings.account.AccountLegalRoute
 import com.flashcardsopensourceapp.feature.settings.account.AccountOpenSourceRoute
@@ -47,7 +48,9 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         AccountStatusRoute(
             uiState = uiState,
             onOpenSignIn = {
-                navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                navController.navigate(
+                    route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.SETTINGS)
+                )
             },
             onSyncNow = {
                 coroutineScope.launch {
