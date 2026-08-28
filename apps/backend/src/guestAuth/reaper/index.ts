@@ -250,11 +250,11 @@ async function loadWebGuestReaperCandidatesInExecutor(
       "COALESCE(latest_event.last_seen_at, guests.latest_session_created_at) AS last_active_at",
       "FROM stale_web_guests AS guests",
       // One indexed lookup per candidate through idx_product_events_user_id (migration 0115), so
-      // the event table is never scanned. The driving aggregate above has no such support:
-      // auth.guest_sessions carries only (user_id, created_at DESC) and the active-token hash
-      // index (migration 0031), so every run reads the whole session table, bounded only by the
-      // reporting role's 30s statement_timeout. A (platform, created_at) index is what would make
-      // it a range scan.
+      // the event table is never scanned. The driving aggregate above now has
+      // idx_guest_sessions_platform_created (migration 0118) instead of the whole-table read it
+      // used to need - available rather than guaranteed, since the planner still prefers a
+      // sequential scan while the table is small enough for that to be cheaper, and keeps the index
+      // only while created_at below the inactivity threshold stays selective.
       "LEFT JOIN LATERAL (",
       // occurred_at is the skew-corrected client clock and can sit up to 30 days before the server
       // ever saw the batch, so it alone would let a guest look older than it is. ingested_at is the
@@ -701,10 +701,8 @@ export async function reapInactiveWebGuests(
       // Everything earlier pages deleted is already permanent, so a scan that throws must not carry
       // those counts out with it: the run stops here and still reports what it deleted, skipped and
       // failed, with finished left false so WebGuestReaperSaturatedAlarm sees the candidates left
-      // behind. The invocation still has to fail - WebGuestReaperLambdaErrorAlarm is the stated
-      // reason the (platform, created_at) index is safe to defer, and an unindexed scan outgrowing
-      // the reporting role's 30s statement_timeout has to surface as an errored invocation - so the
-      // entrypoint throws on scanFailed after emitting the completion record.
+      // behind. The invocation still has to fail, so the entrypoint throws on scanFailed after
+      // emitting the completion record.
       recordScanFailure(result.pagesScanned, observationScope, error);
       return { ...result, scanFailed: true };
     }

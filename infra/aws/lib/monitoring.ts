@@ -585,14 +585,15 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
   }), alertTopic);
 
   // The reaper permanently deletes org.user_settings and org.workspaces rows once a day, so a run
-  // that throws every night has to reach the alert topic rather than only Sentry. This alarm is
-  // also what makes the deferred auth.guest_sessions (platform, created_at) index safe to defer: if
-  // the unindexed candidate scan ever grows past the reporting role's 30s statement_timeout, the
-  // query errors, the entrypoint rethrows, and the reaper stops deleting anything until the index
-  // lands. That is an errored invocation, which is exactly what this alarm sees, and it is why the
-  // error alarm must stay in place while the index is deferred. The staleness alarm below cannot
-  // stand in for it: Lambda counts an errored invocation in Invocations like any other, so the run
-  // count stays at one per day and a job that fails every night never looks stale.
+  // that throws every night has to reach the alert topic rather than only Sentry. A candidate scan
+  // that errors, on the reporting role's 30s statement_timeout or on anything else, ends that run
+  // where it stopped and does the same every night for as long as the cause persists, and the
+  // entrypoint rethrows so it surfaces here as an errored invocation. WebGuestReaperSaturatedAlarm
+  // below fires on such a run too, because it completes with finished: false, but it describes
+  // guests being minted faster than the schedule reaps them, which a failed scan is not; this alarm
+  // is the one that names it. The staleness alarm below cannot stand in for it either: Lambda
+  // counts an errored invocation in Invocations like any other, so the run count stays at one per
+  // day and a job that fails every night never looks stale.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "WebGuestReaperLambdaErrorAlarm", {
     metric: props.webGuestReaperFn.metricErrors({
       period: cdk.Duration.minutes(15),
@@ -628,9 +629,8 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
   // batchSize or maxPages only helps a run that still stops on its page limit; once a real backlog
   // exists the run is deadline-bound instead, because 500 x 5 per-guest transactions of about six
   // round trips each do not fit the reaper Lambda's five-minute timeout, and raising either knob
-  // then changes nothing. The other two levers are that Lambda's timeout and memorySize in
-  // lib/scheduled-jobs/web-guest-reaper.ts, and the deferred auth.guest_sessions
-  // (platform, created_at) index.
+  // then changes nothing. The remaining levers are that Lambda's timeout and memorySize in
+  // lib/scheduled-jobs/web-guest-reaper.ts.
   const webGuestReaperSaturationMetricFilter = new logs.MetricFilter(
     scope,
     "WebGuestReaperSaturationMetricFilter",
