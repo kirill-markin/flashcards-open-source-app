@@ -1,11 +1,17 @@
 import { z } from "zod";
 
-// Frozen v1 product analytics contract. Every client mirrors this file by hand and the server
+// The product analytics contract. Every client mirrors this file by hand and the server
 // rejects anything that is not declared here, which is what keeps event_properties free of
 // personal data and therefore safe to keep after an account is anonymized. A string property must
 // declare a bounded format and not merely a length cap: a length-capped free-text property would be
 // a client-controlled channel into a column that is retained indefinitely and that account
 // anonymization deliberately keeps intact.
+//
+// schema_version stamps the catalog generation a stored row was accepted under, and it stayed 1
+// across the revision that retired the session and onboarding events and added the fact-shaped
+// ones. 0119 deleted every row written under the previous generation, so no stored row belongs to
+// it: bumping would have created a generation with no rows and no meaning. The bump is reserved for
+// the first revision after which rows survive on both sides of it.
 export const productAnalyticsSchemaVersion = 1;
 
 // event_id is the primary key of an append-only table, so time-ordered ids are the only thing that
@@ -37,16 +43,64 @@ export const productAnalyticsExperimentTokenPattern = /^[a-z0-9](?:[a-z0-9_-]{0,
 
 // Platform-independent surfaces so funnels compare across clients. Each client maps its own
 // native screens onto these and never sends a native screen name.
+//
+// The list names screens, never funnel steps, and it is the union of the screens the web, iOS and
+// Android apps actually have. One granularity rule keeps it a surface enum rather than a route
+// table: a screen earns a value when it is a destination of its own, meaning a tab, a public route,
+// a prompt a person has to answer, an abandonable step of a flow, or one of the content objects the
+// enum already names, while the app preference and account leaves that all three clients nest under
+// their settings screen collapse into `settings`. A client whose screen has no value here sends no
+// `screen` at all rather than the nearest wrong one.
+//
+// `screen` carries two readings, deliberately. On `screen_viewed` and on every other event it is
+// where the person is now. On `signin_failed` alone it is the entry point: the surface that owned
+// the sign-in control the person tapped, never `signin` itself. That set is open, because any
+// surface can grow such a control — `settings`, `progress`, `review` and `ai` carry one today — and
+// a sign-in the client cannot attribute to a surface reports no `screen` at all, so filtering the
+// event to a fixed list of surfaces silently drops entry points. Adding `signin` for the sign-in
+// screen itself does not change that, but a funnel that mixes the two readings will misread
+// `signin_failed`.
 export const productAnalyticsSurfaces = [
   "review",
   "catalog",
   "deck_detail",
-  "onboarding",
   "card_editor",
   "cards",
   "progress",
   "settings",
   "ai",
+  // Workspace content management. These sit under the settings screen on all three clients only as
+  // a routing accident: they act on the person's own decks, cards and tags, which is the same
+  // object family `cards`, `card_editor` and `deck_detail` already name.
+  "decks",
+  "deck_editor",
+  "tags",
+  // Authentication. `signin` is the sign-in screen itself whatever the client splits it into: the
+  // email step, the code step and the workspace choice are one screen here.
+  // `credential_recovery` is the gate that replaces the whole app root on iOS and Android when
+  // stored credentials can no longer be used, and is the one sign-in entry point that until now
+  // could only be reported as no screen at all.
+  "signin",
+  "credential_recovery",
+  // Our own in-app prompts, each a screen a person has to answer before anything else continues.
+  // `prompt_answered.prompt` repeats these two values verbatim, so an answer joins to its surface by
+  // equality; the two spellings have to stay identical for that join to keep working.
+  "notifications_pre_prompt",
+  "signin_after_review_prompt",
+  // The catalog import flow, whose steps are internal component state rather than routes, so the
+  // surface is the only place the step can be recorded. `catalog_import_signin` is the gate a
+  // signed-out person lands on when they open an import link; `catalog` stays the surface of the
+  // route's own loading, not-found and error states.
+  "catalog_import_signin",
+  "catalog_import_workspace",
+  "catalog_import_confirm",
+  "catalog_import_done",
+  // The two sides of a friend invitation: the screen that creates and shares one, and the landing
+  // page the invited person opens.
+  "friend_invite",
+  "friend_invite_accept",
+  // The public page that hands out the app's other platform links.
+  "share",
 ] as const;
 
 export const productAnalyticsNetworkStates = [
@@ -56,15 +110,59 @@ export const productAnalyticsNetworkStates = [
   "unknown",
 ] as const;
 
+// The clients an event can come from. `agent` is the terminal / AI-agent API and MCP client that
+// AGENTS.md lists as a supported client alongside the three apps and that had no value here at all,
+// so every event it produced was platform-less. The name is the one the repository already uses for
+// that client, in the `agent_connection` sync actor kind, in apps/backend/src/agent/, on the
+// /settings/agent-connections screen and on the GET /v1/agent discovery route, rather than a fourth
+// spelling invented for analytics. No stored platform column holds it — sync.workspace_replicas,
+// sync.installations and auth.guest_sessions each constrain platform to a set without it — so only
+// the actor kind identifies this client. This list is the stored-value domain and not the set a
+// client may claim; see productAnalyticsClientReportablePlatforms below.
+// ServerDerivedProductAnalyticsEvent carries the rules and the hazards a server-derived producer
+// works through before reporting any value at all.
 export const productAnalyticsPlatforms = [
   "ios",
   "android",
   "web",
+  "agent",
 ] as const;
 
 export type ProductAnalyticsSurface = (typeof productAnalyticsSurfaces)[number];
 export type ProductAnalyticsNetworkState = (typeof productAnalyticsNetworkStates)[number];
 export type ProductAnalyticsPlatform = (typeof productAnalyticsPlatforms)[number];
+
+// Which of the stored platform values a client request may claim for itself. The two sets are
+// deliberately different, and the difference is load-bearing rather than tidiness: the ingestion
+// route is public and human-authenticated, so a hand-posted or mis-headered batch reaches it, and
+// analytics.product_events is append-only, so a client-origin row that claimed a platform it is not
+// could never be repaired and would poison every `WHERE platform = ...` read of it afterwards.
+//
+// `agent` is the value that must stay unreachable from a request header. The agent client cannot
+// legitimately produce a client-origin row at all: its transport is api_key, which
+// isProductAnalyticsTransportAccepted refuses outright, so every client-origin row carrying
+// platform 'agent' is necessarily a false claim.
+//
+// The table is exhaustive over the stored domain rather than a second literal list, so a platform
+// added above does not compile until this question is answered for it, and no future platform can
+// become client-claimable by omission.
+const productAnalyticsClientReportablePlatformFlags = {
+  ios: true,
+  android: true,
+  web: true,
+  agent: false,
+} as const satisfies Readonly<Record<ProductAnalyticsPlatform, boolean>>;
+
+export type ProductAnalyticsClientReportablePlatform = {
+  [Platform in ProductAnalyticsPlatform]:
+    (typeof productAnalyticsClientReportablePlatformFlags)[Platform] extends true ? Platform : never;
+}[ProductAnalyticsPlatform];
+
+export const productAnalyticsClientReportablePlatforms: ReadonlyArray<ProductAnalyticsClientReportablePlatform> =
+  productAnalyticsPlatforms.filter(
+    (platform): platform is ProductAnalyticsClientReportablePlatform =>
+      productAnalyticsClientReportablePlatformFlags[platform],
+  );
 
 export type ProductAnalyticsPropertyValue = string | number;
 export type ProductAnalyticsEventProperties = Readonly<Record<string, ProductAnalyticsPropertyValue>>;
@@ -78,22 +176,39 @@ type ProductAnalyticsPropertySpec =
   // client that writes -1 or 1.5 cannot be repaired afterwards; the contract admits neither.
   | Readonly<{ kind: "nonNegativeInteger" }>;
 
-type ProductAnalyticsEventSpec = Readonly<{
-  // Emitted by the backend from its own observation. Client ingest rejects these outright, so a
-  // client can never forge an outcome the server never saw, and the server-side emission path is
-  // the only producer of the row.
-  serverOnly: boolean;
-  // A required surface, carried by the event's own screen field rather than duplicated into properties.
-  requiresScreen: boolean;
+type ProductAnalyticsEventSpecProperties = Readonly<{
   properties: Readonly<Record<string, ProductAnalyticsPropertySpec>>;
 }>;
+
+// serverOnly and requiresScreen are mutually exclusive, and the union below is what makes the
+// combination unwritable rather than merely wrong. The backend has no surface of its own to report,
+// so createServerDerivedProductAnalyticsRow stores screen NULL for every server-derived row; a
+// server-only entry that also required a surface would fail the writer's catalog assertion, and
+// emitServerDerivedProductAnalyticsEvent turns that throw into a Sentry warning, so every row of
+// that event would be dropped with nothing visible at ingest. A compile error on the catalog entry
+// is the only form of that failure a person can act on.
+type ProductAnalyticsEventSpec = ProductAnalyticsEventSpecProperties &
+  (
+    // Emitted by the backend from its own observation. Client ingest rejects these outright, so a
+    // client can never forge an outcome the server never saw, and the server-side emission path is
+    // the only producer of the row.
+    | Readonly<{ serverOnly: true; requiresScreen: false }>
+    // requiresScreen is a required surface, carried by the event's own screen field rather than
+    // duplicated into properties.
+    | Readonly<{ serverOnly: false; requiresScreen: boolean }>
+  );
 
 export const productAnalyticsEventCatalog = {
   app_opened: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      launch_type: { kind: "enum", values: ["cold", "warm"] },
+      // `unknown` is not a client value: a live client always knows whether it cold- or
+      // warm-started. It exists because a day reconstructed from stored activity long after the
+      // fact cannot know which it was, and inventing either would be a lie. The property stays
+      // required so "we do not know" is a stored fact rather than an absent key that a reader
+      // cannot tell apart from a client that failed to send one.
+      launch_type: { kind: "enum", values: ["cold", "warm", "unknown"] },
     },
   },
   screen_viewed: {
@@ -101,15 +216,30 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: true,
     properties: {},
   },
-  onboarding_step_completed: {
+  // Our own in-app prompts, which are ours to decide when to show. The OS-level result of the
+  // permission dialog a person may then be handed is a separate event, because a person can accept
+  // this prompt and still deny the system one. `prompt` is spelled exactly as the prompt's own
+  // surface above, so the answer joins to the surface without a mapping.
+  prompt_answered: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      step: {
-        kind: "enum",
-        values: ["language", "goal", "notifications", "first_deck", "first_review", "signin"],
-      },
-      outcome: { kind: "enum", values: ["completed", "skipped"] },
+      prompt: { kind: "enum", values: ["signin_after_review_prompt", "notifications_pre_prompt"] },
+      outcome: { kind: "enum", values: ["accepted", "dismissed", "snoozed"] },
+    },
+  },
+  // The OS-level permission dialog, whose outcome the app only observes. The surface is carried by
+  // the event's own screen and never duplicated into a property: there is exactly one place a
+  // surface belongs on an event. It carries the ordinary reading above and not the entry-point one
+  // `signin_failed` has: an OS dialog can be answered after the app was backgrounded and resumed
+  // somewhere else, so the screen is where the person is when the answer is reported and reading it
+  // as the surface that asked for the permission would be wrong.
+  permission_prompt_answered: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      permission: { kind: "enum", values: ["notifications", "photo_library", "camera", "microphone"] },
+      outcome: { kind: "enum", values: ["granted", "denied", "dismissed"] },
     },
   },
   signin_failed: {
@@ -127,20 +257,23 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: {},
   },
-  review_session_started: {
+  // The card flip. It never reaches the backend on its own, so only a client can report it, and it
+  // is the denominator `review_answered` is read against: the gap between the two is the person who
+  // looked at the answer and walked away.
+  review_card_revealed: {
     serverOnly: false,
-    requiresScreen: false,
-    properties: {
-      deck_scope: { kind: "enum", values: ["all", "deck", "filter"] },
-    },
+    requiresScreen: true,
+    properties: {},
   },
-  review_session_ended: {
-    serverOnly: false,
+  // One graded answer, derived from the content.review_events row the answer stored rather than
+  // reported by the client, so a review answered offline is counted once it syncs and is never
+  // counted twice. The rating names the four buttons; the stored column holds them as 0..3 and the
+  // producer maps them here, because a stored integer is unreadable in a query five months later.
+  review_answered: {
+    serverOnly: true,
     requiresScreen: false,
     properties: {
-      end_reason: { kind: "enum", values: ["completed", "abandoned", "interrupted"] },
-      answered_count: { kind: "nonNegativeInteger" },
-      duration_ms: { kind: "nonNegativeInteger" },
+      rating: { kind: "enum", values: ["again", "hard", "good", "easy"] },
     },
   },
   review_answer_failed: {
@@ -159,6 +292,45 @@ export const productAnalyticsEventCatalog = {
         values: ["cards", "deck_detail", "review", "ai", "quick_action"],
       },
     },
+  },
+  // The content facts, each derived from the row the write actually left behind rather than from
+  // the client that intended it. An offline-first client queues a write and syncs it later, so the
+  // server is the only place that knows a card or a deck really exists; `card_create_started` above
+  // stays a client event precisely because it reports the intent, which is the other half of the
+  // pair. Carrying no properties is deliberate: the row is the fact, and anything describing what
+  // was written would be content a person typed.
+  card_created: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  card_updated: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  deck_created: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  deck_updated: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  friend_invitation_created: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  // One event per directed friendship row, so an accepted invitation produces two: the inviter and
+  // the accepter each gained a friend, and each sees that when looking only at their own events.
+  // Emitting one event for the pair would leave one of the two people with no record of it.
+  friendship_created: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
   },
   ai_message_sent: {
     serverOnly: true,
@@ -228,7 +400,7 @@ function createPropertySchema(spec: ProductAnalyticsPropertySpec) {
 }
 
 function createPropertiesParser(
-  spec: ProductAnalyticsEventSpec,
+  spec: ProductAnalyticsEventSpecProperties,
 ): (value: unknown) => ProductAnalyticsEventProperties | null {
   const shape: Record<string, ReturnType<typeof createPropertySchema>> = {};
   for (const [propertyName, propertySpec] of Object.entries(spec.properties)) {
