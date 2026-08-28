@@ -35,6 +35,29 @@ export function createRequestContextWithSelectedWorkspace(selectedWorkspaceId: s
   };
 }
 
+export const GUEST_SUBJECT_USER_ID = "guest-user-1";
+export const GUEST_SESSION_ID = "guest-session-1";
+
+/**
+ * A guest-transport request context whose three identity fields are deliberately pairwise distinct
+ * from each other and from `createRequestContext()`, so an assertion on a value a route forwarded
+ * names the field it was actually read from: a route that substitutes `userId` for `subjectUserId`,
+ * or hardcodes `guestSessionId` to null, changes an asserted value instead of passing.
+ *
+ * A real guest carries the same id in `userId` and `subjectUserId`, so never assert through this
+ * fixture that those two differ in production.
+ */
+export function createGuestRequestContext(): RequestContext {
+  return {
+    ...createRequestContext(),
+    subjectUserId: GUEST_SUBJECT_USER_ID,
+    email: null,
+    transport: "guest",
+    guestSessionId: GUEST_SESSION_ID,
+    guestPlatform: "ios",
+  };
+}
+
 export function createSnapshot(messages: ChatSessionSnapshot["messages"]): ChatSessionSnapshot {
   return {
     sessionId: SESSION_ONE,

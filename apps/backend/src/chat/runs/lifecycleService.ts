@@ -70,6 +70,10 @@ import type {
 
 /**
  * Persists the user turn, creates the assistant placeholder, and enqueues a new run for the target session.
+ *
+ * The `ai_message_sent` analytics event is deliberately not emitted here. The caller writes it once
+ * the worker has been dispatched, so generation never waits on the analytics pool, and a new caller
+ * of this function has to call `recordAiMessageSentAnalytics` itself.
  */
 export async function prepareChatRun(
   userId: string,

@@ -23,7 +23,12 @@ struct CloudOtpSheetState: Identifiable, Hashable {
 @MainActor
 extension FlashcardsStore {
     func beginCloudSignInSheetPresentation() {
+        assert(
+            self.activeCloudSignInSheetCount == 0,
+            "A second cloud sign-in sheet was presented while one was already on screen."
+        )
         self.activeCloudSignInSheetCount += 1
+        self.isCloudSignInAttemptOpen = true
     }
 
     func endCloudSignInSheetPresentation() {
@@ -33,6 +38,61 @@ extension FlashcardsStore {
         }
 
         self.activeCloudSignInSheetCount -= 1
+    }
+
+    /**
+     * Whether a sign-in surface is on screen.
+     *
+     * At most one `CloudSignInSheet` exists at a time, which is why one latch is enough for what is
+     * otherwise a counter: the credential-recovery gate and the tab root are the two mutually
+     * exclusive branches of `RootTabView.body`, the guest-sign-in prompt is blocked outright while
+     * this count is non-zero, and a presented sheet covers the tab bar, so no second presenter can
+     * be reached. `beginCloudSignInSheetPresentation` asserts on the overlap rather than leaving
+     * that as an assumption.
+     */
+    var isCloudSignInSurfacePresented: Bool {
+        self.activeCloudSignInSheetCount > 0
+    }
+
+    /**
+     * One sign-in attempt reports exactly one `signin_failed`, and only while its surface is on
+     * screen.
+     *
+     * Reporting a failure settles the attempt, so closing the sheet afterwards cannot add a second
+     * event. The same holds from the other side: `sendCode` and the OTP calls outlive the sheet, so
+     * a request that fails after the sheet is gone reports nothing, because the dismissal has
+     * already accounted for that attempt. Two failures the person actually saw stay two events —
+     * the surface is on screen for both, and neither is an abandonment.
+     */
+    func reportCloudSignInFailure(reason: AnalyticsSignInFailureReason) {
+        guard self.isCloudSignInSurfacePresented else {
+            return
+        }
+
+        self.trackCloudSignInFailed(reason: reason)
+    }
+
+    /// Credentials were verified, so whatever happens next in post-auth is not an abandoned sign-in.
+    func recordCloudSignInVerified() {
+        self.isCloudSignInAttemptOpen = false
+    }
+
+    /**
+     * The person closed the sign-in sheet on an attempt that had neither failed nor been verified.
+     * A programmatic dismissal after success or after a reported failure finds the attempt settled
+     * and reports nothing.
+     */
+    func reportCloudSignInAbandonment() {
+        guard self.isCloudSignInAttemptOpen else {
+            return
+        }
+
+        self.trackCloudSignInFailed(reason: .cancelled)
+    }
+
+    private func trackCloudSignInFailed(reason: AnalyticsSignInFailureReason) {
+        self.isCloudSignInAttemptOpen = false
+        Analytics.track(.signInFailed(reason: reason))
     }
 }
 
