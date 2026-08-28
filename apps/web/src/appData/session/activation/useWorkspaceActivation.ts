@@ -24,6 +24,7 @@ import {
 import {
   buildLinkedCloudSettings,
 } from "../cloud/workspaceSessionCloud";
+import { resetWebGuestSession } from "../guest/webGuestSession";
 import {
   defaultWorkspaceName,
 } from "./workspaceActivationHelpers";
@@ -86,6 +87,11 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
     // events on the new account's credential. The discarded events are counted and reported inside
     // `reset()`.
     resetAnalytics();
+    // Removed here, synchronously, rather than by the `flashcards-` prefix sweep inside
+    // `clearAllLocalBrowserData` below: that sweep is several awaits away and does not run at all
+    // when the IndexedDB recovery guard fires first, and a stored guest session left readable in
+    // that window would be published as the confirmed analytics owner by the next interaction.
+    resetWebGuestSession();
     workspaceBootstrapGenerationRef.current += 1;
     deferredBootstrapWorkspaceRef.current = null;
     setSession(null);

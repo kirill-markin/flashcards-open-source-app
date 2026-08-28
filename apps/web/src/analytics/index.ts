@@ -2,6 +2,7 @@ export {
   flush,
   reset,
   setAnalyticsConfirmedOwner,
+  setAnalyticsGuestOwnerId,
   setEnabled,
   track,
   trackCatalogDeckInstallStarted,

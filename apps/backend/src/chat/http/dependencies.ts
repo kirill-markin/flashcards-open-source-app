@@ -1,4 +1,5 @@
 import type { AuthTransport } from "../../auth";
+import { assertGuestPlatformSupportsSurface } from "../../guestAuth/webPlatform";
 import { HttpError } from "../../shared/errors";
 import {
   loadRequestContextFromRequest,
@@ -61,18 +62,23 @@ export type ChatRouteDependencies = Readonly<{
 
 /**
  * Restricts the backend-owned chat surface to human-facing auth transports.
+ *
+ * `guest` here means a native guest session. The web guest platform is refused, and this repeats the
+ * default-deny gate in `server/requestContext.ts` on purpose: chat is the guest surface that spends
+ * money — every run bills against `auth.guest_ai_monthly_usage` — while the web guest token sits in
+ * `localStorage` where the visitor and any script on the page can read it.
  */
 function assertSupportedTransport(requestContext: RequestContext): void {
   const supportedTransports = new Set<AuthTransport>(["bearer", "session", "guest"]);
-  if (supportedTransports.has(requestContext.transport)) {
-    return;
+  if (supportedTransports.has(requestContext.transport) === false) {
+    throw new HttpError(
+      403,
+      "This endpoint requires Bearer, session, or guest authentication.",
+      "AI_CHAT_V2_HUMAN_AUTH_REQUIRED",
+    );
   }
 
-  throw new HttpError(
-    403,
-    "This endpoint requires Bearer, session, or guest authentication.",
-    "AI_CHAT_V2_HUMAN_AUTH_REQUIRED",
-  );
+  assertGuestPlatformSupportsSurface(requestContext.guestPlatform);
 }
 
 export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRouteDependencies {
