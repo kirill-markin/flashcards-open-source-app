@@ -174,6 +174,18 @@ class CloudRemoteService private constructor(
         return accountWorkspaceApi.listLinkedWorkspaces(apiBaseUrl = apiBaseUrl, bearerToken = bearerToken)
     }
 
+    override suspend fun linkGuestIdentity(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String
+    ) {
+        guestUpgradeApi.linkGuestIdentity(
+            apiBaseUrl = apiBaseUrl,
+            bearerToken = bearerToken,
+            guestToken = guestToken
+        )
+    }
+
     override suspend fun prepareGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,

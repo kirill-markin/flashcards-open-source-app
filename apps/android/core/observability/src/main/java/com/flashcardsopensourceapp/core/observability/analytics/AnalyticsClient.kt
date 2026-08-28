@@ -518,7 +518,13 @@ class AnalyticsClient internal constructor(
                 }
 
                 is AnalyticsBatchOutcome.CredentialRefused -> {
-                    // Keep the events queued against a future valid credential; do not spin.
+                    // Keep the events queued against a future valid credential; do not spin. The
+                    // provider is told so it can retire a credential it owns: a backoff alone would
+                    // present the same refused credential on every flush until the queue TTL.
+                    credentialProvider.onCredentialRefused(
+                        credential = credential,
+                        statusCode = outcome.statusCode
+                    )
                     scheduleRetry(retryAfterMillis = null)
                     return false
                 }

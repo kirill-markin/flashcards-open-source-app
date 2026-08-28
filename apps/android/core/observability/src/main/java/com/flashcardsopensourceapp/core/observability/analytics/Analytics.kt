@@ -165,6 +165,19 @@ data class AnalyticsCredential(
 
 fun interface AnalyticsCredentialProvider {
     suspend fun currentCredential(): AnalyticsCredential?
+
+    /**
+     * Reports that the server refused [credential] with [statusCode], so a provider that owns the
+     * credential can retire it. The client itself only backs off and retries: without this, a
+     * credential the server has revoked is handed back on every flush and analytics for that install
+     * goes silent until the queue TTL discards it.
+     *
+     * An implementation must not make the refusal worse — no minting, no auth traffic — and must
+     * swallow its own failures: the client does not guard this call, and anything that escapes it
+     * is reported as a queue-store fault it is not.
+     */
+    suspend fun onCredentialRefused(credential: AnalyticsCredential, statusCode: Int) {
+    }
 }
 
 fun interface AnalyticsNetworkStateProvider {

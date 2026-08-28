@@ -350,7 +350,8 @@ class AiChatRemoteService private constructor(
 
     override suspend fun createGuestSession(
         apiBaseUrl: String,
-        configurationMode: CloudServiceConfigurationMode
+        configurationMode: CloudServiceConfigurationMode,
+        idempotencyKey: String
     ): StoredGuestAiSession = withContext(dispatchers.io) {
         val responseBody = readResponseBody(
             request = buildRequest(
@@ -360,6 +361,7 @@ class AiChatRemoteService private constructor(
                 authorizationHeader = null,
                 requestBody = JSONObject()
                     .put("platform", guestSessionClientPlatform)
+                    .put("idempotencyKey", idempotencyKey)
                     .toString()
                     .toRequestBody(aiJsonMediaType),
                 extraHeaders = emptyMap()

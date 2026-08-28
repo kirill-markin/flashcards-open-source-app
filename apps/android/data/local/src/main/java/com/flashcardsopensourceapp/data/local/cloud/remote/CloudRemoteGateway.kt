@@ -109,6 +109,7 @@ interface CloudRemoteGateway {
         preferences: AccountPreferences
     ): AccountPreferences
     suspend fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary>
+    suspend fun linkGuestIdentity(apiBaseUrl: String, bearerToken: String, guestToken: String)
     suspend fun prepareGuestUpgrade(apiBaseUrl: String, bearerToken: String, guestToken: String): CloudGuestUpgradeMode
     suspend fun completeGuestUpgrade(
         apiBaseUrl: String,

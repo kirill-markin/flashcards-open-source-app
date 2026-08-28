@@ -32,6 +32,27 @@ internal class CloudGuestUpgradeRemoteApi(
         }
     }
 
+    /**
+     * Links a guest identity to the signed-in account for analytics and revokes the guest session.
+     * No workspace is merged, created, selected or deleted. An unknown or already-revoked token is
+     * a successful no-op.
+     */
+    suspend fun linkGuestIdentity(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String
+    ) {
+        val response = httpClient.postJson(
+            baseUrl = apiBaseUrl,
+            path = "/guest-auth/identity/link",
+            authorizationHeader = "Bearer $bearerToken",
+            body = JSONObject().put("guestToken", guestToken)
+        )
+        require(response.requireCloudBoolean("ok", "linkGuestIdentity.ok")) {
+            "Cloud link-guest-identity did not return ok=true."
+        }
+    }
+
     suspend fun prepareGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,
