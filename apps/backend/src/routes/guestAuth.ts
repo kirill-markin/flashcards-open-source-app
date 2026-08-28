@@ -68,23 +68,17 @@ function parseGuestSessionPlatformValue(value: unknown): GuestSessionPlatform | 
   }
 
   if (typeof value !== "string") {
-    throw new HttpError(400, "platform must be ios or android", "GUEST_SESSION_PLATFORM_INVALID");
+    throw new HttpError(400, "platform must be ios, android, or web", "GUEST_SESSION_PLATFORM_INVALID");
   }
 
+  // A web guest session is an analytics credential and nothing more: guest sync stays refused for it
+  // in routes/sync/guestPlatform.ts, so issuing one never opens cloud sync to a signed-out browser.
   const platform = value.trim();
-  if (platform === "ios" || platform === "android") {
+  if (platform === "ios" || platform === "android" || platform === "web") {
     return platform;
   }
 
-  if (platform === "web") {
-    throw new HttpError(
-      403,
-      "Guest web sessions are not supported. Sign in before using cloud sync on the web app.",
-      "GUEST_WEB_SESSION_UNSUPPORTED",
-    );
-  }
-
-  throw new HttpError(400, "platform must be ios or android", "GUEST_SESSION_PLATFORM_INVALID");
+  throw new HttpError(400, "platform must be ios, android, or web", "GUEST_SESSION_PLATFORM_INVALID");
 }
 
 async function parseGuestSessionCreatePlatform(request: Request): Promise<GuestSessionPlatform | null> {

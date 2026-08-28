@@ -49,6 +49,12 @@ export type AnalyticsQueueOwnerClaim = Readonly<{
   /** The queue held another account's events; they were discarded by the claim. */
   didReplaceForeignOwner: boolean;
   discardedEventCount: number;
+  /**
+   * The owner the claim replaced, or `null` when the queue was unclaimed. The caller needs the
+   * identity behind it, not only the fact that it changed: a guest issued on this browser and then
+   * signed in is the same person, while any other replaced owner is a different one.
+   */
+  replacedOwnerId: string | null;
 }>;
 
 type AnalyticsQueueTotals = {
@@ -368,7 +374,11 @@ export function claimAnalyticsQueueOwner(ownerId: string): Promise<AnalyticsQueu
       // An unclaimed queue holds events created before any credential existed. Those belong to the
       // account signing in now, so it adopts them rather than discarding them.
       if (storedOwnerId === null || storedOwnerId === ownerId) {
-        resolveResult({ didReplaceForeignOwner: false, discardedEventCount: 0 });
+        resolveResult({
+          didReplaceForeignOwner: false,
+          discardedEventCount: 0,
+          replacedOwnerId: storedOwnerId,
+        });
         return;
       }
 
@@ -377,7 +387,11 @@ export function claimAnalyticsQueueOwner(ownerId: string): Promise<AnalyticsQueu
         const discardedEventCount = toTotals(totalsRequest.result).eventCount;
         eventsStore.clear();
         metaStore.put(createEmptyTotals());
-        resolveResult({ didReplaceForeignOwner: true, discardedEventCount });
+        resolveResult({
+          didReplaceForeignOwner: true,
+          discardedEventCount,
+          replacedOwnerId: storedOwnerId,
+        });
       };
     };
   });

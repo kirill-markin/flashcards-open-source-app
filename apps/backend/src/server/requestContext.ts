@@ -5,6 +5,7 @@ import {
   type AuthTransport,
 } from "../auth";
 import type { GuestSessionPlatform } from "../guestAuth/types";
+import { assertGuestPlatformSupportsSurface } from "../guestAuth/webPlatform";
 import { isDeletedSubject } from "../auth/deletedSubjects";
 import { HttpError } from "../shared/errors";
 import {
@@ -38,6 +39,18 @@ export type RequestContext = Readonly<{
   connectionId: string | null;
   guestSessionId: string | null;
   guestPlatform: GuestSessionPlatform | null;
+}>;
+
+/**
+ * Per-surface guest policy. Every authenticated HTTP route in this service builds its context here,
+ * so this is the one place a `web` guest credential can be admitted or refused for all of them at
+ * once, rather than through a transport check repeated in each route that happens to remember it.
+ *
+ * Default-deny: a surface that says nothing refuses `web`. The analytics ingest route is the only
+ * caller that opts in, because a web guest session exists solely to authenticate its batches.
+ */
+export type LoadRequestContextOptions = Readonly<{
+  allowWebGuestPlatform?: boolean;
 }>;
 
 export type WorkspaceRequestContext = Readonly<{
@@ -95,12 +108,14 @@ export function getAllowedOrigins(): Array<string> {
 export async function loadRequestContextWithDependencies(
   requestAuthInputs: RequestAuthInputs,
   dependencies: LoadRequestContextDependencies,
+  options: LoadRequestContextOptions = {},
 ): Promise<RequestContext> {
   const auth = await dependencies.authenticateRequestFn(toAuthRequest(requestAuthInputs));
   return loadAuthenticatedRequestContext(
     auth,
     dependencies,
     () => {},
+    options,
   );
 }
 
@@ -112,8 +127,16 @@ async function loadAuthenticatedRequestContext(
     ensureUserProfileFn: typeof ensureUserProfile;
   }>,
   assertRequestActive: () => void,
+  options: LoadRequestContextOptions,
 ): Promise<RequestContext> {
   assertRequestActive();
+  // Before the deleted-subject read and the profile write below, so a refused web guest costs
+  // nothing and leaves nothing behind. This is the choke point every guest request context is minted
+  // through, which is what makes the refusal hold for routes nobody has written yet.
+  if (options.allowWebGuestPlatform !== true) {
+    assertGuestPlatformSupportsSurface(auth.guestPlatform);
+  }
+
   const subjectUserId = auth.subjectUserId;
   if (auth.transport !== "none") {
     const deleted = await dependencies.isDeletedSubjectFn(subjectUserId);
@@ -149,6 +172,7 @@ export async function loadRequestContextWithAbortSignalAndDependencies(
   requestAuthInputs: RequestAuthInputs,
   abortSignal: AbortSignal,
   dependencies: LoadRequestContextWithAbortSignalDependencies,
+  options: LoadRequestContextOptions = {},
 ): Promise<RequestContext> {
   abortSignal.throwIfAborted();
   const auth = await dependencies.authenticateRequestWithAbortSignalFn(
@@ -160,23 +184,26 @@ export async function loadRequestContextWithAbortSignalAndDependencies(
     auth,
     dependencies,
     () => abortSignal.throwIfAborted(),
+    options,
   );
 }
 
 export async function loadRequestContext(
   requestAuthInputs: RequestAuthInputs,
+  options: LoadRequestContextOptions = {},
 ): Promise<RequestContext> {
   return loadRequestContextWithDependencies(requestAuthInputs, {
     authenticateRequestFn: authenticateRequest,
     isDeletedSubjectFn: isDeletedSubject,
     ensureCognitoUserProfileFn: ensureCognitoUserProfile,
     ensureUserProfileFn: ensureUserProfile,
-  });
+  }, options);
 }
 
 export async function loadRequestContextWithAbortSignal(
   requestAuthInputs: RequestAuthInputs,
   abortSignal: AbortSignal,
+  options: LoadRequestContextOptions = {},
 ): Promise<RequestContext> {
   return loadRequestContextWithAbortSignalAndDependencies(
     requestAuthInputs,
@@ -188,18 +215,20 @@ export async function loadRequestContextWithAbortSignal(
       ensureCognitoUserProfileFn: ensureCognitoUserProfile,
       ensureUserProfileFn: ensureUserProfile,
     },
+    options,
   );
 }
 
 export async function loadRequestContextFromRequest(
   request: Request,
   allowedOrigins: ReadonlyArray<string>,
+  options: LoadRequestContextOptions = {},
 ): Promise<Readonly<{
   requestAuthInputs: RequestAuthInputs;
   requestContext: RequestContext;
 }>> {
   const requestAuthInputs = extractRequestAuthInputs(request);
-  const requestContext = await loadRequestContext(requestAuthInputs);
+  const requestContext = await loadRequestContext(requestAuthInputs, options);
 
   if (requestContext.transport === "session") {
     await enforceSessionCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
@@ -215,6 +244,7 @@ export async function loadRequestContextFromRequestWithAbortSignal(
   request: Request,
   allowedOrigins: ReadonlyArray<string>,
   abortSignal: AbortSignal,
+  options: LoadRequestContextOptions = {},
 ): Promise<Readonly<{
   requestAuthInputs: RequestAuthInputs;
   requestContext: RequestContext;
@@ -224,6 +254,7 @@ export async function loadRequestContextFromRequestWithAbortSignal(
   const requestContext = await loadRequestContextWithAbortSignal(
     requestAuthInputs,
     abortSignal,
+    options,
   );
   abortSignal.throwIfAborted();
 

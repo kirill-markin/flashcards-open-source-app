@@ -4,6 +4,14 @@ import { HttpError } from "../../shared/errors";
 
 export type SyncClientPlatform = "ios" | "android" | "web";
 
+/**
+ * Returns the guest platform that may sync, from the platform the client declares on the request.
+ *
+ * A guest session actually bound to `web` never reaches this file: the default-deny gate in
+ * `server/requestContext.ts` refuses that credential on every surface but analytics ingest. What
+ * this still refuses is the other half — a native guest token presented with `web` as the declared
+ * sync platform — which is why the mapping stays.
+ */
 export function toGuestSessionPlatform(platform: SyncClientPlatform): GuestSessionPlatform | null {
   if (platform === "ios" || platform === "android") {
     return platform;

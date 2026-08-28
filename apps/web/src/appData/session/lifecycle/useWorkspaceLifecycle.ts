@@ -31,6 +31,7 @@ import {
   buildLinkingReadyCloudSettings,
   resolveLocalDataCleanupReasonForVerifiedSession,
 } from "../cloud/workspaceSessionCloud";
+import { registerWebSessionOwnerPublisher } from "../guest/webGuestSession";
 import {
   createSessionAccountSwitchError,
   hasLoggedOutMarker,
@@ -243,7 +244,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       // account it was filled under, so this is what lets analytics compare the two and either ship
       // or discard; until it is published nothing is sent, which is why it is only reached once the
       // session is verified and any user-scoped cleanup has already run.
-      setAnalyticsConfirmedOwner(currentSession.userId);
+      setAnalyticsConfirmedOwner(currentSession.userId, { kind: "session" });
       setSessionVerificationState("verified");
     } catch (error) {
       const normalizedError = normalizeCaughtError(error);
@@ -308,6 +309,16 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     initializeRef.current = initialize;
   }, [initialize]);
 
+  // Announces, for as long as this layer is mounted, that an account owner can still be published on
+  // this page load. The web guest identity stands down while that holds and the browser's own
+  // `logged_in` cookie names an account, so an interaction during a session refresh cannot let a
+  // guest claim the analytics queue ahead of the account that is about to arrive. The public
+  // catalog, invite and share routes mount no session layer, and a signed-out visitor there is
+  // measured as one instead of being silenced by a cookie nothing on those routes will ever clear.
+  useEffect(() => {
+    return registerWebSessionOwnerPublisher();
+  }, []);
+
   useEffect(() => {
     void initializeRef.current();
   }, []);
@@ -349,7 +360,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             return false;
           }
 
-          setAnalyticsConfirmedOwner(currentSession.userId);
+          setAnalyticsConfirmedOwner(currentSession.userId, { kind: "session" });
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");

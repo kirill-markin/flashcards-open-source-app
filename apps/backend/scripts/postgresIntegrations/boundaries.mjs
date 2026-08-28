@@ -71,8 +71,8 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0115_product_analytics_resolved_view.sql",
-    expectedMigrationCount: 117,
+    migrationFileName: "0116_guest_session_web_platform.sql",
+    expectedMigrationCount: 118,
     testFiles: Object.freeze([
       "src/catalog/authoring/lockOrder.postgres.integration.ts",
       "src/catalog/distribution/install/install.postgres.integration.ts",

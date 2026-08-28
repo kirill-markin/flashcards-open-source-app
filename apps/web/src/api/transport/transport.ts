@@ -201,6 +201,14 @@ export const allowAuthRecoveryWithTransientNetworkRetry: RequestOptions = {
 
 export const skipAuthRecoveryWithTransientNetworkRetry: RequestOptions = createSkipAuthRecoveryOptions("transient");
 
+/**
+ * For a request that must not be repeated. A dropped connection tells the client nothing about
+ * whether the server acted, so retrying a write with no idempotency key can produce a second
+ * permanent effect from a single caller attempt. Such a call fails on the first network error and
+ * leaves retrying to whoever knows it is safe.
+ */
+export const skipAuthRecoveryWithoutNetworkRetry: RequestOptions = createSkipAuthRecoveryOptions("none");
+
 function createSkipAuthRecoveryOptions(networkRetryMode: NetworkRetryMode): RequestOptions {
   return {
     authRecoveryMode: "skip",
@@ -287,12 +295,18 @@ function buildSanitizedRequestEndpoint(pathname: string, init: RequestInit): str
   return `${getMethod(init)} ${sanitizeRequestPath(pathname)}`;
 }
 
-function createHeaders(init: RequestInit): Headers {
+function createBaseHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
 
   if (init.body !== undefined && !headers.has("Content-Type") && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
+
+  return headers;
+}
+
+function createHeaders(init: RequestInit): Headers {
+  const headers = createBaseHeaders(init);
 
   if (isUnsafeMethod(getMethod(init))) {
     if (sessionCsrfState === "unknown") {
@@ -408,6 +422,33 @@ async function performFetch(
     return await fetch(`${config.apiBaseUrl}${pathname}`, {
       ...init,
       credentials,
+      headers,
+    });
+  } catch (error) {
+    throwIfRequestAborted(init.signal ?? null);
+    throw createFetchApiNetworkError(pathname, init, error, attemptCount);
+  }
+}
+
+async function performGuestFetch(
+  pathname: string,
+  init: RequestInit,
+  guestToken: string | null,
+  attemptCount: number,
+): Promise<Response> {
+  const config = getAppConfig();
+  const headers = createBaseHeaders(init);
+  if (guestToken !== null) {
+    headers.set("Authorization", `Guest ${guestToken}`);
+  }
+
+  try {
+    // "omit" keeps the guest token the only credential on the request. A session cookie riding along
+    // would be ignored by the backend, which reads the Authorization header first, but leaving the
+    // request with exactly one credential is what makes the identity it is attributed to obvious.
+    return await fetch(`${config.apiBaseUrl}${pathname}`, {
+      ...init,
+      credentials: "omit",
       headers,
     });
   } catch (error) {
@@ -900,6 +941,43 @@ export async function requestPublicJson(pathname: string): Promise<ParsedRespons
     const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
     return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
       const response = await performFetch(pathname, requestInit, "omit", attemptCount);
+      return parseJsonPayload(
+        response,
+        buildRequestEndpoint(pathname, requestInit),
+        {
+          attemptCount,
+          endpoint,
+        },
+      );
+    });
+  } finally {
+    disposeRequestSignal();
+  }
+}
+
+/**
+ * Sends one request authenticated by a guest token instead of the shared browser session.
+ *
+ * The guest token is the whole credential, so the session cookie is deliberately not attached and
+ * the session CSRF token — which the backend derives from that cookie — does not apply. This mirrors
+ * `apps/backend/src/auth/requestSecurity.ts`, where `enforceSessionCsrfProtection` runs only for the
+ * session transport: a header the browser has to be told to send is not an ambient credential a
+ * cross-site page could ride on. It is the same shared pipeline as every other call — same base URL,
+ * same network retry, same error parsing — rather than a second token mechanism beside it.
+ *
+ * `guestToken` is null only when creating the guest session itself, which carries no credential yet.
+ */
+export async function requestGuestJson(
+  pathname: string,
+  init: RequestInit,
+  guestToken: string | null,
+  options: RequestOptions,
+): Promise<ParsedResponsePayload> {
+  const { requestInit, dispose: disposeRequestSignal } = attachRecoverySignal(init);
+  try {
+    const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
+    return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
+      const response = await performGuestFetch(pathname, requestInit, guestToken, attemptCount);
       return parseJsonPayload(
         response,
         buildRequestEndpoint(pathname, requestInit),
