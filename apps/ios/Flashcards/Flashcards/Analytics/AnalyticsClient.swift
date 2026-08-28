@@ -6,9 +6,33 @@ struct AnalyticsCredentials: Sendable, Equatable {
     let authorizationHeaderValue: String
 }
 
-/// Resolved on the main actor because the cloud session lives there. It must never refresh a token or
-/// create a session: analytics is off the interaction path and must not drive cloud work of its own.
+/// Resolved on the main actor because the cloud session lives there. This runs on every flush and must
+/// stay off the network: it never refreshes a token and never creates a session. Creation is the
+/// separate, once-per-launch minter below.
+///
+/// It is not free of local side effects, and must not be described as one. Reading the stored guest
+/// credential can persist the active cloud session into the credential record, sweep an analytics-only
+/// marker that no longer describes it, and drop a record left behind by a different service
+/// configuration. All of that is Keychain bookkeeping the provider contains; none of it is a user
+/// action, a network call or a new identity.
 typealias AnalyticsCredentialsProvider = @MainActor @Sendable () -> AnalyticsCredentials?
+
+/// What one guest credential creation attempt produced.
+enum AnalyticsGuestCredentialMintOutcome: Sendable {
+    case minted(AnalyticsCredentials)
+    /// Nothing was requested — the app may not create a guest credential in its current state, or the
+    /// check itself could not be read. No server-side identity exists because of this attempt, so it
+    /// costs nothing and a later flush may ask again.
+    case skipped
+    /// A creation was attempted and did not leave a usable credential behind. It may still have
+    /// created a server-side identity, so this spends the launch's one attempt.
+    case failed
+}
+
+/// Creates the guest credential an install with no cloud identity of its own authenticates with. It is
+/// separate from the read above because it is the single piece of cloud work analytics may drive, and
+/// it is bounded to one attempt per launch.
+typealias AnalyticsGuestCredentialMinter = @MainActor @Sendable () async -> AnalyticsGuestCredentialMintOutcome
 
 /**
  * The product analytics client.
@@ -36,12 +60,16 @@ enum Analytics {
 
     /// Wires in credential resolution and starts the connectivity-restored flush trigger. Safe to call
     /// once at app start; it opens no store and performs no I/O of its own.
-    static func configure(credentialsProvider: @escaping AnalyticsCredentialsProvider) {
+    static func configure(
+        credentialsProvider: @escaping AnalyticsCredentialsProvider,
+        guestCredentialMinter: @escaping AnalyticsGuestCredentialMinter
+    ) {
         self.networkMonitor.start {
             Analytics.flush()
         }
         Task.detached(priority: .utility) {
             await self.runtime.setCredentialsProvider(credentialsProvider)
+            await self.runtime.setGuestCredentialMinter(guestCredentialMinter)
             await self.runtime.flush()
         }
         Task.detached(priority: .utility) {
@@ -310,6 +338,8 @@ actor AnalyticsRuntime {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private var credentialsProvider: AnalyticsCredentialsProvider?
+    private var guestCredentialMinter: AnalyticsGuestCredentialMinter?
+    private var hasSpentGuestCredentialMintAttempt: Bool
     private var flushTask: Task<Void, Never>?
     private var pendingDropCounts: [AnalyticsDroppedReason: Int]
     private var consecutiveDeferralCount: Int
@@ -337,6 +367,8 @@ actor AnalyticsRuntime {
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
         self.credentialsProvider = nil
+        self.guestCredentialMinter = nil
+        self.hasSpentGuestCredentialMintAttempt = false
         self.flushTask = nil
         self.pendingDropCounts = [:]
         self.consecutiveDeferralCount = 0
@@ -353,6 +385,10 @@ actor AnalyticsRuntime {
 
     func setCredentialsProvider(_ provider: @escaping AnalyticsCredentialsProvider) {
         self.credentialsProvider = provider
+    }
+
+    func setGuestCredentialMinter(_ minter: @escaping AnalyticsGuestCredentialMinter) {
+        self.guestCredentialMinter = minter
     }
 
     func enqueue(_ pendingEvent: AnalyticsPendingEvent) async {
@@ -401,6 +437,9 @@ actor AnalyticsRuntime {
      * deleted there instead of sent.
      */
     func resetIdentity() {
+        // The next identity gets its own creation attempt: the credential this install had belongs to
+        // the person who left and is cleared with the rest of their state.
+        self.hasSpentGuestCredentialMintAttempt = false
         let anonymousId = self.identity.currentAnonymousId()
         do {
             let discardedEventCount = try self.queueRemoveEvents(notOwnedByAnonymousId: anonymousId)
@@ -588,7 +627,7 @@ actor AnalyticsRuntime {
             let anonymousIdBeforeCredentials = self.identity.currentAnonymousId()
             self.drainPendingDropEvents(now: Date(), anonymousId: anonymousIdBeforeCredentials)
 
-            guard let credentials = await self.currentCredentials() else {
+            guard let credentials = await self.resolveCredentials(anonymousId: anonymousIdBeforeCredentials) else {
                 // Never send unauthenticated. The events wait under the queue TTL and the server's
                 // 30-day window, so an ordinary sign-up delay costs nothing.
                 return
@@ -658,12 +697,61 @@ actor AnalyticsRuntime {
         }
     }
 
+    /// The credential this batch goes out under: the one the app already holds, or the guest credential
+    /// created for an install that has none.
+    private func resolveCredentials(anonymousId: String) async -> AnalyticsCredentials? {
+        if let credentials = await self.currentCredentials() {
+            return credentials
+        }
+
+        return await self.mintGuestCredentials(anonymousId: anonymousId)
+    }
+
     private func currentCredentials() async -> AnalyticsCredentials? {
         guard let credentialsProvider = self.credentialsProvider else {
             return nil
         }
 
         return await credentialsProvider()
+    }
+
+    /**
+     * One creation attempt per launch, and only against events that are actually waiting.
+     *
+     * Every mint is a permanent server-side user, workspace and membership, so a failure waits for the
+     * next launch rather than spinning, and a launch that recorded nothing creates nothing. The
+     * persisted idempotency key makes that later attempt reuse the identity rather than duplicate it,
+     * and the events stay queued either way.
+     *
+     * `queueHasPendingEvents` counts TTL-expired rows, so this must stay behind the expiry sweep at
+     * the top of `runFlush`. Ahead of it, a queue of nothing but rows about to be deleted would buy a
+     * permanent guest identity for events that are never sent.
+     */
+    private func mintGuestCredentials(anonymousId: String) async -> AnalyticsCredentials? {
+        guard self.hasSpentGuestCredentialMintAttempt == false,
+              let guestCredentialMinter = self.guestCredentialMinter else {
+            return nil
+        }
+
+        do {
+            guard try self.queueHasPendingEvents(anonymousId: anonymousId) else {
+                return nil
+            }
+        } catch {
+            self.reportStoreFailure(error: error, stage: "pending_read")
+            return nil
+        }
+
+        switch await guestCredentialMinter() {
+        case .minted(let credentials):
+            self.hasSpentGuestCredentialMintAttempt = true
+            return credentials
+        case .failed:
+            self.hasSpentGuestCredentialMintAttempt = true
+            return nil
+        case .skipped:
+            return nil
+        }
     }
 
     /**
@@ -941,6 +1029,10 @@ actor AnalyticsRuntime {
 
     private func queueLoadNextBatch(limit: Int, anonymousId: String) throws -> AnalyticsQueueBatchLoad {
         try self.queue.loadNextBatch(limit: limit, anonymousId: anonymousId)
+    }
+
+    private func queueHasPendingEvents(anonymousId: String) throws -> Bool {
+        try self.queue.hasPendingEvents(anonymousId: anonymousId)
     }
 
     private func queueRemoveEvents(notOwnedByAnonymousId anonymousId: String) throws -> Int {

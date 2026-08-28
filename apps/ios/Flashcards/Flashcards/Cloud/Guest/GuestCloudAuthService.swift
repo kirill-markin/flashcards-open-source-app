@@ -30,9 +30,19 @@ private struct GuestSessionEnvelope: Decodable {
 
 private struct GuestSessionCreateRequest: Encodable {
     let platform: String
+    /// Omitted when absent, which is the unbound creation every shipped version performs.
+    let idempotencyKey: String?
 }
 
 private struct DeleteGuestSessionResponse: Decodable {
+    let ok: Bool
+}
+
+private struct GuestIdentityLinkRequest: Encodable {
+    let guestToken: String
+}
+
+private struct GuestIdentityLinkEnvelope: Decodable {
     let ok: Bool
 }
 
@@ -76,16 +86,23 @@ final class GuestCloudAuthService {
         self.session = session
     }
 
+    /**
+     * `idempotencyKey` must be 32 to 200 lowercase hexadecimal characters generated from a
+     * cryptographic random source for this one attempt. A retry carrying it rotates the secret of the
+     * session it already named and returns the same guest user and workspace, so a lost response
+     * cannot leave this device with two guest identities.
+     */
     func createGuestSession(
         apiBaseUrl: String,
-        configurationMode: CloudServiceConfigurationMode
+        configurationMode: CloudServiceConfigurationMode,
+        idempotencyKey: String?
     ) async throws -> StoredGuestCloudSession {
         let response: GuestSessionEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: nil,
             path: "/guest-auth/session",
             method: "POST",
-            body: GuestSessionCreateRequest(platform: "ios")
+            body: GuestSessionCreateRequest(platform: "ios", idempotencyKey: idempotencyKey)
         )
         return StoredGuestCloudSession(
             guestToken: response.guestToken,
@@ -94,6 +111,33 @@ final class GuestCloudAuthService {
             configurationMode: configurationMode,
             apiBaseUrl: apiBaseUrl
         )
+    }
+
+    /**
+     * Links a guest identity to the signed-in account for analytics and revokes the guest session. No
+     * workspace is merged, created, selected or deleted.
+     *
+     * The account must already have loaded one request context, such as `GET /v1/me`, and the guest
+     * token must be one that will never run the upgrade flow: this route revokes the session, and both
+     * upgrade routes then refuse it.
+     */
+    func linkGuestAnalyticsIdentity(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String
+    ) async throws {
+        let response: GuestIdentityLinkEnvelope = try await self.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: "Bearer \(bearerToken)",
+            path: "/guest-auth/identity/link",
+            method: "POST",
+            body: GuestIdentityLinkRequest(guestToken: guestToken)
+        )
+        guard response.ok else {
+            throw GuestCloudAuthError.invalidResponseBody(
+                "Guest identity link did not return ok=true"
+            )
+        }
     }
 
     func deleteGuestSession(
@@ -305,7 +349,15 @@ final class GuestCloudAuthService {
         let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
 
         guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-            let details = decodeCloudApiErrorDetails(data: data, requestId: requestId)
+            let details = decodeCloudApiErrorDetails(
+                data: data,
+                requestId: requestId,
+                // Carried through so a caller that retries can respect the pace the server asked for,
+                // which the identity link route's `429` contract requires.
+                retryAfterDelayNanoseconds: cloudRetryAfterDelayNanoseconds(
+                    value: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                )
+            )
             logCloudFlowPhase(
                 phase: phase,
                 outcome: "failure",
@@ -365,6 +417,8 @@ final class GuestCloudAuthService {
             return .guestUpgradePrepare
         case "/guest-auth/upgrade/complete":
             return .guestUpgradeComplete
+        case "/guest-auth/identity/link":
+            return .guestIdentityLink
         default:
             return .guestAuthRequest
         }

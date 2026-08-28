@@ -372,9 +372,36 @@ extension FlashcardsStore {
             if linkContext.guestUpgradeMode == nil {
                 self.clearPendingGuestUpgradeStateAndUnblockMutations()
             }
-            try self.clearGuestSessionIfNeeded()
+            // The analytics-only marker is always cleared before this install enters guest cloud
+            // state, so a marked credential here belongs to analytics and nothing else — this route
+            // is also reached from `.guest` when a credential recovery has no matching in-flight
+            // upgrade, and the marker, not the route, is what tells the two apart. That one credential
+            // is claimed for the account in the background below and cleared only once the claim
+            // succeeds; every other stored guest credential is cleared here exactly as before.
+            //
+            // `try?`, because a completed sign-in must not fail on an analytics question: a read this
+            // line cannot answer falls back to the unconditional clear it has always performed.
+            //
+            // `performAnalyticsGuestIdentityLinkResume` answers the same unreadable read the opposite
+            // way and keeps the credential. That asymmetry is deliberate, and it is about deferral,
+            // not about what the credential is worth: the resume may always do nothing and ask again
+            // at the next launch or the next sign-in, so keeping costs it nothing. This site has no
+            // later attempt — it is the one point that must reach a terminal decision about a guest
+            // credential a signed-in install is not allowed to keep sitting in the Keychain, and the
+            // safe default for a credential it cannot classify is the behaviour that shipped. The
+            // cost is the permanent loss of one install's analytics tail, and only in the unreadable
+            // sidecar state `GuestCloudCredentialStore.loadSidecar` shows to be unreachable.
+            let analyticsOnlyGuestSession = try? self.loadAnalyticsOnlyGuestSessionForCurrentConfiguration()
+            if analyticsOnlyGuestSession == nil {
+                try self.clearGuestSessionIfNeeded()
+            }
             self.clearCloudCredentialRecoveryState()
             self.globalErrorMessage = ""
+            // Started, never awaited: nothing analytics does may delay or fail a completed sign-in,
+            // and this claim retries over the network. Started here as well as at startup, because
+            // startup runs once per process: a sign-in later in the same session would otherwise wait
+            // for the next cold launch to claim anything.
+            self.resumeAnalyticsGuestIdentityLinkIfNeeded()
             return linkedWorkspace
         }
     }
@@ -460,6 +487,11 @@ extension FlashcardsStore {
                 )
             }
             self.clearPendingGuestUpgradeStateAndUnblockMutations()
+            // Unconditional, unlike `completeCloudLink` above. Safe only because guest local
+            // recovery is reached from `guest` alone, where `loadOrCreateGuestCloudSession`'s fatal
+            // clear has already removed the marker, so no credential here can be analytics-only.
+            // Re-check this site, and the same call in `finalizePendingGuestUpgradeCompletion`, if
+            // that clear point ever moves.
             try self.clearGuestSessionIfNeeded()
             self.clearCloudCredentialRecoveryState()
             self.globalErrorMessage = ""
