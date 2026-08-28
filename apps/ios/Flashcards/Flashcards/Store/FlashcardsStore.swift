@@ -130,6 +130,10 @@ final class FlashcardsStore {
     @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
     /// Whether the presented sign-in sheet still owes one `signin_failed`.
     @ObservationIgnored var isCloudSignInAttemptOpen: Bool
+    /// The surface the presented sign-in sheet was opened from, and the `screen` its `signin_failed`
+    /// carries. Latched at presentation because the OTP step and the abandonment report both emit
+    /// from places that no longer know the presenter.
+    @ObservationIgnored var cloudSignInOriginSurface: AnalyticsSurface?
     /// Whether a background analytics guest identity claim is already in flight. Sign-in and startup
     /// both start one, and two claims racing would send the same guest token twice.
     @ObservationIgnored var isAnalyticsGuestIdentityLinkResumeRunning: Bool
@@ -478,6 +482,7 @@ final class FlashcardsStore {
         self.isAccountDeletionRunning = false
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
         self.isCloudSignInAttemptOpen = false
+        self.cloudSignInOriginSurface = nil
         self.isAnalyticsGuestIdentityLinkResumeRunning = false
         self.reportedAnalyticsGuestCredentialFailureStages = []
         self.currentVisibleTab = .review
