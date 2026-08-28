@@ -7,6 +7,13 @@ Email + OTP authentication via AWS Cognito (passwordless).
   guest session is an analytics credential only: the browser requests one lazily on a signed-out
   visitor's first real interaction and sends it as `Authorization: Guest <token>` to
   `POST /v1/analytics/events` alone.
+  - The route's own ingest contract lives in the source:
+    `apps/backend/src/routes/productAnalytics.ts` owns its HTTP surface, accepted transports,
+    and the `accepted`/`rejected` envelope; `apps/backend/src/productAnalytics/validation.ts`
+    owns batch and per-event validation and the rejection reasons;
+    `apps/backend/src/productAnalytics/catalog.ts` owns the frozen event catalog and property
+    specs every client mirrors; `apps/backend/src/productAnalytics/writer.ts` owns the
+    analytics connection pool and its `429 ANALYTICS_WRITER_BUSY`.
   - `apps/backend/src/guestAuth/webPlatform.ts` is the single gate. Every authenticated route builds
     its context through `loadRequestContextFromRequest`, which refuses a `web` guest platform with
     `403 GUEST_WEB_PLATFORM_UNSUPPORTED` unless the route opts in; analytics ingest is the only
