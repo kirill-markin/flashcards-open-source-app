@@ -694,7 +694,7 @@ private func makeProgressTimeline(
         guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
             throw ProgressPresentationError.invalidRange(series.from, series.to)
         }
-        currentDate = nextDate
+        currentDate = calendar.startOfDay(for: nextDate)
     }
 
     return timeline
