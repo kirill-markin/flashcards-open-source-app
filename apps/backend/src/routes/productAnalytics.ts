@@ -543,9 +543,9 @@ function captureBatchViolation(
 // An occurred_at_out_of_window rejection means a device clock rather than a client off contract, so
 // the two are counted apart on the ingest record: the clock signal is routed to its own alarm and is
 // deliberately kept out of Sentry, while every other rejection reason is a broken client release.
-// infra/aws/lib/monitoring.ts alarms on the difference directly, so the record carries it as its own
-// field: a CloudWatch metric filter can read a field but cannot subtract one field from another, and
-// this is the only place that knows the two counts describe the same batch.
+// infra/aws/lib/product-analytics-monitoring.ts alarms on the difference directly, so the record
+// carries it as its own field: a CloudWatch metric filter can read a field but cannot subtract one
+// field from another, and this is the only place that knows the two counts describe the same batch.
 function countOutOfWindowRejections(
   rejected: ReadonlyArray<ProductAnalyticsRejectedEvent>,
 ): number {
