@@ -96,6 +96,15 @@ export function reportAnalyticsSustainedDeliveryFailure(statusCode: number): voi
 }
 
 /**
+ * The guest identity this browser measured under could not be bound to the account that signed in.
+ * The server sees the refusal, but not that the client gave up on it, and the cost is invisible in
+ * the data: that person's signed-out tail stays attributed to the guest.
+ */
+export function reportAnalyticsGuestIdentityLinkFailure(statusCode: number | null): void {
+  captureOnceInSession("analytics_guest_identity_link_failed", null, statusCode);
+}
+
+/**
  * The local queue failing to open, write, or read back is invisible everywhere else. Keyed by
  * operation so each distinct failure is still reported once, while a store that is unusable for the
  * whole session — a private window, blocked site data, an exhausted quota — reports a handful of
