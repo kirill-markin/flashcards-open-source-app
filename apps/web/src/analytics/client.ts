@@ -291,6 +291,35 @@ function isDropOnlyBatch(events: ReadonlyArray<QueuedAnalyticsEvent>): boolean {
   return events.every((event) => event.wireEvent.eventName === "analytics_events_dropped");
 }
 
+/**
+ * Notified when the ingest endpoint refuses the guest credential itself rather than the batch. The
+ * owner of that credential lives outside analytics, so it registers here instead of being imported:
+ * it already depends on this module to publish the identity it issues.
+ */
+let guestCredentialRefusalHandler: (() => void) | null = null;
+
+export function registerAnalyticsGuestCredentialRefusalHandler(handler: () => void): () => void {
+  guestCredentialRefusalHandler = handler;
+  return (): void => {
+    if (guestCredentialRefusalHandler === handler) {
+      guestCredentialRefusalHandler = null;
+    }
+  };
+}
+
+/**
+ * Whether the refusal was of the credential rather than of what was sent. For a guest that means the
+ * session is gone server-side — deleted by the reaper, or revoked by the identity link — and every
+ * later batch on it is refused identically, on this load and on every load that republishes the
+ * stored envelope.
+ */
+function isGuestCredentialRefusal(
+  statusCode: number,
+  credential: AnalyticsRequestCredential,
+): boolean {
+  return credential.kind === "guest" && (statusCode === 401 || statusCode === 410);
+}
+
 async function handleDeliveryFailure(
   error: unknown,
   events: ReadonlyArray<QueuedAnalyticsEvent>,
@@ -304,6 +333,14 @@ async function handleDeliveryFailure(
   }
 
   const statusCode = error instanceof ApiError ? error.statusCode : 0;
+
+  if (isGuestCredentialRefusal(statusCode, credential)) {
+    try {
+      guestCredentialRefusalHandler?.();
+    } catch {
+      // Delivery keeps its own course either way; the events stay queued below.
+    }
+  }
 
   // 400 and 413 refuse the whole batch and carry no per-event report. Resending the same bytes fails
   // identically forever, so the batch is split until a single poison event is isolated and dropped.
@@ -502,17 +539,18 @@ function claimQueueOwner(userId: string): void {
         // owner is somebody else and rotates it. An unreadable guest identity leaves `guestOwnerId`
         // null and rotates, which undercounts rather than risking a merge of two people.
         //
-        // What keeping it buys is exactly one thing: `analytics.product_events` then carries the
-        // same raw `anonymous_id` on the guest's tail and on the account's rows, so the two sides
-        // can be joined directly on that column. It does not resolve the guest into the account in
-        // `analytics.product_events_resolved`, and this item does not deliver that. A guest batch
-        // writes no identity link at all (`routes/productAnalytics.ts` derives one only for the
-        // bearer and session transports), and the `authenticated_client` link the account writes
-        // later joins `first_anonymous_link`, which sits third in the `actor_id` COALESCE and so
-        // only reaches rows whose `user_id` is NULL. Guest rows carry the guest user id, so their
-        // `actor_id` keeps naming the guest. Only a `server_derived` link on `subject_user_id`
-        // redirects them, and that is written solely by the guest-upgrade machinery, which the web
-        // app deliberately never calls.
+        // What keeping it buys here is one thing: `analytics.product_events` then carries the same
+        // raw `anonymous_id` on the guest's tail and on the account's rows, so the two sides can be
+        // joined directly on that column. It is not what resolves the guest into the account in
+        // `analytics.product_events_resolved`. A guest batch writes no identity link at all
+        // (`routes/productAnalytics.ts` derives one only for the bearer and session transports), and
+        // the `authenticated_client` link the account writes later joins `first_anonymous_link`,
+        // which sits third in the `actor_id` COALESCE and so only reaches rows whose `user_id` is
+        // NULL. Guest rows carry the guest user id, so their `actor_id` keeps naming the guest. Only
+        // a `server_derived` link on `subject_user_id` redirects them, and `webGuestIdentityLink.ts`
+        // writes one at sign-in through `POST /guest-auth/identity/link`. That is a separate,
+        // retried background task, so this exception still has to stand on its own: it decides
+        // `anonymous_id` on a load where the link may not have landed yet, or may never land.
         if (claim.replacedOwnerId === null || claim.replacedOwnerId !== guestOwnerId) {
           resetAnalyticsIdentity();
         }
@@ -591,6 +629,20 @@ export function setAnalyticsConfirmedOwner(
   } catch {
     // The gate is already shut; a failure here can only cost delivery, never misattribute an event.
   }
+}
+
+/**
+ * The account the session layer has published as this browser's analytics owner, or null while none
+ * is published — before the first verified session, after `reset()` tore one down, and whenever the
+ * owner is a guest rather than an account.
+ *
+ * It exists for background work that was started for one account and must not finish under another:
+ * this is the one place the app names, module-side and synchronously, who the current credential
+ * belongs to. `setAnalyticsConfirmedOwner` is the only writer, so a reader here sees the switch the
+ * moment the session layer publishes it rather than when React state reaches a component.
+ */
+export function readAnalyticsSessionOwnerId(): string | null {
+  return confirmedOwnerCredential?.kind === "session" ? confirmedOwnerId : null;
 }
 
 /** Records the surface stamped onto every event that does not declare its own. */
