@@ -73,23 +73,23 @@ Only test the app against the final supported iOS target.
 - Do not try to cover the iOS app exhaustively with tests
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, or UI tests when they validate a real module boundary or user flow
-- Do not run iOS simulator-backed tests, UI tests, screenshot-generation, or local smoke flows unless the user explicitly allows that simulator-backed run for the current task
+- Do not run iOS simulator-backed tests, UI tests, screenshot-generation, or local smoke flows reflexively after every edit; run them when they genuinely help validate a change
 - Do not spend time validating older iOS versions
 - Do not add compatibility code for older iOS versions unless explicitly requested
-- If an iOS simulator-backed run is explicitly allowed, use one locally available iPhone simulator runtime only
+- Use one locally available iPhone simulator runtime only
 - Prefer an already booted local iPhone simulator on the final supported runtime
 - Prefer background CLI runs with `simctl` and `xcodebuild` instead of opening heavy Xcode UI flows
 - Do not open a visible Simulator window for test runs unless the user explicitly asks for a visible simulator at that time
 - Prefer `xcodebuild ... test` so each run validates the current sources and build settings on the selected simulator
 - Pass `-derivedDataPath "tmp/ios-derived-data"` for local CLI builds and tests so repeated runs reuse repo-local build artifacts instead of creating new global DerivedData directories
 - If a test fails, inspect the generated `.xcresult` bundle and read the relevant screenshots, attachments, and logs before changing code
-- If no suitable local runtime is already installed, stop and ask the user how to proceed instead of downloading extra simulator runtimes
+- If no suitable local runtime is already installed, tell the user before downloading an extra simulator runtime
 
 The most trusted iOS checks are the simulator-backed native smoke flows because they exercise the real app closest to production behavior.
 
 ## Local Test Workflow
 
-When the user has explicitly allowed a local iOS simulator-backed test run for the current task, prefer this sequence:
+For a local iOS simulator-backed test run, prefer this sequence:
 
 1. Reuse an already booted iPhone simulator when available.
 2. Wait for that simulator with `xcrun simctl bootstatus <device-uuid> -b`.
