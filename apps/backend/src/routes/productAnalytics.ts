@@ -4,9 +4,9 @@ import {
   findProductAnalyticsEventDefinition,
   isPlainObject,
   isProductAnalyticsEventIdVersionValid,
-  productAnalyticsPlatforms,
+  productAnalyticsClientReportablePlatforms,
   productAnalyticsSchemaVersion,
-  type ProductAnalyticsPlatform,
+  type ProductAnalyticsClientReportablePlatform,
 } from "../productAnalytics/catalog";
 import {
   validateProductAnalyticsBatch,
@@ -171,7 +171,7 @@ type ContractViolationCapture = Readonly<{
 }> & ProductAnalyticsPropertyDescription;
 
 type ProductAnalyticsRequestFacts = Readonly<{
-  platform: ProductAnalyticsPlatform | null;
+  platform: ProductAnalyticsClientReportablePlatform | null;
   appVersion: string | null;
 }>;
 
@@ -238,13 +238,22 @@ function toFailureTrustLevel(requestContext: RequestContext | null): string {
   return toTrustLevel(requestContext);
 }
 
-function readClientPlatform(clientPlatform: string | null): ProductAnalyticsPlatform | null {
+// x-client-platform is a claim the request makes about itself, so it is matched against the
+// client-reportable list rather than the stored platform domain. Matching it against the domain
+// would let any request claim `agent`, which no client-origin row can honestly carry, on a route
+// that is public and human-authenticated and writes to an append-only table. A header outside the
+// list is recorded as absent, exactly as an unparseable app version is.
+function readClientPlatform(
+  clientPlatform: string | null,
+): ProductAnalyticsClientReportablePlatform | null {
   if (clientPlatform === null) {
     return null;
   }
 
   const platform = clientPlatform.trim().toLowerCase();
-  return productAnalyticsPlatforms.find((knownPlatform) => knownPlatform === platform) ?? null;
+  return productAnalyticsClientReportablePlatforms.find(
+    (knownPlatform) => knownPlatform === platform,
+  ) ?? null;
 }
 
 // app_version is retained for the lifetime of the row, so it is bound to a version shape instead of
@@ -646,6 +655,12 @@ function toProductAnalyticsEventRow(
     eventProperties: event.properties,
     experimentAssignments: event.experimentAssignments,
     requestId,
+    // details records how a row was derived, and a client-origin row was not derived from anything.
+    // The ingest path has no field that could set it and must never gain one:
+    // product_events_details_client_shape refuses a client row that carries it, and the column
+    // survives account anonymization untouched, which is exactly what a client-writable free-form
+    // column must never do.
+    details: null,
   };
 }
 

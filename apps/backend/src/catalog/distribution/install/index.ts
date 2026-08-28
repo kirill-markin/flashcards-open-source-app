@@ -411,7 +411,9 @@ export async function installCatalogPackageVersion(
   }
 
   // Emitted after the transaction committed, so the analytics row only ever reports an install the
-  // workspace actually kept.
+  // workspace actually kept. The install is observed as it happens, so the two timestamps are one
+  // moment and there is no skew to keep recoverable.
+  const observedAt = new Date();
   await emitServerDerivedProductAnalyticsEvent({
     // The install is idempotent, so a client retry replays the stored result and reaches this
     // emission again. The install id is the same across those retries, so the derived id makes the
@@ -421,7 +423,8 @@ export async function installCatalogPackageVersion(
       [normalizedWorkspaceId, result.summary.installId],
     ),
     eventName: "catalog_deck_installed",
-    occurredAt: new Date(),
+    occurredAt: observedAt,
+    serverReceivedAt: observedAt,
     userId,
     // The identity the install acted as, which for a guest install is the guest user id that the
     // guest upgrade later links to the account. Together with guestSessionId this is what keeps a
@@ -429,10 +432,14 @@ export async function installCatalogPackageVersion(
     subjectUserId: actor.subjectUserId,
     guestSessionId: actor.guestSessionId,
     workspaceId: normalizedWorkspaceId,
+    // The install names no server-stored replica or guest session row here, and the request headers
+    // that do name a platform are a client claim this row must not repeat.
+    platform: null,
     properties: {
       package_slug: packageSlug.packageSlug,
       card_count: result.summary.cardCount,
     },
+    details: null,
   });
   return result;
 }

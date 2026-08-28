@@ -1,18 +1,24 @@
 package com.flashcardsopensourceapp.core.observability.analytics
 
 /**
- * Hand-written mirror of the frozen backend product-analytics catalog.
+ * Hand-written mirror of the backend product-analytics catalog.
  *
  * The server keeps a closed allowlist of event names, property names and property values, so this
  * file is deliberately type-strict: there is no `track(name, properties)` anywhere. Every event is
  * its own data class whose constructor arguments are exactly the properties the server declares,
- * which means an event that cannot satisfy the contract does not compile.
+ * which means an event missing a property or inventing one does not compile.
+ *
+ * That strictness covers event names and properties, and no longer covers every enum value here:
+ * `AnalyticsSurface` still declares `ONBOARDING`, which the catalog dropped, so an event carrying
+ * it as its `screen` compiles and is rejected `invalid_event`. No call site uses that value, and
+ * until the enum drops it a value in this file is not on its own proof that the server accepts it.
  *
  * `guest_upgrade_completed` and `catalog_deck_installed` are server-derived. A client batch that
  * contains either is rejected, so they are absent here on purpose.
  *
- * `onboarding_step_completed`, `review_session_started` and `review_session_ended` are still
- * declared by the server but retired, so no client sends them.
+ * `onboarding_step_completed`, `review_session_started` and `review_session_ended` were removed
+ * from the catalog outright, so the server no longer declares them and rejects them as unknown
+ * event names.
  */
 
 /** Named because the delivery path has to recognise a batch that carries nothing else. */

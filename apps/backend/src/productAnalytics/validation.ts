@@ -70,6 +70,7 @@ const serverOwnedEventFields: ReadonlySet<string> = new Set([
   "country",
   "requestId",
   "request_id",
+  "details",
 ]);
 
 // Postgres compares uuid values case-insensitively and returns them canonically lowercased, so every

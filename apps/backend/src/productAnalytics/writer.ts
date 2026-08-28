@@ -71,6 +71,14 @@ const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn>
     readValue: (row) => JSON.stringify(row.experimentAssignments),
   },
   { columnName: "request_id", columnType: "text", readValue: (row) => row.requestId },
+  // The only nullable jsonb column: event_properties and experiment_assignments are always objects,
+  // while details is absent on every client-origin row and on every server-derived row whose
+  // producer has no provenance to record, so this parameter carries NULL elements in its jsonb[].
+  {
+    columnName: "details",
+    columnType: "jsonb",
+    readValue: (row) => (row.details === null ? null : JSON.stringify(row.details)),
+  },
 ];
 
 // unnest keeps the parameter count and the query plan stable no matter how many events a batch
