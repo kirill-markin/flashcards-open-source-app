@@ -92,10 +92,10 @@ struct CloudCredentialRecoveryGateView: View {
             .navigationTitle(self.presentation.title)
             .navigationBarTitleDisplayMode(.inline)
         }
-        .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet(presentationContext: .credentialRecoveryGate)
-                .environment(self.store)
-        }
+        .cloudSignInSheet(
+            isPresented: self.$isCloudSignInPresented,
+            presentationContext: .credentialRecoveryGate
+        )
         .alert(
             aiSettingsLocalized(
                 "settings.sync.recoveryGate.eraseAlert.title",

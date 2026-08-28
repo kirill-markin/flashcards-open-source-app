@@ -452,16 +452,16 @@ struct RootTabView: View {
 
     private var tabRootSheets: some View {
         self.tabRootChangeHandlers
-        .sheet(isPresented: self.$isGuestSignInCloudSignInPresented) {
-            // The origin is the surface that owns the control the person tapped, not the tab the
-            // alert happens to float over. This prompt belongs to the review flow, so it stays
-            // Review: it is a distinct entry point with its own conversion, and following the
-            // visible tab would scatter its failures across the other tabs' own sign-in buttons and
-            // make all of them unreadable. The prompt's accept and snooze buttons already report
-            // `onboarding_step_completed(step: .signin)` on Review for the very same tap.
-            CloudSignInSheet(presentationContext: .standard(originSurface: .review))
-                .environment(store)
-        }
+        // The origin is the surface that owns the control the person tapped, not the tab the alert
+        // happens to float over. This prompt belongs to the review flow, so it stays Review: it is a
+        // distinct entry point with its own conversion, and following the visible tab would scatter
+        // its failures across the other tabs' own sign-in buttons and make all of them unreadable.
+        // The prompt's accept and snooze buttons already report
+        // `onboarding_step_completed(step: .signin)` on Review for the very same tap.
+        .cloudSignInSheet(
+            isPresented: self.$isGuestSignInCloudSignInPresented,
+            presentationContext: .standard(originSurface: .review)
+        )
         .sheet(item: self.feedbackPresentation) { presentation in
             FeedbackSheet(presentation: presentation)
                 .environment(store)
