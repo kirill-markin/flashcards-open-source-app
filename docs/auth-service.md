@@ -49,6 +49,13 @@ Email + OTP authentication via AWS Cognito (passwordless).
     - `409 GUEST_IDENTITY_LINK_OTHER_ACCOUNT` means the guest token names a user that is already a
       different real account. Terminal: the client is holding a credential that is not its own and
       should discard it rather than retry.
+    - `429 ANALYTICS_WRITER_BUSY` means the analytics connection pool was saturated: its cap refused
+      the write before a connection was requested, or acquiring a connection timed out. It is raised
+      before the link statement runs, so nothing was written — no identity link row and no revoke —
+      and the guest session stays live with its token still usable. Retryable with nothing to
+      repair: keep the guest token, wait the delay, and call again. The body is the ordinary
+      `error`/`requestId`/`code` envelope; the delay travels only in the `Retry-After` response
+      header, always `1` second on this route.
     - A `5xx` must be retried, with the guest token kept. The identity link commits on the analytics
       pool and the revoke commits with the request transaction, so a failure between them can leave
       the link written and the guest session still live. The retry is safe — it conflicts on the
