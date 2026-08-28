@@ -203,11 +203,20 @@ const webGuestReaperHandler: Handler<WebGuestReaperEvent, WebGuestReaperResponse
     });
 
     // A candidate scan that throws is caught by the run so the record above still reports the
-    // guests it had already deleted permanently, but the invocation must not end cleanly:
-    // WebGuestReaperLambdaErrorAlarm is the stated reason the deferred auth.guest_sessions
-    // (platform, created_at) index is safe to defer, and the unindexed scan outgrowing the
-    // reporting role's 30s statement_timeout is exactly the failure it has to see. The staleness
-    // alarm cannot stand in for it, because an errored invocation still counts in Invocations.
+    // guests it had already deleted permanently, but the invocation must not end cleanly: a run
+    // whose scan throws reaps nothing from that page on, and an errored invocation is what carries
+    // that to the alert topic, through WebGuestReaperLambdaErrorAlarm. Other signals do see the
+    // failure, and none of them replaces the throw. WebGuestReaperSaturatedAlarm fires too,
+    // because the record above carries finished: false, but its alarmDescription reads that state
+    // as web guests being minted faster than the schedule reaps them, which misdiagnoses a scan
+    // that failed; the error alarm is what names it correctly. recordScanFailure's
+    // web_guest_reaper_scan_failed warning is written to this Lambda's own log group before it is
+    // sent to Sentry, and the reaper is created with backendStructuredLoggingProps, so it lands
+    // there as a JSON record addressable at $.message.action - the same handle the saturation
+    // metric filter uses on the completion record. A scan-failure-specific alarm is therefore a
+    // metric filter away and needs no new emission; until some filter selects that action, the
+    // warning reaches no alert topic on its own. The staleness alarm cannot stand in either,
+    // because an errored invocation still counts in Invocations.
     if (result.scanFailed) {
       throw new Error(`Web guest reaper stopped on a failed candidate scan after ${result.pagesScanned} scanned pages, having deleted ${result.deleted} guests and failed on ${result.failed}`);
     }
