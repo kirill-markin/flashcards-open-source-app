@@ -20,6 +20,84 @@ struct CloudOtpSheetState: Identifiable, Hashable {
     }
 }
 
+struct CloudSignInPostAuthTaskHandle {
+    let stateId: String
+    let task: Task<Void, Never>
+}
+
+/**
+ * Everything one sign-in attempt is made of: the step the person is on, what they typed into it,
+ * and the post-auth work the attempt started.
+ *
+ * This lives on the store rather than in `CloudSignInSheet` because SwiftUI destroys and rebuilds
+ * that content while the presentation stays on screen — switching tabs under the Settings presenter
+ * is enough. State the view owns does not survive that, so an attempt anchored to the view loses
+ * the typed email, the open code step, and the in-flight work of a sign-in that already succeeded,
+ * without the person ever closing anything. Only state that genuinely describes one view instance —
+ * keyboard focus, an open technical-error inspector, a confirmation alert — stays in the view.
+ *
+ * `id` identifies the attempt, and every write-back from work that can outlive it compares that `id`
+ * first: neither `sendCode` nor the code step's verify and resend calls are cancelled by a presenter
+ * teardown, so each of them carries the attempt it was started for and drops its result when that
+ * attempt is gone. Once post-auth work is under way the per-state `id` guards take over, but only
+ * downstream of `handleVerifiedAuthContext`, which is where the post-auth states are created: a
+ * write-back that creates the state it then compares against would find its own guard passing, so
+ * the attempt `id` is the only thing an entry point can check.
+ */
+struct CloudSignInAttemptState {
+    let id: String
+    var email: String
+    var otpSheetState: CloudOtpSheetState?
+    var postAuthLoadingState: CloudPostAuthLoadingState?
+    var postAuthGuestLocalRecoveryPreparationState: CloudPostAuthGuestLocalRecoveryPreparationState?
+    var postAuthSyncState: CloudPostAuthSyncState?
+    var workspaceLinkContext: CloudWorkspaceLinkContext?
+    var postAuthRecoveryNeededState: CloudPostAuthRecoveryNeededState?
+    var postAuthFailureState: CloudPostAuthFailureState?
+    var authErrorPresentation: CloudAuthInlineErrorPresentation?
+    var isSendingCode: Bool
+    /// The attempt finished its work and the presentation should close. The dismissal itself belongs
+    /// to whichever view instance is on screen, which is not always the one that started the work.
+    var isCompleted: Bool
+    var postAuthLoadingTask: CloudSignInPostAuthTaskHandle?
+    var postAuthGuestLocalRecoveryPreparationTask: CloudSignInPostAuthTaskHandle?
+    var postAuthSyncTask: CloudSignInPostAuthTaskHandle?
+
+    init() {
+        self.id = UUID().uuidString
+        self.email = ""
+        self.otpSheetState = nil
+        self.postAuthLoadingState = nil
+        self.postAuthGuestLocalRecoveryPreparationState = nil
+        self.postAuthSyncState = nil
+        self.workspaceLinkContext = nil
+        self.postAuthRecoveryNeededState = nil
+        self.postAuthFailureState = nil
+        self.authErrorPresentation = nil
+        self.isSendingCode = false
+        self.isCompleted = false
+        self.postAuthLoadingTask = nil
+        self.postAuthGuestLocalRecoveryPreparationTask = nil
+        self.postAuthSyncTask = nil
+    }
+
+    var isPostAuthActionInFlight: Bool {
+        self.postAuthLoadingState != nil
+            || self.postAuthGuestLocalRecoveryPreparationState != nil
+            || self.postAuthSyncState != nil
+    }
+
+    /// Whether a step above the email form is on screen. A rebuilt view instance must not pull focus
+    /// back to the email field underneath one.
+    var isStepAboveEmailFormPresented: Bool {
+        self.otpSheetState != nil
+            || self.workspaceLinkContext != nil
+            || self.postAuthRecoveryNeededState != nil
+            || self.postAuthFailureState != nil
+            || self.isPostAuthActionInFlight
+    }
+}
+
 @MainActor
 extension FlashcardsStore {
     /**
@@ -28,33 +106,41 @@ extension FlashcardsStore {
      * screen — a tab switch under the Settings presenter is enough — so an attempt anchored to the
      * content would re-open on every rebuild and owe a `signin_failed` for each one.
      *
-     * This starts an attempt from scratch: it writes all three fields the attempt is made of, so a
-     * presentation that ended without a dismissal — the credential-recovery gate swapping the tab
-     * root out from under a presented sheet is the one way that happens — cannot leave an origin
-     * surface or a gate latch behind for the next presentation to be judged on. Because it re-reads
-     * the gate into the latch, the caller owes exactly one call per presentation:
-     * `CloudSignInSheetModifier` is the only caller and holds that guarantee.
+     * This starts an attempt from scratch: it clears the previous attempt's screen state and work
+     * and writes every field the attempt is made of, so a presentation that ended without a
+     * dismissal — the credential-recovery gate swapping the tab root out from under a presented
+     * sheet is the one way that happens — cannot leave an origin surface, a gate latch, a typed
+     * email or a running post-auth task behind for the next presentation. Because it re-reads the
+     * gate into the latch and resets the sheet's state, the caller owes exactly one call per
+     * presentation: `CloudSignInSheetModifier` is the only caller and holds that guarantee.
      */
     func beginCloudSignInAttempt(originSurface: AnalyticsSurface?) {
+        self.cancelCloudSignInPostAuthTasks()
+        self.cloudSignInAttempt = CloudSignInAttemptState()
         self.isCloudSignInAttemptOpen = true
         self.cloudSignInOriginSurface = originSurface
         self.wasCredentialRecoveryGateActiveAtSignInStart = self.isCloudCredentialRecoveryGateActive
     }
 
     /**
-     * The sheet was dismissed. This is the one place that sees every way it can go: the Close
-     * button, the interactive swipe, and the programmatic dismissals that follow success, logout or
-     * a post-auth failure. Backgrounding the app does not reach it, so an attempt still open here
-     * was abandoned by the person — with one exception. A dismissal that follows success or a
-     * reported failure finds the attempt settled and reports nothing.
+     * The attempt is over. `CloudSignInSheetModifier`'s `onDismiss` is the usual way in and sees
+     * every way the sheet can go: the Close button, the interactive swipe, and the programmatic
+     * dismissals that follow success, logout or a post-auth failure. Backgrounding the app does not
+     * reach it, so an attempt still open here was abandoned by the person; a dismissal that follows
+     * success or a reported failure finds the attempt settled and reports nothing. Ending the
+     * attempt also ends its work, which is why the attempt's screen state and post-auth tasks are
+     * torn down here. The sheet's content going away is never a reason to do that.
      *
-     * The exception is the credential-recovery gate. `RootTabView.body` swaps its whole tab root for
-     * `CloudCredentialRecoveryGateView` the moment `cloudCredentialRecoveryState` becomes non-nil,
-     * and swaps it back when the state clears; either swap takes away whichever sheet the other
-     * branch was presenting, and a background poll can flip that state while the person is typing.
-     * That is the system taking the surface away, not a person closing it, so the gate's activation
-     * is latched when the attempt begins and a mismatch here reports nothing. Android's gate sits
-     * above its navigation host and reports nothing for the same swap, so the two clients agree.
+     * `eraseLocalDataForCredentialRecovery` is the other way in, and the only one that is not a
+     * dismissal: the recovery gate takes the surface away without dismissing anything, so an attempt
+     * can still be running when the person erases local data, and it has to be ended before that
+     * reset rather than left to write across it.
+     *
+     * The credential-recovery-gate comparison below is defence-in-depth on every path in, and is
+     * meant to stay that way. It draws one distinction and claims nothing beyond it: an attempt the
+     * person walked away from is theirs to abandon and is worth a `signin_failed(cancelled)`, while
+     * an attempt whose surface the recovery gate took away is not. That is why the gate's activation
+     * is latched when the attempt begins and a mismatch here reports nothing.
      */
     func endCloudSignInAttempt() {
         if self.isCloudSignInAttemptOpen,
@@ -62,9 +148,22 @@ extension FlashcardsStore {
             self.trackCloudSignInFailed(reason: .cancelled)
         }
 
+        self.cancelCloudSignInPostAuthTasks()
+        self.cloudSignInAttempt = CloudSignInAttemptState()
         self.isCloudSignInAttemptOpen = false
         self.cloudSignInOriginSurface = nil
         self.wasCredentialRecoveryGateActiveAtSignInStart = false
+    }
+
+    /// Stops the post-auth work the current attempt started. A rebuilt sheet is not a reason to call
+    /// this: the work belongs to the attempt, not to the view instance that happened to start it.
+    func cancelCloudSignInPostAuthTasks() {
+        self.cloudSignInAttempt.postAuthLoadingTask?.task.cancel()
+        self.cloudSignInAttempt.postAuthLoadingTask = nil
+        self.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationTask?.task.cancel()
+        self.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationTask = nil
+        self.cloudSignInAttempt.postAuthSyncTask?.task.cancel()
+        self.cloudSignInAttempt.postAuthSyncTask = nil
     }
 
     /**

@@ -3,6 +3,10 @@ import SwiftUI
 struct CloudOtpVerificationSheet: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
+    /// The attempt this code step belongs to. `otpSheetState` is a binding into the store, so a
+    /// request that outlives this sheet would otherwise write the previous attempt's email and
+    /// challenge into whichever attempt replaced it.
+    let attemptId: String
     @Binding var otpSheetState: CloudOtpSheetState?
     let onVerified: (CloudVerifiedAuthContext) -> Void
     let onReturnToEmail: () -> Void
@@ -23,10 +27,12 @@ struct CloudOtpVerificationSheet: View {
     }
 
     init(
+        attemptId: String,
         otpSheetState: Binding<CloudOtpSheetState?>,
         onVerified: @escaping (CloudVerifiedAuthContext) -> Void,
         onReturnToEmail: @escaping () -> Void
     ) {
+        self.attemptId = attemptId
         self._otpSheetState = otpSheetState
         self.onVerified = onVerified
         self.onReturnToEmail = onReturnToEmail
@@ -201,6 +207,12 @@ struct CloudOtpVerificationSheet: View {
                 self.authErrorPresentation = nil
                 self.onVerified(verifiedContext)
             } catch {
+                // The verify request outlives this sheet, so its failure belongs to the attempt it
+                // was started for and is neither reported nor settled against whichever attempt
+                // replaced that one — the same shape as `resendCode`'s catch.
+                guard self.store.cloudSignInAttempt.id == self.attemptId else {
+                    return
+                }
                 if isRequestCancellationError(error: error) {
                     return
                 }
@@ -234,6 +246,10 @@ struct CloudOtpVerificationSheet: View {
 
                 switch sendCodeResult {
                 case .otpChallenge(let nextChallenge):
+                    guard self.store.cloudSignInAttempt.id == self.attemptId else {
+                        return
+                    }
+
                     self.otpSheetState = self.otpSheetState?.withChallenge(nextChallenge)
                     self.code = ""
                     self.authErrorPresentation = nil
@@ -242,6 +258,12 @@ struct CloudOtpVerificationSheet: View {
                     throw LocalStoreError.validation("Demo review sign-in cannot resend an OTP challenge")
                 }
             } catch {
+                // Nothing below this guard writes into the attempt today, but the request outlives
+                // the sheet, so the guard keeps an abandoned attempt's failure out of whichever
+                // attempt replaced it — the same shape as `CloudSignInSheet.sendCode`'s catch.
+                guard self.store.cloudSignInAttempt.id == self.attemptId else {
+                    return
+                }
                 if isRequestCancellationError(error: error) {
                     return
                 }

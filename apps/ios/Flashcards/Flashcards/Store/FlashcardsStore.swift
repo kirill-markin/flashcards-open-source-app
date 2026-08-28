@@ -107,6 +107,9 @@ final class FlashcardsStore {
     private(set) var presentedTechnicalError: TechnicalErrorPresentation?
     var feedbackPromptState: PersistedFeedbackPromptState
     var activeCloudSignInSheetCount: Int
+    /// What the presented sign-in sheet is showing and the work it started. Owned here because
+    /// SwiftUI rebuilds that sheet's content within one presentation.
+    var cloudSignInAttempt: CloudSignInAttemptState
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
     var pendingStoreReviewRequestAttempt: StoreReviewRequestAttempt?
@@ -458,6 +461,7 @@ final class FlashcardsStore {
             decoder: decoder
         )
         self.activeCloudSignInSheetCount = 0
+        self.cloudSignInAttempt = CloudSignInAttemptState()
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
         self.pendingStoreReviewRequestAttempt = nil
