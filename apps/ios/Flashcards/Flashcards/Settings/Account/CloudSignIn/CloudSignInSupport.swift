@@ -22,13 +22,14 @@ struct CloudOtpSheetState: Identifiable, Hashable {
 
 @MainActor
 extension FlashcardsStore {
-    func beginCloudSignInSheetPresentation() {
+    func beginCloudSignInSheetPresentation(originSurface: AnalyticsSurface?) {
         assert(
             self.activeCloudSignInSheetCount == 0,
             "A second cloud sign-in sheet was presented while one was already on screen."
         )
         self.activeCloudSignInSheetCount += 1
         self.isCloudSignInAttemptOpen = true
+        self.cloudSignInOriginSurface = originSurface
     }
 
     func endCloudSignInSheetPresentation() {
@@ -38,6 +39,7 @@ extension FlashcardsStore {
         }
 
         self.activeCloudSignInSheetCount -= 1
+        self.cloudSignInOriginSurface = nil
     }
 
     /**
@@ -92,7 +94,7 @@ extension FlashcardsStore {
 
     private func trackCloudSignInFailed(reason: AnalyticsSignInFailureReason) {
         self.isCloudSignInAttemptOpen = false
-        Analytics.track(.signInFailed(reason: reason))
+        Analytics.track(.signInFailed(reason: reason), screen: self.cloudSignInOriginSurface)
     }
 }
 
@@ -103,9 +105,27 @@ enum CloudPostAuthRetryAction: Hashable {
     case syncOnly
 }
 
+/**
+ * Where a sign-in sheet was opened from, and with it the `screen` its `signin_failed` carries.
+ *
+ * The credential-recovery gate carries no surface on purpose: it replaces the app's root because a
+ * stored credential stopped working, so the person was on no product surface and naming one would be
+ * a lie. Every other presenter names the surface that owns the control the person tapped, out of the
+ * shared server-owned catalog, so a prompt owned by the review flow stays Review whichever tab it
+ * floats over.
+ */
 enum CloudSignInPresentationContext: Hashable {
-    case standard
+    case standard(originSurface: AnalyticsSurface)
     case credentialRecoveryGate
+
+    var originSurface: AnalyticsSurface? {
+        switch self {
+        case .standard(let originSurface):
+            return originSurface
+        case .credentialRecoveryGate:
+            return nil
+        }
+    }
 }
 
 enum CloudPostAuthSyncOperation: Hashable {
