@@ -131,9 +131,13 @@ final class FlashcardsStore {
     /// Whether the presented sign-in sheet still owes one `signin_failed`.
     @ObservationIgnored var isCloudSignInAttemptOpen: Bool
     /// The surface the presented sign-in sheet was opened from, and the `screen` its `signin_failed`
-    /// carries. Latched at presentation because the OTP step and the abandonment report both emit
-    /// from places that no longer know the presenter.
+    /// carries. Latched when the attempt begins because the OTP step and the abandonment report both
+    /// emit from places that no longer know the presenter.
     @ObservationIgnored var cloudSignInOriginSurface: AnalyticsSurface?
+    /// Whether the credential-recovery gate was already up when the sign-in attempt began. A gate
+    /// that flips while the sheet is on screen takes the surface away instead of the person closing
+    /// it, and the abandonment report is suppressed on that mismatch.
+    @ObservationIgnored var wasCredentialRecoveryGateActiveAtSignInStart: Bool
     /// Whether a background analytics guest identity claim is already in flight. Sign-in and startup
     /// both start one, and two claims racing would send the same guest token twice.
     @ObservationIgnored var isAnalyticsGuestIdentityLinkResumeRunning: Bool
@@ -483,6 +487,7 @@ final class FlashcardsStore {
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
         self.isCloudSignInAttemptOpen = false
         self.cloudSignInOriginSurface = nil
+        self.wasCredentialRecoveryGateActiveAtSignInStart = false
         self.isAnalyticsGuestIdentityLinkResumeRunning = false
         self.reportedAnalyticsGuestCredentialFailureStages = []
         self.currentVisibleTab = .review

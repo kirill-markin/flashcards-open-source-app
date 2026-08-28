@@ -344,10 +344,10 @@ struct SettingsView: View {
         .onAppear {
             store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
         }
-        .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet(presentationContext: .standard(originSurface: .settings))
-                .environment(self.store)
-        }
+        .cloudSignInSheet(
+            isPresented: self.$isCloudSignInPresented,
+            presentationContext: .standard(originSurface: .settings)
+        )
         .sheet(isPresented: self.$isFriendInvitePresented) {
             ProgressFriendInviteSheet()
                 .environment(self.store)

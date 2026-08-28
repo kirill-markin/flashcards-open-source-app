@@ -87,10 +87,10 @@ struct ProgressScreen: View {
                 await self.handleProgressPresentationRequest(proxy: proxy)
             }
         }
-        .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet(presentationContext: .standard(originSurface: .progress))
-                .environment(self.store)
-        }
+        .cloudSignInSheet(
+            isPresented: self.$isCloudSignInPresented,
+            presentationContext: .standard(originSurface: .progress)
+        )
         .sheet(isPresented: self.$isFriendInvitePresented) {
             ProgressFriendInviteSheet()
                 .environment(self.store)
