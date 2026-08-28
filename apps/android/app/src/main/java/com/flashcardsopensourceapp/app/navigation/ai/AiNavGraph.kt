@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
 import com.flashcardsopensourceapp.feature.ai.AiRoute
@@ -124,7 +125,9 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             onCancelStreaming = aiViewModel::cancelStreaming,
             onNewChat = aiViewModel::clearConversation,
             onOpenAccountStatus = {
-                navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                navController.navigate(
+                    route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.AI)
+                )
             },
             onDismissErrorMessage = aiViewModel::dismissErrorMessage,
             onDismissAlert = aiViewModel::dismissAlert,

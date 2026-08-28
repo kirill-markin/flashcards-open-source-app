@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.loadNotificationDiagnosticsUiState
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
@@ -128,7 +129,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                     }
 
                     SettingsFriendInviteAvailability.SIGN_IN_REQUIRED -> {
-                        navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                        navController.navigate(
+                            route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.SETTINGS)
+                        )
                     }
 
                     SettingsFriendInviteAvailability.LOADING -> Unit
@@ -355,7 +358,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 appGraph.appMessageBus.showMessage(
                     message = manageSignInMessage
                 )
-                navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                navController.navigate(
+                    route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.SETTINGS)
+                )
             },
             onRetryLastWorkspaceAction = {
                 currentWorkspaceViewModel.retryLastWorkspaceActionAsync()

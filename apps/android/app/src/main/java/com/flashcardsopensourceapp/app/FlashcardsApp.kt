@@ -681,7 +681,13 @@ fun FlashcardsApp(
                     GuestSignInAfterReviewPromptDialog(
                         onSignIn = {
                             appGraph.guestSignInAfterReviewPromptController.acceptPrompt()
-                            navController.navigate(route = SettingsAccountSignInEmailDestination.route)
+                            // The prompt belongs to the review flow, so `review` is its origin no
+                            // matter which tab the dialog happened to be drawn over.
+                            navController.navigate(
+                                route = SettingsAccountSignInEmailDestination.createRoute(
+                                    origin = AnalyticsSurface.REVIEW
+                                )
+                            )
                         },
                         onLater = {
                             appGraph.guestSignInAfterReviewPromptController.dismissForLater()
