@@ -142,7 +142,7 @@ struct CloudSignInSheet: View {
             .sheet(item: self.$postAuthRecoveryNeededState) { recoveryState in
                 CloudPostAuthRecoveryNeededSheet(
                     state: recoveryState,
-                    allowsLogoutAction: self.presentationContext == .standard,
+                    allowsLogoutAction: self.isStandardPresentation,
                     onClose: {
                         self.postAuthRecoveryNeededState = nil
                         self.dismiss()
@@ -159,7 +159,7 @@ struct CloudSignInSheet: View {
                     allowsCloseAction: failureState.allowsAccountExitActions
                         || self.presentationContext == .credentialRecoveryGate,
                     allowsLogoutAction: failureState.allowsAccountExitActions
-                        && self.presentationContext == .standard,
+                        && self.isStandardPresentation,
                     onRetry: {
                         self.retryPostAuthFailure(failureState)
                     },
@@ -288,6 +288,15 @@ struct CloudSignInSheet: View {
         self.store.cloudCredentialRecoveryState != nil
     }
 
+    private var isStandardPresentation: Bool {
+        switch self.presentationContext {
+        case .standard:
+            return true
+        case .credentialRecoveryGate:
+            return false
+        }
+    }
+
     private func recordActivePresentationIfNeeded() {
         guard self.hasRecordedActivePresentation == false else {
             return
@@ -295,7 +304,9 @@ struct CloudSignInSheet: View {
 
         self.hasRecordedActivePresentation = true
         self.wasCredentialRecoveryGateActiveAtPresentation = self.isCredentialRecoveryGateActive
-        self.store.beginCloudSignInSheetPresentation()
+        self.store.beginCloudSignInSheetPresentation(
+            originSurface: self.presentationContext.originSurface
+        )
     }
 
     /**
@@ -683,6 +694,6 @@ struct CloudSignInSheet: View {
 }
 
 #Preview {
-    CloudSignInSheet(presentationContext: .standard)
+    CloudSignInSheet(presentationContext: .standard(originSurface: .settings))
         .environment(FlashcardsStore())
 }

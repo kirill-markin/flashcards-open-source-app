@@ -88,7 +88,7 @@ struct ProgressScreen: View {
             }
         }
         .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet(presentationContext: .standard)
+            CloudSignInSheet(presentationContext: .standard(originSurface: .progress))
                 .environment(self.store)
         }
         .sheet(isPresented: self.$isFriendInvitePresented) {
