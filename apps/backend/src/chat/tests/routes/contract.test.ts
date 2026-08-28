@@ -530,12 +530,17 @@ test("GET /chat fails with a stable contract code when a running snapshot cannot
 
 test("POST /chat captures unexpected live envelope failures before returning the stable contract code", async () => {
   let interruptCount = 0;
+  const postChatCallOrder: Array<string> = [];
   const routes = createChatRoutes({
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
+    recordAiMessageSentAnalyticsFn: async (_userId, _workspaceId, runId) => {
+      assert.equal(runId, "run-1");
+      postChatCallOrder.push("ai_message_sent");
+    },
     prepareChatRunFn: async () => ({
       sessionId: SESSION_ONE,
       runId: "run-1",
@@ -558,6 +563,7 @@ test("POST /chat captures unexpected live envelope failures before returning the
     },
     interruptPreparedChatRunFn: async () => {
       interruptCount += 1;
+      postChatCallOrder.push("interrupt");
     },
   });
   const app = createRoutesWithHttpErrorJson();
@@ -591,6 +597,10 @@ test("POST /chat captures unexpected live envelope failures before returning the
 
   const exceptionLog = findLog(logs, "request_failed");
   assert.equal(interruptCount, 1);
+  // The turn was sent, so it is reported even though the envelope that follows never builds. This
+  // is the only test that asserts the order in which these two run, so it is the one that would
+  // notice the emission being moved after envelope construction, where this request never arrives.
+  assert.deepEqual(postChatCallOrder, ["ai_message_sent", "interrupt"]);
   assert.equal(exceptionLog?.consoleMethod, "error");
   assert.equal(exceptionLog?.requestId, "request-route-2");
   assert.equal(exceptionLog?.runId, "run-1");
@@ -782,6 +792,7 @@ test("POST /chat fails with a stable contract code when a running response canno
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
+    recordAiMessageSentAnalyticsFn: async () => {},
     prepareChatRunFn: async () => ({
       sessionId: SESSION_ONE,
       runId: "run-1",
