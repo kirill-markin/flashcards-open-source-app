@@ -74,7 +74,9 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0119_product_analytics_contract_revision.sql",
     expectedMigrationCount: 121,
     testFiles: Object.freeze([
+      "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/serverEvents.postgres.integration.ts",
+      "src/productAnalytics/writer.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -82,10 +84,8 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 118,
     testFiles: Object.freeze([
       "src/catalog/authoring/lockOrder.postgres.integration.ts",
-      "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
-      "src/productAnalytics/writer.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
