@@ -24,6 +24,9 @@ import com.flashcardsopensourceapp.app.navigation.SettingsNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCardCreateEntryPoint
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
@@ -110,6 +113,8 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     },
                     onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                     reviewPreferencesStore = appGraph.reviewPreferencesStore,
+                    analytics = appGraph.analytics,
+                    analyticsForegroundTransitions = appGraph.analyticsForegroundTransitions,
                     visibleAppScreenRepository = appGraph.visibleAppScreenController,
                     workspaceRepository = appGraph.workspaceRepository
                 )
@@ -166,9 +171,21 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     )
                 },
                 onCreateCard = {
+                    appGraph.analytics.track(
+                        event = AnalyticsEvent.CardCreateStarted(
+                            entryPoint = AnalyticsCardCreateEntryPoint.REVIEW,
+                            screen = AnalyticsSurface.REVIEW
+                        )
+                    )
                     appGraph.appHandoffCoordinator.requestCardEditor(cardId = null)
                 },
                 onCreateCardWithAi = {
+                    appGraph.analytics.track(
+                        event = AnalyticsEvent.CardCreateStarted(
+                            entryPoint = AnalyticsCardCreateEntryPoint.AI,
+                            screen = AnalyticsSurface.REVIEW
+                        )
+                    )
                     appGraph.appHandoffCoordinator.requestAiEntryPrefill(prefill = com.flashcardsopensourceapp.feature.ai.AiEntryPrefill.CREATE_CARD)
                     navigateToTopLevelDestination(
                         navController = navController,
@@ -265,6 +282,8 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     },
                     onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                     reviewPreferencesStore = appGraph.reviewPreferencesStore,
+                    analytics = appGraph.analytics,
+                    analyticsForegroundTransitions = appGraph.analyticsForegroundTransitions,
                     visibleAppScreenRepository = appGraph.visibleAppScreenController,
                     workspaceRepository = appGraph.workspaceRepository
                 )

@@ -50,6 +50,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
+                    analytics = appGraph.analytics,
                     applicationContext = context.applicationContext
                 )
             )
@@ -106,6 +107,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
+                    analytics = appGraph.analytics,
                     applicationContext = context.applicationContext
                 )
             )
@@ -153,6 +155,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
+                    analytics = appGraph.analytics,
                     applicationContext = context.applicationContext
                 )
             )

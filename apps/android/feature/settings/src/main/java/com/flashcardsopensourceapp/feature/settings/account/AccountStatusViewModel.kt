@@ -9,6 +9,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReason
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReporter
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -32,6 +36,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import java.io.IOException
+import java.net.SocketTimeoutException
 
 private data class AccountStatusDraftState(
     val errorMessage: String,
@@ -44,6 +50,7 @@ class AccountStatusViewModel(
     private val syncRepository: SyncRepository,
     private val messageController: TransientMessageController,
     private val technicalErrorController: AppTechnicalErrorController,
+    private val syncFailureReporter: AnalyticsSyncFailureReporter,
     workspaceRepository: WorkspaceRepository,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
@@ -155,10 +162,12 @@ class AccountStatusViewModel(
 
         try {
             syncRepository.syncNow()
+            syncFailureReporter.reportSuccess()
             draftState.update { state -> state.copy(isSubmitting = false, errorMessage = "") }
         } catch (error: CancellationException) {
             throw error
         } catch (error: SyncBlockedException) {
+            trackSyncFailed(error = error)
             draftState.update { state ->
                 state.copy(
                     isSubmitting = false,
@@ -166,6 +175,7 @@ class AccountStatusViewModel(
                 )
             }
         } catch (error: Exception) {
+            trackSyncFailed(error = error)
             val syncBlockedMessage = uiState.value.syncBlockedMessage
             if (syncBlockedMessage.isNullOrBlank().not()) {
                 draftState.update { state ->
@@ -204,6 +214,10 @@ class AccountStatusViewModel(
             )
         }
         try {
+            // No analytics call belongs here. There is deliberately no flush-before-logout trigger:
+            // an asynchronous flush started from this path is ordered after the credential is
+            // cleared and achieves nothing. The identity boundary is handled where logout actually
+            // clears the account, in `AppGraph`'s `onCloudIdentityReset` hook.
             cloudAccountRepository.logout()
             draftState.update { state -> state.copy(isSubmitting = false, errorMessage = "") }
             messageController.showMessage(
@@ -230,6 +244,47 @@ class AccountStatusViewModel(
             )
         }
     }
+
+    private fun trackSyncFailed(error: Throwable) {
+        syncFailureReporter.reportFailure(
+            reason = analyticsSettingsSyncFailureReason(error = error),
+            screen = AnalyticsSurface.SETTINGS
+        )
+    }
+}
+
+private const val maxAnalyticsSyncFailureCauseDepth: Int = 8
+
+/** Maps a manual sync failure onto the closed reason set the server catalog declares. */
+private fun analyticsSettingsSyncFailureReason(error: Throwable): AnalyticsSyncFailureReason {
+    var currentError: Throwable? = error
+    var depth = 0
+    while (currentError != null && depth < maxAnalyticsSyncFailureCauseDepth) {
+        val inspectedError: Throwable = currentError
+        when (inspectedError) {
+            is SyncBlockedException -> return AnalyticsSyncFailureReason.CONFLICT
+            is SocketTimeoutException -> return AnalyticsSyncFailureReason.TIMEOUT
+            is IOException -> return AnalyticsSyncFailureReason.OFFLINE
+            is CloudRemoteException -> {
+                if (
+                    inspectedError.syncConflict != null ||
+                    inspectedError.errorCode?.trim()?.uppercase() == "SYNC_WORKSPACE_FORK_REQUIRED"
+                ) {
+                    return AnalyticsSyncFailureReason.CONFLICT
+                }
+                return when (inspectedError.statusCode) {
+                    401, 403 -> AnalyticsSyncFailureReason.UNAUTHORIZED
+                    408, 504 -> AnalyticsSyncFailureReason.TIMEOUT
+                    409 -> AnalyticsSyncFailureReason.CONFLICT
+                    else -> AnalyticsSyncFailureReason.SERVER_ERROR
+                }
+            }
+            else -> Unit
+        }
+        currentError = inspectedError.cause
+        depth += 1
+    }
+    return AnalyticsSyncFailureReason.SERVER_ERROR
 }
 
 private fun accountStatusPrimaryActionAttentionCount(
@@ -249,6 +304,7 @@ fun createAccountStatusViewModelFactory(
     syncRepository: SyncRepository,
     messageController: TransientMessageController,
     technicalErrorController: AppTechnicalErrorController,
+    syncFailureReporter: AnalyticsSyncFailureReporter,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
@@ -258,6 +314,7 @@ fun createAccountStatusViewModelFactory(
                 syncRepository = syncRepository,
                 messageController = messageController,
                 technicalErrorController = technicalErrorController,
+                syncFailureReporter = syncFailureReporter,
                 workspaceRepository = workspaceRepository,
                 strings = createSettingsStringResolver(context = applicationContext)
             )

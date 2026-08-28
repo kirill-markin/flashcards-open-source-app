@@ -10,7 +10,8 @@ enum class AndroidObservationFeature(
     AI(tagValue = "ai"),
     PROGRESS(tagValue = "progress"),
     FEEDBACK(tagValue = "feedback"),
-    NOTIFICATIONS(tagValue = "notifications")
+    NOTIFICATIONS(tagValue = "notifications"),
+    ANALYTICS(tagValue = "analytics")
 }
 
 enum class AndroidObservationAction(
@@ -42,7 +43,8 @@ enum class AndroidObservationAction(
     PROGRESS_REPOSITORY_EXCEPTION(tagValue = "progress_repository_exception"),
     FEEDBACK_PROMPT_EXCEPTION(tagValue = "feedback_prompt_exception"),
     NOTIFICATION_SCHEDULING_BREADCRUMB(tagValue = "notification_scheduling_breadcrumb"),
-    NOTIFICATION_SCHEDULING_WARNING(tagValue = "notification_scheduling_warning")
+    NOTIFICATION_SCHEDULING_WARNING(tagValue = "notification_scheduling_warning"),
+    ANALYTICS_PIPELINE_WARNING(tagValue = "analytics_pipeline_warning")
 }
 
 enum class AndroidAiObservationName(
@@ -66,6 +68,31 @@ enum class AndroidAiObservationName(
     RUNTIME_HANDOFF_APPLIED_TO_RUNNING_DRAFT(tagValue = "ai_runtime_handoff_applied_to_running_draft"),
     RUNTIME_HANDOFF_START_FRESH_CONVERSATION(tagValue = "ai_runtime_handoff_start_fresh_conversation"),
     RUNTIME_HANDOFF_APPLIED_TO_EXISTING_SESSION(tagValue = "ai_runtime_handoff_applied_to_existing_session")
+}
+
+/**
+ * Analytics pipeline failures worth reporting from the client.
+ *
+ * Deliberately excluded: per-event rejections, which the server already captures with cross-client
+ * grouping and which `analytics_events_dropped` carries into the data itself, and ordinary offline
+ * or transient network failures, which this repository silences in background capture paths.
+ */
+enum class AndroidAnalyticsObservationName(
+    val tagValue: String
+) {
+    QUEUE_STORE_WRITE_FAILED(tagValue = "analytics_queue_store_write_failed"),
+    QUEUE_STORE_READ_FAILED(tagValue = "analytics_queue_store_read_failed"),
+    QUEUE_OVERFLOW(tagValue = "analytics_queue_overflow"),
+    QUEUE_TTL_EXPIRED(tagValue = "analytics_queue_ttl_expired"),
+
+    /**
+     * Events discarded at an identity boundary. Deliberately not an `analytics_events_dropped`
+     * reason: that enum is frozen, and spending `rejected` on an expected, bounded loss would
+     * poison the one signal that surfaces real server refusals and clock skew.
+     */
+    IDENTITY_BOUNDARY_DISCARDED(tagValue = "analytics_identity_boundary_discarded"),
+    BATCH_CONTRACT_REFUSED(tagValue = "analytics_batch_contract_refused"),
+    SUSTAINED_SERVER_ERRORS(tagValue = "analytics_sustained_server_errors")
 }
 
 enum class AndroidFeedbackPromptAction(
@@ -521,6 +548,28 @@ sealed interface AndroidWarningIssueEvent : AndroidObservationEvent {
             requestId = requestId,
             statusCode = statusCode,
             code = code ?: name.tagValue,
+            appVersion = appVersion,
+            clientVersion = clientVersion,
+            versionCode = versionCode
+        )
+    }
+
+    data class AnalyticsPipelineWarning(
+        val name: AndroidAnalyticsObservationName,
+        val eventCount: Int?,
+        val statusCode: Int?,
+        val appVersion: String?,
+        val clientVersion: String?,
+        val versionCode: Int?
+    ) : AndroidWarningIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.ANALYTICS
+        override val action: AndroidObservationAction = AndroidObservationAction.ANALYTICS_PIPELINE_WARNING
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
+            statusCode = statusCode,
+            code = name.tagValue,
             appVersion = appVersion,
             clientVersion = clientVersion,
             versionCode = versionCode
