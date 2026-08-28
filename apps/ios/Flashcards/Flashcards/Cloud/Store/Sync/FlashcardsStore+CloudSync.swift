@@ -528,7 +528,11 @@ extension FlashcardsStore {
         trigger: CloudSyncTrigger
     ) async throws -> PersistedCloudStateReconciliationOutcome {
         let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
-        let hasStoredGuestSession = try self.loadUsableGuestSessionForCurrentConfiguration() != nil
+        // Only a guest session this install adopted as its cloud session counts. A credential minted
+        // to authenticate analytics sits in the same Keychain item while `cloudState` is
+        // `disconnected`, and reading it as a cloud session here would restore guest cloud state and
+        // turn on sync for an install that never asked for either.
+        let hasStoredGuestSession = try self.loadUsableCloudGuestSessionForCurrentConfiguration() != nil
         guard let cloudSettings = self.cloudSettings else {
             return .continueSync(
                 hasStoredCredentials: hasStoredCredentials,
@@ -599,9 +603,9 @@ extension FlashcardsStore {
                 }
 
                 // No analytics identity boundary here on purpose. `analyticsCredentials()` reads the
-                // active cloud session, which this state never has, and falls back to a stored guest
-                // session, which this branch does not have either — so nothing analytics could ever
-                // have posted under is being cleared, and rotating `anonymous_id` would only split one
+                // active cloud session, which this state never has, and otherwise a stored guest
+                // session, which this branch leaves in place — so nothing analytics could ever have
+                // posted under is being cleared, and rotating `anonymous_id` would only split one
                 // install's history in two.
                 try self.cloudRuntime.clearCredentials()
                 self.globalErrorMessage = ""

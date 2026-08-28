@@ -135,13 +135,36 @@ extension FlashcardsStore {
             // After logout/account deletion the stored guest session is gone and
             // the local installation id has already been regenerated. Creating
             // a session here intentionally starts a brand new guest identity.
-            let createdGuestSession = try await self.dependencies.guestCloudAuthService.createGuestSession(
-                apiBaseUrl: configuration.apiBaseUrl,
-                configurationMode: configuration.mode
-            )
-            try self.dependencies.guestCredentialStore.saveGuestSession(session: createdGuestSession)
-            storedGuestSession = createdGuestSession
+            //
+            // Through the creation gate, because the analytics credential mint creates guest sessions
+            // too: two creations at once would carry the same idempotency key, and the second would
+            // revoke the token the first one stored. A mint that is already in flight is joined here
+            // rather than duplicated, and its session becomes this install's cloud session below.
+            storedGuestSession = try await self.cloudRuntime.createGuestCloudSession { [weak self] in
+                guard let self else {
+                    throw LocalStoreError.uninitialized("Flashcards store is unavailable")
+                }
+
+                return try await self.createAndStoreGuestCloudSession(
+                    configuration: configuration,
+                    marksAnalyticsOnly: false
+                )
+            }
         }
+
+        // Whatever this install already held becomes its cloud session here, including a credential
+        // minted for analytics alone: one install, one guest identity.
+        //
+        // The one marker sweep that is deliberately fatal, and the only one that changes an answer.
+        // The others meet a marker naming a token the record no longer holds, which
+        // `isAnalyticsOnlyGuestSession` mismatches by value and discards on its own, so they are
+        // hygiene. Here the marker names the very credential this install is about to run its cloud
+        // session on, so the two values do match: survive this line and
+        // `loadAnalyticsOnlyGuestSessionForCurrentConfiguration` hands a guest token that owns a
+        // workspace to the identity link route, which revokes it. It throws rather than sweeping
+        // best-effort because the sidecar read behind it cannot fail — see
+        // `GuestCloudCredentialStore.loadSidecar`.
+        try self.dependencies.guestCredentialStore.clearAnalyticsOnlyGuestToken()
 
         return CloudLinkedSession(
             userId: storedGuestSession.userId,
@@ -151,6 +174,51 @@ extension FlashcardsStore {
             apiBaseUrl: storedGuestSession.apiBaseUrl,
             authorization: .guest(storedGuestSession.guestToken)
         )
+    }
+
+    /**
+     * Creates one guest session and persists it as this install's guest credential.
+     *
+     * Call it only inside `cloudRuntime.createGuestCloudSession`: that gate is what keeps the
+     * persisted idempotency key describing a single creation attempt at a time, and a second creation
+     * carrying the same key rotates the session and revokes the token this one stored.
+     *
+     * `marksAnalyticsOnly` writes the analytics-only marker first, in the same synchronous step as
+     * the session record. A session stored without it reads as a cloud session, which is the one
+     * outcome the analytics credential mint exists to avoid.
+     */
+    func createAndStoreGuestCloudSession(
+        configuration: CloudServiceConfiguration,
+        marksAnalyticsOnly: Bool
+    ) async throws -> StoredGuestCloudSession {
+        let idempotencyKey = try self.loadOrCreateGuestSessionCreationIdempotencyKey()
+        let createdGuestSession = try await self.dependencies.guestCloudAuthService.createGuestSession(
+            apiBaseUrl: configuration.apiBaseUrl,
+            configurationMode: configuration.mode,
+            idempotencyKey: idempotencyKey
+        )
+        if marksAnalyticsOnly {
+            try self.dependencies.guestCredentialStore.saveAnalyticsOnlyGuestToken(
+                guestToken: createdGuestSession.guestToken
+            )
+        }
+
+        do {
+            try self.dependencies.guestCredentialStore.saveGuestSession(session: createdGuestSession)
+        } catch {
+            if marksAnalyticsOnly {
+                // Rolled back so the sidecar does not keep a token this install never stored. Left
+                // behind it would still be harmless — `isAnalyticsOnlyGuestSession` matches by value,
+                // and no future credential will ever carry that token — which is why this is
+                // best-effort and must not replace the failure that brought us here.
+                try? self.dependencies.guestCredentialStore.clearAnalyticsOnlyGuestToken()
+            }
+
+            throw error
+        }
+
+        try self.dependencies.guestCredentialStore.clearGuestSessionCreationIdempotencyKey()
+        return createdGuestSession
     }
 
     private func prepareGuestCloudSessionForAI() async throws -> CloudLinkedSession {

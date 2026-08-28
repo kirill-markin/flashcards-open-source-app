@@ -384,16 +384,28 @@ protocol GuestCredentialStoring {
     func loadGuestSession() throws -> StoredGuestCloudSession?
     func saveGuestSession(session: StoredGuestCloudSession) throws
     func clearGuestSession() throws
+    func loadGuestSessionCreationIdempotencyKey() throws -> String?
+    func saveGuestSessionCreationIdempotencyKey(idempotencyKey: String) throws
+    func clearGuestSessionCreationIdempotencyKey() throws
+    func loadAnalyticsOnlyGuestToken() throws -> String?
+    func saveAnalyticsOnlyGuestToken(guestToken: String) throws
+    func clearAnalyticsOnlyGuestToken() throws
 }
 
 @MainActor
 protocol GuestCloudAuthServing {
     func createGuestSession(
         apiBaseUrl: String,
-        configurationMode: CloudServiceConfigurationMode
+        configurationMode: CloudServiceConfigurationMode,
+        idempotencyKey: String?
     ) async throws -> StoredGuestCloudSession
     func deleteGuestSession(
         apiBaseUrl: String,
+        guestToken: String
+    ) async throws
+    func linkGuestAnalyticsIdentity(
+        apiBaseUrl: String,
+        bearerToken: String,
         guestToken: String
     ) async throws
     func prepareGuestUpgrade(
@@ -461,6 +473,11 @@ struct GuestCloudSessionRestoreResult {
 struct GuestCloudSessionPreparationState {
     let id: String
     let task: Task<GuestCloudSessionRestoreResult, Error>
+}
+
+struct GuestCloudSessionCreationState {
+    let id: String
+    let task: Task<StoredGuestCloudSession, Error>
 }
 
 struct CloudLinkTransitionState {
