@@ -8,24 +8,78 @@ import {
   productAnalyticsSchemaVersion,
   type ProductAnalyticsEventName,
   type ProductAnalyticsEventProperties,
+  type ProductAnalyticsPlatform,
 } from "./catalog";
-import type { ProductAnalyticsEventRow } from "./types";
+import type { ProductAnalyticsEventDetails, ProductAnalyticsEventRow } from "./types";
 import { insertProductAnalyticsEvents, insertProductAnalyticsIdentityLink } from "./writer";
 
 // A server-derived emission carries only what the backend observed itself. There is no field for
-// client context here on purpose: the row below leaves every client-owned column NULL, and
-// product_events_client_columns_shape rejects the row if it ever stops doing so.
+// client context here on purpose: the row below leaves client_occurred_at, client_sent_at,
+// session_id and anonymous_id NULL, and product_events_client_columns_shape rejects the row if it
+// ever stops doing so.
+//
+// platform is the one field that describes a client, and it is not a hole in that rule. What the
+// rule forbids is a platform a client request body claimed: a client able to name its own platform
+// on a server-derived row could attribute the backend's own observation to any platform it liked,
+// and the table is append-only, so that could never be repaired. A producer therefore reads it only
+// from data the server itself stored.
+//
+// The field is optional, and null is always a correct answer. A producer that cannot justify a
+// value passes null, and there is no safe default it may reach for instead. Both outcomes have a
+// cost and they are not symmetric: null leaves the row out of "daily active users by platform",
+// while a guess files it under a platform it never had, permanently, on an append-only table. Each
+// producer therefore justifies its own derivation at its own call site, against the rows it
+// actually reads, and this comment is a list of hazards rather than a mapping to copy.
+//
+// The hard requirement, and the reason this comment exists at all: a producer must never read
+// sync.workspace_replicas.platform without reading actor_kind on the same row. The column is
+// constrained to ios, android, web and system, and more than one actor kind stores a value in it
+// that does not describe a client device at all, so the column on its own cannot tell a device
+// apart from a backend actor. Known hazards, as examples and not as the answer for every actor
+// kind:
+//   - agent_connection stores 'web' (apps/backend/src/agent/syncIdentity.ts) even though the client
+//     is the machine API and not a browser, so the column names the wrong client outright.
+//   - ai_chat stores whatever the chat tool layer passed, and both production call sites in
+//     apps/backend/src/chat/openai/tools/tools.ts hardcode "web". The value describes nothing about
+//     the device the person was on: ai_chat is not a platform source, and a producer passes null
+//     unless it can justify a value from something other than this column.
+//   - workspace_seed and workspace_reset store 'system', which is no client at all.
+// A producer that cannot name the one replica row behind the fact has an additional problem before
+// any of this: a lookup by workspace alone can return an unrelated replica, so it passes null
+// rather than choosing among the workspace's replicas.
+//
+// auth.guest_sessions.platform is the one column that is safe to read directly:
+// guest_sessions_platform_check admits ios, android and web and nothing else, so it never holds a
+// non-client value. It is nullable for pre-1.7.0 mobile clients, and that null passes through
+// unchanged.
+//
+// No stored platform column anywhere holds `agent` — not sync.workspace_replicas.platform, not
+// sync.installations.platform, not auth.guest_sessions.platform. A producer that wants to report
+// the machine API client must therefore derive it from the actor kind and can never read it out of
+// a column.
 export type ServerDerivedProductAnalyticsEvent = Readonly<{
   // Chosen by the producer so an operation that can be replayed can derive a stable id and be
   // counted once, because the writer deduplicates on event_id.
   eventId: string;
   eventName: ProductAnalyticsEventName;
+  // When the fact happened, and when the backend learned of it. A producer that observes both,
+  // such as a backfill or anything reading a row a client synced later, passes both, so the skew
+  // between them stays recoverable as their difference. A producer that observes the fact as it
+  // happens passes the same value twice, which is what every producer did before these were two
+  // separate fields.
   occurredAt: Date;
+  serverReceivedAt: Date;
   userId: string | null;
   subjectUserId: string | null;
   guestSessionId: string | null;
   workspaceId: string | null;
+  platform: ProductAnalyticsPlatform | null;
   properties: ProductAnalyticsEventProperties;
+  // Free-form provenance about how this row was produced, such as the production table a
+  // reconstructed fact was read from. Nothing that identifies a person may go here: the column
+  // survives account anonymization untouched, so anything person-linked would outlive the deletion
+  // meant to remove it.
+  details: ProductAnalyticsEventDetails | null;
 }>;
 
 // Folded into every derived id, and part of no request or response. Without it an id is a pure
@@ -86,7 +140,10 @@ function createServerDerivedProductAnalyticsRow(
     clientSentAt: null,
     sessionId: null,
     anonymousId: null,
-    platform: null,
+    // The exception, and only because the producer read it from a source the server stored itself.
+    // See the invariant on ServerDerivedProductAnalyticsEvent: a platform a client request body
+    // claimed must never reach this column on a server-derived row.
+    platform: event.platform,
     appVersion: null,
     osVersion: null,
     deviceModel: null,
@@ -95,8 +152,9 @@ function createServerDerivedProductAnalyticsRow(
     country: null,
     networkState: null,
     // server_received_at anchors the skew correction of a client batch. A server-derived row has no
-    // client clock to correct, so it repeats the time the backend observed the event.
-    serverReceivedAt: event.occurredAt,
+    // client clock to correct, so here it records when the backend learned of the fact instead, and
+    // the two are equal for every producer that learns of it as it happens.
+    serverReceivedAt: event.serverReceivedAt,
     occurredAt: event.occurredAt,
     userId: event.userId,
     subjectUserId: event.subjectUserId,
@@ -104,14 +162,17 @@ function createServerDerivedProductAnalyticsRow(
     trustLevel: "server_derived",
     guestSessionId: event.guestSessionId,
     workspaceId: event.workspaceId,
-    // No catalog event the backend emits itself is defined around a surface, and the backend has no
-    // surface of its own to report.
+    // The backend has no surface of its own to report, so every server-derived row leaves this
+    // NULL. That is not a property of today's catalog: ProductAnalyticsEventSpec makes serverOnly
+    // together with requiresScreen unwritable, so no catalog entry the backend emits itself can
+    // ever be defined around a surface.
     screen: null,
     eventProperties: event.properties,
     // Experiment assignments are client state that was active at event time. The backend does not
     // observe them, and guessing them would misattribute the outcome to a variant.
     experimentAssignments: {},
     requestId: null,
+    details: event.details,
   };
 }
 

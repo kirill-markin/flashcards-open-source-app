@@ -9,6 +9,23 @@ import type {
 
 export type ProductAnalyticsOrigin = "client" | "server" | "backfill";
 
+// The details column is schema-less by design, so this is a JSON object type rather than a declared
+// shape. It is spelled out instead of using unknown to keep out the values JSON.stringify silently
+// drops — undefined, functions, symbols. It is a type and not a runtime guarantee about every value
+// it admits: NaN and the infinities are `number` and serialize as null, and a value that references
+// itself still throws inside the writer's transaction. Unlike event_properties, this column is never
+// mirrored by a client and never written by one: 0119 documents it as derivation provenance and
+// product_events_details_client_shape keeps it NULL on every client-origin row.
+export type ProductAnalyticsDetailValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ReadonlyArray<ProductAnalyticsDetailValue>
+  | Readonly<{ [key: string]: ProductAnalyticsDetailValue }>;
+
+export type ProductAnalyticsEventDetails = Readonly<Record<string, ProductAnalyticsDetailValue>>;
+
 export type ProductAnalyticsTrustLevel =
   | "server_derived"
   | "authenticated_client"
@@ -89,6 +106,12 @@ export type ProductAnalyticsEventRow = Readonly<{
   eventProperties: ProductAnalyticsEventProperties;
   experimentAssignments: ProductAnalyticsExperimentAssignments;
   requestId: string | null;
+  // How the row itself was produced, not what was observed. Server-derived producers and backfills
+  // may write it; a client-origin row always leaves it NULL, which
+  // product_events_details_client_shape enforces and which the ingest path has no field to break.
+  // Its size is bounded by product_events_details_shape, on the jsonb rendering rather than on this
+  // value, so the bound stays where the rendering it measures lives.
+  details: ProductAnalyticsEventDetails | null;
 }>;
 
 // server_derived comes from the two places the backend observes the pair itself: the guest upgrade,

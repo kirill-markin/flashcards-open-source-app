@@ -46,6 +46,7 @@ type StoredEventRow = Readonly<{
   event_properties: Readonly<Record<string, unknown>>;
   experiment_assignments: Readonly<Record<string, unknown>>;
   request_id: string | null;
+  details: Readonly<Record<string, unknown>> | null;
 }>;
 
 type StoredIdentityLinkRow = Readonly<{
@@ -83,7 +84,8 @@ const storedEventColumns = `
   screen,
   event_properties,
   experiment_assignments,
-  request_id
+  request_id,
+  details
 `;
 
 function requireOwnerDatabaseUrl(): string {
@@ -114,11 +116,15 @@ const slugPropertyEventId = createEventId();
 const redeliveredBatchEventId = createEventId();
 
 // Every optional column carries a value, so the uuid, text, smallint, timestamptz and jsonb casts are
-// all exercised with a real value at least once.
+// all exercised with a real value at least once. details is the one exception it cannot make: every
+// row in this batch is client-origin, and product_events_details_client_shape requires that column
+// to be NULL on exactly those rows.
 const fullyPopulatedRow: ProductAnalyticsEventRow = {
   eventId: fullyPopulatedEventId,
   schemaVersion: productAnalyticsSchemaVersion,
-  eventName: "review_session_ended",
+  // Carries both an enum and a counter property, so the jsonb cast is exercised with a mixed
+  // payload rather than with strings alone.
+  eventName: "analytics_events_dropped",
   origin: "client",
   backfillId: null,
   clientOccurredAt: new Date("2026-08-27T10:14:00.000Z"),
@@ -142,13 +148,17 @@ const fullyPopulatedRow: ProductAnalyticsEventRow = {
   country: null,
   networkState: "wifi",
   screen: "review",
-  eventProperties: { end_reason: "completed", answered_count: 12, duration_ms: 41_250 },
+  eventProperties: { reason: "queue_overflow", count: 12 },
   experimentAssignments: { onboarding_v2: "variant_b", review_order: "interleaved" },
   requestId,
+  // details is the one nullable jsonb column, and a client-origin row is exactly the case
+  // product_events_details_client_shape requires it to be NULL for.
+  details: null,
 };
 
-// The mirror image: every optional uuid and text column is NULL and both jsonb columns are empty
-// objects, which is the row shape a guest client with no workspace and no device context produces.
+// The mirror image: every optional uuid and text column is NULL and the two non-nullable jsonb
+// columns are empty objects, which is the row shape a guest client with no workspace and no device
+// context produces.
 const minimalRow: ProductAnalyticsEventRow = {
   eventId: minimalEventId,
   schemaVersion: productAnalyticsSchemaVersion,
@@ -180,6 +190,7 @@ const minimalRow: ProductAnalyticsEventRow = {
   eventProperties: {},
   experimentAssignments: {},
   requestId: null,
+  details: null,
 };
 
 const slugPropertyRow: ProductAnalyticsEventRow = {
@@ -212,6 +223,7 @@ const slugPropertyRow: ProductAnalyticsEventRow = {
   eventProperties: { package_slug: "spanish-basics" },
   experimentAssignments: {},
   requestId,
+  details: null,
 };
 
 const redeliveredBatchRow: ProductAnalyticsEventRow = {
@@ -262,7 +274,7 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
     const [storedFullyPopulated, storedMinimal, storedSlugProperty] = stored.rows;
     assert.equal(storedFullyPopulated?.event_id, fullyPopulatedEventId);
     assert.equal(storedFullyPopulated?.schema_version, productAnalyticsSchemaVersion);
-    assert.equal(storedFullyPopulated?.event_name, "review_session_ended");
+    assert.equal(storedFullyPopulated?.event_name, "analytics_events_dropped");
     assert.equal(storedFullyPopulated?.origin, "client");
     assert.equal(storedFullyPopulated?.trust_level, "authenticated_client");
     // identity_state and ingested_at are owned by the database and are never sent by the writer.
@@ -284,17 +296,18 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
       fullyPopulatedRow.clientOccurredAt?.getTime(),
     );
     assert.equal(storedFullyPopulated?.client_sent_at?.getTime(), clientSentAt.getTime());
-    // The two jsonb casts are the parameter paths most likely to surprise, so both columns are read
-    // back as objects rather than as text.
+    // The three jsonb casts are the parameter paths most likely to surprise, so all three columns
+    // are read back as values rather than as text. details is the one that carries a NULL element
+    // in its jsonb[] parameter, which is the shape every row written today has.
     assert.deepEqual(storedFullyPopulated?.event_properties, {
-      end_reason: "completed",
-      answered_count: 12,
-      duration_ms: 41_250,
+      reason: "queue_overflow",
+      count: 12,
     });
     assert.deepEqual(storedFullyPopulated?.experiment_assignments, {
       onboarding_v2: "variant_b",
       review_order: "interleaved",
     });
+    assert.equal(storedFullyPopulated?.details, null);
 
     assert.equal(storedSlugProperty?.event_id, slugPropertyEventId);
     assert.deepEqual(storedSlugProperty?.event_properties, { package_slug: "spanish-basics" });

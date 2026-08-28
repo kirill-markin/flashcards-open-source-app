@@ -1,17 +1,23 @@
 import Foundation
 
 /**
- * Hand-written mirror of the frozen backend product analytics catalog in
+ * Hand-written mirror of the backend product analytics catalog in
  * `apps/backend/src/productAnalytics/catalog.ts`. The server rejects anything it does not declare,
  * so the client API is type-strict per event: every case carries exactly the properties the catalog
  * declares and there is deliberately no `track(name:properties:)` anywhere. A typo or an undeclared
  * property does not compile instead of becoming a silent server-side rejection.
  *
+ * That strictness covers event names and properties, and no longer covers every enum value here:
+ * `AnalyticsSurface` still declares `onboarding`, which the catalog dropped, so an event carrying
+ * it as its `screen` compiles and is rejected `invalid_event`. No call site uses that value, and
+ * until the enum drops it a value in this file is not on its own proof that the server accepts it.
+ *
  * `guest_upgrade_completed` and `catalog_deck_installed` are server-derived and are absent here on
  * purpose: a client batch that carries one is rejected `server_only_event`.
  *
- * `onboarding_step_completed`, `review_session_started` and `review_session_ended` are still
- * declared by the server but retired, so no client sends them.
+ * `onboarding_step_completed`, `review_session_started` and `review_session_ended` were removed
+ * from the catalog outright, so the server no longer declares them and rejects them as unknown
+ * event names.
  */
 enum AnalyticsEvent: Sendable, Equatable {
     case appOpened(launchType: AnalyticsLaunchType)
