@@ -12,12 +12,8 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
-import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsDeckScope
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
-import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsForegroundListener
-import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsForegroundTransitions
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsReviewAnswerFailureReason
-import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsReviewEndReason
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
@@ -45,7 +41,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -76,7 +71,6 @@ class ReviewViewModel(
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     private val analytics: Analytics,
-    private val analyticsForegroundTransitions: AnalyticsForegroundTransitions,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository,
     private val textProvider: ReviewTextProvider
@@ -104,9 +98,11 @@ class ReviewViewModel(
             sessionSnapshot = loadingReviewSessionSnapshot(textProvider = textProvider)
         )
     )
+    // Eagerly, because the auto-sync handlers only ever read this through [StateFlow.value]: a
+    // lazily started wrapper would have no subscriber and stay stuck on [VisibleAppScreen.OTHER].
     private val visibleAppScreenState = visibleAppScreenRepository.observeVisibleAppScreen().stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        started = SharingStarted.Eagerly,
         initialValue = VisibleAppScreen.OTHER
     )
     private val workspaceState = workspaceRepository.observeWorkspace().stateIn(
@@ -180,60 +176,11 @@ class ReviewViewModel(
         initialValue = initialReviewUiState(textProvider = textProvider)
     )
 
-    private var analyticsReviewSessionDeckScope: AnalyticsDeckScope? = null
-    private var analyticsReviewSessionStartedAtMillis: Long = 0L
-    private var analyticsReviewSessionAnsweredCount: Int = 0
-
-    /**
-     * Set when the process left the foreground with a session open, so returning to a still-visible
-     * review screen reopens one instead of leaving the rest of the sitting unmeasured.
-     */
-    private var wasAnalyticsReviewSessionInterruptedByBackground: Boolean = false
-
-    /**
-     * Closes the session when the process actually leaves the foreground — a call, a notification, a
-     * screen lock, a swipe to another app — because none of those clear a `ViewModelStore` or change
-     * the nav route, and `duration_ms` is wall-clock from start to end. Delivered synchronously and
-     * ahead of the background flush, so the session-end event goes out with it.
-     */
-    private val analyticsForegroundListener = object : AnalyticsForegroundListener {
-        override fun onAnalyticsForegroundLeft() {
-            if (analyticsReviewSessionDeckScope == null) {
-                return
-            }
-            endAnalyticsReviewSession(endReason = AnalyticsReviewEndReason.INTERRUPTED)
-            wasAnalyticsReviewSessionInterruptedByBackground = true
-        }
-
-        override fun onAnalyticsForegroundEntered() {
-            if (wasAnalyticsReviewSessionInterruptedByBackground.not()) {
-                return
-            }
-            wasAnalyticsReviewSessionInterruptedByBackground = false
-            if (visibleAppScreenState.value != VisibleAppScreen.REVIEW) {
-                return
-            }
-            startAnalyticsReviewSession(startedAtMillis = System.currentTimeMillis())
-        }
-    }
-
     init {
         observeWorkspaceChanges()
         observeResolvedFilterChanges()
         observePresentedCardChanges()
         observeAutoSyncDrivenReviewChanges()
-        observeAnalyticsReviewSessionEnd()
-        analyticsForegroundTransitions.addListener(listener = analyticsForegroundListener)
-    }
-
-    override fun onCleared() {
-        analyticsForegroundTransitions.removeListener(listener = analyticsForegroundListener)
-        // Covers only what this callback actually covers: the review graph leaving the back stack
-        // and the view-model store being cleared. It does **not** fire on backgrounding, on a tab
-        // switch (the top-level destinations save and restore their state) or on a process kill —
-        // leaving the foreground is handled by [analyticsForegroundListener] instead.
-        endAnalyticsReviewSession(endReason = AnalyticsReviewEndReason.INTERRUPTED)
-        super.onCleared()
     }
 
     fun selectFilter(reviewFilter: ReviewFilter) {
@@ -246,7 +193,6 @@ class ReviewViewModel(
             return
         }
 
-        endAnalyticsReviewSession(endReason = AnalyticsReviewEndReason.ABANDONED)
         reviewFilterGeneration = nextReviewFilterGeneration
         lastObservedReviewSessionSignature = null
         ownedReviewSubmissions = emptyMap()
@@ -454,8 +400,6 @@ class ReviewViewModel(
             )
         }
 
-        startAnalyticsReviewSessionIfNeeded(reviewedAtMillis = reviewedAtMillis)
-
         viewModelScope.launch {
             try {
                 reviewRepository.recordReview(
@@ -463,12 +407,6 @@ class ReviewViewModel(
                     rating = rating,
                     reviewedAtMillis = reviewedAtMillis
                 )
-                // Counted after the local write is confirmed, on purpose. An answer still in flight
-                // when the session closes — the process leaves the foreground mid-write — belongs to
-                // no session and is not counted into `answered_count`. Counting it optimistically
-                // before the write would overcount answers that then failed and rolled back, and the
-                // web client independently settled on the same rule, so the two stay comparable.
-                analyticsReviewSessionAnsweredCount += 1
                 if (operationWorkspaceGeneration != workspaceGeneration) {
                     return@launch
                 }
@@ -720,7 +658,6 @@ class ReviewViewModel(
                     return@collect
                 }
 
-                endAnalyticsReviewSession(endReason = AnalyticsReviewEndReason.ABANDONED)
                 activeWorkspaceId = workspaceId
                 workspaceGeneration += 1L
                 reviewFilterGeneration += 1L
@@ -917,89 +854,6 @@ class ReviewViewModel(
         lastVisibleAutoSyncChangeSignature = nextVisibleChangeSignature
         messageController.showMessage(message = textProvider.reviewUpdatedOnAnotherDeviceMessage)
     }
-
-    /**
-     * A review session opens on the first answered card of the current scope, which keeps
-     * `answered_count` and `duration_ms` meaningful and avoids emitting a session every time the
-     * Review tab is merely glanced at.
-     */
-    private fun startAnalyticsReviewSessionIfNeeded(reviewedAtMillis: Long) {
-        if (analyticsReviewSessionDeckScope != null) {
-            return
-        }
-        startAnalyticsReviewSession(startedAtMillis = reviewedAtMillis)
-    }
-
-    private fun startAnalyticsReviewSession(startedAtMillis: Long) {
-        val deckScope: AnalyticsDeckScope = analyticsDeckScope(
-            reviewFilter = draftState.value.requestedFilter
-        )
-        analyticsReviewSessionDeckScope = deckScope
-        analyticsReviewSessionStartedAtMillis = startedAtMillis
-        analyticsReviewSessionAnsweredCount = 0
-        analytics.track(event = AnalyticsEvent.ReviewSessionStarted(deckScope = deckScope))
-    }
-
-    private fun endAnalyticsReviewSession(endReason: AnalyticsReviewEndReason) {
-        if (analyticsReviewSessionDeckScope == null) {
-            return
-        }
-
-        val answeredCount: Int = analyticsReviewSessionAnsweredCount
-        // Wall clock on both ends, because the session start is the answer's own `reviewedAtMillis`.
-        // A correction backwards mid-session would otherwise make this negative, and the catalog
-        // declares `duration_ms` as an integer >= 0: the server would refuse the whole event rather
-        // than record a short session.
-        val durationMs: Long = (System.currentTimeMillis() - analyticsReviewSessionStartedAtMillis)
-            .coerceAtLeast(0L)
-        // Any other reason for ending — the deck scope changed, the queue emptied, the person left
-        // the review screen — retires the pending reopen along with the session.
-        wasAnalyticsReviewSessionInterruptedByBackground = false
-        analyticsReviewSessionDeckScope = null
-        analyticsReviewSessionStartedAtMillis = 0L
-        analyticsReviewSessionAnsweredCount = 0
-        analytics.track(
-            event = AnalyticsEvent.ReviewSessionEnded(
-                endReason = endReason,
-                answeredCount = answeredCount,
-                durationMs = durationMs
-            )
-        )
-    }
-
-    private fun observeAnalyticsReviewSessionEnd() {
-        viewModelScope.launch {
-            reviewSessionState
-                .map { observedState ->
-                    observedState.sessionSnapshot.isLoading.not() &&
-                        observedState.sessionSnapshot.remainingCount == 0
-                }
-                .distinctUntilChanged()
-                .collect { isQueueExhausted ->
-                    if (isQueueExhausted) {
-                        endAnalyticsReviewSession(endReason = AnalyticsReviewEndReason.COMPLETED)
-                    }
-                }
-        }
-        viewModelScope.launch {
-            visibleAppScreenState
-                .map { visibleScreen -> visibleScreen == VisibleAppScreen.REVIEW }
-                .distinctUntilChanged()
-                .collect { isReviewVisible ->
-                    if (isReviewVisible.not()) {
-                        endAnalyticsReviewSession(endReason = AnalyticsReviewEndReason.ABANDONED)
-                    }
-                }
-        }
-    }
-}
-
-private fun analyticsDeckScope(reviewFilter: ReviewFilter): AnalyticsDeckScope {
-    return when (reviewFilter) {
-        is ReviewFilter.AllCards -> AnalyticsDeckScope.ALL
-        is ReviewFilter.Deck -> AnalyticsDeckScope.DECK
-        is ReviewFilter.Tags -> AnalyticsDeckScope.FILTER
-    }
 }
 
 /** Maps a failed review submission onto the closed reason set the server catalog declares. */
@@ -1048,7 +902,6 @@ fun createReviewViewModelFactory(
     onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
     analytics: Analytics,
-    analyticsForegroundTransitions: AnalyticsForegroundTransitions,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository
 ): ViewModelProvider.Factory {
@@ -1070,7 +923,6 @@ fun createReviewViewModelFactory(
                 onNotificationPermissionGranted = onNotificationPermissionGranted,
                 reviewPreferencesStore = reviewPreferencesStore,
                 analytics = analytics,
-                analyticsForegroundTransitions = analyticsForegroundTransitions,
                 visibleAppScreenRepository = visibleAppScreenRepository,
                 workspaceRepository = workspaceRepository,
                 textProvider = reviewTextProvider(context = application)

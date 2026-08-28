@@ -14,16 +14,14 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
 
     /**
      * Subscribes the process-wide app lifecycle signals every analytics reaction to leaving and
-     * returning to the foreground is built on: the warm `app_opened`, the review-session interruption
-     * and restart, and the backgrounded flush.
+     * returning to the foreground is built on: the warm `app_opened` and the backgrounded flush.
      *
      * `didFinishLaunchingWithOptions` runs exactly once per process, which is the whole point of doing
      * it here. Both notifications are application-level and posted once, so a subscription attached to
      * a view inside the `WindowGroup` would be built per scene and a user with two iPad windows open
      * would record two opens per foreground return — `UIApplicationSupportsMultipleScenes` is on and
      * the target is universal. `ScenePhase` is per scene for the same reason and is not usable for any
-     * of this: with two windows open, backgrounding one would end a review session the other window is
-     * still running. The delegate's own `applicationWillEnterForeground` is not usable either: UIKit
+     * of this. The delegate's own `applicationWillEnterForeground` is not usable either: UIKit
      * does not call it in a scene-based app, which this is.
      *
      * The observers are never removed because the delegate lives as long as the process, and they
@@ -38,12 +36,8 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
             Analytics.recordAppBackgrounded()
             runAnalyticsAppLifecycleWork {
                 // Held open by a background task: without one the process is suspended before the
-                // batch leaves, and the events wait for the next launch instead. The interrupted
-                // session is ended and awaited inside the same task, because a session ended beside
-                // the flush has no ordering against it and would miss the very batch placed to
-                // carry it.
+                // batch leaves, and the events wait for the next launch instead.
                 runAppBackgroundTask(name: "AppBackgroundAnalyticsFlush") {
-                    await Analytics.interruptReviewSessionAndWait()
                     await Analytics.flushAndWait()
                 }
             }
@@ -55,7 +49,6 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
         ) { _ in
             runAnalyticsAppLifecycleWork {
                 Analytics.trackAppForegrounded()
-                Analytics.resumeInterruptedReviewSession()
             }
         }
     }

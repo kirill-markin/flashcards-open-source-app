@@ -53,7 +53,6 @@ enum Analytics {
         identity: Analytics.identity
     )
     static let surfaceTracker: AnalyticsSurfaceTracker = AnalyticsSurfaceTracker()
-    static let reviewSessionTracker: AnalyticsReviewSessionTracker = AnalyticsReviewSessionTracker()
     /// One reporter for the whole process, so a failure episode costs one event per reason no matter
     /// which sync surface noticed it.
     static let syncFailureReporter: AnalyticsSyncFailureReporter = AnalyticsSyncFailureReporter()
@@ -129,17 +128,6 @@ enum Analytics {
         }
 
         self.track(.appOpened(launchType: .warm))
-    }
-
-    /// Awaitable `track`, for a caller that must know the event reached the queue before it flushes.
-    /// `track` hands the write to an independently scheduled job, which gives no ordering at all
-    /// against a flush started beside it.
-    static func trackAndWait(_ event: AnalyticsEvent, screen: AnalyticsSurface? = nil) async {
-        guard let pendingEvent = self.makePendingEvent(event: event, screen: screen) else {
-            return
-        }
-
-        await self.runtime.enqueue(pendingEvent)
     }
 
     /// Everything an event carries is captured here, synchronously, on the caller's thread.
