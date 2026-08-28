@@ -28,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.scheduling.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionCreationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudAccountRepository
@@ -104,7 +105,10 @@ internal class CloudIdentityTestEnvironment private constructor(
         clearCloudAndAiPreferences(context = context)
     }
 
-    fun createCloudAccountRepository(remoteGateway: CloudRemoteGateway): LocalCloudAccountRepository {
+    fun createCloudAccountRepository(
+        remoteGateway: CloudRemoteGateway,
+        onAnalyticsGuestIdentityLinkRequested: () -> Unit = {}
+    ): LocalCloudAccountRepository {
         return LocalCloudAccountRepository(
             database = database,
             preferencesStore = cloudPreferencesStore,
@@ -113,7 +117,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
-            appVersion = appVersion
+            appVersion = appVersion,
+            onAnalyticsGuestIdentityLinkRequested = onAnalyticsGuestIdentityLinkRequested
         )
     }
 
@@ -195,7 +200,10 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = restartedOperationCoordinator,
             resetCoordinator = restartedResetCoordinator,
             guestSessionStore = restartedGuestAiSessionStore,
-            guestSessionCreator = aiChatRemoteService,
+            creationCoordinator = GuestCloudSessionCreationCoordinator(
+                guestSessionStore = restartedGuestAiSessionStore,
+                guestSessionCreator = aiChatRemoteService
+            ),
             appVersion = appVersion
         )
         return RestartedCloudGuestSessionRuntime(
@@ -238,7 +246,10 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
-            guestSessionCreator = guestSessionCreator,
+            creationCoordinator = GuestCloudSessionCreationCoordinator(
+                guestSessionStore = guestAiSessionStore,
+                guestSessionCreator = guestSessionCreator
+            ),
             appVersion = appVersion
         )
     }

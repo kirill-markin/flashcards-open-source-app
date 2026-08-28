@@ -38,19 +38,26 @@ internal fun createOtpChallenge(email: String): CloudOtpChallenge {
     )
 }
 
+/**
+ * Defaults to a guest that owns cloud data, which is what every guest was before the analytics mint
+ * existed and what the upgrade flow is written against. Pass `isAnalyticsOnly = true` for a guest
+ * minted purely to authenticate product analytics.
+ */
 internal fun createStoredGuestAiSession(
     workspaceId: String,
     configurationMode: CloudServiceConfigurationMode,
     apiBaseUrl: String,
     guestToken: String,
-    userId: String
+    userId: String,
+    isAnalyticsOnly: Boolean = false
 ): StoredGuestAiSession {
     return StoredGuestAiSession(
         guestToken = guestToken,
         userId = userId,
         workspaceId = workspaceId,
         configurationMode = configurationMode,
-        apiBaseUrl = apiBaseUrl
+        apiBaseUrl = apiBaseUrl,
+        isAnalyticsOnly = isAnalyticsOnly
     )
 }
 

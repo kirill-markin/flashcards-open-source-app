@@ -48,7 +48,14 @@ internal class CloudWorkspaceLinkCoordinator(
     private val guestSessionStore: GuestAiSessionStore,
     private val sessionProvider: CloudSessionProvider,
     private val transitionCoordinator: CloudLinkedWorkspaceTransitionCoordinator,
-    private val appVersion: String
+    private val appVersion: String,
+    /**
+     * Fired once a sign-in has stored its credentials — a plain one, or the linked-credential
+     * recovery — so the analytics guest identity link can run against a fully signed-in install. It
+     * must not block: the sign-in still holds the cloud operation lock here, and nothing about the
+     * link may delay a user action.
+     */
+    private val onAnalyticsGuestIdentityLinkRequested: () -> Unit = {}
 ) {
     suspend fun completeCloudLink(
         linkContext: CloudWorkspaceLinkContext,
@@ -98,7 +105,22 @@ internal class CloudWorkspaceLinkCoordinator(
                     selectedWorkspace = selectedWorkspace
                 )
             }
-            clearGuestSessionsIfNeeded()
+            // A plain sign-in keeps the stored guest session on purpose: it is the analytics
+            // credential this install minted without ever entering guest cloud state, and
+            // `CloudGuestSessionCoordinator.linkAnalyticsGuestIdentityToSignedInAccount` claims that
+            // guest's analytics history for this account before dropping it. A bound guest upgrade
+            // arrives here too and still clears: its guest user id is already the account's, so its
+            // events belong to that account without any link.
+            //
+            // Every cloud-owned guest `loadActiveGuestSessionOrNull` finds produces a non-null
+            // upgrade mode, so this condition covers all of them. What it leaves behind is a stored
+            // session that lookup filters out — a foreign `apiBaseUrl` or `configurationMode`, an
+            // invalid workspace binding — which now survives sign-in until the next
+            // `GuestAiSessionStore.loadAnySession` drops it. Widening those filters widens this
+            // residue, so a change there has to revisit this branch.
+            if (linkContext.guestUpgradeMode != null) {
+                clearGuestSessionsIfNeeded()
+            }
             transitionCoordinator.applyLinkedWorkspace(
                 accountSnapshot = authenticatedSession.accountSnapshot,
                 bearerToken = authenticatedSession.credentials.idToken,
@@ -106,6 +128,14 @@ internal class CloudWorkspaceLinkCoordinator(
             )
             preferencesStore.saveCredentials(authenticatedSession.credentials)
             preferencesStore.clearCloudCredentialRecoveryState()
+            // Requested here rather than off a `LINKED` cloud-settings emission, and deliberately
+            // after `saveCredentials`: `applyLinkedWorkspace` writes `LINKED` one statement earlier,
+            // so an observer woken by that write would run the link before this account's
+            // credentials are stored. At best it bails on the missing credentials and this install
+            // never claims its analytics guest; with a previous account's credentials still present
+            // it would claim that guest for the wrong account, which `analytics.identity_links`
+            // cannot repair.
+            onAnalyticsGuestIdentityLinkRequested()
             selectedWorkspace
         }
     }
@@ -389,6 +419,13 @@ internal class CloudWorkspaceLinkCoordinator(
         return selectedWorkspace
     }
 
+    /**
+     * Reached from `CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING`, which
+     * `CloudGuestSessionCoordinator` raises for a `LINKED` install with no stored credentials —
+     * precisely a state in which an analytics-only guest is commonly stored. So this sign-in keeps
+     * that credential and requests its identity link, exactly as a plain sign-in does; only a guest
+     * that owns cloud data is retired here.
+     */
     private suspend fun completeLinkedCredentialRecoveryCloudLink(
         authenticatedSession: AuthenticatedCloudSession,
         selectedWorkspace: CloudWorkspaceSummary
@@ -410,8 +447,9 @@ internal class CloudWorkspaceLinkCoordinator(
             stage = "after linked credential recovery initial sync",
             expectedWorkspaceId = selectedWorkspace.workspaceId
         )
-        clearGuestSessionsIfNeeded()
+        guestSessionStore.clearCloudOwnedSessions()
         preferencesStore.clearCloudCredentialRecoveryState()
+        onAnalyticsGuestIdentityLinkRequested()
         return selectedWorkspace
     }
 
@@ -450,6 +488,14 @@ internal class CloudWorkspaceLinkCoordinator(
         )
     }
 
+    /**
+     * The identity-boundary wipe, for the routes that end this install's guest outright: a guest
+     * upgrade, and the guest-local recovery whose own reason — `GUEST_SESSION_MISSING`, raised only
+     * for `GUEST` with no stored session — rules an analytics guest out.
+     *
+     * `completeLinkedCredentialRecoveryCloudLink` uses [GuestAiSessionStore.clearCloudOwnedSessions]
+     * instead: an analytics guest is normal there and still has to be claimed.
+     */
     private fun clearGuestSessionsIfNeeded() {
         guestSessionStore.clearAllSessions()
     }

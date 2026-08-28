@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.ai.remote.GuestCloudSessionCreator
 import com.flashcardsopensourceapp.data.local.cloud.PendingGuestUpgradeState
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
@@ -26,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.creat
 import java.net.SocketTimeoutException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -744,6 +746,310 @@ class CloudGuestSessionCoordinatorTest {
         )
     }
 
+    @Test
+    fun analyticsGuestIdentityLinkSendsStoredGuestTokenAndClearsStoredSessions() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val remoteGateway = FakeCloudRemoteGateway.standard()
+        val coordinator = environment.createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = localWorkspaceId)
+        storeAnalyticsOnlyGuestSession(guestToken = "analytics-guest-token")
+
+        coordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+
+        assertEquals(listOf("analytics-guest-token"), remoteGateway.linkGuestIdentityGuestTokens)
+        // The account's identity row is written by the first request that loads a request context,
+        // so exactly one has to precede the link or it earns `409 ACCOUNT_REQUIRED`.
+        assertEquals(1, remoteGateway.fetchCloudAccountCalls)
+        assertNull(
+            environment.guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
+        )
+    }
+
+    @Test
+    fun analyticsGuestIdentityLinkSkipsGuestSessionThatOwnsCloudData() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val remoteGateway = FakeCloudRemoteGateway.standard()
+        val coordinator = environment.createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = localWorkspaceId)
+        environment.guestAiSessionStore.saveSession(
+            localWorkspaceId = null,
+            session = createStoredGuestAiSession(
+                workspaceId = "guest-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                guestToken = "cloud-guest-token",
+                userId = "cloud-guest-user"
+            )
+        )
+
+        coordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+
+        // That guest converts through `/guest-auth/upgrade/complete`, which writes the same identity
+        // link; this route would revoke the session that flow still needs.
+        assertTrue(remoteGateway.linkGuestIdentityGuestTokens.isEmpty())
+        assertEquals(
+            "cloud-guest-token",
+            environment.guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )?.guestToken
+        )
+    }
+
+    @Test
+    fun analyticsGuestIdentityLinkKeepsGuestTokenAndStopsRetryingWhenUpgradeIsRequired() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val remoteGateway = FakeCloudRemoteGateway.standard()
+        remoteGateway.setLinkGuestIdentityError(
+            error = createCloudRemoteError(
+                statusCode = 409,
+                errorCode = "GUEST_IDENTITY_LINK_UPGRADE_REQUIRED",
+                path = "/guest-auth/identity/link"
+            )
+        )
+        val coordinator = environment.createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = localWorkspaceId)
+        storeAnalyticsOnlyGuestSession(guestToken = "analytics-guest-token")
+
+        coordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+
+        // The token is kept: it names the owner of data only the upgrade flow can transfer.
+        val retiredSession = environment.guestAiSessionStore.loadAnySession(
+            configuration = makeOfficialCloudServiceConfiguration()
+        )
+        assertEquals("analytics-guest-token", retiredSession?.guestToken)
+        assertEquals(false, retiredSession?.isAnalyticsOnly)
+
+        coordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+
+        // Correcting the marker is what stops a link that can never succeed from being retried on
+        // every app start and every sign-in.
+        assertEquals(listOf("analytics-guest-token"), remoteGateway.linkGuestIdentityGuestTokens)
+    }
+
+    @Test
+    fun analyticsGuestIdentityLinkDropsGuestTokenOwnedByAnotherAccount() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val remoteGateway = FakeCloudRemoteGateway.standard()
+        remoteGateway.setLinkGuestIdentityError(
+            error = createCloudRemoteError(
+                statusCode = 409,
+                errorCode = "GUEST_IDENTITY_LINK_OTHER_ACCOUNT",
+                path = "/guest-auth/identity/link"
+            )
+        )
+        val coordinator = environment.createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = localWorkspaceId)
+        storeAnalyticsOnlyGuestSession(guestToken = "analytics-guest-token")
+
+        coordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+
+        assertEquals(listOf("analytics-guest-token"), remoteGateway.linkGuestIdentityGuestTokens)
+        // Terminal: the credential is not this install's, so it must not stay as an analytics one.
+        assertNull(
+            environment.guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
+        )
+    }
+
+    @Test
+    fun analyticsGuestIdentityLinkKeepsGuestTokenWhenTheLinkFailsRetryably() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val remoteGateway = FakeCloudRemoteGateway.standard()
+        remoteGateway.setLinkGuestIdentityError(
+            error = createCloudRemoteError(
+                statusCode = 500,
+                errorCode = null,
+                path = "/guest-auth/identity/link"
+            )
+        )
+        val coordinator = environment.createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = localWorkspaceId)
+        storeAnalyticsOnlyGuestSession(guestToken = "analytics-guest-token")
+
+        try {
+            coordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+            throw AssertionError("Expected a retryable link failure to be rethrown.")
+        } catch (error: CloudRemoteException) {
+            assertEquals(500, error.statusCode)
+        }
+
+        // A 5xx can leave the link written and the session live, so the retry is mandatory and the
+        // token has to survive for it.
+        val keptSession = environment.guestAiSessionStore.loadAnySession(
+            configuration = makeOfficialCloudServiceConfiguration()
+        )
+        assertEquals("analytics-guest-token", keptSession?.guestToken)
+        assertTrue(keptSession?.isAnalyticsOnly == true)
+    }
+
+    /**
+     * The credential must belong to the account this install is linked to. Linking on a mismatch
+     * would attribute the guest's whole pre-sign-in tail to the wrong account, and
+     * `analytics.identity_links` is first-link-wins with no repair path — while answering the
+     * mismatch the way `authenticatedSession()` does would destroy local data instead.
+     */
+    @Test
+    fun analyticsGuestIdentityLinkBailsWhenTheCredentialIsForAnotherAccount() = runBlocking {
+        val preservationState = seedCredentialRecoveryLocalData()
+        val remoteGateway = FakeCloudRemoteGateway.forAccountSnapshot(
+            accountSnapshot = createCloudAccountSnapshot(
+                userId = "user-2",
+                email = "other@example.com",
+                workspaces = listOf(
+                    createCloudWorkspaceSummary(
+                        workspaceId = preservationState.workspaceId,
+                        name = "Personal",
+                        createdAtMillis = 100L,
+                        isSelected = true
+                    )
+                )
+            )
+        )
+        val coordinator = environment.createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = preservationState.workspaceId)
+        storeAnalyticsOnlyGuestSession(guestToken = "analytics-guest-token")
+
+        coordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+
+        assertTrue(remoteGateway.linkGuestIdentityGuestTokens.isEmpty())
+        assertCredentialRecoveryPreservedLocalData(preservationState = preservationState)
+        assertEquals(
+            "analytics-guest-token",
+            environment.guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )?.guestToken
+        )
+    }
+
+    /**
+     * The background link runs unattended on every app start and after every sign-in. A deleted
+     * account must therefore never reach a destructive local reset from here: sync answers that
+     * condition by preserving local data, and nothing about analytics may pre-empt it.
+     */
+    @Test
+    fun analyticsGuestIdentityLinkPreservesLocalDataWhenTheAccountIsDeleted() = runBlocking {
+        val preservationState = seedCredentialRecoveryLocalData()
+        val remoteGateway = FakeCloudRemoteGateway.forFetchAccountError(
+            fetchAccountError = createCloudRemoteError(
+                statusCode = 410,
+                errorCode = "ACCOUNT_DELETED",
+                path = "/me"
+            )
+        )
+        val coordinator = environment.createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = preservationState.workspaceId)
+        storeAnalyticsOnlyGuestSession(guestToken = "analytics-guest-token")
+
+        coordinator.linkAnalyticsGuestIdentityToSignedInAccount()
+
+        assertTrue(remoteGateway.linkGuestIdentityGuestTokens.isEmpty())
+        assertCredentialRecoveryPreservedLocalData(preservationState = preservationState)
+        assertEquals(
+            preservationState.installationId,
+            environment.cloudPreferencesStore.currentCloudSettings().installationId
+        )
+        assertEquals(CloudAccountState.LINKED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertNotNull(environment.cloudPreferencesStore.loadCredentials())
+        assertEquals(
+            "analytics-guest-token",
+            environment.guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )?.guestToken
+        )
+    }
+
+    /**
+     * The creation idempotency key is minted once and kept until the session is committed, so a
+     * retry reuses it and the server returns the same guest identity instead of minting a second
+     * permanent one for the install.
+     */
+    @Test
+    fun guestCloudSessionCreationRetryReusesPersistedIdempotencyKeyUntilSessionIsCommitted() = runBlocking {
+        val guestSessionCreator = RecordingGuestSessionCreator(
+            session = createStoredGuestAiSession(
+                workspaceId = "new-guest-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                guestToken = "new-guest-token",
+                userId = "new-guest-user"
+            ),
+            initialFailureCount = 1
+        )
+        val creationCoordinator = GuestCloudSessionCreationCoordinator(
+            guestSessionStore = environment.guestAiSessionStore,
+            guestSessionCreator = guestSessionCreator
+        )
+        val configuration = makeOfficialCloudServiceConfiguration()
+
+        try {
+            creationCoordinator.loadOrCreateGuestCloudSession(
+                configuration = configuration,
+                isAnalyticsOnly = true
+            )
+            throw AssertionError("Expected the first guest session creation to fail.")
+        } catch (error: SocketTimeoutException) {
+            assertEquals("Guest session creation failed.", error.message)
+        }
+
+        // Nothing is durably stored yet, so the key stays: dropping it would leave a server-side
+        // guest that no later attempt can name.
+        assertNotNull(environment.guestAiSessionStore.loadPendingCreationIdempotencyKey())
+
+        val createdSession = creationCoordinator.loadOrCreateGuestCloudSession(
+            configuration = configuration,
+            isAnalyticsOnly = true
+        )
+
+        assertEquals(2, guestSessionCreator.createGuestSessionCalls)
+        val presentedKeys = guestSessionCreator.createGuestSessionIdempotencyKeys
+        assertEquals(presentedKeys.first(), presentedKeys.last())
+        assertTrue(presentedKeys.first().matches(Regex("[0-9a-f]{32,200}")))
+        assertTrue(createdSession.isAnalyticsOnly)
+        assertEquals(
+            "new-guest-token",
+            environment.guestAiSessionStore.loadAnySession(configuration = configuration)?.guestToken
+        )
+        // Dropped only now, because rotation hands whoever presents the key a fresh valid token for
+        // that guest's user and workspace.
+        assertNull(environment.guestAiSessionStore.loadPendingCreationIdempotencyKey())
+    }
+
+    private fun storeAnalyticsOnlyGuestSession(guestToken: String) {
+        environment.guestAiSessionStore.saveSession(
+            localWorkspaceId = null,
+            session = createStoredGuestAiSession(
+                workspaceId = "analytics-guest-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                guestToken = guestToken,
+                userId = "analytics-guest-user",
+                isAnalyticsOnly = true
+            )
+        )
+    }
+
+    private fun createCloudRemoteError(
+        statusCode: Int,
+        errorCode: String?,
+        path: String
+    ): CloudRemoteException {
+        return CloudRemoteException(
+            message = "Cloud request failed with status $statusCode for $path",
+            statusCode = statusCode,
+            responseBody = JSONObject()
+                .put("code", errorCode ?: JSONObject.NULL)
+                .put("requestId", "request-1")
+                .toString(),
+            errorCode = errorCode,
+            requestId = "request-1",
+            syncConflict = null,
+            androidObservationAlreadyCaptured = false
+        )
+    }
+
     private suspend fun seedCredentialRecoveryLocalData(): CredentialRecoveryPreservationState {
         val workspaceId = environment.requireLocalWorkspaceId()
         val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
@@ -788,16 +1094,28 @@ private data class CredentialRecoveryPreservationState(
     val cardId: String
 )
 
+/**
+ * [initialFailureCount] fails that many attempts before succeeding, standing in for a creation whose
+ * result never became durable — a lost response, or a persist that failed after the server had
+ * already committed the guest.
+ */
 private class RecordingGuestSessionCreator(
-    private val session: StoredGuestAiSession
+    private val session: StoredGuestAiSession,
+    private val initialFailureCount: Int = 0
 ) : GuestCloudSessionCreator {
     var createGuestSessionCalls: Int = 0
+    val createGuestSessionIdempotencyKeys = mutableListOf<String>()
 
     override suspend fun createGuestSession(
         apiBaseUrl: String,
-        configurationMode: CloudServiceConfigurationMode
+        configurationMode: CloudServiceConfigurationMode,
+        idempotencyKey: String
     ): StoredGuestAiSession {
         createGuestSessionCalls += 1
+        createGuestSessionIdempotencyKeys += idempotencyKey
+        if (createGuestSessionCalls <= initialFailureCount) {
+            throw SocketTimeoutException("Guest session creation failed.")
+        }
         return session
     }
 }
