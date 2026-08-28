@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactEle
 import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useParams } from "react-router";
 import { AccountMenu } from "./AccountMenu";
 import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
+import { AnalyticsLifecycle } from "./analytics";
 import { AppDataProvider, useAppData } from "./appData";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
@@ -789,6 +790,7 @@ export default function App(): ReactElement {
   return (
     <AppErrorBoundary fallback={<AppCrashFallback />}>
       <BrowserRouter>
+        <AnalyticsLifecycle />
         <AppErrorDialogProvider>
           <TestModeProvider>
             <SentryRoutes>
