@@ -38,6 +38,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                 syncRepository = appGraph.syncRepository,
                 messageController = appGraph.appMessageBus,
                 technicalErrorController = appGraph.appMessageBus,
+                syncFailureReporter = appGraph.syncFailureAnalyticsReporter,
                 applicationContext = context.applicationContext
             )
         )

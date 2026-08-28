@@ -5,6 +5,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
+import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
 
 class SyncWorker(
     context: Context,
@@ -15,8 +16,18 @@ class SyncWorker(
 
         return try {
             application.appGraph.syncRepository.scheduleSync()
+            runCatching {
+                application.appGraph.syncFailureAnalyticsReporter.reportSuccess()
+            }
             Result.success()
         } catch (error: Exception) {
+            // WorkManager retries this worker on its own backoff, so the report is gated on the
+            // transition into failure: one event per failure episode, not one per attempt.
+            runCatching {
+                application.appGraph.syncFailureAnalyticsReporter.reportFailure(
+                    reason = analyticsSyncFailureReason(error = error)
+                )
+            }
             Result.retry()
         }
     }

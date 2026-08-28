@@ -15,7 +15,9 @@ private const val immediateAutoSyncDebounceWindowMillis: Long = 1_000L
 
 class AutoSyncController(
     private val appScope: CoroutineScope,
-    private val autoSyncEventRepository: AutoSyncEventRepository
+    private val autoSyncEventRepository: AutoSyncEventRepository,
+    private val reportSyncFailure: (Throwable) -> Unit = {},
+    private val reportSyncSucceeded: () -> Unit = {}
 ) {
     private val pollingResetState = MutableStateFlow(value = 0L)
     private var lastImmediateAutoSyncTriggerAtMillis: Long? = null
@@ -54,10 +56,15 @@ class AutoSyncController(
         appScope.launch {
             try {
                 autoSyncEventRepository.runAutoSync(request = request)
+                // Re-arms the next failure, so `sync_failed` keeps measuring failure episodes
+                // rather than how often the app happens to retry.
+                reportSyncSucceeded()
             } catch (error: CancellationException) {
                 throw error
-            } catch (_: Exception) {
-                // Auto-triggered sync failures stay silent on content surfaces.
+            } catch (error: Exception) {
+                // Auto-triggered sync failures stay silent on content surfaces, but they are still
+                // counted: reporting is fire-and-forget and never changes what the user sees.
+                reportSyncFailure(error)
             }
         }
     }
