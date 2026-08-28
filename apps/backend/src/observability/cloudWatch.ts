@@ -33,7 +33,8 @@ export function createCloudWatchRecord(
 // `infra/aws/lib/backend-lambda-logging.ts`, so the runtime nests this object under `message` and
 // the whole log event is a JSON document. That is what makes `$.message.<field>` resolvable for a
 // CloudWatch metric filter, which is what the log-derived alarms in `infra/aws/lib/monitoring.ts`
-// select on. A pre-serialized string leaves `message` a string and no field inside it addressable.
+// and `infra/aws/lib/product-analytics-monitoring.ts` select on. A pre-serialized string leaves
+// `message` a string and no field inside it addressable.
 //
 // One shape for every surface, with no branch on the runtime's log format: a branch would leave the
 // tests and the local server exercising an emission path that production never takes, and would
