@@ -135,7 +135,7 @@ struct AccountStatusView: View {
         .accessibilityIdentifier(UITestIdentifier.accountStatusScreen)
         .navigationTitle(aiSettingsLocalized("settings.account.status.title", "Account Status"))
         .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet(presentationContext: .standard)
+            CloudSignInSheet(presentationContext: .standard(originSurface: .settings))
                 .environment(store)
         }
         .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {

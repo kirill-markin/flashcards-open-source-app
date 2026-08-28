@@ -345,7 +345,7 @@ struct SettingsView: View {
             store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
         }
         .sheet(isPresented: self.$isCloudSignInPresented) {
-            CloudSignInSheet(presentationContext: .standard)
+            CloudSignInSheet(presentationContext: .standard(originSurface: .settings))
                 .environment(self.store)
         }
         .sheet(isPresented: self.$isFriendInvitePresented) {
