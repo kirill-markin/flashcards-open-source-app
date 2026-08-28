@@ -208,7 +208,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const requiredMigration = workflow.indexOf(
-    "--require-migration 0118_guest_sessions_platform_created_at_index.sql",
+    "--require-migration 0119_product_analytics_contract_revision.sql",
   );
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -238,7 +238,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
   const stackSource = readLibSource("lib/stack.ts");
   assert.match(
     stackSource,
-    /databaseMigrationGate\([\s\S]*"0118_guest_sessions_platform_created_at_index\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)[\s\S]*addDatabaseMigrationDependency\(api\.directImageIngestionFn, migrationGate\)/,
+    /databaseMigrationGate\([\s\S]*"0119_product_analytics_contract_revision\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)[\s\S]*addDatabaseMigrationDependency\(api\.directImageIngestionFn, migrationGate\)/,
   );
 
   const outputsSource = readLibSource("lib/outputs.ts");
