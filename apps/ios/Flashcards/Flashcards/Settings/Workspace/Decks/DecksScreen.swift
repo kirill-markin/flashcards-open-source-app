@@ -434,6 +434,16 @@ private struct DeckDetailScreen: View {
         .task(id: "\(self.currentDeckId ?? "all")|\(store.localReadVersion)") {
             await self.reloadDetailState()
         }
+        .onAppear {
+            Analytics.trackScreenViewed(.deckDetail)
+        }
+        .onDisappear {
+            // Popping back lands on the decks list, which is inside Settings and emits nothing of its
+            // own. Conditional, because this also fires for a tab switch away from an open deck
+            // detail, and naming Settings then would both record a view the user never had and hide
+            // their next real one behind the dedupe.
+            Analytics.trackScreenViewedOnDismiss(of: .deckDetail, restoring: .settings)
+        }
         .toolbar {
             if detailState?.allowsEditing == true {
                 ToolbarItem(placement: .topBarTrailing) {

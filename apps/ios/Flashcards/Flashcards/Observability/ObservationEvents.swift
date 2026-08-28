@@ -12,6 +12,7 @@ enum ObservabilityAccountKind: String, Sendable {
 }
 
 enum IOSObservationFeature: String, Sendable {
+    case analytics = "analytics"
     case appStartup = "app_startup"
     case cards = "cards"
     case cloudAuth = "cloud_auth"

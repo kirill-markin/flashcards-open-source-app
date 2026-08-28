@@ -41,6 +41,11 @@ extension FlashcardsStore {
     private func switchCloudServer(override: CloudServerOverride?) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
 
+        // The second identity boundary: this disconnects the account and clears the guest session,
+        // and the next credential belongs to a different backend entirely. Queued analytics events
+        // were created against the server being left, so they are discarded here for the same reason
+        // they are on logout rather than posted to the new one under a new identity.
+        Analytics.reset()
         self.cloudRuntime.cancelForAccountDeletion()
         self.clearCloudCredentialRecoveryState()
         try self.cloudRuntime.clearCredentials()

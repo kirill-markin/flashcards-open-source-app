@@ -55,6 +55,18 @@ struct FlashcardsApp: App {
         )
         let store = FlashcardsStore()
         let processInfo = ProcessInfo.processInfo
+        if isFlashcardsUITestLaunch(processInfo: processInfo) {
+            // The release-gate smoke suite signs into a real review account and the screenshot runs
+            // drive the same flows, so the kill switch goes on before anything can be recorded.
+            Analytics.setEnabled(false)
+        } else {
+            Analytics.configure { [weak store] in
+                store?.analyticsCredentials()
+            }
+            // Process start is the cold launch. Emitting it here rather than at startup-ready keeps
+            // it ahead of the first screen_viewed instead of landing after it.
+            Analytics.track(.appOpened(launchType: .cold))
+        }
         let selectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
             .map(\.appTab) ?? .review
@@ -219,6 +231,12 @@ struct FlashcardsApp: App {
                         store.reconcileReviewNotifications(trigger: .appActive, now: now)
                         store.reconcileStrictReminders(trigger: .appActive, now: now)
                     } else if nextPhase == .background {
+                        // No analytics work in this branch on purpose. `scenePhase` is per scene and
+                        // `UIApplicationSupportsMultipleScenes` is on, while every analytics reaction
+                        // to leaving or returning to the foreground — the warm open, the review
+                        // session, the flush — is a statement about the process. They are subscribed
+                        // once, to the app-level `UIApplication` notifications, in
+                        // `ReviewNotificationsAppDelegate`.
                         let now = Date()
                         runAppBackgroundTask(name: "AppBackgroundNotificationReconcile") {
                             await store.reconcileAppBackgroundNotifications(now: now)

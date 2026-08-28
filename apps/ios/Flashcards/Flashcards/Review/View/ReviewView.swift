@@ -137,6 +137,11 @@ struct ReviewView: View {
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
         .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
         .onAppear {
+            // A review session is the user's contiguous stay on this screen. It ends when they leave
+            // it, when the queue is exhausted, or when the app is backgrounded.
+            Analytics.startReviewSession(
+                deckScope: analyticsReviewDeckScope(reviewFilter: store.selectedReviewFilter)
+            )
             if self.areReviewReactionAnimationsEnabled {
                 self.prewarmReviewReactionLottieAssets()
             }
@@ -154,6 +159,7 @@ struct ReviewView: View {
             self.reviewSpeechController.stopSpeech()
         }
         .onDisappear {
+            Analytics.endReviewSession(reason: .abandoned)
             self.reviewSpeechController.stopSpeech()
             self.cancelReviewReactionLottiePrewarm()
         }
@@ -783,6 +789,7 @@ struct ReviewView: View {
         } actions: {
             VStack(spacing: 8) {
                 Button {
+                    Analytics.track(.cardCreateStarted(entryPoint: .review), screen: .review)
                     navigation.openCardCreation()
                 } label: {
                     Label(String(localized: "Create card", table: reviewCardsStringsTableName), systemImage: "plus")
@@ -796,6 +803,7 @@ struct ReviewView: View {
                     .foregroundStyle(.secondary)
 
                 Button {
+                    Analytics.track(.cardCreateStarted(entryPoint: .ai), screen: .review)
                     navigation.openAICardCreation()
                 } label: {
                     Label(String(localized: "Create with AI", table: reviewCardsStringsTableName), systemImage: "sparkles")
@@ -817,6 +825,11 @@ struct ReviewView: View {
                     .buttonStyle(.glass)
                 }
             }
+        }
+        .onAppear {
+            // The queue ran out while the user was here, so the session finished rather than being
+            // abandoned.
+            Analytics.completeReviewSessionIfAnswered()
         }
     }
 
