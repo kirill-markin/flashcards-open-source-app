@@ -89,6 +89,7 @@ internal class FakeCloudRemoteGateway private constructor(
     private var importReviewHistoryErrorIndex: Int = 0
     private var progressLeaderboardResponse: CloudProgressLeaderboard? = null
     private var progressStreakLeaderboardResponse: CloudProgressStreakLeaderboard? = null
+    private var linkGuestIdentityError: Exception? = null
 
     companion object {
         fun standard(): FakeCloudRemoteGateway {
@@ -379,6 +380,7 @@ internal class FakeCloudRemoteGateway private constructor(
     var deleteAccountCalls: Int = 0
     var fetchCloudAccountCalls: Int = 0
     var verifyCodeCalls: Int = 0
+    val linkGuestIdentityGuestTokens = mutableListOf<String>()
     var prepareGuestUpgradeCalls: Int = 0
     var completeGuestUpgradeCalls: Int = 0
     val completeGuestUpgradeGuestWorkspaceSyncedAndOutboxDrained = mutableListOf<Boolean>()
@@ -402,6 +404,11 @@ internal class FakeCloudRemoteGateway private constructor(
 
     fun setProgressStreakLeaderboardResponse(response: CloudProgressStreakLeaderboard): Unit {
         progressStreakLeaderboardResponse = response
+    }
+
+    /** The guest token is still recorded before this is thrown, so the failure branches can assert it. */
+    fun setLinkGuestIdentityError(error: Exception?): Unit {
+        linkGuestIdentityError = error
     }
 
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
@@ -463,6 +470,17 @@ internal class FakeCloudRemoteGateway private constructor(
         bearerToken: String
     ): List<CloudWorkspaceSummary> {
         return fetchCloudAccount(apiBaseUrl = apiBaseUrl, authorizationHeader = "Bearer $bearerToken").workspaces
+    }
+
+    override suspend fun linkGuestIdentity(
+        apiBaseUrl: String,
+        bearerToken: String,
+        guestToken: String
+    ) {
+        linkGuestIdentityGuestTokens += guestToken
+        linkGuestIdentityError?.let { error ->
+            throw error
+        }
     }
 
     override suspend fun prepareGuestUpgrade(

@@ -59,7 +59,13 @@ class LocalCloudAccountRepository(
     private val operationCoordinator: CloudOperationCoordinator,
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
-    private val appVersion: String
+    private val appVersion: String,
+    /**
+     * Fired once a plain sign-in has stored its credentials. The app graph turns it into one
+     * `CloudGuestSessionCoordinator.linkAnalyticsGuestIdentityToSignedInAccount` attempt off the
+     * sign-in's own coroutine.
+     */
+    private val onAnalyticsGuestIdentityLinkRequested: () -> Unit = {}
 ) : CloudAccountRepository {
     private val sessionProvider: CloudSessionProvider = CloudSessionProvider(
         preferencesStore = preferencesStore,
@@ -96,7 +102,8 @@ class LocalCloudAccountRepository(
         guestSessionStore = guestSessionStore,
         sessionProvider = sessionProvider,
         transitionCoordinator = transitionCoordinator,
-        appVersion = appVersion
+        appVersion = appVersion,
+        onAnalyticsGuestIdentityLinkRequested = onAnalyticsGuestIdentityLinkRequested
     )
     private val workspaceOperationsCoordinator: CloudWorkspaceOperationsCoordinator =
         CloudWorkspaceOperationsCoordinator(
