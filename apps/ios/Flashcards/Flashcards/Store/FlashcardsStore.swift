@@ -128,6 +128,8 @@ final class FlashcardsStore {
     @ObservationIgnored var isAccountPreferencesUpdateInFlight: Bool
     @ObservationIgnored var isAccountDeletionRunning: Bool
     @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
+    /// Whether the presented sign-in sheet still owes one `signin_failed`.
+    @ObservationIgnored var isCloudSignInAttemptOpen: Bool
     @ObservationIgnored var cachedAIChatStore: AIChatStore?
     @ObservationIgnored var currentVisibleTab: AppTab
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
@@ -469,6 +471,7 @@ final class FlashcardsStore {
         self.isAccountPreferencesUpdateInFlight = false
         self.isAccountDeletionRunning = false
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
+        self.isCloudSignInAttemptOpen = false
         self.currentVisibleTab = .review
         self.lastImmediateCloudSyncTriggerAt = nil
         self.activeReviewNotificationsRescheduleTask = nil

@@ -12,6 +12,8 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.flashcardsopensourceapp.app.notifications.consumeAppNotificationTapRequest
+import com.flashcardsopensourceapp.core.ui.markHostActivityStarted
+import com.flashcardsopensourceapp.core.ui.markHostActivityStopped
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,6 +78,20 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    // Overridden rather than observed from the composition: the marks have to be unconditional, and
+    // `setContent` returns early on the unsupported-runtime and missing-graph branches. `onStop`
+    // always precedes a system-initiated `onDestroy`, which is what makes the flag a usable
+    // discriminator for a `ViewModel` being cleared.
+    override fun onStart() {
+        super.onStart()
+        markHostActivityStarted()
+    }
+
+    override fun onStop() {
+        markHostActivityStopped()
+        super.onStop()
     }
 
     override fun onNewIntent(intent: Intent) {
