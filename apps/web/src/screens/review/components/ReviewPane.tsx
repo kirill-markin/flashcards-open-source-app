@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactElement } from "react";
 import { Link } from "react-router";
 import type { ReviewRating } from "../../../../../backend/src/scheduling";
+import { track } from "../../../analytics";
 import { useI18n } from "../../../i18n";
 import { cardsRoute, chatRoute } from "../../../routes";
 import type { Card } from "../../../types";
@@ -217,7 +218,11 @@ function ReviewEmptyPane(props: ReviewEmptyPaneProps): ReactElement {
           : t("reviewScreen.empty.noCardsBody")}
       </p>
       <div className="review-empty-actions">
-        <Link className="ghost-btn" to={`${cardsRoute}/new`}>
+        <Link
+          className="ghost-btn"
+          to={`${cardsRoute}/new`}
+          onClick={() => track({ name: "card_create_started", entryPoint: "review" })}
+        >
           {t("reviewScreen.actions.createCard")}
         </Link>
         <p className="review-empty-or">{t("reviewScreen.empty.or")}</p>

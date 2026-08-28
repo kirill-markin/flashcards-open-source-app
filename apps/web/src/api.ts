@@ -25,6 +25,12 @@ export {
   updateCommunityProfile,
 } from "./api/endpoints/account";
 export {
+  sendAnalyticsEventsBatch,
+} from "./api/endpoints/analytics";
+export type {
+  AnalyticsIngestResult,
+} from "./api/endpoints/analytics";
+export {
   queryCards,
 } from "./api/endpoints/cards";
 export {

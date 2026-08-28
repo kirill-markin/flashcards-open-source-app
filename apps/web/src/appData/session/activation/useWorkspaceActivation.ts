@@ -9,6 +9,7 @@ import {
   clearAllLocalBrowserData,
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
+import { reset as resetAnalytics } from "../../../analytics";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type {
@@ -78,6 +79,13 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   ): Promise<void> {
     indexedDbOpenRecoveryState.throwIfFailed();
 
+    // Rotates `anonymous_id` and drops queued analytics events so a second person on this browser
+    // cannot inherit the first person's analytics identity or their unsent events. Do not flush
+    // first: this runs after the previous credential is gone or after `getSession()` already
+    // returned somebody else's session, so a batch sent here would post the previous account's
+    // events on the new account's credential. The discarded events are counted and reported inside
+    // `reset()`.
+    resetAnalytics();
     workspaceBootstrapGenerationRef.current += 1;
     deferredBootstrapWorkspaceRef.current = null;
     setSession(null);
