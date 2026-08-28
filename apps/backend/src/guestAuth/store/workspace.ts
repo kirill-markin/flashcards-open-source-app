@@ -22,16 +22,30 @@ type GuestContentProbeRow = Readonly<{
   has_content: boolean;
 }>;
 
-export async function loadGuestWorkspaceIdInExecutor(
+/**
+ * Locks the guest's `org.user_settings` row and returns its selected workspace, or `null` when the
+ * guest has none. `workspace_id` is `ON DELETE SET NULL` from `org.workspaces` (migration `0001`),
+ * so a guest without one is reachable and is not automatically an error: a caller that has to
+ * survive it, such as the web guest reaper, treats it as its own outcome instead of throwing.
+ */
+export async function loadGuestWorkspaceIdOrNullInExecutor(
   executor: DatabaseExecutor,
   guestUserId: string,
-): Promise<string> {
+): Promise<string | null> {
   await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
   const result = await executor.query<GuestWorkspaceRow>(
     "SELECT workspace_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
     [guestUserId],
   );
-  const workspaceId = result.rows[0]?.workspace_id ?? null;
+
+  return result.rows[0]?.workspace_id ?? null;
+}
+
+export async function loadGuestWorkspaceIdInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+): Promise<string> {
+  const workspaceId = await loadGuestWorkspaceIdOrNullInExecutor(executor, guestUserId);
   if (workspaceId === null) {
     throw new Error("Guest user is missing selected workspace");
   }

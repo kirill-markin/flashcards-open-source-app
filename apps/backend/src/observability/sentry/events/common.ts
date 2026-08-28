@@ -9,6 +9,7 @@ export type BackendService =
   | "community-leaderboard-snapshot"
   | "streak-leaderboard-snapshot"
   | "progress-active-days-backfill"
+  | "web-guest-reaper"
   | "generated-media-promotion"
   | "multipart-completion-reconciliation"
   | "migration";
