@@ -24,8 +24,7 @@ struct CloudSignInSheet: View {
     @State private var technicalErrorPresentation: TechnicalErrorPresentation?
     @State private var isSendingCode: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
-    @State private var hasRecordedActivePresentation: Bool = false
-    @State private var wasCredentialRecoveryGateActiveAtPresentation: Bool = false
+    @State private var hasRecordedSurfacePresence: Bool = false
     @State private var postAuthLoadingTask: CloudSignInPostAuthTaskHandle?
     @State private var postAuthGuestLocalRecoveryPreparationTask: CloudSignInPostAuthTaskHandle?
     @State private var postAuthSyncTask: CloudSignInPostAuthTaskHandle?
@@ -191,12 +190,12 @@ struct CloudSignInSheet: View {
                 )
             }
             .onAppear {
-                self.recordActivePresentationIfNeeded()
+                self.recordSurfacePresenceIfNeeded()
                 self.scheduleEmailFieldFocus()
             }
             .onDisappear {
                 self.cancelPostAuthTasksAndClearInFlightState()
-                self.clearActivePresentationIfNeeded()
+                self.clearSurfacePresenceIfNeeded()
             }
         }
         .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
@@ -284,10 +283,6 @@ struct CloudSignInSheet: View {
         }
     }
 
-    private var isCredentialRecoveryGateActive: Bool {
-        self.store.cloudCredentialRecoveryState != nil
-    }
-
     private var isStandardPresentation: Bool {
         switch self.presentationContext {
         case .standard:
@@ -297,42 +292,22 @@ struct CloudSignInSheet: View {
         }
     }
 
-    private func recordActivePresentationIfNeeded() {
-        guard self.hasRecordedActivePresentation == false else {
+    private func recordSurfacePresenceIfNeeded() {
+        guard self.hasRecordedSurfacePresence == false else {
             return
         }
 
-        self.hasRecordedActivePresentation = true
-        self.wasCredentialRecoveryGateActiveAtPresentation = self.isCredentialRecoveryGateActive
-        self.store.beginCloudSignInSheetPresentation(
-            originSurface: self.presentationContext.originSurface
-        )
+        self.hasRecordedSurfacePresence = true
+        self.store.beginCloudSignInSurfacePresence()
     }
 
-    /**
-     * The sheet is gone. This is the one place that sees every way it can go: the Close button, the
-     * interactive swipe, and the programmatic dismissals that follow success, logout or a post-auth
-     * failure. Backgrounding the app does not reach it, so an attempt still open here was abandoned
-     * by the person — with one exception.
-     *
-     * The exception is the credential-recovery gate. `RootTabView.body` swaps its whole tab root for
-     * `CloudCredentialRecoveryGateView` the moment `cloudCredentialRecoveryState` becomes non-nil,
-     * and swaps it back when the state clears; either swap tears down whichever sheet the other
-     * branch was presenting, and a background poll can flip that state while the person is typing.
-     * That is the system taking the surface away, not a person closing it, so the gate's activation
-     * is latched at presentation time and a mismatch here reports nothing. Android's gate sits above
-     * its navigation host and reports nothing for the same swap, so the two clients agree.
-     */
-    private func clearActivePresentationIfNeeded() {
-        guard self.hasRecordedActivePresentation else {
+    private func clearSurfacePresenceIfNeeded() {
+        guard self.hasRecordedSurfacePresence else {
             return
         }
 
-        self.hasRecordedActivePresentation = false
-        if self.isCredentialRecoveryGateActive == self.wasCredentialRecoveryGateActiveAtPresentation {
-            self.store.reportCloudSignInAbandonment()
-        }
-        self.store.endCloudSignInSheetPresentation()
+        self.hasRecordedSurfacePresence = false
+        self.store.endCloudSignInSurfacePresence()
     }
 
     private func sendCode() {
@@ -690,6 +665,93 @@ struct CloudSignInSheet: View {
         self.postAuthRecoveryNeededState = nil
         self.otpSheetState = nil
         self.dismiss()
+    }
+}
+
+/**
+ * The one place that decides a person closed the sign-in sheet.
+ *
+ * `onDismiss` fires when the presentation itself goes away. The sheet's own `onAppear`/`onDisappear`
+ * do not mean that: SwiftUI rebuilds the sheet's content while the sheet stays on screen — switching
+ * tabs under the Settings presenter is enough — and reading a dismissal from that reports an
+ * abandoned sign-in for a sheet the person is still typing in.
+ *
+ * Every presentation this modifier makes opens exactly one attempt, and it opens it before the sheet
+ * can be closed. That needs both halves of `onChange(initial:)`, because a presentation does not
+ * always start from a false→true edge this modifier can see. `RootTabView` keeps
+ * `isGuestSignInCloudSignInPresented` in `@State` on itself while the `.cloudSignInSheet` that reads
+ * it lives in the `else` branch of its body, so a credential-recovery gate that opens and closes
+ * under a presented sheet destroys this modifier with the binding still `true` and installs a fresh
+ * one that presents immediately. `initial: true` arms that presentation; without it the sheet is on
+ * screen owing an event nobody opened, and the person's Close reports the previous presenter's
+ * `screen` or nothing at all.
+ *
+ * `hasOpenedAttemptForCurrentPresentation` is what keeps that safe. `beginCloudSignInAttempt` starts
+ * a *new* attempt — it re-reads the credential-recovery gate into the latch that decides whether a
+ * later dismissal is the person or the system — so running it twice inside one presentation would
+ * re-latch the gate mid-attempt and turn a system-caused teardown back into a reported cancellation.
+ * The flag makes "one begin per presentation" a property of this modifier rather than of SwiftUI's
+ * delivery order: it is `@State`, so a modifier that is destroyed and reinstalled starts clear and
+ * arms its new presentation, while one that merely re-evaluates does not re-arm the presentation it
+ * already owns.
+ */
+struct CloudSignInSheetModifier: ViewModifier {
+    @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+
+    @Binding private var isPresented: Bool
+    @State private var hasOpenedAttemptForCurrentPresentation: Bool = false
+    private let presentationContext: CloudSignInPresentationContext
+
+    init(isPresented: Binding<Bool>, presentationContext: CloudSignInPresentationContext) {
+        self._isPresented = isPresented
+        self.presentationContext = presentationContext
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: self.isPresented, initial: true) { _, isNowPresented in
+                self.openAttemptForPresentationIfNeeded(isNowPresented: isNowPresented)
+            }
+            .sheet(
+                isPresented: self.$isPresented,
+                onDismiss: {
+                    self.hasOpenedAttemptForCurrentPresentation = false
+                    self.store.endCloudSignInAttempt()
+                },
+                content: {
+                    CloudSignInSheet(presentationContext: self.presentationContext)
+                        .environment(self.store)
+                }
+            )
+    }
+
+    private func openAttemptForPresentationIfNeeded(isNowPresented: Bool) {
+        guard isNowPresented else {
+            self.hasOpenedAttemptForCurrentPresentation = false
+            return
+        }
+        guard self.hasOpenedAttemptForCurrentPresentation == false else {
+            return
+        }
+
+        self.hasOpenedAttemptForCurrentPresentation = true
+        self.store.beginCloudSignInAttempt(
+            originSurface: self.presentationContext.originSurface
+        )
+    }
+}
+
+extension View {
+    func cloudSignInSheet(
+        isPresented: Binding<Bool>,
+        presentationContext: CloudSignInPresentationContext
+    ) -> some View {
+        self.modifier(
+            CloudSignInSheetModifier(
+                isPresented: isPresented,
+                presentationContext: presentationContext
+            )
+        )
     }
 }
 
