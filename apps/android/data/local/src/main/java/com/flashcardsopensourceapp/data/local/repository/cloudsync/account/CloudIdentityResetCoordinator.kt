@@ -101,26 +101,63 @@ class CloudIdentityResetCoordinator(
      * the installation identity. Use this for recoverable reconciliation
      * failures where we want an explicit disconnected state instead of a full
      * local reset.
+     *
+     * This is deliberately **not** an identity boundary and does not run
+     * [onCloudIdentityReset]: in every caller the same person stays on this
+     * install. Either they are recovering from a locally inconsistent state and
+     * signing back into the same account, or their guest session was invalidated
+     * server-side (`GUEST_AUTH_INVALID`, from
+     * `CloudGuestSessionCoordinator.clearStoredGuestCloudSessionLocalState`) —
+     * losing a session, not handing the device to somebody else. When the remote
+     * account itself is gone, use
+     * [disconnectDeletedCloudIdentityPreservingLocalState] instead.
      */
     suspend fun disconnectCloudIdentityPreservingLocalState() {
         withContext(Dispatchers.IO) {
             resetMutex.withLock {
-                cloudPreferencesStore.clearCredentials()
-                cloudPreferencesStore.clearAccountPreferences()
-                database.syncStateDao().clearBlockedSyncState()
-                val activeWorkspaceId = ensureLocalWorkspaceShell(
-                    database = database,
-                    currentTimeMillis = System.currentTimeMillis()
-                ).workspaceId
-                cloudPreferencesStore.updateCloudSettings(
-                    cloudState = CloudAccountState.DISCONNECTED,
-                    linkedUserId = null,
-                    linkedWorkspaceId = null,
-                    linkedEmail = null,
-                    activeWorkspaceId = activeWorkspaceId
-                )
-                cloudPreferencesStore.clearAccountDeletionState()
+                disconnectCloudIdentityPreservingLocalStateLocked()
             }
         }
+    }
+
+    /**
+     * The same local disconnect, for the one case where the server account is
+     * gone rather than the local state being inconsistent: a `410
+     * ACCOUNT_DELETED` answer, produced when the account is deleted from
+     * another device or the web while this install syncs.
+     *
+     * Local data is still preserved, but the person who owned the cleared
+     * credential is not coming back, so this **is** an identity boundary and
+     * has to run [onCloudIdentityReset] like every other one. Without it,
+     * anything an account-scoped listener still holds — queued analytics events
+     * above all — would survive into the next credential this install obtains,
+     * and the server derives identity from the credential that carries a
+     * request, not from what the payload claims.
+     */
+    suspend fun disconnectDeletedCloudIdentityPreservingLocalState() {
+        withContext(Dispatchers.IO) {
+            resetMutex.withLock {
+                disconnectCloudIdentityPreservingLocalStateLocked()
+                onCloudIdentityReset()
+            }
+        }
+    }
+
+    private suspend fun disconnectCloudIdentityPreservingLocalStateLocked() {
+        cloudPreferencesStore.clearCredentials()
+        cloudPreferencesStore.clearAccountPreferences()
+        database.syncStateDao().clearBlockedSyncState()
+        val activeWorkspaceId = ensureLocalWorkspaceShell(
+            database = database,
+            currentTimeMillis = System.currentTimeMillis()
+        ).workspaceId
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = activeWorkspaceId
+        )
+        cloudPreferencesStore.clearAccountDeletionState()
     }
 }

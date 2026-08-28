@@ -1,4 +1,5 @@
 import { isAccountDeletionAttemptStorageKey } from "../../accountDeletion/accountDeletionAttempt";
+import { analyticsEnabledStorageKey } from "../../analytics/identity";
 import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "../../chat/preferences/AIChatPreferencesContext";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
@@ -27,6 +28,7 @@ const PRESERVED_BROWSER_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   LOCALE_PREFERENCE_STORAGE_KEY,
   AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY,
   TEST_MODE_STORAGE_KEY,
+  analyticsEnabledStorageKey,
 ];
 
 type BrowserStorageKeyPredicate = (storageKey: string) => boolean;
@@ -173,10 +175,11 @@ export function clearAuthResetRequired(): void {
  * or a confirmed account switch.
  *
  * The stable installation id, explicit locale preference, AI chat suggestions
- * setting, and hidden test-mode flag are intentionally retained because they are
- * browser-scoped preferences rather than user-scoped session state. Keeping them
- * preserves device identity, UI language, local chat UI preferences, and local
- * tester tooling across re-login while still clearing application data.
+ * setting, hidden test-mode flag, and analytics kill switch are intentionally
+ * retained because they are browser-scoped preferences rather than user-scoped
+ * session state. Keeping them preserves device identity, UI language, local chat
+ * UI preferences, local tester tooling, and an explicit analytics opt-out across
+ * re-login while still clearing application data.
  */
 export async function clearAllLocalBrowserData(
   reason: LocalBrowserDataCleanupReason,

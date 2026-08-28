@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { toAnalyticsReviewAnswerFailureReason, track } from "../../../analytics";
 import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -625,6 +626,10 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         showCapturedTechnicalError(error);
         setErrorMessage(t("appError.technicalError.message"));
       }
+      track({
+        name: "review_answer_failed",
+        reason: toAnalyticsReviewAnswerFailureReason(error),
+      });
       return "failed";
     }
 
