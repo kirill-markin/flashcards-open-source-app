@@ -693,7 +693,14 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
     let rows: ReadonlyArray<ProductAnalyticsEventRow> = [];
 
     try {
-      const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+      // The one surface a `web` guest credential may reach. Everywhere else the default-deny gate in
+      // server/requestContext.ts refuses it, which is what keeps a token every signed-out visitor
+      // holds in localStorage from reaching AI quota, sync, or any account surface.
+      const loadedContext = await loadRequestContextFromRequestFn(
+        context.req.raw,
+        options.allowedOrigins,
+        { allowWebGuestPlatform: true },
+      );
       requestContext = loadedContext.requestContext;
       assertProductAnalyticsTransport(loadedContext.requestContext);
 

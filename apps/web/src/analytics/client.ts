@@ -3,6 +3,7 @@ import {
   getCachedSessionCsrfToken,
   sendAnalyticsEventsBatch,
   type AnalyticsIngestResult,
+  type AnalyticsRequestCredential,
 } from "../api";
 import {
   analyticsCatalogSlugPattern,
@@ -93,6 +94,18 @@ let remainingFlushRequestCount = 0;
  * rather than trusted to be cleared in the right order: nothing ships until they name one person.
  */
 let confirmedOwnerId: string | null = null;
+/**
+ * The credential the confirmed owner authenticates with. It is published together with the owner and
+ * starts null, so nothing can ship before a credential has actually been named: a session batch also
+ * needs the browser's CSRF token loaded, while a guest batch carries its own token.
+ */
+let confirmedOwnerCredential: AnalyticsRequestCredential | null = null;
+/**
+ * The guest identity issued to this browser, if any. It grants nothing and is never a credential
+ * here: it only tells a guest signing in — the same person on the same install — apart from a switch
+ * between two accounts, which the queue owner change alone cannot distinguish.
+ */
+let guestOwnerId: string | null = null;
 /**
  * Cleared the moment a new owner is published, set again only once the queue's stored owner has been
  * reconciled with it. It never widens what may be sent — the stored-owner comparison in `runFlush` is
@@ -282,6 +295,7 @@ async function handleDeliveryFailure(
   error: unknown,
   events: ReadonlyArray<QueuedAnalyticsEvent>,
   flushGeneration: number,
+  credential: AnalyticsRequestCredential,
 ): Promise<void> {
   // The queue these events came from has been discarded. Nothing here may purge from, count against,
   // or arm a backoff for the identity that replaced it.
@@ -308,8 +322,8 @@ async function handleDeliveryFailure(
     }
 
     const midpoint = Math.ceil(events.length / 2);
-    await deliverBatch(events.slice(0, midpoint), flushGeneration);
-    await deliverBatch(events.slice(midpoint), flushGeneration);
+    await deliverBatch(events.slice(0, midpoint), flushGeneration, credential);
+    await deliverBatch(events.slice(midpoint), flushGeneration, credential);
     return;
   }
 
@@ -329,15 +343,38 @@ async function handleDeliveryFailure(
   scheduleFlush(delayMs);
 }
 
+/**
+ * The credential a batch may go out with right now, or null while there is none. Failure-closed: a
+ * session owner without a loaded CSRF token would be refused with 403 on every batch, and no owner
+ * at all means no credential exists yet.
+ */
+function readSendableOwnerCredential(): AnalyticsRequestCredential | null {
+  const credential = confirmedOwnerCredential;
+  if (credential === null) {
+    return null;
+  }
+
+  // The guest token authenticates its own request, so the session CSRF model — which the backend
+  // derives from the session cookie and enforces only for the session transport — does not apply.
+  if (credential.kind === "guest") {
+    return credential;
+  }
+
+  return getCachedSessionCsrfToken() === null ? null : credential;
+}
+
 async function deliverBatch(
   events: ReadonlyArray<QueuedAnalyticsEvent>,
   flushGeneration: number,
+  credential: AnalyticsRequestCredential,
 ): Promise<void> {
   // Rechecked synchronously immediately before the batch is built, and nothing between this line and
   // the request may await: `buildWireBatch` reads the current `anonymousId`, so a `reset()` landing
   // in the queue round trips above would otherwise ship the previous account's events under the next
   // account's id. The server resolves `analytics.identity_links` first-link-wins on an append-only
-  // table, so that merge of two people is permanent and has no repair path.
+  // table, so that merge of two people is permanent and has no repair path. The same check covers
+  // the credential carried in: every owner change bumps the generation, so one that landed after the
+  // credential was read stops this batch instead of letting it out on the previous identity's token.
   if (flushGeneration !== analyticsGeneration) {
     return;
   }
@@ -358,9 +395,9 @@ async function deliverBatch(
 
   let result: AnalyticsIngestResult;
   try {
-    result = await sendAnalyticsEventsBatch(buildWireBatch(events));
+    result = await sendAnalyticsEventsBatch(buildWireBatch(events), credential);
   } catch (error) {
-    await handleDeliveryFailure(error, events, flushGeneration);
+    await handleDeliveryFailure(error, events, flushGeneration, credential);
     return;
   }
 
@@ -416,12 +453,13 @@ async function runFlush(): Promise<void> {
     // events, so this is a comparison of two recorded facts rather than an assumption about when the
     // session layer's cleanup happens to run. Refusing here only holds events back: they stay in the
     // queue under the 14-day TTL and ship on a later load that does confirm an owner.
+    const credential = readSendableOwnerCredential();
     if (
       queued.events.length === 0
       || confirmedOwnerId === null
       || isQueueOwnerReconciled === false
       || queued.ownerId !== confirmedOwnerId
-      || getCachedSessionCsrfToken() === null
+      || credential === null
     ) {
       return;
     }
@@ -429,7 +467,7 @@ async function runFlush(): Promise<void> {
     hasDeliveredInFlush = false;
     remainingFlushRequestCount = flushRequestBudget;
     const sendableEvents = takeLeadingSessionRun(queued.events);
-    await deliverBatch(sendableEvents, flushGeneration);
+    await deliverBatch(sendableEvents, flushGeneration, credential);
     // More events are waiting either because the read filled the batch limit, or because a session
     // boundary cut the sent run short. Both drain immediately: a backlog that crossed several
     // sessions would otherwise advance by one session run per periodic timer tick.
@@ -458,7 +496,27 @@ function claimQueueOwner(userId: string): void {
     try {
       const claim = await claimAnalyticsQueueOwner(userId);
       if (claim.didReplaceForeignOwner) {
-        resetAnalyticsIdentity();
+        // The events are gone either way — the claim emptied the queue — and only the identity
+        // behind them is decided here. A guest issued on this browser and then signed in is one
+        // person on one install, so that one case keeps `anonymous_id` and every other replaced
+        // owner is somebody else and rotates it. An unreadable guest identity leaves `guestOwnerId`
+        // null and rotates, which undercounts rather than risking a merge of two people.
+        //
+        // What keeping it buys is exactly one thing: `analytics.product_events` then carries the
+        // same raw `anonymous_id` on the guest's tail and on the account's rows, so the two sides
+        // can be joined directly on that column. It does not resolve the guest into the account in
+        // `analytics.product_events_resolved`, and this item does not deliver that. A guest batch
+        // writes no identity link at all (`routes/productAnalytics.ts` derives one only for the
+        // bearer and session transports), and the `authenticated_client` link the account writes
+        // later joins `first_anonymous_link`, which sits third in the `actor_id` COALESCE and so
+        // only reaches rows whose `user_id` is NULL. Guest rows carry the guest user id, so their
+        // `actor_id` keeps naming the guest. Only a `server_derived` link on `subject_user_id`
+        // redirects them, and that is written solely by the guest-upgrade machinery, which the web
+        // app deliberately never calls.
+        if (claim.replacedOwnerId === null || claim.replacedOwnerId !== guestOwnerId) {
+          resetAnalyticsIdentity();
+        }
+
         if (claim.discardedEventCount > 0) {
           reportAnalyticsQueueDiscardedOnReset(claim.discardedEventCount);
         }
@@ -479,13 +537,42 @@ function claimQueueOwner(userId: string): void {
 }
 
 /**
- * Publishes the account the current credential belongs to. Call it wherever the session layer has
- * verified a session; publishing late only delays delivery, and never publishing at all only holds
- * events in the queue for the next page load, because nothing is sent until a published owner and the
- * queue's stored owner name the same person.
+ * Records the guest identity this browser holds, without confirming it as an owner and without
+ * granting it anything. Publish it on every load, before any owner is confirmed: it is the only way
+ * a later owner change can tell a guest signing in apart from a switch between two accounts, and
+ * that distinction decides whether `anonymous_id` survives the boundary.
  */
-export function setAnalyticsConfirmedOwner(userId: string): void {
+export function setAnalyticsGuestOwnerId(nextGuestOwnerId: string | null): void {
+  guestOwnerId = nextGuestOwnerId;
+}
+
+/**
+ * Publishes the identity the current credential belongs to, and the credential it authenticates
+ * with. Call it wherever the session layer has verified a session, or wherever a guest session has
+ * been issued to this browser; publishing late only delays delivery, and never publishing at all
+ * only holds events in the queue for the next page load, because nothing is sent until a published
+ * owner and the queue's stored owner name the same person.
+ *
+ * A guest identity may never displace a confirmed account, and that rule lives here rather than in
+ * the caller that asks for the guest session. The two publishes genuinely race on an ordinary
+ * returning-user boot: the guest path only sees the absence of a session, which is also what a
+ * signed-in person whose token has expired but is still refreshable looks like, while the session
+ * layer refreshes and publishes the account. This function is last-writer-wins, so a guest landing
+ * second would take over the account's queue — discarding its events, rotating `anonymous_id`, and
+ * storing the rest of that page load under the guest user id on an append-only table with no repair
+ * path. Refusing the demotion here holds for every ordering and every future caller. The reverse is
+ * allowed on purpose: an account signing in after a guest is a real promotion, and `reset()` clears
+ * the credential at every identity boundary so a later guest can publish again.
+ */
+export function setAnalyticsConfirmedOwner(
+  userId: string,
+  credential: AnalyticsRequestCredential,
+): void {
   try {
+    if (credential.kind === "guest" && confirmedOwnerCredential?.kind === "session") {
+      return;
+    }
+
     if (confirmedOwnerId === userId) {
       return;
     }
@@ -493,6 +580,7 @@ export function setAnalyticsConfirmedOwner(userId: string): void {
     // Shuts the gate and invalidates any flush already in flight before the claim can touch a
     // record: work started under the previous owner may no longer send or purge from here.
     confirmedOwnerId = userId;
+    confirmedOwnerCredential = credential;
     isQueueOwnerReconciled = false;
     analyticsGeneration += 1;
     consecutiveFailureCount = 0;
@@ -614,8 +702,12 @@ export function reset(): void {
   try {
     // The stored queue owner is released with the events: the next account confirmed on this browser
     // then adopts an empty queue instead of inheriting one, and until one is confirmed the gate in
-    // `runFlush` refuses to send at all.
+    // `runFlush` refuses to send at all. The guest identity goes with it, because a logout is the one
+    // boundary where the person leaving may have been the guest: keeping it would let the next
+    // account on this browser inherit the previous person's `anonymous_id`.
     confirmedOwnerId = null;
+    confirmedOwnerCredential = null;
+    guestOwnerId = null;
     isQueueOwnerReconciled = false;
     discardQueuedWork(true, true);
     resetAnalyticsIdentity();

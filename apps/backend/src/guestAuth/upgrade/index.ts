@@ -40,7 +40,12 @@ import {
   type GuestSessionRecord,
 } from "../store/index";
 import { hashGuestToken } from "../shared";
+import {
+  assertGuestPlatformSupportsSurface,
+  webGuestUpgradeRefusal,
+} from "../webPlatform";
 import type {
+  GuestSessionPlatform,
   GuestUpgradeCompleteCapabilities,
   GuestUpgradeCompletion,
   GuestUpgradePreparation,
@@ -67,6 +72,21 @@ function createGuestWorkspaceNotDrainedError(): HttpError {
 
 function createGuestUpgradeAccountRequiredError(): HttpError {
   return new HttpError(409, "Create or sign in to the destination account first.", "GUEST_UPGRADE_ACCOUNT_REQUIRED");
+}
+
+/**
+ * A web guest session is an analytics credential and nothing else, and this whole module is shaped
+ * around the mobile flow — it merges a synced guest workspace, records upgrade history and rekeys
+ * replicas — so feeding a web guest token to it is not a supported path.
+ *
+ * Both upgrade routes take the guest token from the request body rather than from the credential on
+ * the request, so the default-deny gate in `server/requestContext.ts` cannot see this platform. The
+ * invariant is enforced here instead, where the session record is loaded, rather than left resting
+ * on the absence of a web caller. `null` stays accepted through the shared helper: pre-1.7.0
+ * iOS/Android guest sessions are created unbound and are upgraded through this path today.
+ */
+function assertGuestUpgradeSupportedPlatform(platform: GuestSessionPlatform | null): void {
+  assertGuestPlatformSupportsSurface(platform, webGuestUpgradeRefusal);
 }
 
 function toUniqueSortedUserIds(userIds: ReadonlyArray<string>): Array<string> {
@@ -341,6 +361,7 @@ export async function prepareGuestUpgradeInExecutor(
   await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   const guestSession = await loadGuestSessionWithUserSettingsLockInExecutor(executor, guestToken);
+  assertGuestUpgradeSupportedPlatform(guestSession.platform);
   const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
 
   if (existingMapping !== null) {
@@ -410,6 +431,8 @@ export async function completeGuestUpgradeInExecutor(
       capabilities,
     );
   }
+
+  assertGuestUpgradeSupportedPlatform(unlockedGuestSession.platform);
 
   // Phase 2: resolve the mapped target user.
   const targetMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);

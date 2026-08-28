@@ -1,11 +1,20 @@
 import type { AnalyticsWireBatch } from "../../analytics/events";
 import { webAppVersion } from "../../clientIdentity";
-import { requestJson, type RequestOptions } from "../transport/transport";
+import { requestGuestJson, requestJson, type RequestOptions } from "../transport/transport";
 
 export type AnalyticsIngestResult = Readonly<{
   acceptedCount: number;
   rejectedCount: number;
 }>;
+
+/**
+ * Which credential a batch is authenticated with. The ingest endpoint always requires one, and it
+ * accepts both: a signed-in browser posts on its shared session cookie, and a signed-out visitor who
+ * has interacted posts on the guest token issued for this browser.
+ */
+export type AnalyticsRequestCredential =
+  | Readonly<{ kind: "session" }>
+  | Readonly<{ kind: "guest"; guestToken: string }>;
 
 /**
  * Analytics runs entirely in the background, so it never joins auth recovery: a batch that meets an
@@ -35,15 +44,21 @@ function readRejectedCount(value: unknown): number {
  * `X-Client-Platform` and `X-Client-Version` are the only source of the append-only `platform` and
  * `app_version` columns, and this repository sets them per endpoint rather than globally.
  */
-export async function sendAnalyticsEventsBatch(batch: AnalyticsWireBatch): Promise<AnalyticsIngestResult> {
-  const payload = await requestJson("/analytics/events", {
+export async function sendAnalyticsEventsBatch(
+  batch: AnalyticsWireBatch,
+  credential: AnalyticsRequestCredential,
+): Promise<AnalyticsIngestResult> {
+  const requestInit: RequestInit = {
     method: "POST",
     headers: {
       "X-Client-Platform": "web",
       "X-Client-Version": webAppVersion,
     },
     body: JSON.stringify(batch),
-  }, analyticsRequestOptions);
+  };
+  const payload = credential.kind === "guest"
+    ? await requestGuestJson("/analytics/events", requestInit, credential.guestToken, analyticsRequestOptions)
+    : await requestJson("/analytics/events", requestInit, analyticsRequestOptions);
 
   if (typeof payload.value !== "object" || payload.value === null || Array.isArray(payload.value)) {
     return { acceptedCount: 0, rejectedCount: 0 };

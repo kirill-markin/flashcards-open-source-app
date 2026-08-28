@@ -29,7 +29,14 @@ export {
 } from "./api/endpoints/analytics";
 export type {
   AnalyticsIngestResult,
+  AnalyticsRequestCredential,
 } from "./api/endpoints/analytics";
+export {
+  createWebGuestSession,
+} from "./api/endpoints/guestAuth";
+export type {
+  WebGuestSessionEnvelope,
+} from "./apiContracts/guestAuth";
 export {
   queryCards,
 } from "./api/endpoints/cards";
