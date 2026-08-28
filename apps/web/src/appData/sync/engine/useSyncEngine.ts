@@ -59,6 +59,7 @@ import {
   isWorkspaceNotFoundError,
   isWorkspaceSyncDiscardedError,
   observeSyncFailure,
+  observeSyncSuccess,
 } from "../observation/syncErrorObservation";
 import {
   createCardLocally,
@@ -628,6 +629,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           invalidateLocalReviewSchedule();
         }
         setErrorMessage("");
+        // Re-arms the `sync_failed` analytics transition for this workspace: its next failure after
+        // a healthy run is a new failure and is emitted, while repeats of an ongoing one stay
+        // suppressed and another workspace's ongoing failure keeps its own suppression.
+        observeSyncSuccess(workspaceId);
         runMediaUploadTransfersForWorkspace(workspace);
       } catch (error) {
         const normalizedError = normalizeCaughtError(error);

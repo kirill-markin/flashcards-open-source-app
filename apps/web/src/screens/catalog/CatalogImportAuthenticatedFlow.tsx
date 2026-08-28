@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { trackCatalogDeckInstallStarted } from "../../analytics";
 import {
   confirmCatalogPackageInstall,
   isAuthRedirectError,
@@ -616,6 +617,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     activeInstallRequestRef.current = requestGeneration;
     setIsInstalling(true);
     setErrorMessage("");
+    trackCatalogDeckInstallStarted(preview.packageVersion.slug);
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
       if (currentAttempt === null) {

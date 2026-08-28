@@ -18,6 +18,7 @@ import {
   setAccountDeletionPending,
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
+import { setAnalyticsConfirmedOwner } from "../../../analytics";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
 import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
@@ -238,6 +239,11 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
+      // Publishes the account this browser's credential belongs to. The analytics queue stores the
+      // account it was filled under, so this is what lets analytics compare the two and either ship
+      // or discard; until it is published nothing is sent, which is why it is only reached once the
+      // session is verified and any user-scoped cleanup has already run.
+      setAnalyticsConfirmedOwner(currentSession.userId);
       setSessionVerificationState("verified");
     } catch (error) {
       const normalizedError = normalizeCaughtError(error);
@@ -343,6 +349,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             return false;
           }
 
+          setAnalyticsConfirmedOwner(currentSession.userId);
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");
