@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation.settings
 
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
+
 internal data object SettingsRootGraph {
     const val route: String = "settings/root"
 }
@@ -100,8 +102,22 @@ data object SettingsAccountStatusDestination {
     const val route: String = "settings/account-status"
 }
 
+/**
+ * Start destination of [SettingsAccountAuthGraph]. It lives under a `settings/` path but is opened
+ * from settings, the progress screen, the AI screen and the after-review guest prompt alike, so the
+ * surface that owns the tapped control rides along as an optional query argument and ends up on the
+ * graph's back stack entry, which is where `signin_failed` reads it from.
+ *
+ * [route] stays the bare path: it is what the route-prefix checks in `FlashcardsApp` match on.
+ */
 data object SettingsAccountSignInEmailDestination {
     const val route: String = "settings/account/sign-in"
+    const val originArgument: String = "origin"
+    const val routePattern: String = "$route?$originArgument={$originArgument}"
+
+    fun createRoute(origin: AnalyticsSurface): String {
+        return "$route?$originArgument=${origin.wireValue}"
+    }
 }
 
 data object SettingsAccountSignInCodeDestination {

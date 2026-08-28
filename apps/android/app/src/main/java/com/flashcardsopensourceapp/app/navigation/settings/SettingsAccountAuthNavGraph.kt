@@ -10,13 +10,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInCodeRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInEmailRoute
@@ -33,10 +36,17 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
     coroutineScope: CoroutineScope
 ) {
     navigation(
-        startDestination = SettingsAccountSignInEmailDestination.route,
+        startDestination = SettingsAccountSignInEmailDestination.routePattern,
         route = SettingsAccountAuthGraph.route
     ) {
-        composable(route = SettingsAccountSignInEmailDestination.route) { backStackEntry ->
+        composable(
+            route = SettingsAccountSignInEmailDestination.routePattern,
+            arguments = listOf(navArgument(name = SettingsAccountSignInEmailDestination.originArgument) {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
             val context = LocalContext.current
             val technicalErrorDialogTitle = stringResource(id = R.string.technical_error_dialog_default_title)
             val technicalErrorDialogMessage = stringResource(id = R.string.technical_error_dialog_default_message)
@@ -51,6 +61,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
+                    originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
                     applicationContext = context.applicationContext
                 )
             )
@@ -108,6 +119,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
+                    originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
                     applicationContext = context.applicationContext
                 )
             )
@@ -156,6 +168,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
+                    originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
                     applicationContext = context.applicationContext
                 )
             )
@@ -211,6 +224,25 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
             )
         }
     }
+}
+
+/**
+ * The surface that opened this sign-in rides in as a query argument on the graph's start
+ * destination, and Navigation copies a destination's arguments onto the parent graph's back stack
+ * entry, so the `SettingsAccountAuthGraph` entry carries it too.
+ *
+ * Reading it from that entry — the single `CloudSignInViewModel` store owner — rather than from
+ * each destination is what keeps all three steps on one value: the view model is built once per
+ * graph entry, so whichever step composes first would otherwise decide the origin for the rest,
+ * including a process-death restore that lands on the code step.
+ *
+ * An absent or unrecognised value stays `null`, which is what `signin_failed` reports when no
+ * product surface opened the sign-in.
+ */
+private fun signInOriginSurface(authGraphBackStackEntry: NavBackStackEntry): AnalyticsSurface? {
+    val originWireValue: String? = authGraphBackStackEntry.arguments
+        ?.getString(SettingsAccountSignInEmailDestination.originArgument)
+    return AnalyticsSurface.entries.firstOrNull { surface -> surface.wireValue == originWireValue }
 }
 
 @Composable
