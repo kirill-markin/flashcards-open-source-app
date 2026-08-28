@@ -26,6 +26,7 @@ import {
 import { communityLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
+import { webGuestReaperScheduleHours } from "./scheduled-jobs/web-guest-reaper";
 import { addProductAnalyticsMonitoring } from "./product-analytics-monitoring";
 
 const restApiNoTrafficEvaluationPeriods = 4;
@@ -35,6 +36,7 @@ const certificateExpiryAlarmThresholdDays = 45;
 const communityLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const streakLeaderboardSnapshotStaleEvaluationPeriods = 2;
 const progressActiveDaysBackfillStaleEvaluationPeriods = 2;
+const webGuestReaperStaleEvaluationPeriods = 2;
 
 export interface MonitoringProps {
   alertEmail: string;
@@ -57,6 +59,9 @@ export interface MonitoringProps {
   communityLeaderboardSnapshotFn: lambda.IFunction;
   streakLeaderboardSnapshotFn: lambda.IFunction;
   progressActiveDaysBackfillFn: lambda.IFunction;
+  // Concrete `lambda.Function` for the same reason as the two above: the saturation metric filter
+  // reads `.logGroup`.
+  webGuestReaperFn: lambda.Function;
   generatedMediaPromotionFn: lambda.IFunction;
   multipartCompletionReconciliationFn: lambda.Function;
   catalogDumpFn: lambda.IFunction;
@@ -84,6 +89,12 @@ const multipartCompletionReconciliationFailureMetricNamespace: string =
 const multipartCompletionReconciliationFailureMetricName: string =
   "FailedJobs";
 export const multipartCompletionReconciliationFailureMetricValue: string =
+  "1";
+const webGuestReaperSaturationMetricNamespace: string =
+  "FlashcardsOpenSourceApp/WebGuestReaper";
+const webGuestReaperSaturationMetricName: string =
+  "SaturatedRuns";
+const webGuestReaperSaturationMetricValue: string =
   "1";
 
 function createAuthApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
@@ -113,6 +124,17 @@ logs.IFilterPattern {
       "=",
       "multipart_completion_reconciliation_job_terminally_failed",
     ),
+  );
+}
+
+export function createWebGuestReaperSaturationFilterPattern(): logs.IFilterPattern {
+  return logs.FilterPattern.all(
+    logs.FilterPattern.stringValue(
+      "$.message.action",
+      "=",
+      "web_guest_reaper_completed",
+    ),
+    logs.FilterPattern.booleanValue("$.message.finished", false),
   );
 }
 
@@ -560,6 +582,78 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       "Progress active review days backfill Lambda has not run for two consecutive hours, " +
       "so known-timezone users may keep missing active-day materialization",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  }), alertTopic);
+
+  // The reaper permanently deletes org.user_settings and org.workspaces rows once a day, so a run
+  // that throws every night has to reach the alert topic rather than only Sentry. This alarm is
+  // also what makes the deferred auth.guest_sessions (platform, created_at) index safe to defer: if
+  // the unindexed candidate scan ever grows past the reporting role's 30s statement_timeout, the
+  // query errors, the entrypoint rethrows, and the reaper stops deleting anything until the index
+  // lands. That is an errored invocation, which is exactly what this alarm sees, and it is why the
+  // error alarm must stay in place while the index is deferred. The staleness alarm below cannot
+  // stand in for it: Lambda counts an errored invocation in Invocations like any other, so the run
+  // count stays at one per day and a job that fails every night never looks stale.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "WebGuestReaperLambdaErrorAlarm", {
+    metric: props.webGuestReaperFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Web guest reaper Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  // A schedule that quietly stops firing emits nothing at all, which no error metric can show.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "WebGuestReaperStaleAlarm", {
+    metric: props.webGuestReaperFn.metricInvocations({
+      period: cdk.Duration.hours(webGuestReaperScheduleHours),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: webGuestReaperStaleEvaluationPeriods,
+    datapointsToAlarm: webGuestReaperStaleEvaluationPeriods,
+    alarmDescription:
+      "Web guest reaper Lambda has not run for two consecutive days, " +
+      "so never-converted web guest identities are accumulating again",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  }), alertTopic);
+
+  // A run that stops on maxPages or on its deadline with candidates still waiting is a successful
+  // invocation with no errors, so neither alarm above sees it while web guest rows keep
+  // accumulating - the exact failure this job exists to prevent. The run reports that state as
+  // finished: false on its one completion record, and this is what watches it. One saturated run is
+  // enough to alarm: it means that day's candidates were not all reaped. Raising the entrypoint's
+  // batchSize or maxPages only helps a run that still stops on its page limit; once a real backlog
+  // exists the run is deadline-bound instead, because 500 x 5 per-guest transactions of about six
+  // round trips each do not fit the reaper Lambda's five-minute timeout, and raising either knob
+  // then changes nothing. The other two levers are that Lambda's timeout and memorySize in
+  // lib/scheduled-jobs/web-guest-reaper.ts, and the deferred auth.guest_sessions
+  // (platform, created_at) index.
+  const webGuestReaperSaturationMetricFilter = new logs.MetricFilter(
+    scope,
+    "WebGuestReaperSaturationMetricFilter",
+    {
+      logGroup: props.webGuestReaperFn.logGroup,
+      filterPattern: createWebGuestReaperSaturationFilterPattern(),
+      metricNamespace: webGuestReaperSaturationMetricNamespace,
+      metricName: webGuestReaperSaturationMetricName,
+      metricValue: webGuestReaperSaturationMetricValue,
+      defaultValue: 0,
+    },
+  );
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "WebGuestReaperSaturatedAlarm", {
+    metric: webGuestReaperSaturationMetricFilter.metric({
+      period: cdk.Duration.hours(webGuestReaperScheduleHours),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription:
+      "Web guest reaper finished a run with candidates still waiting, " +
+      "so never-converted web guest identities are being minted faster than the schedule reaps them",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
   notifyAlertTopic(new cloudwatch.Alarm(scope, "GeneratedMediaPromotionLambdaErrorAlarm", {

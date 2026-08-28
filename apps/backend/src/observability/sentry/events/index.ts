@@ -127,6 +127,11 @@ export type {
   ProgressActiveDaysBackfillFailureDetails,
   StreakLeaderboardSnapshotFailureDetails,
   StreakLeaderboardSnapshotGeneratedDetails,
+  WebGuestReaperCandidateFailureDetails,
+  WebGuestReaperCandidateSkippedDetails,
+  WebGuestReaperCompletedDetails,
+  WebGuestReaperFailureDetails,
+  WebGuestReaperScanFailureDetails,
 } from "./operations";
 
 export type BackendBreadcrumbEvent =
