@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/react";
 import type { Scope } from "@sentry/react";
+import type { AnalyticsQueueOperation } from "../analytics/queue";
 import { isIndexedDbOpenRecoveryError } from "../localDb/core/indexedDbOpenRecovery";
 import { isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
 import { isWebSentryEnabled } from "./instrument";
@@ -15,7 +16,8 @@ export type WebObservationFeature =
   | "feedback"
   | "mobile_app_promo"
   | "progress"
-  | "settings";
+  | "settings"
+  | "analytics";
 
 export type WebObservationScope = Readonly<{
   app: "web";
@@ -336,6 +338,13 @@ export type IndexedDbOpenRecoveryFailureDetails = Readonly<{
   recoveryOwner: "app_error_dialog_provider";
 }>;
 
+// `operation` is the analytics queue's own union rather than a copy of it: the copy this replaces
+// had already drifted a value behind the queue, and a copy can only ever drift again.
+export type AnalyticsQueueFailureDetails = Readonly<{
+  operation: AnalyticsQueueOperation;
+  indexedDbErrorName: string | null;
+}>;
+
 export type WebAppOperation =
   | "session_resume"
   | "account_deletion_submit"
@@ -489,6 +498,12 @@ export type WebExceptionEvent =
     error: Error;
     scope: WebObservationScope;
     details: WebAppOperationFailureDetails;
+  }>
+  | Readonly<{
+    action: "analytics_queue_failed";
+    error: Error;
+    scope: WebObservationScope;
+    details: AnalyticsQueueFailureDetails;
   }>;
 
 export type ApiContractWarningDetails = Readonly<{
@@ -708,6 +723,20 @@ export type ProgressTimezoneInvalidWarningDetails = Readonly<{
   errorName: string;
 }>;
 
+// Losses the server cannot see, and which `analytics_events_dropped` cannot report when delivery is
+// the thing that is broken. Per-event rejections are deliberately absent: the ingest endpoint already
+// captures contract violations with cross-client grouping.
+export type AnalyticsDeliveryWarningDetails = Readonly<{
+  eventName:
+    | "analytics_queue_overflow"
+    | "analytics_queue_ttl_expired"
+    | "analytics_queue_discarded_on_reset"
+    | "analytics_batch_invalid"
+    | "analytics_delivery_unavailable";
+  count: number | null;
+  statusCode: number | null;
+}>;
+
 export type WebWarningEvent =
   | Readonly<{
     action: "api_contract_warning";
@@ -733,6 +762,11 @@ export type WebWarningEvent =
     action: "progress_timezone_invalid";
     scope: WebObservationScope;
     details: ProgressTimezoneInvalidWarningDetails;
+  }>
+  | Readonly<{
+    action: "analytics_delivery_degraded";
+    scope: WebObservationScope;
+    details: AnalyticsDeliveryWarningDetails;
   }>;
 
 type SentryContextValue =
@@ -845,6 +879,14 @@ export function buildWebExceptionFingerprint(event: WebExceptionEvent): Array<st
   }
 
   if (event.action === "app_operation_failed") {
+    return ["{{ default }}", event.action, event.details.operation];
+  }
+
+  // Queue failures are reported once per operation (`analytics/observation.ts`) precisely so the
+  // distinct ones survive that cap; grouping them all under the action would throw that away, and an
+  // owner claim that fails — which shuts the flush gate for the whole session — would be hidden
+  // behind whichever operation happened to be seen first.
+  if (event.action === "analytics_queue_failed") {
     return ["{{ default }}", event.action, event.details.operation];
   }
 
