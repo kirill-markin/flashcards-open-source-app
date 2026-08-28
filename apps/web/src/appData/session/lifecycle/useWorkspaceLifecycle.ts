@@ -31,7 +31,12 @@ import {
   buildLinkingReadyCloudSettings,
   resolveLocalDataCleanupReasonForVerifiedSession,
 } from "../cloud/workspaceSessionCloud";
-import { registerWebSessionOwnerPublisher } from "../guest/webGuestSession";
+import { linkWebGuestIdentityInBackground } from "../guest/webGuestIdentityLink";
+import {
+  readStoredWebGuestSession,
+  readWebGuestIdentityGeneration,
+  registerWebSessionOwnerPublisher,
+} from "../guest/webGuestSession";
 import {
   createSessionAccountSwitchError,
   hasLoggedOutMarker,
@@ -160,6 +165,17 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setSessionTechnicalError(null);
     setTechnicalError(null);
 
+    // Read before any of the identity-boundary cleanup below can clear it. This is the guest
+    // identity this browser measured under while signed out, and the link at the end of a verified
+    // sign-in is the only thing that carries its analytics history into the account.
+    //
+    // The generation is captured with it, because reading early also survives the boots where that
+    // cleanup fires for the worst reason there is: a confirmed account switch or an unknown reauth
+    // owner, where the envelope belongs to the person who left rather than to the one signing in.
+    // The link refuses to run once this number has moved on.
+    const storedGuestSession = readStoredWebGuestSession();
+    const storedGuestIdentityGeneration = readWebGuestIdentityGeneration();
+
     try {
       if (hasLoggedOutMarker()) {
         await clearConfirmedUserScopedState("logout_marker");
@@ -245,6 +261,17 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       // or discard; until it is published nothing is sent, which is why it is only reached once the
       // session is verified and any user-scoped cleanup has already run.
       setAnalyticsConfirmedOwner(currentSession.userId, { kind: "session" });
+      // Started after the owner publish above, and never awaited: the queue claim reads this
+      // browser's guest id to decide whether `anonymous_id` survives the sign-in, and no user action
+      // may be blocked, delayed or failed by an analytics call. `getSession()` above is also the
+      // request-context call the route requires to have run first, and the account it verified is
+      // passed along so the link can assert, on every attempt and on every later load, that it is
+      // still binding the envelope to the account it started for.
+      linkWebGuestIdentityInBackground(
+        storedGuestSession,
+        storedGuestIdentityGeneration,
+        currentSession.userId,
+      );
       setSessionVerificationState("verified");
     } catch (error) {
       const normalizedError = normalizeCaughtError(error);
@@ -360,6 +387,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
             return false;
           }
 
+          // No guest link here, deliberately. A different account now holds this browser, so any
+          // envelope still stored was the previous person's: `clearConfirmedUserScopedState` above
+          // dropped it and advanced the guest identity generation, which also stops a link started
+          // by `initialize` from binding it to the account being published on this line.
           setAnalyticsConfirmedOwner(currentSession.userId, { kind: "session" });
           setSessionVerificationState("verified");
           setSessionErrorMessage("");

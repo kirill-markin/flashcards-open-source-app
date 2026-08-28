@@ -1,5 +1,7 @@
 export {
   flush,
+  readAnalyticsSessionOwnerId,
+  registerAnalyticsGuestCredentialRefusalHandler,
   reset,
   setAnalyticsConfirmedOwner,
   setAnalyticsGuestOwnerId,
