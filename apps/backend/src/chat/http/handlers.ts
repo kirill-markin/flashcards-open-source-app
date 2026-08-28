@@ -183,16 +183,34 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
       return mapStoreError(error);
     }
 
-    if (preparedRun.shouldInvokeWorker) {
-      await startBackendSpan("chat.worker.invoke", "faas.invoke", () => dependencies.invokeChatWorkerFn({
-        runId: preparedRun.runId,
-        userId: requestContext.userId,
+    // The turn is committed once prepareChatRunFn returns, so the analytics write belongs here
+    // rather than inside it: dispatching the worker first keeps the analytics write off the path
+    // to generation, and `finally` still reports the turn the user did send when the dispatch
+    // itself fails. The emission never throws. It does still precede this POST response, which is
+    // an accepted residual: the container freezes after the response and this runtime has no
+    // post-response hook.
+    try {
+      if (preparedRun.shouldInvokeWorker) {
+        await startBackendSpan("chat.worker.invoke", "faas.invoke", () => dependencies.invokeChatWorkerFn({
+          runId: preparedRun.runId,
+          userId: requestContext.userId,
+          workspaceId,
+          routeRequestId: requestId,
+          chatRequestId: body.clientRequestId,
+          sessionId: preparedRun.sessionId,
+          initiatingAuthIsSignedIn: preparedRun.initiatingAuthIsSignedIn,
+        }));
+      }
+    } finally {
+      await dependencies.recordAiMessageSentAnalyticsFn(
+        requestContext.userId,
         workspaceId,
-        routeRequestId: requestId,
-        chatRequestId: body.clientRequestId,
-        sessionId: preparedRun.sessionId,
-        initiatingAuthIsSignedIn: preparedRun.initiatingAuthIsSignedIn,
-      }));
+        preparedRun.runId,
+        {
+          subjectUserId: requestContext.subjectUserId,
+          guestSessionId: requestContext.guestSessionId,
+        },
+      );
     }
 
     try {

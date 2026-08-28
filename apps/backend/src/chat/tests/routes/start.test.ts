@@ -8,9 +8,12 @@ import { createChatRoutes } from "../../../routes/chat";
 import { ChatSessionConflictError } from "../../store";
 import {
   EXPLICIT_WORKSPACE_ID,
+  GUEST_SESSION_ID,
+  GUEST_SUBJECT_USER_ID,
   LEGACY_WORKSPACE_ID,
   SESSION_ONE,
   createExpectedChatConfig,
+  createGuestRequestContext,
   createRoutesWithHttpErrorJson,
   createRequestContext,
   createRequestContextWithSelectedWorkspace,
@@ -21,12 +24,28 @@ test("POST /chat can return an active run before the current turn appears in mes
   let preparedClientRequestId: string | null = null;
   let preparedUiLocale: string | null = null;
   let invokeCallCount = 0;
+  const aiMessageSentCalls: Array<Readonly<{
+    userId: string;
+    workspaceId: string;
+    runId: string;
+    subjectUserId: string;
+    guestSessionId: string | null;
+  }>> = [];
   const app = createChatRoutes({
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
+    recordAiMessageSentAnalyticsFn: async (userId, workspaceId, runId, actor) => {
+      aiMessageSentCalls.push({
+        userId,
+        workspaceId,
+        runId,
+        subjectUserId: actor.subjectUserId,
+        guestSessionId: actor.guestSessionId,
+      });
+    },
     prepareChatRunFn: async (
       _userId,
       _workspaceId,
@@ -35,12 +54,15 @@ test("POST /chat can return an active run before the current turn appears in mes
       clientRequestId,
       timezone,
       uiLocale,
+      initiatingAuthIsSignedIn,
     ) => {
       preparedClientRequestId = clientRequestId;
       preparedUiLocale = uiLocale;
       assert.equal(requestedSessionId, SESSION_ONE);
       assert.equal(content.length, 1);
       assert.equal(timezone, "Europe/Madrid");
+      // A bearer transport is signed-in auth.
+      assert.equal(initiatingAuthIsSignedIn, true);
       return {
         sessionId: SESSION_ONE,
         runId: "run-1",
@@ -98,6 +120,15 @@ test("POST /chat can return an active run before the current turn appears in mes
   assert.equal(preparedClientRequestId, "client-request-1");
   assert.equal(preparedUiLocale, "de");
   assert.equal(invokeCallCount, 0);
+  // A deduplicated replay dispatches no worker and still reports the turn; the id derived from
+  // runId is what keeps storage at exactly one row.
+  assert.deepEqual(aiMessageSentCalls, [{
+    userId: "user-1",
+    workspaceId: "workspace-1",
+    runId: "run-1",
+    subjectUserId: "user-1",
+    guestSessionId: null,
+  }]);
   assert.equal(response.headers.get("X-Chat-Request-Id"), "client-request-1");
   assert.deepEqual(await response.json(), {
     accepted: true,
@@ -130,6 +161,10 @@ test("POST /chat can return an active run before the current turn appears in mes
 });
 
 
+// Driven by a guest turn on purpose. The worker payload is workspace-scoped and keeps carrying
+// `userId`, while the analytics actor has to name the sender: a route that rebuilt the actor from
+// `userId`, or that stopped forwarding the guest session, would still satisfy every other
+// assertion here, and a guest's AI-chat activity would stop resolving onto their account.
 test("POST /chat dispatches worker without a route-supplied trace carrier", async () => {
   let workerInvocation: Readonly<{
     runId: string;
@@ -142,12 +177,28 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
   }> | null = null;
   let workerInvocationIncludesTraceContext = true;
   let liveTraceContext: BackendTraceCarrier | null | undefined = undefined;
+  const aiMessageSentCalls: Array<Readonly<{
+    userId: string;
+    workspaceId: string;
+    runId: string;
+    subjectUserId: string;
+    guestSessionId: string | null;
+  }>> = [];
   const routes = createChatRoutes({
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
-      requestContext: createRequestContext(),
+      requestContext: createGuestRequestContext(),
     }),
+    recordAiMessageSentAnalyticsFn: async (userId, workspaceId, runId, actor) => {
+      aiMessageSentCalls.push({
+        userId,
+        workspaceId,
+        runId,
+        subjectUserId: actor.subjectUserId,
+        guestSessionId: actor.guestSessionId,
+      });
+    },
     prepareChatRunFn: async (
       _userId,
       _workspaceId,
@@ -163,7 +214,8 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
       assert.equal(clientRequestId, "client-request-dispatch");
       assert.equal(timezone, "Europe/Madrid");
       assert.equal(uiLocale, null);
-      assert.equal(initiatingAuthIsSignedIn, true);
+      // A guest transport is not signed-in auth.
+      assert.equal(initiatingAuthIsSignedIn, false);
       return {
         sessionId: SESSION_ONE,
         runId: "run-dispatch",
@@ -244,6 +296,97 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
   });
   assert.equal(workerInvocationIncludesTraceContext, false);
   assert.notEqual(liveTraceContext, undefined);
+  // Each identity field is pinned to a different value, so none of them can be satisfied by a
+  // route that rebuilt the actor out of the workspace-scoped `userId` it already had.
+  assert.deepEqual(aiMessageSentCalls, [{
+    userId: "user-1",
+    workspaceId: "workspace-1",
+    runId: "run-dispatch",
+    subjectUserId: GUEST_SUBJECT_USER_ID,
+    guestSessionId: GUEST_SESSION_ID,
+  }]);
+});
+
+
+// The `finally` around the dispatch exists for exactly this branch: the turn is already committed
+// when the dispatch throws, so the event still has to report it. A refactor back to a plain
+// sequential await passes every other assertion in this file and drops the event on every 500.
+test("POST /chat reports the sent turn when the worker dispatch fails", async () => {
+  let invokeCallCount = 0;
+  let snapshotReadCount = 0;
+  const aiMessageSentCalls: Array<Readonly<{
+    userId: string;
+    workspaceId: string;
+    runId: string;
+    subjectUserId: string;
+    guestSessionId: string | null;
+  }>> = [];
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createGuestRequestContext(),
+    }),
+    recordAiMessageSentAnalyticsFn: async (userId, workspaceId, runId, actor) => {
+      aiMessageSentCalls.push({
+        userId,
+        workspaceId,
+        runId,
+        subjectUserId: actor.subjectUserId,
+        guestSessionId: actor.guestSessionId,
+      });
+    },
+    prepareChatRunFn: async () => ({
+      sessionId: SESSION_ONE,
+      runId: "run-dispatch-failed",
+      clientRequestId: "client-request-dispatch-failed",
+      runState: "running",
+      deduplicated: false,
+      shouldInvokeWorker: true,
+      initiatingAuthIsSignedIn: false,
+    }),
+    invokeChatWorkerFn: async () => {
+      invokeCallCount += 1;
+      // `invokeChatWorkerOrPersistFailure` rethrows the dispatch error unchanged once it has
+      // marked the run failed; only the message it persists carries a prefix.
+      throw new Error("worker unreachable");
+    },
+    getRecoveredChatSessionSnapshotFn: async () => {
+      snapshotReadCount += 1;
+      throw new Error("the failed dispatch should have ended the request");
+    },
+  });
+  const app = createRoutesWithHttpErrorJson();
+  app.route("/", routes);
+
+  const response = await app.request("http://localhost/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      clientRequestId: "client-request-dispatch-failed",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+    }),
+  });
+
+  assert.equal(invokeCallCount, 1);
+  assert.equal(snapshotReadCount, 0);
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), {
+    error: "Request failed. Try again.",
+    requestId: null,
+    code: "INTERNAL_ERROR",
+  });
+  assert.deepEqual(aiMessageSentCalls, [{
+    userId: "user-1",
+    workspaceId: "workspace-1",
+    runId: "run-dispatch-failed",
+    subjectUserId: GUEST_SUBJECT_USER_ID,
+    guestSessionId: GUEST_SESSION_ID,
+  }]);
 });
 
 
@@ -299,6 +442,7 @@ test("POST /chat without uiLocale preserves the legacy request contract", async 
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
+    recordAiMessageSentAnalyticsFn: async () => {},
     prepareChatRunFn: async (
       _userId,
       _workspaceId,
