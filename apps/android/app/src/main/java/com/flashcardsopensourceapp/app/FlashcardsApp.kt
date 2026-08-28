@@ -772,7 +772,7 @@ private fun isProgressContextRefreshBroadcastAction(action: String?): Boolean {
 }
 
 private fun isGuestSignInAfterReviewPromptAuthRoute(route: String?): Boolean {
-    return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.route) == true
+    return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.routePrefix) == true
 }
 
 private fun isGuestSignInAfterReviewPromptModalActive(
@@ -786,7 +786,7 @@ private fun isGuestSignInAfterReviewPromptModalActive(
 }
 
 private fun isFeedbackPromptAuthRoute(route: String?): Boolean {
-    return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.route) == true
+    return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.routePrefix) == true
 }
 
 private fun isFeedbackPromptModalActive(

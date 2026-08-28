@@ -41,7 +41,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
     ) {
         composable(
             route = SettingsAccountSignInEmailDestination.routePattern,
-            arguments = listOf(navArgument(name = SettingsAccountSignInEmailDestination.originArgument) {
+            arguments = listOf(navArgument(name = SettingsAccountSignInEmailDestination.routeArgument) {
                 type = NavType.StringType
                 nullable = true
                 defaultValue = null
@@ -241,7 +241,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
  */
 private fun signInOriginSurface(authGraphBackStackEntry: NavBackStackEntry): AnalyticsSurface? {
     val originWireValue: String? = authGraphBackStackEntry.arguments
-        ?.getString(SettingsAccountSignInEmailDestination.originArgument)
+        ?.getString(SettingsAccountSignInEmailDestination.routeArgument)
     return AnalyticsSurface.entries.firstOrNull { surface -> surface.wireValue == originWireValue }
 }
 
