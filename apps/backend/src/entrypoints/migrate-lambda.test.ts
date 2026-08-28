@@ -8,12 +8,12 @@ test("migration Lambda distinguishes direct and CloudFormation invocations", () 
   assert.deepEqual(parseMigrationInvocation({
     RequestType: "Update",
     ResourceProperties: {
-      RequiredMigration: "0116_guest_session_web_platform.sql",
+      RequiredMigration: "0117_guest_session_creation_idempotency.sql",
       UnrelatedProperty: "ignored",
     },
   }), {
     kind: "provision",
-    requiredMigration: "0116_guest_session_web_platform.sql",
+    requiredMigration: "0117_guest_session_creation_idempotency.sql",
   });
 });
 

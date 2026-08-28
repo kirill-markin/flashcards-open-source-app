@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.core.ui.isHostActivityStarted
 import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
 import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
@@ -82,6 +83,23 @@ class CloudSignInViewModel(
     private val draftState = MutableStateFlow(
         value = initialCloudSignInDraftState()
     )
+
+    /**
+     * Whether the sign-in the person opened this surface for still owes one `signin_failed`.
+     * Reporting a failure and verifying the credentials both settle it, so a later dismissal cannot
+     * add a second event for the same attempt.
+     */
+    private var isSignInAttemptOpen: Boolean = true
+
+    /**
+     * Whether the person is on the sign-in surface this model backs.
+     *
+     * `sendCode` and `verifyCode` run in the navigation host's scope rather than `viewModelScope`,
+     * so a request outlives the surface: leaving on a hanging network would otherwise report the
+     * abandonment and then the timeout, two events for one attempt. Two failures the person actually
+     * saw stay two events, because the surface is present for both and neither is an abandonment.
+     */
+    private var isSignInSurfacePresent: Boolean = true
 
     val uiState: StateFlow<CloudSignInUiState> = draftState.mapToStateIn(
         scope = viewModelScope,
@@ -251,6 +269,7 @@ class CloudSignInViewModel(
                 isVerifyingCode = isVerifyingCode
             )
         }
+        isSignInAttemptOpen = false
         return true
     }
 
@@ -482,28 +501,76 @@ class CloudSignInViewModel(
     }
 
     /**
-     * The person deliberately backed out of a sign-in they had started. This is the only path that
-     * records `signin_failed(cancelled)`, so `cancelled` keeps meaning an abandonment.
+     * The person deliberately backed out of a sign-in they had started. This and [onCleared] are the
+     * only paths that record `signin_failed(cancelled)`, so `cancelled` keeps meaning an abandonment.
      */
     fun cancelSignIn() {
-        trackSignInFailed(reason = AnalyticsSignInFailureReason.CANCELLED)
+        reportSignInAbandonment()
+        isSignInSurfacePresent = false
         clearPostAuthState()
     }
 
     /**
-     * Clears the sign-in draft without recording an abandonment.
+     * The person tapped *Sign in* on a surface that keeps this model across the whole flow, so a
+     * fresh attempt starts on a clean draft.
+     */
+    fun startSignIn() {
+        clearPostAuthState()
+        isSignInAttemptOpen = true
+        isSignInSurfacePresent = true
+    }
+
+    /**
+     * Clears the sign-in draft without recording an abandonment, and leaves the sign-in surface.
      *
-     * Entering a surface that hosts sign-in, starting the flow and finishing a local erase all need
-     * a clean draft, and none of them is a person giving up: a composition entered on every
-     * configuration change and every process start, a tap on *Sign in*, and a completed erase would
-     * otherwise fill the `cancelled` bucket on an append-only table with rows that mean the
-     * opposite of what they say.
+     * Entering a surface that hosts sign-in and finishing a local erase both need a clean draft, and
+     * neither is a person giving up: a composition entered on every configuration change and every
+     * process start, and a completed erase, would otherwise fill the `cancelled` bucket on an
+     * append-only table with rows that mean the opposite of what they say.
+     *
+     * Callers must put the surface back on its entry step in the same act, so the person is never
+     * left mid-flow on a closed latch; `CloudCredentialRecoveryGateContainer` keeps the two
+     * together in one helper for that reason.
      */
     fun resetSignInState() {
         clearPostAuthState()
+        isSignInAttemptOpen = false
+        isSignInSurfacePresent = false
+    }
+
+    override fun onCleared() {
+        // The sign-in graph leaving the back stack: the back arrow, the system back gesture and
+        // predictive back all end here, and none of them reaches a route callback. It does **not**
+        // fire on a configuration change, and a process kill never runs it at all.
+        //
+        // It does fire, with the process alive, when the system destroys the hosting Activity while
+        // the app is backgrounded — the "Don't keep activities" developer setting and some OEM
+        // background-destroy behaviour — because `ComponentActivity` clears the `ViewModelStore`
+        // that owns every back stack entry. That is not a dismissal the person made, and the
+        // Activity is stopped for it while a real back press needs it started, so the check below
+        // separates the two. Switching tabs is the remaining departure and saves this entry rather
+        // than clearing it, so it reports nothing here and nothing on the later restore either.
+        if (isHostActivityStarted()) {
+            reportSignInAbandonment()
+        }
+        isSignInSurfacePresent = false
+        super.onCleared()
+    }
+
+    private fun reportSignInAbandonment() {
+        if (isSignInAttemptOpen.not()) {
+            return
+        }
+
+        trackSignInFailed(reason = AnalyticsSignInFailureReason.CANCELLED)
     }
 
     private fun trackSignInFailed(reason: AnalyticsSignInFailureReason) {
+        if (isSignInSurfacePresent.not()) {
+            return
+        }
+
+        isSignInAttemptOpen = false
         analytics.track(
             event = AnalyticsEvent.SignInFailed(
                 reason = reason,

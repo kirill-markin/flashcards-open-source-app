@@ -13,6 +13,7 @@ import {
   getRecoveredPaginatedSession,
   interruptPreparedChatRun,
   prepareChatRun,
+  recordAiMessageSentAnalytics,
   requestChatRunCancellation,
 } from "../runs";
 import {
@@ -33,6 +34,7 @@ export type ChatRoutesOptions = Readonly<{
   createFreshChatSessionFn?: typeof createFreshChatSession;
   getChatSessionIdFn?: typeof getChatSessionId;
   prepareChatRunFn?: typeof prepareChatRun;
+  recordAiMessageSentAnalyticsFn?: typeof recordAiMessageSentAnalytics;
   interruptPreparedChatRunFn?: typeof interruptPreparedChatRun;
   invokeChatWorkerFn?: typeof invokeChatWorkerOrPersistFailure;
   requestChatRunCancellationFn?: typeof requestChatRunCancellation;
@@ -51,6 +53,7 @@ export type ChatRouteDependencies = Readonly<{
   createFreshChatSessionFn: typeof createFreshChatSession;
   getChatSessionIdFn: typeof getChatSessionId;
   prepareChatRunFn: typeof prepareChatRun;
+  recordAiMessageSentAnalyticsFn: typeof recordAiMessageSentAnalytics;
   interruptPreparedChatRunFn: typeof interruptPreparedChatRun;
   invokeChatWorkerFn: typeof invokeChatWorkerOrPersistFailure;
   requestChatRunCancellationFn: typeof requestChatRunCancellation;
@@ -116,6 +119,7 @@ export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRou
     createFreshChatSessionFn: options.createFreshChatSessionFn ?? createFreshChatSession,
     getChatSessionIdFn: options.getChatSessionIdFn ?? getChatSessionId,
     prepareChatRunFn: options.prepareChatRunFn ?? prepareChatRun,
+    recordAiMessageSentAnalyticsFn: options.recordAiMessageSentAnalyticsFn ?? recordAiMessageSentAnalytics,
     interruptPreparedChatRunFn: options.interruptPreparedChatRunFn ?? interruptPreparedChatRun,
     invokeChatWorkerFn: options.invokeChatWorkerFn ?? invokeChatWorkerOrPersistFailure,
     requestChatRunCancellationFn: options.requestChatRunCancellationFn ?? requestChatRunCancellation,

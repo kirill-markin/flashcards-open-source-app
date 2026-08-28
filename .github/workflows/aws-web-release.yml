@@ -388,7 +388,7 @@ jobs:
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
-            --require-migration 0116_guest_session_web_platform.sql
+            --require-migration 0117_guest_session_creation_idempotency.sql
 
       - name: CDK deploy with reconciliation schedule enabled
         working-directory: infra/aws
