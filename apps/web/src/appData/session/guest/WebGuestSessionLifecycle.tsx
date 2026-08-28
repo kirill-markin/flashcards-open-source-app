@@ -1,5 +1,7 @@
 import { useEffect } from "react";
+import { registerAnalyticsGuestCredentialRefusalHandler } from "../../../analytics";
 import {
+  discardRefusedWebGuestSession,
   registerWebGuestOwnerForAnalytics,
   requestWebGuestSessionOnInteraction,
 } from "./webGuestSession";
@@ -50,6 +52,11 @@ export function WebGuestSessionLifecycle(): null {
     // earlier guest visit is recognised as the same person continuing on this browser.
     registerWebGuestOwnerForAnalytics();
   }, []);
+
+  // The ingest endpoint is the only place that finds out a guest session no longer exists on the
+  // server. Without this the browser would republish the same dead envelope on every later load and
+  // stay unmeasured for good.
+  useEffect(() => registerAnalyticsGuestCredentialRefusalHandler(discardRefusedWebGuestSession), []);
 
   useEffect(() => {
     function handleInteraction(event: Event): void {

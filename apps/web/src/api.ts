@@ -33,6 +33,7 @@ export type {
 } from "./api/endpoints/analytics";
 export {
   createWebGuestSession,
+  linkWebGuestIdentity,
 } from "./api/endpoints/guestAuth";
 export type {
   WebGuestSessionEnvelope,
