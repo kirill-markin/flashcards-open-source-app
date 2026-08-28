@@ -108,15 +108,19 @@ data object SettingsAccountStatusDestination {
  * surface that owns the tapped control rides along as an optional query argument and ends up on the
  * graph's back stack entry, which is where `signin_failed` reads it from.
  *
- * [route] stays the bare path: it is what the route-prefix checks in `FlashcardsApp` match on.
+ * [routePrefix] is not navigable on its own: navigating it still matches this destination, but the
+ * origin stays unset and `signin_failed` then reports no surface. Navigate with [createRoute]; the
+ * bare prefix is only for the route `startsWith` checks in `FlashcardsApp`, which are meant to
+ * cover the code and post-auth steps nested under this path too, so the after-review and feedback
+ * prompts stay held back for the whole sign-in flow rather than only its first screen.
  */
 data object SettingsAccountSignInEmailDestination {
-    const val route: String = "settings/account/sign-in"
-    const val originArgument: String = "origin"
-    const val routePattern: String = "$route?$originArgument={$originArgument}"
+    const val routePrefix: String = "settings/account/sign-in"
+    const val routeArgument: String = "origin"
+    const val routePattern: String = "$routePrefix?$routeArgument={$routeArgument}"
 
     fun createRoute(origin: AnalyticsSurface): String {
-        return "$route?$originArgument=${origin.wireValue}"
+        return "$routePrefix?$routeArgument=${origin.wireValue}"
     }
 }
 
