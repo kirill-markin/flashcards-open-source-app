@@ -25,6 +25,7 @@ struct CloudSignInSheet: View {
     @State private var isSendingCode: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
     @State private var hasRecordedActivePresentation: Bool = false
+    @State private var wasCredentialRecoveryGateActiveAtPresentation: Bool = false
     @State private var postAuthLoadingTask: CloudSignInPostAuthTaskHandle?
     @State private var postAuthGuestLocalRecoveryPreparationTask: CloudSignInPostAuthTaskHandle?
     @State private var postAuthSyncTask: CloudSignInPostAuthTaskHandle?
@@ -283,21 +284,43 @@ struct CloudSignInSheet: View {
         }
     }
 
+    private var isCredentialRecoveryGateActive: Bool {
+        self.store.cloudCredentialRecoveryState != nil
+    }
+
     private func recordActivePresentationIfNeeded() {
         guard self.hasRecordedActivePresentation == false else {
             return
         }
 
         self.hasRecordedActivePresentation = true
+        self.wasCredentialRecoveryGateActiveAtPresentation = self.isCredentialRecoveryGateActive
         self.store.beginCloudSignInSheetPresentation()
     }
 
+    /**
+     * The sheet is gone. This is the one place that sees every way it can go: the Close button, the
+     * interactive swipe, and the programmatic dismissals that follow success, logout or a post-auth
+     * failure. Backgrounding the app does not reach it, so an attempt still open here was abandoned
+     * by the person — with one exception.
+     *
+     * The exception is the credential-recovery gate. `RootTabView.body` swaps its whole tab root for
+     * `CloudCredentialRecoveryGateView` the moment `cloudCredentialRecoveryState` becomes non-nil,
+     * and swaps it back when the state clears; either swap tears down whichever sheet the other
+     * branch was presenting, and a background poll can flip that state while the person is typing.
+     * That is the system taking the surface away, not a person closing it, so the gate's activation
+     * is latched at presentation time and a mismatch here reports nothing. Android's gate sits above
+     * its navigation host and reports nothing for the same swap, so the two clients agree.
+     */
     private func clearActivePresentationIfNeeded() {
         guard self.hasRecordedActivePresentation else {
             return
         }
 
         self.hasRecordedActivePresentation = false
+        if self.isCredentialRecoveryGateActive == self.wasCredentialRecoveryGateActiveAtPresentation {
+            self.store.reportCloudSignInAbandonment()
+        }
         self.store.endCloudSignInSheetPresentation()
     }
 
@@ -360,7 +383,7 @@ struct CloudSignInSheet: View {
                 if self.otpSheetState?.id == nextOtpSheetState.id {
                     self.otpSheetState = nil
                 }
-                Analytics.track(.signInFailed(reason: analyticsSignInFailureReason(error: error)))
+                self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
                 self.presentAuthErrorPresentation(
                     makeCloudAuthInlineErrorPresentation(
                         error: error,
@@ -403,6 +426,8 @@ struct CloudSignInSheet: View {
     }
 
     private func handleVerifiedAuthContext(_ verifiedContext: CloudVerifiedAuthContext) {
+        self.store.recordCloudSignInVerified()
+
         let loadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
         self.otpSheetState = nil
         self.postAuthLoadingState = loadingState
