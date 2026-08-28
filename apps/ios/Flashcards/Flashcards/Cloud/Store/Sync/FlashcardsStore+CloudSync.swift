@@ -261,6 +261,9 @@ extension FlashcardsStore {
                 trigger: trigger
             )
             await self.processMediaUploadTransfersAfterCloudSync(linkedSession: activeSession)
+            // Re-arms the failure gate: this attempt is the same unit of work the catch below reports,
+            // so a sync that got through is what ends the episode it opened.
+            Analytics.recordSyncSucceeded()
             self.addCloudSyncForegroundOperationBreadcrumb(
                 stage: "sync_now",
                 phase: .success,
@@ -276,6 +279,14 @@ extension FlashcardsStore {
                 self.syncStatus = .idle
                 throw error
             }
+            // Emitted here rather than in captureCloudSyncFailureIfNeeded: that path deliberately
+            // drops offline, conflicts and every non-user-visible trigger, which are exactly the
+            // sync failures the product needs counted.
+            //
+            // Through the shared reporter rather than a direct track, because this catch is what the
+            // 15 s fast-polling loop reaches on every attempt: the reporter emits on the transition
+            // into failure and stays silent while the same reason persists.
+            Analytics.reportSyncFailure(reason: analyticsSyncFailureReason(error: error))
             try self.throwIfCloudCredentialRecoveryRequired()
             let failureError: Error
             do {
@@ -587,6 +598,11 @@ extension FlashcardsStore {
                     }
                 }
 
+                // No analytics identity boundary here on purpose. `analyticsCredentials()` reads the
+                // active cloud session, which this state never has, and falls back to a stored guest
+                // session, which this branch does not have either — so nothing analytics could ever
+                // have posted under is being cleared, and rotating `anonymous_id` would only split one
+                // install's history in two.
                 try self.cloudRuntime.clearCredentials()
                 self.globalErrorMessage = ""
                 return .stopSync
@@ -595,6 +611,19 @@ extension FlashcardsStore {
             if hasStoredCredentials && hasStoredGuestSession {
                 try self.cloudRuntime.clearCredentials()
                 try self.dependencies.guestCredentialStore.clearGuestSession()
+                // The guest session just cleared is the credential `analyticsCredentials()` falls back
+                // to, so anything still queued was created while it was the identity those events would
+                // have gone out under, and the next credential this device obtains belongs to a
+                // different server-side user. That is the boundary of contract §6. This state is only
+                // reached when the persisted local state disagrees with the Keychain — leftovers of an
+                // install that is not this one — so carrying the same `anonymous_id` into the next
+                // identity is exactly the first-wins mislink the rule exists to prevent.
+                //
+                // After the clears rather than before, unlike `resetLocalStateForCloudIdentityChange`:
+                // this reconciliation runs before every sync, and firing the boundary first would
+                // rotate `anonymous_id` again on every attempt if a clear kept failing. Neither
+                // statement above suspends, so no new credential can appear in between.
+                Analytics.reset()
                 self.globalErrorMessage = ""
                 return .stopSync
             }

@@ -35,6 +35,10 @@ extension FlashcardsStore {
     }
 
     func acceptGuestSignInAfterReviewPrompt(now: Date) {
+        Analytics.track(
+            .onboardingStepCompleted(step: .signin, outcome: .completed),
+            screen: .review
+        )
         self.updateGuestSignInAfterReviewPromptState(
             state: makeAcceptedGuestSignInAfterReviewPromptState(
                 promptState: self.guestSignInAfterReviewPromptState,
@@ -45,6 +49,10 @@ extension FlashcardsStore {
     }
 
     func snoozeGuestSignInAfterReviewPrompt(reviewedCount: Int, now: Date) {
+        Analytics.track(
+            .onboardingStepCompleted(step: .signin, outcome: .skipped),
+            screen: .review
+        )
         self.updateGuestSignInAfterReviewPromptState(
             state: makeSnoozedGuestSignInAfterReviewPromptState(
                 promptState: self.guestSignInAfterReviewPromptState,

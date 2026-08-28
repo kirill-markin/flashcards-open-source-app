@@ -204,6 +204,7 @@ struct CloudOtpVerificationSheet: View {
                 if isRequestCancellationError(error: error) {
                     return
                 }
+                Analytics.track(.signInFailed(reason: analyticsSignInFailureReason(error: error)))
                 self.applyOtpErrorState(error: error)
                 self.presentAuthErrorPresentation(
                     makeCloudAuthInlineErrorPresentation(
@@ -244,6 +245,7 @@ struct CloudOtpVerificationSheet: View {
                 if isRequestCancellationError(error: error) {
                     return
                 }
+                Analytics.track(.signInFailed(reason: analyticsSignInFailureReason(error: error)))
                 self.presentAuthErrorPresentation(
                     makeCloudAuthInlineErrorPresentation(
                         error: error,

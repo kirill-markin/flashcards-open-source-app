@@ -14,6 +14,13 @@ extension FlashcardsStore {
      it were the same pre-reset guest identity.
      */
     func resetLocalStateForCloudIdentityChange() throws {
+        // The identity boundary logout and account deletion share. It rotates anonymous_id and
+        // discards whatever analytics events are still queued: they belong to the person leaving,
+        // and this function never suspends before the credentials are cleared below, so anything
+        // left behind would be posted later under a fresh guest session or the next account and
+        // would name the wrong user on an append-only table. The discarded count is reported
+        // through observability, not as an analytics_events_dropped reason.
+        Analytics.reset()
         let database = try requireLocalDatabase(database: self.database)
         let previousStrictReminderNotificationScope = storedStrictReminderNotificationScope(userDefaults: self.userDefaults)
 
