@@ -90,16 +90,6 @@ extension ReviewView {
     func submitReview(cardId: String, rating: ReviewRating) {
         do {
             try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
-            // A no-op while a session is already open. It matters when FSRS learning steps make cards
-            // due again during the same visit: the session was already ended when the queue emptied,
-            // and without reopening one here every one of those answers would belong to no session.
-            Analytics.startReviewSession(
-                deckScope: analyticsReviewDeckScope(reviewFilter: store.selectedReviewFilter)
-            )
-            // Counted at the tap, not when the asynchronous submission settles: the queue advances
-            // optimistically, so a session that empties on its last answer ends before that
-            // submission completes and would report one answer fewer than the user gave.
-            Analytics.recordReviewAnswer()
             self.screenErrorMessage = ""
         } catch {
             if let inlineErrorMessage = reviewSubmissionInlineErrorMessage(error: error) {

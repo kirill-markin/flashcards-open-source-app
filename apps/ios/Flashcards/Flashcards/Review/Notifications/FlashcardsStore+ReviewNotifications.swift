@@ -220,10 +220,6 @@ extension FlashcardsStore {
     func dismissReviewNotificationPrePrompt(markDismissed: Bool) {
         self.isReviewNotificationPrePromptPresented = false
         if markDismissed {
-            Analytics.track(
-                .onboardingStepCompleted(step: .notifications, outcome: .skipped),
-                screen: .review
-            )
             self.updateNotificationPermissionPromptState(
                 state: NotificationPermissionPromptState(
                     hasShownPrePrompt: true,
@@ -236,10 +232,6 @@ extension FlashcardsStore {
 
     func continueReviewNotificationPrePrompt() {
         self.isReviewNotificationPrePromptPresented = false
-        Analytics.track(
-            .onboardingStepCompleted(step: .notifications, outcome: .completed),
-            screen: .review
-        )
         self.updateNotificationPermissionPromptState(
             state: NotificationPermissionPromptState(
                 hasShownPrePrompt: true,

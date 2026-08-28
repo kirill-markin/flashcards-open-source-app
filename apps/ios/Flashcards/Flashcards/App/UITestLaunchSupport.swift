@@ -13,8 +13,8 @@ private var hasConsumedFlashcardsUITestAppNotificationTapEnvironment: Bool = fal
  * selected-tab key and set the scenario key for a prepared launch.
  *
  * Product analytics stays off for those launches: `product_events` is append-only, and synthetic app
- * opens, screen views, review sessions and card-create intents written into it would corrupt the
- * exact dataset the analytics module exists to produce.
+ * opens, screen views and card-create intents written into it would corrupt the exact dataset the
+ * analytics module exists to produce.
  */
 func isFlashcardsUITestLaunch(processInfo: ProcessInfo) -> Bool {
     processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey] != nil

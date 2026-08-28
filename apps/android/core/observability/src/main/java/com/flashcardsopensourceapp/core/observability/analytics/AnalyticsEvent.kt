@@ -10,6 +10,9 @@ package com.flashcardsopensourceapp.core.observability.analytics
  *
  * `guest_upgrade_completed` and `catalog_deck_installed` are server-derived. A client batch that
  * contains either is rejected, so they are absent here on purpose.
+ *
+ * `onboarding_step_completed`, `review_session_started` and `review_session_ended` are still
+ * declared by the server but retired, so no client sends them.
  */
 
 /** Named because the delivery path has to recognise a batch that carries nothing else. */
@@ -41,20 +44,6 @@ enum class AnalyticsLaunchType(val wireValue: String) {
     WARM(wireValue = "warm")
 }
 
-enum class AnalyticsOnboardingStep(val wireValue: String) {
-    LANGUAGE(wireValue = "language"),
-    GOAL(wireValue = "goal"),
-    NOTIFICATIONS(wireValue = "notifications"),
-    FIRST_DECK(wireValue = "first_deck"),
-    FIRST_REVIEW(wireValue = "first_review"),
-    SIGNIN(wireValue = "signin")
-}
-
-enum class AnalyticsOnboardingOutcome(val wireValue: String) {
-    COMPLETED(wireValue = "completed"),
-    SKIPPED(wireValue = "skipped")
-}
-
 enum class AnalyticsSignInFailureReason(val wireValue: String) {
     INVALID_CODE(wireValue = "invalid_code"),
     EXPIRED_CODE(wireValue = "expired_code"),
@@ -62,18 +51,6 @@ enum class AnalyticsSignInFailureReason(val wireValue: String) {
     OFFLINE(wireValue = "offline"),
     SERVER_ERROR(wireValue = "server_error"),
     CANCELLED(wireValue = "cancelled")
-}
-
-enum class AnalyticsDeckScope(val wireValue: String) {
-    ALL(wireValue = "all"),
-    DECK(wireValue = "deck"),
-    FILTER(wireValue = "filter")
-}
-
-enum class AnalyticsReviewEndReason(val wireValue: String) {
-    COMPLETED(wireValue = "completed"),
-    ABANDONED(wireValue = "abandoned"),
-    INTERRUPTED(wireValue = "interrupted")
 }
 
 enum class AnalyticsReviewAnswerFailureReason(val wireValue: String) {
@@ -142,18 +119,6 @@ sealed interface AnalyticsEvent {
         override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
     }
 
-    data class OnboardingStepCompleted(
-        val step: AnalyticsOnboardingStep,
-        val outcome: AnalyticsOnboardingOutcome,
-        override val screen: AnalyticsSurface? = AnalyticsSurface.ONBOARDING
-    ) : AnalyticsEvent {
-        override val eventName: String = "onboarding_step_completed"
-        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
-            "step" to AnalyticsPropertyValue.Text(value = step.wireValue),
-            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
-        )
-    }
-
     data class SignInFailed(
         val reason: AnalyticsSignInFailureReason,
         override val screen: AnalyticsSurface? = null
@@ -161,30 +126,6 @@ sealed interface AnalyticsEvent {
         override val eventName: String = "signin_failed"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "reason" to AnalyticsPropertyValue.Text(value = reason.wireValue)
-        )
-    }
-
-    data class ReviewSessionStarted(
-        val deckScope: AnalyticsDeckScope,
-        override val screen: AnalyticsSurface? = AnalyticsSurface.REVIEW
-    ) : AnalyticsEvent {
-        override val eventName: String = "review_session_started"
-        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
-            "deck_scope" to AnalyticsPropertyValue.Text(value = deckScope.wireValue)
-        )
-    }
-
-    data class ReviewSessionEnded(
-        val endReason: AnalyticsReviewEndReason,
-        val answeredCount: Int,
-        val durationMs: Long,
-        override val screen: AnalyticsSurface? = AnalyticsSurface.REVIEW
-    ) : AnalyticsEvent {
-        override val eventName: String = "review_session_ended"
-        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
-            "end_reason" to AnalyticsPropertyValue.Text(value = endReason.wireValue),
-            "answered_count" to AnalyticsPropertyValue.Count(value = nonNegativeAnalyticsCount(value = answeredCount.toLong())),
-            "duration_ms" to AnalyticsPropertyValue.Count(value = nonNegativeAnalyticsCount(value = durationMs))
         )
     }
 
