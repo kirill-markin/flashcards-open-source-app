@@ -39,11 +39,33 @@ extension FlashcardsStore {
         Flashcards.clearCloudCredentialRecoveryState(userDefaults: self.userDefaults)
     }
 
+    /**
+     * The recovery gate's "erase local data and start fresh".
+     *
+     * A sign-in attempt can still be running here. The gate replaces the tab root rather than
+     * dismissing whatever sheet the other branch was presenting, so no `onDismiss` reaches
+     * `endCloudSignInAttempt` and the attempt's post-auth work keeps going with no surface. Ending
+     * the attempt first is what stops it going further: every post-auth step compares its own state
+     * `id` against the attempt after its awaited work, and a fresh `CloudSignInAttemptState` fails
+     * all of them, so no result of a step in flight reaches the attempt and no further post-auth
+     * step is started from one. The person asked to start fresh, and the attempt they lost the
+     * surface of does not get to drive the sign-in on behind that.
+     *
+     * That is narrower than "nothing writes across the reset", and the difference matters if you are
+     * working here. Those comparisons gate the write-back only; they sit after the awaited work and
+     * do not gate its identity side effects. `FlashcardsStore.completeCloudLink` runs its body
+     * through `CloudSessionRuntime.runWorkspaceCompletion`, which awaits an unstructured `Task`, so
+     * cancelling `postAuthSyncTask` cancels the wait and not that task: a `completeCloudLink`
+     * already in flight when this runs still finishes its credential and workspace writes, and this
+     * call does not stop it. That overlap is a known gap left open on purpose — closing it is a
+     * larger change than this one.
+     */
     func eraseLocalDataForCredentialRecovery() throws {
         guard self.cloudCredentialRecoveryState != nil else {
             throw LocalStoreError.validation("Cloud credential recovery is not active.")
         }
 
+        self.endCloudSignInAttempt()
         try self.resetLocalStateForCloudIdentityChange()
     }
 
