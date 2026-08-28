@@ -179,8 +179,9 @@ function readBackendConsoleLogRecord(
  *
  * Those records are handed to `console` as objects rather than pre-serialized JSON
  * (../cloudWatch.ts), which is the only thing that makes `$.message.<field>` resolvable for the
- * log-derived metric filters in `infra/aws/lib/monitoring.ts`. The default `consoleIntegration`
- * turns every such call into a `category: "console"` breadcrumb, and inside a Lambda it builds that
+ * log-derived metric filters in `infra/aws/lib/monitoring.ts` and
+ * `infra/aws/lib/product-analytics-monitoring.ts`. The default `consoleIntegration` turns every such
+ * call into a `category: "console"` breadcrumb, and inside a Lambda it builds that
  * breadcrumb's `message` with `safeJoin`, not `util.format`: the pinned @sentry/core reaches
  * `util.format` only when `globalThis.util` exists, which is true under `node -e`, `node -p` and the
  * REPL and false in a loaded handler file. `safeJoin` renders any object as the constant
