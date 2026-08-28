@@ -1,0 +1,41 @@
+-- Migration status: Current / additive.
+-- Introduces: idx_guest_sessions_platform_created, the index the web guest reaper's driving
+--   aggregate reads. That aggregate selects auth.guest_sessions by platform = 'web' and created_at
+--   below the inactivity threshold, and 0031 left the table with only (user_id, created_at DESC)
+--   and the active-token hash index, so every daily run read the whole table. The reaper scans as
+--   reporting_readonly, whose 30s statement_timeout (migration 0044) is the only bound on that
+--   scan, and 57014 is not in the reaper's transient set: an unindexed scan that outgrows the
+--   timeout does not degrade, it fails the job on that day and on every day after it.
+-- Schemas touched/read explicitly: auth.
+
+-- Full rather than partial on platform = 'web', even though only web guests are ever reaped. Not
+-- because of the reaper query's other reading of platform: that one, IS DISTINCT FROM 'web' in the
+-- NOT EXISTS subquery, is correlated on user_id and is served by idx_guest_sessions_user_created
+-- (0031) whichever shape this index takes, so a web-only partial index would cost it nothing. What
+-- decides it is that the partial index has nothing to offer in exchange: its only advantage is
+-- size, and on a table this small that buys nothing, while the full index covers every value of
+-- platform - ios, android and the NULL pre-1.7.0 mobile clients still write - for anything that
+-- later selects on the column without already being keyed by user_id.
+--
+-- A third key column was considered and rejected. (platform, created_at, user_id) would carry
+-- user_id too, so the driving aggregate could satisfy its GROUP BY from the index alone and run
+-- index-only, instead of fetching user_id from the heap for every matched row. That is a constant
+-- factor on a job that runs once a day; what this migration exists to remove is the full table
+-- scan, and two columns remove it, while a wider key is paid on every write to the table. The
+-- trade is worth reopening only if the reaper's scan ever comes close to its timeout on the range
+-- scan itself.
+--
+-- Plain CREATE INDEX rather than CREATE INDEX CONCURRENTLY, which is not an option here:
+-- apps/backend/src/database/migrationRunner.ts runs each migration file inside its own
+-- BEGIN/COMMIT so a file that fails rolls back whole, and CONCURRENTLY cannot run in a transaction.
+-- The build therefore holds a SHARE lock that blocks every write to auth.guest_sessions until it
+-- finishes, and that is more paths than guest session creation: sessions are also updated and
+-- deleted from several places in guestAuth, and rows go away indirectly whenever an
+-- org.user_settings row is deleted, through the ON DELETE CASCADE 0031 put on user_id. Those paths
+-- are deliberately not listed here. The list is not what makes the block acceptable, and a list is
+-- the part of this comment that would rot as writers are added. What makes it acceptable is how
+-- long the lock is held: the table holds a negligible number of rows at this product stage, so the
+-- build is over in milliseconds and any blocked writer waits only that long. Reusing this
+-- reasoning on a bigger table means re-checking the row count, not assembling the writer list.
+CREATE INDEX IF NOT EXISTS idx_guest_sessions_platform_created
+  ON auth.guest_sessions (platform, created_at);
