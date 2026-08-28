@@ -3,12 +3,12 @@ package com.flashcardsopensourceapp.feature.review
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
@@ -56,6 +57,7 @@ import java.text.NumberFormat
 private val reviewShowAnswerContentBottomPadding = 120.dp
 private val reviewAnswerGridContentBottomPadding = 184.dp
 private val reviewEmptyStateMaxWidth = 420.dp
+private val reviewMetadataLineMinHeight = 28.dp
 private val reviewEditButtonSize = 26.dp
 private val reviewEditIconSize = 14.dp
 private val reviewSpeechButtonSize = 32.dp
@@ -276,18 +278,21 @@ private fun ReviewCardContent(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = reviewMetadataLineMinHeight)
         ) {
-            FlowRow(
+            Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
                 ReviewMetadataItem(
                     icon = Icons.AutoMirrored.Outlined.Label,
-                    label = currentCard.tagsLabel
+                    label = currentCard.tagsLabel,
+                    modifier = Modifier.weight(weight = 1f, fill = false)
                 )
                 ReviewRepetitionPill(
                     reps = currentCard.card.reps,
@@ -295,26 +300,21 @@ private fun ReviewCardContent(
                 )
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            FilledIconButton(
+                onClick = onOpenCurrentCard,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier
+                    .size(reviewEditButtonSize)
+                    .testTag(reviewEditCardButtonTag)
             ) {
-                FilledIconButton(
-                    onClick = onOpenCurrentCard,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier
-                        .size(reviewEditButtonSize)
-                        .testTag(reviewEditCardButtonTag)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = stringResource(id = R.string.review_edit_card_content_description),
-                        modifier = Modifier.size(reviewEditIconSize)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = stringResource(id = R.string.review_edit_card_content_description),
+                    modifier = Modifier.size(reviewEditIconSize)
+                )
             }
         }
 
@@ -524,11 +524,13 @@ private fun ReviewCardSideSection(
 @Composable
 private fun ReviewMetadataItem(
     icon: ImageVector,
-    label: String
+    label: String,
+    modifier: Modifier
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = modifier
     ) {
         Icon(
             imageVector = icon,
@@ -539,7 +541,9 @@ private fun ReviewMetadataItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
