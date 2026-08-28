@@ -99,11 +99,22 @@ internal class CloudSignInCoordinator(
             )
         }
 
+        // Every stored guest drives the upgrade flow except one that exists solely to authenticate
+        // analytics: that one is claimed after sign-in through `/guest-auth/identity/link`, and
+        // sending its token to `upgrade/prepare` here would route an install that has never enabled
+        // cloud sync into the upgrade flow.
+        //
+        // The stored marker decides it, never `cloudState`. `finishGuestCloudLink` persists the
+        // session before `markGuestCloudState`, and that write returns early under
+        // `LINKED`/`LINKING_READY`, so a guest that owns a real cloud workspace can sit under a
+        // non-`GUEST` state; skipping its upgrade would let `applyLinkedWorkspace` replace the local
+        // shell and leave the link route answering `409 GUEST_IDENTITY_LINK_UPGRADE_REQUIRED`
+        // forever.
         val guestSession: StoredGuestAiSession? = loadActiveGuestSessionOrNull(
             preferencesStore = preferencesStore,
             guestSessionStore = guestSessionStore,
             configuration = configuration
-        )
+        )?.takeIf { session -> session.isAnalyticsOnly.not() }
         val guestUpgradeMode: CloudGuestUpgradeMode? = if (guestSession == null) {
             null
         } else {
