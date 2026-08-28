@@ -203,6 +203,10 @@ struct CardsScreen: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    // Emitted at the intent site rather than in beginCreating(), which is also the
+                    // convergence point for a request routed here from the Review screen and would
+                    // count that one twice.
+                    Analytics.track(.cardCreateStarted(entryPoint: .cards), screen: .cards)
                     self.beginCreating()
                 } label: {
                     Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
@@ -237,6 +241,15 @@ struct CardsScreen: View {
             .technicalErrorSheet(store: self.store)
             .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
             .interactiveDismissDisabled()
+            .onAppear {
+                Analytics.trackScreenViewed(.cardEditor)
+            }
+            .onDisappear {
+                // The editor only ever presents over the Cards tab, so the restore is already safe
+                // here; it is written conditionally anyway because it costs nothing and keeps the one
+                // rule for restoring a surface identical at both sites.
+                Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .cards)
+            }
         }
         .sheet(isPresented: $isFilterSheetPresented) {
             NavigationStack {

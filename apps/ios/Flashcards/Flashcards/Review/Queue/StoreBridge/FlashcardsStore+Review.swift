@@ -741,6 +741,10 @@ extension FlashcardsStore {
 
     func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) async {
         let submissionErrorMessage = Flashcards.errorMessage(error: submissionError)
+        Analytics.track(
+            .reviewAnswerFailed(reason: analyticsReviewAnswerFailureReason(error: submissionError)),
+            screen: .review
+        )
         let now = Date()
         // Capture the pre-refresh validation context once so the staleness classification
         // is independent of the bootstrap-refresh outcome below. The catch branch reuses
