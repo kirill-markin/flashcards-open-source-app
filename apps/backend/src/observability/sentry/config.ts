@@ -139,9 +139,8 @@ function createSentryIntegrations(): BackendSentryIntegrationFactory {
 
 // Recognizes one of this backend's own structured log records among the arguments of a console
 // breadcrumb. `domain: "backend"` is on every record this repository hands to `console` as an object
-// - the ones from ../cloudWatch.ts and ../../server/logging.ts, and the ones the direct image
-// ingestion and multipart reconciliation entrypoints build inline - and on nothing else, so this
-// matches exactly those calls and leaves every dependency's console output alone.
+// and on nothing else, so this matches exactly those calls and leaves every dependency's console
+// output alone.
 //
 // The console arguments are read from the hint, which is where Sentry documents them for this
 // category, and from the breadcrumb's own `data.arguments` when the hint carries none: the
@@ -205,9 +204,7 @@ function readBackendConsoleLogRecord(
  * breadcrumb the process produces, including ones from dependencies, and rewrites the message of
  * those that match the check above. What it puts there is what the pre-serialized string used to put
  * there - the same record, `JSON.stringify`d, already sanitized before it ever reached `console` -
- * so this restores a payload rather than introducing one. It is more than the same breadcrumb's
- * `data.arguments` carries, because the client's `normalizeDepth` of 3 drops the record's nested
- * `details` there.
+ * so this restores a payload rather than introducing one.
  */
 function restoreBackendConsoleBreadcrumbMessage(
   breadcrumb: BackendSentryBreadcrumb,
@@ -217,12 +214,12 @@ function restoreBackendConsoleBreadcrumbMessage(
     return breadcrumb;
   }
 
-  const record = readBackendConsoleLogRecord(breadcrumb, hint);
-  if (record === null) {
-    return breadcrumb;
-  }
-
   try {
+    const record = readBackendConsoleLogRecord(breadcrumb, hint);
+    if (record === null) {
+      return breadcrumb;
+    }
+
     return { ...breadcrumb, message: JSON.stringify(record) };
   } catch {
     return breadcrumb;
