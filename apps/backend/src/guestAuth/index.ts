@@ -126,20 +126,29 @@ async function recordGuestUpgradeCompletedAnalytics(
     });
   }
 
+  // The upgrade is observed as it happens, so the two timestamps are one moment and there is no
+  // skew to keep recoverable.
+  const observedAt = new Date();
   await emitServerDerivedProductAnalyticsEvent({
     eventId: deriveServerDerivedProductAnalyticsEventId(
       "guest_upgrade_completed",
       [completion.guestSessionId],
     ),
     eventName: "guest_upgrade_completed",
-    occurredAt: new Date(),
+    occurredAt: observedAt,
+    serverReceivedAt: observedAt,
     userId: completion.targetUserId,
     // The guest identity the client's earlier events already carried, so the row names both sides of
     // the upgrade on its own.
     subjectUserId: completion.guestUserId,
     guestSessionId: completion.guestSessionId,
     workspaceId: completion.targetWorkspaceId,
+    // auth.guest_sessions.platform would supply this from a server-stored source, but this path
+    // does not read the session row and reporting the platform of upgrades is not what this change
+    // is for; a producer that starts reading it may fill this in.
+    platform: null,
     properties: {},
+    details: null,
   });
 }
 

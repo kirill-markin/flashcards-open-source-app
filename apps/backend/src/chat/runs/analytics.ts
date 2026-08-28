@@ -21,14 +21,22 @@ export async function recordAiMessageSentAnalytics(
   runId: string,
   actor: ChatRunActor,
 ): Promise<void> {
+  // The turn is observed as it happens, so the two timestamps are one moment and there is no skew
+  // to keep recoverable.
+  const observedAt = new Date();
   await emitServerDerivedProductAnalyticsEvent({
     eventId: deriveServerDerivedProductAnalyticsEventId("ai_message_sent", [workspaceId, runId]),
     eventName: "ai_message_sent",
-    occurredAt: new Date(),
+    occurredAt: observedAt,
+    serverReceivedAt: observedAt,
     userId,
     subjectUserId: actor.subjectUserId,
     guestSessionId: actor.guestSessionId,
     workspaceId,
+    // The run carries no server-stored platform for the actor, and the request headers that do name
+    // one are a client claim this row must not repeat.
+    platform: null,
     properties: {},
+    details: null,
   });
 }

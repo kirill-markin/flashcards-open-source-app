@@ -1,10 +1,16 @@
 /**
  * Hand-written mirror of the backend product analytics catalog
- * (`apps/backend/src/productAnalytics/catalog.ts`). The union is closed on `name`, so an event the
- * server would reject cannot be constructed. `guest_upgrade_completed` and `catalog_deck_installed`
- * are server-derived and deliberately absent. `onboarding_step_completed`,
- * `review_session_started` and `review_session_ended` are still declared by the server but retired,
- * so no client sends them.
+ * (`apps/backend/src/productAnalytics/catalog.ts`). The union is closed on `name`, so an event
+ * whose name the server does not declare cannot be constructed. That closure is about names alone
+ * and no longer covers the whole contract: `AnalyticsSurface` below still declares `onboarding`,
+ * which the catalog dropped, so a well-typed event carrying it as its `screen` is rejected
+ * `invalid_event`. No call site constructs that value, and until the enum drops it a value in this
+ * file is not on its own proof that the server accepts it.
+ *
+ * `guest_upgrade_completed` and `catalog_deck_installed` are server-derived and deliberately
+ * absent. `onboarding_step_completed`, `review_session_started` and `review_session_ended` were
+ * removed from the catalog outright, so the server no longer declares them and rejects them as
+ * unknown event names.
  *
  * `signin_failed` is declared but never tracked from here. The web sign-in surface is the auth
  * service's own login page on a different origin, reached by a full page navigation, so this app
