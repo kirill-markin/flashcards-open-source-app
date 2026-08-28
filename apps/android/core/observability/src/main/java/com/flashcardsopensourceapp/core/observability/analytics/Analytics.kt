@@ -1,7 +1,6 @@
 package com.flashcardsopensourceapp.core.observability.analytics
 
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Product analytics entry point.
@@ -46,51 +45,6 @@ interface Analytics {
 
     /** Kill switch, honored immediately. Disabling also drops whatever is still queued. */
     fun setEnabled(enabled: Boolean)
-}
-
-/**
- * Whoever holds an open measurement while the person is using a surface — the review session above
- * all, whose `duration_ms` and `answered_count` are the only numeric measures in the whole catalog.
- *
- * A `ViewModel` teardown callback fires for none of the cases that matter here: a call, a
- * notification, a screen lock and a swipe to another app all leave the view-model store intact, and
- * a process kill never calls it at all. The process leaving the foreground is the real signal, so it
- * is the one this interface carries.
- */
-interface AnalyticsForegroundListener {
-    /** Close whatever is open. Emitted events reach the queue before the background flush. */
-    fun onAnalyticsForegroundLeft()
-
-    /** The person is back. Reopen whatever was closed above if they are still on that surface. */
-    fun onAnalyticsForegroundEntered()
-}
-
-/**
- * Process foreground transitions, delivered **synchronously on the notifying thread**.
- *
- * Synchronous, and deliberately not a flow: the same `ON_STOP` that ends a review session also asks
- * for the background flush, and the session-end event has to be in the queue before that flush is
- * requested. An asynchronous hand-off would be ordered after it about as often as before it, and the
- * event would then wait for the next flush trigger — which on a device that is put down never comes.
- */
-class AnalyticsForegroundTransitions {
-    private val listeners: CopyOnWriteArrayList<AnalyticsForegroundListener> = CopyOnWriteArrayList()
-
-    fun addListener(listener: AnalyticsForegroundListener) {
-        listeners.addIfAbsent(listener)
-    }
-
-    fun removeListener(listener: AnalyticsForegroundListener) {
-        listeners.remove(listener)
-    }
-
-    fun notifyForegroundLeft() {
-        listeners.forEach { listener -> listener.onAnalyticsForegroundLeft() }
-    }
-
-    fun notifyForegroundEntered() {
-        listeners.forEach { listener -> listener.onAnalyticsForegroundEntered() }
-    }
 }
 
 object NoOpAnalytics : Analytics {

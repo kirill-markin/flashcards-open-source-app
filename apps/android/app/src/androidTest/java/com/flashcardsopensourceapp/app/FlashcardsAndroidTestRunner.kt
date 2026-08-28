@@ -20,8 +20,8 @@ class FlashcardsAndroidTestRunner : AndroidJUnitRunner() {
     ): Application {
         setDefaultAndroidSentryEnvironmentOverride(environment = defaultInstrumentationSentryEnvironment)
         // Before the application exists, so no graph in this process ever emits. The live-smoke
-        // flow signs into a real account, and a synthetic `app_opened` or `review_session_ended`
-        // written to production `product_events` is indistinguishable from a real person's row.
+        // flow signs into a real account, and a synthetic `app_opened` or `screen_viewed` written
+        // to production `product_events` is indistinguishable from a real person's row.
         disableProductAnalyticsForProcess()
         return super.newApplication(cl, className, context)
     }

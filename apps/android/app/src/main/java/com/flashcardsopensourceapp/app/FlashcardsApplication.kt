@@ -73,8 +73,8 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     }
 
     /**
-     * Registers the `app_opened`, session-close and background-flush hook once per process, next to
-     * the process-scoped flags in `analytics/AppAnalyticsSupport.kt` that it maintains.
+     * Registers the `app_opened` and background-flush hook once per process, next to the
+     * process-scoped flags in `analytics/AppAnalyticsSupport.kt` that it maintains.
      *
      * It deliberately does not live in the composition. `FlashcardsApp` returns early while startup
      * is loading, when startup failed and while the credential-recovery gate is up, so an observer
@@ -87,12 +87,6 @@ class FlashcardsApplication : Application(), Configuration.Provider {
      * actually enters the foreground, and ignores configuration changes and returns from a
      * permission dialog, a photo picker or any other activity, every one of which looks like a warm
      * launch on the activity lifecycle.
-     *
-     * `ON_STOP` here is also the only real "the person stopped using the app" signal in the process,
-     * which is why an open review session is closed from it. A `ViewModel` teardown callback fires
-     * for none of the cases that matter — a call, a notification, a screen lock and a swipe away all
-     * leave the view-model store intact, and a process kill never calls it — so a session left to
-     * that would absorb the whole interruption into `duration_ms`.
      */
     private fun observeProcessLifecycleForAnalytics() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(
@@ -106,20 +100,12 @@ class FlashcardsApplication : Application(), Configuration.Provider {
                                 event = AnalyticsEvent.AppOpened(launchType = launchType)
                             )
                         }
-                        // After `app_opened`, so a review session reopened on return cannot precede
-                        // the launch it belongs to.
-                        appGraph.analyticsForegroundTransitions.notifyForegroundEntered()
                     }
 
                     Lifecycle.Event.ON_STOP -> {
                         // Cleared even without a graph, so the flag never outlives the foreground.
                         markAnalyticsProcessBackgrounded()
                         val appGraph = appGraphOrNull ?: return@LifecycleEventObserver
-                        // Strictly before the flush. Listeners close their open measurements by
-                        // calling `track`, and `track` and `flush` are ordered by the same channel,
-                        // so a session-end handed off after the flush request would miss it and wait
-                        // for the next trigger — which on a device that is put down never comes.
-                        appGraph.analyticsForegroundTransitions.notifyForegroundLeft()
                         appGraph.analytics.flush()
                     }
 

@@ -114,7 +114,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                     reviewPreferencesStore = appGraph.reviewPreferencesStore,
                     analytics = appGraph.analytics,
-                    analyticsForegroundTransitions = appGraph.analyticsForegroundTransitions,
                     visibleAppScreenRepository = appGraph.visibleAppScreenController,
                     workspaceRepository = appGraph.workspaceRepository
                 )
@@ -283,7 +282,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                     reviewPreferencesStore = appGraph.reviewPreferencesStore,
                     analytics = appGraph.analytics,
-                    analyticsForegroundTransitions = appGraph.analyticsForegroundTransitions,
                     visibleAppScreenRepository = appGraph.visibleAppScreenController,
                     workspaceRepository = appGraph.workspaceRepository
                 )

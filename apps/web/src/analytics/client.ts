@@ -788,36 +788,9 @@ export function setEnabled(enabled: boolean): void {
   }
 }
 
-/**
- * Callbacks that must emit their closing events before the page-hide flush reads the queue. Two
- * independent `visibilitychange` listeners run in registration order, which no caller controls, and a
- * screen whose event lands after the flush keeps it queued until a later trigger — which for a
- * sign-out navigation is a boot that discards it at the identity boundary. Registering here makes the
- * dependency explicit instead of leaving it to whichever listener was added first.
- */
-const pageHideCollectors = new Set<() => void>();
-
-export function registerAnalyticsPageHideCollector(collector: () => void): () => void {
-  pageHideCollectors.add(collector);
-  return (): void => {
-    pageHideCollectors.delete(collector);
-  };
-}
-
-function runPageHideCollectors(): void {
-  for (const collector of [...pageHideCollectors]) {
-    try {
-      collector();
-    } catch {
-      // One collector failing must not stop the others, the persist, or the flush.
-    }
-  }
-}
-
 export function startAnalytics(): () => void {
   function handleVisibilityChange(): void {
     if (document.visibilityState === "hidden") {
-      runPageHideCollectors();
       persistTrackedAnalyticsEvents();
       flush();
     }
@@ -836,7 +809,6 @@ export function startAnalytics(): () => void {
   }
 
   function handlePageHide(): void {
-    runPageHideCollectors();
     persistTrackedAnalyticsEvents();
   }
 

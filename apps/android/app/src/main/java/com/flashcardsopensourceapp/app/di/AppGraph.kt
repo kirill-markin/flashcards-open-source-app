@@ -27,7 +27,6 @@ import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsClient
-import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsForegroundTransitions
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsIdentity
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNetworkMonitor
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReporter
@@ -252,14 +251,6 @@ class AppGraph(
         versionCode = appPackageInfo.longVersionCode.toInt()
     )
     val analytics: Analytics = analyticsClient
-
-    /**
-     * Delivers the process leaving and re-entering the foreground to whoever holds an open
-     * measurement. `FlashcardsApplication` notifies it from its `ProcessLifecycleOwner` observer,
-     * synchronously and before the background flush, so a session closed there is queued in time to
-     * go out with that flush.
-     */
-    val analyticsForegroundTransitions = AnalyticsForegroundTransitions()
     val syncFailureAnalyticsReporter = AnalyticsSyncFailureReporter(analytics = analytics)
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
     val storeReviewRequestStore: StoreReviewRequestStore = SharedPreferencesStoreReviewRequestStore(context = context)
