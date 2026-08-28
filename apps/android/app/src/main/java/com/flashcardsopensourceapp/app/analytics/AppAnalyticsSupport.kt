@@ -15,10 +15,13 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurat
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
+import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.AnalyticsGuestSessionMinter
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
 
 private const val maxAnalyticsFailureCauseDepth: Int = 8
 
@@ -52,6 +55,12 @@ private val isProcessForegrounded = AtomicBoolean(false)
  */
 private val productAnalyticsDisabledForProcess = AtomicBoolean(false)
 
+/**
+ * Bounds guest minting to one attempt per process. Process-scoped rather than graph-scoped for the
+ * same reason as the flags above: `AppGraph` is rebuilt inside a running process.
+ */
+private val hasAttemptedAnalyticsGuestMint = AtomicBoolean(false)
+
 internal fun disableProductAnalyticsForProcess() {
     productAnalyticsDisabledForProcess.set(true)
 }
@@ -79,13 +88,21 @@ internal fun markAnalyticsProcessBackgrounded() {
 /**
  * Supplies the human-authenticated transport the analytics endpoint requires.
  *
- * It deliberately never refreshes a token: analytics may not drive auth traffic. When no usable
- * credential exists the events simply stay queued, which the 14-day queue TTL and the 30-day
- * server window make free for an ordinary sign-up delay.
+ * It deliberately never refreshes an account token: analytics may not drive auth traffic. A
+ * signed-in install whose id token has expired therefore keeps its events queued, which the 14-day
+ * queue TTL and the 30-day server window make free.
+ *
+ * An install that never signs in has no account token to wait for, so the first credential miss
+ * mints a guest session instead. That credential is read independently of `cloudState`, because an
+ * install now commonly holds one while not being a cloud guest. Being its only user, this provider
+ * is also the only thing that can notice the server revoking it, which is what
+ * [onCredentialRefused] is for.
  */
 internal class AppAnalyticsCredentialProvider(
     private val cloudPreferencesStore: CloudPreferencesStore,
     private val guestAiSessionStore: GuestAiSessionStore,
+    private val analyticsGuestSessionMinter: AnalyticsGuestSessionMinter,
+    private val reportGuestSessionMintFailure: () -> Unit = {},
     private val currentTimeMillisProvider: () -> Long = System::currentTimeMillis
 ) : AnalyticsCredentialProvider {
     override suspend fun currentCredential(): AnalyticsCredential? {
@@ -94,9 +111,102 @@ internal class AppAnalyticsCredentialProvider(
 
         return when (cloudSettings.cloudState) {
             CloudAccountState.LINKED -> bearerCredential(configuration = configuration)
+            // A guest session missing under `GUEST` is the credential-recovery flow's business, not
+            // something to mint over: that install already owns a guest workspace on the server.
             CloudAccountState.GUEST -> guestCredential(configuration = configuration)
-            CloudAccountState.DISCONNECTED, CloudAccountState.LINKING_READY -> null
+            CloudAccountState.DISCONNECTED, CloudAccountState.LINKING_READY ->
+                guestCredential(configuration = configuration)
+                    ?: mintedGuestCredential()
         }
+    }
+
+    /**
+     * Retires an analytics-only guest the server has revoked, so a later process mints a fresh one.
+     *
+     * Nothing else on this install ever exercises such a credential. A cloud guest is validated and
+     * cleared on `GUEST_AUTH_INVALID` by AI chat, feedback and sync; an analytics-only guest has no
+     * other user, and [guestCredential] returns whatever is stored while [mintedGuestCredential] is
+     * unreachable as long as it is. Left in place it would be handed back on every flush and
+     * analytics for that install would stay silent until the 14-day queue TTL discarded the events.
+     *
+     * Only `401` and `410` retire it: those are the revoked-credential and deleted-account answers.
+     * A `403` is an authorization refusal that says nothing about the credential being dead.
+     *
+     * The replacement arrives on the next process rather than immediately, because the mint stays
+     * bounded to one attempt per process. That is deliberate: every mint is a permanent server-side
+     * user, workspace and membership, and a refusal loop must never be able to create them in a row.
+     */
+    override suspend fun onCredentialRefused(credential: AnalyticsCredential, statusCode: Int) {
+        if (statusCode != 401 && statusCode != 410) {
+            return
+        }
+
+        try {
+            retireRefusedAnalyticsGuestSession(credential = credential)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            // The next refusal retries. `AnalyticsClient` reports everything that escapes a
+            // non-enqueue command as `QUEUE_STORE_READ_FAILED`, which a store write fault here is
+            // not, and the refusal itself is already handled by the caller's backoff.
+        }
+    }
+
+    private fun retireRefusedAnalyticsGuestSession(credential: AnalyticsCredential) {
+        val configuration: CloudServiceConfiguration = cloudPreferencesStore.currentServerConfiguration()
+        val guestSession: StoredGuestAiSession = guestAiSessionStore.loadAnySession(
+            configuration = configuration
+        ) ?: return
+        if (guestSession.isAnalyticsOnly.not()) {
+            return
+        }
+        // The refused credential has to be this session: a bearer token, or a guest already replaced
+        // between the flush and this callback, says nothing about what is stored now.
+        if (credential.authorizationHeader != guestAuthorizationHeader(guestSession = guestSession)) {
+            return
+        }
+
+        // Not the two keys it happens to sit under: a session bound to another local workspace would
+        // survive and be presented as the next analytics credential.
+        guestAiSessionStore.clearStoredSessions()
+    }
+
+    /**
+     * Bounded to one attempt per process: every mint is a permanent server-side user, workspace and
+     * membership, and the credential miss repeats on every flush. A failed attempt leaves the events
+     * queued exactly as before and the persisted idempotency key makes the next process reuse rather
+     * than duplicate.
+     *
+     * The failure is swallowed here rather than left to the caller. This is the only request this
+     * provider makes, and `AnalyticsClient`'s command loop reports everything that escapes a
+     * non-enqueue command as `QUEUE_STORE_READ_FAILED`, so an offline first launch — the likeliest
+     * mint failure by far — would be filed as a SQLite read fault.
+     */
+    private suspend fun mintedGuestCredential(): AnalyticsCredential? {
+        if (isProductAnalyticsDisabledForProcess()) {
+            return null
+        }
+        if (cloudPreferencesStore.loadCloudCredentialRecoveryState() != null) {
+            return null
+        }
+        if (hasAttemptedAnalyticsGuestMint.compareAndSet(false, true).not()) {
+            return null
+        }
+
+        val guestSession: StoredGuestAiSession = try {
+            analyticsGuestSessionMinter.mintAnalyticsGuestSession()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            if (isSilentAnalyticsGuestMintFailure(error = error).not()) {
+                reportGuestSessionMintFailure()
+            }
+            return null
+        }
+        return AnalyticsCredential(
+            apiBaseUrl = guestSession.apiBaseUrl,
+            authorizationHeader = guestAuthorizationHeader(guestSession = guestSession)
+        )
     }
 
     private fun bearerCredential(configuration: CloudServiceConfiguration): AnalyticsCredential? {
@@ -123,9 +233,33 @@ internal class AppAnalyticsCredentialProvider(
 
         return AnalyticsCredential(
             apiBaseUrl = guestSession.apiBaseUrl,
-            authorizationHeader = "Guest ${guestSession.guestToken}"
+            authorizationHeader = guestAuthorizationHeader(guestSession = guestSession)
         )
     }
+
+    /** Rendered in one place so [onCredentialRefused] can recognise a credential it handed out. */
+    private fun guestAuthorizationHeader(guestSession: StoredGuestAiSession): String {
+        return "Guest ${guestSession.guestToken}"
+    }
+}
+
+/**
+ * Offline and transient transport failures stay unreported, the same way every other background
+ * capture path in this repository treats them: on a first launch without connectivity the mint is
+ * expected to fail, and the events simply stay queued for the next process.
+ */
+private fun isSilentAnalyticsGuestMintFailure(error: Throwable): Boolean {
+    var currentError: Throwable? = error
+    var depth = 0
+    while (currentError != null && depth < maxAnalyticsFailureCauseDepth) {
+        val inspectedError: Throwable = currentError
+        if (inspectedError is IOException && isLikelyTransientNetworkIoException(error = inspectedError)) {
+            return true
+        }
+        currentError = inspectedError.cause
+        depth += 1
+    }
+    return false
 }
 
 /**

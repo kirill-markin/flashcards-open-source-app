@@ -133,11 +133,20 @@ class CloudIdentityResetCoordinator(
      * above all — would survive into the next credential this install obtains,
      * and the server derives identity from the credential that carries a
      * request, not from what the payload claims.
+     *
+     * The stored guest session is retired for exactly the same reason, and it is
+     * the credential rather than the queue: an analytics guest can now be stored
+     * while `LINKED` and is read back independently of cloud state, so leaving it
+     * would authenticate the next person's pre-sign-in events with the departed
+     * person's guest token, and their sign-in would then link it. The
+     * `analytics.identity_links` write is first-link-wins with no repair path, so
+     * that misattribution would be permanent.
      */
     suspend fun disconnectDeletedCloudIdentityPreservingLocalState() {
         withContext(Dispatchers.IO) {
             resetMutex.withLock {
                 disconnectCloudIdentityPreservingLocalStateLocked()
+                guestAiSessionStore.clearAllSessions()
                 onCloudIdentityReset()
             }
         }

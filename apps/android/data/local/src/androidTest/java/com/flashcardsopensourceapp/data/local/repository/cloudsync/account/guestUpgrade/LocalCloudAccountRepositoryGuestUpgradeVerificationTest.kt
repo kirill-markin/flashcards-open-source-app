@@ -162,6 +162,81 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
         assertEquals(guestWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
     }
 
+    /**
+     * The analytics-only marker, not `cloudState`, is what keeps an analytics guest out of the
+     * upgrade flow, and sign-in must leave that credential in place for
+     * `/guest-auth/identity/link` to claim afterwards.
+     */
+    @Test
+    fun verifyCodeSkipsGuestUpgradeForAnalyticsOnlyGuestAndSignInRequestsIdentityLink() = runBlocking {
+        val localWorkspaceId: String = environment.requireLocalWorkspaceId()
+        val remoteWorkspace: CloudWorkspaceSummary = createCloudWorkspaceSummary(
+            workspaceId = "workspace-remote",
+            name = "Personal",
+            createdAtMillis = 100L,
+            isSelected = true
+        )
+        val remoteGateway: FakeCloudRemoteGateway = FakeCloudRemoteGateway.forGuestUpgrade(
+            guestUpgradeMode = CloudGuestUpgradeMode.BOUND,
+            accountSnapshot = createCloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(remoteWorkspace)
+            ),
+            bootstrapRemoteIsEmpty = true,
+            guestUpgradeReconciliation = null
+        )
+        val hadStoredCredentialsWhenLinkRequested: MutableList<Boolean> = mutableListOf()
+        val repository = environment.createCloudAccountRepository(
+            remoteGateway = remoteGateway,
+            onAnalyticsGuestIdentityLinkRequested = {
+                hadStoredCredentialsWhenLinkRequested += environment.cloudPreferencesStore.loadCredentials() != null
+            }
+        )
+        environment.cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
+        environment.guestAiSessionStore.saveSession(
+            localWorkspaceId = null,
+            session = createStoredGuestAiSession(
+                workspaceId = "analytics-guest-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                guestToken = "analytics-guest-token",
+                userId = "analytics-guest-user",
+                isAnalyticsOnly = true
+            )
+        )
+
+        val linkContext = repository.verifyCode(
+            challenge = createOtpChallenge(email = "user@example.com"),
+            code = "123456"
+        )
+
+        assertNull(linkContext.guestUpgradeMode)
+        assertEquals(0, remoteGateway.prepareGuestUpgradeCalls)
+        assertEquals(
+            CloudAccountState.DISCONNECTED,
+            environment.cloudPreferencesStore.currentCloudSettings().cloudState
+        )
+
+        repository.completeCloudLink(
+            linkContext = linkContext,
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = remoteWorkspace.workspaceId)
+        )
+
+        assertEquals(CloudAccountState.LINKED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(listOf(true), hadStoredCredentialsWhenLinkRequested)
+        val survivingGuestSession = environment.guestAiSessionStore.loadAnySession(
+            configuration = makeOfficialCloudServiceConfiguration()
+        )
+        assertEquals("analytics-guest-token", survivingGuestSession?.guestToken)
+    }
+
     @Test
     fun verifyCodeSkipsGuestUpgradeWhenStoredSessionTargetsAnotherServerConfiguration() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()

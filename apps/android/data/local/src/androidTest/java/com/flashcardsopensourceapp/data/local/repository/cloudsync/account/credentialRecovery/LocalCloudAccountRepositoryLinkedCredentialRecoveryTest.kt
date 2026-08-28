@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecover
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
+import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeCloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.createCloudAccountSnapshot
@@ -145,6 +146,142 @@ class LocalCloudAccountRepositoryLinkedCredentialRecoveryTest {
         assertEquals(localWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
         assertEquals(1, environment.database.cardDao().loadCards(workspaceId = localWorkspaceId).count())
         assertEquals(cardId, environment.database.cardDao().loadCards(workspaceId = localWorkspaceId).single().cardId)
+    }
+
+    /**
+     * `LINKED_CREDENTIALS_MISSING` is raised for a `LINKED` install with no stored credentials,
+     * which is exactly a state that commonly holds an analytics-only guest. Wiping that credential
+     * here would orphan its whole pre-sign-in tail: `analytics.identity_links` is first-link-wins
+     * with no repair path.
+     */
+    @Test
+    fun linkedCredentialRecoveryKeepsAnalyticsGuestAndRequestsItsIdentityLink() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        environment.seedWorkspaceData(workspaceId = localWorkspaceId)
+        val recoveryState = CloudCredentialRecoveryState(
+            reason = CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING,
+            previousCloudState = CloudAccountState.LINKED,
+            installationId = installationId,
+            linkedUserId = "user-1",
+            linkedWorkspaceId = localWorkspaceId,
+            activeWorkspaceId = localWorkspaceId,
+            linkedEmail = "user@example.com",
+            configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+            apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+            detectedAtMillis = 500L
+        )
+        val remoteGateway = FakeCloudRemoteGateway.forAccountSnapshot(
+            accountSnapshot = createCloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(
+                    createCloudWorkspaceSummary(
+                        workspaceId = localWorkspaceId,
+                        name = "Recovered",
+                        createdAtMillis = 100L,
+                        isSelected = true
+                    )
+                )
+            )
+        )
+        val analyticsGuestIdentityLinkRequests = mutableListOf<Boolean>()
+        val repository = environment.createCloudAccountRepository(
+            remoteGateway = remoteGateway,
+            onAnalyticsGuestIdentityLinkRequested = {
+                analyticsGuestIdentityLinkRequests += environment.cloudPreferencesStore.loadCredentials() != null
+            }
+        )
+        environment.guestAiSessionStore.saveSession(
+            localWorkspaceId = null,
+            session = createStoredGuestAiSession(
+                workspaceId = "analytics-guest-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                guestToken = "analytics-guest-token",
+                userId = "analytics-guest-user",
+                isAnalyticsOnly = true
+            )
+        )
+        environment.cloudPreferencesStore.saveCloudCredentialRecoveryState(recoveryState = recoveryState)
+        val linkContext = repository.prepareVerifiedSignIn(
+            credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
+        )
+
+        repository.completeCloudLink(
+            linkContext = linkContext,
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = localWorkspaceId)
+        )
+
+        assertEquals(CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE, linkContext.postAuthRoute)
+        assertEquals(CloudAccountState.LINKED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(
+            "analytics-guest-token",
+            environment.guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )?.guestToken
+        )
+        // Requested only after the credentials are stored, or the link would run without them.
+        assertEquals(listOf(true), analyticsGuestIdentityLinkRequests)
+    }
+
+    @Test
+    fun linkedCredentialRecoveryRetiresGuestSessionThatOwnsCloudData() = runBlocking {
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        environment.seedWorkspaceData(workspaceId = localWorkspaceId)
+        val recoveryState = CloudCredentialRecoveryState(
+            reason = CloudCredentialRecoveryReason.LINKED_CREDENTIALS_MISSING,
+            previousCloudState = CloudAccountState.LINKED,
+            installationId = installationId,
+            linkedUserId = "user-1",
+            linkedWorkspaceId = localWorkspaceId,
+            activeWorkspaceId = localWorkspaceId,
+            linkedEmail = "user@example.com",
+            configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+            apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+            detectedAtMillis = 500L
+        )
+        val remoteGateway = FakeCloudRemoteGateway.forAccountSnapshot(
+            accountSnapshot = createCloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(
+                    createCloudWorkspaceSummary(
+                        workspaceId = localWorkspaceId,
+                        name = "Recovered",
+                        createdAtMillis = 100L,
+                        isSelected = true
+                    )
+                )
+            )
+        )
+        val repository = environment.createCloudAccountRepository(remoteGateway = remoteGateway)
+        environment.guestAiSessionStore.saveSession(
+            localWorkspaceId = "stale-guest-workspace",
+            session = createStoredGuestAiSession(
+                workspaceId = "stale-guest-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1",
+                guestToken = "stale-guest-token",
+                userId = "stale-guest-user"
+            )
+        )
+        environment.cloudPreferencesStore.saveCloudCredentialRecoveryState(recoveryState = recoveryState)
+        val linkContext = repository.prepareVerifiedSignIn(
+            credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
+        )
+
+        repository.completeCloudLink(
+            linkContext = linkContext,
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = localWorkspaceId)
+        )
+
+        assertNull(
+            environment.guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
+        )
     }
 
     @Test
