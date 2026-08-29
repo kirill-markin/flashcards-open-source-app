@@ -3,6 +3,10 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../database";
+import {
+  collectContentCreation,
+  transactionWithWorkspaceScopeReportingContentCreations,
+} from "../productAnalytics/contentCreations";
 import { HttpError } from "../shared/errors";
 import {
   incomingLwwMetadataWins,
@@ -295,6 +299,15 @@ export async function upsertCardSnapshotInExecutor(
     } else {
       const insertedCard = mapCard(insertedRow);
       const changeId = await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, insertedCard);
+      // The insert above is ON CONFLICT DO NOTHING, so a returned row is a genuine creation. The
+      // conflict branch below is the one that turns out to be an upsert of a card that already
+      // existed, and the LWW-lost branch after it writes nothing at all.
+      collectContentCreation(executor, {
+        entityType: "card",
+        entityId: insertedCard.cardId,
+        workspaceId,
+        clientUpdatedAt: insertedCard.clientUpdatedAt,
+      });
 
       return {
         card: insertedCard,
@@ -369,7 +382,7 @@ export async function upsertCardSnapshot(
   input: CardSnapshotInput,
   metadata: CardMutationMetadata,
 ): Promise<CardMutationResult> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => (
+  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => (
     upsertCardSnapshotInExecutor(executor, workspaceId, input, metadata)
   ));
 }
@@ -419,6 +432,13 @@ export async function createCardInExecutor(
 
   const card = mapCard(row);
   await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, card);
+  // This path inserts unconditionally on a freshly minted card id, so it is always a creation.
+  collectContentCreation(executor, {
+    entityType: "card",
+    entityId: card.cardId,
+    workspaceId,
+    clientUpdatedAt: card.clientUpdatedAt,
+  });
   return card;
 }
 
@@ -428,7 +448,7 @@ export async function createCard(
   input: CreateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  return transactionWithWorkspaceScope(
+  return transactionWithWorkspaceScopeReportingContentCreations(
     { userId, workspaceId },
     async (executor) => createCardInExecutor(executor, workspaceId, input, metadata),
   );
@@ -441,7 +461,7 @@ export async function createCards(
 ): Promise<ReadonlyArray<Card>> {
   validateCardBatchCount(items.length);
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
     const createdCards: Array<Card> = [];
     for (const item of items) {
       createdCards.push(await createCardInExecutor(executor, workspaceId, item.input, item.metadata));
@@ -499,6 +519,10 @@ export async function updateCardInExecutor(
   return card;
 }
 
+// The card update and delete transactions below stay on the plain scoped transaction, because
+// updateCardInExecutor and deleteCardInExecutor write their own UPDATE against a row they already
+// required to exist and never reach the snapshot upsert's insert branch, so they can collect no
+// creation to report.
 export async function updateCard(
   userId: string,
   workspaceId: string,

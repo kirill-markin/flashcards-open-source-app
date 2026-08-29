@@ -5,11 +5,11 @@ import {
   type CardMutationMetadata,
   type CreateCardInput,
 } from "../../../cards";
-import {
-  transactionWithWorkspaceScope,
-  type DatabaseExecutor,
-  type WorkspaceDatabaseScope,
+import type {
+  DatabaseExecutor,
+  WorkspaceDatabaseScope,
 } from "../../../database";
+import { transactionWithWorkspaceScopeReportingContentCreations } from "../../../productAnalytics/contentCreations";
 import { HttpError } from "../../../shared/errors";
 import { workspacePackageImportZipDefaultMaxCards } from "../importZip";
 import {
@@ -215,6 +215,8 @@ export async function persistWorkspacePackageImportCards(
     transactionWithWorkspaceScopeFn: async (
       scope: WorkspaceDatabaseScope,
       callback: (executor: DatabaseExecutor) => Promise<WorkspacePackageImportCardPersistenceResult>,
-    ): Promise<WorkspacePackageImportCardPersistenceResult> => transactionWithWorkspaceScope(scope, callback),
+    ): Promise<WorkspacePackageImportCardPersistenceResult> => (
+      transactionWithWorkspaceScopeReportingContentCreations(scope, callback)
+    ),
   });
 }

@@ -17,7 +17,7 @@ import {
   type DeckFilterDefinition,
   type UpdateDeckInput,
 } from "../../decks";
-import { transactionWithWorkspaceScope } from "../../database";
+import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/contentCreations";
 import { HttpError } from "../../shared/errors";
 import type { LegacyEffortLevel } from "../../sync/contracts/legacyEffort";
 import { isLegacyEffortLevel } from "../../sync/contracts/legacyEffort";
@@ -241,7 +241,7 @@ export async function executeSqlMutationBatch(
     context.connectionId,
   );
 
-  return transactionWithWorkspaceScope({ userId: context.userId, workspaceId: context.workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentCreations({ userId: context.userId, workspaceId: context.workspaceId }, async (executor) => {
     let state: MutationBatchState = {
       cards: await listCardsInExecutor(executor, context.workspaceId),
       decks: await listDecksInExecutor(executor, context.workspaceId),
