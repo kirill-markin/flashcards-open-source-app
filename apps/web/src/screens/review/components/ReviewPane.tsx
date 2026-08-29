@@ -9,6 +9,7 @@ import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { formatTagSummary } from "../../shared/featureFormatting";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
 import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
+import type { ReviewShortcutPointerEnterHandler } from "../input/useReviewKeyboardShortcuts";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
 import type { ReviewSpeechSide } from "../speech/reviewSpeech";
 import {
@@ -42,6 +43,7 @@ export type ReviewPaneProps = Readonly<{
   onEditCard: (card: Card) => void;
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
+  onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
   onSwitchToAllCards: () => void;
   onToggleSpeech: (side: ReviewSpeechSide, sourceText: string) => void;
   reviewButtonErrorMessage: string;
@@ -77,6 +79,7 @@ type ReviewActiveCardPaneProps = Readonly<{
   onEditCard: (card: Card) => void;
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
+  onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
   onToggleSpeech: (side: ReviewSpeechSide, sourceText: string) => void;
   reviewButtonErrorMessage: string;
   reviewButtonOptions: ReadonlyArray<ReviewButtonOption>;
@@ -89,6 +92,7 @@ type ReviewActiveCardPaneProps = Readonly<{
 type ReviewRatingButtonColumnProps = Readonly<{
   isSubmitting: boolean;
   onReview: (rating: ReviewRating) => void;
+  onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
   options: ReadonlyArray<ReviewButtonOption>;
 }>;
 
@@ -268,7 +272,7 @@ function ReviewEmptyPane(props: ReviewEmptyPaneProps): ReactElement {
 }
 
 function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactElement {
-  const { isSubmitting, onReview, options } = props;
+  const { isSubmitting, onReview, onShortcutButtonPointerEnter, options } = props;
 
   return (
     <div className="rating-bar-column">
@@ -280,6 +284,7 @@ function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactEl
           aria-keyshortcuts={reviewRatingShortcutKeys[option.rating]}
           disabled={isSubmitting}
           onClick={() => onReview(option.rating)}
+          onPointerEnter={onShortcutButtonPointerEnter}
           data-testid={`review-rate-${option.testId}`}
         >
           <span className="rating-btn-title">{option.title}</span>
@@ -301,6 +306,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     onEditCard,
     onRevealAnswer,
     onReview,
+    onShortcutButtonPointerEnter,
     onToggleSpeech,
     reviewButtonErrorMessage,
     reviewButtonOptions,
@@ -424,6 +430,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
                 onReview={(rating) => {
                   void onReview(selectedCard, rating);
                 }}
+                onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}
                 options={leftReviewButtonOptions}
               />
               <ReviewRatingButtonColumn
@@ -431,6 +438,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
                 onReview={(rating) => {
                   void onReview(selectedCard, rating);
                 }}
+                onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}
                 options={rightReviewButtonOptions}
               />
             </div>
@@ -441,6 +449,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             className="primary-btn review-reveal-btn"
             aria-keyshortcuts={REVIEW_REVEAL_SHORTCUT_ARIA_KEY}
             onClick={onRevealAnswer}
+            onPointerEnter={onShortcutButtonPointerEnter}
             data-testid="review-reveal-answer"
           >
             {t("reviewScreen.actions.revealAnswer")}
@@ -466,6 +475,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     onEditCard,
     onRevealAnswer,
     onReview,
+    onShortcutButtonPointerEnter,
     onSwitchToAllCards,
     onToggleSpeech,
     reviewButtonErrorMessage,
@@ -517,6 +527,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           onEditCard={onEditCard}
           onRevealAnswer={onRevealAnswer}
           onReview={onReview}
+          onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}
           onToggleSpeech={onToggleSpeech}
           reviewButtonErrorMessage={reviewButtonErrorMessage}
           reviewButtonOptions={reviewButtonOptions}
