@@ -53,12 +53,14 @@ extension FlashcardsStore {
      *
      * That is narrower than "nothing writes across the reset", and the difference matters if you are
      * working here. Those comparisons gate the write-back only; they sit after the awaited work and
-     * do not gate its identity side effects. `FlashcardsStore.completeCloudLink` runs its body
-     * through `CloudSessionRuntime.runWorkspaceCompletion`, which awaits an unstructured `Task`, so
-     * cancelling `postAuthSyncTask` cancels the wait and not that task: a `completeCloudLink`
-     * already in flight when this runs still finishes its credential and workspace writes, and this
-     * call does not stop it. That overlap is a known gap left open on purpose — closing it is a
-     * larger change than this one.
+     * do not gate its identity side effects. What stops a `FlashcardsStore.completeCloudLink`
+     * already in flight is the `cancelForAccountDeletion` inside the reset below, which cancels both
+     * the unstructured task `CloudSessionRuntime.runWorkspaceCompletion` holds and the separate one
+     * the link transition nested inside it holds. Ending the attempt cannot do that on its own:
+     * cancelling `postAuthSyncTask` cancels the wait, not those tasks.
+     *
+     * The cancel alone would not be enough either, and reading it is the cancelled bodies'
+     * obligation rather than this reset's. `CloudSessionRuntime.cancelForAccountDeletion` states it.
      */
     func eraseLocalDataForCredentialRecovery() throws {
         guard self.cloudCredentialRecoveryState != nil else {
