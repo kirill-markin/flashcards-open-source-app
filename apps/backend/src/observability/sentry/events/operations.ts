@@ -108,6 +108,19 @@ export type CatalogDumpGeneratedDetails = Readonly<{
   triggerRoute: string | null;
 }>;
 
+/**
+ * One completed media reconcile of the `catalog/media/` prefix of the dump
+ * bucket. `desiredObjectCount` is what the public catalog currently exposes;
+ * the copy and delete counts are the work that pass had to do, so a steady
+ * state reports zero for both.
+ */
+export type CatalogDumpMediaPublishedDetails = Readonly<{
+  bucketName: string;
+  desiredObjectCount: number;
+  copiedObjectCount: number;
+  deletedObjectCount: number;
+}>;
+
 export type CatalogDumpFailureDetails = Readonly<{
   bucketName: string | null;
   triggerRoute: string | null;
@@ -395,8 +408,16 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
 }>;
 
 export type CatalogDumpS3RetryDetails = Readonly<{
-  /** The retry helper is shared by the artifact write and the pointer read. */
-  operation: "get_object" | "put_object";
+  /**
+   * The retry helper is shared by the artifact write, the pointer read, and the
+   * media reconcile that publishes catalog blobs to the same bucket.
+   */
+  operation:
+    | "get_object"
+    | "put_object"
+    | "list_objects"
+    | "copy_object"
+    | "delete_object";
   attempt: number;
   maxAttempts: number;
   bucketName: string;
@@ -567,6 +588,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"mcp_request", McpRequestDetails>
   | EventByAction<"global_metrics_snapshot_generated", GlobalMetricsSnapshotGeneratedDetails>
   | EventByAction<"catalog_dump_generated", CatalogDumpGeneratedDetails>
+  | EventByAction<"catalog_dump_media_published", CatalogDumpMediaPublishedDetails>
   | EventByAction<"community_leaderboard_snapshot_generated", CommunityLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>

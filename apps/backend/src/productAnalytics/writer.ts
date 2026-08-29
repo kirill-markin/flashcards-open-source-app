@@ -24,7 +24,10 @@ const analyticsPoolConnectionTimeoutMs = 2_000;
 
 // pg-pool answers a failed acquisition with a bare Error carrying no code and no SQLSTATE, so it
 // matches nothing isTransientDatabaseError recognises and would otherwise reach a caller as an
-// unclassified failure. The message is the only thing that names it.
+// unclassified failure. The message is the only thing that names it, and it is pg's wording rather
+// than a contract: a pg upgrade that rewords it makes this match fail silently, so the acquisition
+// timeout would take the 503 branch below and the 429 docs/auth-service.md documents for it would
+// never be raised. Re-check the string against pg-pool on every pg upgrade.
 const analyticsPoolAcquisitionTimeoutMessage = "timeout exceeded when trying to connect";
 
 type ProductAnalyticsParameterValue = string | number | Date | null;

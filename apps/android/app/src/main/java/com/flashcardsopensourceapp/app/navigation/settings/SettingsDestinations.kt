@@ -125,11 +125,11 @@ data object SettingsAccountSignInEmailDestination {
 }
 
 data object SettingsAccountSignInCodeDestination {
-    const val route: String = "settings/account/sign-in/code"
+    const val route: String = "${SettingsAccountSignInEmailDestination.routePrefix}/code"
 }
 
 data object SettingsAccountPostAuthDestination {
-    const val route: String = "settings/account/sign-in/post-auth"
+    const val route: String = "${SettingsAccountSignInEmailDestination.routePrefix}/post-auth"
 }
 
 data object SettingsAccountLegalDestination {

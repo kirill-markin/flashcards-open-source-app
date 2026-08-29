@@ -283,6 +283,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       lambdaSg: net.lambdaSg,
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
+      mediaAssetsBucket: mediaAssetsResult.bucket,
       baseDomain,
       ...sentryContext,
     });
