@@ -77,12 +77,19 @@ export const platformLabels: Readonly<Record<ReviewEventPlatform, string>> = {
   web: "Web",
   android: "Android",
   ios: "iOS",
+  agent: "Agent API",
+  // Named for what it is. A row lands here because its `platform` column is NULL, and on a
+  // server-derived fact such as `review_answered` that means the fact is not about a device at all.
+  // It is kept as its own series so it can never be read as a device or summed into one.
+  unattributed: "No device",
 };
 
 const platformColors: Readonly<Record<ReviewEventPlatform, string>> = {
   web: "#4e79a7",
   android: "#59a14f",
   ios: "#f28e2b",
+  agent: "#af7aa1",
+  unattributed: "#8c8c8c",
 };
 
 export const uniqueUserCohortKeys = reviewEventCohorts;
