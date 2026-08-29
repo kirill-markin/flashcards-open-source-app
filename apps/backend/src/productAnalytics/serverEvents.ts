@@ -1,9 +1,15 @@
 import { createHash, randomUUID } from "node:crypto";
 import { getDatabaseErrorFields } from "../database/transient";
+// Report through `observability/runtime`, never through `observability/sentry`, for the reason
+// spelled out in contentCreations.ts: the content-creation drain calls the batch emission below, and
+// it runs inside the direct image ingestion Lambda's import graph, whose bundle must reach no
+// `observability/sentry/capture`, `config` or `tracing` module. The runtime sink is
+// `captureBackendWarning` wherever `initializeBackendSentry` ran, so nothing about these two
+// warnings changes for the handlers that do initialize Sentry.
 import {
-  captureBackendWarning,
+  captureBackendRuntimeWarning,
   createBackendObservationScope,
-} from "../observability/sentry";
+} from "../observability/runtime";
 import {
   productAnalyticsSchemaVersion,
   type ProductAnalyticsEventName,
@@ -228,7 +234,7 @@ export async function emitServerDerivedProductAnalyticsEvents(
     // string, so only these fields name the failure that actually happened; they fall back to the
     // error's own class and message when it carries none.
     const errorDetails = getDatabaseErrorFields(error);
-    captureBackendWarning({
+    captureBackendRuntimeWarning({
       action: "product_analytics_server_event_write_failed",
       scope: createBackendObservationScope(
         "backend-api",
@@ -275,7 +281,7 @@ export async function linkServerDerivedProductAnalyticsIdentity(
     });
   } catch (error) {
     const errorDetails = getDatabaseErrorFields(error);
-    captureBackendWarning({
+    captureBackendRuntimeWarning({
       action: "product_analytics_identity_link_write_failed",
       scope: createBackendObservationScope(
         "backend-api",
