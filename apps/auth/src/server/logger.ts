@@ -25,6 +25,9 @@ type AuthAction =
   | "revoke_token"
   | "revoke_token_error"
   | "database_pool_error"
+  | "analytics_visitor_cookie_error"
+  | "analytics_guest_session_error"
+  | "analytics_ingest_error"
   | "request_error"
   | "error";
 
