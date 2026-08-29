@@ -388,7 +388,7 @@ jobs:
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
-            --require-migration 0119_product_analytics_contract_revision.sql
+            --require-migration 0120_backfill_product_analytics_server_facts.sql
 
       - name: CDK deploy with reconciliation schedule enabled
         working-directory: infra/aws

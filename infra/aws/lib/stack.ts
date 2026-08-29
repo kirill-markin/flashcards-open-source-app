@@ -360,7 +360,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const migrationGate = databaseMigrationGate(
       this,
       migrationFn,
-      "0119_product_analytics_contract_revision.sql",
+      "0120_backfill_product_analytics_server_facts.sql",
     );
     const api = apiGateway(this, {
       vpc: net.vpc,
