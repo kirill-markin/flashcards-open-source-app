@@ -931,6 +931,10 @@ const esMxCatalog: TranslationCatalog = {
       good: "Bien",
       hard: "Difícil",
     },
+    shortcuts: {
+      hint: "Presiona {{key}}",
+      spaceKey: "Espacio",
+    },
     sides: {
       back: "Reverso",
       front: "Frente",
