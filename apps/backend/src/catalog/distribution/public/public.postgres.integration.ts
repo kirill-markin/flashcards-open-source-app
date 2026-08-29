@@ -213,6 +213,7 @@ test("latest migrations delist deterministic fixtures and expose test-owned publ
     const snapshot = await loadPublicCatalogSnapshotInExecutor(createPoolExecutor(pool), {
       publicApiBaseUrl: "https://api.flashcards-open-source-app.com/v1",
       publicAppBaseUrl: "https://flashcards-open-source-app.com",
+      catalogMediaCdnBaseUrl: "https://catalog-cdn.flashcards-open-source-app.com",
       generatedAt: "2026-08-14T00:00:00.000Z",
     });
 

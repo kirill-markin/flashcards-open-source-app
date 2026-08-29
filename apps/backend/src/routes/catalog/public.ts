@@ -20,6 +20,7 @@ import {
   type CatalogDumpPointer,
 } from "../../catalog/distribution/public/dumpStorage";
 import {
+  buildCatalogMediaCdnUrl,
   getPublicCatalogMediaDeliveryIssue,
   maximumPublicCatalogMediaDownloadBytes,
 } from "../../catalog/publicMediaDelivery";
@@ -33,11 +34,6 @@ import type {
   CatalogPublicPackageVersionDetail,
 } from "../../catalog/types";
 import {
-  loadMediaAssetObjectBytes,
-  type LoadedMediaAssetObjectBytes,
-  type LoadMediaAssetObjectBytesInput,
-} from "../../mediaAssets/storage";
-import {
   captureBackendWarning,
   createBackendObservationScope,
   type BackendObservationScope,
@@ -45,7 +41,6 @@ import {
 import type { AppEnv } from "../../server/app";
 import { expectUuidString } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
-import { getPublicApiBaseUrl } from "../../shared/publicUrls";
 
 type CatalogPublicRoutesOptions = Readonly<{
   loadCatalogDumpPointerFn?: (
@@ -54,7 +49,10 @@ type CatalogPublicRoutesOptions = Readonly<{
   listPublicCatalogPackagesFn?: (
     input: CatalogPublicPackageListInput,
   ) => Promise<ReadonlyArray<CatalogPublicPackageSummary>>;
-  loadPublicCatalogPackageDetailFn?: (packageSlug: string) => Promise<CatalogPublicPackageDetail>;
+  loadPublicCatalogPackageDetailFn?: (
+    packageSlug: string,
+    catalogMediaCdnBaseUrl: string,
+  ) => Promise<CatalogPublicPackageDetail>;
   loadPublicCatalogPackageVersionFn?: (
     packageVersionId: string,
   ) => Promise<CatalogPublicPackageVersionDetail>;
@@ -64,13 +62,12 @@ type CatalogPublicRoutesOptions = Readonly<{
   loadPublicCatalogPackageMediaForDownloadFn?: (
     packageVersionId: string,
     packageMediaKey: string,
+    catalogMediaCdnBaseUrl: string,
   ) => Promise<CatalogPublicPackageMediaDownloadSource>;
   loadPublicCatalogCollectionCoverForDownloadFn?: (
     collectionId: string,
   ) => Promise<CatalogPublicCollectionCoverDownloadSource>;
-  loadMediaAssetObjectBytesFn?: (
-    input: LoadMediaAssetObjectBytesInput,
-  ) => Promise<LoadedMediaAssetObjectBytes>;
+  resolveCatalogMediaCdnBaseUrlFn?: () => string;
 }>;
 
 const defaultPackageListLimit = 50;
@@ -198,54 +195,24 @@ function createCatalogPublicScope(
   );
 }
 
-function createBackendDownloadUrl(
-  requestUrl: string,
-  packageVersionId: string,
-  packageMediaKey: string,
-): string {
-  return [
-    getPublicApiBaseUrl(requestUrl),
-    "catalog",
-    "package-versions",
-    packageVersionId,
-    "media-assets",
-    packageMediaKey,
-    "download",
-  ].join("/");
-}
-
-function createBackendCollectionCoverDownloadUrl(
-  requestUrl: string,
-  collectionId: string,
-): string {
-  return [
-    getPublicApiBaseUrl(requestUrl),
-    "catalog",
-    "collections",
-    collectionId,
-    "cover",
-    "download",
-  ].join("/");
-}
-
-function rethrowCollectionCoverObjectLoadError(error: unknown, collectionId: string): never {
-  if (error instanceof HttpError && error.code === "MEDIA_ASSET_UPLOAD_NOT_FOUND") {
-    throw new HttpError(
-      409,
-      `Published catalog collection cover object is missing. collectionId=${collectionId}`,
-      "CATALOG_PUBLIC_COLLECTION_COVER_OBJECT_NOT_FOUND",
-      error.details ?? undefined,
-    );
-  }
-  if (error instanceof HttpError && error.code === "MEDIA_ASSET_OBJECT_BYTES_TOO_LARGE") {
-    throw new HttpError(
-      413,
-      `Published catalog collection cover is too large for public delivery. collectionId=${collectionId}`,
-      "CATALOG_PUBLIC_COLLECTION_COVER_TOO_LARGE",
+/**
+ * The CDN base URL on its own, deliberately not `getCatalogDumpStorageConfig()`.
+ *
+ * That accessor also requires `CATALOG_DUMP_S3_BUCKET_NAME`, which no route here
+ * reads: only the dump run writes to the bucket. Resolving the whole config
+ * would let a missing bucket name take down package browse and media delivery
+ * over a variable they never use, while `GET /catalog` keeps failing that same
+ * configuration as its own typed 503.
+ */
+function resolveCatalogMediaCdnBaseUrl(): string {
+  const cdnBaseUrl = process.env.CATALOG_DUMP_CDN_BASE_URL;
+  if (cdnBaseUrl === undefined || cdnBaseUrl.trim() === "") {
+    throw new Error(
+      "CATALOG_DUMP_CDN_BASE_URL is required for public catalog media delivery.",
     );
   }
 
-  throw error;
+  return cdnBaseUrl.trim();
 }
 
 function isCatalogDumpPointerUnavailableError(error: unknown): error is HttpError {
@@ -254,35 +221,52 @@ function isCatalogDumpPointerUnavailableError(error: unknown): error is HttpErro
     && error.code === catalogDumpPointerUnavailableCode;
 }
 
-function assertPublicCatalogMediaDownloadSupported(
+/**
+ * Resolves the published CDN object for one authorized public catalog media
+ * asset.
+ *
+ * The mime allowlist and the size cap decide what the catalog publishes to the
+ * CDN at all, so neither is a transport limit any more: they say whether an
+ * object exists to point at. An asset outside them keeps answering the same
+ * 415 and 413 it always did rather than redirecting to a key that was never
+ * written.
+ */
+function resolvePublicCatalogMediaCdnUrl(
   mediaDownloadSource: CatalogPublicPackageMediaDownloadSource,
-): void {
+): string {
   const issue = getPublicCatalogMediaDeliveryIssue({
     mimeType: mediaDownloadSource.mediaAsset.mimeType,
     sizeBytes: mediaDownloadSource.mediaAsset.sizeBytes,
   });
-  if (issue === null) {
-    return;
-  }
-
-  if (issue.reason === "too_large") {
-    // TODO: Route public package media through CDN or streaming delivery before raising this proxy cap.
+  if (issue?.reason === "too_large") {
     throw new HttpError(
       413,
       [
-        "Public catalog package media is too large for backend proxy download.",
+        "Public catalog package media is too large for public delivery.",
         `sizeBytes=${mediaDownloadSource.mediaAsset.sizeBytes}`,
         `maxBytes=${maximumPublicCatalogMediaDownloadBytes}`,
       ].join(" "),
       "CATALOG_PUBLIC_MEDIA_DOWNLOAD_TOO_LARGE",
     );
   }
+  if (issue?.reason === "unsupported_mime_type") {
+    throw new HttpError(
+      415,
+      `Public catalog package media type is not supported for public delivery. mimeType=${mediaDownloadSource.mediaAsset.mimeType}`,
+      "CATALOG_PUBLIC_MEDIA_DOWNLOAD_UNSUPPORTED_TYPE",
+    );
+  }
 
-  throw new HttpError(
-    415,
-    `Public catalog package media type is not supported for backend proxy download. mimeType=${mediaDownloadSource.mediaAsset.mimeType}`,
-    "CATALOG_PUBLIC_MEDIA_DOWNLOAD_UNSUPPORTED_TYPE",
-  );
+  const downloadUrl = mediaDownloadSource.mediaAsset.downloadUrl;
+  if (downloadUrl === null) {
+    throw new HttpError(
+      409,
+      `Published catalog package media is not addressable on the public CDN. packageVersionId=${mediaDownloadSource.mediaAsset.packageVersionId}`,
+      "CATALOG_PUBLIC_MEDIA_OBJECT_NOT_ADDRESSABLE",
+    );
+  }
+
+  return downloadUrl;
 }
 
 export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): Hono<AppEnv> {
@@ -299,7 +283,10 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     ?? loadPublicCatalogPackageMediaForDownload;
   const loadPublicCatalogCollectionCoverForDownloadFn = options.loadPublicCatalogCollectionCoverForDownloadFn
     ?? loadPublicCatalogCollectionCoverForDownload;
-  const loadMediaAssetObjectBytesFn = options.loadMediaAssetObjectBytesFn ?? loadMediaAssetObjectBytes;
+  // Resolved per request, not once here: the routes are constructed wherever the
+  // app is, including where the catalog dump environment is not configured.
+  const resolveCatalogMediaCdnBaseUrlFn = options.resolveCatalogMediaCdnBaseUrlFn
+    ?? resolveCatalogMediaCdnBaseUrl;
 
   /**
    * Redirects to the immutable catalog artifact instead of recomputing the
@@ -357,7 +344,10 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
 
   app.get("/catalog/packages/:packageSlug", async (context) => {
     const packageSlug = parsePackageSlugParam(context.req.param("packageSlug"));
-    const catalogPackage = await loadPublicCatalogPackageDetailFn(packageSlug);
+    const catalogPackage = await loadPublicCatalogPackageDetailFn(
+      packageSlug,
+      resolveCatalogMediaCdnBaseUrlFn(),
+    );
     return context.json({ catalogPackage });
   });
 
@@ -381,7 +371,7 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     const coverDownloadSource = await loadPublicCatalogCollectionCoverForDownloadFn(collectionId);
     const download = {
       method: "GET",
-      url: createBackendCollectionCoverDownloadUrl(context.req.url, collectionId),
+      url: buildCatalogMediaCdnUrl(resolveCatalogMediaCdnBaseUrlFn(), coverDownloadSource.sha256),
       expiresAt: null,
       rangeRequests: false,
     } as const;
@@ -392,38 +382,22 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     });
   });
 
+  /**
+   * Compatibility route for the URL every previously published snapshot embeds.
+   * It still runs the published-and-not-delisted lookup on every request, so
+   * withdrawal stays immediate, and the redirect itself is never cached for the
+   * same reason. Only the bytes moved to the CDN.
+   */
   app.get("/catalog/collections/:collectionId/cover/download", async (context) => {
-    const requestId = context.get("requestId");
     const collectionId = parseCollectionIdParam(context.req.param("collectionId"));
-    const scope = createCatalogPublicScope(
-      requestId,
-      context.req.path,
-      context.req.method,
-      context.get("clientAppVersion"),
-      context.get("clientPlatform"),
-    );
     const coverDownloadSource = await loadPublicCatalogCollectionCoverForDownloadFn(collectionId);
+    const objectUrl = buildCatalogMediaCdnUrl(
+      resolveCatalogMediaCdnBaseUrlFn(),
+      coverDownloadSource.sha256,
+    );
 
-    let objectBytes: LoadedMediaAssetObjectBytes;
-    try {
-      objectBytes = await loadMediaAssetObjectBytesFn({
-        workspaceId: collectionId,
-        mediaAssetId: "cover",
-        storageKey: coverDownloadSource.storageKey,
-        mimeType: coverDownloadSource.collectionCover.mimeType,
-        sizeBytes: coverDownloadSource.collectionCover.sizeBytes,
-        sha256: coverDownloadSource.sha256,
-        maxByteSize: maximumPublicCatalogMediaDownloadBytes,
-        observationScope: scope,
-      });
-    } catch (error) {
-      rethrowCollectionCoverObjectLoadError(error, collectionId);
-    }
-
-    context.header("Content-Type", objectBytes.mimeType ?? coverDownloadSource.collectionCover.mimeType);
-    context.header("Content-Length", objectBytes.sizeBytes.toString());
     context.header("Cache-Control", "public, no-cache");
-    return context.body(new Uint8Array(objectBytes.bytes), 200);
+    return context.redirect(objectUrl, 302);
   });
 
   app.get("/catalog/package-versions/:packageVersionId/media-assets/:packageMediaKey/download-url", async (context) => {
@@ -433,11 +407,11 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     const mediaDownloadSource = await loadPublicCatalogPackageMediaForDownloadFn(
       packageVersionId,
       packageMediaKey,
+      resolveCatalogMediaCdnBaseUrlFn(),
     );
-    assertPublicCatalogMediaDownloadSupported(mediaDownloadSource);
     const download = {
       method: "GET",
-      url: createBackendDownloadUrl(context.req.url, packageVersionId, packageMediaKey),
+      url: resolvePublicCatalogMediaCdnUrl(mediaDownloadSource),
       expiresAt: null,
       rangeRequests: false,
     } as const;
@@ -445,38 +419,27 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
     return context.json({ mediaAsset: mediaDownloadSource.mediaAsset, download });
   });
 
+  /**
+   * Compatibility route for the URL every previously published snapshot embeds,
+   * and the only public catalog media path that still opens a Postgres
+   * connection. It redirects instead of proxying bytes, keeps the
+   * published-and-not-delisted lookup on every request, and is never cached:
+   * a package version that republishes its media changes which object this key
+   * resolves to, and a delist has to stop resolving at once.
+   */
   app.get("/catalog/package-versions/:packageVersionId/media-assets/:packageMediaKey/download", async (context) => {
-    const requestId = context.get("requestId");
     const packageVersionId = parsePackageVersionIdParam(context.req.param("packageVersionId"));
     const packageMediaKey = parsePackageMediaKeyParam(context.req.param("packageMediaKey"));
-    const scope = createCatalogPublicScope(
-      requestId,
-      context.req.path,
-      context.req.method,
-      context.get("clientAppVersion"),
-      context.get("clientPlatform"),
-    );
 
     const mediaDownloadSource = await loadPublicCatalogPackageMediaForDownloadFn(
       packageVersionId,
       packageMediaKey,
+      resolveCatalogMediaCdnBaseUrlFn(),
     );
-    assertPublicCatalogMediaDownloadSupported(mediaDownloadSource);
-    const objectBytes = await loadMediaAssetObjectBytesFn({
-      workspaceId: packageVersionId,
-      mediaAssetId: mediaDownloadSource.mediaAsset.packageMediaKey,
-      storageKey: mediaDownloadSource.storageKey,
-      mimeType: mediaDownloadSource.mediaAsset.mimeType,
-      sizeBytes: mediaDownloadSource.mediaAsset.sizeBytes,
-      sha256: mediaDownloadSource.sha256,
-      maxByteSize: maximumPublicCatalogMediaDownloadBytes,
-      observationScope: scope,
-    });
+    const objectUrl = resolvePublicCatalogMediaCdnUrl(mediaDownloadSource);
 
-    context.header("Content-Type", objectBytes.mimeType ?? mediaDownloadSource.mediaAsset.mimeType);
-    context.header("Content-Length", objectBytes.sizeBytes.toString());
-    context.header("Cache-Control", "public, max-age=3600");
-    return context.body(new Uint8Array(objectBytes.bytes), 200);
+    context.header("Cache-Control", "public, no-cache");
+    return context.redirect(objectUrl, 302);
   });
 
   return app;
