@@ -18,6 +18,7 @@ export interface CatalogDumpProps {
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
+  mediaAssetsBucket: s3.IBucket;
   baseDomain: string;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
@@ -41,6 +42,20 @@ const catalogDumpObjectKeyPrefix = "catalog";
  * through the builder's write prefix.
  */
 export const catalogDumpPointerObjectKey = `${catalogDumpObjectKeyPrefix}/pointer.json`;
+
+/**
+ * Prefix of the dump bucket the builder publishes public catalog media blobs to.
+ * Must stay in sync with `catalogMediaObjectKeyPrefix` in
+ * `apps/backend/src/catalog/distribution/public/mediaPublication.ts`.
+ */
+const catalogDumpMediaObjectKeyPrefix = `${catalogDumpObjectKeyPrefix}/media/`;
+
+/**
+ * Prefix of the private media assets bucket those blobs are copied from. Must
+ * stay in sync with `buildMediaBlobStorageKey` in
+ * `apps/backend/src/mediaAssets/storageKeys.ts`.
+ */
+const mediaAssetsBlobObjectKeyPrefix = "media/blobs/sha256/";
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
@@ -148,6 +163,7 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
       PUBLIC_APP_BASE_URL: parsePublicOrigin(`https://app.${props.baseDomain}`, "appBaseUrl"),
       CATALOG_DUMP_S3_BUCKET_NAME: bucket.bucketName,
       CATALOG_DUMP_CDN_BASE_URL: cdnBaseUrl,
+      MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,
     },
   });
 
@@ -156,6 +172,31 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
   dumpFunction.addToRolePolicy(new iam.PolicyStatement({
     actions: ["s3:PutObject"],
     resources: [bucket.arnForObjects(`${catalogDumpObjectKeyPrefix}/*`)],
+  }));
+
+  // The builder reconciles public catalog media blobs onto the CDN, so it reads
+  // the private blobs and owns the media prefix it publishes them to. Reads are
+  // scoped to the blob prefix because the reconcile only ever copies a
+  // content-addressed blob, and writes are stated on the media prefix of their
+  // own so the reconcile keeps its permissions if the artifact grant above is
+  // ever narrowed.
+  dumpFunction.addToRolePolicy(new iam.PolicyStatement({
+    actions: ["s3:GetObject"],
+    resources: [props.mediaAssetsBucket.arnForObjects(`${mediaAssetsBlobObjectKeyPrefix}*`)],
+  }));
+  dumpFunction.addToRolePolicy(new iam.PolicyStatement({
+    actions: ["s3:PutObject", "s3:DeleteObject"],
+    resources: [bucket.arnForObjects(`${catalogDumpMediaObjectKeyPrefix}*`)],
+  }));
+  dumpFunction.addToRolePolicy(new iam.PolicyStatement({
+    sid: "ListCatalogDumpMediaObjects",
+    actions: ["s3:ListBucket"],
+    resources: [bucket.bucketArn],
+    conditions: {
+      StringLike: {
+        "s3:prefix": [`${catalogDumpMediaObjectKeyPrefix}*`],
+      },
+    },
   }));
 
   return {
