@@ -931,6 +931,10 @@ const esEsCatalog: TranslationCatalog = {
       good: "Bien",
       hard: "Difícil",
     },
+    shortcuts: {
+      hint: "Pulsa {{key}}",
+      spaceKey: "Espacio",
+    },
     sides: {
       back: "Reverso",
       front: "Frente",

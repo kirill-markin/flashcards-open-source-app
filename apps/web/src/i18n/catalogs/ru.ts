@@ -931,6 +931,10 @@ export const ruCatalog = {
       good: "Хорошо",
       hard: "Трудно",
     },
+    shortcuts: {
+      hint: "Нажмите {{key}}",
+      spaceKey: "Пробел",
+    },
     sides: {
       back: "Обратная сторона",
       front: "Лицевая сторона",
