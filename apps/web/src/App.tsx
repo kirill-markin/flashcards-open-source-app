@@ -2,8 +2,8 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactEle
 import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useParams } from "react-router";
 import { AccountMenu } from "./AccountMenu";
 import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
-import { AnalyticsLifecycle } from "./analytics";
-import { AppDataProvider, useAppData } from "./appData";
+import { AnalyticsLifecycle, useAnalyticsScreenView, type AnalyticsSurface } from "./analytics";
+import { AppDataProvider, useAppData, type SessionLoadState } from "./appData";
 import { WebGuestSessionLifecycle } from "./appData/session/guest/WebGuestSessionLifecycle";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
@@ -338,6 +338,46 @@ function TestModeRouteGuard(props: Readonly<{ children: ReactElement }>): ReactE
   return children;
 }
 
+/**
+ * The screen a session gate puts on display in place of the whole app, or null while the route's own
+ * screen is showing.
+ *
+ * `selecting_workspace` replaces everything with the workspace chooser, and the catalog is explicit
+ * that the choice is part of the sign-in screen: "the email step, the code step and the workspace
+ * choice are one screen here". The steps themselves live on the auth service's origin, so this is
+ * the only part of `signin` this client can ever report.
+ *
+ * `deleted` replaces everything with a gate whose only exit is signing in again, reached on the boot
+ * that finds the account behind the stored session gone. That is `credential_recovery`: the app root
+ * taken over because stored credentials can no longer be used, which is what iOS and Android report
+ * it for (`CloudCredentialRecoveryReason.linkedCredentialsMissing` and its siblings). It is not
+ * `signin`, which names the sign-in steps themselves, and this gate hosts none of them.
+ *
+ * `ready` is the route's own screen showing normally. `loading`, `redirecting` and `error` report
+ * nothing and leave that surface in place: they are the route's own loading and error states, which
+ * the catalog keeps on the surface of the route they belong to rather than giving a screen of their
+ * own.
+ *
+ * Exhaustive over `SessionLoadState` with no `default`, the way `productAnalyticsClientReportable-
+ * PlatformFlags` is exhaustive over its stored domain in `apps/backend/src/productAnalytics/
+ * catalog.ts`, and for the same reason: a new gate state must not report a screen — or silently
+ * report none — by omission, because `analytics.product_events` is append-only and has no repair
+ * path. Adding one fails to compile here until this question is answered for it.
+ */
+function resolveSessionGateSurface(sessionLoadState: SessionLoadState): AnalyticsSurface | null {
+  switch (sessionLoadState) {
+    case "selecting_workspace":
+      return "signin";
+    case "deleted":
+      return "credential_recovery";
+    case "ready":
+    case "loading":
+    case "redirecting":
+    case "error":
+      return null;
+  }
+}
+
 export function AppShell(): ReactElement {
   const location = useLocation();
   const { locale, t, formatDateTime } = useI18n();
@@ -457,6 +497,11 @@ export function AppShell(): ReactElement {
   function toggleMobileNavigation(): void {
     setIsMobileNavigationOpen((currentValue: boolean): boolean => !currentValue);
   }
+
+  // Called before the early returns below so it runs on every render, as a hook must. A gate that
+  // replaces the app is the screen while it is up, and reporting it is also what keeps every other
+  // event tracked underneath it off the route's surface.
+  useAnalyticsScreenView(resolveSessionGateSurface(sessionLoadState));
 
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (

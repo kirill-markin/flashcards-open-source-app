@@ -484,107 +484,236 @@ export function filterReviewEventsByDateReport(
   };
 }
 
+// The first calendar day the dashboard has anything to show, read from the same event table the
+// charts read. Three scalar subqueries rather than one `event_name IN (...)` aggregate: each of them
+// is a `MIN` over a single leading key value of `idx_product_events_event_name_occurred_at` (0119),
+// which is the shape Postgres can answer as an ordered index scan stopping at the first row. That is
+// the intent rather than a guarantee: these read `analytics.product_events_resolved`, so reaching
+// the index needs the planner to drop the view's two `LEFT JOIN`s first, and only `EXPLAIN` against
+// production settles whether it does. `LEAST` ignores NULLs, so an event name that has never been
+// emitted simply does not contribute a candidate.
 export function buildReviewEventsByDateDefaultRangeSql(): string {
   return [
-    "WITH activity_dates AS (",
-    "  SELECT (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date AS activity_date",
-    "  FROM content.review_events AS review_events",
-    "  UNION ALL",
-    "  SELECT (friend_invitations.created_at AT TIME ZONE 'UTC')::date AS activity_date",
-    "  FROM community.friend_invitations AS friend_invitations",
-    "  UNION ALL",
-    "  SELECT (friendships.created_at AT TIME ZONE 'UTC')::date AS activity_date",
-    "  FROM community.friendships AS friendships",
-    ")",
     "SELECT",
     "  COALESCE(",
-    "    to_char(MIN(activity_dates.activity_date), 'YYYY-MM-DD'),",
+    "    to_char(",
+    "      (",
+    "        LEAST(",
+    "          (",
+    "            SELECT MIN(resolved.occurred_at)",
+    "            FROM analytics.product_events_resolved AS resolved",
+    "            WHERE resolved.event_name = 'review_answered'",
+    "          ),",
+    "          (",
+    "            SELECT MIN(resolved.occurred_at)",
+    "            FROM analytics.product_events_resolved AS resolved",
+    "            WHERE resolved.event_name = 'friend_invitation_created'",
+    "          ),",
+    "          (",
+    "            SELECT MIN(resolved.occurred_at)",
+    "            FROM analytics.product_events_resolved AS resolved",
+    "            WHERE resolved.event_name = 'friendship_created'",
+    "          )",
+    "        ) AT TIME ZONE 'UTC'",
+    "      )::date,",
+    "      'YYYY-MM-DD'",
+    "    ),",
     "    to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD')",
     "  ) AS from_date,",
     "  to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS to_date",
-    "FROM activity_dates",
   ].join("\n");
 }
 
-// Per-user breakdown for the admin "Review events by date" report (chart + table).
-// The user-identity filters here (the `actor_kind` / `platform` allowlist and the
-// `@example.com` email exclusion) are the same rules encoded in
-// `clientInstallationActivityWhereSqlFragments` and `exampleComEmailExclusionSqlFragments`
-// in `apps/backend/src/globalMetrics/reporting.ts`, which back the public
-// `/v1/global/snapshot` endpoint and the scheduled snapshot Lambda. The
-// `user_first_review_date` CTE below mirrors the equivalent CTE in the public snapshot
-// days SQL so that the new/returning cohort split shown in the admin dashboard matches
-// the `newReviewingUsers` / `returningReviewingUsers` series exposed in the snapshot.
-// This admin query lives in a separate package, so the rules are intentionally restated
-// here. If any rule changes, update both files.
+// Per-actor breakdown for the admin "Review events by date" report (charts + tooltips).
+//
+// ONE SOURCE. This reads `analytics.product_events_resolved` and nothing else in the product
+// schemas except the identity join below. It no longer joins `content.review_events` to
+// `sync.workspace_replicas`, and it no longer restates the client-installation identity rules that
+// `apps/backend/src/globalMetrics/reporting.ts` encodes for the public snapshot. Those two surfaces
+// have deliberately diverged: the snapshot still counts raw review rows, this dashboard counts
+// resolved actors, and the numbers are expected to differ.
+//
+// GROUP BY actor_id, NEVER BY user_id. `actor_id` already collapses a guest and the account that
+// guest became into one person (`db/migrations/0115_product_analytics_resolved_view.sql`), and
+// `0120` wrote the historical guest links, so pre-live history resolves through the same machinery.
+// That single rule is what removes the `actor_kind = 'client_installation'` filter, the guest-merge
+// reasoning and the duplicated cohort CTE at once.
+//
+// ONE IDENTITY RULE IS NOT IN THE EVENTS TABLE. An event row carries no email, so the
+// `%@example.com` exclusion has to bring its own, joined from `actor_id` to `org.user_settings`. The
+// same rule is encoded canonically as `exampleComEmailExclusionSqlFragments` in
+// `apps/backend/src/globalMetrics/reporting.ts`; this package cannot import from there, so it is
+// restated inline here and again in `buildReviewEventsByDateCommunitySql`. If the exclusion changes
+// - a second test domain, a different match - update both files.
+//
+// THAT JOIN FOLDS THE STORED SIDE, and has to. `resolved.actor_id` is UUID, so `::text` always
+// renders canonical lowercase hex, while `org.user_settings.user_id` is an unconstrained TEXT
+// primary key (`db/migrations/0001_initial_schema.sql:26-27`) that may hold either hex case.
+// Compared as stored, an uppercase-hex row would simply miss, the email would come back NULL, the
+// row would pass `user_settings.email IS NULL`, and a test account would be counted in every chart
+// while displaying as `(no email)`. `0120_backfill_product_analytics_server_facts.sql:445-460`
+// settles this same question for the same reason and folds both sides of its live-account guard.
+// Folding rather than `::uuid` is equally deliberate: `0001_initial_schema.sql:152` seeds this table
+// with the id `'local'` for `AUTH_MODE=none`, and a cast would abort the whole statement and take
+// the dashboard down. The cost is the primary-key index on this join, which is cheap here because
+// `org.user_settings` is one narrow row per account: the planner hashes it once and probes that hash
+// per event, rather than scanning it per event. Two rows could fold together only if two accounts
+// held ids differing in hex case alone, which `0120` already treats as one identity; if that ever
+// happened the two builders would fail differently, because here the duplicate fold silently doubles
+// `COUNT(*)` and that actor's per-day totals, while in `buildReviewEventsByDateCommunitySql` the
+// final `org.user_settings` join fans the deduped `community_user_dates` rows back out and
+// `assertCommunityRowsInRange` throws `Community report returned duplicate rows for date and user`,
+// taking the whole dashboard red rather than reporting a wrong number.
+//
+// An actor with no row there - a guest who never upgraded, an unresolved anonymous id - keeps a NULL
+// email and is included, exactly as before.
+//
+// DELETED ACCOUNTS STILL APPEAR ONCE THEY HAVE ANALYTICS HISTORY, which is a visible change from the
+// old dashboard. Account deletion anonymizes rather than erases:
+// `apps/backend/src/auth/accountDeletion.ts:177-195` rewrites `user_id` and `subject_user_id` to a
+// per-deletion pseudonym UUID and sets `identity_state = 'anonymized'`. Those rows keep resolving to
+// a stable non-NULL `actor_id`, so a departed person's review history stays in the totals as a
+// `(no email)` actor whose raw pseudonym UUID shows in the user filter popup and in tooltips. The
+// old dashboard showed nothing for them, but not because of its `sync.workspace_replicas` join: the
+// same deletion had already removed the rows that query read, since
+// `accountDeletion.ts:254` deletes the person's sole-member `org.workspaces` rows and
+// `content.review_events.workspace_id` is `ON DELETE CASCADE` (`0001_initial_schema.sql:68`).
+//
+// The reverse case is the one to hold onto when reconciling a total: an account deleted BEFORE it
+// had analytics history is absent here entirely. There was nothing to anonymize, and `0120` could
+// not reconstruct it either, because `accountDeletion.ts:264` also deletes the `org.user_settings`
+// row and the backfill keeps only reviews whose author still has one (`0120:669-674`, stated
+// outright at `0120:606-611`). Do not look for those reviews in `content.review_events` either -
+// they went with the workspace.
+//
+// Keeping the anonymized history is intended - the reviews really happened - and `identity_state` on
+// `analytics.product_events_resolved` is the handle if they ever need filtering out.
+//
+// PLATFORM IS READ OFF THE ROW AND NEVER DERIVED. Every server-derived producer passes
+// `platform: null`, and `apps/backend/src/productAnalytics/reviewAnswers.ts` records why for this
+// event specifically: the only server-stored platform a review could reach is
+// `sync.workspace_replicas.platform`, which is unusable without `actor_kind` on the same row because
+// an `agent_connection` replica stores 'web', an `ai_chat` replica stores a hard-coded 'web' that
+// describes no device, and seed/reset replicas store 'system'. So every `review_answered` row lands
+// in the `unattributed` bucket, which means "not a device fact", not "unknown device". The old
+// dashboard's per-platform review split came from precisely the replica column that producer refuses
+// to guess from; it is gone, and the honest empty split is what replaces it. A real per-platform
+// split of people belongs to the `app_opened` series, which carries a device.
 export function buildReviewEventsByDateSql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "report");
 
   return [
-    "WITH user_first_review_date AS (",
+    // Bounded above only. The cohort split needs each actor's first review day over all of history,
+    // and the range filter is applied once, below, against the same materialized rows. The predicate
+    // is on the raw `occurred_at` column rather than on its UTC date so
+    // `idx_product_events_event_name_occurred_at` stays usable as an (event_name, occurred_at) range
+    // scan.
+    "WITH review_answers AS (",
     "  SELECT",
-    "    workspace_replicas.user_id,",
-    "    MIN((review_events.reviewed_at_server AT TIME ZONE 'UTC')::date) AS first_review_date",
-    "  FROM content.review_events AS review_events",
-    "  INNER JOIN sync.workspace_replicas AS workspace_replicas",
-    "    ON workspace_replicas.replica_id = review_events.replica_id",
+    "    resolved.actor_id::text AS actor_id,",
+    "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS review_date,",
+    "    CASE",
+    "      WHEN resolved.platform IN ('web', 'android', 'ios', 'agent') THEN resolved.platform",
+    "      ELSE 'unattributed'",
+    "    END AS platform,",
+    "    COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email",
+    "  FROM analytics.product_events_resolved AS resolved",
     "  LEFT JOIN org.user_settings AS user_settings",
-    "    ON user_settings.user_id = workspace_replicas.user_id",
-    "  WHERE review_events.reviewed_at_server < (",
-    `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    "  )",
-    "    AND workspace_replicas.actor_kind = 'client_installation'",
-    "    AND workspace_replicas.platform IN ('web', 'android', 'ios')",
+    "    ON pg_catalog.lower(user_settings.user_id) = resolved.actor_id::text",
+    "  WHERE resolved.event_name = 'review_answered'",
+    "    AND resolved.occurred_at < (",
+    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
+    "    )",
     "    AND (",
     "      user_settings.email IS NULL",
     "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
     "    )",
-    "  GROUP BY workspace_replicas.user_id",
+    "),",
+    // `occurred_at` is the client clock, kept only inside a 30-day window that ends at a server
+    // anchor and replaced by that anchor outside the window in EITHER direction - too far in the
+    // future and too far in the past alike (`resolveReviewAnsweredOccurredAt`,
+    // `apps/backend/src/productAnalytics/reviewAnswers.ts:182-197`, against
+    // `productAnalyticsMaxEventAgeMs` at `validation.ts:24`; `0120:645-650` applies the identical
+    // rule as `INTERVAL '720 hours'`, and that backfill produced almost all of the history below).
+    // Inside the window this is the day the person answered rather than the day the answer synced,
+    // so a first review day can move earlier than the old dashboard reported it. Outside it the day
+    // is the anchor's, and on the review history import the anchor is that request's own clock, so
+    // an offline, imported or guest-merged history older than 30 days collapses onto sync day
+    // instead of onto the days it was answered - which is the opposite of the in-window shift and
+    // worth knowing before reading an early spike as real.
+    "actor_first_review_date AS (",
+    "  SELECT",
+    "    review_answers.actor_id,",
+    "    MIN(review_answers.review_date) AS first_review_date",
+    "  FROM review_answers",
+    "  GROUP BY review_answers.actor_id",
     ")",
     "SELECT",
-    "  to_char((review_events.reviewed_at_server AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS review_date,",
-    "  workspace_replicas.user_id,",
-    "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email,",
-    "  workspace_replicas.platform,",
+    "  to_char(review_answers.review_date, 'YYYY-MM-DD') AS review_date,",
+    // Emitted under the name the SPA row shape already uses. The value is the resolved actor.
+    "  review_answers.actor_id AS user_id,",
+    "  review_answers.email,",
+    "  review_answers.platform,",
     "  COUNT(*)::int AS review_event_count,",
-    "  to_char(user_first_review_date.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
-    "FROM content.review_events AS review_events",
-    "INNER JOIN sync.workspace_replicas AS workspace_replicas",
-    "  ON workspace_replicas.replica_id = review_events.replica_id",
-    "LEFT JOIN org.user_settings AS user_settings",
-    "  ON user_settings.user_id = workspace_replicas.user_id",
-    "INNER JOIN user_first_review_date",
-    "  ON user_first_review_date.user_id = workspace_replicas.user_id",
-    "WHERE review_events.reviewed_at_server >= (",
-    `  ${escapeSqlStringLiteral(from)}::date::timestamp AT TIME ZONE 'UTC'`,
-    ")",
-    "  AND review_events.reviewed_at_server < (",
-    `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    "  )",
-    "  AND workspace_replicas.actor_kind = 'client_installation'",
-    "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
-    "  AND (",
-    "    user_settings.email IS NULL",
-    "    OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
-    "  )",
+    "  to_char(actor_first_review_date.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
+    "FROM review_answers",
+    "INNER JOIN actor_first_review_date",
+    "  ON actor_first_review_date.actor_id = review_answers.actor_id",
+    `WHERE review_answers.review_date >= ${escapeSqlStringLiteral(from)}::date`,
+    `  AND review_answers.review_date <= ${escapeSqlStringLiteral(to)}::date`,
     "GROUP BY",
-    "  (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date,",
-    "  workspace_replicas.user_id,",
-    "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)'),",
-    "  workspace_replicas.platform,",
-    "  user_first_review_date.first_review_date",
+    "  review_answers.review_date,",
+    "  review_answers.actor_id,",
+    "  review_answers.email,",
+    "  review_answers.platform,",
+    "  actor_first_review_date.first_review_date",
     "ORDER BY",
-    "  review_date ASC,",
+    "  review_answers.review_date ASC,",
     "  review_event_count DESC,",
-    "  workspace_replicas.user_id ASC,",
-    "  workspace_replicas.platform ASC",
+    "  review_answers.actor_id ASC,",
+    "  review_answers.platform ASC",
   ].join("\n");
 }
 
-// Per-user community activity for the admin "Review events by date" report.
-// One row per (report date, user) with at least one non-zero count; the client fills
-// the remaining dates. `friendship_count` counts the directed `community.friendships`
-// rows owned by that viewer, so the sum across users is twice the number of pairs.
+// Per-actor community activity for the admin "Review events by date" report.
+// One row per (report date, actor) with at least one non-zero count; the client fills the remaining
+// dates.
+//
+// Both series now come from `analytics.product_events_resolved`, grouped by `actor_id`, with the
+// same case-folded `org.user_settings` email join described on `buildReviewEventsByDateSql`, and the
+// same restatement of the `%@example.com` exclusion that lives canonically in
+// `apps/backend/src/globalMetrics/reporting.ts`.
+//
+// `friendship_count` is a RUNNING SUM of `friendship_created`, which replaces the old
+// `requested_dates x real_friendships` cross join - the one genuinely non-scaling part of the
+// previous dashboard, since it multiplied every requested day by every friendship row. Its scale is
+// now days x actors-with-friendships instead of days x friendship-rows. `GREATEST` folds every
+// pre-range event onto the first requested day, so the window function starts from the correct
+// opening balance in the same single pass.
+//
+// The running sum is exact GIVEN THE EVENTS: the producer emits one `friendship_created` per
+// directed `community.friendships` row (both the inviter's and the accepter's), the backend has no
+// delete path for a friendship, and nothing else writes that event - so the sum of a person's events
+// through the end of a day is that person's friendship count at the end of that day, which is what
+// the chart means. It is NOT exact against `community.friendships` itself, because the emission is
+// best effort and swallows its own failure
+// (`apps/backend/src/productAnalytics/serverEvents.ts:202-210`, and
+// `apps/backend/src/community/analytics.ts:78-81` for this event specifically). Because the chart is
+// a cumulative sum, one dropped write is a permanent step-down: that actor's count is one lower on
+// that day and on every day after it, with no repair path. The old query read
+// `community.friendships` directly and was immune to this. When this panel disagrees with
+// `community.friendships`, a swallowed emission is the first thing to check and a duplicate pair is
+// the second: `community.friendships` holding more than one row for the same invitation and viewer
+// derives one `event_id` for them all, `ON CONFLICT DO NOTHING` keeps a single event, and `0120`
+// accepts that undercount deliberately (`0120:436-443`) and counts the affected pairs in the
+// `RAISE NOTICE` at `0120:552-554`.
+//
+// ONE DELTA THAT CANNOT BE REPRODUCED, and it is a real loss rather than a rounding difference: the
+// old query dropped a friendship when EITHER side had an `@example.com` email, by joining
+// `community.friendships` twice. A `friendship_created` event names only its own viewer - the
+// catalog gives it no properties, and the other side's id is nowhere on the row - so only the actor
+// can be excluded here. A real person befriending a test account now keeps that friend in their
+// count.
 export function buildReviewEventsByDateCommunitySql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "community report");
 
@@ -596,87 +725,105 @@ export function buildReviewEventsByDateCommunitySql(from: string, to: string): s
     "    INTERVAL '1 day'",
     "  )::date AS report_date",
     "),",
-    "real_friend_invitations AS (",
+    // One pass over both event names, bounded above only because the friendship running sum needs
+    // every event that predates the range. Referenced twice below, so Postgres materializes it and
+    // the events table is read once.
+    "community_events AS (",
     "  SELECT",
-    "    friend_invitations.inviter_user_id AS user_id,",
-    "    (friend_invitations.created_at AT TIME ZONE 'UTC')::date AS created_date",
-    "  FROM community.friend_invitations AS friend_invitations",
-    "  LEFT JOIN org.user_settings AS inviter_user_settings",
-    "    ON inviter_user_settings.user_id = friend_invitations.inviter_user_id",
-    "  WHERE (",
-    "    inviter_user_settings.email IS NULL",
-    "    OR LOWER(btrim(inviter_user_settings.email)) NOT LIKE '%@example.com'",
-    "  )",
+    "    resolved.event_name,",
+    "    resolved.actor_id::text AS actor_id,",
+    "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS event_date",
+    "  FROM analytics.product_events_resolved AS resolved",
+    "  LEFT JOIN org.user_settings AS user_settings",
+    "    ON pg_catalog.lower(user_settings.user_id) = resolved.actor_id::text",
+    "  WHERE resolved.event_name IN ('friend_invitation_created', 'friendship_created')",
+    "    AND resolved.occurred_at < (",
+    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
+    "    )",
+    "    AND (",
+    "      user_settings.email IS NULL",
+    "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
+    "    )",
     "),",
     "daily_friend_invitations AS (",
     "  SELECT",
-    "    real_friend_invitations.user_id,",
-    "    real_friend_invitations.created_date,",
+    "    community_events.actor_id,",
+    "    community_events.event_date AS created_date,",
     "    COUNT(*)::int AS friend_invitation_count",
-    "  FROM real_friend_invitations",
-    "  WHERE real_friend_invitations.created_date >= " + escapeSqlStringLiteral(from) + "::date",
-    "    AND real_friend_invitations.created_date <= " + escapeSqlStringLiteral(to) + "::date",
-    "  GROUP BY real_friend_invitations.user_id, real_friend_invitations.created_date",
+    "  FROM community_events",
+    "  WHERE community_events.event_name = 'friend_invitation_created'",
+    `    AND community_events.event_date >= ${escapeSqlStringLiteral(from)}::date`,
+    "  GROUP BY community_events.actor_id, community_events.event_date",
     "),",
-    "real_friendships AS (",
+    // Every friendship created before the range is folded onto the first requested day, so the
+    // running sum below opens on the correct balance without a second scan for it.
+    "friendship_actor_days AS (",
     "  SELECT",
-    "    friendships.viewer_user_id AS user_id,",
-    "    friendships.created_at",
-    "  FROM community.friendships AS friendships",
-    "  LEFT JOIN org.user_settings AS viewer_user_settings",
-    "    ON viewer_user_settings.user_id = friendships.viewer_user_id",
-    "  LEFT JOIN org.user_settings AS friend_user_settings",
-    "    ON friend_user_settings.user_id = friendships.friend_user_id",
-    "  WHERE (",
-    "    viewer_user_settings.email IS NULL",
-    "    OR LOWER(btrim(viewer_user_settings.email)) NOT LIKE '%@example.com'",
-    "  )",
-    "    AND (",
-    "      friend_user_settings.email IS NULL",
-    "      OR LOWER(btrim(friend_user_settings.email)) NOT LIKE '%@example.com'",
-    "    )",
+    "    community_events.actor_id,",
+    `    GREATEST(community_events.event_date, ${escapeSqlStringLiteral(from)}::date) AS report_date,`,
+    "    COUNT(*)::int AS created_count",
+    "  FROM community_events",
+    "  WHERE community_events.event_name = 'friendship_created'",
+    "  GROUP BY",
+    "    community_events.actor_id,",
+    `    GREATEST(community_events.event_date, ${escapeSqlStringLiteral(from)}::date)`,
+    "),",
+    "friendship_actors AS (",
+    "  SELECT DISTINCT friendship_actor_days.actor_id",
+    "  FROM friendship_actor_days",
     "),",
     "daily_friendships AS (",
     "  SELECT",
-    "    requested_dates.report_date,",
-    "    real_friendships.user_id,",
-    "    COUNT(*)::int AS friendship_count",
-    "  FROM requested_dates",
-    "  INNER JOIN real_friendships",
-    "    ON real_friendships.created_at < (",
-    "      (requested_dates.report_date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'",
-    "    )",
-    "  GROUP BY requested_dates.report_date, real_friendships.user_id",
+    "    running_friendships.report_date,",
+    "    running_friendships.actor_id,",
+    "    running_friendships.friendship_count",
+    "  FROM (",
+    "    SELECT",
+    "      requested_dates.report_date,",
+    "      friendship_actors.actor_id,",
+    "      CAST(",
+    "        SUM(COALESCE(friendship_actor_days.created_count, 0)) OVER (",
+    "          PARTITION BY friendship_actors.actor_id",
+    "          ORDER BY requested_dates.report_date",
+    "        ) AS INTEGER",
+    "      ) AS friendship_count",
+    "    FROM requested_dates",
+    "    CROSS JOIN friendship_actors",
+    "    LEFT JOIN friendship_actor_days",
+    "      ON friendship_actor_days.actor_id = friendship_actors.actor_id",
+    "      AND friendship_actor_days.report_date = requested_dates.report_date",
+    "  ) AS running_friendships",
+    "  WHERE running_friendships.friendship_count > 0",
     "),",
     "community_user_dates AS (",
     "  SELECT",
     "    daily_friend_invitations.created_date AS report_date,",
-    "    daily_friend_invitations.user_id",
+    "    daily_friend_invitations.actor_id",
     "  FROM daily_friend_invitations",
     "  UNION",
     "  SELECT",
     "    daily_friendships.report_date,",
-    "    daily_friendships.user_id",
+    "    daily_friendships.actor_id",
     "  FROM daily_friendships",
     ")",
     "SELECT",
     "  to_char(community_user_dates.report_date, 'YYYY-MM-DD') AS report_date,",
-    "  community_user_dates.user_id,",
+    "  community_user_dates.actor_id AS user_id,",
     "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email,",
     "  COALESCE(daily_friend_invitations.friend_invitation_count, 0)::int AS friend_invitation_count,",
     "  COALESCE(daily_friendships.friendship_count, 0)::int AS friendship_count",
     "FROM community_user_dates",
     "LEFT JOIN org.user_settings AS user_settings",
-    "  ON user_settings.user_id = community_user_dates.user_id",
+    "  ON pg_catalog.lower(user_settings.user_id) = community_user_dates.actor_id",
     "LEFT JOIN daily_friend_invitations",
-    "  ON daily_friend_invitations.user_id = community_user_dates.user_id",
+    "  ON daily_friend_invitations.actor_id = community_user_dates.actor_id",
     "  AND daily_friend_invitations.created_date = community_user_dates.report_date",
     "LEFT JOIN daily_friendships",
-    "  ON daily_friendships.user_id = community_user_dates.user_id",
+    "  ON daily_friendships.actor_id = community_user_dates.actor_id",
     "  AND daily_friendships.report_date = community_user_dates.report_date",
     "ORDER BY",
-    "  report_date ASC,",
-    "  community_user_dates.user_id ASC",
+    "  community_user_dates.report_date ASC,",
+    "  community_user_dates.actor_id ASC",
   ].join("\n");
 }
 
