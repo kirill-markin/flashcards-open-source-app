@@ -931,6 +931,10 @@ export const zhHansCatalog = {
       good: "良好",
       hard: "困难",
     },
+    shortcuts: {
+      hint: "按 {{key}}",
+      spaceKey: "空格",
+    },
     sides: {
       back: "背面",
       front: "正面",
