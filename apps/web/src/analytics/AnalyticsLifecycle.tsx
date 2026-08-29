@@ -1,6 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
-import { setCurrentAnalyticsSurface, startAnalytics, track } from "./client";
+import {
+  endAnalyticsScreenVisit,
+  setCurrentAnalyticsSurface,
+  startAnalytics,
+  track,
+  trackScreenViewed,
+} from "./client";
 import { resolveAnalyticsSurface } from "./surfaces";
 
 /**
@@ -24,10 +30,16 @@ export function AnalyticsLifecycle(): null {
     }
 
     // A route with no shared surface emits nothing: `screen` is a closed cross-client enum and a
-    // route path is never sent in its place.
-    if (surface !== null) {
-      track({ name: "screen_viewed", screen: surface });
+    // route path is never sent in its place. `setCurrentAnalyticsSurface` above still ran for it, so
+    // an event tracked from such a route carries no stale surface from the route before it, and
+    // ending the visit keeps a return to the previous surface reporting as a second view rather
+    // than being swallowed as a repeat.
+    if (surface === null) {
+      endAnalyticsScreenVisit();
+      return;
     }
+
+    trackScreenViewed(surface);
   }, [location.pathname]);
 
   // `warm` is a return to the foreground after actually having left it, which is what `app_opened`

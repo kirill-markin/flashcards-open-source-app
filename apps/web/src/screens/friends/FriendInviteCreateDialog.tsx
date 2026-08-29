@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
+import { trackScreenViewedOnDismiss, useAnalyticsScreenView, type AnalyticsSurface } from "../../analytics";
 import {
   ApiError,
   buildLoginUrl,
@@ -19,6 +20,15 @@ import { validateFriendInvitationDisplayName } from "../invite/friendInvitationD
 type FriendInviteCreateDialogProps = Readonly<{
   canCreateInvite: boolean;
   authRedirectUrl: string;
+  /**
+   * The screen this dialog was opened over, reported again when it closes. `friend_invite` is a
+   * screen of its own in the shared surface enum and this dialog is the whole of it, so presenting
+   * it ends the visit to the screen underneath and closing it starts a new one — the same reading
+   * iOS gives a presented screen in `Analytics.trackScreenViewedOnDismiss`. The alternative, leaving
+   * the visit underneath open, would leave every event tracked while the dialog is up stamped with a
+   * surface the person is no longer looking at.
+   */
+  presentedOverSurface: AnalyticsSurface;
   onClose: () => void;
 }>;
 
@@ -38,7 +48,7 @@ function isExpectedFriendInvitationCreateError(error: unknown): boolean {
 }
 
 export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): ReactElement {
-  const { authRedirectUrl, canCreateInvite, onClose } = props;
+  const { authRedirectUrl, canCreateInvite, onClose, presentedOverSurface } = props;
   const { activeWorkspace, cloudSettings, session } = useAppData();
   const { indexedDbOpenRecoveryState, showTechnicalError } = useAppErrorDialog();
   const { locale, t, formatDateTime } = useI18n();
@@ -51,12 +61,20 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
   const [isCopying, setIsCopying] = useState<boolean>(false);
   const [isSharing, setIsSharing] = useState<boolean>(false);
   const technicalErrorMessage = t("appError.technicalError.message");
+  // Both call sites render this dialog only while it is open, so mounting it is the entry into it.
+  useAnalyticsScreenView("friend_invite");
 
   function closeDialog(): void {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
+    // Restored from the close button rather than from an unmount cleanup. Navigating away also
+    // unmounts this dialog, and a cleanup runs before the route's own `screen_viewed`, so restoring
+    // there would file a visit to the screen underneath that the person never returned to. The
+    // guarded call carries the same rule the review editor's restore uses, so there is one rule for
+    // restoring a surface at every site.
+    trackScreenViewedOnDismiss({ dismissed: "friend_invite", restored: presentedOverSurface });
     onClose();
   }
 

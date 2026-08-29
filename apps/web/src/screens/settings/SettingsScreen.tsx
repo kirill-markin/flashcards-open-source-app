@@ -442,6 +442,7 @@ export function SettingsScreen(): ReactElement {
         <FriendInviteCreateDialog
           canCreateInvite={canCreateInvite}
           authRedirectUrl={window.location.href}
+          presentedOverSurface="settings"
           onClose={closeInviteDialog}
         />
       ) : null}
