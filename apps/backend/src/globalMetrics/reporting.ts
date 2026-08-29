@@ -14,10 +14,33 @@ import {
 // (`apps/backend/src/entrypoints/scheduledJobs/lambda-global-metrics-snapshot.ts`).
 //
 // The two fragment constants below are the canonical encoding of the user-identity
-// filters shared by those three queries. The same rules are restated in the admin
-// per-user query at `apps/admin/src/reports/reviewEventsByDate/query.ts`
-// (`buildReviewEventsByDateSql`), which lives in a separate package. If any rule
-// changes, update both files.
+// filters shared by those three queries, and canonical for those three queries only.
+// Both rules are restated elsewhere, and every restatement below is live:
+//   * `community.refresh_leaderboard_snapshot`, whose current definition is
+//     `db/migrations/0071_progress_leaderboard_all_time_participants.sql:52-53` for the
+//     actor_kind/platform pair and `:54-57` for the `%@example.com` exclusion
+//   * `community.read_current_user_latest_leaderboard_review`, whose only definition is
+//     `db/migrations/0061_leaderboard_real_client_activity.sql:120-121` and `:79-82`,
+//     carrying both rules again
+//   * `apps/backend/src/chat/costPolicy.ts:65`, which carries the `actor_kind` half alone
+// The two leaderboard copies live inside shipped migrations, which are immutable, so
+// changing either rule for the leaderboard means writing a NEW migration that redefines
+// the function - not editing 0071 or 0061. A fourth supported platform or a second test
+// email domain that stops at this file and the admin builders leaves leaderboard
+// eligibility on the old rule, silently.
+//
+// The admin dashboard is no longer one of the restatement sites for
+// `clientInstallationActivityWhereSqlFragments`. It reads
+// `analytics.product_events_resolved` and groups by the `actor_id` that view resolves,
+// so it needs no `actor_kind` filter at all. Those two surfaces have deliberately
+// diverged: the snapshot counts raw review rows, the dashboard counts resolved actors,
+// and their numbers are not expected to agree.
+//
+// It does still restate `exampleComEmailExclusionSqlFragments`. The admin query at
+// `apps/admin/src/reports/reviewEventsByDate/query.ts` lives in a separate package and
+// cannot import these, so it repeats the same exclusion inline against its own
+// `org.user_settings` join in both `buildReviewEventsByDateSql` and
+// `buildReviewEventsByDateCommunitySql`.
 
 // WHERE-fragment that restricts review activity to real client-app installations on
 // supported user-facing platforms (excludes system actors and the 'system' platform).

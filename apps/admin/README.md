@@ -62,7 +62,27 @@ The dashboard shows six charts:
 - daily friend invite links created, stacked by user
 - existing friend connections at the end of each day, counted per user and stacked by user
 
-The default chart range starts on the first calendar day with any review event, friend invite link, or friendship row and ends on today, inclusive, in the dashboard timezone. The dashboard includes date range filters that can narrow the chart range and reset back to that default.
+The default chart range starts on the first calendar day carrying a `review_answered`, `friend_invitation_created`, or `friendship_created` event and ends on today, inclusive, in the dashboard timezone. The dashboard includes date range filters that can narrow the chart range and reset back to that default.
 The filter panel keeps date, user, new/returning cohort, and platform filters in one compact row. All four filters apply to every chart, including the friend invite and friend connection charts, which carry per-user community rows. A cohort or platform filter keeps community rows only for users that still have review events in range, and the user filter list also offers users with community activity but no review events in range. User emails and user IDs are shown only inside the user filter popup and chart tooltips, not as a persistent page list.
 
 Its SQL lives in the admin frontend as a chart-owned query and runs through the generic admin reporting endpoint.
+
+### Where the data comes from
+
+Every chart reads `analytics.product_events_resolved` and no other product table; the only other relation it touches is `org.user_settings`, joined from `actor_id` for the email the `%@example.com` exclusion needs. The dashboard does not join `content.review_events`, `sync.workspace_replicas`, `community.friend_invitations`, or `community.friendships` any more.
+
+- review series: `review_answered`
+- friend invite links: `friend_invitation_created`
+- friend connections at the end of each day: a running sum of `friendship_created`
+
+Rows are grouped by `actor_id`, never by `user_id`. The view already collapses a guest and the account that guest became into one person, so the previous `actor_kind` filter and the inline guest-merge reasoning are gone. `actor_id` is not always an account id: a guest who never upgraded stays on the guest user id.
+
+Deleted accounts appear in the numbers once they have analytics history. Account deletion anonymizes rather than erases: it rewrites the event rows to a per-deletion pseudonym UUID and marks them `identity_state = 'anonymized'`, so that history still resolves to a stable `actor_id` and shows as a `(no email)` actor with a raw UUID in the user filter popup and in tooltips. This is intended, since the reviews really happened; `analytics.product_events_resolved.identity_state` is the handle if they ever need filtering out.
+
+The old dashboard showed nothing for them, but that was not its replica join: the same deletion drops the person's sole-member workspace rows and `content.review_events` cascades away with them, so the rows that query read were already gone. The same mechanism means an account deleted before it had any analytics history is absent here entirely - there was nothing to anonymize, and the `0120` backfill kept only reviews whose author still had an `org.user_settings` row, which that deletion also removed. Those reviews are in neither table, so do not go looking for them in `content.review_events` when a total does not reconcile.
+
+The email that the `%@example.com` exclusion needs is not in the events table, so it is joined from `actor_id` to `org.user_settings`. `actor_id` is a UUID and renders as canonical lowercase hex, while `org.user_settings.user_id` is an unconstrained `TEXT` primary key, so that join folds the stored side with `pg_catalog.lower`. Comparing as stored would silently miss an uppercase-hex row, and a test account with no matched email is counted rather than excluded.
+
+Platform is read off the event row and never derived. The buckets are `web`, `android`, `ios`, `agent`, and `unattributed`, and they are always split, never summed: an agent-API client merged into `web` would read as a person using the site. Every server-derived fact carries a NULL platform on purpose, so all `review_answered` rows land in `unattributed`, which means "not a device fact" rather than "unknown device". The two platform charts are therefore honest about carrying no device attribution; a real per-platform split of people belongs to the `app_opened` series, which does carry one.
+
+Numbers do not match the pre-rewrite dashboard, and are not meant to. Days shift because `occurred_at` is the client clock kept only inside a 30-day window ending at a server anchor: inside that window it is when the person answered rather than when the answer synced, while outside it in either direction the anchor replaces it, so an offline, imported, or guest-merged history older than 30 days lands on sync day instead. The other differences: the `actor_kind = 'client_installation'` filter is gone, the anonymized history of accounts deleted after they had analytics history is counted rather than dropped, and a friendship with a test account on the far side is no longer excluded because a `friendship_created` event names only its own viewer.
