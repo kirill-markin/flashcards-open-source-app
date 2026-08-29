@@ -14,6 +14,11 @@ import {
 } from "./api-gateway-access-log";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
+import {
+  databasePoolMaxConnectionsEnvName,
+  databasePoolMaxConnectionsEnvValue,
+  mcpHandlerReservedConcurrency,
+} from "./api-gateway";
 
 export interface McpGatewayProps {
   vpc: ec2.Vpc;
@@ -194,6 +199,8 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(30),
     memorySize: 256,
+    // Share of the Postgres connection budget documented in ./api-gateway.ts.
+    reservedConcurrentExecutions: mcpHandlerReservedConcurrency,
     ...backendStructuredLoggingProps,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
@@ -205,6 +212,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       DB_SECRET_ARN: props.backendDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
+      [databasePoolMaxConnectionsEnvName]: databasePoolMaxConnectionsEnvValue,
       MCP_BASE_DOMAIN: props.baseDomain,
       // The MCP sql_query and sql_execute tools return the shared agent
       // envelope; pin `docs.discoveryUrl` to the public API host instead of
