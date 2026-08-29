@@ -44,6 +44,7 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
   const collectionCoverStorageKey = `media/blobs/sha256/bb/bb/${collectionCoverSha256}`;
   const privateCoverMediaKey = testWorkspaceMediaAssetId;
   const publicApiBaseUrl = "https://api.example.com/v1";
+  const catalogMediaCdnBaseUrl = "https://cdn.example.test";
   const publicAppBaseUrl = "https://app.example.com";
   const generatedAt = "2026-04-19T11:00:00.000Z";
   const packageVersionRows = [
@@ -239,7 +240,7 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
         assert.match(text, /versions\.status = 'published'/);
         assert.match(text, /packages\.status = 'published'/);
         assert.doesNotMatch(text, /media_blobs\.storage_key/);
-        assert.doesNotMatch(text, /media_blobs\.sha256/);
+        assert.match(text, /media_blobs\.sha256 AS sha256/);
         return createQueryResult([{
           package_media_asset_id: packageMediaAssetId,
           ...createPublicMediaAssetRow(),
@@ -262,6 +263,7 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
   const snapshot = await loadPublicCatalogSnapshotInExecutor(executor, {
     publicApiBaseUrl,
     publicAppBaseUrl,
+    catalogMediaCdnBaseUrl,
     generatedAt,
   });
 
@@ -280,7 +282,7 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
   assert.deepEqual(snapshot.cards[0]?.mediaAssetIds, [packageMediaAssetId]);
   assert.equal(
     snapshot.mediaAssets[0]?.downloadUrl,
-    `${publicApiBaseUrl}/catalog/package-versions/${testPackageVersionId}/media-assets/cover/download`,
+    `${catalogMediaCdnBaseUrl}/catalog/media/${"a".repeat(64)}`,
   );
   assert.equal(snapshot.mediaAssets.length, 1);
   for (const packageVersion of snapshot.packageVersions) {
@@ -297,7 +299,7 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
   assert.equal(snapshot.collections[0]?.coverPackageId, testPackageId);
   assert.equal(
     snapshot.collections[0]?.coverDownloadUrl,
-    `${publicApiBaseUrl}/catalog/collections/${firstCollectionId}/cover/download`,
+    `${catalogMediaCdnBaseUrl}/catalog/media/${collectionCoverSha256}`,
   );
   assert.equal(snapshot.collections[1]?.coverPackageId, null);
   assert.equal("coverDownloadUrl" in (snapshot.collections[1] ?? {}), false);
@@ -440,6 +442,7 @@ for (const [fixtureName, relationPatch] of ineligibleSnapshotPublicRelationFixtu
     const snapshot = await loadPublicCatalogSnapshotInExecutor(executor, {
       publicApiBaseUrl: "https://api.example.test/v1",
       publicAppBaseUrl: "https://app.example.test",
+      catalogMediaCdnBaseUrl: "https://cdn.example.test",
       generatedAt: testTimestamp,
     });
 
@@ -635,6 +638,7 @@ for (const [fixtureName, ineligibleFixture] of ineligibleSnapshotMediaFixtures) 
     const snapshot = await loadPublicCatalogSnapshotInExecutor(executor, {
       publicApiBaseUrl: "https://api.example.com/v1",
       publicAppBaseUrl: "https://app.example.com",
+      catalogMediaCdnBaseUrl: "https://cdn.example.test",
       generatedAt: testTimestamp,
     });
 

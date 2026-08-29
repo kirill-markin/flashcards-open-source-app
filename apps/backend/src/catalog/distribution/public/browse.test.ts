@@ -26,6 +26,8 @@ import {
   unsafeStorageKeyPathDestination,
 } from "./testSupport";
 
+const catalogMediaCdnBaseUrl = "https://cdn.example.test";
+
 test("public catalog list explicitly rejects the removed topicTag query", async () => {
   let listCalls = 0;
   const app = createPublicCatalogRouteTestApp(createCatalogPublicRoutes({
@@ -114,6 +116,7 @@ test("legacy catalog list and detail preserve existing author website presentati
   const catalogPackage = await loadPublicCatalogPackageDetailInExecutor(
     executor,
     "spanish-basics",
+    catalogMediaCdnBaseUrl,
   );
 
   assert.equal(catalogPackages[0]?.author.websiteUrl, legacyAuthorWebsiteUrl);
@@ -199,7 +202,7 @@ test("public catalog detail resolves by package slug and excludes unpublished or
   };
 
   await assert.rejects(
-    loadPublicCatalogPackageDetailInExecutor(executor, "spanish-basics"),
+    loadPublicCatalogPackageDetailInExecutor(executor, "spanish-basics", catalogMediaCdnBaseUrl),
     (error: unknown) => {
       assert.equal(error instanceof HttpError, true);
       assert.equal((error as HttpError).statusCode, 404);
@@ -232,7 +235,7 @@ for (const [unsafeMetadataLabel, unsafeMetadataPatch] of unsafePublicMetadataFix
     };
 
     await assert.rejects(
-      loadPublicCatalogPackageDetailInExecutor(executor, "spanish-basics"),
+      loadPublicCatalogPackageDetailInExecutor(executor, "spanish-basics", catalogMediaCdnBaseUrl),
       (error: unknown) => {
         assert.equal(error instanceof HttpError, true);
         assert.equal((error as HttpError).statusCode, 409);
@@ -267,7 +270,7 @@ for (const [unsafeMediaMetadataLabel, unsafeMediaMetadataPatch] of unsafePublicM
     };
 
     await assert.rejects(
-      loadPublicCatalogPackageDetailInExecutor(executor, "spanish-basics"),
+      loadPublicCatalogPackageDetailInExecutor(executor, "spanish-basics", catalogMediaCdnBaseUrl),
       (error: unknown) => {
         assert.equal(error instanceof HttpError, true);
         assert.equal((error as HttpError).statusCode, 409);
