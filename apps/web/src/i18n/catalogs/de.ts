@@ -931,6 +931,10 @@ const deCatalog: TranslationCatalog = {
       good: "Gut",
       hard: "Schwer",
     },
+    shortcuts: {
+      hint: "Drücke {{key}}",
+      spaceKey: "Leertaste",
+    },
     sides: {
       back: "Rückseite",
       front: "Vorderseite",
