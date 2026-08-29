@@ -10,8 +10,13 @@ import { z } from "zod";
 // schema_version stamps the catalog generation a stored row was accepted under, and it stayed 1
 // across the revision that retired the session and onboarding events and added the fact-shaped
 // ones. 0119 deleted every row written under the previous generation, so no stored row belongs to
-// it: bumping would have created a generation with no rows and no meaning. The bump is reserved for
-// the first revision after which rows survive on both sides of it.
+// it: bumping would have created a generation with no rows and no meaning. It stays 1 through the
+// sign-in funnel revision too, which only adds: no event is retired, no property changes meaning and
+// no stored row reads differently, so a query for one of the new names returns nothing from before
+// the deploy under either version, while a boundary here would force every existing query to weigh
+// two generations for nothing. The bump is reserved for the first revision that leaves rows
+// surviving on both sides of it reading differently, because that is when a query has to tell the
+// two generations apart.
 export const productAnalyticsSchemaVersion = 1;
 
 // event_id is the primary key of an append-only table, so time-ordered ids are the only thing that
@@ -242,13 +247,53 @@ export const productAnalyticsEventCatalog = {
       outcome: { kind: "enum", values: ["granted", "denied", "dismissed"] },
     },
   },
+  // The two middle steps of the sign-in funnel, read against `signin_failed` below. Neither is
+  // server-only, deliberately: the web funnel's producer is apps/auth, which is a server, but it
+  // reports through the public client ingest route POST /v1/analytics/events as a `web` client, and
+  // that route rejects a serverOnly entry outright — the spec union above makes serverOnly together
+  // with requiresScreen unwritable in any case.
+  //
+  // Both require a surface so a producer always names where the sign-in happened: the auth origin
+  // sends `signin`, and a client adopting these would send `signin` or `credential_recovery`. That
+  // is `screen` in its ordinary reading, where the person is now, and not the entry-point reading
+  // the surface comment above reserves for `signin_failed` alone, so a funnel must not read the
+  // three events' screens the same way. Neither carries a property: the step is the whole fact, and
+  // `screen`, `platform` and the event name already carry the rest.
+  signin_code_requested: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {},
+  },
+  signin_succeeded: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {},
+  },
   signin_failed: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
       reason: {
         kind: "enum",
-        values: ["invalid_code", "expired_code", "rate_limited", "offline", "server_error", "cancelled"],
+        values: [
+          "invalid_code",
+          "expired_code",
+          // A sign-in that failed on an OTP challenge the auth service classified as already
+          // consumed, which is a different drop cause from a code that ran out of time.
+          // classifyVerifyFailure in apps/auth/src/routes/browser/verifyCode.ts maps that Cognito
+          // failure to OTP_CHALLENGE_CONSUMED and keeps it apart from an expired session, and that
+          // classification is what this value records, so folding it into `expired_code` would hide
+          // a cause the origin can already tell apart and a person can act on. Only a producer that
+          // separates the two states can report this value; one that does not reports
+          // `expired_code` instead. A near-absent `code_already_used` is therefore a floor rather
+          // than a zero, and the table is append-only, so stored rows keep whatever their producer
+          // could tell apart.
+          "code_already_used",
+          "rate_limited",
+          "offline",
+          "server_error",
+          "cancelled",
+        ],
       },
     },
   },

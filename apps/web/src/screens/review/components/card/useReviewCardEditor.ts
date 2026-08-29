@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { trackScreenViewed, trackScreenViewedOnDismiss } from "../../../../analytics";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
@@ -245,7 +246,17 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     [cancelPendingTextareaSelectionRestore],
   );
 
+  /**
+   * The single close path of the editor, so the single place the review screen is entered again.
+   *
+   * Every way out reaches here — the cancel button, a successful save, a delete, the workspace-change
+   * guard, and the AI hand-off — and all of them leave the person on `/review`: the hand-off opens
+   * the chat sidebar beside the review screen rather than navigating, and the sidebar reports no
+   * screen of its own. The restore is guarded anyway, so a close that races a real departure names
+   * nothing rather than a screen the person already left.
+   */
   const handleCloseEditor = useCallback(function handleCloseEditor(): void {
+    trackScreenViewedOnDismiss({ dismissed: "card_editor", restored: "review" });
     isEditorPresentedRef.current = false;
     editorIdentityRef.current = null;
     editorFormRevisionRef.current += 1;
@@ -355,11 +366,19 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     resetTextareaSelectionRestore();
   }, [resetTextareaSelectionRestore]);
 
+  /**
+   * Presenting the editor is the entry into `card_editor`, reported here rather than from a mount
+   * effect: `ReviewEditorModal` stays mounted across the whole review screen and returns null while
+   * it is closed, so this state transition — after the guard that can refuse it — is the only moment
+   * that means "the modal is now on screen". iOS reports the same surface from the equivalent
+   * `.onAppear` on its card editor sheet.
+   */
   function handleOpenEditor(card: Card): void {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
+    trackScreenViewed("card_editor");
     resetTextareaSelectionRestore();
     const initialFormState = toCardFormState(card);
     const presentationGeneration = presentationGenerationRef.current + 1;
