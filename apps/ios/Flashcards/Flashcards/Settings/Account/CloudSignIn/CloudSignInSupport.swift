@@ -20,6 +20,16 @@ struct CloudOtpSheetState: Identifiable, Hashable {
     }
 }
 
+/// How much of the current challenge the server has already spent. It is a fact about the challenge
+/// the attempt is holding, not about the view showing it, so it outlives a rebuilt code step and the
+/// person keeps seeing "Resend code" instead of a code field they cannot use.
+enum CloudOtpChallengeState: Hashable {
+    case active
+    case consumed
+    case expired
+    case tooManyAttempts
+}
+
 struct CloudSignInPostAuthTaskHandle {
     let stateId: String
     let task: Task<Void, Never>
@@ -29,20 +39,24 @@ struct CloudSignInPostAuthTaskHandle {
  * Everything one sign-in attempt is made of: the step the person is on, what they typed into it,
  * and the post-auth work the attempt started.
  *
- * This lives on the store rather than in `CloudSignInSheet` because SwiftUI destroys and rebuilds
- * that content while the presentation stays on screen — switching tabs under the Settings presenter
- * is enough. State the view owns does not survive that, so an attempt anchored to the view loses
- * the typed email, the open code step, and the in-flight work of a sign-in that already succeeded,
- * without the person ever closing anything. Only state that genuinely describes one view instance —
- * keyboard focus, an open technical-error inspector, a confirmation alert — stays in the view.
+ * This lives on the store rather than in `CloudSignInSheet` or `CloudOtpVerificationSheet` because
+ * SwiftUI destroys and rebuilds that content while the presentation stays on screen — switching tabs
+ * under the Settings presenter is enough. State the view owns does not survive that, so an attempt
+ * anchored to the view loses the typed email, the open code step and everything entered into it, and
+ * the in-flight work of a sign-in that already succeeded, without the person ever closing anything.
+ * Only state that genuinely describes one view instance — keyboard focus, an open technical-error
+ * inspector, a confirmation alert — stays in the view.
  *
  * `id` identifies the attempt, and every write-back from work that can outlive it compares that `id`
  * first: neither `sendCode` nor the code step's verify and resend calls are cancelled by a presenter
  * teardown, so each of them carries the attempt it was started for and drops its result when that
- * attempt is gone. Once post-auth work is under way the per-state `id` guards take over, but only
- * downstream of `handleVerifiedAuthContext`, which is where the post-auth states are created: a
- * write-back that creates the state it then compares against would find its own guard passing, so
- * the attempt `id` is the only thing an entry point can check.
+ * attempt is gone. The code step's own state needs one level more, because a single attempt opens a
+ * new `otpSheetState` for every code it sends: those write-backs carry that `id` too, so a
+ * superseded challenge cannot spend, or answer for, the challenge now on screen. Once post-auth work
+ * is under way the per-state `id` guards take over, but only downstream of
+ * `handleVerifiedAuthContext`, which is where the post-auth states are created: a write-back that
+ * creates the state it then compares against would find its own guard passing, so the attempt `id`
+ * is the only thing an entry point can check.
  */
 struct CloudSignInAttemptState {
     let id: String
@@ -56,6 +70,11 @@ struct CloudSignInAttemptState {
     var postAuthFailureState: CloudPostAuthFailureState?
     var authErrorPresentation: CloudAuthInlineErrorPresentation?
     var isSendingCode: Bool
+    var otpCode: String
+    var otpChallengeState: CloudOtpChallengeState
+    var otpAuthErrorPresentation: CloudAuthInlineErrorPresentation?
+    var isVerifyingOtpCode: Bool
+    var isResendingOtpCode: Bool
     /// The attempt finished its work and the presentation should close. The dismissal itself belongs
     /// to whichever view instance is on screen, which is not always the one that started the work.
     var isCompleted: Bool
@@ -75,10 +94,30 @@ struct CloudSignInAttemptState {
         self.postAuthFailureState = nil
         self.authErrorPresentation = nil
         self.isSendingCode = false
+        self.otpCode = ""
+        self.otpChallengeState = .active
+        self.otpAuthErrorPresentation = nil
+        self.isVerifyingOtpCode = false
+        self.isResendingOtpCode = false
         self.isCompleted = false
         self.postAuthLoadingTask = nil
         self.postAuthGuestLocalRecoveryPreparationTask = nil
         self.postAuthSyncTask = nil
+    }
+
+    /**
+     * A new code step, or a new challenge on the one already open, starts empty: nothing typed,
+     * nothing spent, and no error left from the challenge it replaces. Every path that opens a code
+     * step or puts a new challenge into one owes this call, which is what keeps a spent challenge's
+     * "Resend code" prompt, and the code that was rejected for it, off a freshly sent one.
+     *
+     * The in-flight flags are deliberately untouched: each belongs to the request that raised it, and
+     * lowering one here would re-enable a control while its request is still running.
+     */
+    mutating func resetOtpEntryState() {
+        self.otpCode = ""
+        self.otpChallengeState = .active
+        self.otpAuthErrorPresentation = nil
     }
 
     var isPostAuthActionInFlight: Bool {

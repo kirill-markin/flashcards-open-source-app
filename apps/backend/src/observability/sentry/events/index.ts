@@ -96,6 +96,7 @@ export type {
   CatalogDeckInstalledAnalyticsSkippedDetails,
   CatalogDumpFailureDetails,
   CatalogDumpGeneratedDetails,
+  CatalogDumpMediaPublishedDetails,
   CatalogDumpRefreshFailureDetails,
   CatalogDumpS3RetryDetails,
   CatalogSnapshotPointerErrorDetails,

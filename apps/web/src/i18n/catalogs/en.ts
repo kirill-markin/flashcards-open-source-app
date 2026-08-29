@@ -929,6 +929,10 @@ const enCatalog = {
       good: "Good",
       hard: "Hard",
     },
+    shortcuts: {
+      hint: "Press {{key}}",
+      spaceKey: "Space",
+    },
     sides: {
       back: "Back",
       front: "Front",
