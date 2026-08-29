@@ -37,6 +37,9 @@ import com.flashcardsopensourceapp.feature.settings.createSettingsStringResolver
 @Composable
 fun AccessDetailRoute(
     capability: AccessCapability,
+    // The OS answer to the permission this screen asks for, granted or refused. The caller knows
+    // both which capability this is and which surface the person is on, so neither is decided here.
+    onPermissionResult: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -58,8 +61,9 @@ fun AccessDetailRoute(
     }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) {
+    ) { isGranted ->
         permissionResultVersion += 1
+        onPermissionResult(isGranted)
     }
 
     Scaffold(

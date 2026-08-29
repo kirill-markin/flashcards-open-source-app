@@ -194,6 +194,17 @@ fun FlashcardsApp(
             }
         }
 
+        // The last surface reported to product analytics, shared by the credential-recovery gate
+        // below and the navigation-driven tracker further down so a `screen_viewed` is never
+        // repeated across the boundary between them.
+        //
+        // Saved, not remembered: a configuration change rebuilds the composition, and re-emitting
+        // the surface already reported would put a duplicate `screen_viewed` into an append-only
+        // table for every rotation.
+        var lastEmittedAnalyticsSurfaceName: String? by rememberSaveable {
+            mutableStateOf<String?>(value = null)
+        }
+
         val cloudCredentialRecoveryState by appGraph.cloudAccountRepository
             .observeCloudCredentialRecoveryState()
             .collectAsStateWithLifecycle(
@@ -212,6 +223,19 @@ fun FlashcardsApp(
             LaunchedEffect(activeRecoveryState) {
                 appGraph.visibleAppScreenController.updateVisibleAppScreen(
                     screen = VisibleAppScreen.OTHER
+                )
+            }
+            // The gate replaces the app root instead of being a navigation destination, so it never
+            // reaches the route tracker below and would otherwise be the one screen this client
+            // reports as no screen at all. It shares the tracker's slot, so leaving the gate reports
+            // the destination underneath as the next view.
+            LaunchedEffect(Unit) {
+                if (lastEmittedAnalyticsSurfaceName == AnalyticsSurface.CREDENTIAL_RECOVERY.name) {
+                    return@LaunchedEffect
+                }
+                lastEmittedAnalyticsSurfaceName = AnalyticsSurface.CREDENTIAL_RECOVERY.name
+                appGraph.analytics.track(
+                    event = AnalyticsEvent.ScreenViewed(screen = AnalyticsSurface.CREDENTIAL_RECOVERY)
                 )
             }
             Box(modifier = Modifier.fillMaxSize()) {
@@ -334,6 +358,13 @@ fun FlashcardsApp(
                 isTechnicalErrorVisible = displayedTechnicalError != null
             )
         )
+        // The single render condition for the after-review guest prompt, read both by the surface
+        // tracker below and by the dialog itself so the surface can never disagree with what is on
+        // screen.
+        val isGuestSignInAfterReviewPromptShown: Boolean =
+            guestSignInAfterReviewPromptUiState.isVisible &&
+                guestSignInAfterReviewPromptContext.isAuthFlowActive.not() &&
+                guestSignInAfterReviewPromptContext.isAppModalActive.not()
         val feedbackPromptContext = FeedbackPromptContext(
             isAppResumed = isAppResumed,
             isAuthFlowActive = isFeedbackPromptAuthRoute(route = currentRoute),
@@ -350,15 +381,19 @@ fun FlashcardsApp(
             )
         }
 
-        val currentAnalyticsSurface: AnalyticsSurface? = analyticsSurfaceForRoute(route = currentRoute)
-        // Saved, not remembered: a configuration change rebuilds the composition, and re-emitting
-        // the surface already reported would put a duplicate `screen_viewed` into an append-only
-        // table for every rotation.
-        var lastEmittedAnalyticsSurfaceName: String? by rememberSaveable {
-            mutableStateOf<String?>(value = null)
+        // The after-review guest prompt is a screen of its own in the catalog, not decoration over
+        // the destination it is drawn on: a person has to answer it before anything else continues.
+        // It takes over the current surface rather than adding an event beside it, which is what
+        // gives both edges for free — showing it reports the prompt, answering it reports whatever
+        // the person lands back on, and neither edge can double-fire across a rotation because the
+        // slot below is saved.
+        val currentAnalyticsSurface: AnalyticsSurface? = if (isGuestSignInAfterReviewPromptShown) {
+            AnalyticsSurface.SIGNIN_AFTER_REVIEW_PROMPT
+        } else {
+            analyticsSurfaceForRoute(route = currentRoute)
         }
 
-        LaunchedEffect(currentRoute) {
+        LaunchedEffect(currentAnalyticsSurface, currentRoute) {
             val visitedSurface: AnalyticsSurface? = currentAnalyticsSurface
             if (visitedSurface == null) {
                 // A route that exists but maps onto no shared surface still ends the previous
@@ -673,11 +708,7 @@ fun FlashcardsApp(
                         appGraph.cloudAccountRepository.retryPendingAccountDeletion()
                     }
                 )
-                if (
-                    guestSignInAfterReviewPromptUiState.isVisible &&
-                    guestSignInAfterReviewPromptContext.isAuthFlowActive.not() &&
-                    guestSignInAfterReviewPromptContext.isAppModalActive.not()
-                ) {
+                if (isGuestSignInAfterReviewPromptShown) {
                     GuestSignInAfterReviewPromptDialog(
                         onSignIn = {
                             appGraph.guestSignInAfterReviewPromptController.acceptPrompt()

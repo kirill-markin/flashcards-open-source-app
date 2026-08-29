@@ -23,6 +23,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.R
+import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogDismissed
+import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogShown
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
@@ -126,6 +128,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                     SettingsFriendInviteAvailability.AVAILABLE -> {
                         friendInvitationViewModel.clearFriendInvitationFailure()
                         isFriendInvitationDialogVisible = true
+                        trackFriendInvitationDialogShown(analytics = appGraph.analytics)
                     }
 
                     SettingsFriendInviteAvailability.SIGN_IN_REQUIRED -> {
@@ -228,7 +231,16 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 displayNameFieldTag = settingsInviteFriendDisplayNameFieldTag,
                 onCreateFriendInvitation = friendInvitationViewModel::createFriendInvitation,
                 onClearFriendInvitationFailure = friendInvitationViewModel::clearFriendInvitationFailure,
-                onDismiss = { isFriendInvitationDialogVisible = false }
+                // The single way this dialog closes — the dismiss button, a back press, a tap
+                // outside, and the effect that closes it once an invitation is created all arrive
+                // here — so the visit to `settings` resumes on every path out of it.
+                onDismiss = {
+                    isFriendInvitationDialogVisible = false
+                    trackFriendInvitationDialogDismissed(
+                        analytics = appGraph.analytics,
+                        restoredSurface = AnalyticsSurface.SETTINGS
+                    )
+                }
             )
         }
     }

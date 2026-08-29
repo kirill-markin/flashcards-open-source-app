@@ -26,6 +26,8 @@ import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCardCreateEntryPoint
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermission
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermissionOutcome
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
@@ -53,6 +55,25 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
         )
     }
 
+    // The OS answer to the notifications permission, asked from the review flow. The settings
+    // notifications screen asks for the same permission, and `permission_prompt_answered` carries no
+    // property naming the asker: its surface is the event's own `screen`. Each entry point therefore
+    // names where its own person is, rather than one shared constant answering for both and making
+    // the two indistinguishable.
+    fun reportNotificationPermissionResult(isGranted: Boolean) {
+        appGraph.analytics.track(
+            event = AnalyticsEvent.PermissionPromptAnswered(
+                permission = AnalyticsPermission.NOTIFICATIONS,
+                outcome = if (isGranted) {
+                    AnalyticsPermissionOutcome.GRANTED
+                } else {
+                    AnalyticsPermissionOutcome.DENIED
+                },
+                screen = AnalyticsSurface.REVIEW
+            )
+        )
+    }
+
     navigation(
         startDestination = ReviewDestination.route,
         route = ReviewRootGraph.route
@@ -63,6 +84,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             val notificationPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestPermission()
             ) { isGranted ->
+                reportNotificationPermissionResult(isGranted = isGranted)
                 if (isGranted) {
                     handleNotificationPermissionGranted()
                 }

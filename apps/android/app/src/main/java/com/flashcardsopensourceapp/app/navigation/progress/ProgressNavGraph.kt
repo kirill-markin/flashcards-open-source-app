@@ -7,6 +7,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogDismissed
+import com.flashcardsopensourceapp.app.analytics.trackFriendInvitationDialogShown
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressNavigationTarget
@@ -64,6 +66,15 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
             onDismissLeaderboardProfile = progressViewModel::dismissLeaderboardProfile,
             onCreateFriendInvitation = friendInvitationViewModel::createFriendInvitation,
             onClearFriendInvitationFailure = friendInvitationViewModel::clearFriendInvitationFailure,
+            onFriendInvitationDialogShown = {
+                trackFriendInvitationDialogShown(analytics = appGraph.analytics)
+            },
+            onFriendInvitationDialogDismissed = {
+                trackFriendInvitationDialogDismissed(
+                    analytics = appGraph.analytics,
+                    restoredSurface = AnalyticsSurface.PROGRESS
+                )
+            },
             onFriendInvitationShared = friendInvitationViewModel::markFriendInvitationShared,
             onOpenSignIn = {
                 navController.navigate(
