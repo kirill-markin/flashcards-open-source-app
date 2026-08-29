@@ -138,6 +138,21 @@ async function ensureSchemaMigrationsTable(client: pg.Client): Promise<void> {
   `);
 }
 
+// The migration file whose SQL is executing right now, or null outside that window. The 'notice'
+// listener in runMigrations reads it so each record names its source: one client runs everything
+// this module does - ensureSchemaMigrationsTable, every pending migration, the transaction control
+// and schema_migrations statements applyPendingMigrations sends around each of them,
+// listInstalledMigrations, applyViews, syncBootstrapAdminGrants and configureRuntimeRole - and the
+// CREATE ... IF NOT EXISTS and DROP ... IF EXISTS notices a replayed migration emits would
+// otherwise be indistinguishable from a deliberate one.
+//
+// This is module state rather than a parameter because the listener is attached to the client in
+// runMigrations while the file name is only known inside applyPendingMigrations. That is correct
+// only because runMigrations is never run concurrently within one process: the migration Lambda
+// handler awaits a single call per invocation. Treat that as an invariant, not a coincidence - a
+// second overlapping runMigrations() would attribute one client's notices to the other's file.
+let inFlightMigrationFileName: string | null = null;
+
 async function applyPendingMigrations(
   client: pg.Client,
   directoryPath: string,
@@ -157,7 +172,12 @@ async function applyPendingMigrations(
     const sql = await readSqlFile(directoryPath, fileName);
     try {
       await client.query("BEGIN");
-      await client.query(sql);
+      inFlightMigrationFileName = fileName;
+      try {
+        await client.query(sql);
+      } finally {
+        inFlightMigrationFileName = null;
+      }
       await client.query("INSERT INTO schema_migrations (filename) VALUES ($1)", [fileName]);
       await client.query("COMMIT");
       appliedMigrations.push(fileName);
@@ -320,6 +340,39 @@ export async function runMigrations(): Promise<MigrationRunResult> {
   const client = new pg.Client({
     connectionString,
     ssl: true,
+  });
+
+  // A migration that decides to skip work rather than abort the release says so with RAISE NOTICE
+  // (db/migrations/0120_backfill_product_analytics_server_facts.sql is the first one that does).
+  // PostgreSQL sends a notice to the client and to no server-side log the release could read
+  // afterwards, and node-postgres emits it as a 'notice' event that is dropped when nothing listens,
+  // so without this subscription those decisions would be invisible. stdout here is the migration
+  // Lambda's CloudWatch log. migration is the file whose SQL raised the notice, and null for every
+  // other statement that shares this client - which is all of the rest of this module and not only
+  // the functions named here: ensureSchemaMigrationsTable, whose CREATE TABLE IF NOT EXISTS
+  // schema_migrations emits NOTICE: relation "schema_migrations" already exists, skipping on every
+  // run after the first; listInstalledMigrations, applyViews, syncBootstrapAdminGrants and
+  // configureRuntimeRole; and the BEGIN, COMMIT, ROLLBACK, SELECT 1 FROM schema_migrations probe
+  // and INSERT INTO schema_migrations that applyPendingMigrations sends around each file.
+  //
+  // The record goes to console as an object and is never pre-serialized, which is the rule
+  // ../observability/cloudWatch.ts follows and for the same reason: this Lambda is created with
+  // backendStructuredLoggingProps (infra/aws/lib/migration-runner.ts), so the runtime nests the
+  // object under message and $.message.migration resolves for a Logs Insights query or a metric
+  // filter, while a JSON string would leave message a string with nothing inside it addressable.
+  // It does not route through ../observability/runtime: that sink takes a BackendLogEvent
+  // (../observability/sentry/events), a closed union of typed actions each carrying an observation
+  // scope and its own details type, and this record is none of them - it names a migration file and
+  // repeats PostgreSQL's notice text, so there is no scope to fill in and no details type to route
+  // through the sanitizer.
+  client.on("notice", (notice) => {
+    console.log({
+      domain: "backend",
+      action: "database_migration_notice",
+      migration: inFlightMigrationFileName,
+      severity: notice.severity ?? null,
+      message: notice.message ?? null,
+    });
   });
 
   await client.connect();
