@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
+import { track } from "../../analytics";
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -88,6 +89,7 @@ export function useReviewScreenController(
   const [isReviewQueuePanelOpen, setIsReviewQueuePanelOpen] = useState<boolean>(false);
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
+  const revealedCardIdRef = useRef<string | null>(null);
   const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
   const { message: reviewFeedbackMessage, showMessage: showReviewFeedbackMessage } = useTransientMessage(3000);
@@ -361,7 +363,42 @@ export function useReviewScreenController(
     setIsHardReminderVisible(false);
   }
 
+  /**
+   * The card flip, reported once per presentation of a card.
+   *
+   * Reported from the two actions that reveal an answer — the button and the keyboard shortcut — and
+   * never from an effect on `isAnswerVisible`. Rating a card moves `activeReviewQueue` and hides the
+   * answer in the same commit, so an effect watching that flag cannot tell a flip apart from the
+   * next card arriving while the flag has not been reset yet; it would count cards presented,
+   * timestamp them at presentation, and credit the last card of every session as revealed. The gap
+   * to the server-derived `review_answered` is exactly the population that abandons a card without
+   * flipping it, so that reading would invert the fact this event exists for.
+   *
+   * The ref names *this* presentation rather than the last card reported: the effect that hides the
+   * answer for a newly presented card clears it, keyed on the same `selectedCard?.cardId` that
+   * decides what is on screen, so the two can never fall out of step. A repeat reveal inside one
+   * presentation — a double click landing before the button is replaced by the rating bar — finds
+   * the ref still holding that card and stays one event; every new presentation starts from a
+   * cleared ref and reports again.
+   *
+   * That distinction is the whole point. A card rated `Again` is due one learning step later, so it
+   * leaves the queue and returns as the head — with no other card in between when it is the last due
+   * one, in a single-card deck, or across a filter round trip. Holding only the last card reported
+   * would suppress every one of those returns while the server-derived `review_answered` counts each
+   * answer, inverting the ratio this event exists to give.
+   */
+  function reportCardRevealed(): void {
+    const presentedCardId = selectedCard?.cardId ?? null;
+    if (presentedCardId === null || revealedCardIdRef.current === presentedCardId) {
+      return;
+    }
+
+    revealedCardIdRef.current = presentedCardId;
+    track({ name: "review_card_revealed", screen: "review" });
+  }
+
   function handleRevealAnswer(): void {
+    reportCardRevealed();
     setIsAnswerVisible(true);
   }
 
@@ -396,6 +433,9 @@ export function useReviewScreenController(
   }
 
   useEffect(() => {
+    // Clearing the reveal ref here is what makes it mean "this presentation": a new presentation
+    // always changes this dep, so the guard and the card on screen move together.
+    revealedCardIdRef.current = null;
     setIsAnswerVisible(false);
     stopSpeech();
   }, [selectedCard?.cardId, stopSpeech]);
@@ -434,6 +474,9 @@ export function useReviewScreenController(
     onShortcutInputStart: dismissReviewReactions,
     selectedCard,
     setIsAnswerVisible: (value) => {
+      if (value) {
+        reportCardRevealed();
+      }
       setIsAnswerVisible(value);
     },
   });

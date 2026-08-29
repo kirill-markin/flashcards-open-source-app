@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { useParams } from "react-router";
+import { useAnalyticsScreenView } from "../../analytics";
 import {
   buildLoginUrl,
   getOptionalSession,
@@ -36,6 +37,8 @@ function parsePackageVersionId(value: string | undefined): string | null {
 function CatalogImportSignedOutScreen(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
   const { catalogContext } = props;
   const { locale, t } = useI18n();
+  // The gate is rendered only while it is the screen, so mounting it is the entry into it.
+  useAnalyticsScreenView("catalog_import_signin");
 
   return (
     <main className="invite-page" data-testid="catalog-import-signed-out">
