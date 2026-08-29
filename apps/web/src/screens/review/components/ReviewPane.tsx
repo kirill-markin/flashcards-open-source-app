@@ -8,6 +8,8 @@ import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { formatTagSummary } from "../../shared/featureFormatting";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
+import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
+import type { ReviewShortcutPointerEnterHandler } from "../input/useReviewKeyboardShortcuts";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
 import type { ReviewSpeechSide } from "../speech/reviewSpeech";
 import {
@@ -19,6 +21,8 @@ import {
 } from "./reviewScreenTypes";
 
 const REVIEW_BUTTONS_PER_COLUMN = 2;
+const REVIEW_SHORTCUT_HINT_KEY_TOKEN = "{{key}}";
+const REVIEW_REVEAL_SHORTCUT_ARIA_KEY = "Space";
 const REVIEW_SCROLL_INTO_VIEW_OPTIONS = {
   behavior: "instant",
   block: "start",
@@ -39,6 +43,7 @@ export type ReviewPaneProps = Readonly<{
   onEditCard: (card: Card) => void;
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
+  onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
   onSwitchToAllCards: () => void;
   onToggleSpeech: (side: ReviewSpeechSide, sourceText: string) => void;
   reviewButtonErrorMessage: string;
@@ -74,6 +79,7 @@ type ReviewActiveCardPaneProps = Readonly<{
   onEditCard: (card: Card) => void;
   onRevealAnswer: () => void;
   onReview: (card: Card, rating: ReviewRating) => Promise<void>;
+  onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
   onToggleSpeech: (side: ReviewSpeechSide, sourceText: string) => void;
   reviewButtonErrorMessage: string;
   reviewButtonOptions: ReadonlyArray<ReviewButtonOption>;
@@ -86,10 +92,29 @@ type ReviewActiveCardPaneProps = Readonly<{
 type ReviewRatingButtonColumnProps = Readonly<{
   isSubmitting: boolean;
   onReview: (rating: ReviewRating) => void;
+  onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
   options: ReadonlyArray<ReviewButtonOption>;
 }>;
 
+type ReviewShortcutHintProps = Readonly<{
+  keyLabel: string;
+}>;
+
 function handleDisabledSpeechToggle(): void {
+}
+
+function ReviewShortcutHint(props: ReviewShortcutHintProps): ReactElement {
+  const { keyLabel } = props;
+  const { t } = useI18n();
+  const [hintPrefix, hintSuffix] = t("reviewScreen.shortcuts.hint").split(REVIEW_SHORTCUT_HINT_KEY_TOKEN);
+
+  return (
+    <span className="review-shortcut-hint" aria-hidden="true">
+      {hintPrefix}
+      <kbd className="review-shortcut-hint-key">{keyLabel}</kbd>
+      {hintSuffix}
+    </span>
+  );
 }
 
 function ReviewRepetitionIcon(): ReactElement {
@@ -247,7 +272,7 @@ function ReviewEmptyPane(props: ReviewEmptyPaneProps): ReactElement {
 }
 
 function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactElement {
-  const { isSubmitting, onReview, options } = props;
+  const { isSubmitting, onReview, onShortcutButtonPointerEnter, options } = props;
 
   return (
     <div className="rating-bar-column">
@@ -256,12 +281,15 @@ function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactEl
           key={option.rating}
           type="button"
           className="rating-btn"
+          aria-keyshortcuts={reviewRatingShortcutKeys[option.rating]}
           disabled={isSubmitting}
           onClick={() => onReview(option.rating)}
+          onPointerEnter={onShortcutButtonPointerEnter}
           data-testid={`review-rate-${option.testId}`}
         >
           <span className="rating-btn-title">{option.title}</span>
           <span className="rating-btn-subtitle">{option.intervalDescription}</span>
+          <ReviewShortcutHint keyLabel={reviewRatingShortcutKeys[option.rating]} />
         </button>
       ))}
     </div>
@@ -278,6 +306,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     onEditCard,
     onRevealAnswer,
     onReview,
+    onShortcutButtonPointerEnter,
     onToggleSpeech,
     reviewButtonErrorMessage,
     reviewButtonOptions,
@@ -401,6 +430,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
                 onReview={(rating) => {
                   void onReview(selectedCard, rating);
                 }}
+                onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}
                 options={leftReviewButtonOptions}
               />
               <ReviewRatingButtonColumn
@@ -408,6 +438,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
                 onReview={(rating) => {
                   void onReview(selectedCard, rating);
                 }}
+                onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}
                 options={rightReviewButtonOptions}
               />
             </div>
@@ -416,10 +447,13 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
           <button
             type="button"
             className="primary-btn review-reveal-btn"
+            aria-keyshortcuts={REVIEW_REVEAL_SHORTCUT_ARIA_KEY}
             onClick={onRevealAnswer}
+            onPointerEnter={onShortcutButtonPointerEnter}
             data-testid="review-reveal-answer"
           >
             {t("reviewScreen.actions.revealAnswer")}
+            <ReviewShortcutHint keyLabel={t("reviewScreen.shortcuts.spaceKey")} />
           </button>
         )}
       </div>
@@ -441,6 +475,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
     onEditCard,
     onRevealAnswer,
     onReview,
+    onShortcutButtonPointerEnter,
     onSwitchToAllCards,
     onToggleSpeech,
     reviewButtonErrorMessage,
@@ -492,6 +527,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           onEditCard={onEditCard}
           onRevealAnswer={onRevealAnswer}
           onReview={onReview}
+          onShortcutButtonPointerEnter={onShortcutButtonPointerEnter}
           onToggleSpeech={onToggleSpeech}
           reviewButtonErrorMessage={reviewButtonErrorMessage}
           reviewButtonOptions={reviewButtonOptions}
