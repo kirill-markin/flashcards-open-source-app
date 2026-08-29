@@ -24,12 +24,24 @@ extension FlashcardsStore {
             now: now
         )
         self.isGuestSignInAfterReviewPromptPresented = true
+        // The showing and the answer are two facts, and this is the showing. Recording only the
+        // answer — which is what the retired `onboarding_step_completed` did — leaves no denominator,
+        // so no acceptance rate can ever be computed from it.
+        Analytics.trackScreenViewed(.signInAfterReviewPrompt)
     }
 
     func requestGuestSignInAfterReviewPromptReconciliation() {
         self.guestSignInAfterReviewPromptReconciliationToken = self.guestSignInAfterReviewPromptReconciliationToken &+ 1
     }
 
+    /**
+     * The prompt closed without either button having decided anything.
+     *
+     * It reports no answer on purpose. The alert is UIKit-backed and cannot be closed by the person
+     * without pressing a button, so this runs either as SwiftUI's own binding write-back behind the
+     * button that already reported its outcome — reporting here too would double-count every answer —
+     * or for a programmatic close nobody answered.
+     */
     func dismissGuestSignInAfterReviewPrompt() {
         self.isGuestSignInAfterReviewPromptPresented = false
     }
@@ -42,6 +54,13 @@ extension FlashcardsStore {
             )
         )
         self.isGuestSignInAfterReviewPromptPresented = false
+        // No surface is restored here: accepting opens the sign-in sheet, which reports `signin` as
+        // it begins its attempt. Closing that sheet is what hands the tab underneath back, and it
+        // reads the visible tab rather than this prompt's entry point, which stays Review.
+        Analytics.track(
+            .promptAnswered(prompt: .signInAfterReviewPrompt, outcome: .accepted),
+            screen: .signInAfterReviewPrompt
+        )
     }
 
     func snoozeGuestSignInAfterReviewPrompt(reviewedCount: Int, now: Date) {
@@ -53,6 +72,16 @@ extension FlashcardsStore {
             )
         )
         self.isGuestSignInAfterReviewPromptPresented = false
+        // "Later" is `snoozed` rather than `dismissed`: it holds the prompt back for a week and a
+        // further ten reviews, which is a different answer from walking away from it.
+        Analytics.track(
+            .promptAnswered(prompt: .signInAfterReviewPrompt, outcome: .snoozed),
+            screen: .signInAfterReviewPrompt
+        )
+        Analytics.trackScreenViewedOnDismiss(
+            of: .signInAfterReviewPrompt,
+            restoring: analyticsSurface(tab: self.currentVisibleTab)
+        )
     }
 
     func clearGuestSignInAfterReviewPromptState() {

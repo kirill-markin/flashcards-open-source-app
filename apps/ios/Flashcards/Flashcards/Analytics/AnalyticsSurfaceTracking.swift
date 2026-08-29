@@ -46,19 +46,75 @@ extension Analytics {
      * `AppNavigationModel.selectTab` emit the destination's `screen_viewed` synchronously before the
      * selection moves, so it is already recorded when the view update that removes the outgoing
      * hierarchy runs `.onDisappear`.
+     *
+     * Two kinds of caller cannot lean on that, and neither is left to ordering. A sheet restores from
+     * the presentation's `onDismiss` and never from the content's `.onDisappear`, because SwiftUI
+     * destroys and rebuilds sheet content while the presentation stays on screen — a programmatic tab
+     * switch under the presenter is enough — so `.onDisappear` would hand the surface back under a
+     * sheet the person is still using, and the rebuilt content's `.onAppear` would then report a
+     * second view of a screen they never left. A push whose destination reports itself from its own
+     * `.onAppear` — the decks list opening a deck detail — decides from settled navigation state
+     * instead, so its restore is a no-op on a push whichever way SwiftUI orders the two callbacks.
+     *
+     * The entry half of a sheet's pair stays on the content's `.onAppear`, which is the only callback
+     * that proves the screen was actually shown, and there a rebuild is absorbed by the dedupe: it
+     * reports nothing while the tracker still holds the sheet's own surface. Only something that
+     * moves the tracker out from under a live sheet reopens that, and the one reachable mover is a
+     * notification tap — `handleAppNotificationTap` selects Review without closing anything. The
+     * in-app switches that run from inside these sheets, the AI hand-off in `ReviewView` and
+     * `CardsScreen`, clear the presentation in the same action, so their content is being removed
+     * rather than rebuilt. What that leaves is one extra `screen_viewed` for a sheet the person is
+     * genuinely still looking at, with the tracker ending up where it belongs, so the restore that
+     * follows is still right.
      */
     static func trackScreenViewedOnDismiss(
         of dismissedSurface: AnalyticsSurface,
         restoring restoredSurface: AnalyticsSurface
     ) {
+        self.trackScreenViewedOnDismiss(ofAnyOf: [dismissedSurface], restoring: restoredSurface)
+    }
+
+    /**
+     * The same restore for a screen that can be taken away while something it presented still owns
+     * the tracker: `restoredSurface` is emitted when any of `dismissedSurfaces` is the one being
+     * viewed, under the same guard.
+     *
+     * Only the credential-recovery gate needs it. The gate is torn down by its own success, which
+     * happens while the sign-in sheet it presented is still on screen and holding `signin`, and
+     * removing the gate destroys that sheet's presenter without an `onDismiss`, so the gate's own
+     * dismissal is the only thing left to name the screen the person lands on.
+     */
+    static func trackScreenViewedOnDismiss(
+        ofAnyOf dismissedSurfaces: Set<AnalyticsSurface>,
+        restoring restoredSurface: AnalyticsSurface
+    ) {
         guard self.surfaceTracker.restoreViewing(
-            from: dismissedSurface,
+            fromAnyOf: dismissedSurfaces,
             to: restoredSurface
         ) else {
             return
         }
 
         self.track(.screenViewed(screen: restoredSurface))
+    }
+
+    /**
+     * Emits `permission_prompt_answered` on the surface the person is on when the OS answers, which
+     * is what `screen` means on this event and is not necessarily the surface that asked.
+     *
+     * The system dialog suspends the app, and the person can background it, come back somewhere else
+     * and answer there, so the asking surface is not reliably where they are by the time the result
+     * arrives. Reading the tracker gives the surface last reported for real instead; when nothing has
+     * been reported yet the event carries no `screen`, which the catalog allows, rather than a guess.
+     */
+    static func trackPermissionPromptAnswered(
+        permission: AnalyticsPermission,
+        outcome: AnalyticsPermissionOutcome
+    ) {
+        self.track(
+            .permissionPromptAnswered(permission: permission, outcome: outcome),
+            screen: self.surfaceTracker.currentViewingSurface()
+        )
     }
 }
 
@@ -69,6 +125,17 @@ final class AnalyticsSurfaceTracker: @unchecked Sendable {
     init() {
         self.lock = NSLock()
         self.currentSurface = nil
+    }
+
+    /// The surface last reported as viewed, for the events that have to name where the person is now
+    /// rather than where the caller happens to sit in the view hierarchy.
+    func currentViewingSurface() -> AnalyticsSurface? {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+
+        return self.currentSurface
     }
 
     func beginViewing(surface: AnalyticsSurface) -> Bool {
@@ -98,17 +165,20 @@ final class AnalyticsSurfaceTracker: @unchecked Sendable {
         return true
     }
 
-    /// Moves the current surface back to `restoredSurface`, but only while `dismissedSurface` is still
-    /// the one being viewed. A screen that something else has already superseded restores nothing.
+    /// Moves the current surface back to `restoredSurface`, but only while one of `dismissedSurfaces`
+    /// is still the one being viewed. A screen that something else has already superseded restores
+    /// nothing.
     func restoreViewing(
-        from dismissedSurface: AnalyticsSurface,
+        fromAnyOf dismissedSurfaces: Set<AnalyticsSurface>,
         to restoredSurface: AnalyticsSurface
     ) -> Bool {
         self.lock.lock()
         defer {
             self.lock.unlock()
         }
-        guard self.currentSurface == dismissedSurface, restoredSurface != dismissedSurface else {
+        guard let currentSurface = self.currentSurface,
+              dismissedSurfaces.contains(currentSurface),
+              restoredSurface != currentSurface else {
             return false
         }
 
