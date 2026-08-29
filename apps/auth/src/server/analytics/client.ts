@@ -1,5 +1,5 @@
 /**
- * The auth origin's product analytics transport: two best-effort calls against the backend.
+ * The auth origin's product analytics transport: best-effort calls against the backend.
  *
  * Nothing in this module throws into a route handler and nothing it does changes a response. The
  * auth service's job is signing people in, and a measurement that fails must cost the person
@@ -58,7 +58,10 @@ export type AuthAnalyticsTarget = Readonly<{
  */
 export type AuthAnalyticsCall = AuthAnalyticsTarget & Readonly<{ timeoutMs: number }>;
 
-type AuthAnalyticsFailureAction = "analytics_guest_session_error" | "analytics_ingest_error";
+type AuthAnalyticsFailureAction =
+  | "analytics_guest_session_error"
+  | "analytics_ingest_error"
+  | "analytics_identity_link_error";
 
 function logAnalyticsFailure(
   call: AuthAnalyticsCall,
@@ -185,6 +188,11 @@ function describeGuestSessionBodyShape(responseText: string): string {
   return `Mint returned 2xx with a body that is not a guest session; its shape was {${fields}}.`;
 }
 
+function readErrorCode(responseText: string): string | null {
+  const code = parseJsonObject(responseText)?.code;
+  return typeof code === "string" ? code : null;
+}
+
 function readAcceptedEventCount(responseText: string): number | null {
   const accepted = parseJsonObject(responseText)?.accepted;
   return typeof accepted === "number" ? accepted : null;
@@ -277,6 +285,100 @@ export async function postAnalyticsEvents(
     return true;
   } catch (error) {
     logAnalyticsFailure(call, "analytics_ingest_error", null, toErrorMessage(error));
+    return false;
+  }
+}
+
+/**
+ * What one call of the identity link leaves the caller to do. `account_required` is the single
+ * refusal with a remedy this producer can run inside the same request; everything else is done,
+ * logged, and never repeated here.
+ */
+export type AuthAnalyticsIdentityLinkOutcome = "linked" | "account_required" | "failed";
+
+/**
+ * Hands the visitor's guest identity to the account that has just signed in, so the auth origin's
+ * anonymous tail resolves to that account instead of staying an orphaned guest.
+ *
+ * `docs/auth-service.md` documents the route's refusals and what a client owes each of them, and
+ * this producer can honour only some of that. `GUEST_IDENTITY_LINK_ACCOUNT_REQUIRED` it can:
+ * `ensureAccountIdentityRow` below is the documented remedy and the caller runs it once. The rest it
+ * cannot, and the reason is the same for all of them — a Lambda invocation has nothing to retry
+ * into. `429 ANALYTICS_WRITER_BUSY` is retryable after its served `Retry-After`, which is always one
+ * second and is several times the whole report budget. A `5xx` is a *required* retry, because the
+ * link commits on the analytics pool while the revoke commits with the request transaction, so a
+ * failure between them can leave a live guest session with a link already written. Both are one
+ * logged failure here. The other two `409`s ask for nothing: `GUEST_IDENTITY_LINK_UPGRADE_REQUIRED`
+ * is terminal and unreachable for a `web` guest, which can own nothing the upgrade transfers, and
+ * `GUEST_IDENTITY_LINK_OTHER_ACCOUNT` is terminal because the token is not this account's to link.
+ *
+ * What makes that safe rather than merely lossy is that the caller drops the visitor cookie on every
+ * outcome. The danger the retry rule exists to prevent is a *different* account later binding the
+ * live guest session; no one can, because the only copy of that token goes with the cookie. What is
+ * left is a guest session nobody holds, which the 90-day web guest reaper collects like any other.
+ */
+export async function linkVisitorGuestToAccount(
+  call: AuthAnalyticsCall,
+  idToken: string,
+  guestToken: string,
+): Promise<AuthAnalyticsIdentityLinkOutcome> {
+  try {
+    const response = await fetch(`${call.apiBaseUrl}/guest-auth/identity/link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ guestToken }),
+      signal: AbortSignal.timeout(call.timeoutMs),
+    });
+    const body = await readResponseBody(response);
+    if (response.ok) {
+      return "linked";
+    }
+
+    // A refusal body is the `error`/`requestId`/`code` envelope and carries no credential: the id
+    // token travels in a header and the guest token in the request body, and neither is echoed.
+    logAnalyticsFailure(call, "analytics_identity_link_error", response.status, toLoggedBodyText(body));
+    return body.read && readErrorCode(body.text) === "GUEST_IDENTITY_LINK_ACCOUNT_REQUIRED"
+      ? "account_required"
+      : "failed";
+  } catch (error) {
+    // A timeout here is not the same as a lost link. The request has usually already reached the
+    // backend, which commits the link on its own pool regardless of whether this caller is still
+    // waiting; abandoning it stops the waiting, not the write.
+    logAnalyticsFailure(call, "analytics_identity_link_error", null, toErrorMessage(error));
+    return "failed";
+  }
+}
+
+/**
+ * The documented remedy for `GUEST_IDENTITY_LINK_ACCOUNT_REQUIRED`: one bearer request that loads a
+ * request context, which runs `ensureCognitoUserProfileInExecutor` and writes the
+ * `auth.user_identities` row the link resolves the account through. A first-ever sign-in is the only
+ * case that needs it, because nothing else has loaded a context for that Cognito subject yet.
+ */
+export async function ensureAccountIdentityRow(call: AuthAnalyticsCall, idToken: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${call.apiBaseUrl}/me`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${idToken}` },
+      signal: AbortSignal.timeout(call.timeoutMs),
+    });
+    if (!response.ok) {
+      logAnalyticsFailure(
+        call,
+        "analytics_identity_link_error",
+        response.status,
+        "GET /me did not write the account identity row the link needs.",
+      );
+      return false;
+    }
+
+    // Drained so the connection is reusable by the link retry that follows immediately. It is never
+    // read into a log on any branch: unlike every other response in this module, this body is the
+    // person's own profile.
+    await readResponseBody(response);
+    return true;
+  } catch (error) {
+    logAnalyticsFailure(call, "analytics_identity_link_error", null, toErrorMessage(error));
     return false;
   }
 }

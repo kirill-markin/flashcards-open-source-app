@@ -27,12 +27,13 @@ export const verify = (signed: string): string => {
   const dotIndex = signed.indexOf(".");
   if (dotIndex === -1) throw new Error("Invalid signed cookie");
   const encoded = signed.slice(0, dotIndex);
-  const signature = signed.slice(dotIndex + 1);
-  const expected = hmac(encoded);
-  if (
-    expected.length !== signature.length ||
-    !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
-  ) {
+  // Both lengths are taken from the buffers, because bytes are what `timingSafeEqual` compares.
+  // `String.length` counts UTF-16 code units, so a client-supplied signature of the same code-unit
+  // length but a different byte length would pass a string pre-check and make `timingSafeEqual`
+  // throw `RangeError` instead of returning the "Invalid signature" this function promises.
+  const signature = Buffer.from(signed.slice(dotIndex + 1));
+  const expected = Buffer.from(hmac(encoded));
+  if (expected.length !== signature.length || !timingSafeEqual(expected, signature)) {
     throw new Error("Invalid signature");
   }
   return Buffer.from(encoded, "base64url").toString("utf8");

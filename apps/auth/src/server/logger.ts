@@ -28,6 +28,7 @@ type AuthAction =
   | "analytics_visitor_cookie_error"
   | "analytics_guest_session_error"
   | "analytics_ingest_error"
+  | "analytics_identity_link_error"
   | "request_error"
   | "error";
 
