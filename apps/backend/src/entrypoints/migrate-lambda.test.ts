@@ -8,12 +8,12 @@ test("migration Lambda distinguishes direct and CloudFormation invocations", () 
   assert.deepEqual(parseMigrationInvocation({
     RequestType: "Update",
     ResourceProperties: {
-      RequiredMigration: "0119_product_analytics_contract_revision.sql",
+      RequiredMigration: "0120_backfill_product_analytics_server_facts.sql",
       UnrelatedProperty: "ignored",
     },
   }), {
     kind: "provision",
-    requiredMigration: "0119_product_analytics_contract_revision.sql",
+    requiredMigration: "0120_backfill_product_analytics_server_facts.sql",
   });
 });
 
