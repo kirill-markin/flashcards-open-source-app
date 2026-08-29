@@ -198,10 +198,15 @@ function createCatalogPublicScope(
 /**
  * The CDN base URL on its own, deliberately not `getCatalogDumpStorageConfig()`.
  *
- * That accessor also requires `CATALOG_DUMP_S3_BUCKET_NAME`, which no route here
- * reads: only the dump run writes to the bucket. Resolving the whole config
- * would let a missing bucket name take down package browse and media delivery
- * over a variable they never use, while `GET /catalog` keeps failing that same
+ * That accessor also requires `CATALOG_DUMP_S3_BUCKET_NAME`, which the media and
+ * browse routes never read. `GET /catalog` does read it: its
+ * `loadCatalogDumpPointerFromS3` in
+ * apps/backend/src/catalog/distribution/public/dumpStorage.ts calls
+ * `getCatalogDumpStorageConfig()` to resolve the bucket the pointer object is
+ * fetched from, so the variable stays required on `BackendHandler` in
+ * infra/aws/lib/gateways/api-gateway.ts. Resolving the whole config here would
+ * let a missing bucket name take down package browse and media delivery over a
+ * variable they never use, while `GET /catalog` keeps failing that same
  * configuration as its own typed 503.
  */
 function resolveCatalogMediaCdnBaseUrl(): string {
@@ -420,11 +425,29 @@ export function createCatalogPublicRoutes(options: CatalogPublicRoutesOptions): 
   });
 
   /**
-   * Compatibility route for the URL every previously published snapshot embeds,
-   * and the only public catalog media path that still opens a Postgres
-   * connection. It redirects instead of proxying bytes, keeps the
-   * published-and-not-delisted lookup on every request, and is never cached:
-   * a package version that republishes its media changes which object this key
+   * Redirect to the published CDN object for one catalog package media asset.
+   *
+   * Every snapshot published before the CDN embeds this URL for each of its
+   * media assets, and the current builder still names it:
+   * `mapCatalogPublicSnapshotMediaAssets` in
+   * apps/backend/src/catalog/distribution/public/snapshot.ts hands out a CDN URL
+   * only for a deliverable asset whose digest names an object key, and falls
+   * back to this route otherwise - a fallback that file documents as unreachable
+   * today, not as removed. It is also the machine-API template
+   * apps/backend/src/agent/discovery.ts publishes, so it serves current clients
+   * rather than only archived URLs.
+   *
+   * It redirects instead of proxying bytes, but it keeps the
+   * published-and-not-delisted lookup on every request, so it still costs one
+   * Postgres connection - as do the three sibling media routes above
+   * (`media-assets/:packageMediaKey/download-url`,
+   * `collections/:collectionId/cover/download-url` and
+   * `collections/:collectionId/cover/download`), which reach their loaders
+   * through `unsafeRepeatableReadReadOnlyTransaction`. What moved off Postgres
+   * is the URL a snapshot hands out for a deliverable asset, not this route.
+   *
+   * The redirect is never cached for the same reason the lookup stays: a
+   * package version that republishes its media changes which object this key
    * resolves to, and a delist has to stop resolving at once.
    */
   app.get("/catalog/package-versions/:packageVersionId/media-assets/:packageMediaKey/download", async (context) => {
