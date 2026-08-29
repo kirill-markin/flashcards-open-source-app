@@ -456,11 +456,44 @@ export type FeedbackEmailFailureDetails = Readonly<{
 
 // errorClass and errorMessage describe the database failure the analytics writer wrapped, not the
 // wrapper: its own message is a fixed public string that would name every refused write the same.
+// eventName is the first event of the batch that was refused, and eventCount is how many events went
+// down with it, because the writer stores a batch or nothing. A producer that chunks an unbounded
+// number of facts raises this for the chunk that was refused, so the count is what that chunk lost
+// rather than everything the producer emitted; what the producer then did with the chunks it had not
+// reached yet is reported separately below.
 export type ProductAnalyticsServerEventWriteFailureDetails = Readonly<{
   eventName: string;
+  eventCount: number;
   sqlState: string | null;
   errorClass: string;
   errorMessage: string;
+}>;
+
+// Raised when a chunking producer stopped a drain with chunks left that it chose not to attempt. It
+// is a separate action from the write failure above because it means something the failure does not:
+// those events were never handed to the writer at all, so no
+// product_analytics_server_event_write_failed row accounts for them.
+//
+// The three counts partition everything the drain held, so a reader can see how much survived and
+// how much did not without reconstructing it from chunk sizes.
+export type ProductAnalyticsContentCreationDrainAbortedDetails = Readonly<{
+  // Which stop rule fired, because the two ask for opposite responses. "writer_refused" means the
+  // analytics writer turned a chunk down, so it is degraded or down and the failure below is the
+  // thing to read. "budget_exhausted" means every chunk it was handed was stored and the drain ran
+  // out of the wall clock its request could spare, so analytics is healthy and the drain was simply
+  // too large for one request - the answer there is a smaller transaction or a queue, not a writer
+  // fix.
+  reason: "writer_refused" | "budget_exhausted";
+  // Stored by the chunks that succeeded before the stop. Already committed and not at risk.
+  storedEventCount: number;
+  // The refused chunk itself, reported with its error by the write failure above. Always zero on a
+  // "budget_exhausted" stop, which has no failed chunk and therefore no paired write failure: the
+  // scope's workspace there names the first creation the drain did not reach.
+  failedEventCount: number;
+  // Never attempted. The drain stopped instead of paying the analytics timeouts once per remaining
+  // chunk, because that cost lands after the product transaction committed and can push the request
+  // past the API Gateway integration timeout.
+  skippedEventCount: number;
 }>;
 
 export type ProductAnalyticsIdentityLinkWriteFailureDetails = Readonly<{
@@ -524,6 +557,7 @@ export type OperationsWarningEvent =
   | EventByAction<"feedback_notification_email_failed", FeedbackEmailFailureDetails>
   | EventByAction<"reporting_read_only_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | EventByAction<"product_analytics_server_event_write_failed", ProductAnalyticsServerEventWriteFailureDetails>
+  | EventByAction<"product_analytics_content_creation_drain_aborted", ProductAnalyticsContentCreationDrainAbortedDetails>
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>
   | (EventByAction<

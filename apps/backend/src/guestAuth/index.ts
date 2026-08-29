@@ -1,4 +1,5 @@
 import { unsafeTransaction } from "../database/unsafe";
+import { unsafeTransactionReportingContentCreations } from "../productAnalytics/contentCreations";
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvent,
@@ -158,7 +159,7 @@ export async function completeGuestUpgrade(
   selection: GuestUpgradeSelection,
   capabilities: GuestUpgradeCompleteCapabilities,
 ): Promise<GuestUpgradeCompletion> {
-  const completion = await unsafeTransaction(
+  const completion = await unsafeTransactionReportingContentCreations(
     async (executor) => completeGuestUpgradeInExecutor(
       executor,
       guestToken,
@@ -166,6 +167,16 @@ export async function completeGuestUpgrade(
       selection,
       capabilities,
     ),
+    // The merge re-creates the guest's cards and decks inside the target workspace, under the target
+    // scope, so the account that adopted them is the actor on those rows and not the guest that
+    // wrote them offline. For a card the guest had already created through the sync API that is
+    // invisible: the creation is keyed on the card id alone, so the merge's emission conflicts with
+    // the guest's original row and the fact keeps the guest identity, which resolves to the account
+    // through the upgrade link. It is only visible for a card that entered the guest workspace
+    // without ever being reported as created - a catalog install - where the merge is the first and
+    // only creation this stream ever sees for that card, and attributing it to the account that kept
+    // it is the intended answer.
+    (result) => result.targetUserId,
   );
   if (completion.outcome === "fresh_completion") {
     await recordGuestUpgradeCompletedAnalytics(completion);
