@@ -1,30 +1,26 @@
 import SwiftUI
 
+/**
+ * The code step's content, which SwiftUI may destroy and rebuild while the step stays on screen.
+ * What the person typed, the inline error they are reading and how much of the challenge is spent
+ * describe the attempt and live in `store.cloudSignInAttempt`, so a rebuild leaves them where they
+ * were; keyboard focus and the technical-error inspector describe this view instance and stay here.
+ */
 struct CloudOtpVerificationSheet: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
-    /// The attempt this code step belongs to. `otpSheetState` is a binding into the store, so a
-    /// request that outlives this sheet would otherwise write the previous attempt's email and
-    /// challenge into whichever attempt replaced it.
+    /// The attempt this code step belongs to. Everything the step writes is a write into the store,
+    /// so a request that outlives this sheet would otherwise write the previous attempt's code step
+    /// into whichever attempt replaced it. The attempt is the coarser half of that check: one attempt
+    /// hosts a new code step for every code it sends, so each request below also carries the
+    /// `CloudOtpSheetState.id` it was started for before it writes the step's own state.
     let attemptId: String
     @Binding var otpSheetState: CloudOtpSheetState?
     let onVerified: (CloudVerifiedAuthContext) -> Void
     let onReturnToEmail: () -> Void
 
-    @State private var code: String = ""
-    @State private var authErrorPresentation: CloudAuthInlineErrorPresentation?
     @State private var technicalErrorPresentation: TechnicalErrorPresentation?
-    @State private var isVerifyingCode: Bool = false
-    @State private var isSendingCode: Bool = false
-    @State private var challengeState: OtpChallengeState = .active
     @FocusState private var isCodeFieldFocused: Bool
-
-    private enum OtpChallengeState: Hashable {
-        case active
-        case consumed
-        case expired
-        case tooManyAttempts
-    }
 
     init(
         attemptId: String,
@@ -39,13 +35,15 @@ struct CloudOtpVerificationSheet: View {
     }
 
     var body: some View {
+        @Bindable var store = self.store
+
         NavigationStack {
             ReadableContentLayout(
                 maxWidth: flashcardsReadableFormMaxWidth,
                 horizontalPadding: 0
             ) {
                 Form {
-                    if let authErrorPresentation = self.authErrorPresentation {
+                    if let authErrorPresentation = self.store.cloudSignInAttempt.otpAuthErrorPresentation {
                         Section {
                             CloudAuthInlineErrorView(
                                 presentation: authErrorPresentation,
@@ -77,8 +75,8 @@ struct CloudOtpVerificationSheet: View {
                             Text(self.challengePrompt)
                                 .foregroundStyle(.secondary)
 
-                            if self.challengeState == .active {
-                                TextField(aiSettingsLocalized("settings.account.cloudSignIn.codePlaceholder", "12345678"), text: self.$code)
+                            if self.store.cloudSignInAttempt.otpChallengeState == .active {
+                                TextField(aiSettingsLocalized("settings.account.cloudSignIn.codePlaceholder", "12345678"), text: $store.cloudSignInAttempt.otpCode)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
                                     .keyboardType(.numberPad)
@@ -88,12 +86,12 @@ struct CloudOtpVerificationSheet: View {
                                 Button(aiSettingsLocalized("common.continue", "Continue")) {
                                     self.verifyCode()
                                 }
-                                .disabled(self.isVerifyingCode || self.isSendingCode || normalizedOtpCode(self.code).isEmpty)
+                                .disabled(self.isRequestInFlight || normalizedOtpCode(self.store.cloudSignInAttempt.otpCode).isEmpty)
                             } else {
                                 Button(aiSettingsLocalized("settings.account.cloudSignIn.resendCode", "Resend code")) {
                                     self.resendCode()
                                 }
-                                .disabled(self.isSendingCode || self.isVerifyingCode)
+                                .disabled(self.isRequestInFlight)
                             }
                         }
                     }
@@ -102,13 +100,13 @@ struct CloudOtpVerificationSheet: View {
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.verifyCodeTitle", "Verify code"))
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: self.currentChallenge) { _, nextChallenge in
-                guard nextChallenge != nil, self.challengeState == .active else {
+                guard nextChallenge != nil, self.store.cloudSignInAttempt.otpChallengeState == .active else {
                     return
                 }
 
                 self.scheduleCodeFieldFocus()
             }
-            .onChange(of: self.challengeState) { _, nextChallengeState in
+            .onChange(of: self.store.cloudSignInAttempt.otpChallengeState) { _, nextChallengeState in
                 guard nextChallengeState == .active, self.currentChallenge != nil else {
                     self.isCodeFieldFocused = false
                     return
@@ -116,12 +114,20 @@ struct CloudOtpVerificationSheet: View {
 
                 self.scheduleCodeFieldFocus()
             }
+            // Focus is one of the two things a rebuild is still allowed to lose — the open
+            // technical-error inspector is the other — because both describe this view instance. A
+            // new instance that opens straight onto a usable code field takes focus back, the way
+            // `CloudSignInSheet` does for the email field; neither `onChange` above fires for a
+            // rebuild, because nothing about the attempt changed.
+            .onAppear {
+                self.scheduleCodeFieldFocusIfCodeEntryVisible()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(aiSettingsLocalized("common.back", "Back")) {
                         self.onReturnToEmail()
                     }
-                    .disabled(self.isVerifyingCode || self.isSendingCode || self.currentChallenge == nil)
+                    .disabled(self.isRequestInFlight || self.currentChallenge == nil)
                 }
 
                 ToolbarItemGroup(placement: .keyboard) {
@@ -151,8 +157,13 @@ struct CloudOtpVerificationSheet: View {
         self.otpSheetState?.challenge
     }
 
+    private var isRequestInFlight: Bool {
+        self.store.cloudSignInAttempt.isVerifyingOtpCode
+            || self.store.cloudSignInAttempt.isResendingOtpCode
+    }
+
     private var challengePrompt: String {
-        switch self.challengeState {
+        switch self.store.cloudSignInAttempt.otpChallengeState {
         case .active:
             return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.active", "Enter the 8-digit code from your email. If you don't see it, check your spam folder.")
         case .consumed:
@@ -170,30 +181,56 @@ struct CloudOtpVerificationSheet: View {
         }
     }
 
+    /// A rebuilt instance takes focus back only where the un-rebuilt one would have held it. That
+    /// excludes a request in flight: `verifyCode` drops the keyboard as submission feedback, and
+    /// raising it again over a disabled Continue button would put the rebuilt instance in a state the
+    /// person could not have reached by staying on the screen.
+    private func scheduleCodeFieldFocusIfCodeEntryVisible() {
+        guard self.currentChallenge != nil,
+              self.store.cloudSignInAttempt.otpChallengeState == .active,
+              self.isRequestInFlight == false else {
+            return
+        }
+
+        self.scheduleCodeFieldFocus()
+    }
+
     private func verifyCode() {
         self.isCodeFieldFocused = false
 
-        let nextCode = normalizedOtpCode(self.code)
+        let nextCode = normalizedOtpCode(self.store.cloudSignInAttempt.otpCode)
         guard nextCode.isEmpty == false else {
-            self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+            self.store.cloudSignInAttempt.otpAuthErrorPresentation = CloudAuthInlineErrorPresentation(
                 message: aiSettingsLocalized("settings.account.cloudSignIn.codeRequired", "Code is required"),
                 technicalError: nil
             )
             return
         }
-        guard let currentChallenge = self.currentChallenge else {
-            self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+        guard let currentOtpSheetState = self.otpSheetState,
+              let currentChallenge = currentOtpSheetState.challenge else {
+            self.store.cloudSignInAttempt.otpAuthErrorPresentation = CloudAuthInlineErrorPresentation(
                 message: aiSettingsLocalized("settings.account.cloudSignIn.codeStillLoading", "Code is still loading"),
                 technicalError: nil
             )
             return
         }
 
+        // The code step this verify belongs to. One attempt hosts as many code steps as the person
+        // asks for — `CloudSignInSheet.sendCode` opens a fresh `CloudOtpSheetState` every time — so
+        // the attempt `id` alone cannot tell this challenge's result from the challenge now on
+        // screen. This is the second level of `sendCode`'s own guard, applied to the step's state.
+        let otpSheetStateId = currentOtpSheetState.id
+
+        // Raised here rather than inside the task, for the reason `CloudSignInSheet.sendCode` gives:
+        // the attempt that owns the request is the one that carries the flag, and a raise deferred to
+        // the task's first hop could land on an attempt that replaced this one and leave its Continue
+        // button disabled for good.
+        self.store.cloudSignInAttempt.isVerifyingOtpCode = true
+
         Task { @MainActor in
-            self.isVerifyingCode = true
             let captureContext = self.store.beginTechnicalErrorCaptureContext()
             defer {
-                self.isVerifyingCode = false
+                self.finishVerifyingCode()
             }
 
             do {
@@ -202,14 +239,28 @@ struct CloudOtpVerificationSheet: View {
                     code: nextCode,
                     captureContext: captureContext
                 )
-                self.code = ""
-                self.challengeState = .consumed
-                self.authErrorPresentation = nil
+                // The verify request outlives this sheet, so its result belongs to the attempt it was
+                // started for and is spent against neither the screen state nor the post-auth work of
+                // whichever attempt replaced that one.
+                guard self.store.cloudSignInAttempt.id == self.attemptId else {
+                    return
+                }
+
+                // Inside that attempt the entry state belongs to the code step this verify was
+                // started for, so a superseded challenge does not spend the one on screen or wipe
+                // what the person has typed into it. The verified credentials stay attempt-scoped:
+                // `sendCode` completes its own `verifiedCredentials` result outside the equivalent
+                // sheet-state guard, and an authentication that succeeded is still this attempt's.
+                if self.store.cloudSignInAttempt.otpSheetState?.id == otpSheetStateId {
+                    self.store.cloudSignInAttempt.otpCode = ""
+                    self.store.cloudSignInAttempt.otpChallengeState = .consumed
+                    self.store.cloudSignInAttempt.otpAuthErrorPresentation = nil
+                }
+
                 self.onVerified(verifiedContext)
             } catch {
-                // The verify request outlives this sheet, so its failure belongs to the attempt it
-                // was started for and is neither reported nor settled against whichever attempt
-                // replaced that one — the same shape as `resendCode`'s catch.
+                // Its failure belongs to that same attempt, and is neither reported nor settled
+                // against the one that replaced it — the same shape as `resendCode`'s catch.
                 guard self.store.cloudSignInAttempt.id == self.attemptId else {
                     return
                 }
@@ -217,6 +268,12 @@ struct CloudOtpVerificationSheet: View {
                     return
                 }
                 self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
+                // What the challenge has left, and the message the person reads about it, belong to
+                // the code step this verify was started for. Without this a superseded challenge's
+                // "This code expired." lands on a code that has just arrived, over typing it wipes.
+                guard self.store.cloudSignInAttempt.otpSheetState?.id == otpSheetStateId else {
+                    return
+                }
                 self.applyOtpErrorState(error: error)
                 self.presentAuthErrorPresentation(
                     makeCloudAuthInlineErrorPresentation(
@@ -229,13 +286,36 @@ struct CloudOtpVerificationSheet: View {
         }
     }
 
+    /// Attempt-scoped on purpose, unlike everything the request writes into the code step: the flag
+    /// says a request this attempt started is running, and only the attempt that carries it can
+    /// lower it. Refusing to lower it for a superseded code step would leave the flag raised on the
+    /// live attempt for good, with Continue and Back disabled underneath it.
+    private func finishVerifyingCode() {
+        guard self.store.cloudSignInAttempt.id == self.attemptId else {
+            return
+        }
+
+        self.store.cloudSignInAttempt.isVerifyingOtpCode = false
+    }
+
     private func resendCode() {
+        // The code step this resend belongs to, captured for the same reason `verifyCode` captures
+        // it. A resend keeps the step's `id` — `withChallenge` carries it over — so the challenge is
+        // replaced inside the step, and the continuations below can still tell that step from one
+        // `CloudSignInSheet.sendCode` opened in its place. There is nothing to resend into without
+        // one, and returning here leaves the in-flight flag below unraised.
+        guard let otpSheetStateId = self.otpSheetState?.id else {
+            return
+        }
+
         let currentEmail = self.currentEmail
+        // Raised before the task for the same reason `verifyCode` raises its flag there.
+        self.store.cloudSignInAttempt.isResendingOtpCode = true
+
         Task { @MainActor in
-            self.isSendingCode = true
             let captureContext = self.store.beginTechnicalErrorCaptureContext()
             defer {
-                self.isSendingCode = false
+                self.finishResendingCode()
             }
 
             do {
@@ -246,21 +326,23 @@ struct CloudOtpVerificationSheet: View {
 
                 switch sendCodeResult {
                 case .otpChallenge(let nextChallenge):
-                    guard self.store.cloudSignInAttempt.id == self.attemptId else {
+                    // The challenge and the empty entry state it comes with belong to the code step
+                    // this resend was started for. A step that replaced it is holding a newer
+                    // challenge of its own, which this one must neither overwrite nor clear.
+                    guard self.store.cloudSignInAttempt.id == self.attemptId,
+                          self.store.cloudSignInAttempt.otpSheetState?.id == otpSheetStateId else {
                         return
                     }
 
                     self.otpSheetState = self.otpSheetState?.withChallenge(nextChallenge)
-                    self.code = ""
-                    self.authErrorPresentation = nil
-                    self.challengeState = .active
+                    self.store.cloudSignInAttempt.resetOtpEntryState()
                 case .verifiedCredentials:
                     throw LocalStoreError.validation("Demo review sign-in cannot resend an OTP challenge")
                 }
             } catch {
-                // Nothing below this guard writes into the attempt today, but the request outlives
-                // the sheet, so the guard keeps an abandoned attempt's failure out of whichever
-                // attempt replaced it — the same shape as `CloudSignInSheet.sendCode`'s catch.
+                // The request outlives the sheet, so the guard keeps an abandoned attempt's failure
+                // and its error presentation out of whichever attempt replaced it — the same shape
+                // as the catch in `CloudSignInSheet.sendCode`.
                 guard self.store.cloudSignInAttempt.id == self.attemptId else {
                     return
                 }
@@ -268,6 +350,11 @@ struct CloudOtpVerificationSheet: View {
                     return
                 }
                 self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
+                // And out of a code step that replaced the one this resend was started for, which is
+                // showing a challenge this failure says nothing about.
+                guard self.store.cloudSignInAttempt.otpSheetState?.id == otpSheetStateId else {
+                    return
+                }
                 self.presentAuthErrorPresentation(
                     makeCloudAuthInlineErrorPresentation(
                         error: error,
@@ -279,6 +366,15 @@ struct CloudOtpVerificationSheet: View {
         }
     }
 
+    /// Attempt-scoped for the reason `finishVerifyingCode` gives.
+    private func finishResendingCode() {
+        guard self.store.cloudSignInAttempt.id == self.attemptId else {
+            return
+        }
+
+        self.store.cloudSignInAttempt.isResendingOtpCode = false
+    }
+
     private func applyOtpErrorState(error: Error) {
         guard let authError = error as? CloudAuthError else {
             return
@@ -287,18 +383,18 @@ struct CloudOtpVerificationSheet: View {
         switch authError {
         case .invalidResponse(let details, _):
             if details.code == "OTP_SESSION_EXPIRED" {
-                self.code = ""
-                self.challengeState = .expired
+                self.store.cloudSignInAttempt.otpCode = ""
+                self.store.cloudSignInAttempt.otpChallengeState = .expired
             }
 
             if details.code == "OTP_CHALLENGE_CONSUMED" {
-                self.code = ""
-                self.challengeState = .consumed
+                self.store.cloudSignInAttempt.otpCode = ""
+                self.store.cloudSignInAttempt.otpChallengeState = .consumed
             }
 
             if details.code == "OTP_TOO_MANY_ATTEMPTS" {
-                self.code = ""
-                self.challengeState = .tooManyAttempts
+                self.store.cloudSignInAttempt.otpCode = ""
+                self.store.cloudSignInAttempt.otpChallengeState = .tooManyAttempts
             }
         case .invalidBaseUrl, .invalidResponseBody:
             return
@@ -313,7 +409,7 @@ struct CloudOtpVerificationSheet: View {
         _ presentation: CloudAuthInlineErrorPresentation,
         captureContext: TechnicalErrorCaptureContext
     ) {
-        self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+        self.store.cloudSignInAttempt.otpAuthErrorPresentation = CloudAuthInlineErrorPresentation(
             message: presentation.message,
             technicalError: presentation.technicalError.map { action in
                 self.store.captureTechnicalErrorActionIfNeeded(

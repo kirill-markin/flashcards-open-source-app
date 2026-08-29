@@ -42,7 +42,12 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
     engine: rds.DatabaseInstanceEngine.postgres({
       version: postgresEngineVersion,
     }),
-    instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
+    // On the previous MICRO class the instance swapped at baseline, not only under bursts:
+    // over a week at a median of 4 connections, SwapUsage stayed between 48 MB and 250 MB and
+    // never reached zero. SMALL doubles memory to 2 GiB. Memory is also the connection ceiling,
+    // because max_connections is derived from DBInstanceClassMemory rather than pinned in the
+    // parameter group, so the class is what gives the Lambda connection budget its headroom.
+    instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.SMALL),
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.dbSg],
