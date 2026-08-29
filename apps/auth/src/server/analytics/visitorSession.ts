@@ -8,7 +8,7 @@
  */
 import { randomUUID } from "node:crypto";
 import type { Context } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { sign, verify } from "../crypto.js";
 
 /**
@@ -122,6 +122,20 @@ export function readAuthAnalyticsVisitor(context: Context): AuthAnalyticsVisitor
 
 export function writeAuthAnalyticsVisitor(context: Context, visitor: AuthAnalyticsVisitor): void {
   setCookie(context, visitorCookieName, sign(JSON.stringify(visitor)), visitorCookieOptions);
+}
+
+/**
+ * Retires the visitor identity on the two boundaries where this browser stops belonging to the
+ * person who was measured under it: a sign-in that turned the visitor into an account, and a logout
+ * that hands the browser back. Both are boundaries a browser can cross between two different people,
+ * and the identity must not cross with them — the guest token in this cookie may be bound to exactly
+ * one account, once, in an append-only table with no repair path.
+ *
+ * `path` and `secure` repeat the write options because a `__Host-` cookie is only deleted by a
+ * `Set-Cookie` that still satisfies the prefix.
+ */
+export function clearAuthAnalyticsVisitor(context: Context): void {
+  deleteCookie(context, visitorCookieName, { path: "/", secure: true });
 }
 
 /**
