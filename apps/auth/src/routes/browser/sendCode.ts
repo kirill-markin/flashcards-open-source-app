@@ -15,6 +15,11 @@ import { Hono } from "hono";
 import { setCookie } from "hono/cookie";
 import { initiateEmailOtp, signInWithPassword, type TokenResult } from "../../server/cognito/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
+import {
+  reportSignInCodeRequested,
+  reportSignInFailed,
+  reportSignInSucceeded,
+} from "../../server/analytics/signInFunnel.js";
 import { setBrowserSessionCookies } from "../../server/browserSession.js";
 import { sign, verify } from "../../server/crypto.js";
 import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
@@ -102,6 +107,12 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 
     if (!EMAIL_RE.test(email) || email.length > 256) {
+      // Every report below is best-effort, bounded and gated on the login page's own marker; the
+      // rules are in server/analytics/signInFunnel.ts. `server_error` is the catalog's residual
+      // value for a request refused before a code could be sent, and it therefore also carries a
+      // mistyped address: the catalog has no value for one, and this item does not add one. Read it
+      // on this route as "no code was sent", not as "the service broke".
+      await reportSignInFailed(c, "server_error");
       return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
     }
 
@@ -112,24 +123,15 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       // emails. The allowlist is restricted to synthetic @example.com accounts.
       // Anyone who knows one of these emails and the shared insecure demo
       // password can sign in to that account without OTP.
+      //
+      // Only the Cognito call is guarded, so nothing after it can be reported to the person as a
+      // rejected password.
+      let tokens: TokenResult;
       try {
-        const tokens = await dependencies.signInWithPassword(email, demoPassword);
-        dependencies.setBrowserSessionCookies(c, tokens.idToken, tokens.refreshToken);
-        log({
-          domain: "auth",
-          action: "send_code_demo_sign_in",
-          requestId,
-          route: c.req.path,
-          maskedEmail: maskEmail(email),
-        });
-        return c.json({
-          ok: true,
-          idToken: tokens.idToken,
-          refreshToken: tokens.refreshToken,
-          expiresIn: tokens.expiresIn,
-        });
+        tokens = await dependencies.signInWithPassword(email, demoPassword);
       } catch (error) {
         if (isRejectedPasswordSignIn(error)) {
+          await reportSignInFailed(c, "invalid_code");
           return jsonAuthError(c, 401, "PASSWORD_SIGN_IN_FAILED", "Email or password is incorrect.");
         }
 
@@ -142,8 +144,28 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
           code: "PASSWORD_SIGN_IN_FAILED",
           error: error instanceof Error ? error.message : String(error),
         });
+        await reportSignInFailed(c, "server_error");
         return jsonAuthError(c, 500, "PASSWORD_SIGN_IN_FAILED", "Password sign-in failed. Try again.");
       }
+
+      dependencies.setBrowserSessionCookies(c, tokens.idToken, tokens.refreshToken);
+      log({
+        domain: "auth",
+        action: "send_code_demo_sign_in",
+        requestId,
+        route: c.req.path,
+        maskedEmail: maskEmail(email),
+      });
+      // This branch completes a sign-in inside `send-code`, so it owes the same success sequence as
+      // `verify-code`: the event, the identity link, and the retired visitor cookie. Without it this
+      // path would mint visitor identities that are never linked and never revoked.
+      await reportSignInSucceeded(c, tokens.idToken);
+      return c.json({
+        ok: true,
+        idToken: tokens.idToken,
+        refreshToken: tokens.refreshToken,
+        expiresIn: tokens.expiresIn,
+      });
     }
 
     const ipAddress = getClientIpAddress(c.req.raw);
@@ -151,6 +173,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
 
     if (rateLimitDecision.kind === "block_ip_limit") {
       await dependencies.recordOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
+      await reportSignInFailed(c, "rate_limited");
       return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
     }
 
@@ -163,6 +186,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         dependencies.jitterDelay(),
       ]);
       if (existingOtpSessionToken === null) {
+        await reportSignInFailed(c, "rate_limited");
         return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
       }
 
@@ -170,6 +194,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       try {
         payload = dependencies.parseSignedOtpSessionToken(existingOtpSessionToken);
       } catch {
+        await reportSignInFailed(c, "rate_limited");
         return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
       }
 
@@ -195,6 +220,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
             errorCode: err.reasonCode,
             errorMessage: err.message,
           });
+          await reportSignInFailed(c, "server_error");
           return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
         }
 
@@ -207,6 +233,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
           code: "OTP_SEND_FAILED",
           error: err instanceof Error ? err.message : String(err),
         });
+        await reportSignInFailed(c, "server_error");
         return jsonAuthError(c, 500, "OTP_SEND_FAILED", "Could not send a code. Try again.");
       }
 
@@ -240,6 +267,10 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
           reasonCategory: "post_email_database_error",
           error: error instanceof Error ? error.message : String(error),
         });
+        // An email may already be on its way, but this response carries no CSRF token and no OTP
+        // session, so the person cannot go on: a failed sign-in attempt, and this one really is the
+        // service.
+        await reportSignInFailed(c, "server_error");
         // Avoid Retry-After here because replaying send-code can duplicate email delivery.
         return c.json({
           error: POST_EMAIL_DB_FAILURE_MESSAGE,
@@ -257,6 +288,9 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       sameSite: "Strict",
     });
 
+    // Reached by both branches above, including the suppressed one that hands back the code already
+    // sent: either way the person asked for a code and can now enter one.
+    await reportSignInCodeRequested(c);
     return c.json({ ok: true, csrfToken, otpSessionToken: signed });
   });
 
