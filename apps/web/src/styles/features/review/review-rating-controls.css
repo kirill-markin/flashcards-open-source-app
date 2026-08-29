@@ -71,3 +71,64 @@
   opacity: 0.55;
   cursor: default;
 }
+
+/* Keyboard shortcut hints exist only for desktop pointers. */
+.review-shortcut-hint {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rating-btn,
+  .review-reveal-btn {
+    position: relative;
+  }
+
+  .review-shortcut-hint {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    padding: 4px 8px;
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-xs);
+    background: var(--surface-elevated);
+    box-shadow: var(--shadow-soft);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .review-shortcut-hint-key {
+    display: inline-block;
+    min-width: 18px;
+    padding: 0 5px;
+    border: 1px solid var(--panel-border-strong);
+    border-radius: calc(var(--radius-xs) / 2);
+    background: var(--surface-hover);
+    box-shadow: 0 1px 0 var(--panel-border-strong);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: center;
+  }
+
+  .rating-btn:not(:disabled):hover,
+  .rating-btn:not(:disabled):focus-visible,
+  .review-reveal-btn:not(:disabled):hover,
+  .review-reveal-btn:not(:disabled):focus-visible {
+    z-index: 2;
+  }
+
+  .rating-btn:not(:disabled):hover > .review-shortcut-hint,
+  .rating-btn:not(:disabled):focus-visible > .review-shortcut-hint,
+  .review-reveal-btn:not(:disabled):hover > .review-shortcut-hint,
+  .review-reveal-btn:not(:disabled):focus-visible > .review-shortcut-hint {
+    display: block;
+  }
+}
