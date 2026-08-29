@@ -35,6 +35,15 @@ const transientDatabaseMessageFragments: ReadonlyArray<string> = [
   "connection terminated unexpectedly",
 ];
 
+// The exact, unabbreviated messages pg raises when connectionTimeoutMillis expires: the first from
+// pg-pool while queueing for a free slot, the other two from the client's own connect handshake.
+// Matched whole rather than as fragments, so only these three failures are reclassified.
+const databasePoolConnectionTimeoutMessages: ReadonlySet<string> = new Set([
+  "timeout exceeded when trying to connect",
+  "timeout expired",
+  "Connection terminated due to connection timeout",
+]);
+
 const transientDatabaseRetryMaxAttempts = 3;
 const transientDatabaseRetryBaseDelayMs = 100;
 const transientDatabaseRetryCapDelayMs = 750;
@@ -166,6 +175,20 @@ function tryLogDatabaseTransientRetry(
   }
 }
 
+/**
+ * Carries a pg connection timeout as ETIMEDOUT, which isTransientDatabaseError already recognizes,
+ * so the failure reaches the caller as a retryable 503 instead of an unclassified 500. Mirrors
+ * SessionAdvisoryLockConnectionTimeoutError in sessionAdvisoryLock.ts.
+ */
+export class DatabasePoolConnectionTimeoutError extends Error {
+  readonly code = "ETIMEDOUT";
+
+  constructor(cause: Error) {
+    super(`PostgreSQL pool connection timed out. cause=${cause.message}`, { cause });
+    this.name = "DatabasePoolConnectionTimeoutError";
+  }
+}
+
 export class TransientDatabaseHttpError extends HttpError implements DatabaseBoundaryErrorFields {
   readonly sqlState: string | null;
   readonly errorCode: string | null;
@@ -239,6 +262,28 @@ export function toDatabaseBoundaryError(error: unknown): unknown {
   }
 
   return new TransientDatabaseHttpError(error);
+}
+
+/**
+ * Normalizes the errors a bounded pg pool raises while it is still trying to hand out a connection,
+ * then classifies them like any other database failure.
+ *
+ * pg answers a failed acquisition with a bare Error: no `code` and no SQLSTATE, so
+ * isTransientDatabaseError matches nothing and the caller would see a generic 500 for what is
+ * plainly a retryable capacity or reachability problem. The message is the only thing that names it.
+ * Normalizing here rather than widening transientDatabaseMessageFragments keeps the classifier
+ * untouched for the session advisory lock pool, which treats a checkout timeout as its own distinct
+ * capacity condition (sessionAdvisoryLock.ts) rather than as a transient database error.
+ *
+ * Use this wherever a pool checkout or a connection handshake can fail. Once a client is checked
+ * out, these messages can no longer occur, so plain toDatabaseBoundaryError is enough there.
+ */
+export function toDatabasePoolBoundaryError(error: unknown): unknown {
+  if (error instanceof Error && databasePoolConnectionTimeoutMessages.has(error.message)) {
+    return toDatabaseBoundaryError(new DatabasePoolConnectionTimeoutError(error));
+  }
+
+  return toDatabaseBoundaryError(error);
 }
 
 export function toDatabaseCommitOutcomeUnknownError(error: unknown): HttpError {

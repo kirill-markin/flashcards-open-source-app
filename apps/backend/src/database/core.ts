@@ -9,6 +9,7 @@ import {
   logDatabasePoolError,
   toDatabaseBoundaryError,
   toDatabaseCommitBoundaryError,
+  toDatabasePoolBoundaryError,
 } from "./transient";
 import {
   captureBackendRuntimeWarning,
@@ -24,7 +25,40 @@ import {
 } from "./deadline";
 
 let pool: pg.Pool | undefined;
+// Per-container share of the fleet-wide Postgres connection budget. Infrastructure owns the number:
+// infra/aws/lib/gateways/api-gateway.ts multiplies it by each DB-backed Lambda's
+// reservedConcurrentExecutions and refuses to synthesize a stack that exceeds the instance's usable
+// connections, so it sets DB_POOL_MAX_CONNECTIONS on every budgeted function to make the check
+// govern what containers actually open.
+const databasePoolMaxConnectionsEnvName = "DB_POOL_MAX_CONNECTIONS";
+// Used for local runs and for the unbudgeted scheduled-job containers, which bundle this code but
+// receive no reservation and are treated as headroom rather than as budget. 3 is a floor, not a
+// tuning choice: a handler that holds a transaction client from pool.connect() and then issues a
+// pooled query needs at least two connections in the same container, so 1 or 2 can self-deadlock.
+const defaultMainPoolMaxConnections = 3;
+// The pg default is 0, which waits for a free connection forever. Match the session advisory lock
+// pool instead, so a saturated database fails fast rather than holding the request until the Lambda
+// timeout. The errors this raises carry no code and no SQLSTATE, so every checkout goes through
+// toDatabasePoolBoundaryError to reach the caller as a retryable 503 instead of a generic 500.
+const mainPoolConnectionTimeoutMs = 5_000;
 const databaseDeadlineStorage = new AsyncLocalStorage<number>();
+
+function resolveMainPoolMaxConnections(): number {
+  const configuredValue = process.env[databasePoolMaxConnectionsEnvName];
+  if (configuredValue === undefined || configuredValue === "") {
+    return defaultMainPoolMaxConnections;
+  }
+
+  const parsedValue = Number(configuredValue);
+  if (!Number.isSafeInteger(parsedValue) || parsedValue < defaultMainPoolMaxConnections) {
+    throw new Error(
+      `${databasePoolMaxConnectionsEnvName} must be an integer of at least `
+        + `${defaultMainPoolMaxConnections}. value=${configuredValue}`,
+    );
+  }
+
+  return parsedValue;
+}
 
 export type SqlValue = string | number | boolean | Date | null | ReadonlyArray<string> | ReadonlyArray<number>;
 
@@ -46,7 +80,12 @@ export type DatabaseExecutor = Readonly<{
 
 function createDatabasePool(connectionString: string): pg.Pool {
   const ssl = process.env.DB_SECRET_ARN ? true : false;
-  const databasePool = new pg.Pool({ connectionString, ssl });
+  const databasePool = new pg.Pool({
+    connectionString,
+    ssl,
+    max: resolveMainPoolMaxConnections(),
+    connectionTimeoutMillis: mainPoolConnectionTimeoutMs,
+  });
   databasePool.on("error", (error: Error): void => {
     logDatabasePoolError("main", error);
   });
@@ -117,7 +156,9 @@ async function executeQuery<Row extends pg.QueryResultRow>(
   try {
     return await executor.query<Row>(text, params as Array<unknown>);
   } catch (error) {
-    throw toDatabaseBoundaryError(error);
+    // A pool executor checks a connection out before it runs the statement, so a checkout or
+    // handshake timeout surfaces here too.
+    throw toDatabasePoolBoundaryError(error);
   }
 }
 
@@ -302,7 +343,7 @@ async function unsafeTransactionWithBeginStatement<Result>(
   try {
     client = await (await getPool()).connect();
   } catch (error) {
-    throw toDatabaseBoundaryError(error);
+    throw toDatabasePoolBoundaryError(error);
   }
 
   const executor: DatabaseExecutor = {
