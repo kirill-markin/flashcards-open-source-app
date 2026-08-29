@@ -208,7 +208,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const requiredMigration = workflow.indexOf(
-    "--require-migration 0120_backfill_product_analytics_server_facts.sql",
+    "--require-migration 0121_backfill_synthetic_app_opened_days.sql",
   );
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -238,7 +238,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
   const stackSource = readLibSource("lib/stack.ts");
   assert.match(
     stackSource,
-    /databaseMigrationGate\([\s\S]*"0120_backfill_product_analytics_server_facts\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)[\s\S]*addDatabaseMigrationDependency\(api\.directImageIngestionFn, migrationGate\)/,
+    /databaseMigrationGate\([\s\S]*"0121_backfill_synthetic_app_opened_days\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)[\s\S]*addDatabaseMigrationDependency\(api\.directImageIngestionFn, migrationGate\)/,
   );
 
   const outputsSource = readLibSource("lib/outputs.ts");
