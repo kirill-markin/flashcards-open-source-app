@@ -931,6 +931,10 @@ const hiCatalog: TranslationCatalog = {
       good: "अच्छा",
       hard: "कठिन",
     },
+    shortcuts: {
+      hint: "{{key}} दबाएँ",
+      spaceKey: "स्पेस",
+    },
     sides: {
       back: "पीछे",
       front: "सामने",

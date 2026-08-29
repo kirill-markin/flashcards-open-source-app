@@ -8,6 +8,7 @@ import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { formatTagSummary } from "../../shared/featureFormatting";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
+import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
 import type { ReviewSpeechSide } from "../speech/reviewSpeech";
 import {
@@ -19,6 +20,8 @@ import {
 } from "./reviewScreenTypes";
 
 const REVIEW_BUTTONS_PER_COLUMN = 2;
+const REVIEW_SHORTCUT_HINT_KEY_TOKEN = "{{key}}";
+const REVIEW_REVEAL_SHORTCUT_ARIA_KEY = "Space";
 const REVIEW_SCROLL_INTO_VIEW_OPTIONS = {
   behavior: "instant",
   block: "start",
@@ -89,7 +92,25 @@ type ReviewRatingButtonColumnProps = Readonly<{
   options: ReadonlyArray<ReviewButtonOption>;
 }>;
 
+type ReviewShortcutHintProps = Readonly<{
+  keyLabel: string;
+}>;
+
 function handleDisabledSpeechToggle(): void {
+}
+
+function ReviewShortcutHint(props: ReviewShortcutHintProps): ReactElement {
+  const { keyLabel } = props;
+  const { t } = useI18n();
+  const [hintPrefix, hintSuffix] = t("reviewScreen.shortcuts.hint").split(REVIEW_SHORTCUT_HINT_KEY_TOKEN);
+
+  return (
+    <span className="review-shortcut-hint" aria-hidden="true">
+      {hintPrefix}
+      <kbd className="review-shortcut-hint-key">{keyLabel}</kbd>
+      {hintSuffix}
+    </span>
+  );
 }
 
 function ReviewRepetitionIcon(): ReactElement {
@@ -256,12 +277,14 @@ function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactEl
           key={option.rating}
           type="button"
           className="rating-btn"
+          aria-keyshortcuts={reviewRatingShortcutKeys[option.rating]}
           disabled={isSubmitting}
           onClick={() => onReview(option.rating)}
           data-testid={`review-rate-${option.testId}`}
         >
           <span className="rating-btn-title">{option.title}</span>
           <span className="rating-btn-subtitle">{option.intervalDescription}</span>
+          <ReviewShortcutHint keyLabel={reviewRatingShortcutKeys[option.rating]} />
         </button>
       ))}
     </div>
@@ -416,10 +439,12 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
           <button
             type="button"
             className="primary-btn review-reveal-btn"
+            aria-keyshortcuts={REVIEW_REVEAL_SHORTCUT_ARIA_KEY}
             onClick={onRevealAnswer}
             data-testid="review-reveal-answer"
           >
             {t("reviewScreen.actions.revealAnswer")}
+            <ReviewShortcutHint keyLabel={t("reviewScreen.shortcuts.spaceKey")} />
           </button>
         )}
       </div>

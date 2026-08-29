@@ -852,6 +852,16 @@ export function captureWebWarning(event: WebWarningEvent): void {
     applyObservationScope(scope, event.scope, event.action);
     scope.setLevel("warning");
     scope.setContext("web.warning", detailsToContext(event.details));
+
+    if (event.action === "analytics_delivery_degraded") {
+      scope.setTag("web.warning_kind", event.details.eventName);
+      if (event.details.eventName !== "analytics_queue_discarded_on_reset") {
+        scope.setFingerprint(["{{ default }}", event.action, event.details.eventName]);
+        Sentry.captureMessage(`web.${event.action}.${event.details.eventName}`);
+        return;
+      }
+    }
+
     Sentry.captureMessage(`web.${event.action}`);
   });
 }
