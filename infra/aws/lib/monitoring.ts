@@ -191,14 +191,23 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
   });
   alertTopic.addSubscription(new snsSubscriptions.EmailSubscription(props.alertEmail));
 
+  // Connection saturation here is a burst: a spike lasts about a minute, so a 5-minute average
+  // is dominated by the idle minutes around it and two consecutive breaching periods never
+  // happen. DatabaseConnections has one-minute granularity, so the maximum of a single minute is
+  // the sharpest reading available. The API Lambda fleet is budgeted well below 70, and
+  // migrations, scheduled jobs, the reporting role, and admin sessions sit on top of it, so a
+  // minute above 70 means something outside the budget is holding connections while still
+  // leaving headroom under the instance ceiling.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "DbConnectionsAlarm", {
     metric: props.db.metricDatabaseConnections({
-      period: cdk.Duration.minutes(5),
-      statistic: "Average",
+      period: cdk.Duration.minutes(1),
+      statistic: "Maximum",
     }),
-    threshold: 68,
-    evaluationPeriods: 2,
-    alarmDescription: "RDS connections above 80% capacity",
+    threshold: 70,
+    evaluationPeriods: 1,
+    alarmDescription:
+      "RDS open connections peaked above 70 within one minute, above the connection budget of " +
+      "the API Lambda fleet plus its known extra consumers, so connection exhaustion is close",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
