@@ -54,6 +54,13 @@ extension FlashcardsStore {
             }
             await self.blockGuestUpgradeLocalOutboxMutationsBeforeDrain()
             do {
+                // The wait above is a bare `withCheckedContinuation` with no cancellation handler,
+                // so a body parked in it never observes the cancel and resumes on its own schedule.
+                // Re-read it here. Inside the `do` and before the drain on purpose: the drain's own
+                // catch sets `syncStatus` and `globalErrorMessage` without short-circuiting on
+                // cancellation, and someone who just erased their data must not be shown an error
+                // about it. The catch below only unblocks mutations and rethrows.
+                try Task.checkCancellation()
                 // Guest upgrade completion only merges already-synced cloud state.
                 // Drain normal guest sync first so no pending guest outbox is carried
                 // into the linked workspace.
@@ -62,6 +69,9 @@ extension FlashcardsStore {
                     configuration: configuration,
                     trigger: trigger
                 )
+                // The drain suspends, so re-read the cancel before writing this identity's
+                // credentials and the pending-upgrade record that follows them.
+                try Task.checkCancellation()
                 try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
                 let inFlightState = pendingGuestUpgradeInFlightState(
                     linkContext: linkContext,
@@ -208,6 +218,11 @@ extension FlashcardsStore {
         return try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil
     }
 
+    /// Call it only from a workspace completion body that reaches it with nothing suspended since
+    /// the task head. The credential write below has no cancellation read of its own and relies on
+    /// the head check in `CloudSessionRuntime.runWorkspaceCompletion`; a caller that arrives here
+    /// through an await would restore the abandoned account's credentials after an erase cleared
+    /// them, and has to read the cancel itself first.
     func finalizeCompletedPendingGuestUpgradeForRecoveredLinkIfNeeded(
         linkContext: CloudWorkspaceLinkContext,
         trigger: CloudSyncTrigger
@@ -447,12 +462,20 @@ extension FlashcardsStore {
         state: PendingGuestUpgradeCompletedState,
         trigger: CloudSyncTrigger
     ) async throws {
+        // Reached from three completion bodies, each through an await, and the credential load below
+        // both marks recovery state and refreshes credentials for this identity, so one check here
+        // covers all three callers. Throwing from inside two of those callers' `do` still runs their
+        // `applyCloudAccountPreferences` defer, which is safe on its own terms: it is keyed on the
+        // current account identity and returns early once the reset has changed that key.
+        try Task.checkCancellation()
         let credentials = try await self.loadPendingGuestUpgradeCredentials(
             commonState: state.common,
             detectedAt: trigger.now
         )
         let linkedSession = cloudLinkedSession(state: state, credentials: credentials)
 
+        // The credential load suspends too, so re-read the cancel before the link is finished.
+        try Task.checkCancellation()
         try await self.finishCompletedGuestCloudLink(
             linkedSession: linkedSession,
             workspace: state.workspace,
@@ -510,6 +533,10 @@ extension FlashcardsStore {
                 state: inFlightState,
                 workspace: workspace
             )
+            // The backend completion above suspends. Persisting the checkpoint after an erase would
+            // leave a pending-upgrade record naming the abandoned account behind a reset that has
+            // already cleared it, so the write re-reads cancellation rather than trusting the await.
+            try Task.checkCancellation()
             try self.savePendingGuestUpgradeState(state: .completed(completionState))
             return completionState
         }
@@ -670,6 +697,11 @@ extension FlashcardsStore {
             // Backend completion already merged drained guest cloud state.
             // Do not migrate any local guest outbox; switch locally and hydrate
             // the linked workspace from remote instead.
+            //
+            // Nothing suspends between the head of the link transition task and this migration, so
+            // the head check in `CloudSessionRuntime.runCloudLinkTransition` is the only cancellation
+            // read it gets. Anything awaited above it needs its own read, or an erase lands here and
+            // this deletes the workspace it just created.
             try context.database.switchGuestUpgradeToLinkedWorkspaceFromRemote(
                 localWorkspaceId: context.workspaceId,
                 linkedSession: linkedSession,
