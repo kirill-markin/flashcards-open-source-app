@@ -48,6 +48,16 @@ async function getReportingPool(): Promise<pg.Pool> {
   }
 
   const connectionString = await getReportingDatabaseUrl();
+  // Re-checked after the await, as apps/backend/src/database/core.ts, apps/auth/src/db.ts and
+  // apps/backend/src/productAnalytics/writer.ts do. No reporting caller is known to issue
+  // concurrent queries today - every one of them runs a single transaction at a time - but without
+  // the second check any future concurrent first touch on a cold container would build one pool per
+  // caller, and only the last would stay reachable to end(); the rest would hold their connections
+  // for the life of the container with no reference left to close them.
+  if (reportingPool !== undefined) {
+    return reportingPool;
+  }
+
   const ssl = process.env.REPORTING_DB_SECRET_ARN !== undefined && process.env.REPORTING_DB_SECRET_ARN !== "";
   // Keep the pool below the reporting_readonly role connection limit.
   reportingPool = new pg.Pool({ connectionString, ssl, max: reportingPoolMaxConnections });

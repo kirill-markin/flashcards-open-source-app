@@ -460,7 +460,7 @@ export function useReviewScreenController(
     };
   }, [stopSpeech]);
 
-  useReviewKeyboardShortcuts({
+  const { handleShortcutButtonPointerEnter } = useReviewKeyboardShortcuts({
     handleReview: async (card, rating) => {
       await handleReview(card, rating);
     },
@@ -610,6 +610,7 @@ export function useReviewScreenController(
       onEditCard: handleOpenEditor,
       onRevealAnswer: handleRevealAnswer,
       onReview: handleReview,
+      onShortcutButtonPointerEnter: handleShortcutButtonPointerEnter,
       onSwitchToAllCards: handleSwitchToAllCards,
       onToggleSpeech: toggleSpeech,
       reviewButtonErrorMessage,
