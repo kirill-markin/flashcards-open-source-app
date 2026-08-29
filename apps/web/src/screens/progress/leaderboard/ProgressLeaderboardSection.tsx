@@ -1,4 +1,4 @@
-import { useState, type ReactElement, type Ref } from "react";
+import { type ReactElement, type Ref } from "react";
 import { Link } from "react-router";
 import { buildLoginUrl } from "../../../api";
 import { resolveBestLeaderboardPlacement } from "../../../appData/progress/leaderboardPlacement";
@@ -11,7 +11,6 @@ import type {
   ProgressLeaderboardWindowKey,
 } from "../../../types";
 import { progressLeaderboardWindowKeys } from "../../../types";
-import { FriendInviteCreateDialog } from "../../friends/FriendInviteCreateDialog";
 import {
   formatProgressLeaderboardElapsedDuration,
   getProgressLeaderboardElapsedDuration,
@@ -83,6 +82,11 @@ type ProgressLeaderboardSectionProps = ProgressLeaderboardBodyProps & Readonly<{
   sectionRef: Ref<HTMLElement>;
   isInfoVisible: boolean;
   onToggleInfo: () => void;
+  /**
+   * The invite dialog itself is rendered by `ProgressScreen`, outside the subtree this section lives
+   * in, so that closing it is its only removal path. See the comment at that call site.
+   */
+  onOpenInviteDialog: () => void;
 }>;
 
 function ProgressLeaderboardSignInPlaceholder(): ReactElement {
@@ -226,7 +230,6 @@ function ProgressLeaderboardBody(props: ProgressLeaderboardBodyProps): ReactElem
 
 export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProps): ReactElement {
   const { locale, t, formatNumber } = useI18n();
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
   const {
     sourceState,
     canRenderServerBase,
@@ -237,6 +240,7 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
     sectionRef,
     isInfoVisible,
     onToggleInfo,
+    onOpenInviteDialog,
   } = props;
   const leaderboardWindow = resolveLeaderboardWindow(sourceState, selectedWindowKey);
   const infoUpdatedAt = leaderboardWindow === null
@@ -294,7 +298,7 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
           className="primary-btn progress-leaderboard-invite-cta"
           aria-label={t("progressScreen.leaderboard.invite.actionLabel")}
           title={t("progressScreen.leaderboard.invite.actionLabel")}
-          onClick={() => setIsInviteDialogOpen(true)}
+          onClick={onOpenInviteDialog}
           data-testid="progress-leaderboard-invite-open"
         >
           {t("progressScreen.leaderboard.invite.actionText")}
@@ -308,14 +312,6 @@ export function ProgressLeaderboardSection(props: ProgressLeaderboardSectionProp
         onSelectWindowKey={onSelectWindowKey}
         onOpenProfile={onOpenProfile}
       />
-
-      {isInviteDialogOpen ? (
-        <FriendInviteCreateDialog
-          canCreateInvite={canRenderServerBase}
-          authRedirectUrl={window.location.href}
-          onClose={() => setIsInviteDialogOpen(false)}
-        />
-      ) : null}
     </section>
   );
 }
