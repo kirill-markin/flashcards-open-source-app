@@ -35,12 +35,24 @@ services:
   auth:
     build:
       context: ../../apps/auth
+    # Needed for PUBLIC_API_BASE_URL below on hosts where the Docker runtime does not provide the
+    # name by itself; Docker Desktop already does and ignores this.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8081:8081"
     environment:
       PORT: "8081"
       NODE_ENV: development
       ALLOWED_REDIRECT_URIS: "http://localhost:3000"
+      # This service now dials the backend as well as naming it in agent-facing payloads. The
+      # localhost fallback in apps/auth/src/server/publicUrls.ts was written for the naming case and
+      # is wrong for the dialing one: there is no backend service in this compose file, so inside
+      # this container `localhost:8080` is the auth container itself and every analytics call would
+      # fail with a connection error. The backend dev server runs on the host. One variable serves
+      # both uses, so agent-facing payloads served from this container now name the host by the
+      # container's name for it; override it if a local agent needs to dial what they name.
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-http://host.docker.internal:8080/v1}
       COOKIE_DOMAIN: "localhost"
       COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
       COGNITO_REGION: ${COGNITO_REGION:-}
