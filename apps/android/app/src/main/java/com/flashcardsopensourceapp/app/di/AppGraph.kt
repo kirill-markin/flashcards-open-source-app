@@ -471,7 +471,8 @@ class AppGraph(
         appScope = appScope,
         cloudAccountRepository = cloudAccountRepository,
         reviewRepository = reviewRepository,
-        promptStore = guestSignInAfterReviewPromptStore
+        promptStore = guestSignInAfterReviewPromptStore,
+        analytics = analytics
     )
     val feedbackPromptController = FeedbackPromptController(
         appScope = appScope,

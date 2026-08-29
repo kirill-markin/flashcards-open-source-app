@@ -104,6 +104,10 @@ internal fun AiRouteContent(
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
+    // The OS answers to the two runtime permissions this screen asks for, granted or refused. Only
+    // the caller knows which surface the person is on, so neither is reported from here.
+    onCameraPermissionResult: (Boolean) -> Unit,
+    onMicrophonePermissionResult: (Boolean) -> Unit,
     onScreenVisible: () -> Unit,
     onScreenHidden: () -> Unit,
     onWarmUpSessionIfNeeded: () -> Unit,
@@ -221,6 +225,9 @@ internal fun AiRouteContent(
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
+        // Reported before the host check below: losing the activity changes what this app can do
+        // next, not what the person answered.
+        onCameraPermissionResult(isGranted)
         if (activity == null) {
             return@rememberLauncherForActivityResult
         }
@@ -249,6 +256,7 @@ internal fun AiRouteContent(
     val microphonePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
+        onMicrophonePermissionResult(isGranted)
         if (activity == null) {
             currentCancelDictationAction()
             return@rememberLauncherForActivityResult

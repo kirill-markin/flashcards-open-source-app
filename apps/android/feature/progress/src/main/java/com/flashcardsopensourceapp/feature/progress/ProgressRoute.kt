@@ -12,7 +12,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -20,6 +24,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
+import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationShareEffect
 import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationUiState
 import com.flashcardsopensourceapp.feature.progress.sections.ErrorCard
@@ -31,6 +36,7 @@ import com.flashcardsopensourceapp.feature.progress.sections.ReviewScheduleSecti
 import com.flashcardsopensourceapp.feature.progress.sections.ReviewsSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.leaderboard.StreakLeaderboardSectionCard
 import com.flashcardsopensourceapp.feature.progress.sections.StreakSectionCard
+import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardInviteDisplayNameFieldTag
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,12 +55,25 @@ fun ProgressRoute(
     onDismissLeaderboardProfile: () -> Unit,
     onCreateFriendInvitation: (String) -> Unit,
     onClearFriendInvitationFailure: () -> Unit,
+    // The invitation dialog is a screen of its own to the caller, which is the only side that knows
+    // what it was opened over. Reported from the two handlers that flip the state below rather than
+    // from an effect watching it, so a configuration change cannot repeat either edge.
+    onFriendInvitationDialogShown: () -> Unit,
+    onFriendInvitationDialogDismissed: () -> Unit,
     onFriendInvitationShared: (Long) -> Unit,
     onOpenSignIn: () -> Unit,
     onOpenLeaderboardSettings: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val listState = rememberLazyListState()
+    // Owned here rather than by the leaderboard card, which is one `item {}` of a `LazyColumn`
+    // branch that only `ProgressUiState.Loaded` renders. The series snapshot goes back to null on a
+    // scope-key or time-zone change, a workspace teardown and a cache rebuild, and each of those
+    // disposes that whole subtree. A dialog disposed that way never runs its dismiss handler, so the
+    // `friend_invite` view would be left with no visit back to `progress` after it, and reopening it
+    // on the same screen would write a second `friend_invite` in a row. Saved, not remembered, so a
+    // rotation repeats neither edge.
+    var isInviteDialogVisible by rememberSaveable { mutableStateOf(false) }
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
     val currentStreakScrollRequestConsumed = rememberUpdatedState(
         newValue = onStreakScrollRequestConsumed
@@ -100,6 +119,23 @@ fun ProgressRoute(
         uiState = friendInvitationUiState,
         onFriendInvitationShared = onFriendInvitationShared
     )
+
+    if (isInviteDialogVisible) {
+        FriendInvitationDialog(
+            uiState = friendInvitationUiState,
+            displayNameFieldTag = progressLeaderboardInviteDisplayNameFieldTag,
+            onCreateFriendInvitation = onCreateFriendInvitation,
+            onClearFriendInvitationFailure = onClearFriendInvitationFailure,
+            // The single way this dialog closes: the dismiss button, a back press, a tap outside and
+            // the effect that closes it once an invitation is created all arrive here. Rendered from
+            // the route rather than from the leaderboard card so that stays true — nothing the
+            // loaded state does can take it off screen behind this handler's back.
+            onDismiss = {
+                isInviteDialogVisible = false
+                onFriendInvitationDialogDismissed()
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -165,11 +201,13 @@ fun ProgressRoute(
                     item {
                         LeaderboardSectionCard(
                             uiState = uiState.leaderboardSection,
-                            friendInvitationUiState = friendInvitationUiState,
                             onSelectWindow = onSelectLeaderboardWindow,
                             onOpenProfile = onOpenLeaderboardProfile,
-                            onCreateFriendInvitation = onCreateFriendInvitation,
-                            onClearFriendInvitationFailure = onClearFriendInvitationFailure,
+                            onOpenFriendInvitation = {
+                                onClearFriendInvitationFailure()
+                                isInviteDialogVisible = true
+                                onFriendInvitationDialogShown()
+                            },
                             onOpenSignIn = onOpenSignIn,
                             onOpenLeaderboardSettings = onOpenLeaderboardSettings
                         )

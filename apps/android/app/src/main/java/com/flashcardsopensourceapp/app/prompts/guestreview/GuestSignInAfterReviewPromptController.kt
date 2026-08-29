@@ -1,5 +1,9 @@
 package com.flashcardsopensourceapp.app.prompts.guestreview
 
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPrompt
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPromptOutcome
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
@@ -19,11 +23,23 @@ data class GuestSignInAfterReviewPromptUiState(
     val reviewCount: Int
 )
 
+/**
+ * Owner of the after-review guest prompt, and therefore of its `prompt_answered`. The answer is
+ * reported here rather than from the dialog's callbacks because the visibility latch below already
+ * makes an answer count once per showing, which a click handler cannot: a double tap, or a callback
+ * that survives the dialog leaving the composition, would otherwise report the same answer twice
+ * into an append-only table.
+ *
+ * The other half of the pair — the `screen_viewed` that records the prompt being shown — belongs to
+ * `FlashcardsApp`, which owns the render condition and the saved slot that keeps a rotation from
+ * repeating it. Neither half is a rate on its own; the conversion between them is a query.
+ */
 class GuestSignInAfterReviewPromptController(
     appScope: CoroutineScope,
     private val cloudAccountRepository: CloudAccountRepository,
     private val reviewRepository: ReviewRepository,
-    private val promptStore: GuestSignInAfterReviewPromptStore
+    private val promptStore: GuestSignInAfterReviewPromptStore,
+    private val analytics: Analytics
 ) {
     private val uiStateMutable = MutableStateFlow(
         GuestSignInAfterReviewPromptUiState(
@@ -71,6 +87,14 @@ class GuestSignInAfterReviewPromptController(
             reviewCount = currentUiState.reviewCount
         )
         uiStateMutable.value = currentUiState.copy(isVisible = false)
+        // `snoozed`, not `dismissed`: "later" schedules the prompt to return rather than closing it
+        // for good, and the store records exactly that.
+        analytics.track(
+            event = AnalyticsEvent.PromptAnswered(
+                prompt = AnalyticsPrompt.SIGNIN_AFTER_REVIEW_PROMPT,
+                outcome = AnalyticsPromptOutcome.SNOOZED
+            )
+        )
     }
 
     fun acceptPrompt() {
@@ -81,6 +105,12 @@ class GuestSignInAfterReviewPromptController(
 
         promptStore.recordAccepted(nowMillis = System.currentTimeMillis())
         uiStateMutable.value = currentUiState.copy(isVisible = false)
+        analytics.track(
+            event = AnalyticsEvent.PromptAnswered(
+                prompt = AnalyticsPrompt.SIGNIN_AFTER_REVIEW_PROMPT,
+                outcome = AnalyticsPromptOutcome.ACCEPTED
+            )
+        )
     }
 
     private suspend fun reevaluate() {
