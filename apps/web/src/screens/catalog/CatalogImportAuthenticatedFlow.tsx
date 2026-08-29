@@ -1,5 +1,9 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
-import { trackCatalogDeckInstallStarted } from "../../analytics";
+import {
+  trackCatalogDeckInstallStarted,
+  useAnalyticsScreenView,
+  type AnalyticsSurface,
+} from "../../analytics";
 import {
   confirmCatalogPackageInstall,
   isAuthRedirectError,
@@ -74,6 +78,58 @@ function createInitialImportOptions(): WorkspaceImportOptions {
     importTag: "",
     removeTags: [],
   };
+}
+
+/**
+ * The install step a person can actually see right now, or null while none of the three is on
+ * screen. The steps are component state rather than routes, so this is the only place they can be
+ * recorded, and every branch repeats the render condition of its own panel below rather than
+ * reading `step` alone: the session panels replace the whole flow, the confirm panel waits for an
+ * active workspace, and the done panel waits for its completion data.
+ *
+ * `isEntryStepPending` covers the one commit `step` misreports. The entry step is corrected from the
+ * workspace list in an effect, so the commit that first delivers a multi-workspace list still
+ * carries the entry `confirm` and renders its panel for a single frame before the effect replaces it
+ * with `workspace`. `hasWorkspaceStep` is set by that same effect, so it is false exactly on that
+ * commit and true by the time a person can reach `confirm` through the chooser — which is what keeps
+ * a flash from filing a `catalog_import_confirm` entry that never happened.
+ *
+ * Exhaustive over `CatalogImportStep` with no `default`, the way `productAnalyticsClientReportable-
+ * PlatformFlags` is exhaustive over its stored domain in `apps/backend/src/productAnalytics/
+ * catalog.ts`, and for the same reason: a step added to the flow must not inherit `done`'s answer by
+ * falling through, because `analytics.product_events` is append-only and has no repair path. Adding
+ * one fails to compile here until this question is answered for it.
+ */
+function resolveCatalogImportStepSurface(params: Readonly<{
+  hasActiveWorkspace: boolean;
+  hasCompletion: boolean;
+  hasWorkspaceStep: boolean;
+  isSessionPanelVisible: boolean;
+  isWorkspaceChoiceAvailable: boolean;
+  step: CatalogImportStep;
+}>): AnalyticsSurface | null {
+  const {
+    hasActiveWorkspace,
+    hasCompletion,
+    hasWorkspaceStep,
+    isSessionPanelVisible,
+    isWorkspaceChoiceAvailable,
+    step,
+  } = params;
+  if (isSessionPanelVisible) {
+    return null;
+  }
+
+  switch (step) {
+    case "workspace":
+      return "catalog_import_workspace";
+    case "confirm": {
+      const isEntryStepPending = isWorkspaceChoiceAvailable && hasWorkspaceStep === false;
+      return hasActiveWorkspace && isEntryStepPending === false ? "catalog_import_confirm" : null;
+    }
+    case "done":
+      return hasCompletion ? "catalog_import_done" : null;
+  }
 }
 
 function CatalogImportBackNav(props: Readonly<{ isDisabled: boolean; onBack: () => void }>): ReactElement {
@@ -740,6 +796,20 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       }
     }
   }
+
+  const isSessionPanelVisible = sessionLoadState === "loading"
+    || sessionLoadState === "redirecting"
+    || sessionLoadState === "error"
+    || sessionLoadState === "deleted";
+  // Called before the early returns below so it runs on every render, as a hook must.
+  useAnalyticsScreenView(resolveCatalogImportStepSurface({
+    hasActiveWorkspace: activeWorkspace !== null,
+    hasCompletion: completion !== null,
+    hasWorkspaceStep,
+    isSessionPanelVisible,
+    isWorkspaceChoiceAvailable,
+    step,
+  }));
 
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (

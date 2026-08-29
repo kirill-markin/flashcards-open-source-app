@@ -17,6 +17,7 @@ import type {
   ProgressLeaderboardWindowKey,
   ProgressReviewScheduleBucketKey,
 } from "../../types";
+import { FriendInviteCreateDialog } from "../friends/FriendInviteCreateDialog";
 import { ProgressLeaderboardProfileDialog } from "./leaderboard/ProgressLeaderboardProfileDialog";
 import type { ProgressLeaderboardProfileDialogSeed } from "./leaderboard/ProgressLeaderboardPresentation";
 import { ProgressLeaderboardSection } from "./leaderboard/ProgressLeaderboardSection";
@@ -87,6 +88,7 @@ export function ProgressScreen(): ReactElement {
   const [isStreakInfoVisible, setIsStreakInfoVisible] = useState<boolean>(false);
   const [isLeaderboardInfoVisible, setIsLeaderboardInfoVisible] = useState<boolean>(false);
   const [isStreakLeaderboardInfoVisible, setIsStreakLeaderboardInfoVisible] = useState<boolean>(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
   const [selectedLeaderboardProfile, setSelectedLeaderboardProfile] = useState<ProgressLeaderboardProfileDialogSeed | null>(null);
   const [leaderboardProfileCache, setLeaderboardProfileCache] = useState<ReadonlyMap<string, ProgressLeaderboardProfile>>(() => new Map());
   const streakSectionRef = useRef<HTMLElement | null>(null);
@@ -382,6 +384,7 @@ export function ProgressScreen(): ReactElement {
               isInfoVisible={isLeaderboardInfoVisible}
               onToggleInfo={() => setIsLeaderboardInfoVisible((previous) => previous === false)}
               onOpenProfile={handleOpenLeaderboardProfile}
+              onOpenInviteDialog={() => setIsInviteDialogOpen(true)}
             />
 
             <ProgressStreakLeaderboardSection
@@ -422,6 +425,23 @@ export function ProgressScreen(): ReactElement {
               />
             ) : null}
           </div>
+        ) : null}
+
+        {/*
+          Rendered here rather than inside the leaderboard section, which lives in the
+          `progress !== null` subtree above. The dialog reports `friend_invite` as the screen on
+          mount and hands the stamp back only from its close button, so it must not be able to
+          disappear any other way: a rendered series snapshot that blinks to null — a session
+          re-verification, a scope-key change, a workspace teardown — would otherwise unmount it
+          with the surface still stamped `friend_invite` for every later event.
+        */}
+        {isInviteDialogOpen ? (
+          <FriendInviteCreateDialog
+            canCreateInvite={canRenderLeaderboardServerBase}
+            authRedirectUrl={window.location.href}
+            presentedOverSurface="progress"
+            onClose={() => setIsInviteDialogOpen(false)}
+          />
         ) : null}
 
         {selectedLeaderboardProfile === null ? null : (
