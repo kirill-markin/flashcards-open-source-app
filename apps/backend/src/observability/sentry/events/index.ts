@@ -120,6 +120,7 @@ export type {
   MultipartCompletionFailureReportBatchDetails,
   MultipartCompletionReconciliationBatchDetails,
   MultipartCompletionReconciliationTerminalFailureDetails,
+  ProductAnalyticsContentCreationDrainAbortedDetails,
   ProductAnalyticsIdentityLinkWriteFailureDetails,
   ProductAnalyticsServerEventWriteFailureDetails,
   ProgressActiveDaysBackfillCandidateFailureDetails,

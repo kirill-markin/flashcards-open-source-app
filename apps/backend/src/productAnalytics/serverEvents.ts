@@ -176,14 +176,52 @@ function createServerDerivedProductAnalyticsRow(
   };
 }
 
-// Analytics is best effort by definition and the product operation that produced the fact is not, so
-// a failed emission is logged with its error text and never propagated. This is also what keeps a
-// local AUTH_MODE=none run working, where a non-UUID user id fails the uuid cast in the database.
+// The outcome below is deliberately discarded here, and this signature stays void so the call sites
+// that report a single fact are unaffected: a producer of one fact has nothing left to stop for.
 export async function emitServerDerivedProductAnalyticsEvent(
   event: ServerDerivedProductAnalyticsEvent,
 ): Promise<void> {
+  await emitServerDerivedProductAnalyticsEvents([event]);
+}
+
+/**
+ * Whether one batch reached analytics.product_events.
+ *
+ * Deliberately not a boolean. A caller that reacts to a refusal reads "dropped" and nothing else, so
+ * a batch with nothing in it - which stores nothing and refuses nothing - reports "stored" and can
+ * never be read as a write the database turned down.
+ */
+export type ServerDerivedProductAnalyticsEmitOutcome = "stored" | "dropped";
+
+// Analytics is best effort by definition and the product operation that produced the fact is not, so
+// a failed emission is logged with its error text and never propagated. This is also what keeps a
+// local AUTH_MODE=none run working, where a non-UUID user id fails the uuid cast in the database.
+//
+// The outcome is returned, never raised: this function still has no rejection path at all. Its
+// callers run after a product transaction committed, so a thrown refusal would surface as a failed
+// card creation, which is the one thing this path exists to prevent. Returning it instead is what
+// lets a producer part-way through an unbounded sequence of batches stop rather than pay the
+// writer's connection and statement timeouts again for every batch it has left.
+//
+// A producer that observes many facts inside one product operation emits them here as one batch. The
+// insert is a single unnest statement whose parameter count does not grow with the batch, so the
+// whole batch costs one analytics transaction on one pooled connection, while one call per fact
+// would cost that per row and the loops behind these producers are unbounded. The batch stores or
+// fails as a unit, and the warning below names the first event and how many were lost with it. That
+// one statement runs under the writer's 2s statement timeout, so a producer whose fact count is
+// itself unbounded chunks its facts and calls this once per chunk rather than handing over a batch
+// no timeout can finish.
+export async function emitServerDerivedProductAnalyticsEvents(
+  events: ReadonlyArray<ServerDerivedProductAnalyticsEvent>,
+): Promise<ServerDerivedProductAnalyticsEmitOutcome> {
+  const event = events[0];
+  if (event === undefined) {
+    return "stored";
+  }
+
   try {
-    await insertProductAnalyticsEvents([createServerDerivedProductAnalyticsRow(event)]);
+    await insertProductAnalyticsEvents(events.map(createServerDerivedProductAnalyticsRow));
+    return "stored";
   } catch (error) {
     // Read through the database boundary fields rather than off the error itself. The analytics
     // writer answers a refused connection with its own HttpError whose message is a fixed public
@@ -209,11 +247,13 @@ export async function emitServerDerivedProductAnalyticsEvent(
       ),
       details: {
         eventName: event.eventName,
+        eventCount: events.length,
         sqlState: errorDetails.sqlState,
         errorClass: errorDetails.errorClass,
         errorMessage: errorDetails.errorMessage,
       },
     });
+    return "dropped";
   }
 }
 

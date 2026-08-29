@@ -330,6 +330,13 @@ async function insertWorkspaceMediaAssetForCatalogInstallInExecutor(
   );
 }
 
+// An installed card is written here with this file's own SQL rather than through the card mutation
+// helpers, so it never reaches the card_created producer and no card_created row is emitted for it,
+// even though the install does record a sync.hot_changes row per card like any other write. That is
+// deliberate: installing a deck someone else authored is not authoring, and the install itself is
+// already reported once as catalog_deck_installed carrying card_count. It is written down because a
+// later backfill that reconstructs creations from sync.hot_changes would otherwise disagree with the
+// live stream by a whole deck for every install.
 async function insertWorkspaceCardForCatalogInstallInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
