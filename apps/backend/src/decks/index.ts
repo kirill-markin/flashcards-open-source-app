@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   queryWithWorkspaceScopeReadOnly,
-  transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
@@ -33,6 +32,10 @@ import {
 import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
 import { isLegacyEffortLevel } from "../sync/contracts/legacyEffort";
 import { appendLegacyEffortTag } from "../cards/shared";
+import {
+  collectContentCreation,
+  transactionWithWorkspaceScopeReportingContentCreations,
+} from "../productAnalytics/contentCreations";
 
 type TimestampValue = Date | string;
 type ErrorFactory = (message: string) => Error;
@@ -603,7 +606,7 @@ export async function createDeck(
   input: CreateDeckInput,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  return transactionWithWorkspaceScope(
+  return transactionWithWorkspaceScopeReportingContentCreations(
     { userId, workspaceId },
     async (executor) => createDeckInExecutor(executor, workspaceId, input, metadata),
   );
@@ -661,6 +664,15 @@ export async function upsertDeckSnapshotInExecutor(
     if (insertedRow !== undefined) {
       const insertedDeck = mapDeck(insertedRow);
       const changeId = await recordDeckSyncChange(executor, workspaceId, hotChangeWriteLock, insertedDeck);
+      // The insert above is ON CONFLICT DO NOTHING, so a returned row is a genuine creation. Every
+      // other branch resolves the conflict and continues as an update of a deck that already
+      // existed, which is also how deleteDeckInExecutor's soft delete reaches this function.
+      collectContentCreation(executor, {
+        entityType: "deck",
+        entityId: insertedDeck.deckId,
+        workspaceId,
+        clientUpdatedAt: insertedDeck.clientUpdatedAt,
+      });
 
       return {
         deck: insertedDeck,
@@ -757,7 +769,7 @@ export async function upsertDeckSnapshot(
   input: DeckSnapshotInput,
   metadata: DeckMutationMetadata,
 ): Promise<DeckMutationResult> {
-  return transactionWithWorkspaceScope(
+  return transactionWithWorkspaceScopeReportingContentCreations(
     { userId, workspaceId },
     async (executor) => upsertDeckSnapshotInExecutor(executor, workspaceId, input, metadata),
   );
@@ -827,6 +839,10 @@ export async function updateDeckInExecutor(
   return result.deck;
 }
 
+// The deck update and delete transactions report creations too, unlike the card ones. Both of them
+// reach upsertDeckSnapshotInExecutor, so the only thing keeping them off its insert branch is the
+// 404 they raise for a deck that is already gone; opening them the same way costs nothing and means
+// a change to that guard cannot silently stop a creation from being reported.
 export async function updateDeck(
   userId: string,
   workspaceId: string,
@@ -834,7 +850,7 @@ export async function updateDeck(
   input: UpdateDeckInput,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  return transactionWithWorkspaceScope(
+  return transactionWithWorkspaceScopeReportingContentCreations(
     { userId, workspaceId },
     async (executor) => updateDeckInExecutor(executor, workspaceId, deckId, input, metadata),
   );
@@ -887,7 +903,7 @@ export async function deleteDeck(
   deckId: string,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  return transactionWithWorkspaceScope(
+  return transactionWithWorkspaceScopeReportingContentCreations(
     { userId, workspaceId },
     async (executor) => deleteDeckInExecutor(executor, workspaceId, deckId, metadata),
   );
@@ -900,7 +916,7 @@ export async function createDecks(
 ): Promise<ReadonlyArray<Deck>> {
   validateDeckBatchCount(items.length);
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
     const createdDecks: Array<Deck> = [];
     for (const item of items) {
       createdDecks.push(await createDeckInExecutor(executor, workspaceId, item.input, item.metadata));
@@ -918,7 +934,7 @@ export async function updateDecks(
   validateDeckBatchCount(items.length);
   validateUniqueDeckIds(items.map((item) => item.deckId));
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
     const updatedDecks: Array<Deck> = [];
     for (const item of items) {
       updatedDecks.push(await updateDeckInExecutor(executor, workspaceId, item.deckId, item.input, item.metadata));
@@ -936,7 +952,7 @@ export async function deleteDecks(
   validateDeckBatchCount(items.length);
   validateUniqueDeckIds(items.map((item) => item.deckId));
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
     const deletedDeckIds: Array<string> = [];
     for (const item of items) {
       const deletedDeck = await deleteDeckInExecutor(executor, workspaceId, item.deckId, item.metadata);

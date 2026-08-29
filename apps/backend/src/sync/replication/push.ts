@@ -6,10 +6,8 @@ import {
   createCurrentUserPublicProfileResolver,
   type CurrentUserPublicProfileResolver,
 } from "../../community/reviewActivityFacts";
-import {
-  transactionWithWorkspaceScope,
-  type DatabaseExecutor,
-} from "../../database";
+import type { DatabaseExecutor } from "../../database";
+import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/contentCreations";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
@@ -331,7 +329,7 @@ export async function processSyncPush(
   userId: string,
   input: SyncPushInput,
 ): Promise<SyncPushResult> {
-  const operationResults = await transactionWithWorkspaceScope(
+  const operationResults = await transactionWithWorkspaceScopeReportingContentCreations(
     { userId, workspaceId },
     async (executor) => {
       const replicaId = await ensureWorkspaceReplicaInExecutor(executor, {
