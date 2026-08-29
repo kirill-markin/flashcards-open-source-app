@@ -6,6 +6,11 @@ import {
   normalizePackageMediaKey,
   toSafeNumber,
 } from "../../common";
+import {
+  buildCatalogMediaCdnUrl,
+  isCatalogMediaSha256,
+  isPublicCatalogMediaDeliverable,
+} from "../../publicMediaDelivery";
 import { isPublicCatalogTextSafe } from "../../publicSafety";
 import type {
   CatalogPublicPackageMediaAsset,
@@ -20,10 +25,6 @@ type CatalogPublicPackageMediaAssetRow = Readonly<{
   license: string | null;
   mime_type: string;
   size_bytes: string | number;
-}>;
-
-type CatalogPublicPackageMediaDownloadRow = CatalogPublicPackageMediaAssetRow & Readonly<{
-  storage_key: string;
   sha256: string;
 }>;
 
@@ -61,8 +62,16 @@ function assertPublicCatalogTextSafe(packageVersionId: string, value: string | n
   );
 }
 
+/**
+ * The CDN object exists only for a blob the reconcile published, and it publishes
+ * exactly the deliverable ones, so an asset the public catalog cannot deliver
+ * gets no absolute URL instead of one that would resolve to nothing. The digest
+ * decides a URL path segment, so a value that is not a plain digest gets none
+ * either.
+ */
 function mapCatalogPublicPackageMediaAsset(
   row: CatalogPublicPackageMediaAssetRow,
+  catalogMediaCdnBaseUrl: string,
 ): CatalogPublicPackageMediaAsset {
   assertPublicPackageMediaKeySafe(row.package_version_id, row.package_media_key);
   assertPublicCatalogTextSafe(row.package_version_id, row.alt_text);
@@ -70,6 +79,7 @@ function mapCatalogPublicPackageMediaAsset(
   assertPublicCatalogTextSafe(row.package_version_id, row.license);
   assertPublicCatalogTextSafe(row.package_version_id, row.mime_type);
 
+  const sizeBytes = toSafeNumber(row.size_bytes, "size_bytes");
   return {
     packageVersionId: row.package_version_id,
     packageMediaKey: row.package_media_key,
@@ -77,7 +87,11 @@ function mapCatalogPublicPackageMediaAsset(
     credit: row.credit,
     license: row.license,
     mimeType: row.mime_type,
-    sizeBytes: toSafeNumber(row.size_bytes, "size_bytes"),
+    sizeBytes,
+    downloadUrl: isPublicCatalogMediaDeliverable({ mimeType: row.mime_type, sizeBytes })
+      && isCatalogMediaSha256(row.sha256)
+      ? buildCatalogMediaCdnUrl(catalogMediaCdnBaseUrl, row.sha256)
+      : null,
     downloadUrlPath: buildCatalogPackageMediaDownloadUrlPath(row.package_version_id, row.package_media_key),
   };
 }
@@ -85,6 +99,7 @@ function mapCatalogPublicPackageMediaAsset(
 export async function loadPublicCatalogPackageMediaAssetsInExecutor(
   executor: DatabaseExecutor,
   packageVersionId: string,
+  catalogMediaCdnBaseUrl: string,
 ): Promise<ReadonlyArray<CatalogPublicPackageMediaAsset>> {
   const result = await executor.query<CatalogPublicPackageMediaAssetRow>(
     [
@@ -95,7 +110,8 @@ export async function loadPublicCatalogPackageMediaAssetsInExecutor(
       "media_assets.credit AS credit,",
       "media_assets.license AS license,",
       "media_blobs.mime_type AS mime_type,",
-      "media_blobs.size_bytes AS size_bytes",
+      "media_blobs.size_bytes AS size_bytes,",
+      "media_blobs.sha256 AS sha256",
       "FROM catalog.package_media_assets AS media_assets",
       "INNER JOIN catalog.package_versions AS versions",
       "ON versions.package_version_id = media_assets.package_version_id",
@@ -114,7 +130,7 @@ export async function loadPublicCatalogPackageMediaAssetsInExecutor(
   );
 
   return result.rows.map((row: CatalogPublicPackageMediaAssetRow) => (
-    mapCatalogPublicPackageMediaAsset(row)
+    mapCatalogPublicPackageMediaAsset(row, catalogMediaCdnBaseUrl)
   ));
 }
 
@@ -122,10 +138,11 @@ export async function loadPublicCatalogPackageMediaForDownloadInExecutor(
   executor: DatabaseExecutor,
   packageVersionId: string,
   packageMediaKey: string,
+  catalogMediaCdnBaseUrl: string,
 ): Promise<CatalogPublicPackageMediaDownloadSource> {
   const normalizedPackageMediaKey = normalizePackageMediaKey(packageMediaKey, "packageMediaKey");
   assertPublicPackageMediaKeySafe(packageVersionId, normalizedPackageMediaKey);
-  const result = await executor.query<CatalogPublicPackageMediaDownloadRow>(
+  const result = await executor.query<CatalogPublicPackageMediaAssetRow>(
     [
       "SELECT",
       "media_assets.package_version_id AS package_version_id,",
@@ -135,7 +152,6 @@ export async function loadPublicCatalogPackageMediaForDownloadInExecutor(
       "media_assets.license AS license,",
       "media_blobs.mime_type AS mime_type,",
       "media_blobs.size_bytes AS size_bytes,",
-      "media_blobs.storage_key AS storage_key,",
       "media_blobs.sha256 AS sha256",
       "FROM catalog.package_media_assets AS media_assets",
       "INNER JOIN catalog.package_versions AS versions",
@@ -163,18 +179,20 @@ export async function loadPublicCatalogPackageMediaForDownloadInExecutor(
     );
   }
 
-  return {
-    mediaAsset: mapCatalogPublicPackageMediaAsset(row),
-    storageKey: row.storage_key,
-    sha256: row.sha256,
-  };
+  return { mediaAsset: mapCatalogPublicPackageMediaAsset(row, catalogMediaCdnBaseUrl) };
 }
 
 export async function loadPublicCatalogPackageMediaForDownload(
   packageVersionId: string,
   packageMediaKey: string,
+  catalogMediaCdnBaseUrl: string,
 ): Promise<CatalogPublicPackageMediaDownloadSource> {
   return unsafeRepeatableReadReadOnlyTransaction(async (executor) => (
-    loadPublicCatalogPackageMediaForDownloadInExecutor(executor, packageVersionId, packageMediaKey)
+    loadPublicCatalogPackageMediaForDownloadInExecutor(
+      executor,
+      packageVersionId,
+      packageMediaKey,
+      catalogMediaCdnBaseUrl,
+    )
   ));
 }

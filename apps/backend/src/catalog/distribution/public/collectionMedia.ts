@@ -2,7 +2,10 @@ import type { DatabaseExecutor } from "../../../database";
 import { unsafeRepeatableReadReadOnlyTransaction } from "../../../database/core";
 import { buildMediaBlobStorageKey } from "../../../mediaAssets/storageKeys";
 import { HttpError } from "../../../shared/errors";
-import { getPublicCatalogMediaDeliveryIssue } from "../../publicMediaDelivery";
+import {
+  getPublicCatalogMediaDeliveryIssue,
+  isCatalogMediaSha256,
+} from "../../publicMediaDelivery";
 import { isPublicCatalogTextSafe } from "../../publicSafety";
 import type { CatalogPublicCollectionCoverDownloadSource } from "../../types";
 
@@ -14,8 +17,6 @@ type CatalogPublicCollectionCoverRow = Readonly<{
   storage_key: string | null;
   sha256: string | null;
 }>;
-
-const sha256Pattern = /^[0-9a-f]{64}$/u;
 
 function mapPublicCatalogCollectionCover(
   row: CatalogPublicCollectionCoverRow,
@@ -58,7 +59,7 @@ function mapPublicCatalogCollectionCover(
     );
   }
   if (
-    sha256Pattern.test(row.sha256) === false
+    isCatalogMediaSha256(row.sha256) === false
     || row.storage_key !== buildMediaBlobStorageKey(row.sha256)
   ) {
     throw new HttpError(
@@ -93,7 +94,6 @@ function mapPublicCatalogCollectionCover(
       mimeType: row.mime_type,
       sizeBytes,
     },
-    storageKey: row.storage_key,
     sha256: row.sha256,
   };
 }
