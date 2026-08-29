@@ -47,8 +47,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
-import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationDialog
-import com.flashcardsopensourceapp.feature.friendinvite.FriendInvitationUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardProfileIdentityUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardRowUiState
 import com.flashcardsopensourceapp.feature.progress.ProgressLeaderboardSectionUiState
@@ -56,7 +54,6 @@ import com.flashcardsopensourceapp.feature.progress.R
 import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardGapRowTag
 import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardInfoButtonTag
 import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardInviteButtonTag
-import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardInviteDisplayNameFieldTag
 import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardParticipantRowTag
 import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardPeriodSelectorTag
 import com.flashcardsopensourceapp.feature.progress.sections.progressLeaderboardResolvedContentTag
@@ -73,16 +70,16 @@ private const val minutesPerHour: Int = 60
 @Composable
 internal fun LeaderboardSectionCard(
     uiState: ProgressLeaderboardSectionUiState,
-    friendInvitationUiState: FriendInvitationUiState,
     onSelectWindow: (ProgressLeaderboardWindowKey) -> Unit,
     onOpenProfile: (ProgressLeaderboardProfileIdentityUiState) -> Unit,
-    onCreateFriendInvitation: (String) -> Unit,
-    onClearFriendInvitationFailure: () -> Unit,
+    // Only opening the invitation dialog belongs here. The dialog itself is owned by the route,
+    // because this card is one `item {}` of a list that only the loaded state renders; see the
+    // comment on the state in `ProgressRoute`.
+    onOpenFriendInvitation: () -> Unit,
     onOpenSignIn: () -> Unit,
     onOpenLeaderboardSettings: () -> Unit
 ) {
     var isInfoDialogVisible by rememberSaveable { mutableStateOf(false) }
-    var isInviteDialogVisible by rememberSaveable { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -126,8 +123,7 @@ internal fun LeaderboardSectionCard(
                     if (uiState == ProgressLeaderboardSectionUiState.SignInRequired) {
                         onOpenSignIn()
                     } else {
-                        onClearFriendInvitationFailure()
-                        isInviteDialogVisible = true
+                        onOpenFriendInvitation()
                     }
                 },
                 modifier = Modifier
@@ -248,16 +244,6 @@ internal fun LeaderboardSectionCard(
                     }
                 }
             }
-        )
-    }
-
-    if (isInviteDialogVisible) {
-        FriendInvitationDialog(
-            uiState = friendInvitationUiState,
-            displayNameFieldTag = progressLeaderboardInviteDisplayNameFieldTag,
-            onCreateFriendInvitation = onCreateFriendInvitation,
-            onClearFriendInvitationFailure = onClearFriendInvitationFailure,
-            onDismiss = { isInviteDialogVisible = false }
         )
     }
 }

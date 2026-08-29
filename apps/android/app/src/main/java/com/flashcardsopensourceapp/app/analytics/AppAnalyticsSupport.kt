@@ -1,8 +1,10 @@
 package com.flashcardsopensourceapp.app.analytics
 
 import android.database.sqlite.SQLiteFullException
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCredential
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCredentialProvider
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchType
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReason
@@ -268,14 +270,30 @@ private fun isSilentAnalyticsGuestMintFailure(error: Throwable): Boolean {
  *
  * Every destination registered in `navigation/` is covered today, so nothing reachable falls
  * through to `null`: `review` and `review/preview`; `cards`; `ai`; `progress`; the three
- * `cards/editor/…` steps; `settings` and every `settings/…` leaf, of which
- * `settings/decks/detail/{deckId}` and `settings/decks/all-cards` are the two that report
- * `deck_detail` instead of `settings`.
+ * `cards/editor/…` steps; `settings` and every `settings/…` leaf.
  *
- * `catalog` and `onboarding` have no Android destination today, so no route maps onto them. When a
- * destination is added that belongs on either, map it here: an unmapped route ends the previous
- * surface's visit at the call site, so leaving it unmapped costs the view rather than corrupting
- * the counts, but it still costs it.
+ * Five families of `settings/…` leaf report something other than `settings`, because they are
+ * screens of their own that merely happen to be routed under settings on every client. The workspace
+ * content ones — `settings/decks`, `settings/decks/editor/{deckId}`, `settings/tags`, and the
+ * `settings/decks/detail/{deckId}` and `settings/decks/all-cards` pair that already reported
+ * `deck_detail` — act on the person's own decks, cards and tags. The sign-in flow reports `signin`
+ * for all three of its steps, which is `screen` in its ordinary reading, where the person is now.
+ * That is *not* the entry-point reading `signin_failed` needs: the surface that owned the tapped
+ * sign-in control rides in on the route's `origin` argument instead, so nothing here may be used to
+ * attribute a sign-in failure. The remaining app-preference and account leaves collapse into
+ * `settings` on purpose.
+ *
+ * The order below is load-bearing: the specific `settings/…` branches must stay above the catch-all
+ * one, and the two `settings/decks/…` sub-screens above the exact `settings/decks` list.
+ *
+ * Two surfaces this client does reach are deliberately absent, because neither is a route.
+ * `credential_recovery` is the gate that replaces the whole app root, reported by `FlashcardsApp`
+ * from the gate branch itself, and `friend_invite` is a dialog, reported by each of its two render
+ * sites — the settings screen and the progress leaderboard.
+ *
+ * The catalog import steps, `share` and `friend_invite_accept` have no Android surface at all. When
+ * one is added, map it here: an unmapped route ends the previous surface's visit at the call site,
+ * so leaving it unmapped costs the view rather than corrupting the counts, but it still costs it.
  */
 internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
     val normalizedRoute: String = route?.trim().orEmpty()
@@ -287,6 +305,10 @@ internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
         normalizedRoute.startsWith(prefix = "cards/editor") -> AnalyticsSurface.CARD_EDITOR
         normalizedRoute.startsWith(prefix = "settings/decks/detail") ||
             normalizedRoute == "settings/decks/all-cards" -> AnalyticsSurface.DECK_DETAIL
+        normalizedRoute.startsWith(prefix = "settings/decks/editor") -> AnalyticsSurface.DECK_EDITOR
+        normalizedRoute == "settings/decks" -> AnalyticsSurface.DECKS
+        normalizedRoute == "settings/tags" -> AnalyticsSurface.TAGS
+        normalizedRoute.startsWith(prefix = "settings/account/sign-in") -> AnalyticsSurface.SIGNIN
         normalizedRoute == "settings" || normalizedRoute.startsWith(prefix = "settings/") -> AnalyticsSurface.SETTINGS
         normalizedRoute == "review" || normalizedRoute.startsWith(prefix = "review/") -> AnalyticsSurface.REVIEW
         normalizedRoute == "cards" -> AnalyticsSurface.CARDS
@@ -294,6 +316,53 @@ internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
         normalizedRoute == "progress" -> AnalyticsSurface.PROGRESS
         else -> null
     }
+}
+
+/**
+ * The showing half of the friend invitation dialog's visit.
+ *
+ * That dialog is a screen of its own in the shared surface enum rather than decoration over the one
+ * it is drawn on — a prompt a person fills in and can abandon — so opening it ends the visit to the
+ * destination underneath and closing it starts a new one. Web reads the structurally identical
+ * dialog the same way.
+ *
+ * Both edges are reported from the two render sites because the app-wide route tracker cannot see
+ * them: the dialog's visibility is local state inside two different composables, and no route
+ * changes while it is up. Within a site they are reported from the open and dismiss handlers rather
+ * than from an effect watching that state, because a handler runs once per action while an effect
+ * runs again on every configuration change, and a repeated view is permanent in an append-only
+ * table.
+ *
+ * The tracker's own last-reported-surface slot is deliberately left alone. It keeps naming the
+ * destination underneath, which is both what the tracker needs in order to suppress a repeat of it
+ * when a rotation restarts its effect with the dialog still up, and what
+ * [trackFriendInvitationDialogDismissed] hands the visit back to. Moving the slot to `friend_invite`
+ * would instead make the tracker report the destination underneath while the person is still
+ * looking at the dialog.
+ */
+internal fun trackFriendInvitationDialogShown(analytics: Analytics) {
+    analytics.track(event = AnalyticsEvent.ScreenViewed(screen = AnalyticsSurface.FRIEND_INVITE))
+}
+
+/**
+ * The closing half, emitted from the single callback each render site closes the dialog through.
+ *
+ * [restoredSurface] is the destination the dialog was opened over, which the person is back on.
+ *
+ * Unconditional, unlike web's `trackScreenViewedOnDismiss` and the iOS call it ports, which restore
+ * only while the dismissed surface is still the last one reported. That guard reads a slot those
+ * clients set to `friend_invite` when the dialog opens; this one cannot set it, for the reason on
+ * [trackFriendInvitationDialogShown], so the same guard here would either never pass or cost a
+ * duplicate `screen_viewed` on every rotation with the dialog up. What it protects against is
+ * removed structurally instead: both render sites keep the dialog outside every subtree that can be
+ * disposed under them, so the only ways out are this callback and leaving the destination, and
+ * leaving reports the destination it goes to.
+ */
+internal fun trackFriendInvitationDialogDismissed(
+    analytics: Analytics,
+    restoredSurface: AnalyticsSurface
+) {
+    analytics.track(event = AnalyticsEvent.ScreenViewed(screen = restoredSurface))
 }
 
 /** Maps a sync failure onto the closed reason set the server catalog declares. */

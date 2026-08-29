@@ -8,6 +8,10 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermission
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermissionOutcome
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.feature.settings.review.ReviewNotificationsRoute
@@ -99,6 +103,23 @@ internal fun NavGraphBuilder.registerSettingsNotificationsDestination(
                 appGraph.strictRemindersManager.reconcileStrictReminders(
                     trigger = StrictRemindersReconcileTrigger.PERMISSION_CHANGED,
                     nowMillis = nowMillis
+                )
+            },
+            // The review flow asks for this same permission from its own pre-prompt, and
+            // `permission_prompt_answered` carries no property naming the asker: its surface is the
+            // event's own `screen`. Each entry point therefore names where its own person is, so a
+            // refusal here stays distinguishable from a refusal there.
+            onPermissionResult = { isGranted ->
+                appGraph.analytics.track(
+                    event = AnalyticsEvent.PermissionPromptAnswered(
+                        permission = AnalyticsPermission.NOTIFICATIONS,
+                        outcome = if (isGranted) {
+                            AnalyticsPermissionOutcome.GRANTED
+                        } else {
+                            AnalyticsPermissionOutcome.DENIED
+                        },
+                        screen = AnalyticsSurface.SETTINGS
+                    )
                 )
             },
             onBack = {

@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
 import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
@@ -54,8 +55,10 @@ internal fun CloudCredentialRecoveryGateContainer(
             syncRepository = appGraph.syncRepository,
             messageController = appGraph.appMessageBus,
             analytics = appGraph.analytics,
-            // The gate replaces the app's root at launch, so no product surface opened this sign-in.
-            originSurface = null,
+            // The gate is itself the entry point `signin_failed` reports: it replaces the app root
+            // rather than opening from a screen, which is exactly the case the catalog added
+            // `credential_recovery` for.
+            originSurface = AnalyticsSurface.CREDENTIAL_RECOVERY,
             applicationContext = context.applicationContext
         )
     )
