@@ -9,9 +9,10 @@
  * and keeps its presigned flow.
  *
  * Objects are keyed by the blob's own `sha256`, matching how the snapshot itself
- * is addressed. That deduplicates a blob shared across package versions, keeps
- * every object immutable (a changed blob is a different key, so no invalidation
- * is ever needed), and keeps the key unguessable from public catalog data.
+ * is addressed. That deduplicates a blob shared across package versions and keeps
+ * every object immutable: a changed blob is a different key, so no invalidation
+ * is ever needed. The snapshot and the public catalog routes name these URLs, so
+ * the key is public by design; nothing about the private blob bucket is.
  *
  * The pass is a full reconcile rather than an incremental one: it copies what is
  * missing and deletes what is no longer public, so delisting actually withdraws
@@ -24,7 +25,6 @@ import {
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import type { DatabaseExecutor } from "../../../database";
-import { unsafeRepeatableReadReadOnlyTransaction } from "../../../database/core";
 import { getMediaAssetsStorageConfig } from "../../../mediaAssets/storage/config";
 import { buildMediaBlobStorageKey } from "../../../mediaAssets/storageKeys";
 import {
@@ -32,7 +32,12 @@ import {
   type BackendObservationScope,
 } from "../../../observability/sentry";
 import { toSafeNumber } from "../../common";
-import { isPublicCatalogMediaDeliverable } from "../../publicMediaDelivery";
+import {
+  buildCatalogMediaObjectKey,
+  catalogMediaObjectKeyPrefix,
+  isCatalogMediaSha256,
+  isPublicCatalogMediaDeliverable,
+} from "../../publicMediaDelivery";
 import {
   formatCatalogDumpS3ErrorSummary,
   getCatalogDumpS3Client,
@@ -41,10 +46,15 @@ import {
   runCatalogDumpS3OperationWithRetries,
 } from "./dumpStorage";
 
-/** Must stay in sync with the write grant in `infra/aws/lib/catalog-dump.ts`. */
-const catalogMediaObjectKeyPrefix = "catalog/media/";
-
-const sha256Pattern = /^[0-9a-f]{64}$/u;
+/**
+ * Largest share of the published objects one pass may withdraw. A read that
+ * returns a fraction of the catalog looks exactly like a catalog that shrank,
+ * and the snapshot now links these objects, so a partial read regression would
+ * break live media instead of going unnoticed. An ordinary delist withdraws the
+ * blobs of one package version out of the whole public catalog and stays far
+ * under this floor; anything above it fails the run for a human to look at.
+ */
+const maximumCatalogMediaWithdrawalFraction = 0.5;
 
 export type CatalogPublicMediaBlob = Readonly<{
   sha256: string;
@@ -67,19 +77,6 @@ type CatalogPublicMediaBlobRow = Readonly<{
   size_bytes: string | number;
 }>;
 
-/** Content-addressed key one public catalog media blob is published under. */
-export function buildCatalogMediaObjectKey(sha256: string): string {
-  return `${catalogMediaObjectKeyPrefix}${sha256.toLowerCase()}`;
-}
-
-/** Absolute CDN URL of one published public catalog media blob. */
-export function buildCatalogMediaCdnUrl(cdnBaseUrl: string, sha256: string): string {
-  const normalizedCdnBaseUrl = cdnBaseUrl.endsWith("/")
-    ? cdnBaseUrl.slice(0, -1)
-    : cdnBaseUrl;
-  return `${normalizedCdnBaseUrl}/${buildCatalogMediaObjectKey(sha256)}`;
-}
-
 function createCatalogMediaCopySource(bucketName: string, storageKey: string): string {
   return `${bucketName}/${storageKey.split("/").map(encodeURIComponent).join("/")}`;
 }
@@ -88,7 +85,7 @@ function mapCatalogPublicMediaBlob(row: CatalogPublicMediaBlobRow): CatalogPubli
   // The published key is derived from `sha256`, so a value that is not a plain
   // digest would decide an object key. Refuse it instead of publishing under it.
   if (
-    sha256Pattern.test(row.sha256) === false
+    isCatalogMediaSha256(row.sha256) === false
     || row.storage_key !== buildMediaBlobStorageKey(row.sha256)
   ) {
     throw new Error(
@@ -252,23 +249,27 @@ async function deleteCatalogMediaObject(params: Readonly<{
  * Reconciles the `catalog/media/` prefix of the dump bucket against the blobs the
  * public catalog currently exposes.
  *
+ * The desired set is read by the caller rather than here, so that it and the
+ * snapshot come from one consistent read. A delist landing between two separate
+ * reads would otherwise let this pass withdraw a blob the just-written snapshot
+ * still describes, and the snapshot is cached for a year.
+ *
  * Copies are server-side, so no blob bytes pass through this process. The pass is
  * deliberately not incremental or paginated: at the current scale one full pass
  * is far inside the dump function's timeout, and a full pass is what makes the
  * result independent of which run last succeeded.
  *
- * The single desired set it refuses to act on is an empty one against a non-empty
- * prefix: that would withdraw every published blob at once, and it reads as a
- * failed catalog read far more readily than as a catalog with no media.
+ * It refuses to act on a desired set that would withdraw more than
+ * `maximumCatalogMediaWithdrawalFraction` of the published objects: a read that
+ * lost rows reads exactly like a catalog that shrank, and withdrawing on it
+ * would break media the published snapshots link.
  */
 export async function publishPublicCatalogMediaToCatalogDumpBucket(
   observationScope: BackendObservationScope,
+  desiredBlobs: ReadonlyArray<CatalogPublicMediaBlob>,
 ): Promise<CatalogPublicMediaPublicationResult> {
   const dumpBucketName = getCatalogDumpStorageConfig().bucketName;
   const mediaAssetsBucketName = getMediaAssetsStorageConfig().bucketName;
-  const desiredBlobs = await unsafeRepeatableReadReadOnlyTransaction(async (executor) => (
-    loadPublicCatalogMediaBlobsForPublicationInExecutor(executor)
-  ));
   const desiredObjectKeys = new Set<string>(
     desiredBlobs.map((blob: CatalogPublicMediaBlob) => buildCatalogMediaObjectKey(blob.sha256)),
   );
@@ -276,15 +277,25 @@ export async function publishPublicCatalogMediaToCatalogDumpBucket(
     observationScope,
     dumpBucketName,
   );
+  const withdrawableObjectKeys = [...publishedObjectKeys].filter((objectKey: string) => (
+    desiredObjectKeys.has(objectKey) === false
+  ));
 
-  // An empty desired set against a non-empty prefix is far more likely a read
+  // A desired set that withdraws most of the prefix is far more likely a read
   // regression — a lost `backend_app` grant on the catalog tables, a predicate
-  // bug — than a catalog that genuinely exposes no media at all, and acting on
-  // it would withdraw every published blob in a single pass. Fail the run the
-  // same way a failed copy does instead of deleting.
-  if (desiredObjectKeys.size === 0 && publishedObjectKeys.size > 0) {
+  // bug — than a catalog that genuinely shed that much media at once. Fail the
+  // run the same way a failed copy does instead of deleting.
+  if (
+    withdrawableObjectKeys.length
+    > publishedObjectKeys.size * maximumCatalogMediaWithdrawalFraction
+  ) {
     throw new Error(
-      `Refusing to withdraw every published public catalog media object from s3://${dumpBucketName}/${catalogMediaObjectKeyPrefix}: the public catalog resolved 0 desired blobs while ${publishedObjectKeys.size} objects are published.`,
+      [
+        `Refusing to withdraw ${withdrawableObjectKeys.length} of ${publishedObjectKeys.size} published public catalog media objects from s3://${dumpBucketName}/${catalogMediaObjectKeyPrefix}: the public catalog resolved ${desiredObjectKeys.size} desired blobs.`,
+        "This fails the whole dump run, so the public pointer keeps serving the previous artifact and anything delisted since it stays published until an operator acts.",
+        "Check first whether the catalog really shed that much media: a lost backend_app grant or a predicate bug reads exactly like this, and re-running fixes nothing on its own.",
+        `If the withdrawal is correct, delete the surplus objects under that prefix by hand, in batches that leave each run below a ${maximumCatalogMediaWithdrawalFraction} share of what is still published, until a run reconciles the rest by itself.`,
+      ].join(" "),
     );
   }
 
@@ -309,11 +320,7 @@ export async function publishPublicCatalogMediaToCatalogDumpBucket(
   }
 
   let deletedObjectCount = 0;
-  for (const objectKey of publishedObjectKeys) {
-    if (desiredObjectKeys.has(objectKey)) {
-      continue;
-    }
-
+  for (const objectKey of withdrawableObjectKeys) {
     await deleteCatalogMediaObject({ observationScope, dumpBucketName, objectKey });
     deletedObjectCount += 1;
   }

@@ -274,6 +274,13 @@ export type CatalogPublicPackageMediaAsset = Readonly<{
   license: string | null;
   mimeType: string;
   sizeBytes: number;
+  /**
+   * Absolute URL of the published CDN object, or `null` for an asset the public
+   * catalog cannot deliver and therefore never published. `downloadUrlPath`
+   * keeps its backend-relative value because released clients concatenate it
+   * with the API base URL.
+   */
+  downloadUrl: string | null;
   downloadUrlPath: string;
 }>;
 
@@ -303,8 +310,6 @@ export type CatalogPublicPackageCardPreviewInput = Readonly<{
 
 export type CatalogPublicPackageMediaDownloadSource = Readonly<{
   mediaAsset: CatalogPublicPackageMediaAsset;
-  storageKey: string;
-  sha256: string;
 }>;
 
 export type CatalogPublicCollectionCover = Readonly<{
@@ -315,7 +320,6 @@ export type CatalogPublicCollectionCover = Readonly<{
 
 export type CatalogPublicCollectionCoverDownloadSource = Readonly<{
   collectionCover: CatalogPublicCollectionCover;
-  storageKey: string;
   sha256: string;
 }>;
 
