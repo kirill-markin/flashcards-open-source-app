@@ -217,6 +217,11 @@ extension FlashcardsStore {
         }
     }
 
+    /**
+     * The pre-prompt closed. `markDismissed` is what separates the two ways in: only "Not now" passes
+     * `true`, and it is the person declining. SwiftUI's own binding write-back passes `false` and
+     * runs behind whichever button was pressed, so reporting on it would double-count every answer.
+     */
     func dismissReviewNotificationPrePrompt(markDismissed: Bool) {
         self.isReviewNotificationPrePromptPresented = false
         if markDismissed {
@@ -227,6 +232,11 @@ extension FlashcardsStore {
                     hasDismissedPrePrompt: true
                 )
             )
+            Analytics.track(
+                .promptAnswered(prompt: .notificationsPrePrompt, outcome: .dismissed),
+                screen: .notificationsPrePrompt
+            )
+            self.restoreSurfaceAfterNotificationPrePrompt()
         }
     }
 
@@ -239,9 +249,27 @@ extension FlashcardsStore {
                 hasDismissedPrePrompt: self.notificationPermissionPromptState.hasDismissedPrePrompt
             )
         )
+        // Accepting our prompt and being granted the OS permission are separate facts, reported
+        // separately: the system dialog that follows can still be denied, and the gap between the two
+        // is the whole reason this app asks first.
+        Analytics.track(
+            .promptAnswered(prompt: .notificationsPrePrompt, outcome: .accepted),
+            screen: .notificationsPrePrompt
+        )
+        self.restoreSurfaceAfterNotificationPrePrompt()
         Task { @MainActor in
             _ = await self.requestReviewNotificationPermissionFromSettings(now: Date())
         }
+    }
+
+    /// The tab the person is on, not `.review`: the presentation decision is awaited and validates
+    /// the review context rather than the visible tab, so the tab can have changed inside that
+    /// window. The system dialog that may follow is not one of ours and is no surface at all.
+    private func restoreSurfaceAfterNotificationPrePrompt() {
+        Analytics.trackScreenViewedOnDismiss(
+            of: .notificationsPrePrompt,
+            restoring: analyticsSurface(tab: self.currentVisibleTab)
+        )
     }
 
     /// Requests the top-level system notification permission and then reconciles
@@ -257,7 +285,21 @@ extension FlashcardsStore {
             return .blocked
         }
 
-        let isAllowed = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])) ?? false
+        // The one branch that actually presents the OS dialog: the two returns above answer from a
+        // decision already stored, without anything being shown, and reporting those would count
+        // dialogs nobody saw. A throw is not an answer either, so only a returned decision reports.
+        // iOS gives no way to close this dialog undecided, which is why `dismissed` never appears
+        // here. Among the access permissions only the photo-library request can report it; camera and
+        // microphone answer with a bool exactly as this one does.
+        let authorizationDecision = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+        if let authorizationDecision {
+            Analytics.trackPermissionPromptAnswered(
+                permission: .notifications,
+                outcome: authorizationDecision ? .granted : .denied
+            )
+        }
+
+        let isAllowed = authorizationDecision ?? false
         self.updateNotificationPermissionPromptState(
             state: NotificationPermissionPromptState(
                 hasShownPrePrompt: true,
@@ -416,6 +458,17 @@ extension FlashcardsStore {
                 hasDismissedPrePrompt: false
             )
         )
+        // The showing, which `prompt_answered` is the other half of. Without it the answers have no
+        // denominator and no acceptance rate can be computed.
+        //
+        // Reported from the state that presents the alert rather than from the alert, which SwiftUI
+        // gives no appearance callback for. The alert is attached to `ReviewView`, and the decision
+        // that reaches here is awaited and validates the review context rather than the visible tab,
+        // so a person who leaves Review inside that await window can have this row written just
+        // before the alert becomes visible to them. It is not guarded on the visible tab, because
+        // the prompt does present when they come back and a guard would drop the only denominator
+        // its answers have.
+        Analytics.trackScreenViewed(.notificationsPrePrompt)
 
         return true
     }
