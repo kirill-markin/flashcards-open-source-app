@@ -1,5 +1,4 @@
 import type { DatabaseExecutor, SqlValue } from "../../../database";
-import { unsafeRepeatableReadReadOnlyTransaction } from "../../../database/core";
 import {
   isUnsafePublicPackageMediaKey,
   toIsoString,
@@ -8,6 +7,11 @@ import {
 import {
   getCatalogCardRequiredPackageMediaKeys,
 } from "../../cardMedia";
+import {
+  buildCatalogMediaCdnUrl,
+  isCatalogMediaSha256,
+  isPublicCatalogMediaDeliverable,
+} from "../../publicMediaDelivery";
 import {
   getPublicCatalogAuthorEligibilityIssue,
   getPublicCatalogVersionEligibilityIssue,
@@ -83,6 +87,7 @@ type CatalogPublicSnapshotPackageVersionRow = CatalogPublicPackageRow & Readonly
 
 type CatalogPublicSnapshotMediaAssetRow = CatalogPublicPackageMediaAssetRow & Readonly<{
   package_media_asset_id: string;
+  sha256: string;
 }>;
 
 type CatalogPublicSnapshotCardRow = CatalogPublicPackageCardPreviewRow & Readonly<{
@@ -112,6 +117,7 @@ type CatalogPublicSnapshotCollectionPackageRow = Readonly<{
 type CatalogPublicSnapshotLoadInput = Readonly<{
   publicApiBaseUrl: string;
   publicAppBaseUrl: string;
+  catalogMediaCdnBaseUrl: string;
   generatedAt: string;
 }>;
 
@@ -169,7 +175,8 @@ function buildPublicCatalogSnapshotMediaAssetsQuery(): PublicCatalogQuery {
       "media_assets.credit AS credit,",
       "media_assets.license AS license,",
       "media_blobs.mime_type AS mime_type,",
-      "media_blobs.size_bytes AS size_bytes",
+      "media_blobs.size_bytes AS size_bytes,",
+      "media_blobs.sha256 AS sha256",
       "FROM catalog.package_media_assets AS media_assets",
       "INNER JOIN catalog.package_versions AS versions",
       "ON versions.package_version_id = media_assets.package_version_id",
@@ -297,6 +304,19 @@ function buildSnapshotMediaAssetLookupKey(
   return `${packageVersionId}:${packageMediaKey}`;
 }
 
+/**
+ * Backend URL for a snapshot asset that has no published CDN object: one the
+ * public catalog cannot deliver, or one whose digest cannot name an object key.
+ *
+ * It is not a way to fetch such an asset. The route it names is itself a
+ * redirect to the same CDN object and answers 413, 415, or 409 for exactly
+ * these assets, so this fallback reports the problem instead of serving the
+ * bytes. It cannot be reached today — publication refuses a version whose media
+ * the public catalog cannot deliver, and the eligibility filter drops such a
+ * version here too — and is kept only because the artifact is cached for a
+ * year, where a URL that explains itself beats a CDN key that was never
+ * written.
+ */
 function buildSnapshotMediaDownloadUrl(
   publicApiBaseUrl: string,
   packageVersionId: string,
@@ -309,20 +329,6 @@ function buildSnapshotMediaDownloadUrl(
     packageVersionId,
     "media-assets",
     encodeURIComponent(packageMediaKey),
-    "download",
-  ].join("/");
-}
-
-function buildSnapshotCollectionCoverDownloadUrl(
-  publicApiBaseUrl: string,
-  collectionId: string,
-): string {
-  return [
-    publicApiBaseUrl,
-    "catalog",
-    "collections",
-    collectionId,
-    "cover",
     "download",
   ].join("/");
 }
@@ -415,6 +421,7 @@ function getEligibleSnapshotPackageVersionIds(
 function mapCatalogPublicSnapshotMediaAssets(
   rows: ReadonlyArray<CatalogPublicSnapshotMediaAssetRow>,
   publicApiBaseUrl: string,
+  catalogMediaCdnBaseUrl: string,
 ): ReadonlyArray<CatalogPublicSnapshotMediaAsset> {
   const mediaAssets: Array<CatalogPublicSnapshotMediaAsset> = [];
   for (const row of rows) {
@@ -422,6 +429,7 @@ function mapCatalogPublicSnapshotMediaAssets(
       continue;
     }
 
+    const sizeBytes = toSafeNumber(row.size_bytes, "size_bytes");
     mediaAssets.push({
       packageMediaAssetId: row.package_media_asset_id,
       packageVersionId: row.package_version_id,
@@ -430,12 +438,15 @@ function mapCatalogPublicSnapshotMediaAssets(
       credit: row.credit,
       license: row.license,
       mimeType: row.mime_type,
-      sizeBytes: toSafeNumber(row.size_bytes, "size_bytes"),
-      downloadUrl: buildSnapshotMediaDownloadUrl(
-        publicApiBaseUrl,
-        row.package_version_id,
-        row.package_media_key,
-      ),
+      sizeBytes,
+      downloadUrl: isPublicCatalogMediaDeliverable({ mimeType: row.mime_type, sizeBytes })
+        && isCatalogMediaSha256(row.sha256)
+        ? buildCatalogMediaCdnUrl(catalogMediaCdnBaseUrl, row.sha256)
+        : buildSnapshotMediaDownloadUrl(
+          publicApiBaseUrl,
+          row.package_version_id,
+          row.package_media_key,
+        ),
     });
   }
 
@@ -616,29 +627,29 @@ function mapCatalogPublicSnapshotCards(
 function mapCatalogPublicSnapshotCollections(
   rows: ReadonlyArray<CatalogPublicSnapshotCollectionRow>,
   publicPackageIds: ReadonlySet<string>,
-  collectionCoverIds: ReadonlySet<string>,
-  publicApiBaseUrl: string,
+  collectionCoverSha256ByCollectionId: ReadonlyMap<string, string>,
+  catalogMediaCdnBaseUrl: string,
 ): ReadonlyArray<CatalogPublicSnapshotCollection> {
-  return rows.map((row) => ({
-    collectionId: row.collection_id,
-    slug: row.slug,
-    title: row.title,
-    summary: row.summary,
-    description: row.description,
-    languageTags: [...row.language_tags],
-    coverPackageId: row.cover_package_id !== null && publicPackageIds.has(row.cover_package_id)
-      ? row.cover_package_id
-      : null,
-    ...(collectionCoverIds.has(row.collection_id) ? {
-      coverDownloadUrl: buildSnapshotCollectionCoverDownloadUrl(
-        publicApiBaseUrl,
-        row.collection_id,
-      ),
-    } : {}),
-    status: "published",
-    updatedAt: toIsoString(row.updated_at),
-    publishedAt: toIsoString(row.published_at),
-  }));
+  return rows.map((row) => {
+    const coverSha256 = collectionCoverSha256ByCollectionId.get(row.collection_id);
+    return {
+      collectionId: row.collection_id,
+      slug: row.slug,
+      title: row.title,
+      summary: row.summary,
+      description: row.description,
+      languageTags: [...row.language_tags],
+      coverPackageId: row.cover_package_id !== null && publicPackageIds.has(row.cover_package_id)
+        ? row.cover_package_id
+        : null,
+      ...(coverSha256 === undefined ? {} : {
+        coverDownloadUrl: buildCatalogMediaCdnUrl(catalogMediaCdnBaseUrl, coverSha256),
+      }),
+      status: "published",
+      updatedAt: toIsoString(row.updated_at),
+      publishedAt: toIsoString(row.published_at),
+    };
+  });
 }
 
 function mapCatalogPublicSnapshotCollectionPackages(
@@ -657,6 +668,12 @@ function mapCatalogPublicSnapshotCollectionPackages(
   ));
 }
 
+/**
+ * Reads one whole public catalog snapshot inside the caller's transaction. There
+ * is deliberately no wrapper that opens its own: the dump run has to read the
+ * snapshot and the media set it references together, or a delist landing between
+ * two reads withdraws a blob the written snapshot still links for a year.
+ */
 export async function loadPublicCatalogSnapshotInExecutor(
   executor: DatabaseExecutor,
   input: CatalogPublicSnapshotLoadInput,
@@ -709,18 +726,19 @@ export async function loadPublicCatalogSnapshotInExecutor(
   const mediaAssets = mapCatalogPublicSnapshotMediaAssets(
     mediaAssetRows,
     input.publicApiBaseUrl,
+    input.catalogMediaCdnBaseUrl,
   );
   const mediaAssetIdsByKey = indexSnapshotMediaAssets(mediaAssets);
   const packages = mapCatalogPublicSnapshotPackages(packageVersionRows);
   const publicPackageIds = new Set(packages.map((catalogPackage) => catalogPackage.packageId));
-  const collectionCoverIds = new Set(collectionCovers.map(
-    (cover) => cover.collectionCover.collectionId,
+  const collectionCoverSha256ByCollectionId = new Map(collectionCovers.map(
+    (cover) => [cover.collectionCover.collectionId, cover.sha256] as const,
   ));
   const collections = mapCatalogPublicSnapshotCollections(
     collectionRows,
     publicPackageIds,
-    collectionCoverIds,
-    input.publicApiBaseUrl,
+    collectionCoverSha256ByCollectionId,
+    input.catalogMediaCdnBaseUrl,
   );
   const publicCollectionIds = new Set(collections.map((collection) => collection.collectionId));
 
@@ -743,18 +761,4 @@ export async function loadPublicCatalogSnapshotInExecutor(
       publicPackageIds,
     ),
   };
-}
-
-export async function loadPublicCatalogSnapshot(
-  publicApiBaseUrl: string,
-  publicAppBaseUrl: string,
-): Promise<CatalogPublicSnapshot> {
-  const generatedAt = new Date().toISOString();
-  return unsafeRepeatableReadReadOnlyTransaction(async (executor) => (
-    loadPublicCatalogSnapshotInExecutor(executor, {
-      publicApiBaseUrl,
-      publicAppBaseUrl,
-      generatedAt,
-    })
-  ));
 }

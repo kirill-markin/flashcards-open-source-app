@@ -439,6 +439,7 @@ export async function listPublicCatalogPackagesInExecutor(
 export async function loadPublicCatalogPackageDetailInExecutor(
   executor: DatabaseExecutor,
   packageSlug: string,
+  catalogMediaCdnBaseUrl: string,
 ): Promise<CatalogPublicPackageDetail> {
   const normalizedPackageSlug = normalizeSlug(packageSlug, "packageSlug");
   const query = buildPublicPackageDetailQuery(normalizedPackageSlug);
@@ -454,7 +455,11 @@ export async function loadPublicCatalogPackageDetailInExecutor(
 
   return {
     ...mapCatalogPublicPackageSummary(packageRow),
-    mediaAssets: await loadPublicCatalogPackageMediaAssetsInExecutor(executor, packageRow.package_version_id),
+    mediaAssets: await loadPublicCatalogPackageMediaAssetsInExecutor(
+      executor,
+      packageRow.package_version_id,
+      catalogMediaCdnBaseUrl,
+    ),
   };
 }
 
@@ -520,9 +525,10 @@ export async function listPublicCatalogPackages(
 
 export async function loadPublicCatalogPackageDetail(
   packageSlug: string,
+  catalogMediaCdnBaseUrl: string,
 ): Promise<CatalogPublicPackageDetail> {
   return unsafeRepeatableReadReadOnlyTransaction(async (executor) => (
-    loadPublicCatalogPackageDetailInExecutor(executor, packageSlug)
+    loadPublicCatalogPackageDetailInExecutor(executor, packageSlug, catalogMediaCdnBaseUrl)
   ));
 }
 

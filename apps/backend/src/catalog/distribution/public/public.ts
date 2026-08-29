@@ -11,7 +11,6 @@ export {
   loadPublicCatalogPackageMediaForDownloadInExecutor,
   loadPublicCatalogPackageVersionCardPreview,
   loadPublicCatalogPackageVersionCardPreviewInExecutor,
-  loadPublicCatalogSnapshot,
   loadPublicCatalogSnapshotInExecutor,
   normalizeCatalogPublicPackageCardPreviewInput,
   normalizeCatalogPublicPackageListInput,

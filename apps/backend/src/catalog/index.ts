@@ -50,7 +50,6 @@ export {
   loadPublicCatalogCollectionCoverForDownload,
   loadPublicCatalogCollectionCoverForDownloadInExecutor,
   loadPublicCatalogCollectionCoversInExecutor,
-  loadPublicCatalogSnapshot,
   loadPublicCatalogSnapshotInExecutor,
   loadPublicCatalogPackageDetail,
   loadPublicCatalogPackageDetailInExecutor,
