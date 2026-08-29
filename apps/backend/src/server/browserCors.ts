@@ -27,6 +27,8 @@ export const browserCorsExposeHeaders = [
   "x-amz-apigw-id",
   "x-amzn-requestid",
   "x-chat-request-id",
+  // The web client reads Retry-After off every error response to pace its retries, and
+  // docs/auth-service.md documents the delay as travelling only here.
   "retry-after",
 ] as const;
 
