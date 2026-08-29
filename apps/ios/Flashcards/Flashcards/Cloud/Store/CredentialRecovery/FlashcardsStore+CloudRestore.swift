@@ -67,6 +67,17 @@ extension FlashcardsStore {
 
         self.cloudRuntime.cancelForWorkspaceSwitch()
         await self.prepareWorkspaceScopedStateForSwitch(nextWorkspaceId: linkedSession.workspaceId)
+        // The wait above suspends, and the write below relinks this install: it recreates the
+        // workspace shell and stores `linked` against this user. Landing after an erase would point
+        // the freshly reset install back at the abandoned account whose credentials are already
+        // gone, leaving it in `linkedCredentialsMissing` recovery.
+        //
+        // Reading the cancel here is unambiguous only because of who can reach it. The line above
+        // leaves the link transition task alone, so an ordinary workspace switch never sets this.
+        // And the silent-restore caller cannot arrive with a cancel pending: it returns before this
+        // function when its own different-user reset self-cancels, and after any other reset it
+        // cannot get past `storedLinkedSession`, which needs the `linked` state that reset clears.
+        try Task.checkCancellation()
         try database.switchActiveWorkspace(workspace: workspaceSummary, linkedSession: linkedSession)
         self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
         try self.reload()
