@@ -335,6 +335,7 @@ struct CloudSignInSheet: View {
         let nextOtpSheetState = CloudOtpSheetState(email: nextEmail, challenge: nil)
         self.store.cloudSignInAttempt.email = nextEmail
         self.store.cloudSignInAttempt.authErrorPresentation = nil
+        self.store.cloudSignInAttempt.resetOtpEntryState()
         self.store.cloudSignInAttempt.otpSheetState = nextOtpSheetState
         // Raised here rather than inside the task, so it is always the attempt that owns the request
         // that carries the flag. `finishSendingCode` lowers it only for that same attempt, and a
