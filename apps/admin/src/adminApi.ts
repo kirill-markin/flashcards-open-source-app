@@ -33,7 +33,14 @@ export type AdminQueryResponse = Readonly<{
   resultSets: ReadonlyArray<AdminQueryResultSet>;
 }>;
 
-export const reviewEventPlatforms = ["web", "android", "ios"] as const;
+// The closed domain of `analytics.product_events.platform`, plus the bucket that stands for "the row
+// carries no platform". The dashboard splits on this and never sums over it.
+//
+// `agent` exists so machine-API activity stays visible as its own series: a scheduled MCP client
+// merged into `web` would read as a person using the site. `unattributed` is where every row whose
+// platform column is NULL lands, and for a server-derived fact that means "not a device fact" rather
+// than "unknown device" - see the note on `buildReviewEventsByDateSql`.
+export const reviewEventPlatforms = ["web", "android", "ios", "agent", "unattributed"] as const;
 
 export type ReviewEventPlatform = (typeof reviewEventPlatforms)[number];
 
@@ -41,6 +48,15 @@ export const reviewEventCohorts = ["returning", "new"] as const;
 
 export type ReviewEventCohort = (typeof reviewEventCohorts)[number];
 
+/**
+ * One person in the report.
+ *
+ * `userId` carries `actor_id` from `analytics.product_events_resolved`, not a raw `user_id`: the view
+ * has already collapsed a guest and the account that guest became into one person. It is therefore
+ * not always an account id - a guest who never upgraded stays on the guest user id, and an
+ * unresolved row resolves to its own `anonymous_id`. The field keeps its name because the filter
+ * popup, the tooltips and the chart colour scale are all keyed on it.
+ */
 export type ReviewEventsByDateUser = Readonly<{
   userId: string;
   email: string;
