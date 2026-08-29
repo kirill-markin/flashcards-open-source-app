@@ -20,6 +20,10 @@ import {
 } from "../observability/runtime";
 import type { ProductAnalyticsEventName } from "./catalog";
 import {
+  createPostCommitAnalyticsBudget,
+  type PostCommitAnalyticsBudget,
+} from "./postCommitBudget";
+import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvents,
   type ServerDerivedProductAnalyticsEvent,
@@ -196,31 +200,10 @@ function toContentCreationEvent(
 // continued through every chunk would let a degraded analytics pool time out the product request
 // itself. Refusal is not the only way that happens: a chunk that is slow but still finishes inside
 // the writer's statement timeout answers "stored", so a stop rule keyed on refusal alone would carry
-// the full multiplier. The drain therefore stops at the first refusal and again once its wall-clock
-// budget is spent. See contentCreationDrainBudgetMs and emitCollectedContentCreations.
+// the full multiplier. The drain therefore stops at the first refusal and again once the request's
+// post-commit analytics clock is spent. See PostCommitAnalyticsBudget and
+// emitCollectedContentCreations.
 const contentCreationEmitChunkSize = 500;
-
-// The wall clock a drain may spend before it gives up whatever it has not reached.
-//
-// The chunk count this bounds is bounded by nothing a person chose - a bootstrap push or a guest
-// merge has no cap on it at all - and slow-but-stored chunks pay the analytics timeouts just as
-// refused ones do, so without a clock the drain's cost scales with the entry count.
-//
-// The budget is read before each chunk, so the drain's real ceiling is this plus the one chunk
-// already in flight, which costs at most ~4s: up to analyticsPoolConnectionTimeoutMs (2s) acquiring
-// an analytics connection, then up to 2s under the writer's statement timeout. That is ~8s of drain.
-// The request paying it has publicRestApiDefaultIntegrationTimeoutSeconds (29s) before API Gateway
-// abandons the integration and returns a 504 for a transaction that committed, and the drain is not
-// the last thing on that clock: a guest upgrade goes on to write an identity link and then its own
-// event, two more sequential analytics transactions worth up to ~8s together. Worst case that still
-// leaves ~13s for the guest merge itself, and ~21s for a workspace-package import, which pays no
-// such tail.
-//
-// The bound is not lossy at any realistic size. A healthy chunk is one unnest insert on a warm
-// pooled connection, so the ten chunks of the largest bounded transaction - a 5,000-card import -
-// cost well under a second together, and 4s covers tens of thousands of creations before anything is
-// skipped. A drain that cannot finish inside it is one that was already threatening its request.
-const contentCreationDrainBudgetMs = 4_000;
 
 /**
  * Names the creations the drain gave up on, so an aborted drain is legible rather than silent.
@@ -277,8 +260,8 @@ function reportAbandonedContentCreations(
 
 /**
  * Reports the creations the committed transaction collected, in chunks of at most
- * contentCreationEmitChunkSize, stopping at the first chunk the analytics writer refuses or once
- * contentCreationDrainBudgetMs of wall clock is spent, whichever comes first.
+ * contentCreationEmitChunkSize, stopping at the first chunk the analytics writer refuses or once the
+ * request's shared post-commit analytics budget is spent, whichever comes first.
  *
  * A chunk is one analytics transaction on one analytics connection, and the chunks are awaited in
  * sequence, so this producer holds one connection at a time however large the transaction was. A
@@ -291,6 +274,13 @@ function reportAbandonedContentCreations(
  * from surfacing as a failed card creation. Neither stop can discard the chunks already stored
  * before it either - those are committed and stay committed.
  *
+ * This function therefore has no rejection path, and that is now load-bearing for a second producer
+ * as well as for its own callers. On the sync push and the guest upgrade the content-creations
+ * wrapper is opened from inside runTransactionReportingReviewAnswers, so this drain runs before the
+ * review-answered drain of the same request: a rejection here would discard that transaction's
+ * collected answers unreported and surface to a caller whose product transaction had already
+ * committed. Any future emitter added below must keep swallowing its own failures.
+ *
  * What both stops give up is the rest of the drain, for the same reason. A chunk costs up to 2s
  * waiting for an analytics pool connection plus up to 2s under the writer's statement timeout, and
  * continuing pays that again per remaining chunk while the product transaction has already
@@ -299,6 +289,12 @@ function reportAbandonedContentCreations(
  * timeout. The caller would then see a 504 for an import that committed, and retry it - and an
  * import mints a fresh card id per card, so the retry duplicates the whole library. Analytics must
  * never be able to cost a person their content.
+ *
+ * The budget is checked before each chunk and shared with every other gated post-commit analytics
+ * stage of the request, so the gated tail is bounded at 4.0s of budget plus the one ~4.0s chunk
+ * already in flight - 8.0s against the 29s integration timeout, whatever else the request goes on to
+ * report. The guest upgrade adds its deliberately exempt identity link on top of that, for 12.0s.
+ * The derivation, that exemption and what each path used to pay are in ./postCommitBudget.ts.
  *
  * The two stops answer the two ways that happens, and are reported apart because they mean different
  * things. A refusal - the writer degraded or down - is detected on the outcome. Chunks that are
@@ -317,6 +313,7 @@ function reportAbandonedContentCreations(
 async function emitCollectedContentCreations(
   executor: DatabaseExecutor,
   actorUserId: string,
+  budget: PostCommitAnalyticsBudget,
 ): Promise<void> {
   const collected = collectedContentCreations.get(executor);
   if (collected === undefined) {
@@ -324,16 +321,15 @@ async function emitCollectedContentCreations(
   }
 
   collectedContentCreations.delete(executor);
-  // One clock read, used for both of the roles it serves here: the server timestamp every event of
-  // this drain carries, and the instant the drain's own budget starts running from.
-  const drainStartedAtMs = Date.now();
-  const recordedAt = new Date(drainStartedAtMs);
+  // The server timestamp every event of this drain carries. The drain's stop clock is no longer read
+  // here: it belongs to the request rather than to this drain, so it is the budget's.
+  const recordedAt = new Date();
   for (
     let chunkStart = 0;
     chunkStart < collected.length;
     chunkStart += contentCreationEmitChunkSize
   ) {
-    if (Date.now() - drainStartedAtMs >= contentCreationDrainBudgetMs) {
+    if (!budget.hasTimeForAnotherOperation()) {
       reportAbandonedContentCreations({
         reason: "budget_exhausted",
         actorUserId,
@@ -341,9 +337,10 @@ async function emitCollectedContentCreations(
         // failure naming a row, so this is the only workspace the stop reports.
         workspaceId: collected[chunkStart]?.workspaceId ?? null,
         storedEventCount: chunkStart,
-        // Every chunk the writer was handed was stored, so nothing failed. The loop condition puts
-        // at least one creation behind this point, so the stop is never silently dropped by the skip
-        // guard in the reporter.
+        // Every chunk the writer was handed was stored, so nothing failed - including when the
+        // budget was spent by an earlier stage of the same request and this drain stored nothing at
+        // all. The loop condition puts at least one creation behind this point, so the stop is never
+        // silently dropped by the skip guard in the reporter.
         failedEventCount: 0,
         skippedEventCount: collected.length - chunkStart,
       });
@@ -387,6 +384,7 @@ async function runTransactionReportingContentCreations<Result>(
   ) => Promise<CommittedTransaction<Result>>,
   body: (executor: DatabaseExecutor) => Promise<Result>,
   resolveActorUserId: (result: Result) => string,
+  budget: PostCommitAnalyticsBudget,
 ): Promise<Result> {
   // The transaction returns only after its COMMIT succeeded, so nothing is reported for a
   // transaction that threw: it never reaches this line and its buffer is dropped with its executor.
@@ -394,8 +392,26 @@ async function runTransactionReportingContentCreations<Result>(
     executor,
     result: await body(executor),
   }));
-  await emitCollectedContentCreations(committed.executor, resolveActorUserId(committed.result));
+  await emitCollectedContentCreations(
+    committed.executor,
+    resolveActorUserId(committed.result),
+    budget,
+  );
   return committed.result;
+}
+
+// The post-commit analytics clock both wrappers below hand their drain.
+//
+// It is optional because most callers open a transaction whose only post-commit analytics stage is
+// that drain, and a stage that is alone on a request may as well be given a clock of its own. A
+// caller that runs any other post-commit analytics stage - a second producer's drain, or a write of
+// its own afterwards - must create one budget with createPostCommitAnalyticsBudget and pass it to
+// every stage, because separate budgets sum and the request's tail then grows with the number of
+// producers. See ./postCommitBudget.ts.
+function resolvePostCommitAnalyticsBudget(
+  budget: PostCommitAnalyticsBudget | undefined,
+): PostCommitAnalyticsBudget {
+  return budget ?? createPostCommitAnalyticsBudget();
 }
 
 /**
@@ -408,11 +424,13 @@ async function runTransactionReportingContentCreations<Result>(
 export async function transactionWithWorkspaceScopeReportingContentCreations<Result>(
   scope: WorkspaceDatabaseScope,
   callback: (executor: DatabaseExecutor) => Promise<Result>,
+  budget?: PostCommitAnalyticsBudget,
 ): Promise<Result> {
   return runTransactionReportingContentCreations<Result>(
     (body) => transactionWithWorkspaceScope(scope, body),
     callback,
     () => scope.userId,
+    resolvePostCommitAnalyticsBudget(budget),
   );
 }
 
@@ -426,10 +444,12 @@ export async function transactionWithWorkspaceScopeReportingContentCreations<Res
 export async function unsafeTransactionReportingContentCreations<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
   resolveActorUserId: (result: Result) => string,
+  budget?: PostCommitAnalyticsBudget,
 ): Promise<Result> {
   return runTransactionReportingContentCreations<Result>(
     (body) => unsafeTransaction(body),
     callback,
     resolveActorUserId,
+    resolvePostCommitAnalyticsBudget(budget),
   );
 }

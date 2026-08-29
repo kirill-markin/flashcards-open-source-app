@@ -746,6 +746,13 @@ async function mergeReviewEventsIntoTargetInExecutor(
           createReviewEventSnapshot(targetWorkspaceId, reviewEvent, targetReplicaId),
           reviewEvent.reviewEventId,
           resolveReviewedBy,
+          // reviewedAtServer is copied out of the guest's own content.review_events row, which is
+          // not the same as the backend having stamped it: a guest may sync through
+          // POST /workspaces/:id/sync/review-history/import, which stores an unbounded
+          // reviewedAtServer straight from the request body, so this column can be a device claim.
+          // It is also legitimately old, so the merge preserves it rather than restamping it and
+          // lets the producer cap it at its own clock instead.
+          "stored_unverified",
         );
         if (result.reviewEvent.reviewEventId === reviewEvent.reviewEventId) {
           return true;
