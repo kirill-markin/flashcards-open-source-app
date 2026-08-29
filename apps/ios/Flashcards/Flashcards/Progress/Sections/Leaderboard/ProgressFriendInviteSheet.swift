@@ -203,6 +203,7 @@ struct ProgressFriendInviteSheet: View {
             }
             .onAppear {
                 self.isDisplayNameFocused = true
+                Analytics.trackScreenViewed(.friendInvite)
             }
             .onSubmit {
                 guard self.canCreateInvite else {
@@ -278,6 +279,31 @@ private func isInlineFriendInvitationError(error: Error) -> Bool {
     }
 
     return false
+}
+
+extension View {
+    /**
+     * The friend-invitation sheet with its surface reporting owned by the presentation.
+     *
+     * Progress and Settings both present it, and both go through here so the restore is written
+     * once. It belongs to the presentation and not to the sheet's content for the reason
+     * `Analytics.trackScreenViewedOnDismiss` gives, and the surface it hands back is the tab the
+     * person is actually on rather than a fixed one.
+     */
+    func friendInviteSheet(isPresented: Binding<Bool>, store: FlashcardsStore) -> some View {
+        self.sheet(
+            isPresented: isPresented,
+            onDismiss: {
+                Analytics.trackScreenViewedOnDismiss(
+                    of: .friendInvite,
+                    restoring: analyticsSurface(tab: store.currentVisibleTab)
+                )
+            }
+        ) {
+            ProgressFriendInviteSheet()
+                .environment(store)
+        }
+    }
 }
 
 #Preview {

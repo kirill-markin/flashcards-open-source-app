@@ -109,6 +109,13 @@ struct TagsScreen: View {
         .task(id: store.localReadVersion) {
             await self.reloadTagsSummary()
         }
+        .onAppear {
+            Analytics.trackScreenViewed(.tags)
+        }
+        .onDisappear {
+            // Conditional, because this also fires for a tab switch away from an open tags list.
+            Analytics.trackScreenViewedOnDismiss(of: .tags, restoring: .settings)
+        }
     }
 
     @MainActor

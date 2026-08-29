@@ -159,6 +159,10 @@ extension FlashcardsStore {
         self.isCloudSignInAttemptOpen = true
         self.cloudSignInOriginSurface = originSurface
         self.wasCredentialRecoveryGateActiveAtSignInStart = self.isCloudCredentialRecoveryGateActive
+        // The sign-in screen's own `screen_viewed`, reported per presentation for the same reason the
+        // attempt is opened here: the sheet's content is destroyed and rebuilt while the presentation
+        // stays on screen, so reporting from its `onAppear` would record a view per rebuild.
+        Analytics.trackScreenViewed(.signin)
     }
 
     /**
@@ -180,6 +184,19 @@ extension FlashcardsStore {
      * person walked away from is theirs to abandon and is worth a `signin_failed(cancelled)`, while
      * an attempt whose surface the recovery gate took away is not. That is why the gate's activation
      * is latched when the attempt begins and a mismatch here reports nothing.
+     *
+     * The surface handed back is `cloudSignInReturnSurface`, which is where the person is now — a
+     * different question from where the sheet was opened from, and deliberately not answered by
+     * `cloudSignInOriginSurface`, which is `signin_failed`'s entry point and nothing else. The guest
+     * after-review prompt is the case that separates the two: it is owned by the review flow
+     * whichever tab it floats over, so its entry point stays Review while the person is handed back
+     * to the tab they are actually looking at. The restore is conditional on the tracker still
+     * holding `signin`, so a sign-in that ended by moving the person somewhere that reported itself
+     * first — a workspace landing them on a tab — leaves that report standing.
+     *
+     * The credential-recovery gate clearing on its own success is not such a case, and does not
+     * reach here at all: removing the gate destroys this sheet's presenter without an `onDismiss`.
+     * The gate's own `.onDisappear` is what names the screen the person lands on there.
      */
     func endCloudSignInAttempt() {
         if self.isCloudSignInAttemptOpen,
@@ -187,6 +204,10 @@ extension FlashcardsStore {
             self.trackCloudSignInFailed(reason: .cancelled)
         }
 
+        Analytics.trackScreenViewedOnDismiss(
+            of: .signin,
+            restoring: self.cloudSignInReturnSurface
+        )
         self.cancelCloudSignInPostAuthTasks()
         self.cloudSignInAttempt = CloudSignInAttemptState()
         self.isCloudSignInAttemptOpen = false
@@ -267,6 +288,15 @@ extension FlashcardsStore {
         self.cloudCredentialRecoveryState != nil
     }
 
+    /// Where closing the sign-in sheet leaves the person, read live rather than latched at the start
+    /// of the attempt: the recovery gate while it is still up, and otherwise the visible tab, which
+    /// is what the sheet was covering.
+    private var cloudSignInReturnSurface: AnalyticsSurface {
+        self.isCloudCredentialRecoveryGateActive
+            ? .credentialRecovery
+            : analyticsSurface(tab: self.currentVisibleTab)
+    }
+
     private func trackCloudSignInFailed(reason: AnalyticsSignInFailureReason) {
         self.isCloudSignInAttemptOpen = false
         Analytics.track(.signInFailed(reason: reason), screen: self.cloudSignInOriginSurface)
@@ -281,13 +311,21 @@ enum CloudPostAuthRetryAction: Hashable {
 }
 
 /**
- * Where a sign-in sheet was opened from, and with it the `screen` its `signin_failed` carries.
+ * Where a sign-in sheet was opened from, and with it the `screen` its `signin_failed` carries. It is
+ * the entry-point reading and only that: the surface the sheet hands back when it closes is a
+ * separate question, answered live by `cloudSignInReturnSurface`.
  *
- * The credential-recovery gate carries no surface on purpose: it replaces the app's root because a
- * stored credential stopped working, so the person was on no product surface and naming one would be
- * a lie. Every other presenter names the surface that owns the control the person tapped, out of the
- * shared server-owned catalog, so a prompt owned by the review flow stays Review whichever tab it
- * floats over.
+ * The credential-recovery gate used to carry no surface, because the catalog had no value for a
+ * screen that replaces the app's root when a stored credential stops working, and naming any product
+ * surface for it would have been a lie. The catalog now names it, so the gate is `credentialRecovery`
+ * and this is no longer an entry point that can only be reported as no screen at all. Every other
+ * presenter names the surface that owns the control the person tapped, so a prompt owned by the
+ * review flow stays Review whichever tab it floats over — which is exactly why this value must never
+ * be reused as the surface the person returns to.
+ *
+ * `originSurface` stays optional because `signin_failed` takes it directly: the catalog leaves that
+ * event's surface open so a sign-in the client genuinely cannot attribute reports none rather than
+ * the nearest wrong one.
  */
 enum CloudSignInPresentationContext: Hashable {
     case standard(originSurface: AnalyticsSurface)
@@ -298,7 +336,7 @@ enum CloudSignInPresentationContext: Hashable {
         case .standard(let originSurface):
             return originSurface
         case .credentialRecoveryGate:
-            return nil
+            return .credentialRecovery
         }
     }
 }
