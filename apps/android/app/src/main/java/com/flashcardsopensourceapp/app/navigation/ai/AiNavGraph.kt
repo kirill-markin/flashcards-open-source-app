@@ -10,6 +10,9 @@ import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermission
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermissionOutcome
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.feature.ai.AiCardHandoffResult
@@ -137,6 +140,24 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             onStartDictationRecording = aiViewModel::startDictationRecording,
             onTranscribeRecordedAudio = aiViewModel::transcribeRecordedAudio,
             onCancelDictation = aiViewModel::cancelDictation,
+            // The per-capability screen under settings asks for these same two permissions, and
+            // `permission_prompt_answered` carries no property naming the asker: its surface is the
+            // event's own `screen`. Each entry point therefore names where its own person is, so an
+            // attachment or dictation refusal here stays distinguishable from one made in settings.
+            onCameraPermissionResult = { isGranted ->
+                reportAiPermissionResult(
+                    appGraph = appGraph,
+                    permission = AnalyticsPermission.CAMERA,
+                    isGranted = isGranted
+                )
+            },
+            onMicrophonePermissionResult = { isGranted ->
+                reportAiPermissionResult(
+                    appGraph = appGraph,
+                    permission = AnalyticsPermission.MICROPHONE,
+                    isGranted = isGranted
+                )
+            },
             onScreenVisible = aiViewModel::onScreenVisible,
             onScreenHidden = aiViewModel::onScreenHidden,
             onWarmUpSessionIfNeeded = aiViewModel::warmUpLinkedSessionIfNeeded,
@@ -146,4 +167,22 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             technicalErrorController = appGraph.appMessageBus
         )
     }
+}
+
+private fun reportAiPermissionResult(
+    appGraph: AppGraph,
+    permission: AnalyticsPermission,
+    isGranted: Boolean
+) {
+    appGraph.analytics.track(
+        event = AnalyticsEvent.PermissionPromptAnswered(
+            permission = permission,
+            outcome = if (isGranted) {
+                AnalyticsPermissionOutcome.GRANTED
+            } else {
+                AnalyticsPermissionOutcome.DENIED
+            },
+            screen = AnalyticsSurface.AI
+        )
+    )
 }

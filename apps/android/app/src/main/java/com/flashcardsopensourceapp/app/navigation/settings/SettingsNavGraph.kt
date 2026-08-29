@@ -47,6 +47,9 @@ internal fun NavGraphBuilder.registerSettingsNavGraph(
             navController = navController,
             coroutineScope = coroutineScope
         )
-        registerSettingsAccessNavGraph(navController = navController)
+        registerSettingsAccessNavGraph(
+            appGraph = appGraph,
+            navController = navController
+        )
     }
 }

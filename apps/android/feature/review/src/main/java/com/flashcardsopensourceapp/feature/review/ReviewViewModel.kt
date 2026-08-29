@@ -13,7 +13,10 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPrompt
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPromptOutcome
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsReviewAnswerFailureReason
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
@@ -41,7 +44,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -181,6 +187,7 @@ class ReviewViewModel(
         observeResolvedFilterChanges()
         observePresentedCardChanges()
         observeAutoSyncDrivenReviewChanges()
+        observeNotificationPermissionPromptVisibility()
     }
 
     fun selectFilter(reviewFilter: ReviewFilter) {
@@ -240,14 +247,33 @@ class ReviewViewModel(
         )
     }
 
+    /**
+     * The flip, and the only producer of `review_card_revealed`.
+     *
+     * It is reported from the user's action rather than from an effect that observes the revealed
+     * state, because an observer runs again on every recomposition and on every configuration
+     * change, and it also runs for the *next* card at the moment that card is presented. Being a
+     * plain call on the view model, this survives rotation without a saved slot: the view model
+     * outlives the composition, so the flip is one call whatever the UI does around it.
+     *
+     * The guard is the presentation, not the card. [ReviewDraftState.revealedCardId] is cleared
+     * whenever a different card takes the head of the queue and by every answer that is submitted,
+     * so tapping reveal twice on one presentation reports once, while a card that comes back around
+     * — an `again` that returns it to the head — is a new presentation and reports again. A guard
+     * remembering the last card reported would go silent on exactly that case.
+     */
     fun revealAnswer() {
         val currentCardId = uiState.value.preparedCurrentCard?.card?.cardId ?: return
-        draftState.update { state ->
+        val previousState: ReviewDraftState = draftState.getAndUpdate { state ->
             state.copy(
                 revealedCardId = currentCardId,
                 errorMessage = ""
             )
         }
+        if (previousState.revealedCardId == currentCardId) {
+            return
+        }
+        analytics.track(event = AnalyticsEvent.ReviewCardRevealed)
     }
 
     fun consumeReviewRelocationTarget(
@@ -279,9 +305,10 @@ class ReviewViewModel(
     }
 
     fun dismissNotificationPermissionPrompt() {
-        draftState.update { state ->
-            state.copy(isNotificationPermissionPromptVisible = false)
-        }
+        // `dismissed`, not `snoozed`: the stored state closes this pre-prompt for good rather than
+        // scheduling it to return.
+        reportNotificationPermissionPromptAnswer(outcome = AnalyticsPromptOutcome.DISMISSED)
+        closeNotificationPermissionPrompt()
         reviewNotificationsStore.savePromptState(
             state = NotificationPermissionPromptState(
                 hasShownPrePrompt = true,
@@ -292,9 +319,11 @@ class ReviewViewModel(
     }
 
     fun continueNotificationPermissionPrompt() {
-        draftState.update { state ->
-            state.copy(isNotificationPermissionPromptVisible = false)
-        }
+        // Accepting our own prompt is a different fact from what the OS dialog that follows answers,
+        // which the caller reports as `permission_prompt_answered`. A person can accept here and
+        // still deny there, and that gap is the reason both events exist.
+        reportNotificationPermissionPromptAnswer(outcome = AnalyticsPromptOutcome.ACCEPTED)
+        closeNotificationPermissionPrompt()
         reviewNotificationsStore.savePromptState(
             state = NotificationPermissionPromptState(
                 hasShownPrePrompt = true,
@@ -302,6 +331,77 @@ class ReviewViewModel(
                 hasDismissedPrePrompt = false
             )
         )
+    }
+
+    private fun closeNotificationPermissionPrompt() {
+        draftState.update { state ->
+            state.copy(isNotificationPermissionPromptVisible = false)
+        }
+    }
+
+    /**
+     * Reports the answer to the pre-prompt, and only when a visible prompt is what is being
+     * answered, so a second tap arriving before the dialog is off screen reports once.
+     *
+     * Called before [closeNotificationPermissionPrompt] on purpose. That flip is also the surface
+     * change back to `review`, which [observeNotificationPermissionPromptVisibility] emits off the
+     * flag, so closing first would file the answer behind the person's departure from the prompt and
+     * a strictly sequenced funnel would read it as arriving after they left. Both handlers run on
+     * the main thread with no suspension between the read and the flip, so the read is as good a
+     * guard against a double tap as consuming the flag atomically was.
+     *
+     * The surface change itself stays with [observeNotificationPermissionPromptVisibility], which
+     * sees every way the prompt closes rather than only the two a person can take.
+     */
+    private fun reportNotificationPermissionPromptAnswer(outcome: AnalyticsPromptOutcome) {
+        if (draftState.value.isNotificationPermissionPromptVisible.not()) {
+            return
+        }
+
+        analytics.track(
+            event = AnalyticsEvent.PromptAnswered(
+                prompt = AnalyticsPrompt.NOTIFICATIONS_PRE_PROMPT,
+                outcome = outcome
+            )
+        )
+    }
+
+    /**
+     * Both surface edges of the notifications pre-prompt, taken from the visibility flag itself.
+     *
+     * The pre-prompt is a surface of its own in the catalog — a screen a person has to answer before
+     * anything else continues — so its showing and its closing are both surface changes. They are
+     * reported from here rather than from the app-wide route tracker because this view model owns
+     * the prompt's visibility and the route does not change while it is up.
+     *
+     * Keyed on the transition rather than on the call sites that produce it, because answering is
+     * not the only way it closes. A workspace change rebuilds the whole draft state, and both filter
+     * paths clear the flag as part of starting a new session — one of them, the resolved-filter
+     * correction, with no user action at all. Reported from the answer handlers instead, every one
+     * of those would end the person's stream on `notifications_pre_prompt` while they are back on
+     * review, and, because a repeat of the same surface is collapsed, would also swallow their next
+     * genuine arrival there. A fifth teardown added later is covered by construction.
+     *
+     * The first value is dropped: the flag starts false, and this runs from `init`, long before any
+     * review can be answered, so the only `false` this could see at that point is the initial one.
+     * Being a view-model state transition, each edge happens once no matter how the composition is
+     * rebuilt around it.
+     */
+    private fun observeNotificationPermissionPromptVisibility() {
+        viewModelScope.launch {
+            draftState
+                .map { state -> state.isNotificationPermissionPromptVisible }
+                .distinctUntilChanged()
+                .drop(count = 1)
+                .collect { isPromptVisible ->
+                    val visitedSurface: AnalyticsSurface = if (isPromptVisible) {
+                        AnalyticsSurface.NOTIFICATIONS_PRE_PROMPT
+                    } else {
+                        AnalyticsSurface.REVIEW
+                    }
+                    analytics.track(event = AnalyticsEvent.ScreenViewed(screen = visitedSurface))
+                }
+        }
     }
 
     /**
@@ -564,6 +664,9 @@ class ReviewViewModel(
             promptState.hasDismissedPrePrompt.not() &&
             shouldShowNotificationPermissionPrePrompt()
         ) {
+            // The showing half of the prompt rides on the flag, reported by
+            // `observeNotificationPermissionPromptVisibility`. Recording only the answer, as the
+            // retired onboarding event did, leaves no denominator and therefore no rate to compute.
             draftState.update { state ->
                 state.copy(isNotificationPermissionPromptVisible = true)
             }

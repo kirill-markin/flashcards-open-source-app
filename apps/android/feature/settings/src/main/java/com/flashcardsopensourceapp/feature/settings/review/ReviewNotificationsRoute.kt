@@ -69,6 +69,10 @@ fun ReviewNotificationsRoute(
     onUpdateStrictRemindersEnabled: (Boolean) -> Unit,
     onMarkSystemPermissionRequested: () -> Unit,
     onPermissionGranted: () -> Unit,
+    // The OS answer to the notifications permission asked from this screen, granted or not.
+    // Separate from `onPermissionGranted`, which only reconciles scheduling: a refusal is as much of
+    // an observation as a grant, and only the caller knows which surface the person is on.
+    onPermissionResult: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -102,6 +106,7 @@ fun ReviewNotificationsRoute(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         permissionRefreshVersion += 1
+        onPermissionResult(isGranted)
         if (isGranted) {
             onPermissionGranted()
         }

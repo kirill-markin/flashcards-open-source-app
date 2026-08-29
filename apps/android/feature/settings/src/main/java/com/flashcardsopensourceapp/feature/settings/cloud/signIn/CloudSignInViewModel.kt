@@ -75,8 +75,14 @@ private val cloudVerifyCodeUserCorrectableErrorCodes: Set<String> = setOf(
 
 /**
  * [originSurface] is the product surface the person opened this sign-in from, and it is what
- * `signin_failed` reports. The credential-recovery gate replaces the app's root at launch instead
- * of opening from a surface, so it passes `null` rather than naming one.
+ * `signin_failed` reports — the entry point, never `signin` itself. Every entry point this client
+ * has can now name one, including the credential-recovery gate, which the catalog gave its own
+ * `credential_recovery` surface precisely because it replaces the app root rather than opening from
+ * a screen and so used to be reportable only as no surface at all.
+ *
+ * It stays nullable regardless. The catalog leaves the set of sign-in entry points open on purpose:
+ * a surface that grows a sign-in control and cannot be attributed must report no `screen` rather
+ * than the nearest wrong one, because a wrong entry point is worse than a missing one.
  */
 class CloudSignInViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
