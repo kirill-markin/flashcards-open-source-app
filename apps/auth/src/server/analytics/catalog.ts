@@ -2,8 +2,8 @@
  * Hand-written mirror of the parts of the product analytics contract this service emits, in the same
  * way the web, iOS and Android clients mirror it. The source of truth is
  * `apps/backend/src/productAnalytics/catalog.ts`, and the backend rejects anything it does not
- * declare, so only what the auth origin actually reports is declared here: one surface and one
- * event.
+ * declare, so only what the auth origin actually reports is declared here: one surface and the four
+ * events of the web sign-in funnel.
  *
  * Nothing server-owned is mirrored. `schema_version`, `platform`, `app_version` and the identity
  * columns are derived by the backend from the request, and an event that carries any of them is
@@ -17,8 +17,38 @@ import { randomBytes } from "node:crypto";
  */
 export type AuthAnalyticsSurface = "signin";
 
-/** The only event this service reports. `screen_viewed` declares no properties in the catalog. */
-export type AuthAnalyticsEventName = "screen_viewed";
+/**
+ * The events this service reports: the sign-in funnel from the form being shown to its outcome.
+ * Only `signin_failed` declares a property in the catalog.
+ */
+export type AuthAnalyticsEventName =
+  | "screen_viewed"
+  | "signin_code_requested"
+  | "signin_succeeded"
+  | "signin_failed";
+
+/**
+ * The `signin_failed.reason` values this origin can produce. The catalog also declares `offline` and
+ * `cancelled`, which are client-observable only: a server sees neither a visitor's connectivity nor
+ * a form the person walked away from. `code_already_used` is reportable here because
+ * `classifyVerifyFailure` in `routes/browser/verifyCode.ts` tells a consumed OTP challenge apart
+ * from an expired one; a producer that cannot make that distinction reports `expired_code` instead.
+ *
+ * Read `server_error` as a floor rather than the whole. A sign-in refused by a non-transient
+ * database error is rethrown out of `routes/browser/sendCode.ts` and `routes/browser/verifyCode.ts`
+ * for `app.ts` to answer as `500 INTERNAL_ERROR`, and a rethrow reaches no branch that reports, so
+ * the person saw a sign-in fail that this reason never counted. What reports is a subset of what
+ * failed, and the gap can only close.
+ */
+export type AuthSignInFailureReason =
+  | "invalid_code"
+  | "expired_code"
+  | "code_already_used"
+  | "rate_limited"
+  | "server_error";
+
+/** The one property any event of this mirror carries, on `signin_failed` alone. */
+export type AuthAnalyticsEventProperties = Readonly<{ reason: AuthSignInFailureReason }>;
 
 /**
  * Exactly the client-owned fields `apps/backend/src/productAnalytics/validation.ts` accepts. It
@@ -32,8 +62,17 @@ export type AuthAnalyticsWireEvent = Readonly<{
   // A server observes its own request, not the visitor's connectivity, so it reports none rather
   // than inventing `wifi` for a column that is retained indefinitely.
   networkState: null;
-  screen: AuthAnalyticsSurface;
-  properties: null;
+  // `screen` carries two readings in the server catalog and this producer sends both, so the two are
+  // never collapsed here. On `screen_viewed`, `signin_code_requested` and `signin_succeeded` it is
+  // the ordinary reading — where the person is — which is the sign-in screen itself. On
+  // `signin_failed` it is the entry point: the surface that owned the sign-in control the person
+  // tapped, and the catalog's surface comment forbids `signin` there. This origin is reached by a
+  // redirect from a client that names no surface, so it cannot know the entry point, and the same
+  // comment says a sign-in that cannot be attributed to one reports no `screen` at all. That is why
+  // the catalog gives `signin_failed` `requiresScreen: false` while the other three require a
+  // surface, and why a funnel must not read the three screens the same way.
+  screen: AuthAnalyticsSurface | null;
+  properties: AuthAnalyticsEventProperties | null;
   experimentAssignments: null;
 }>;
 
@@ -93,15 +132,31 @@ function toAuthAnalyticsTimestamp(atMs: number): string {
   return new Date(atMs).toISOString();
 }
 
+/** One event's own fields, as the caller states them; everything else about a batch is derived. */
+type AuthAnalyticsEventFacts = Readonly<{
+  eventName: AuthAnalyticsEventName;
+  screen: AuthAnalyticsSurface | null;
+  properties: AuthAnalyticsEventProperties | null;
+}>;
+
 /**
- * The one batch this service sends: a signed-out visitor was shown the sign-in form.
- *
+ * Builds the one-event batch for a visitor, deferred until the moment it is sent so its ids and
+ * timestamps describe that moment.
+ */
+export type AuthAnalyticsBatchFactory = (
+  anonymousId: string,
+  sessionId: string,
+  nowMs: number,
+) => AuthAnalyticsBatch;
+
+/**
  * `clientOccurredAt` and `clientSentAt` are the same instant on purpose. Nothing is queued here, so
  * the event is observed and sent inside one invocation, and the backend's skew correction then
  * stores `occurred_at` as its own receive time rather than shifting it by an interval this producer
  * would have to invent.
  */
-export function createSignInScreenViewedBatch(
+function createAuthAnalyticsBatch(
+  facts: AuthAnalyticsEventFacts,
   anonymousId: string,
   sessionId: string,
   nowMs: number,
@@ -114,12 +169,72 @@ export function createSignInScreenViewedBatch(
     context: null,
     events: [{
       eventId: createAuthAnalyticsUuidV7(nowMs),
-      eventName: "screen_viewed",
+      eventName: facts.eventName,
       clientOccurredAt: timestamp,
       networkState: null,
-      screen: "signin",
-      properties: null,
+      screen: facts.screen,
+      properties: facts.properties,
       experimentAssignments: null,
     }],
   };
+}
+
+/** A signed-out visitor was shown the sign-in form. */
+export function createSignInScreenViewedBatch(
+  anonymousId: string,
+  sessionId: string,
+  nowMs: number,
+): AuthAnalyticsBatch {
+  return createAuthAnalyticsBatch(
+    { eventName: "screen_viewed", screen: "signin", properties: null },
+    anonymousId,
+    sessionId,
+    nowMs,
+  );
+}
+
+/** A visitor asked for an OTP and the service accepted the request. */
+export function createSignInCodeRequestedBatch(
+  anonymousId: string,
+  sessionId: string,
+  nowMs: number,
+): AuthAnalyticsBatch {
+  return createAuthAnalyticsBatch(
+    { eventName: "signin_code_requested", screen: "signin", properties: null },
+    anonymousId,
+    sessionId,
+    nowMs,
+  );
+}
+
+/**
+ * The visitor is now signed in. Sent before the identity link, which retires the credential.
+ *
+ * Read this event knowing it is measured under a tighter budget than the funnel's other steps: its
+ * post shares one deadline with the identity link that follows it, and a post abandoned at that
+ * deadline is then usually refused outright, because the link retires the credential behind it. A
+ * conversion computed from these rows is therefore a lower bound rather than a rate, and what it
+ * understates moves with ingest latency rather than with anything a visitor did.
+ */
+export function createSignInSucceededBatch(
+  anonymousId: string,
+  sessionId: string,
+  nowMs: number,
+): AuthAnalyticsBatch {
+  return createAuthAnalyticsBatch(
+    { eventName: "signin_succeeded", screen: "signin", properties: null },
+    anonymousId,
+    sessionId,
+    nowMs,
+  );
+}
+
+/** The reason is fixed when the branch that refused the sign-in is taken, not when the batch is sent. */
+export function createSignInFailedBatchFactory(reason: AuthSignInFailureReason): AuthAnalyticsBatchFactory {
+  return (anonymousId, sessionId, nowMs) => createAuthAnalyticsBatch(
+    { eventName: "signin_failed", screen: null, properties: { reason } },
+    anonymousId,
+    sessionId,
+    nowMs,
+  );
 }
