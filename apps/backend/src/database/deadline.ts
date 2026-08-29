@@ -6,6 +6,7 @@ import {
   toDatabaseBoundaryError,
   toDatabaseCommitBoundaryError,
   toDatabaseCommitOutcomeUnknownError,
+  toDatabasePoolBoundaryError,
   type DatabaseBoundaryErrorFields,
 } from "./transient";
 
@@ -177,7 +178,7 @@ async function connectUntilDeadline(pool: pg.Pool, deadlineAtMs: number): Promis
   try {
     connectPromise = pool.connect();
   } catch (error) {
-    throw toDatabaseBoundaryError(error);
+    throw toDatabasePoolBoundaryError(error);
   }
 
   return new Promise<pg.PoolClient>((resolve, reject) => {
@@ -209,7 +210,7 @@ async function connectUntilDeadline(pool: pg.Pool, deadlineAtMs: number): Promis
         if (settled) return;
         clearTimeout(timer);
         settled = true;
-        reject(toDatabaseBoundaryError(error));
+        reject(toDatabasePoolBoundaryError(error));
       },
     ).catch((error: unknown) => {
       logDatabasePoolError("deadline-late-checkout-release", error);
