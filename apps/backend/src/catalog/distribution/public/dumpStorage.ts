@@ -7,7 +7,7 @@ import {
 import { HttpError } from "../../../shared/errors";
 import type { CatalogPublicSnapshot } from "../../types";
 
-type CatalogDumpStorageConfig = Readonly<{
+export type CatalogDumpStorageConfig = Readonly<{
   bucketName: string;
   cdnBaseUrl: string;
 }>;
@@ -38,12 +38,12 @@ const immutableCatalogDumpObjectKeyPattern = new RegExp(
   "u",
 );
 const catalogDumpContentType = "application/json; charset=utf-8";
-const immutableCatalogDumpCacheControl = "public, max-age=31536000, immutable";
+export const immutableCatalogDumpCacheControl = "public, max-age=31536000, immutable";
 const revalidatedCatalogDumpCacheControl = "public, max-age=60";
 
 let catalogDumpS3Client: S3Client | undefined;
 
-function getCatalogDumpS3Client(): S3Client {
+export function getCatalogDumpS3Client(): S3Client {
   if (catalogDumpS3Client !== undefined) {
     return catalogDumpS3Client;
   }
@@ -61,7 +61,7 @@ function getRequiredCatalogDumpEnv(envName: string): string {
   return value.trim();
 }
 
-function getCatalogDumpStorageConfig(): CatalogDumpStorageConfig {
+export function getCatalogDumpStorageConfig(): CatalogDumpStorageConfig {
   const cdnBaseUrl = getRequiredCatalogDumpEnv("CATALOG_DUMP_CDN_BASE_URL");
   return {
     bucketName: getRequiredCatalogDumpEnv("CATALOG_DUMP_S3_BUCKET_NAME"),
@@ -91,7 +91,7 @@ function getS3ErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function formatS3ErrorSummary(error: unknown): string {
+export function formatCatalogDumpS3ErrorSummary(error: unknown): string {
   const errorName = getS3ErrorName(error);
   const errorMessage = getS3ErrorMessage(error);
   const statusCode = getS3ErrorStatusCode(error);
@@ -99,8 +99,8 @@ function formatS3ErrorSummary(error: unknown): string {
   return `${errorName}${statusSuffix}: ${errorMessage}`;
 }
 
-async function runCatalogDumpS3OperationWithRetries<Result>(params: Readonly<{
-  operation: "get_object" | "put_object";
+export async function runCatalogDumpS3OperationWithRetries<Result>(params: Readonly<{
+  operation: "get_object" | "put_object" | "list_objects" | "copy_object" | "delete_object";
   observationScope: BackendObservationScope;
   bucketName: string;
   objectKey: string;
@@ -166,7 +166,7 @@ async function putCatalogDumpObjectWithRetries(params: Readonly<{
     });
   } catch (error) {
     throw new Error(
-      `Failed to write the public catalog dump to s3://${params.bucketName}/${params.objectKey}: ${formatS3ErrorSummary(error)}`,
+      `Failed to write the public catalog dump to s3://${params.bucketName}/${params.objectKey}: ${formatCatalogDumpS3ErrorSummary(error)}`,
     );
   }
 }
@@ -221,7 +221,7 @@ function createCatalogDumpPointerUnavailableError(
     : `s3://${config.bucketName}/${pointerCatalogDumpObjectKey}`;
   return new HttpError(
     503,
-    `Public catalog dump pointer is unavailable from ${location}: ${formatS3ErrorSummary(error)}`,
+    `Public catalog dump pointer is unavailable from ${location}: ${formatCatalogDumpS3ErrorSummary(error)}`,
     catalogDumpPointerUnavailableCode,
   );
 }

@@ -1,5 +1,8 @@
-import { useEffect, useEffectEvent } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import type { Card } from "../../../types";
+import { reviewRevealShortcutKey, reviewShortcutRatingsByKey } from "./reviewShortcutKeys";
+
+export type ReviewShortcutPointerEnterHandler = (event: ReactPointerEvent<HTMLButtonElement>) => void;
 
 type UseReviewKeyboardShortcutsParams = Readonly<{
   handleReview: (card: Card, rating: 0 | 1 | 2 | 3) => Promise<void>;
@@ -15,14 +18,11 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   setIsAnswerVisible: (value: boolean) => void;
 }>;
 
-const reviewShortcutRatingsByKey: Readonly<Record<string, 0 | 1 | 2 | 3>> = {
-  "1": 0,
-  "2": 1,
-  "3": 2,
-  "4": 3,
-};
+type UseReviewKeyboardShortcutsResult = Readonly<{
+  handleShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
+}>;
 
-function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+function isEditableKeyboardTarget(target: EventTarget | null): target is HTMLElement {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
@@ -36,7 +36,7 @@ function isEditableKeyboardTarget(target: EventTarget | null): boolean {
     || target instanceof HTMLSelectElement;
 }
 
-export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsParams): void {
+export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsParams): UseReviewKeyboardShortcutsResult {
   const {
     handleReview,
     isAnswerVisible,
@@ -50,22 +50,24 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     selectedCard,
     setIsAnswerVisible,
   } = params;
+  const isImeCompositionActiveRef = useRef<boolean>(false);
+  const areShortcutsSuppressed = isSubmitting
+    || isEditorPresented
+    || isFeedbackDialogOpen
+    || isHardReminderVisible
+    || isMobileAppPromotionDialogOpen
+    || isReviewFilterMenuOpen;
 
   const handleDocumentKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (
       selectedCard === null
-      || isSubmitting
-      || isEditorPresented
-      || isFeedbackDialogOpen
-      || isHardReminderVisible
-      || isMobileAppPromotionDialogOpen
-      || isReviewFilterMenuOpen
+      || areShortcutsSuppressed
       || isEditableKeyboardTarget(event.target)
     ) {
       return;
     }
 
-    if (event.key === " ") {
+    if (event.key === reviewRevealShortcutKey) {
       onShortcutInputStart();
       if (isAnswerVisible) {
         return;
@@ -94,4 +96,44 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     document.addEventListener("keydown", handleDocumentKeyDown);
     return () => document.removeEventListener("keydown", handleDocumentKeyDown);
   }, [handleDocumentKeyDown]);
+
+  useEffect(() => {
+    function handleCompositionStart(): void {
+      isImeCompositionActiveRef.current = true;
+    }
+
+    function handleCompositionEnd(): void {
+      isImeCompositionActiveRef.current = false;
+    }
+
+    document.addEventListener("compositionstart", handleCompositionStart);
+    document.addEventListener("compositionend", handleCompositionEnd);
+    return () => {
+      document.removeEventListener("compositionstart", handleCompositionStart);
+      document.removeEventListener("compositionend", handleCompositionEnd);
+    };
+  }, []);
+
+  // Mouse hover over a review action button releases text-field focus so the document-level
+  // shortcuts start working. Focus is only released, never moved onto the hovered button,
+  // because a focused rating button would be natively activated by Space or Enter.
+  const handleShortcutButtonPointerEnter = useCallback(function handleShortcutButtonPointerEnter(event: ReactPointerEvent<HTMLButtonElement>): void {
+    if (
+      event.pointerType !== "mouse"
+      || isImeCompositionActiveRef.current
+      || selectedCard === null
+      || areShortcutsSuppressed
+    ) {
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    if (!isEditableKeyboardTarget(activeElement)) {
+      return;
+    }
+
+    activeElement.blur();
+  }, [areShortcutsSuppressed, selectedCard]);
+
+  return { handleShortcutButtonPointerEnter };
 }

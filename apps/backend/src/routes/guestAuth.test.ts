@@ -232,7 +232,7 @@ test("POST /guest-auth/session forwards an idempotency key and defaults it to ab
 // a client might reach for are refused at the boundary rather than stored. The check is only that
 // floor: a hex-normalised install id would pass it, which is why per-attempt randomness stays a
 // client obligation in docs/auth-service.md.
-test("POST /guest-auth/session rejects an idempotency key that is not a random token", async () => {
+test("POST /guest-auth/session rejects an idempotency key outside the required token shape", async () => {
   let created = false;
   const app = createGuestAuthTestApp({
     authResult: createAuthResult("none"),

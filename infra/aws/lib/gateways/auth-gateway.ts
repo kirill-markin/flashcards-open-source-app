@@ -7,6 +7,11 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
+import {
+  authHandlerReservedConcurrency,
+  databasePoolMaxConnectionsEnvName,
+  databasePoolMaxConnectionsEnvValue,
+} from "./api-gateway";
 import { authNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 
 export interface AuthGatewayProps {
@@ -154,6 +159,8 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(30),
     memorySize: 256,
+    // Share of the Postgres connection budget documented in ./api-gateway.ts.
+    reservedConcurrentExecutions: authHandlerReservedConcurrency,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
@@ -164,6 +171,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       DB_SECRET_ARN: props.authDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
+      [databasePoolMaxConnectionsEnvName]: databasePoolMaxConnectionsEnvValue,
       COGNITO_USER_POOL_ID: props.userPoolId,
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
