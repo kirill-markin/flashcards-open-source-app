@@ -348,10 +348,7 @@ struct SettingsView: View {
             isPresented: self.$isCloudSignInPresented,
             presentationContext: .standard(originSurface: .settings)
         )
-        .sheet(isPresented: self.$isFriendInvitePresented) {
-            ProgressFriendInviteSheet()
-                .environment(self.store)
-        }
+        .friendInviteSheet(isPresented: self.$isFriendInvitePresented, store: self.store)
     }
 
     private var friendInviteButton: some View {
