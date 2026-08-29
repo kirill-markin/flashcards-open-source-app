@@ -346,6 +346,13 @@ extension FlashcardsStore {
                 }
             }
 
+            // Everything below writes for `linkContext`'s identity, and the awaits above can have
+            // resumed already when an erase or an account deletion cancels this task: the resumed
+            // job runs straight after the synchronous reset, with cancellation set and nothing
+            // reading it. `validateCloudCredentialRecoveryUserBeforeIdentitySideEffects` sits before
+            // those awaits and cannot re-gate them, so the cancel has to be re-read right here.
+            // This one check also covers `finishCloudLink` below, which nothing suspends before.
+            try Task.checkCancellation()
             try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
             let configuration = try self.currentCloudServiceConfiguration()
             let linkedSession = CloudLinkedSession(
@@ -463,6 +470,10 @@ extension FlashcardsStore {
                 )
                 linkedWorkspace = workspaceCreation.workspace
                 credentials = workspaceCreation.credentials
+                // The workspace creation above suspends, so this checkpoint can be reached after an
+                // erase has already cleared the recovery state it belongs to. Persisting it then
+                // would strand a checkpoint pointing at the abandoned account's new workspace.
+                try Task.checkCancellation()
                 try self.saveGuestLocalRecoveryWorkspaceCheckpoint(
                     linkContext: linkContext,
                     recoveryState: recoveryState,
@@ -470,6 +481,10 @@ extension FlashcardsStore {
                 )
             }
 
+            // Every branch above reaches here through an await, so re-read the cancel before the
+            // link is finished for this identity. Placed outside the `do` on purpose: a throw here
+            // must not run the `defer` that applies the abandoned account's preferences.
+            try Task.checkCancellation()
             do {
                 defer {
                     self.applyCloudAccountPreferences(
@@ -504,6 +519,9 @@ extension FlashcardsStore {
         configuration: CloudServiceConfiguration,
         forceRefresh: Bool
     ) async throws -> StoredCloudCredentials {
+        // Two of the call sites are authorization retries that run after an awaited failure, so the
+        // credential write below can be reached with the identity already abandoned.
+        try Task.checkCancellation()
         let storedCredentials = try self.cloudRuntime.loadCredentials()
         if let storedCredentials {
             if storedCredentials.refreshToken != linkContextCredentials.refreshToken {
@@ -755,6 +773,9 @@ extension FlashcardsStore {
             && self.cloudSettings?.linkedUserId == linkedSession.userId {
             let database = try requireLocalDatabase(database: self.database)
             if self.workspace?.workspaceId == linkedSession.workspaceId {
+                // Nothing suspends between the head of the link transition task and this write, so
+                // the head check in `CloudSessionRuntime.runCloudLinkTransition` is the only
+                // cancellation read it gets; an await introduced above it needs its own.
                 try database.updateCloudSettings(
                     cloudState: .linked,
                     linkedUserId: linkedSession.userId,
@@ -789,6 +810,12 @@ extension FlashcardsStore {
                 migrationKind: migrationKind,
                 remoteWorkspaceIsEmpty: remoteWorkspaceIsEmpty
             )
+            // `context` was captured before the await above, so after an erase `context.workspaceId`
+            // names the workspace that no longer exists and the migration's
+            // `deleteOtherWorkspaces(exceptWorkspaceId:)` would delete the one the erase just
+            // created, leaving the install `linked` to the abandoned account with its credentials
+            // already cleared. The task head cannot cover a write this far past a suspension.
+            try Task.checkCancellation()
             try context.database.migrateLocalWorkspaceToLinkedWorkspace(
                 localWorkspaceId: context.workspaceId,
                 linkedSession: linkedSession,

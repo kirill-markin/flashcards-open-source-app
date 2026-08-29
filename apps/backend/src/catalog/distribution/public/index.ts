@@ -20,7 +20,4 @@ export {
   loadPublicCatalogPackageMediaForDownload,
   loadPublicCatalogPackageMediaForDownloadInExecutor,
 } from "./media";
-export {
-  loadPublicCatalogSnapshot,
-  loadPublicCatalogSnapshotInExecutor,
-} from "./snapshot";
+export { loadPublicCatalogSnapshotInExecutor } from "./snapshot";

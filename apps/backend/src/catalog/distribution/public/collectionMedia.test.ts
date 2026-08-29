@@ -12,6 +12,7 @@ import {
 } from "./index";
 import { createPublicCatalogRouteTestApp } from "./testSupport";
 
+const catalogMediaCdnBaseUrl = "https://cdn.example.test";
 const collectionId = "99999999-1111-4111-8111-111111111111";
 const coverMediaBlobId = "99999999-2222-4222-8222-222222222222";
 const coverSha256 = "b".repeat(64);
@@ -32,9 +33,10 @@ const collectionCoverDownloadSource: CatalogPublicCollectionCoverDownloadSource 
     mimeType: "image/jpeg",
     sizeBytes: 3,
   },
-  storageKey: coverStorageKey,
   sha256: coverSha256,
 };
+
+const publishedCoverObjectUrl = `${catalogMediaCdnBaseUrl}/catalog/media/${coverSha256}`;
 
 test("public collection cover lookup requires public visibility and keeps private storage internal", async () => {
   const executor: DatabaseExecutor = {
@@ -148,29 +150,14 @@ for (const fixture of unavailableCoverFixtures) {
   });
 }
 
-test("public collection cover routes return a backend URL and proxy verified bytes", async () => {
+test("public collection cover routes name and redirect to the published CDN object", async () => {
   let lookupCount = 0;
-  let loadedStorageKey: string | null = null;
   const app = createPublicCatalogRouteTestApp(createCatalogPublicRoutes({
+    resolveCatalogMediaCdnBaseUrlFn: () => catalogMediaCdnBaseUrl,
     loadPublicCatalogCollectionCoverForDownloadFn: async (requestedCollectionId) => {
       lookupCount += 1;
       assert.equal(requestedCollectionId, collectionId);
       return collectionCoverDownloadSource;
-    },
-    loadMediaAssetObjectBytesFn: async (input) => {
-      loadedStorageKey = input.storageKey;
-      assert.equal(input.workspaceId, collectionId);
-      assert.equal(input.mediaAssetId, "cover");
-      assert.equal(input.mimeType, "image/jpeg");
-      assert.equal(input.sizeBytes, 3);
-      assert.equal(input.sha256, coverSha256);
-      assert.equal(input.maxByteSize, maximumPublicCatalogMediaDownloadBytes);
-      return {
-        bytes: Buffer.from([1, 2, 3]),
-        mimeType: "image/jpeg",
-        sizeBytes: 3,
-        sha256: coverSha256,
-      };
     },
   }));
 
@@ -183,36 +170,33 @@ test("public collection cover routes return a backend URL and proxy verified byt
     collectionCover: collectionCoverDownloadSource.collectionCover,
     download: {
       method: "GET",
-      url: `http://localhost:8080/v1/catalog/collections/${collectionId}/cover/download`,
+      url: publishedCoverObjectUrl,
       expiresAt: null,
       rangeRequests: false,
     },
   });
   assert.doesNotMatch(
     JSON.stringify(urlPayload),
-    /coverMediaBlobId|mediaBlobId|storageKey|storage_key|media\/blobs|sha256/,
+    /coverMediaBlobId|mediaBlobId|storageKey|storage_key|media\/blobs/,
   );
 
-  const bytesResponse = await app.request(
+  const redirectResponse = await app.request(
     `http://localhost:8080/catalog/collections/${collectionId}/cover/download`,
   );
-  assert.equal(bytesResponse.status, 200);
+  assert.equal(redirectResponse.status, 302);
   assert.equal(lookupCount, 2);
-  assert.equal(loadedStorageKey, coverStorageKey);
-  assert.equal(bytesResponse.headers.get("content-type"), "image/jpeg");
-  assert.equal(bytesResponse.headers.get("content-length"), "3");
-  assert.equal(bytesResponse.headers.get("cache-control"), "public, no-cache");
-  assert.deepEqual(Buffer.from(await bytesResponse.arrayBuffer()), Buffer.from([1, 2, 3]));
+  assert.equal(redirectResponse.headers.get("location"), publishedCoverObjectUrl);
+  assert.equal(redirectResponse.headers.get("cache-control"), "public, no-cache");
 });
 
-test("public collection cover byte route maps a missing private object to a catalog error", async () => {
+test("public collection cover redirect keeps the published lookup on every request", async () => {
   const app = createPublicCatalogRouteTestApp(createCatalogPublicRoutes({
-    loadPublicCatalogCollectionCoverForDownloadFn: async () => collectionCoverDownloadSource,
-    loadMediaAssetObjectBytesFn: async () => {
+    resolveCatalogMediaCdnBaseUrlFn: () => catalogMediaCdnBaseUrl,
+    loadPublicCatalogCollectionCoverForDownloadFn: async () => {
       throw new HttpError(
-        409,
-        `Completed media upload is not available for workspaceId=${collectionId} mediaAssetId=cover.`,
-        "MEDIA_ASSET_UPLOAD_NOT_FOUND",
+        404,
+        `Published catalog collection cover not found. collectionId=${collectionId}`,
+        "CATALOG_PUBLIC_COLLECTION_COVER_NOT_FOUND",
       );
     },
   }));
@@ -221,10 +205,7 @@ test("public collection cover byte route maps a missing private object to a cata
     `http://localhost:8080/catalog/collections/${collectionId}/cover/download`,
   );
   const payload = await response.json() as Readonly<Record<string, unknown>>;
-  assert.equal(response.status, 409);
-  assert.equal(payload.code, "CATALOG_PUBLIC_COLLECTION_COVER_OBJECT_NOT_FOUND");
-  assert.doesNotMatch(
-    JSON.stringify(payload),
-    /coverMediaBlobId|mediaBlobId|storageKey|storage_key|media\/blobs|sha256/,
-  );
+  assert.equal(response.status, 404);
+  assert.equal(payload.code, "CATALOG_PUBLIC_COLLECTION_COVER_NOT_FOUND");
+  assert.equal(response.headers.get("location"), null);
 });

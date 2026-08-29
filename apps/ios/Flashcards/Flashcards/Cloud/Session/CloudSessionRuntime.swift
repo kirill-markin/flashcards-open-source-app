@@ -140,6 +140,11 @@ final class CloudSessionRuntime {
             idToken: refreshedToken.idToken,
             idTokenExpiresAt: refreshedToken.idTokenExpiresAt
         )
+        // The network refresh above is a suspension an identity abandonment can land in, and this
+        // line writes credentials. Resuming past a cancel would put the abandoned account's
+        // credentials back into the Keychain that the reset around `cancelForAccountDeletion` has
+        // just cleared, so the write has to re-read cancellation rather than trust the await.
+        try Task.checkCancellation()
         try self.credentialStore.saveCredentials(credentials: updatedCredentials)
 
         if let activeCloudSession = self.state.activeCloudSession {
@@ -268,7 +273,11 @@ final class CloudSessionRuntime {
         let linkTransition = CloudLinkTransitionState(
             id: UUID().uuidString.lowercased(),
             task: Task { @MainActor in
-                try await operation()
+                // The same head window `runWorkspaceCompletion` guards below, and it matters more
+                // here: a body of this task can reach a workspace write with nothing suspending in
+                // front of it, and for such a write this read is the only one it gets.
+                try Task.checkCancellation()
+                return try await operation()
             }
         )
         self.state.activeCloudLinkTask = linkTransition
@@ -296,7 +305,12 @@ final class CloudSessionRuntime {
         let workspaceCompletion = CloudWorkspaceCompletionState(
             id: UUID().uuidString.lowercased(),
             task: Task { @MainActor in
-                try await operation()
+                // Cancellation has two windows here, and only one of them is an await. This is the
+                // other one: a cancel that lands between creating this task and its first scheduled
+                // run leaves the body starting from the top with `Task.isCancelled` already true and
+                // no suspension left to rethrow at. The bodies re-check it after their own awaits.
+                try Task.checkCancellation()
+                return try await operation()
             }
         )
         self.state.activeWorkspaceCompletionTask = workspaceCompletion
@@ -823,7 +837,35 @@ final class CloudSessionRuntime {
         self.state.activeGuestCloudSessionCreation = nil
     }
 
+    /**
+     * Every caller abandons the identity the cancelled work is authenticated as, so a workspace
+     * completion in flight must stop here rather than finish its credential and workspace writes
+     * against an account the person has just left.
+     *
+     * The workspace completion and the cloud link transition it wraps are separate unstructured
+     * tasks, so cancelling the outer one does not reach the inner one and both need their own line.
+     *
+     * Cancelling is only half of it. Callers reset local state synchronously right after this, so a
+     * body whose await has already resumed is queued to run immediately with cancellation set, and
+     * one parked in a continuation that takes no cancellation handler never observes the cancel at
+     * all. The obligation that makes this call effective therefore lives in the bodies, not here:
+     * every identity side effect in them must have a `Task.checkCancellation()` ahead of it with no
+     * suspension in between, the task head counting as the first such read. A write moved behind a
+     * new await needs its own read, and a write that relies on its callers reaching it with nothing
+     * suspended in between has to say so where it is written.
+     *
+     * Where such a read may go is bounded too. The workspace completion and the link transition
+     * are cancelled nowhere else, so only inside those two does a cancel mean an abandoned identity
+     * and nothing else. A read in code the other slots also reach, as `refreshCloudCredentials`
+     * above is, needs its own justification: it is allowed only where a cancel arriving from
+     * `cancelForWorkspaceSwitch` abandons that same work anyway, so throwing there costs nothing.
+     * The same bound ends a body at the reset it performs on itself: past that the cancel is its
+     * own and benign, so the read belongs before the reset, or behind the early return that
+     * follows it.
+     */
     func cancelForAccountDeletion() {
+        self.state.activeWorkspaceCompletionTask?.task.cancel()
+        self.state.activeWorkspaceCompletionTask = nil
         self.state.activeCloudLinkTask?.task.cancel()
         self.state.activeCloudLinkTask = nil
         self.cancelAndClearActiveCloudSyncTask(stage: "clear_active_sync_task_account_deletion")
