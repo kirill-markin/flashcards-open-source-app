@@ -92,6 +92,40 @@ struct CloudCredentialRecoveryGateView: View {
             .navigationTitle(self.presentation.title)
             .navigationBarTitleDisplayMode(.inline)
         }
+        .onAppear {
+            // The gate replaces the whole app root, so it is a screen of its own rather than
+            // something over a tab, and while it is up the tab root does not exist to report one.
+            Analytics.trackScreenViewed(.credentialRecovery)
+        }
+        .onDisappear {
+            // Clearing the gate swaps the tab root back in with the visible tab unchanged, which the
+            // tab root reports as a launch-time view and therefore stays silent about. This is the
+            // only place the screen the person lands on can be named.
+            //
+            // `signin` is accepted alongside the gate's own surface because the flow the gate exists
+            // for ends while its sign-in sheet is still on screen: `completeCloudLink` and
+            // `completeGuestLocalRecoveryCloudLink` clear the recovery state from under it, and
+            // removing the gate destroys that sheet's presenter without an `onDismiss`, so
+            // `endCloudSignInAttempt` never runs to hand the surface back. Restoring from `signin`
+            // too is what keeps that success path from leaving the tracker parked on the sign-in
+            // screen, where the next `permission_prompt_answered` would be stamped `signin` and the
+            // person's genuine next arrival on this tab would be swallowed by the dedupe.
+            //
+            // Accepted only for the gate's *own* sheet, which is what this view's own presentation
+            // state answers and no shared counter can. A gate that opened and closed over a sheet
+            // the tab root was already presenting leaves that binding true, so `RootTabView` installs
+            // a fresh `CloudSignInSheetModifier` that presents immediately and reports `signin` — and
+            // whether that lands before or after this callback is not ordered. Accepting `signin`
+            // unconditionally would lose that race by parking the tracker on the tab while the sheet
+            // is on screen, and `endCloudSignInAttempt` would then refuse its own restore. The gate
+            // never presented that sheet, so this flag is false for it either way round.
+            Analytics.trackScreenViewedOnDismiss(
+                ofAnyOf: self.isCloudSignInPresented
+                    ? [.credentialRecovery, .signin]
+                    : [.credentialRecovery],
+                restoring: analyticsSurface(tab: self.store.currentVisibleTab)
+            )
+        }
         .cloudSignInSheet(
             isPresented: self.$isCloudSignInPresented,
             presentationContext: .credentialRecoveryGate

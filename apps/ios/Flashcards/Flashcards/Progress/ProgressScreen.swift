@@ -91,10 +91,7 @@ struct ProgressScreen: View {
             isPresented: self.$isCloudSignInPresented,
             presentationContext: .standard(originSurface: .progress)
         )
-        .sheet(isPresented: self.$isFriendInvitePresented) {
-            ProgressFriendInviteSheet()
-                .environment(self.store)
-        }
+        .friendInviteSheet(isPresented: self.$isFriendInvitePresented, store: self.store)
         .sheet(item: self.$selectedLeaderboardProfile) { selectedProfile in
             ProgressLeaderboardProfileSheet(selectedProfile: selectedProfile)
                 .environment(self.store)

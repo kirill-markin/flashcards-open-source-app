@@ -214,7 +214,17 @@ struct CardsScreen: View {
                 .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
             }
         }
-        .sheet(item: self.$editorPresentation) { presentation in
+        .sheet(
+            item: self.$editorPresentation,
+            onDismiss: {
+                // From the presentation, never from the content, for the reason
+                // `Analytics.trackScreenViewedOnDismiss` gives. The editor only ever presents over
+                // the Cards tab, so the restore is already safe here; it is written conditionally
+                // anyway because it costs nothing and keeps the one rule for restoring a surface
+                // identical at every site.
+                Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .cards)
+            }
+        ) { presentation in
             NavigationStack {
                 CardEditorScreen(
                     title: presentation.title,
@@ -243,12 +253,6 @@ struct CardsScreen: View {
             .interactiveDismissDisabled()
             .onAppear {
                 Analytics.trackScreenViewed(.cardEditor)
-            }
-            .onDisappear {
-                // The editor only ever presents over the Cards tab, so the restore is already safe
-                // here; it is written conditionally anyway because it costs nothing and keeps the one
-                // rule for restoring a surface identical at both sites.
-                Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .cards)
             }
         }
         .sheet(isPresented: $isFilterSheetPresented) {
