@@ -21,6 +21,7 @@ extension FlashcardsStore {
         // would name the wrong user on an append-only table. The discarded count is reported
         // through observability, not as an analytics_events_dropped reason.
         Analytics.reset()
+        self.restoreSurfaceForPromptsClosedByCloudIdentityReset()
         let database = try requireLocalDatabase(database: self.database)
         let previousStrictReminderNotificationScope = storedStrictReminderNotificationScope(userDefaults: self.userDefaults)
 
@@ -75,6 +76,35 @@ extension FlashcardsStore {
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
         try self.reload()
         self.clearCloudCredentialRecoveryState()
+    }
+
+    /**
+     * Hands the surface back for whichever of our two in-app prompts this reset is about to close.
+     *
+     * The reset closes them by writing their presentation state directly, which reports no
+     * `prompt_answered` — nobody answered one — but also bypasses SwiftUI's binding write-back, so
+     * neither prompt's own restore runs, and `Analytics.reset` rotates the identity without touching
+     * the surface tracker. Left undone the tracker keeps naming a prompt that is gone: the next
+     * `permission_prompt_answered` would carry it, and the person's genuine next arrival on the tab
+     * underneath would be swallowed by the dedupe.
+     *
+     * Placed after `Analytics.reset` on purpose. The person is on that tab now, under the identity
+     * this reset just started, and that is the only identity the report can honestly carry.
+     */
+    private func restoreSurfaceForPromptsClosedByCloudIdentityReset() {
+        let landingSurface = analyticsSurface(tab: self.currentVisibleTab)
+        if self.isReviewNotificationPrePromptPresented {
+            Analytics.trackScreenViewedOnDismiss(
+                of: .notificationsPrePrompt,
+                restoring: landingSurface
+            )
+        }
+        if self.isGuestSignInAfterReviewPromptPresented {
+            Analytics.trackScreenViewedOnDismiss(
+                of: .signInAfterReviewPrompt,
+                restoring: landingSurface
+            )
+        }
     }
 
     private func removeStrictReminderNotificationsForCloudIdentityReset(

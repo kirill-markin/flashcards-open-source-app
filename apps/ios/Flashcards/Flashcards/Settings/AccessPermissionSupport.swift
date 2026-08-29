@@ -233,8 +233,65 @@ func accessPermissionGuidance(kind: AccessPermissionKind, status: AccessPermissi
     }
 }
 
+/**
+ * Requests one OS permission and reports what the person answered.
+ *
+ * Every caller in the app already asks only when the permission is undetermined, and this checks it
+ * again because that is what makes the event honest: an already-decided permission resolves from the
+ * stored answer without a dialog being shown, and reporting one then would count dialogs nobody saw.
+ * The check is also what keeps that true for a future caller that forgets the gate.
+ */
 @MainActor
 func requestAccessPermission(kind: AccessPermissionKind) async -> AccessPermissionStatus {
+    let wasUndecided = accessPermissionStatus(kind: kind) == .askEveryTime
+    let status = await performAccessPermissionRequest(kind: kind)
+    if wasUndecided, let outcome = analyticsPermissionPromptOutcome(status: status) {
+        Analytics.trackPermissionPromptAnswered(
+            permission: analyticsPermission(kind: kind),
+            outcome: outcome
+        )
+    }
+
+    return status
+}
+
+func analyticsPermission(kind: AccessPermissionKind) -> AnalyticsPermission {
+    switch kind {
+    case .photos:
+        return .photoLibrary
+    case .camera:
+        return .camera
+    case .microphone:
+        return .microphone
+    }
+}
+
+/**
+ * Maps a post-request status onto the catalog's three outcomes, or to nothing when no dialog can
+ * have produced it.
+ *
+ * `limited` is a grant: the person allowed the app a chosen set of photos, which is an answer of yes
+ * with a scope attached, and the catalog has no narrower value for it. `askEveryTime` means the
+ * request came back with the permission still undetermined, which is the person closing the dialog
+ * without deciding — reachable from the photos branch of `performAccessPermissionRequest` alone,
+ * because the camera and microphone requests answer with a bool and map an undecided close onto
+ * `blocked`. `unavailable` is the device having no such hardware, so nothing was ever asked.
+ */
+func analyticsPermissionPromptOutcome(status: AccessPermissionStatus) -> AnalyticsPermissionOutcome? {
+    switch status {
+    case .allowed, .limited:
+        return .granted
+    case .blocked:
+        return .denied
+    case .askEveryTime:
+        return .dismissed
+    case .unavailable:
+        return nil
+    }
+}
+
+@MainActor
+private func performAccessPermissionRequest(kind: AccessPermissionKind) async -> AccessPermissionStatus {
     switch kind {
     case .photos:
         let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)

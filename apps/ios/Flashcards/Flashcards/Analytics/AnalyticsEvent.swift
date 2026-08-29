@@ -7,13 +7,22 @@ import Foundation
  * declares and there is deliberately no `track(name:properties:)` anywhere. A typo or an undeclared
  * property does not compile instead of becoming a silent server-side rejection.
  *
- * That strictness covers event names and properties, and no longer covers every enum value here:
- * `AnalyticsSurface` still declares `onboarding`, which the catalog dropped, so an event carrying
- * it as its `screen` compiles and is rejected `invalid_event`. No call site uses that value, and
- * until the enum drops it a value in this file is not on its own proof that the server accepts it.
+ * Every enum value below is a value the current catalog declares, so a value here is again proof
+ * the server accepts it. The one that was not — `AnalyticsSurface.onboarding`, dropped by the
+ * catalog — is gone; while it existed an event carrying it as its `screen` compiled and was
+ * rejected `invalid_event`.
  *
- * `guest_upgrade_completed` and `catalog_deck_installed` are server-derived and are absent here on
- * purpose: a client batch that carries one is rejected `server_only_event`.
+ * The ten server-derived events are absent here on purpose, because a client batch that carries one
+ * is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
+ * `card_updated`, `deck_created`, `deck_updated`, `friend_invitation_created`, `friendship_created`,
+ * `ai_message_sent` and `catalog_deck_installed`.
+ *
+ * `signin_code_requested` and `signin_succeeded` are client-emittable and absent for a different
+ * reason: nothing reports the two middle funnel steps yet. The catalog declares them ahead of a
+ * producer, and there is no emit site for either anywhere in the repository — not on the auth
+ * origin the catalog names as the intended web producer, and not in the web client's own mirror.
+ * Adopting them here is its own change rather than a gap in this mirror, and iOS is not behind web
+ * on them.
  *
  * `onboarding_step_completed`, `review_session_started` and `review_session_ended` were removed
  * from the catalog outright, so the server no longer declares them and rejects them as unknown
@@ -23,7 +32,30 @@ enum AnalyticsEvent: Sendable, Equatable {
     case appOpened(launchType: AnalyticsLaunchType)
     case screenViewed(screen: AnalyticsSurface)
     case signInFailed(reason: AnalyticsSignInFailureReason)
+    /// The card flip: the answer side being shown, once per card presentation. It never reaches the
+    /// backend on its own, so only a client can report it, and it is the denominator the
+    /// server-derived `review_answered` is read against.
+    case reviewCardRevealed
     case reviewAnswerFailed(reason: AnalyticsReviewAnswerFailureReason)
+    /**
+     * One of our own in-app prompts was answered.
+     *
+     * This is not the same fact as `permissionPromptAnswered` and the two must never be merged: this
+     * one is ours to decide when to show, while that one is an OS dialog whose outcome the app only
+     * observes, and a person can accept ours and still deny the system's. The prompt being *shown*
+     * is a third fact, recorded as `screen_viewed` on the prompt's own surface, so the conversion
+     * between showing and answering is a query rather than something a client has to compute.
+     */
+    case promptAnswered(prompt: AnalyticsPrompt, outcome: AnalyticsPromptOutcome)
+    /**
+     * An OS permission dialog was answered.
+     *
+     * The surface is carried by the event's own `screen` and never duplicated into a property: an OS
+     * dialog can be answered after the app was backgrounded and resumed somewhere else, so the
+     * surface that asked for the permission is not necessarily where the person is when the answer
+     * arrives, and only the latter is what `screen` means here.
+     */
+    case permissionPromptAnswered(permission: AnalyticsPermission, outcome: AnalyticsPermissionOutcome)
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
     /// Emit only through `Analytics.reportSyncFailure(reason:)`. Sync is retried on a timer, so a
     /// direct `track` measures poll cadence instead of failure incidence.
@@ -36,17 +68,41 @@ enum AnalyticsEvent: Sendable, Equatable {
  * Platform-independent surfaces from the backend catalog. Native screens are mapped onto these and a
  * native screen name is never sent, because cross-client funnel comparison is the only reason the
  * surface list is shared at all.
+ *
+ * Existing spellings are never renamed: they are already in production data and a rename silently
+ * splits a series in two. The catalog surfaces missing here name screens this app does not have —
+ * the public catalog import steps, the friend-invitation landing page and the platform-links share
+ * page are web routes — so this client sends no `screen` where it has no screen, rather than the
+ * nearest wrong one.
  */
 enum AnalyticsSurface: String, Sendable, Equatable, CaseIterable {
     case review
     case catalog
     case deckDetail = "deck_detail"
-    case onboarding
     case cardEditor = "card_editor"
     case cards
     case progress
     case settings
     case ai
+    // Workspace content management. These are pushed under Settings here only as a routing accident:
+    // they act on the person's own decks, cards and tags, the same object family `cards`,
+    // `cardEditor` and `deckDetail` already name.
+    case decks
+    case deckEditor = "deck_editor"
+    case tags
+    // Authentication. `signin` is the whole sign-in sheet whatever it splits into — the email step,
+    // the code step and the workspace choice are one screen in the catalog. `credentialRecovery` is
+    // the gate that replaces the app root when stored credentials can no longer be used.
+    case signin
+    case credentialRecovery = "credential_recovery"
+    // Our own in-app prompts, each a screen a person has to answer before anything else continues.
+    // `AnalyticsPrompt` repeats these two spellings verbatim, so an answer joins to the
+    // `screen_viewed` that recorded its showing by equality; the two must stay identical.
+    case notificationsPrePrompt = "notifications_pre_prompt"
+    case signInAfterReviewPrompt = "signin_after_review_prompt"
+    // The friend-invitation creation screen. Its counterpart, the landing page the invited person
+    // opens, is a web route with no iOS screen.
+    case friendInvite = "friend_invite"
 }
 
 /**
@@ -61,9 +117,64 @@ enum AnalyticsNetworkState: String, Sendable, Equatable {
     case unknown
 }
 
+/**
+ * Deliberately only the two values a client can know.
+ *
+ * The catalog declares a third, `unknown`, and it is server-only in practice rather than in the
+ * schema: it exists for the days migration `0121` reconstructed from stored activity long after the
+ * fact, which cannot know whether a launch was cold or warm, while a live client always can. Ingest
+ * accepts `unknown` from a client, so this union is the only thing preventing one from being sent.
+ * Do not widen it when mirroring the catalog.
+ */
 enum AnalyticsLaunchType: String, Sendable, Equatable {
     case cold
     case warm
+}
+
+/**
+ * The in-app prompts, spelled exactly as their own surfaces in `AnalyticsSurface` so an answer joins
+ * to the `screen_viewed` that recorded its showing without a mapping.
+ */
+enum AnalyticsPrompt: String, Sendable, Equatable {
+    case signInAfterReviewPrompt = "signin_after_review_prompt"
+    case notificationsPrePrompt = "notifications_pre_prompt"
+}
+
+/**
+ * How one of our own prompts was answered.
+ *
+ * Both iOS prompts are UIKit-backed alerts, which cannot be closed without pressing a button, so
+ * every answer here comes from a button and each prompt produces only the outcomes its buttons mean:
+ * the after-review sign-in prompt reports `accepted` or `snoozed` — its "Later" really does snooze
+ * for a week — and the notifications pre-prompt reports `accepted` or `dismissed`. A programmatic
+ * teardown, such as a cloud identity reset closing a prompt nobody answered, reports nothing.
+ */
+enum AnalyticsPromptOutcome: String, Sendable, Equatable {
+    case accepted
+    case dismissed
+    case snoozed
+}
+
+enum AnalyticsPermission: String, Sendable, Equatable {
+    case notifications
+    case photoLibrary = "photo_library"
+    case camera
+    case microphone
+}
+
+/**
+ * How the OS permission dialog was answered. `dismissed` is the answer that is not one: the person
+ * closed the dialog leaving the permission undetermined.
+ *
+ * Only the photo-library request can report it, because only `PHPhotoLibrary` answers with a status
+ * that can still be `notDetermined`. The camera, microphone and notification requests answer with a
+ * bool, so an undecided close is indistinguishable from a denial there and is reported as `denied`.
+ * A zero `dismissed` count for those three is structural rather than a signal.
+ */
+enum AnalyticsPermissionOutcome: String, Sendable, Equatable {
+    case granted
+    case denied
+    case dismissed
 }
 
 enum AnalyticsSignInFailureReason: String, Sendable, Equatable {
@@ -147,8 +258,14 @@ extension AnalyticsEvent {
             return "screen_viewed"
         case .signInFailed:
             return "signin_failed"
+        case .reviewCardRevealed:
+            return "review_card_revealed"
         case .reviewAnswerFailed:
             return "review_answer_failed"
+        case .promptAnswered:
+            return "prompt_answered"
+        case .permissionPromptAnswered:
+            return "permission_prompt_answered"
         case .cardCreateStarted:
             return "card_create_started"
         case .syncFailed:
@@ -162,13 +279,20 @@ extension AnalyticsEvent {
 
     /**
      * `screen` is a top-level event field on the wire, never a property: a surface placed inside
-     * `properties` is rejected `unknown_property`. Only `screen_viewed` carries one of its own; every
-     * other event takes the surface the caller was on, if any.
+     * `properties` is rejected `unknown_property`. Only `screen_viewed` and `review_card_revealed`
+     * carry one of their own; every other event takes the surface the caller was on, if any.
      */
     var declaredScreen: AnalyticsSurface? {
         switch self {
         case .screenViewed(let screen):
             return screen
+        // The catalog requires a surface on the flip, and the flip has no home other than the review
+        // screen. Declaring it here rather than leaving it to the call site is what keeps a caller
+        // that forgets `screen:` from producing an event the server rejects `missing_screen`, which
+        // is the reason a required screen that is absent draws; `invalid_event` is what an
+        // unrecognised surface value draws instead.
+        case .reviewCardRevealed:
+            return .review
         default:
             return nil
         }
@@ -187,8 +311,20 @@ extension AnalyticsEvent {
             return [:]
         case .signInFailed(let reason):
             return ["reason": .string(reason.rawValue)]
+        case .reviewCardRevealed:
+            return [:]
         case .reviewAnswerFailed(let reason):
             return ["reason": .string(reason.rawValue)]
+        case .promptAnswered(let prompt, let outcome):
+            return [
+                "prompt": .string(prompt.rawValue),
+                "outcome": .string(outcome.rawValue)
+            ]
+        case .permissionPromptAnswered(let permission, let outcome):
+            return [
+                "permission": .string(permission.rawValue),
+                "outcome": .string(outcome.rawValue)
+            ]
         case .cardCreateStarted(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
         case .syncFailed(let reason):
