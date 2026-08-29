@@ -17,6 +17,12 @@ import {
 } from "../../sync/conflicts/fork";
 import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../../sync/replication/changes";
 import { getWorkspaceSchedulerConfig } from "../../scheduling/workspaceSettings";
+import { createPostCommitAnalyticsBudget } from "../../productAnalytics/postCommitBudget";
+import {
+  collectReviewAnswer,
+  runTransactionReportingReviewAnswers,
+  type ReviewAnsweredServerAnchor,
+} from "../../productAnalytics/reviewAnswers";
 import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,
@@ -113,12 +119,22 @@ async function loadProgressTimeZoneForUserInExecutor(
   return result.rows[0]?.progress_time_zone ?? null;
 }
 
+/**
+ * Appends one review event, or reports the stored one it deduped against.
+ *
+ * serverAnchor names where reviewEvent.reviewedAtServer came from. It is required because nothing
+ * downstream can tell a server clock reading from a value a request body claimed, and the product
+ * analytics row this write produces is anchored on it; see ReviewAnsweredServerAnchor. The row is
+ * only collected here and reaches analytics through runTransactionReportingReviewAnswers, so the
+ * transaction around this call has to be opened through that wrapper.
+ */
 export async function appendReviewEventSnapshotInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   reviewEvent: ReviewEvent,
   operationId: string,
   resolveReviewedBy: CurrentUserPublicProfileResolver,
+  serverAnchor: ReviewAnsweredServerAnchor,
 ): Promise<ReviewEventAppendResult> {
   const insertResult = await executor.query<ReviewHistoryRow>(
     [
@@ -165,6 +181,18 @@ export async function appendReviewEventSnapshotInExecutor(
       rating: insertedReviewEvent.rating,
       reviewedAtClient: insertedReviewEvent.reviewedAtClient,
       reviewedAtServer: insertedReviewEvent.reviewedAtServer,
+    });
+    // The same new review event, reported to product analytics on the same gate. Nothing is written
+    // here: analytics is best effort and a review is not, so the answer is only collected, and the
+    // transaction owner's drain emits it once this transaction has committed.
+    collectReviewAnswer(executor, {
+      reviewEventId: insertedReviewEvent.reviewEventId,
+      workspaceId: insertedReviewEvent.workspaceId,
+      reviewedByUserId: reviewedBy.userId,
+      rating: insertedReviewEvent.rating,
+      reviewedAtClient: insertedReviewEvent.reviewedAtClient,
+      reviewedAtServer: insertedReviewEvent.reviewedAtServer,
+      serverAnchor,
     });
 
     return {
@@ -233,74 +261,85 @@ export async function submitReview(
 
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
-    const existingCard = await loadReviewableCardForUpdate(executor, workspaceId, input.cardId);
-    const schedulerConfig = await getWorkspaceSchedulerConfig(executor, workspaceId);
-    const schedule = computeReviewSchedule(
-      toReviewableCardScheduleState(existingCard),
-      schedulerConfig,
-      input.rating,
-      reviewedAtClient,
-    );
+  // The review_answered row this review collects is emitted once the transaction below has
+  // committed, and never if it throws. One review is one chunk, and this drain is the only
+  // post-commit analytics stage the path opens, so the tail is the one chunk a fresh budget always
+  // admits - about 4s at worst, and microseconds in practice.
+  return runTransactionReportingReviewAnswers<ReviewResult>(
+    createPostCommitAnalyticsBudget(),
+    (runInTransaction) => transactionWithWorkspaceScope({ userId, workspaceId }, runInTransaction),
+    async (executor) => {
+      const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
+      const existingCard = await loadReviewableCardForUpdate(executor, workspaceId, input.cardId);
+      const schedulerConfig = await getWorkspaceSchedulerConfig(executor, workspaceId);
+      const schedule = computeReviewSchedule(
+        toReviewableCardScheduleState(existingCard),
+        schedulerConfig,
+        input.rating,
+        reviewedAtClient,
+      );
 
-    await appendReviewEventSnapshotInExecutor(
-      executor,
-      workspaceId,
-      {
-        reviewEventId: input.reviewEventId ?? randomUUID(),
+      await appendReviewEventSnapshotInExecutor(
+        executor,
         workspaceId,
-        cardId: input.cardId,
-        replicaId,
-        clientEventId: input.clientEventId ?? randomUUID(),
-        rating: input.rating,
-        reviewedAtClient: reviewedAtClient.toISOString(),
-        reviewedAtServer: new Date().toISOString(),
-        reviewedTimeZone: input.reviewedTimeZone,
-      },
-      normalizedMetadata.lastOperationId,
-      createCurrentUserPublicProfileResolver(executor),
-    );
-
-    const updatedCardResult = await executor.query<CardRow>(
-      [
-        "UPDATE content.cards",
-        "SET due_at = $1, reps = $2, lapses = $3, fsrs_card_state = $4, fsrs_step_index = $5,",
-        "fsrs_stability = $6, fsrs_difficulty = $7, fsrs_last_reviewed_at = $8, fsrs_scheduled_days = $9,",
-        "client_updated_at = $10, last_modified_by_replica_id = $11, last_operation_id = $12, updated_at = now()",
-        "WHERE workspace_id = $13 AND card_id = $14",
-        "RETURNING",
-        CARD_COLUMNS,
-      ].join(" "),
-      [
-        schedule.dueAt,
-        schedule.reps,
-        schedule.lapses,
-        schedule.fsrsCardState,
-        schedule.fsrsStepIndex,
-        schedule.fsrsStability,
-        schedule.fsrsDifficulty,
-        schedule.fsrsLastReviewedAt,
-        schedule.fsrsScheduledDays,
-        normalizedMetadata.clientUpdatedAt,
-        normalizedMetadata.lastModifiedByReplicaId,
+        {
+          reviewEventId: input.reviewEventId ?? randomUUID(),
+          workspaceId,
+          cardId: input.cardId,
+          replicaId,
+          clientEventId: input.clientEventId ?? randomUUID(),
+          rating: input.rating,
+          reviewedAtClient: reviewedAtClient.toISOString(),
+          reviewedAtServer: new Date().toISOString(),
+          reviewedTimeZone: input.reviewedTimeZone,
+        },
         normalizedMetadata.lastOperationId,
-        workspaceId,
-        input.cardId,
-      ],
-    );
+        createCurrentUserPublicProfileResolver(executor),
+        // The reviewedAtServer field above is this request's own new Date(), so the anchor is a
+        // server clock reading and not anything the client sent.
+        "server_stamped",
+      );
 
-    const updatedCard = updatedCardResult.rows[0];
-    if (updatedCard === undefined) {
-      throw new Error("Card review update did not return a row");
-    }
+      const updatedCardResult = await executor.query<CardRow>(
+        [
+          "UPDATE content.cards",
+          "SET due_at = $1, reps = $2, lapses = $3, fsrs_card_state = $4, fsrs_step_index = $5,",
+          "fsrs_stability = $6, fsrs_difficulty = $7, fsrs_last_reviewed_at = $8, fsrs_scheduled_days = $9,",
+          "client_updated_at = $10, last_modified_by_replica_id = $11, last_operation_id = $12, updated_at = now()",
+          "WHERE workspace_id = $13 AND card_id = $14",
+          "RETURNING",
+          CARD_COLUMNS,
+        ].join(" "),
+        [
+          schedule.dueAt,
+          schedule.reps,
+          schedule.lapses,
+          schedule.fsrsCardState,
+          schedule.fsrsStepIndex,
+          schedule.fsrsStability,
+          schedule.fsrsDifficulty,
+          schedule.fsrsLastReviewedAt,
+          schedule.fsrsScheduledDays,
+          normalizedMetadata.clientUpdatedAt,
+          normalizedMetadata.lastModifiedByReplicaId,
+          normalizedMetadata.lastOperationId,
+          workspaceId,
+          input.cardId,
+        ],
+      );
 
-    const mappedCard = mapCard(updatedCard);
-    await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, mappedCard);
+      const updatedCard = updatedCardResult.rows[0];
+      if (updatedCard === undefined) {
+        throw new Error("Card review update did not return a row");
+      }
 
-    return {
-      card: mappedCard,
-      nextDueAt: schedule.dueAt.toISOString(),
-    };
-  });
+      const mappedCard = mapCard(updatedCard);
+      await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, mappedCard);
+
+      return {
+        card: mappedCard,
+        nextDueAt: schedule.dueAt.toISOString(),
+      };
+    },
+  );
 }

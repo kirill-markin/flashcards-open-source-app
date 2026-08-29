@@ -476,24 +476,51 @@ export type ProductAnalyticsServerEventWriteFailureDetails = Readonly<{
 //
 // The three counts partition everything the drain held, so a reader can see how much survived and
 // how much did not without reconstructing it from chunk sizes.
-export type ProductAnalyticsContentCreationDrainAbortedDetails = Readonly<{
+//
+// One type for every chunking producer, because the shape describes the drain protocol rather than
+// the fact being drained: the same two stop rules, the same three counts that have to partition the
+// drain. The action already says which producer aborted, so the details do not repeat it, and two
+// field-for-field identical types would only be two comment blocks to keep in step as more producers
+// land on the same protocol.
+export type ProductAnalyticsDrainAbortedDetails = Readonly<{
   // Which stop rule fired, because the two ask for opposite responses. "writer_refused" means the
   // analytics writer turned a chunk down, so it is degraded or down and the failure below is the
-  // thing to read. "budget_exhausted" means every chunk it was handed was stored and the drain ran
-  // out of the wall clock its request could spare, so analytics is healthy and the drain was simply
-  // too large for one request - the answer there is a smaller transaction or a queue, not a writer
-  // fix.
+  // thing to read. "budget_exhausted" means every chunk it was handed was stored and the request ran
+  // out of the post-commit analytics clock, so analytics is healthy and the answer is a smaller
+  // transaction or a queue, not a writer fix. That clock is one budget shared by every stage wired to
+  // it - today the content creations drain, the review answers drain and the guest upgrade's
+  // completion event - so the drain reporting the stop is not always the drain that spent it: a stage
+  // that ran earlier on the same request may have.
   reason: "writer_refused" | "budget_exhausted";
   // Stored by the chunks that succeeded before the stop. Already committed and not at risk.
   storedEventCount: number;
   // The refused chunk itself, reported with its error by the write failure above. Always zero on a
   // "budget_exhausted" stop, which has no failed chunk and therefore no paired write failure: the
-  // scope's workspace there names the first creation the drain did not reach.
+  // scope's identity fields there name the first fact the drain did not reach instead.
   failedEventCount: number;
   // Never attempted. The drain stopped instead of paying the analytics timeouts once per remaining
   // chunk, because that cost lands after the product transaction committed and can push the request
   // past the API Gateway integration timeout.
   skippedEventCount: number;
+}>;
+
+// A deliberate skip, not a dropped write: the upgrade committed and its guest_upgrade_completed event
+// was never attempted, because the request had no post-commit analytics clock left for another
+// operation. Reported under its own action so it never looks like
+// product_analytics_server_event_write_failed, which means the opposite - a write that was attempted
+// and rejected.
+//
+// The completion event is the only one of the upgrade's two analytics writes this can name. The
+// identity link is deliberately exempt from that budget and always attempted, because losing it
+// leaves that guest's whole pre-upgrade history resolving to the guest id instead of the account and
+// the merge path never retries it, while losing the event costs one row of a conversion metric. A
+// link that was attempted and rejected raises product_analytics_identity_link_write_failed instead.
+// auth.guest_upgrade_history reconstructs either write afterwards on the merge path;
+// docs/analytics-db-access.md documents that route.
+export type GuestUpgradeAnalyticsSkippedDetails = Readonly<{
+  // Only ever the shared post-commit budget. The event is a single statement, so nothing else can
+  // stop it before it is attempted.
+  reason: "post_commit_budget_exhausted";
 }>;
 
 export type ProductAnalyticsIdentityLinkWriteFailureDetails = Readonly<{
@@ -570,8 +597,10 @@ export type OperationsWarningEvent =
   | EventByAction<"feedback_notification_email_failed", FeedbackEmailFailureDetails>
   | EventByAction<"reporting_read_only_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | EventByAction<"product_analytics_server_event_write_failed", ProductAnalyticsServerEventWriteFailureDetails>
-  | EventByAction<"product_analytics_content_creation_drain_aborted", ProductAnalyticsContentCreationDrainAbortedDetails>
+  | EventByAction<"product_analytics_content_creation_drain_aborted", ProductAnalyticsDrainAbortedDetails>
+  | EventByAction<"product_analytics_review_answered_drain_aborted", ProductAnalyticsDrainAbortedDetails>
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
+  | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>
   | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>
   | EventByAction<"friendship_created_analytics_skipped", FriendshipCreatedAnalyticsSkippedDetails>
   | (EventByAction<

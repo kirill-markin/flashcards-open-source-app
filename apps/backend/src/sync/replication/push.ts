@@ -8,6 +8,8 @@ import {
 } from "../../community/reviewActivityFacts";
 import type { DatabaseExecutor } from "../../database";
 import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/contentCreations";
+import { createPostCommitAnalyticsBudget } from "../../productAnalytics/postCommitBudget";
+import { runTransactionReportingReviewAnswers } from "../../productAnalytics/reviewAnswers";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
@@ -269,6 +271,9 @@ export async function processOperationInExecutor(
       },
       operation.operationId,
       resolveReviewedBy,
+      // The reviewedAtServer field above is this request's own new Date(); a push payload carries no
+      // server timestamp of its own.
+      "server_stamped",
     );
     status = mutation.applied ? "applied" : "ignored";
     resultingHotChangeId = null;
@@ -329,8 +334,20 @@ export async function processSyncPush(
   userId: string,
   input: SyncPushInput,
 ): Promise<SyncPushResult> {
-  const operationResults = await transactionWithWorkspaceScopeReportingContentCreations(
-    { userId, workspaceId },
+  // The whole push batch is one transaction, so the review_answered rows its review events collect
+  // are emitted together once it has committed, and a batch that fails partway emits nothing.
+  //
+  // A push reports two producers in sequence - the content creations drain inside the wrapper, then
+  // the review answers drain - so both draw on one post-commit analytics budget created here.
+  // Separate budgets would sum, which is the whole reason this one is threaded rather than defaulted.
+  const analyticsBudget = createPostCommitAnalyticsBudget();
+  const operationResults = await runTransactionReportingReviewAnswers<ReadonlyArray<SyncPushOperationResult>>(
+    analyticsBudget,
+    (runInTransaction) => transactionWithWorkspaceScopeReportingContentCreations(
+      { userId, workspaceId },
+      runInTransaction,
+      analyticsBudget,
+    ),
     async (executor) => {
       const replicaId = await ensureWorkspaceReplicaInExecutor(executor, {
         workspaceId,

@@ -4,6 +4,8 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
+import { createPostCommitAnalyticsBudget } from "../../productAnalytics/postCommitBudget";
+import { runTransactionReportingReviewAnswers } from "../../productAnalytics/reviewAnswers";
 import { HttpError } from "../../shared/errors";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
 import { annotateSyncConflictHttpError } from "../conflicts/fork";
@@ -95,6 +97,10 @@ export async function processSyncReviewHistoryImportInExecutor(
         },
         reviewEvent.reviewEventId,
         resolveReviewedBy,
+        // reviewedAtServer here is whatever the request body claimed: reviewEventImportPayloadSchema
+        // accepts any RFC 3339 instant and this forwards it verbatim, so it is not a server clock
+        // reading and cannot anchor anything.
+        "client_supplied",
       );
 
       if (mutation.applied) {
@@ -163,8 +169,13 @@ export async function processSyncReviewHistoryImport(
   userId: string,
   input: SyncReviewHistoryImportInput,
 ): Promise<SyncReviewHistoryImportResult> {
-  return transactionWithWorkspaceScope(
-    { userId, workspaceId },
+  // The whole import is one transaction - a fork conflict at any review event rolls back every one
+  // before it - so the review_answered rows it collects are emitted together once it has committed,
+  // and an import that fails partway emits nothing. This drain is the request's only post-commit
+  // analytics stage, so it has the whole budget to itself.
+  return runTransactionReportingReviewAnswers<SyncReviewHistoryImportResult>(
+    createPostCommitAnalyticsBudget(),
+    (runInTransaction) => transactionWithWorkspaceScope({ userId, workspaceId }, runInTransaction),
     async (executor) => {
       const replicaId = await ensureWorkspaceReplicaInExecutor(executor, {
         workspaceId,
