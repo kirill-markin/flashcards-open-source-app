@@ -4,10 +4,20 @@ import {
   type WorkspaceDatabaseScope,
 } from "../database";
 import { unsafeTransaction } from "../database/unsafe";
+// Report through `observability/runtime`, never through `observability/sentry`. Deck writes reach
+// this module from `decks/index.ts`, which the direct image ingestion Lambda pulls in through
+// `guestAuth/store/decks.ts`, and that bundle deliberately excludes the Sentry SDK -
+// `entrypoints/directImageIngestion/lambda.test.ts` asserts its import graph reaches no
+// `observability/sentry/capture`, `config` or `tracing` module. Both halves of this module are
+// reachable from there, the drain included, so the runtime indirection is what keeps that true
+// rather than any split. It costs the handlers that do initialize Sentry nothing:
+// `initializeBackendSentry` installs `captureBackendWarning` as the runtime sink, so the warning
+// below is the same Sentry warning there and the same structured CloudWatch record in the lean
+// handler.
 import {
-  captureBackendWarning,
+  captureBackendRuntimeWarning,
   createBackendObservationScope,
-} from "../observability/sentry";
+} from "../observability/runtime";
 import type { ProductAnalyticsEventName } from "./catalog";
 import {
   deriveServerDerivedProductAnalyticsEventId,
@@ -241,7 +251,7 @@ function reportAbandonedContentCreations(
     return;
   }
 
-  captureBackendWarning({
+  captureBackendRuntimeWarning({
     action: "product_analytics_content_creation_drain_aborted",
     scope: createBackendObservationScope(
       "backend-api",
