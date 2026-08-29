@@ -202,7 +202,20 @@ struct ReviewView: View {
                 )
             }
         }
-        .sheet(isPresented: self.$isEditorPresented) {
+        .sheet(
+            isPresented: self.$isEditorPresented,
+            onDismiss: {
+                // The same pair the Cards tab's editor reports, because it is the same screen: the
+                // pencil here opens `CardEditorScreen` too, and leaving it out would leave
+                // `card_editor` half-populated, counting only the editor views that happen on the
+                // Cards tab. This sheet is the edit path alone — the create button on Review calls
+                // `navigation.openCardCreation()`, which opens the Cards tab's own editor and is
+                // reported there. From the presentation, never from the content, for the reason
+                // `Analytics.trackScreenViewedOnDismiss` gives; the hand-off to the AI tab reports
+                // `ai` before it closes the editor, so this restore is then refused.
+                Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .review)
+            }
+        ) {
             NavigationStack {
                 CardEditorScreen(
                     title: String(localized: "Edit card", table: reviewCardsStringsTableName),
@@ -248,6 +261,9 @@ struct ReviewView: View {
             }
             .technicalErrorSheet(store: self.store)
             .interactiveDismissDisabled()
+            .onAppear {
+                Analytics.trackScreenViewed(.cardEditor)
+            }
         }
         .alert(
             String(localized: "Review wasn't saved", table: reviewCardsStringsTableName),
@@ -701,9 +717,26 @@ struct ReviewView: View {
         }
     }
 
+    /**
+     * The flip, and the only place the answer side is shown.
+     *
+     * `review_card_revealed` is emitted from the tap itself rather than from a state observer,
+     * because an observer fires for view updates the person did not cause. The guard is
+     * `isAnswerVisible`, which is per *presentation* and not per card: `.onChange(of:
+     * currentCard?.cardId)` clears it whenever the presented card changes, and answering a card puts
+     * it in the pending set so the presented card changes immediately — so a card that later returns
+     * to the head of the queue is a new presentation and reports its flip again. A "last card
+     * reported" guard would go silent on exactly that card. Within one presentation the guard also
+     * absorbs a double tap landing before SwiftUI swaps the bottom bar for the rating buttons.
+     */
     private var showAnswerButton: some View {
         Button {
+            guard isAnswerVisible == false else {
+                return
+            }
+
             isAnswerVisible = true
+            Analytics.track(.reviewCardRevealed)
         } label: {
             Label(String(localized: "Show answer", table: reviewCardsStringsTableName), systemImage: "eye")
                 .frame(maxWidth: .infinity)
