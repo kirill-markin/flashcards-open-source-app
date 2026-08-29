@@ -931,6 +931,10 @@ const arCatalog: TranslationCatalog = {
       good: "جيد",
       hard: "صعب",
     },
+    shortcuts: {
+      hint: "اضغط {{key}}",
+      spaceKey: "مسافة",
+    },
     sides: {
       back: "الخلف",
       front: "الأمام",
