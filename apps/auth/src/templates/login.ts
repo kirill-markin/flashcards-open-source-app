@@ -576,7 +576,8 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
       }
 
       function tryRefreshSession() {
-        return fetch("api/refresh-session", {
+        // The screen marker tells the endpoint which of its callers this is; see refreshSession.ts.
+        return fetch("api/refresh-session?screen=signin", {
           method: "POST",
           credentials: "same-origin",
         }).then(function(res) {
