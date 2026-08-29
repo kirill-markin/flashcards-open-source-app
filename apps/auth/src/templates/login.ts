@@ -576,7 +576,8 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
       }
 
       function tryRefreshSession() {
-        // The screen marker tells the endpoint which of its callers this is; see refreshSession.ts.
+        // The screen marker tells the endpoint which of its callers this is; the audit of who may
+        // send it is in server/analytics/signInFunnel.ts.
         return fetch("api/refresh-session?screen=signin", {
           method: "POST",
           credentials: "same-origin",
@@ -612,7 +613,9 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
         sendBtn.disabled = true;
         sendBtn.textContent = copy.sendingCode;
 
-        fetch("api/send-code", {
+        // Same marker, same reason: the OAuth consent page calls this endpoint too, and only this
+        // page is a sign-in funnel entry.
+        fetch("api/send-code?screen=signin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
@@ -659,7 +662,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
         verifyBtn.disabled = true;
         verifyBtn.textContent = copy.verifying;
 
-        fetch("api/verify-code", {
+        fetch("api/verify-code?screen=signin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
