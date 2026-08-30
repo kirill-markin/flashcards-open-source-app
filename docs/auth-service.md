@@ -4,9 +4,9 @@ Email + OTP authentication via AWS Cognito (passwordless).
 
 - `AUTH_MODE`: `none` (local dev, no auth) or `cognito` (verify JWT from `Authorization: Bearer`)
 - Guest sessions (`POST /v1/guest-auth/session`) are bound to `ios`, `android`, or `web`. A `web`
-  guest session is an analytics credential only: the browser requests one lazily on a signed-out
-  visitor's first real interaction and sends it as `Authorization: Guest <token>` to
-  `POST /v1/analytics/events` alone.
+  guest session is an analytics credential only, sent as `Authorization: Guest <token>` to
+  `POST /v1/analytics/events` alone. It is requested by the browser, lazily on a signed-out
+  visitor's first real interaction, and by this service itself (`Login funnel analytics` below).
   - The route's own ingest contract lives in the source:
     `apps/backend/src/routes/productAnalytics.ts` owns its HTTP surface, accepted transports,
     and the `accepted`/`rejected` envelope; `apps/backend/src/productAnalytics/validation.ts`
@@ -96,3 +96,39 @@ Email + OTP authentication via AWS Cognito (passwordless).
   - `apps/backend/src/auth/ensureUser.ts`: auto-provisions `user_settings` and `workspace` on first request
   - `infra/aws/lib/auth.ts`: CDK Cognito User Pool construct
   - `db/migrations/0002_user_settings.sql`: `user_settings` table
+
+## Login funnel analytics
+
+`apps/auth` measures the web sign-in funnel itself, server-side, from its own route handlers. The
+login page runs no analytics script and posts no event; all it contributes is the `?screen=signin`
+query on the sign-in `fetch` calls it already makes (`apps/auth/src/templates/login.ts`). The events
+go to the public client ingest route `POST /v1/analytics/events` as a `web` guest client, never to
+the `analytics` schema directly: the `auth_app` role has no grants there and must not be given any.
+
+- The steps, and the branch that observes each:
+  - `screen_viewed` with `screen = signin`: `POST /api/refresh-session`
+    (`apps/auth/src/routes/browser/refreshSession.ts`) on an absent `refresh` cookie — a first visit,
+    a sign-out and an expired cookie alike — and on a rejected refresh token. A non-terminal refresh
+    failure is rethrown as a `500` and reports nothing, so this page-view denominator is a floor.
+  - `signin_code_requested`: a `POST /api/send-code` that accepted the request
+    (`apps/auth/src/routes/browser/sendCode.ts`).
+  - `signin_succeeded` and `signin_failed` with a `reason`: `verifyCode.ts` beside it, plus the
+    demo-account and refusal branches of `sendCode.ts`.
+  - Abandonment is the absence of the next step for an actor, not an event.
+  - Every step is gated on that marker and on the visitor cookie; lose either and the funnel counts
+    zero in silence. The cookie is minted outside the producer, by `GET /login`
+    (`apps/auth/src/routes/browser/loginPage.ts`); what a cache in front of that page costs is stated
+    there, and what an edited attribute costs beside `visitorCookieOptions` in `visitorSession.ts`.
+  - The producer — catalog mirror, cookie module, transport, report budgets, and the marker check
+    that keeps non-funnel callers of these shared routes out — is `apps/auth/src/server/analytics/`.
+- Identity: its own `anonymous_id` and `web` guest session, both in the `__Host-analytics_visitor`
+  cookie (`apps/auth/src/server/analytics/visitorSession.ts`). Nothing is shared with the app origin.
+- The join: at sign-in success, and only there, this service links the visitor's guest identity to
+  the account with `POST /v1/guest-auth/identity/link`, best effort inside the whole request's
+  budget, which the success event shares and a first-ever sign-in usually overruns. Nothing recovers
+  a link that did not land (`analyticsReportBudgetMs`, `reportSignInSucceeded` in `signInFunnel.ts`).
+- The accepted limitation: an unjoined visitor never stitches to the app-side guest identity, so an
+  end-to-end "opened the app -> registered" path needs a cross-origin identifier this design refuses.
+- The cost: one `web` guest session per visitor identity, not one per login-page load.
+- Deliberately not measured: the OAuth consent page at `GET /authorize`, and `app_version`.
+- Querying these rows: the caveats an analyst needs are in `docs/analytics-db-access.md`.
