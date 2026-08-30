@@ -108,9 +108,9 @@ class CloudGuestSessionCoordinator(
      *
      * Every failure except `GUEST_IDENTITY_LINK_OTHER_ACCOUNT`,
      * `GUEST_IDENTITY_LINK_UPGRADE_REQUIRED` and `410 ACCOUNT_DELETED` keeps the guest token and
-     * rethrows, because a guest session left live can later be bound to a different account:
-     * dropping the token loses that guest's whole analytics tail, and skipping the retry can
-     * attribute it to somebody else. The next sign-in or app start retries.
+     * rethrows, because a success here is what says the link landed, and the upgrade flow above —
+     * another producer of the same link — is not this guest's path: dropping the token loses that
+     * tail permanently, and giving up leaves it unclaimed. The next sign-in or app start retries.
      *
      * The process-wide analytics opt-out lives in `:app` and is enforced by the only caller,
      * `AppGraph.requestAnalyticsGuestIdentityLink`, which never reaches this function while it is

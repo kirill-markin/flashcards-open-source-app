@@ -352,8 +352,8 @@ final class GuestCloudAuthService {
             let details = decodeCloudApiErrorDetails(
                 data: data,
                 requestId: requestId,
-                // Carried through so a caller that retries can respect the pace the server asked for,
-                // which the identity link route's `429` contract requires.
+                // Carried through so a caller that retries can respect the pace the server asked for:
+                // a transient-database `503` serves `Retry-After: 1`, an auth-verification one 10.
                 retryAfterDelayNanoseconds: cloudRetryAfterDelayNanoseconds(
                     value: httpResponse.value(forHTTPHeaderField: "Retry-After")
                 )

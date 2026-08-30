@@ -71,8 +71,8 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0122_backfill_review_answered_platform.sql",
-    expectedMigrationCount: 124,
+    migrationFileName: "0123_backfill_live_review_answered_platform.sql",
+    expectedMigrationCount: 125,
     testFiles: Object.freeze([
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/serverEvents.postgres.integration.ts",

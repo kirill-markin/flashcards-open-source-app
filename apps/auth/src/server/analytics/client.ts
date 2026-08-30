@@ -304,18 +304,18 @@ export type AuthAnalyticsIdentityLinkOutcome = "linked" | "account_required" | "
  * this producer can honour only some of that. `GUEST_IDENTITY_LINK_ACCOUNT_REQUIRED` it can:
  * `ensureAccountIdentityRow` below is the documented remedy and the caller runs it once. The rest it
  * cannot, and the reason is the same for all of them — a Lambda invocation has nothing to retry
- * into. `429 ANALYTICS_WRITER_BUSY` is retryable after its served `Retry-After`, which is always one
- * second and is several times the whole report budget. A `5xx` is a *required* retry, because the
- * link commits on the analytics pool while the revoke commits with the request transaction, so a
- * failure between them can leave a live guest session with a link already written. Both are one
- * logged failure here. The other two `409`s ask for nothing: `GUEST_IDENTITY_LINK_UPGRADE_REQUIRED`
+ * into. A `5xx` is a retry the route still asks for, because a success is what says the link landed,
+ * and for a `web` guest no upgrade flow will ever write it instead; any delay served is several times
+ * the whole report budget. The other two `409`s ask for nothing: `GUEST_IDENTITY_LINK_UPGRADE_REQUIRED`
  * is terminal and unreachable for a `web` guest, which can own nothing the upgrade transfers, and
  * `GUEST_IDENTITY_LINK_OTHER_ACCOUNT` is terminal because the token is not this account's to link.
  *
- * What makes that safe rather than merely lossy is that the caller drops the visitor cookie on every
- * outcome. The danger the retry rule exists to prevent is a *different* account later binding the
- * live guest session; no one can, because the only copy of that token goes with the cookie. What is
- * left is a guest session nobody holds, which the 90-day web guest reaper collects like any other.
+ * What keeps that merely lossy is that the caller drops the visitor cookie on every outcome. A link
+ * that failed before its commit stored nothing, and the session it leaves live is one a *different*
+ * account could still be bound to; short of the one-request-wide race `reportSignInSucceeded` records
+ * in `signInFunnel.ts`, no one can, because the only copy of that token goes with the cookie. What is
+ * left is a guest session nobody should hold, which the 90-day web guest reaper collects unless the
+ * link already landed: a `server_derived` link tells that reaper the guest signed in.
  */
 export async function linkVisitorGuestToAccount(
   call: AuthAnalyticsCall,
@@ -342,7 +342,7 @@ export async function linkVisitorGuestToAccount(
       : "failed";
   } catch (error) {
     // A timeout here is not the same as a lost link. The request has usually already reached the
-    // backend, which commits the link on its own pool regardless of whether this caller is still
+    // backend, whose transaction commits or rolls back regardless of whether this caller is still
     // waiting; abandoning it stops the waiting, not the write.
     logAnalyticsFailure(call, "analytics_identity_link_error", null, toErrorMessage(error));
     return "failed";
