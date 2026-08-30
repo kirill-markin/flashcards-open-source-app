@@ -140,6 +140,15 @@ export function writeAuthAnalyticsVisitor(context: Context, visitor: AuthAnalyti
  * A session that only expired does neither: nothing was offered, and the same person is put
  * straight back on the sign-in form, so those paths clear the session cookies and keep this one.
  *
+ * No clear is airtight. A funnel report that read this cookie first writes it back on its own
+ * response (`reportSignInFunnelEvent` in `signInFunnel.ts`), and what comes back is live: a
+ * write-back needs a mint or an accepted post, and a dead token gets neither
+ * (`deliverAuthAnalyticsEvent`). A sign-in's link can still retire that survivor; `/logout`,
+ * `/logout-local` and `POST /api/revoke-token` run no link at all, so theirs stays live and
+ * unbound — this cookie handed whole to the next person, which is what the rule above exists to
+ * prevent. A tombstone would close it, a stronger case here than at sign-in, and is not worth a
+ * second cookie every clear sets, every read consults and `/login`'s mint clears, for one race.
+ *
  * `path` and `secure` repeat the write options because a `__Host-` cookie is only deleted by a
  * `Set-Cookie` that still satisfies the prefix.
  */
