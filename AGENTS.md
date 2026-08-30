@@ -43,7 +43,6 @@ For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setu
 For Android local testing details, see [docs/android-ci-cd.md](docs/android-ci-cd.md).
 Running `./gradlew` is resource-heavy in this repository, so do not run it reflexively after every edit. When a Gradle run genuinely helps validate a change, run it: choose the narrowest Gradle task that validates the change, and avoid broad Gradle runs without a clear reason.
 Running iOS simulator-backed tests or local smoke flows is resource-heavy in this repository, so do not run `xcodebuild test`, XCUITest, screenshot-generation, or local smoke flows reflexively after every edit. When a simulator-backed run genuinely helps validate a change, run it: choose the narrowest iOS simulator run that validates the change, and avoid broad iOS test runs without a clear reason.
-For the optional private analytical DB access path, granted reporting permissions, and operator setup flow, see [docs/analytics-db-access.md](docs/analytics-db-access.md).
 
 ## Release Gates and Monitoring
 
@@ -55,8 +54,20 @@ Swift builds and tests run in Xcode Cloud, whose workflow definitions live in Ap
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 Xcode Cloud iOS test and build workflows are manually started and monitored by a human. Do not trigger or monitor them unless the user explicitly authorizes that exact action. Do not trigger `Android Release` or `MCP Registry Publish` unless the user explicitly authorizes that exact action; agents may monitor and fix automatically triggered GitHub Actions.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
-Agent SQL executions emit one structured CloudWatch record per run on every surface, and every authenticated `/mcp` request emits one more; the record fields and the queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
-iOS `WatchdogTermination` events carry no stack trace by design; the memory fields carried on the app's own breadcrumbs and the decision tree for reading such an event live in [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md).
+
+## Data Sources for Analysis
+
+- Backend and auth runtime logs: CloudWatch Lambda log groups, read with the `flashcards-open-source-app` AWS profile; the default profile resolves to a different account and answers with an empty list instead of an error. Agent SQL executions emit one structured record per run on every surface, and every authenticated `/mcp` request emits one more; the record fields and the queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
+- Errors and crashes: Sentry, one project per surface (`SENTRY_BACKEND_PROJECT`, `SENTRY_WEB_PROJECT`, `SENTRY_ANDROID_PROJECT`, `SENTRY_IOS_PROJECT`) inside `SENTRY_ORG`. iOS `WatchdogTermination` events carry no stack trace by design; read [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md) before interpreting one.
+- AI chat and dictation traces: Langfuse when enabled, [docs/langfuse-operations.md](docs/langfuse-operations.md).
+- Direct SQL over product data: the read-only `reporting_readonly` role, [docs/analytics-db-access.md](docs/analytics-db-access.md).
+- Ready-made admin reports in the browser: [docs/admin-app.md](docs/admin-app.md).
+- Product-wide aggregates: the daily snapshot behind `GET /v1/global/snapshot`, [docs/global-metrics.md](docs/global-metrics.md).
+- iOS cloud build and test runs, per-test timings, and `.xcresult` bundles: [docs/xcode-cloud-data-access.md](docs/xcode-cloud-data-access.md).
+
+Reach the database through an SSM port-forward: `bash scripts/setup/get-analytics-db-access.sh` prints the current instance id, endpoint, and password, `aws ssm start-session --document-name AWS-StartPortForwardingSessionToRemoteHost` opens the tunnel, and a local Postgres client connects on the forwarded port. There is no SSH path and the bastion has no ingress rules. Never reuse a previously noted instance id, because a deploy can change it. The role is read-only at session level, so writes fail with SQLSTATE `25006`. Close the tunnel with `aws ssm terminate-session`; killing the CLI leaves the plugin process and the session running.
+
+The Langfuse and App Store Connect credentials live in the repository-root `.env`, which exists only in the main checkout. Load it by path when working from a worktree.
 
 ## Repository Strategy
 
