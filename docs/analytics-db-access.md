@@ -324,3 +324,22 @@ Sync diagnostics intentionally do not expose the superseded `sync.changes` paylo
 Product analytics writes on the guest upgrade path are best effort: they run after the upgrade transaction already committed. On the merge path they are never retried, because that path revokes the guest session, so a client retry returns an idempotent replay and never reaches the producer again. `auth.guest_upgrade_history` is the reconstruction source for either loss on that path. `source_guest_user_id` and `target_user_id` rebuild a missing `analytics.identity_links` row, which is what makes that guest's pre-upgrade history resolve to the account instead of the guest id in `analytics.product_events_resolved`; those columns together with `source_guest_session_id`, `target_workspace_id`, and `merged_at` rebuild a missing `guest_upgrade_completed` row in `analytics.product_events`, whose `event_id` is derived from the guest session id by `apps/backend/src/productAnalytics/serverEvents.ts`. All of these columns are already granted to `reporting_readonly`.
 
 A bound completion — the ordinary first-time guest-to-account conversion, where the Cognito subject is already bound to the guest user — writes no `auth.guest_upgrade_history` row at all, so there is nothing to query and nothing to reconstruct from. It also writes no identity link, because the guest user id is already the account id. It does not revoke the guest session either, so a repeated `POST /guest-auth/upgrade/complete` reaches the producer again, and the derived `event_id` conflicting in the writer is what keeps that conversion counted once.
+
+The auth origin writes product analytics rows of its own: the web sign-in funnel, produced by
+`apps/auth` into the same `analytics.product_events` feed and its resolved view. Read how in the
+`Login funnel analytics` section of `docs/auth-service.md`, not from the rows. Each caveat below is
+owned by the source it names, else by a comment in `apps/auth/src/server/analytics/catalog.ts`:
+
+- The pair (`screen_viewed`, `screen = 'signin'`) has a second `platform = 'web'` producer: the web
+  app reports it for the workspace-choice step, downstream of `signin_succeeded`, inflating a
+  login-page denominator (`resolveSessionGateSurface` in `apps/web/src/App.tsx`). Auth-origin rows
+  are the ones with a null `app_version`, true only because `postAnalyticsEvents` in `client.ts`
+  sends no `x-client-version`. `device_locale`, `timezone` and `network_state` are null too: a
+  `platform = 'web'` breakdown grouped by one buckets the funnel, and only a filter or join drops it.
+- Auth-origin rows resolve to the visitor's guest user id, not the account, whenever the sign-in's
+  best-effort identity link did not land, and nothing reconstructs it. A first-ever sign-in usually
+  loses it, and so does a sign-in that ran slow (`analyticsReportBudgetMs` in `signInFunnel.ts`).
+- `signin_failed` carries no `screen`; a funnel filtered on `screen = 'signin'` reads it as zero.
+- Web session counts include auth-origin sessions; a visitor whose posts run slow adds one per event.
+- A conversion computed from `signin_succeeded` is a lower bound rather than a rate.
+- `signin_failed` with `reason = 'server_error'` is a floor rather than the whole.
