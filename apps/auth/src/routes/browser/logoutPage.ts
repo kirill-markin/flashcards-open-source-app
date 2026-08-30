@@ -69,8 +69,7 @@ app.get("/logout", async (c) => {
   }
 
   clearBrowserSessionCookies(c);
-  // Logout is the moment a shared browser is handed back, so the analytics visitor identity is
-  // retired along with the session, under the rule in `clearAuthAnalyticsVisitor`'s docstring.
+  // Retired along with the session, under the rule in `clearAuthAnalyticsVisitor`'s docstring.
   clearAuthAnalyticsVisitor(c);
   return c.redirect(appendLoggedOutMarker(redirectUri), 302);
 });
