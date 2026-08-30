@@ -132,10 +132,10 @@ fun currentTopLevelDestination(navController: NavHostController): TopLevelDestin
 
     return when {
         route == null -> ReviewDestination
-        route.startsWith(CardsDestination.route) -> CardsDestination
-        route.startsWith(AiDestination.route) -> AiDestination
-        route.startsWith(ProgressDestination.route) -> ProgressDestination
-        route.startsWith(SettingsDestination.route) -> SettingsDestination
+        route.isWithinTopLevelDestination(destination = CardsDestination) -> CardsDestination
+        route.isWithinTopLevelDestination(destination = AiDestination) -> AiDestination
+        route.isWithinTopLevelDestination(destination = ProgressDestination) -> ProgressDestination
+        route.isWithinTopLevelDestination(destination = SettingsDestination) -> SettingsDestination
         else -> ReviewDestination
     }
 }
@@ -155,4 +155,19 @@ fun currentVisibleAppScreen(navController: NavHostController): VisibleAppScreen 
         route == SettingsWorkspaceDeleteCurrentDestination.route -> VisibleAppScreen.SETTINGS_WORKSPACE_OVERVIEW
         else -> VisibleAppScreen.OTHER
     }
+}
+
+/**
+ * A tab owns the route when the route is the tab's own route or continues past it at a separator of
+ * the app's route grammar: `/` opens a nested path segment or a path argument
+ * (`settings/access/detail/{capability}`), `?` opens the optional query arguments
+ * (`settings/account/sign-in?origin={origin}`). No tab route declares an argument today, so only
+ * `/` occurs here; `?` keeps the check correct if one ever gains one.
+ */
+private fun String.isWithinTopLevelDestination(destination: TopLevelDestination): Boolean {
+    if (!startsWith(prefix = destination.route)) {
+        return false
+    }
+    val boundary = getOrNull(index = destination.route.length) ?: return true
+    return boundary == '/' || boundary == '?'
 }

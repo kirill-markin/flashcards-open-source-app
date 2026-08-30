@@ -1052,7 +1052,7 @@ private fun analyticsCloudSignInFailureReason(error: CloudRemoteException): Anal
         return AnalyticsSignInFailureReason.RATE_LIMITED
     }
 
-    return when (error.errorCode?.trim()?.uppercase()) {
+    return when (error.errorCode) {
         "OTP_CODE_INVALID", "INVALID_EMAIL" -> AnalyticsSignInFailureReason.INVALID_CODE
         "OTP_SESSION_EXPIRED" -> AnalyticsSignInFailureReason.EXPIRED_CODE
         "OTP_CHALLENGE_CONSUMED" -> AnalyticsSignInFailureReason.CODE_ALREADY_USED
