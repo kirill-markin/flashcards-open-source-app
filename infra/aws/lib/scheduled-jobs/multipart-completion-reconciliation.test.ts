@@ -208,7 +208,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
   const requiredMigration = workflow.indexOf(
-    "--require-migration 0122_backfill_review_answered_platform.sql",
+    "--require-migration 0123_backfill_live_review_answered_platform.sql",
   );
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
@@ -238,7 +238,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
   const stackSource = readLibSource("lib/stack.ts");
   assert.match(
     stackSource,
-    /databaseMigrationGate\([\s\S]*"0122_backfill_review_answered_platform\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)[\s\S]*addDatabaseMigrationDependency\(api\.directImageIngestionFn, migrationGate\)/,
+    /databaseMigrationGate\([\s\S]*"0123_backfill_live_review_answered_platform\.sql"[\s\S]*addDatabaseMigrationDependency\(api\.backendFn, migrationGate\)[\s\S]*addDatabaseMigrationDependency\(api\.directImageIngestionFn, migrationGate\)/,
   );
 
   const outputsSource = readLibSource("lib/outputs.ts");

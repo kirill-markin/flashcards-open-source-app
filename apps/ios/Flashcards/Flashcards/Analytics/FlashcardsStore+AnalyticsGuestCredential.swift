@@ -161,9 +161,9 @@ extension FlashcardsStore {
      * signed-in account, or the server named it as a guest that is not this install's to claim.
      *
      * `false` means the credential must be kept. Dropping it there loses that guest's whole analytics
-     * tail permanently, and a session left live after a partial link can later be bound to a different
-     * account. A guest the server says still owns data is kept for the same reason: the upgrade flow
-     * is what transfers that data, and the local token is the only handle onto it.
+     * tail permanently, and a later attempt of this same claim is what writes the link. A guest the
+     * server says still owns data is kept for the same reason: the upgrade flow is what transfers
+     * that data — writing the same link on its way — and the local token is the only handle onto it.
      */
     private func claimGuestAnalyticsIdentity(
         guestSession: StoredGuestCloudSession,
@@ -311,11 +311,10 @@ private enum GuestAnalyticsIdentityLinkVerdict {
  * Everything else keeps the guest token, which is the posture the route's contract asks for.
  * `409 GUEST_IDENTITY_LINK_ACCOUNT_REQUIRED` says the account's identity row does not exist yet, and
  * repeating the identical request cannot create it, so it stops this loop instead of spending its
- * attempts on failures that can only be identical. `429 ANALYTICS_WRITER_BUSY` and every `5xx` are
- * retryable here, and a `5xx` in particular can leave the link written while the guest session is
- * still live, which is exactly the state the retry closes. Dropping the token instead loses that
- * guest's whole analytics tail, permanently and with no repair path, so an unrecognised failure is
- * treated as retryable too.
+ * attempts on failures that can only be identical. Every `5xx` is retryable here: it leaves this
+ * guest's tail unclaimed until a later attempt of this claim, or the upgrade flow, writes the link.
+ * Dropping the token instead loses that guest's whole analytics tail, permanently and with no
+ * repair path, so an unrecognised failure is treated as retryable too.
  */
 private func guestAnalyticsIdentityLinkVerdict(error: Error) -> GuestAnalyticsIdentityLinkVerdict {
     guard let guestCloudAuthError = error as? GuestCloudAuthError,

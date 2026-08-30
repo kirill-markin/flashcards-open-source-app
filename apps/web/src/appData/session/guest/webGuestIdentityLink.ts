@@ -90,13 +90,12 @@ function readGuestIdentityLinkVerdict(error: unknown): GuestIdentityLinkVerdict 
     return "unconvergeable";
   }
 
-  // Everything else is kept and repeated. A `429 ANALYTICS_WRITER_BUSY` wrote nothing. A `5xx` may
-  // have committed the link on the analytics pool and then lost the revoke with the request
-  // transaction, leaving a guest session live that a *different* account can later bind — which
-  // would attribute that account's whole pre-account tail to this one, permanently. A transport
-  // failure, or a browser session that lapsed between `/me` and here, says nothing about the guest
-  // token either. Repeating is safe in all of them: the route conflicts on the same guest and
-  // account pair, stores nothing new, and completes the revoke.
+  // Everything else is kept and repeated. A web guest reaches no upgrade flow, so an attempt here is
+  // what claims its tail: a `5xx` leaves that tail unclaimed, and a dropped token loses it
+  // permanently. A transport failure, or a browser session that lapsed between `/me` and here, says
+  // nothing about the guest token either. Repeating is safe in all of them: the route commits the
+  // link and the revoke together, so a repeat either redoes an attempt that stored nothing, or meets
+  // a revoked token and is a no-op.
   return "retryable";
 }
 
@@ -104,7 +103,7 @@ function readGuestIdentityLinkStatusCode(error: unknown): number | null {
   return error instanceof ApiError ? error.statusCode : null;
 }
 
-/** Only the analytics writer's own `429` carries `Retry-After`; everything else backs off locally. */
+/** A served `Retry-After` is honoured under the cap; a refusal that serves none backs off locally. */
 function createLinkRetryDelayMs(attemptCount: number, error: unknown): number {
   const retryAfterMs = error instanceof ApiError ? error.retryAfterMs : null;
   const requestedDelayMs = retryAfterMs ?? linkRetryBaseDelayMs * 2 ** (attemptCount - 1);
@@ -170,8 +169,7 @@ async function runGuestIdentityLink(
 
       if (verdict === "unconvergeable" || attemptCount === maximumLinkAttemptCount) {
         // The envelope is deliberately left in place. Neither refusal was about this guest token,
-        // and dropping the token on one of those loses this visitor's whole analytics tail
-        // permanently — or worse, strands a live guest session with a link already written for it.
+        // and dropping it on one of those loses this visitor's whole analytics tail permanently.
         // Every app start reads the envelope back and retries after its own `GET /me`. What keeps a
         // kept envelope from reaching a different account is the account stamp written before the
         // first attempt: within this load the two guards above hold, and across loads — where the

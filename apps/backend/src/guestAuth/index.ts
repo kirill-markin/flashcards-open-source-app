@@ -1,3 +1,4 @@
+import { runDatabaseOperationsWithDeadline } from "../database";
 import { unsafeTransaction } from "../database/unsafe";
 // Report through `observability/runtime`, never through `observability/sentry`, for the reason the
 // product analytics producers spell out: `initializeBackendSentry` installs `captureBackendWarning`
@@ -70,12 +71,35 @@ export async function createGuestSession(
   );
 }
 
+/**
+ * Whole-transaction budget for the identity link, and the only bound this operation has.
+ *
+ * `runDatabaseOperationsWithDeadline` is what `database/deadline.ts` needs to bound this at all: it
+ * derives a `statement_timeout` and `lock_timeout` from what is left of the budget before every
+ * statement, and times the pool checkout from the same remainder rather than from the pool's own
+ * equal `connectionTimeoutMillis`. Without it `unsafeTransaction` opens a plain `BEGIN` under no
+ * timeout at all and the only stop is the 29s API Gateway integration timeout.
+ *
+ * The transaction is a short run of indexed single-row statements, so on a healthy database the
+ * budget is spent waiting rather than running: it takes the Cognito identity lifecycle lock that
+ * account deletion holds across its whole sweep, and locks the guest's `org.user_settings` and
+ * `auth.guest_sessions` rows `FOR UPDATE`. A stop before the commit leaves nothing behind; one at
+ * the commit answers `500 DATABASE_COMMIT_OUTCOME_UNKNOWN` instead. Neither is one attempt of several
+ * for everyone: `apps/auth`'s sign-in producer drops the guest token with the visitor cookie on every
+ * outcome, so a stop there loses that visitor's tail outright. Sized to stay inside the 10s the web
+ * client allows one attempt, so that client sees a status code rather than its own abort.
+ */
+const guestIdentityLinkTransactionBudgetMs = 5_000;
+
 export async function linkGuestAnalyticsIdentity(
   guestToken: string,
   cognitoSubject: string,
 ): Promise<void> {
-  return unsafeTransaction(
-    async (executor) => linkGuestAnalyticsIdentityInExecutor(executor, guestToken, cognitoSubject),
+  return runDatabaseOperationsWithDeadline(
+    Date.now() + guestIdentityLinkTransactionBudgetMs,
+    () => unsafeTransaction(
+      async (executor) => linkGuestAnalyticsIdentityInExecutor(executor, guestToken, cognitoSubject),
+    ),
   );
 }
 

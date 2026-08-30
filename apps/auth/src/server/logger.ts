@@ -29,6 +29,7 @@ type AuthAction =
   | "analytics_guest_session_error"
   | "analytics_ingest_error"
   | "analytics_identity_link_error"
+  | "analytics_visitor_retired_unreported"
   | "request_error"
   | "error";
 
