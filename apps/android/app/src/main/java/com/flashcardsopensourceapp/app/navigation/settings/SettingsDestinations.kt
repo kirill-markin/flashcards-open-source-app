@@ -110,9 +110,12 @@ data object SettingsAccountStatusDestination {
  *
  * [routePrefix] is not navigable on its own: navigating it still matches this destination, but the
  * origin stays unset and `signin_failed` then reports no surface. Navigate with [createRoute]; the
- * bare prefix is only for the route `startsWith` checks in `FlashcardsApp`, which are meant to
- * cover the code and post-auth steps nested under this path too, so the after-review and feedback
- * prompts stay held back for the whole sign-in flow rather than only its first screen.
+ * bare prefix is only for the `isWithinRoutePrefix` checks in `FlashcardsApp` and
+ * `analyticsSurfaceForRoute`, which match this destination's own `?` boundary as well as the `/`
+ * boundary of the code and post-auth steps nested under this path, so the after-review and feedback
+ * prompts stay held back for the whole sign-in flow rather than only its first screen and every
+ * step of the flow reports the same surface. A sibling route that merely opened with the same
+ * characters would not be matched by them.
  */
 data object SettingsAccountSignInEmailDestination {
     const val routePrefix: String = "settings/account/sign-in"

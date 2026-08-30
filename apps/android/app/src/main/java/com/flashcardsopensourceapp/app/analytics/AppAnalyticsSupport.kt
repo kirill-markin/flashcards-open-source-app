@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.cards.CardEditorGraph
+import com.flashcardsopensourceapp.app.navigation.isWithinRoutePrefix
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceAllCardsDeckDetailDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDeckDetailDestination
@@ -321,7 +322,7 @@ internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
             AnalyticsSurface.DECK_EDITOR
         normalizedRoute == SettingsWorkspaceDecksDestination.route -> AnalyticsSurface.DECKS
         normalizedRoute == SettingsWorkspaceTagsDestination.route -> AnalyticsSurface.TAGS
-        normalizedRoute.startsWith(prefix = SettingsAccountSignInEmailDestination.routePrefix) ->
+        normalizedRoute.isWithinRoutePrefix(routePrefix = SettingsAccountSignInEmailDestination.routePrefix) ->
             AnalyticsSurface.SIGNIN
         normalizedRoute == SettingsDestination.route ||
             normalizedRoute.startsWith(prefix = "${SettingsDestination.route}/") -> AnalyticsSurface.SETTINGS
