@@ -51,25 +51,21 @@ Email + OTP authentication via AWS Cognito (passwordless).
       call again. Never drop the guest token on this code: that guest's whole analytics tail goes with
       it, permanently.
     - `409 GUEST_IDENTITY_LINK_UPGRADE_REQUIRED` means the guest owns data the upgrade flow transfers
-      and must convert through `POST /v1/guest-auth/upgrade/complete` instead. Terminal for this
-      route; retrying it unchanged never succeeds.
+      and must convert through `POST /v1/guest-auth/upgrade/complete`, which writes the same
+      `server_derived` link for the same pair. Terminal here; retrying it unchanged never succeeds.
     - `409 GUEST_IDENTITY_LINK_OTHER_ACCOUNT` means the guest token names a user that is already a
       different real account. Terminal: the client is holding a credential that is not its own and
       should discard it rather than retry.
-    - `429 ANALYTICS_WRITER_BUSY` means the analytics connection pool was saturated: its cap refused
-      the write before a connection was requested, or acquiring a connection timed out. It is raised
-      before the link statement runs, so nothing was written — no identity link row and no revoke —
-      and the guest session stays live with its token still usable. Retryable with nothing to
-      repair: keep the guest token, wait the delay, and call again. The body is the ordinary
-      `error`/`requestId`/`code` envelope; the delay travels only in the `Retry-After` response
-      header, always `1` second on this route.
-    - A `5xx` must be retried, with the guest token kept. The identity link commits on the analytics
-      pool and the revoke commits with the request transaction, so a failure between them can leave
-      the link written and the guest session still live. The retry is safe — it conflicts on the
-      same guest and account pair, stores nothing new, and completes the revoke — and it is not
-      optional: a guest session left live can later be bound to a *different* account, and the
-      orphan link would then attribute that account's whole pre-account analytics tail to this one
-      permanently.
+    - `429 ANALYTICS_WRITER_BUSY` is not raised here. It is the analytics pool's refusal, which the
+      ingest route above still answers a saturated pool with; this route uses its own transaction.
+    - A `5xx` should be retried, with the guest token kept. A connection the database drops or refuses,
+      a deadlock, or a saturated pool, which authentication meets before the transaction's budget
+      exists, is answered `503 SERVICE_UNAVAILABLE` with `Retry-After: 1`, and a cooling-down Cognito
+      JWKS refresh `503 AUTH_VERIFICATION_TEMPORARILY_UNAVAILABLE` with `Retry-After: 10`. A failure at
+      commit is `500 DATABASE_COMMIT_OUTCOME_UNKNOWN`, whose write may still have landed; a lock
+      timeout, a statement timeout and the 5s transaction budget running out are `500 INTERNAL_ERROR`.
+      Neither `500` serves a delay. Retrying is safe: the link and the revoke share one commit, so a
+      repeat either redoes a request that stored nothing or meets the already-revoked no-op above.
 - `POST /v1/guest-auth/session` accepts an optional `idempotencyKey`. A retry carrying a key that
   still names a live session rotates that session's secret and returns the same guest user and
   workspace, so a lost response cannot leave one device with two guest identities. Client contract:
