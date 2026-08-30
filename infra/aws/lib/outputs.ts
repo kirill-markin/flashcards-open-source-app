@@ -52,6 +52,7 @@ export interface OutputsProps {
   multipartCompletionReconciliationScheduleName: string;
   dbAccessInstance?: ec2.Instance;
   analyticsSshUsername?: string;
+  analyticsSsmInstanceId?: string;
 }
 
 export function outputs(scope: Construct, props: OutputsProps): void {
@@ -241,6 +242,13 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     new cdk.CfnOutput(scope, "AnalyticsSshUsername", {
       value: props.analyticsSshUsername,
       description: "SSH username for the analytical bastion host",
+    });
+  }
+
+  if (props.analyticsSsmInstanceId !== undefined) {
+    new cdk.CfnOutput(scope, "AnalyticsSsmInstanceId", {
+      value: props.analyticsSsmInstanceId,
+      description: "EC2 instance id of the analytical bastion host for SSM Session Manager port forwarding",
     });
   }
 

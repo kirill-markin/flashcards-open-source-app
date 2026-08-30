@@ -13,10 +13,8 @@ package com.flashcardsopensourceapp.core.observability.analytics
  * including values no Android screen reaches yet, because it is the contract rather than an
  * inventory of what happens to be wired today.
  *
- * The narrower enums are not complete mirrors, and each omission is deliberate and documented at
- * the enum: `AnalyticsLaunchType` withholds a value a live client must never send, and
- * `AnalyticsSignInFailureReason` omits one this client cannot yet tell apart. A value being absent
- * here is therefore not on its own evidence that the server rejects it.
+ * A narrower enum is allowed, and every omission is deliberate and documented at the enum itself.
+ * A value being absent here is therefore not on its own evidence that the server rejects it.
  *
  * Ten events are server-derived — `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `deck_created`, `deck_updated`, `friend_invitation_created`,
@@ -28,10 +26,9 @@ package com.flashcardsopensourceapp.core.observability.analytics
  * event names.
  *
  * Two client events the catalog declares are absent because this client does not observe them yet
- * rather than because it may not send them: `signin_code_requested` and `signin_succeeded`. No
- * client emits either one today — `apps/backend/src/productAnalytics/catalog.ts` is their only
- * other mention in the repository — so whoever wires the Android sign-in funnel has no existing
- * producer to mirror and should read that catalog entry for the shape.
+ * rather than because it may not send them: `signin_code_requested` and `signin_succeeded`.
+ * Whoever wires the Android sign-in funnel adds each one here and at its emit site together, and
+ * reads the catalog entry for the shape.
  */
 
 /** Named because the delivery path has to recognise a batch that carries nothing else. */
@@ -171,15 +168,14 @@ enum class AnalyticsPermissionOutcome(val wireValue: String) {
 }
 
 /**
- * Missing the catalog's `code_already_used` on purpose for now: this client folds the auth service's
- * `OTP_CHALLENGE_CONSUMED` into [EXPIRED_CODE], and reporting a value the mapping does not actually
- * separate would be a false distinction. Splitting the two is a change to that mapping, not to this
- * list, and it breaks the continuity of the existing `expired_code` series, so it belongs to
- * whoever decides that trade rather than to a mirroring pass.
+ * [CODE_ALREADY_USED] is reported only by app versions whose mapping separates the auth service's
+ * `OTP_CHALLENGE_CONSUMED` from an expired session. One that folds them reports [EXPIRED_CODE] for
+ * both, so an `expired_code` series is not like-for-like across that boundary.
  */
 enum class AnalyticsSignInFailureReason(val wireValue: String) {
     INVALID_CODE(wireValue = "invalid_code"),
     EXPIRED_CODE(wireValue = "expired_code"),
+    CODE_ALREADY_USED(wireValue = "code_already_used"),
     RATE_LIMITED(wireValue = "rate_limited"),
     OFFLINE(wireValue = "offline"),
     SERVER_ERROR(wireValue = "server_error"),
