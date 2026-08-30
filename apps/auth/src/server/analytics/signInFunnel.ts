@@ -484,9 +484,8 @@ export async function reportSignInFailed(
  * A report still in flight from a login page open elsewhere writes the cookie back after the clear,
  * and what survives decides the cost. A revoked token blocks the re-mint —
  * `deliverAuthAnalyticsEvent` mints only for a null one — so every later report is one logged
- * ingest failure and no row. A token no link bound is the kept-token misattribution above. Worst is
- * one a `5xx` left live and linked: its first link claims the next account's own sign-in, silently.
- * Only a tombstone cookie closes even that, and a `5xx` under this race does not earn one.
+ * ingest failure and no row. A token no link bound is the kept-token misattribution above, and only
+ * a tombstone cookie would close it, which a `5xx` under this race does not earn.
  */
 export async function reportSignInSucceeded(c: Context<AuthAppEnv>, idToken: string): Promise<void> {
   try {

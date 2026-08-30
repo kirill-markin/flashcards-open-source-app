@@ -876,8 +876,8 @@ class CloudGuestSessionCoordinatorTest {
             assertEquals(500, error.statusCode)
         }
 
-        // A 5xx can leave the link written and the session live, so the retry is mandatory and the
-        // token has to survive for it.
+        // A 5xx leaves this guest's tail unclaimed, because a success is what says the link landed,
+        // so the retry is mandatory and the token has to survive for it.
         val keptSession = environment.guestAiSessionStore.loadAnySession(
             configuration = makeOfficialCloudServiceConfiguration()
         )

@@ -6,7 +6,7 @@ import {
   lockCognitoIdentityLifecycleInExecutor,
 } from "../../auth/userIdentities";
 import type { DatabaseExecutor } from "../../database";
-import { insertProductAnalyticsIdentityLink } from "../../productAnalytics/writer";
+import { insertProductAnalyticsIdentityLinkInExecutor } from "../../productAnalytics/writer";
 import { HttpError } from "../../shared/errors";
 import {
   guestOwnsUpgradeTransferableDataInExecutor,
@@ -80,24 +80,18 @@ function createGuestIdentityLinkOtherAccountError(): HttpError {
  * the one this repository requires ahead of user-settings, guest-session and workspace lifecycle
  * locks, which is why it is taken before the guest session is loaded.
  *
- * The link is written before the revoke, for the reason spelled out above
- * `recordGuestUpgradeCompletedAnalytics`: losing the link costs that guest's entire resolved
- * history, losing the revoke costs nothing. Unlike the upgrade producer this one is not best effort
- * and does not run after the transaction: a failed link must abort the revoke so the retry can write
- * it again. The analytics writer commits on its own pool, so a link that lands and is then followed
- * by a rolled-back revoke stays committed. That costs nothing as long as the client retries: the
- * pair the link names is this guest and this account either way, and the retry conflicts on that
- * pair, stores nothing new and completes the revoke. That is exactly the property the upgrade path
- * cannot rely on, because a rolled-back upgrade could still end on a different account.
+ * The link and the revoke are both written on this transaction and therefore reach the same commit:
+ * neither can land without the other. That is what makes the pair safe rather than the order of the
+ * two statements, and it is not a refinement. A link without its revoke leaves a guest session live
+ * and unbound, which a later `/guest-auth/upgrade/prepare` can bind to a *different* account, and
+ * `first_guest_upgrade_link` in 0115 is first-link-wins, so the orphan would then attribute that
+ * account's whole pre-account tail to this one permanently, with no repair path. A client retry
+ * closed that window only for the callers that have one; `apps/auth`'s sign-in producer drops the
+ * only copy of the guest token on every outcome and has nothing to retry with.
  *
- * Without that retry the orphan link is not harmless, which is why `docs/auth-service.md` makes
- * retrying a 5xx from this route, with the guest token kept, a client obligation rather than an
- * option. The revoke is the write most likely to be the one that misses a deadline, because the
- * link ahead of it can consume up to ~4s of the request budget on the analytics pool: 2s of
- * acquisition plus a 2s statement timeout. A guest session left live and unbound can still be bound
- * to a *different* account by a later `/guest-auth/upgrade/prepare`, and `first_guest_upgrade_link`
- * in 0115 is first-link-wins, so the orphan link would then attribute that account's whole
- * pre-account tail to this one permanently, with no repair path.
+ * `docs/auth-service.md` still asks a client to retry a 5xx from this route with the guest token
+ * kept, because the guest's tail is still unclaimed — not because a failure left something behind to
+ * repair. A commit whose outcome is unknown is the one shape a repeat may find already done.
  */
 export async function linkGuestAnalyticsIdentityInExecutor(
   executor: DatabaseExecutor,
@@ -171,19 +165,16 @@ export async function linkGuestAnalyticsIdentityInExecutor(
   // that the guest's events carried as subject_user_id, which is the shape
   // analytics.product_events_resolved reads in its server namespace.
   //
-  // This write runs on the analytics pool while this transaction still holds the Cognito identity
-  // lifecycle lock, the guest's org.user_settings row lock and that guest session row's own FOR
-  // UPDATE lock. No workspace lifecycle lock is held on this path.
-  // recordGuestUpgradeCompletedAnalytics documents the opposite choice for the upgrade path,
-  // and the difference is deliberate rather than an oversight. That producer runs after a
-  // committed upgrade and is best effort, so it can afford to sit outside the transaction; here
-  // the link is the entire point of the request, and a link that fails must abort the revoke so
-  // the client's retry can write it again, which is only possible from inside. The hold is bounded
-  // by the writer's own guards: assertAnalyticsPoolCapacity refuses a saturated pool instead of
-  // queueing, acquisition times out after 2s, and the write runs under a 2s statement timeout. The
-  // locks are scoped to one guest and one signing-in account, and are contended only by that same
-  // person's own guest lifecycle, upgrade or account-deletion calls, none of which is a hot path.
-  await insertProductAnalyticsIdentityLink({
+  // Written on this transaction, beside the revoke below, rather than on the analytics writer's own
+  // pool. Both pools resolve the same database URL and so the same role, and 0114 and 0115 grant
+  // that role the INSERT, the source-scoped UPDATE and the row-level policies this statement needs,
+  // so nothing about the write itself changes here.
+  // recordGuestUpgradeCompletedAnalytics keeps the opposite arrangement, deliberately and for the
+  // opposite reason: it runs after an upgrade that has already committed and is best effort, so a
+  // link written inside that transaction could outlive an upgrade that then rolled back. Here the
+  // link is the entire point of the request and the revoke only retires the credential it replaces,
+  // so the two belong in one commit.
+  await insertProductAnalyticsIdentityLinkInExecutor(executor, {
     linkId: randomUUID(),
     anonymousId: guestSession.userId,
     userId: accountMapping.userId,
