@@ -70,6 +70,7 @@ import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
+import com.flashcardsopensourceapp.app.navigation.isWithinRoutePrefix
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.reviewReminderAttentionBadgeTag
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
@@ -803,7 +804,7 @@ private fun isProgressContextRefreshBroadcastAction(action: String?): Boolean {
 }
 
 private fun isGuestSignInAfterReviewPromptAuthRoute(route: String?): Boolean {
-    return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.routePrefix) == true
+    return route?.isWithinRoutePrefix(routePrefix = SettingsAccountSignInEmailDestination.routePrefix) == true
 }
 
 private fun isGuestSignInAfterReviewPromptModalActive(
@@ -817,7 +818,7 @@ private fun isGuestSignInAfterReviewPromptModalActive(
 }
 
 private fun isFeedbackPromptAuthRoute(route: String?): Boolean {
-    return route?.startsWith(prefix = SettingsAccountSignInEmailDestination.routePrefix) == true
+    return route?.isWithinRoutePrefix(routePrefix = SettingsAccountSignInEmailDestination.routePrefix) == true
 }
 
 private fun isFeedbackPromptModalActive(
