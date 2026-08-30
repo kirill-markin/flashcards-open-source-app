@@ -30,37 +30,13 @@ get_stack_output() {
     --output text
 }
 
-SSH_HOST="$(get_stack_output "AnalyticsSshHost")"
-SSH_PORT="$(get_stack_output "AnalyticsSshPort")"
-SSH_USERNAME="$(get_stack_output "AnalyticsSshUsername")"
 SSM_INSTANCE_ID="$(get_stack_output "AnalyticsSsmInstanceId")"
 DB_ENDPOINT="$(get_stack_output "DbEndpoint")"
 SECRET_ARN="$(get_stack_output "ReportingDbSecretArn")"
 
-if [[ -z "$SSH_HOST" || "$SSH_HOST" == "None" ]]; then
-  echo "ERROR: AnalyticsSshHost output not found. Analytical DB access is not enabled on ${STACK_NAME}." >&2
+if [[ -z "$SSM_INSTANCE_ID" || "$SSM_INSTANCE_ID" == "None" ]]; then
+  echo "ERROR: AnalyticsSsmInstanceId output not found. Analytical DB access is not enabled on ${STACK_NAME}." >&2
   exit 1
-fi
-
-if [[ -z "$SSH_PORT" || "$SSH_PORT" == "None" ]]; then
-  echo "ERROR: AnalyticsSshPort output not found. Analytical DB access is not enabled on ${STACK_NAME}." >&2
-  exit 1
-fi
-
-if [[ -z "$SSH_USERNAME" || "$SSH_USERNAME" == "None" ]]; then
-  echo "ERROR: AnalyticsSshUsername output not found. Analytical DB access is not enabled on ${STACK_NAME}." >&2
-  exit 1
-fi
-
-# The SSM path is additive and is not required for analytical access to work.
-# A stack deployed before it existed still serves the SSH path, so report an
-# empty instance id instead of failing the whole bundle.
-if [[ "$SSM_INSTANCE_ID" == "None" ]]; then
-  SSM_INSTANCE_ID=""
-fi
-
-if [[ -z "$SSM_INSTANCE_ID" ]]; then
-  echo "NOTE: AnalyticsSsmInstanceId output not found on ${STACK_NAME}; SSM port forwarding is unavailable there, use the SSH path." >&2
 fi
 
 if [[ -z "$DB_ENDPOINT" || "$DB_ENDPOINT" == "None" ]]; then
@@ -78,18 +54,15 @@ SECRET_JSON="$(aws "${AWS_REGION_ARGS[@]+"${AWS_REGION_ARGS[@]}"}" secretsmanage
   --query 'SecretString' \
   --output text)"
 
-python3 - "$SSH_HOST" "$SSH_PORT" "$SSH_USERNAME" "$SSM_INSTANCE_ID" "$DB_ENDPOINT" "$DB_NAME" "$SECRET_ARN" "$SECRET_JSON" <<'PY'
+python3 - "$SSM_INSTANCE_ID" "$DB_ENDPOINT" "$DB_NAME" "$SECRET_ARN" "$SECRET_JSON" <<'PY'
 import json
 import sys
 
-ssh_host = sys.argv[1]
-ssh_port = sys.argv[2]
-ssh_username = sys.argv[3]
-ssm_instance_id = sys.argv[4]
-db_endpoint = sys.argv[5]
-db_name = sys.argv[6]
-secret_arn = sys.argv[7]
-secret_json = sys.argv[8]
+ssm_instance_id = sys.argv[1]
+db_endpoint = sys.argv[2]
+db_name = sys.argv[3]
+secret_arn = sys.argv[4]
+secret_json = sys.argv[5]
 
 secret_value = json.loads(secret_json)
 username = secret_value.get("username")
@@ -102,9 +75,6 @@ if not isinstance(password, str) or password.strip() == "":
     raise SystemExit(f"ERROR: Secret {secret_arn} does not contain a valid password")
 
 print(json.dumps({
-    "sshHost": ssh_host,
-    "sshPort": ssh_port,
-    "sshUsername": ssh_username,
     "ssmInstanceId": ssm_instance_id,
     "dbEndpoint": db_endpoint,
     "dbName": db_name,

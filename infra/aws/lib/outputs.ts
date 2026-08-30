@@ -6,7 +6,6 @@ import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
 import { Construct } from "constructs";
 
 export interface OutputsProps {
@@ -50,8 +49,6 @@ export interface OutputsProps {
   mediaAssetsBucket: s3.IBucket;
   generatedMediaPromotionScheduleName: string;
   multipartCompletionReconciliationScheduleName: string;
-  dbAccessInstance?: ec2.Instance;
-  analyticsSshUsername?: string;
   analyticsSsmInstanceId?: string;
 }
 
@@ -225,25 +222,6 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     value: props.globalMetricsVisible ? "true" : "false",
     description: "Whether clients can access global metrics through the /v1/global/snapshot endpoint",
   });
-
-  if (props.dbAccessInstance !== undefined) {
-    new cdk.CfnOutput(scope, "AnalyticsSshHost", {
-      value: props.dbAccessInstance.instancePublicDnsName,
-      description: "Public DNS name of the analytical SSH bastion host",
-    });
-
-    new cdk.CfnOutput(scope, "AnalyticsSshPort", {
-      value: "22",
-      description: "SSH port for the analytical bastion host",
-    });
-  }
-
-  if (props.analyticsSshUsername !== undefined) {
-    new cdk.CfnOutput(scope, "AnalyticsSshUsername", {
-      value: props.analyticsSshUsername,
-      description: "SSH username for the analytical bastion host",
-    });
-  }
 
   if (props.analyticsSsmInstanceId !== undefined) {
     new cdk.CfnOutput(scope, "AnalyticsSsmInstanceId", {
