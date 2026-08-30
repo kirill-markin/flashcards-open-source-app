@@ -10,7 +10,7 @@
  */
 import type { Context } from "hono";
 import { type AuthAppEnv, getRequestId, getTraceId } from "../apiErrors.js";
-import { logWarning } from "../logger.js";
+import { log, logWarning } from "../logger.js";
 import { getPublicApiBaseUrl } from "../publicUrls.js";
 import {
   createSignInCodeRequestedBatch,
@@ -473,6 +473,20 @@ export async function reportSignInFailed(
  * keeping the token safe. None of that exists inside a Lambda invocation, and the cost of dropping it
  * is one visitor's signed-out tail — the undercount this repository consistently prefers to a
  * misattribution.
+ *
+ * What the ordering costs is a measured population that never reaches an outcome. A visitor counted
+ * on the login page who then completes the sign-in from a caller that sends no `signInScreenMarker`
+ * is retired with no success event and no link, and stays in the denominator as an abandonment. The
+ * branch below logs every retirement it may not attribute, which is not a count of that population:
+ * `routes/browser/loginPage.ts` mints the cookie on the render itself, so a browser answered 200 by
+ * `tryRefreshSession` holds it having produced no `screen_viewed` at all.
+ *
+ * A report still in flight from a login page open elsewhere writes the cookie back after the clear,
+ * and what survives decides the cost. A revoked token blocks the re-mint —
+ * `deliverAuthAnalyticsEvent` mints only for a null one — so every later report is one logged
+ * ingest failure and no row. A token no link bound is the kept-token misattribution above. Worst is
+ * one a `5xx` left live and linked: its first link claims the next account's own sign-in, silently.
+ * Only a tombstone cookie closes even that, and a `5xx` under this race does not earn one.
  */
 export async function reportSignInSucceeded(c: Context<AuthAppEnv>, idToken: string): Promise<void> {
   try {
@@ -488,6 +502,13 @@ export async function reportSignInSucceeded(c: Context<AuthAppEnv>, idToken: str
     // credential the paragraph above refuses to keep.
     clearAuthAnalyticsVisitor(c);
     if (c.req.query("screen") !== signInScreenMarker) {
+      log({
+        domain: "auth",
+        action: "analytics_visitor_retired_unreported",
+        requestId: getRequestId(c),
+        traceId: getTraceId(c),
+        route: c.req.path,
+      });
       return;
     }
 

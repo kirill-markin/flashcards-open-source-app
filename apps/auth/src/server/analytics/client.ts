@@ -314,8 +314,10 @@ export type AuthAnalyticsIdentityLinkOutcome = "linked" | "account_required" | "
  *
  * What makes that safe rather than merely lossy is that the caller drops the visitor cookie on every
  * outcome. The danger the retry rule exists to prevent is a *different* account later binding the
- * live guest session; no one can, because the only copy of that token goes with the cookie. What is
- * left is a guest session nobody holds, which the 90-day web guest reaper collects like any other.
+ * live guest session; short of the one-request-wide race `reportSignInSucceeded` records in
+ * `signInFunnel.ts`, no one can, because the only copy of that token goes with the cookie. What is
+ * left is a guest session nobody should hold, which the 90-day web guest reaper collects unless the
+ * link already landed: a `server_derived` link is what tells that reaper the guest signed in.
  */
 export async function linkVisitorGuestToAccount(
   call: AuthAnalyticsCall,
