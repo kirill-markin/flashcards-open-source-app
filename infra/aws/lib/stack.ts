@@ -361,7 +361,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const migrationGate = databaseMigrationGate(
       this,
       migrationFn,
-      "0121_backfill_synthetic_app_opened_days.sql",
+      "0122_backfill_review_answered_platform.sql",
     );
     const api = apiGateway(this, {
       vpc: net.vpc,
