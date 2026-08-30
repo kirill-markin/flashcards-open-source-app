@@ -78,9 +78,9 @@ export const platformLabels: Readonly<Record<ReviewEventPlatform, string>> = {
   android: "Android",
   ios: "iOS",
   agent: "Agent API",
-  // Named for what it is. A row lands here because its `platform` column is NULL, and on a
-  // server-derived fact such as `review_answered` that means the fact is not about a device at all.
-  // It is kept as its own series so it can never be read as a device or summed into one.
+  // A row lands here because its `platform` column is NULL, which means no resolved device fact:
+  // either the actor behind it is not a device, or no device could be resolved for it. It is kept as
+  // its own series so it can never be read as a device or summed into one.
   unattributed: "No device",
 };
 
