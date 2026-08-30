@@ -104,11 +104,13 @@ function hashSecret(secret: string): string {
 }
 
 function isEqualHash(expectedHash: string, actualHash: string): boolean {
-  if (expectedHash.length !== actualHash.length) {
+  const expectedBytes = Buffer.from(expectedHash);
+  const actualBytes = Buffer.from(actualHash);
+  if (expectedBytes.length !== actualBytes.length) {
     return false;
   }
 
-  return timingSafeEqual(Buffer.from(expectedHash), Buffer.from(actualHash));
+  return timingSafeEqual(expectedBytes, actualBytes);
 }
 
 /**
