@@ -114,14 +114,17 @@ This same write-once bootstrap behavior applies to `GLOBAL_METRICS_VISIBLE` -> `
 
 The `reporting_readonly` Postgres role is part of the baseline database schema in every environment. It is supported for two read-only paths:
 
-- manual/operator analytics through the optional analytical SSH bastion
+- manual/operator analytics through the optional analytical bastion
 - controlled server-side admin analytics from the backend Lambda inside the VPC
 
-When the analytical SSH bastion variables are configured together, the stack also creates the optional operator access path used to reach that role through SSH tunneling into the private database.
+When the analytical SSH bastion variables are configured together, the stack also creates the optional operator access path used to reach that role by tunneling into the private database. The bastion carries two access paths:
 
-That bastion is tunnel-only for the configured analytical SSH user: it allows SSH key authentication and TCP forwarding to the private Postgres endpoint, but it does not provide interactive shell access.
+- SSM Session Manager port forwarding, the preferred path, enabled by an instance role with the AWS managed policy `AmazonSSMManagedInstanceCore` and published as the `AnalyticsSsmInstanceId` output
+- public SSH tunneling, still deployed and still supported
 
-The `reporting_readonly` password secret is also part of the baseline infrastructure in every environment. When this optional feature is disabled, only the bastion host and SSH-specific outputs are removed; the underlying `reporting_readonly` database principal and its current password secret remain part of the baseline environment.
+The SSH path is tunnel-only for the configured analytical SSH user: it allows SSH key authentication and TCP forwarding to the private Postgres endpoint, but it does not provide interactive shell access. The SSM path is broader by design: registering the instance with Session Manager also gives a principal holding `ssm:StartSession` on it an interactive shell and forwarding to any host reachable from the bastion. That is accepted because the only such principals in this account are already account administrators.
+
+The `reporting_readonly` password secret is also part of the baseline infrastructure in every environment. When this optional feature is disabled, only the bastion host, its instance role, and the bastion-specific outputs (`AnalyticsSsh*` and `AnalyticsSsmInstanceId`) are removed; the underlying `reporting_readonly` database principal and its current password secret remain part of the baseline environment.
 
 The reporting password secret now uses a stable baseline Secrets Manager name, but the supported operator discovery path remains the helper script or the stack outputs so operators always resolve the current deployed secret ARN. The database schema owns the reporting_readonly login role, read-only grants, and non-privileged role settings, while the deployed migration runner uses the secret only to rotate the current password.
 

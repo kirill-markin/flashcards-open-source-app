@@ -188,6 +188,10 @@ export async function appendReviewEventSnapshotInExecutor(
     collectReviewAnswer(executor, {
       reviewEventId: insertedReviewEvent.reviewEventId,
       workspaceId: insertedReviewEvent.workspaceId,
+      // The sync actor the row was stored against, read back from the insert like every other field
+      // here. The drain resolves it to the platform the answer was given on once the transaction has
+      // committed; nothing about it is looked up on this path.
+      replicaId: insertedReviewEvent.replicaId,
       reviewedByUserId: reviewedBy.userId,
       rating: insertedReviewEvent.rating,
       reviewedAtClient: insertedReviewEvent.reviewedAtClient,
@@ -263,8 +267,9 @@ export async function submitReview(
 
   // The review_answered row this review collects is emitted once the transaction below has
   // committed, and never if it throws. One review is one chunk, and this drain is the only
-  // post-commit analytics stage the path opens, so the tail is the one chunk a fresh budget always
-  // admits - about 4s at worst, and microseconds in practice.
+  // post-commit analytics stage the path opens, so the tail is the two operations a fresh budget
+  // always admits: the drain's platform resolution first, then the one chunk - about 6s at worst,
+  // and microseconds in practice.
   return runTransactionReportingReviewAnswers<ReviewResult>(
     createPostCommitAnalyticsBudget(),
     (runInTransaction) => transactionWithWorkspaceScope({ userId, workspaceId }, runInTransaction),
