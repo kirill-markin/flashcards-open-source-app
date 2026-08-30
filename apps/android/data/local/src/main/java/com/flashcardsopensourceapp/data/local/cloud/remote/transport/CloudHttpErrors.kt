@@ -183,8 +183,8 @@ internal fun isExpectedCloudHttpFailure(
         return true
     }
 
-    val normalizedCode = code?.trim()?.uppercase() ?: return false
-    return expectedCloudHttpFailureCodes.contains(element = normalizedCode)
+    val failureCode = code ?: return false
+    return expectedCloudHttpFailureCodes.contains(element = failureCode)
 }
 
 internal fun parseCloudErrorPayloadWithHeaderRequestId(

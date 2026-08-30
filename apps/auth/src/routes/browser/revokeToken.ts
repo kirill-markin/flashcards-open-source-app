@@ -29,9 +29,8 @@ app.post("/api/revoke-token", async (c) => {
   try {
     await revokeToken(refreshToken);
     clearBrowserSessionCookies(c);
-    // Signing out hands this browser back, so its visitor identity is retired too, under the rule
-    // in `clearAuthAnalyticsVisitor`'s docstring. A caller holding neither cookie is unaffected by
-    // either clear.
+    // Retired along with the session, under the rule in `clearAuthAnalyticsVisitor`'s docstring. A
+    // caller holding neither cookie is unaffected by either clear.
     clearAuthAnalyticsVisitor(c);
     return c.json({ ok: true });
   } catch (err) {
