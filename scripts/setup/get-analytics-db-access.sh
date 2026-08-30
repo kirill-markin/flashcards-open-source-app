@@ -15,6 +15,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# bash 3.2 treats expanding an empty array under set -u as an unbound variable.
 AWS_REGION_ARGS=()
 if [[ -n "$REGION" ]]; then
   AWS_REGION_ARGS=(--region "$REGION")
@@ -23,7 +24,7 @@ fi
 get_stack_output() {
   local output_key="$1"
 
-  aws "${AWS_REGION_ARGS[@]}" cloudformation describe-stacks \
+  aws "${AWS_REGION_ARGS[@]+"${AWS_REGION_ARGS[@]}"}" cloudformation describe-stacks \
     --stack-name "$STACK_NAME" \
     --query "Stacks[0].Outputs[?OutputKey=='${output_key}'].OutputValue" \
     --output text
@@ -32,6 +33,7 @@ get_stack_output() {
 SSH_HOST="$(get_stack_output "AnalyticsSshHost")"
 SSH_PORT="$(get_stack_output "AnalyticsSshPort")"
 SSH_USERNAME="$(get_stack_output "AnalyticsSshUsername")"
+SSM_INSTANCE_ID="$(get_stack_output "AnalyticsSsmInstanceId")"
 DB_ENDPOINT="$(get_stack_output "DbEndpoint")"
 SECRET_ARN="$(get_stack_output "ReportingDbSecretArn")"
 
@@ -50,6 +52,17 @@ if [[ -z "$SSH_USERNAME" || "$SSH_USERNAME" == "None" ]]; then
   exit 1
 fi
 
+# The SSM path is additive and is not required for analytical access to work.
+# A stack deployed before it existed still serves the SSH path, so report an
+# empty instance id instead of failing the whole bundle.
+if [[ "$SSM_INSTANCE_ID" == "None" ]]; then
+  SSM_INSTANCE_ID=""
+fi
+
+if [[ -z "$SSM_INSTANCE_ID" ]]; then
+  echo "NOTE: AnalyticsSsmInstanceId output not found on ${STACK_NAME}; SSM port forwarding is unavailable there, use the SSH path." >&2
+fi
+
 if [[ -z "$DB_ENDPOINT" || "$DB_ENDPOINT" == "None" ]]; then
   echo "ERROR: DbEndpoint output not found. Deploy the stack first." >&2
   exit 1
@@ -60,22 +73,23 @@ if [[ -z "$SECRET_ARN" || "$SECRET_ARN" == "None" ]]; then
   exit 1
 fi
 
-SECRET_JSON="$(aws "${AWS_REGION_ARGS[@]}" secretsmanager get-secret-value \
+SECRET_JSON="$(aws "${AWS_REGION_ARGS[@]+"${AWS_REGION_ARGS[@]}"}" secretsmanager get-secret-value \
   --secret-id "$SECRET_ARN" \
   --query 'SecretString' \
   --output text)"
 
-python3 - "$SSH_HOST" "$SSH_PORT" "$SSH_USERNAME" "$DB_ENDPOINT" "$DB_NAME" "$SECRET_ARN" "$SECRET_JSON" <<'PY'
+python3 - "$SSH_HOST" "$SSH_PORT" "$SSH_USERNAME" "$SSM_INSTANCE_ID" "$DB_ENDPOINT" "$DB_NAME" "$SECRET_ARN" "$SECRET_JSON" <<'PY'
 import json
 import sys
 
 ssh_host = sys.argv[1]
 ssh_port = sys.argv[2]
 ssh_username = sys.argv[3]
-db_endpoint = sys.argv[4]
-db_name = sys.argv[5]
-secret_arn = sys.argv[6]
-secret_json = sys.argv[7]
+ssm_instance_id = sys.argv[4]
+db_endpoint = sys.argv[5]
+db_name = sys.argv[6]
+secret_arn = sys.argv[7]
+secret_json = sys.argv[8]
 
 secret_value = json.loads(secret_json)
 username = secret_value.get("username")
@@ -91,6 +105,7 @@ print(json.dumps({
     "sshHost": ssh_host,
     "sshPort": ssh_port,
     "sshUsername": ssh_username,
+    "ssmInstanceId": ssm_instance_id,
     "dbEndpoint": db_endpoint,
     "dbName": db_name,
     "dbUsername": username,

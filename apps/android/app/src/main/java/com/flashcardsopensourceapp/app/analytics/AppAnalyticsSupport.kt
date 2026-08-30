@@ -1,6 +1,18 @@
 package com.flashcardsopensourceapp.app.analytics
 
 import android.database.sqlite.SQLiteFullException
+import com.flashcardsopensourceapp.app.navigation.AiDestination
+import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.ProgressDestination
+import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.app.navigation.SettingsDestination
+import com.flashcardsopensourceapp.app.navigation.cards.CardEditorGraph
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceAllCardsDeckDetailDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDeckDetailDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDeckEditorDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceDecksDestination
+import com.flashcardsopensourceapp.app.navigation.settings.SettingsWorkspaceTagsDestination
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCredential
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCredentialProvider
@@ -302,18 +314,22 @@ internal fun analyticsSurfaceForRoute(route: String?): AnalyticsSurface? {
     }
 
     return when {
-        normalizedRoute.startsWith(prefix = "cards/editor") -> AnalyticsSurface.CARD_EDITOR
-        normalizedRoute.startsWith(prefix = "settings/decks/detail") ||
-            normalizedRoute == "settings/decks/all-cards" -> AnalyticsSurface.DECK_DETAIL
-        normalizedRoute.startsWith(prefix = "settings/decks/editor") -> AnalyticsSurface.DECK_EDITOR
-        normalizedRoute == "settings/decks" -> AnalyticsSurface.DECKS
-        normalizedRoute == "settings/tags" -> AnalyticsSurface.TAGS
-        normalizedRoute.startsWith(prefix = "settings/account/sign-in") -> AnalyticsSurface.SIGNIN
-        normalizedRoute == "settings" || normalizedRoute.startsWith(prefix = "settings/") -> AnalyticsSurface.SETTINGS
-        normalizedRoute == "review" || normalizedRoute.startsWith(prefix = "review/") -> AnalyticsSurface.REVIEW
-        normalizedRoute == "cards" -> AnalyticsSurface.CARDS
-        normalizedRoute == "ai" -> AnalyticsSurface.AI
-        normalizedRoute == "progress" -> AnalyticsSurface.PROGRESS
+        normalizedRoute.startsWith(prefix = CardEditorGraph.routePrefix) -> AnalyticsSurface.CARD_EDITOR
+        normalizedRoute.startsWith(prefix = SettingsWorkspaceDeckDetailDestination.routePrefix) ||
+            normalizedRoute == SettingsWorkspaceAllCardsDeckDetailDestination.route -> AnalyticsSurface.DECK_DETAIL
+        normalizedRoute.startsWith(prefix = SettingsWorkspaceDeckEditorDestination.routePrefix) ->
+            AnalyticsSurface.DECK_EDITOR
+        normalizedRoute == SettingsWorkspaceDecksDestination.route -> AnalyticsSurface.DECKS
+        normalizedRoute == SettingsWorkspaceTagsDestination.route -> AnalyticsSurface.TAGS
+        normalizedRoute.startsWith(prefix = SettingsAccountSignInEmailDestination.routePrefix) ->
+            AnalyticsSurface.SIGNIN
+        normalizedRoute == SettingsDestination.route ||
+            normalizedRoute.startsWith(prefix = "${SettingsDestination.route}/") -> AnalyticsSurface.SETTINGS
+        normalizedRoute == ReviewDestination.route ||
+            normalizedRoute.startsWith(prefix = "${ReviewDestination.route}/") -> AnalyticsSurface.REVIEW
+        normalizedRoute == CardsDestination.route -> AnalyticsSurface.CARDS
+        normalizedRoute == AiDestination.route -> AnalyticsSurface.AI
+        normalizedRoute == ProgressDestination.route -> AnalyticsSurface.PROGRESS
         else -> null
     }
 }

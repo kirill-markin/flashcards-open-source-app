@@ -309,7 +309,8 @@ gcloud_args+=(
   "${RESULTS_DIR}"
 )
 
-for test_target in "${TEST_TARGETS[@]}"; do
+# bash 3.2 treats expanding an empty array under set -u as an unbound variable.
+for test_target in "${TEST_TARGETS[@]+"${TEST_TARGETS[@]}"}"; do
   gcloud_args+=(
     --test-targets
     "${test_target}"

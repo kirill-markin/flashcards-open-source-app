@@ -18,11 +18,10 @@ import Foundation
  * `ai_message_sent` and `catalog_deck_installed`.
  *
  * `signin_code_requested` and `signin_succeeded` are client-emittable and absent for a different
- * reason: nothing reports the two middle funnel steps yet. The catalog declares them ahead of a
- * producer, and there is no emit site for either anywhere in the repository — not on the auth
- * origin the catalog names as the intended web producer, and not in the web client's own mirror.
- * Adopting them here is its own change rather than a gap in this mirror, and iOS is not behind web
- * on them.
+ * reason: this app reports neither of the two middle funnel steps. Adopting one is its own change —
+ * a case here plus an emit site in the iOS sign-in flow — rather than a gap in this mirror. Which
+ * other producers already report them is not this file's to track; the catalog entry is where their
+ * shape is defined.
  *
  * `onboarding_step_completed`, `review_session_started` and `review_session_ended` were removed
  * from the catalog outright, so the server no longer declares them and rejects them as unknown
@@ -177,9 +176,15 @@ enum AnalyticsPermissionOutcome: String, Sendable, Equatable {
     case dismissed
 }
 
+/**
+ * `codeAlreadyUsed` is reported only by app versions whose mapping separates the auth service's
+ * `OTP_CHALLENGE_CONSUMED` from an expired session. One that folds them reports `expiredCode` for
+ * both, so an `expired_code` series is not like-for-like across that boundary.
+ */
 enum AnalyticsSignInFailureReason: String, Sendable, Equatable {
     case invalidCode = "invalid_code"
     case expiredCode = "expired_code"
+    case codeAlreadyUsed = "code_already_used"
     case rateLimited = "rate_limited"
     case offline
     case serverError = "server_error"
