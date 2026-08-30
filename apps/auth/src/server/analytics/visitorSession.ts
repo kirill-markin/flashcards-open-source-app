@@ -125,11 +125,20 @@ export function writeAuthAnalyticsVisitor(context: Context, visitor: AuthAnalyti
 }
 
 /**
- * Retires the visitor identity on the two boundaries where this browser stops belonging to the
- * person who was measured under it: a sign-in that turned the visitor into an account, and a logout
- * that hands the browser back. Both are boundaries a browser can cross between two different people,
- * and the identity must not cross with them — the guest token in this cookie may be bound to exactly
- * one account, once, in an append-only table with no repair path.
+ * Retires the visitor identity as soon as this cookie's one claim stops being pending. The claim
+ * is that this browser's signed-out run belongs to the account of the sign-in it is heading for,
+ * and the guest token in the cookie is what settles it: bound to exactly one account, once, in an
+ * append-only table that is first-link-wins with no repair path
+ * (`server/analytics/signInFunnel.ts`). A sign-in settles the claim, whether or not it is one this
+ * measurement may attribute. Anything that leaves this browser unable to settle it honestly voids
+ * the claim — handed back to whoever comes next, or left without the account the run was
+ * accumulating toward. Settled or void, the cookie must not survive: the next person here would be
+ * counted under its `anonymousId`, and any guest token left in it would be offered again, handing
+ * their account this visitor's whole signed-out tail, permanently. The cost is one returning
+ * visitor's continuity, the undercount preferred here.
+ *
+ * A session that only expired does neither: nothing was offered, and the same person is put
+ * straight back on the sign-in form, so those paths clear the session cookies and keep this one.
  *
  * `path` and `secure` repeat the write options because a `__Host-` cookie is only deleted by a
  * `Set-Cookie` that still satisfies the prefix.
