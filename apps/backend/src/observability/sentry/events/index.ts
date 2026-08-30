@@ -125,6 +125,8 @@ export type {
   MultipartCompletionReconciliationTerminalFailureDetails,
   ProductAnalyticsDrainAbortedDetails,
   ProductAnalyticsIdentityLinkWriteFailureDetails,
+  ProductAnalyticsReviewAnsweredPlatformResolutionEmptyDetails,
+  ProductAnalyticsReviewAnsweredPlatformResolutionFailureDetails,
   ProductAnalyticsServerEventWriteFailureDetails,
   ProgressActiveDaysBackfillCandidateFailureDetails,
   ProgressActiveDaysBackfillCompletedDetails,
