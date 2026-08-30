@@ -112,9 +112,7 @@ def build_github_oidc_provider_arn(aws_deploy_role_arn: str) -> str:
 def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
     values = {
         "alertEmail": get_trimmed_env("CDK_CONTEXT_ALERT_EMAIL"),
-        "analyticsSshAllowedCidrs": get_trimmed_env("CDK_CONTEXT_ANALYTICS_SSH_ALLOWED_CIDRS"),
-        "analyticsSshPublicKeys": get_trimmed_env("CDK_CONTEXT_ANALYTICS_SSH_PUBLIC_KEYS"),
-        "analyticsSshUsername": get_trimmed_env("CDK_CONTEXT_ANALYTICS_SSH_USERNAME"),
+        "analyticsAccessEnabled": get_trimmed_env("CDK_CONTEXT_ANALYTICS_ACCESS_ENABLED"),
         "anthropicApiKeySecretArn": get_trimmed_env("CDK_CONTEXT_ANTHROPIC_API_KEY_SECRET_ARN"),
         "apiCertificateArn": get_trimmed_env("CDK_CONTEXT_API_CERTIFICATE_ARN"),
         "apexRedirectCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1"),
