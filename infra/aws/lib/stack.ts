@@ -508,6 +508,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       dbAccessInstance: analyticsAccessResult?.dbAccessInstance,
       reportingDbSecret: dbResult.reportingDbSecret,
       analyticsSshUsername: analyticsAccessResult?.sshUsername,
+      analyticsSsmInstanceId: analyticsAccessResult?.ssmInstanceId,
     });
   }
 }
