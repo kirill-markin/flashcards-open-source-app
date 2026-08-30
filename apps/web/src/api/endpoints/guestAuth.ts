@@ -58,9 +58,8 @@ export async function createWebGuestSession(idempotencyKey: string): Promise<Web
  * session and carries the guest token in its body. Auth recovery is skipped because no analytics
  * work may redirect a person to sign in; the caller runs it right after `GET /me`, which is both the
  * CSRF load this session request needs and the request-context call the route requires to have
- * happened first. Transport retries are safe here, unlike on creation: a repeat conflicts on the
- * same guest and account pair, stores nothing new, and completes a revoke that an earlier attempt
- * may have left behind.
+ * happened first. Transport retries are safe here, unlike on creation: a repeat either redoes an
+ * attempt that committed nothing, or meets a revoked token, which is a successful no-op.
  */
 export async function linkWebGuestIdentity(guestToken: string): Promise<void> {
   await requestJson("/guest-auth/identity/link", {

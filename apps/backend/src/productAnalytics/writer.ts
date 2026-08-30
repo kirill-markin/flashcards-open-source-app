@@ -1,4 +1,5 @@
 import pg from "pg";
+import type { DatabaseExecutor } from "../database";
 import { getDatabaseUrl } from "../database/config";
 import {
   getDatabaseErrorFields,
@@ -26,8 +27,8 @@ const analyticsPoolConnectionTimeoutMs = 2_000;
 // matches nothing isTransientDatabaseError recognises and would otherwise reach a caller as an
 // unclassified failure. The message is the only thing that names it, and it is pg's wording rather
 // than a contract: a pg upgrade that rewords it makes this match fail silently, so the acquisition
-// timeout would take the 503 branch below and the 429 docs/auth-service.md documents for it would
-// never be raised. Re-check the string against pg-pool on every pg upgrade.
+// timeout would take the 503 branch below instead of the 429 the analytics ingest route still
+// answers a saturated pool with. Re-check the string against pg-pool on every pg upgrade.
 const analyticsPoolAcquisitionTimeoutMessage = "timeout exceeded when trying to connect";
 
 type ProductAnalyticsParameterValue = string | number | Date | null;
@@ -261,13 +262,18 @@ async function insertEventRowsInTransaction(
   return result.rowCount ?? 0;
 }
 
+// Beside the statement it feeds, so a column added to one cannot silently miss the other.
+function buildIdentityLinkParameters(link: ProductAnalyticsIdentityLink): Array<string> {
+  return [link.linkId, link.anonymousId, link.userId, link.source];
+}
+
 async function insertIdentityLinkInTransaction(
   client: pg.PoolClient,
   link: ProductAnalyticsIdentityLink,
 ): Promise<number> {
   const result = await client.query(
     insertProductAnalyticsIdentityLinkSql,
-    [link.linkId, link.anonymousId, link.userId, link.source],
+    buildIdentityLinkParameters(link),
   );
   return result.rowCount ?? 0;
 }
@@ -390,4 +396,26 @@ export async function insertProductAnalyticsIdentityLink(
   link: ProductAnalyticsIdentityLink,
 ): Promise<number> {
   return runAnalyticsWrite((client) => insertIdentityLinkInTransaction(client, link));
+}
+
+/**
+ * The same statement on the caller's own transaction, for a producer whose link has to commit with
+ * the rest of its work instead of separately on the analytics pool.
+ *
+ * The analytics pool exists so an analytics spike cannot starve product requests of connections,
+ * which is a rule about analytics traffic rather than about this table: a caller that already holds
+ * a product connection takes no second one by writing here, and takes one fewer than it would by
+ * going through the pool. There is likewise no acquisition to time out and no second commit to
+ * lose. Only the pool's `SET LOCAL statement_timeout` has no counterpart here, and it is a
+ * precondition rather than an omission: the caller must open its transaction under a deadline.
+ */
+export async function insertProductAnalyticsIdentityLinkInExecutor(
+  executor: DatabaseExecutor,
+  link: ProductAnalyticsIdentityLink,
+): Promise<number> {
+  const result = await executor.query(
+    insertProductAnalyticsIdentityLinkSql,
+    buildIdentityLinkParameters(link),
+  );
+  return result.rowCount ?? 0;
 }
