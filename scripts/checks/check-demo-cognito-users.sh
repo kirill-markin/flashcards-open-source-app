@@ -14,6 +14,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# bash 3.2 treats expanding an empty array under set -u as an unbound variable.
 AWS_REGION_ARGS=()
 if [[ -n "$REGION" ]]; then
   AWS_REGION_ARGS=(--region "$REGION")
@@ -22,7 +23,7 @@ fi
 get_stack_output() {
   local output_key="$1"
 
-  aws "${AWS_REGION_ARGS[@]}" cloudformation describe-stacks \
+  aws "${AWS_REGION_ARGS[@]+"${AWS_REGION_ARGS[@]}"}" cloudformation describe-stacks \
     --stack-name "$STACK_NAME" \
     --query "Stacks[0].Outputs[?OutputKey=='${output_key}'].OutputValue" \
     --output text
@@ -35,7 +36,7 @@ if [[ -z "$AUTH_FUNCTION_NAME" || "$AUTH_FUNCTION_NAME" == "None" ]]; then
   exit 1
 fi
 
-LAMBDA_CONFIG_JSON="$(aws "${AWS_REGION_ARGS[@]}" lambda get-function-configuration \
+LAMBDA_CONFIG_JSON="$(aws "${AWS_REGION_ARGS[@]+"${AWS_REGION_ARGS[@]}"}" lambda get-function-configuration \
   --function-name "$AUTH_FUNCTION_NAME" \
   --query '{demoEmails: Environment.Variables.DEMO_EMAIL_DOSTIP, demoPassword: Environment.Variables.DEMO_PASSWORD_DOSTIP, demoPasswordSecretArn: Environment.Variables.DEMO_PASSWORD_SECRET_ARN, userPoolId: Environment.Variables.COGNITO_USER_POOL_ID, cognitoRegion: Environment.Variables.COGNITO_REGION}' \
   --output json)"
