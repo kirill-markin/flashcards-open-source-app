@@ -12,7 +12,7 @@
  * resent. That is the design of this producer, not an omission from it.
  *
  * What it costs: one `web` guest session, and the four rows the web guest reaper documents it
- * owning, per signed-out login-page load rather than per sign-in attempt. That is deliberate.
+ * owning, per reporting visitor identity, retired by `visitorSession.ts`. That is deliberate.
  * "Reached the login page and never entered an email" is the most valuable number this measurement
  * produces, and it cannot exist without an identity at step one. The bound is the existing 90-day
  * web guest reaper in `apps/backend/src/guestAuth/reaper/`, which deletes web guests that never
