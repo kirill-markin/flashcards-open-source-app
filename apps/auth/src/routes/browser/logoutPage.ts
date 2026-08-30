@@ -69,12 +69,8 @@ app.get("/logout", async (c) => {
   }
 
   clearBrowserSessionCookies(c);
-  // Logout rotates the analytics visitor identity as well as the session, because this is the moment
-  // a shared browser is handed back. Two people signing in on one browser must not share one
-  // `anonymousId`, and more sharply: a guest token that outlived a sign-out would be offered at the
-  // next sign-in to an account that may not be the one it was measured for, and the identity link is
-  // first-link-wins and has no repair path — see server/analytics/signInFunnel.ts. The cost is one
-  // returning visitor's continuity, which is the undercount preferred here.
+  // Logout is the moment a shared browser is handed back, so the analytics visitor identity is
+  // retired along with the session, under the rule in `clearAuthAnalyticsVisitor`'s docstring.
   clearAuthAnalyticsVisitor(c);
   return c.redirect(appendLoggedOutMarker(redirectUri), 302);
 });
