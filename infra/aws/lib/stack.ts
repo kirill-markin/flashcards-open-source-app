@@ -72,6 +72,17 @@ function getScheduledJobState(
   );
 }
 
+// Defaults to enabled on purpose. The bastion is the only operator path into
+// the private database, so an unset or absent value must never remove it; only
+// an explicit "false" does.
+function getAnalyticsAccessEnabled(stack: cdk.Stack): boolean {
+  const value = stack.node.tryGetContext("analyticsAccessEnabled");
+  if (value === undefined || value === "") return true;
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  throw new Error("analyticsAccessEnabled must be true or false");
+}
+
 function getMediaBlobCleanupEnabled(stack: cdk.Stack): boolean {
   const value = stack.node.tryGetContext("mediaBlobCleanupEnabled");
   if (value === undefined) return false;
@@ -140,20 +151,6 @@ function validateBackendSentryContext(context: BackendSentryContextInput): Backe
   };
 }
 
-function parseCommaSeparatedValue(value: string): ReadonlyArray<string> {
-  return value
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry !== "");
-}
-
-function parseLineSeparatedValue(value: string): ReadonlyArray<string> {
-  return value
-    .split(/\r?\n/)
-    .map((entry) => entry.trim())
-    .filter((entry) => entry !== "");
-}
-
 export class FlashcardsOpenSourceAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -192,9 +189,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const guestAiWeightedMonthlyTokenCap = getOptionalContextValue(this, "guestAiWeightedMonthlyTokenCap");
     const resendApiKeySecretArn = getOptionalContextValue(this, "resendApiKeySecretArn");
     const resendSenderEmail = getOptionalContextValue(this, "resendSenderEmail");
-    const analyticsSshPublicKeysValue = getOptionalContextValue(this, "analyticsSshPublicKeys");
-    const analyticsSshAllowedCidrsValue = getOptionalContextValue(this, "analyticsSshAllowedCidrs");
-    const analyticsSshUsernameValue = getOptionalContextValue(this, "analyticsSshUsername");
     // When enabled, global stats are visible externally through the public snapshot endpoint.
     // When disabled, no client can fetch global stats from that endpoint.
     const rawGlobalMetricsVisible = getOptionalRawContextValue(this, "globalMetricsVisible");
@@ -210,10 +204,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
         this,
         "multipartCompletionReconciliationScheduleState",
       );
-    const analyticsAccessRequested =
-      analyticsSshPublicKeysValue !== undefined ||
-      analyticsSshAllowedCidrsValue !== undefined ||
-      analyticsSshUsernameValue !== undefined;
+    const analyticsAccessEnabled = getAnalyticsAccessEnabled(this);
 
     const net = networking(this);
     const dbResult = database(this, { vpc: net.vpc, dbSg: net.dbSg });
@@ -288,33 +279,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
     });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
-    if (analyticsAccessRequested) {
-      if (analyticsSshPublicKeysValue === undefined) {
-        throw new Error("analyticsSshPublicKeys is required when enabling analytical SSH access");
-      }
-      if (analyticsSshAllowedCidrsValue === undefined) {
-        throw new Error("analyticsSshAllowedCidrs is required when enabling analytical SSH access");
-      }
-      if (analyticsSshUsernameValue === undefined) {
-        throw new Error("analyticsSshUsername is required when enabling analytical SSH access");
-      }
-
-      const analyticsSshPublicKeys = parseLineSeparatedValue(analyticsSshPublicKeysValue);
-      const analyticsSshAllowedCidrs = parseCommaSeparatedValue(analyticsSshAllowedCidrsValue);
-      if (analyticsSshPublicKeys.length === 0) {
-        throw new Error("analyticsSshPublicKeys must contain at least one public SSH key");
-      }
-      if (analyticsSshAllowedCidrs.length === 0) {
-        throw new Error("analyticsSshAllowedCidrs must contain at least one CIDR entry");
-      }
-
+    if (analyticsAccessEnabled) {
       analyticsAccessResult = analyticsAccess(this, {
         vpc: net.vpc,
         dbSg: net.dbSg,
-        dbHost: dbResult.db.dbInstanceEndpointAddress,
-        sshAllowedCidrs: analyticsSshAllowedCidrs,
-        sshPublicKeys: analyticsSshPublicKeys,
-        sshUsername: analyticsSshUsernameValue,
       });
     }
     const preSignUpFn = preSignUp(this, { ...sentryContext });
@@ -505,9 +473,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
         generatedMediaPromotionResult.promotionScheduleName,
       multipartCompletionReconciliationScheduleName:
         multipartCompletionReconciliationResult.reconciliationScheduleName,
-      dbAccessInstance: analyticsAccessResult?.dbAccessInstance,
       reportingDbSecret: dbResult.reportingDbSecret,
-      analyticsSshUsername: analyticsAccessResult?.sshUsername,
       analyticsSsmInstanceId: analyticsAccessResult?.ssmInstanceId,
     });
   }

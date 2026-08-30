@@ -102,7 +102,7 @@ The path is:
 
 `reporting_readonly` remains read-only and supported in two modes:
 
-- manual/operator analytics through SSH tunneling
+- manual/operator analytics through an SSM tunnel
 - controlled server-side admin analytics from the backend Lambda
 
 ## Local development
