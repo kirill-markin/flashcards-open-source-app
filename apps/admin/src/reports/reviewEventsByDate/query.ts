@@ -589,16 +589,19 @@ export function buildReviewEventsByDateDefaultRangeSql(): string {
 // Keeping the anonymized history is intended - the reviews really happened - and `identity_state` on
 // `analytics.product_events_resolved` is the handle if they ever need filtering out.
 //
-// PLATFORM IS READ OFF THE ROW AND NEVER DERIVED. Every server-derived producer passes
-// `platform: null`, and `apps/backend/src/productAnalytics/reviewAnswers.ts` records why for this
-// event specifically: the only server-stored platform a review could reach is
-// `sync.workspace_replicas.platform`, which is unusable without `actor_kind` on the same row because
-// an `agent_connection` replica stores 'web', an `ai_chat` replica stores a hard-coded 'web' that
-// describes no device, and seed/reset replicas store 'system'. So every `review_answered` row lands
-// in the `unattributed` bucket, which means "not a device fact", not "unknown device". The old
-// dashboard's per-platform review split came from precisely the replica column that producer refuses
-// to guess from; it is gone, and the honest empty split is what replaces it. A real per-platform
-// split of people belongs to the `app_opened` series, which carries a device.
+// PLATFORM IS READ OFF THE ROW AND NEVER DERIVED. The producer derives it once per drain from the
+// replica that recorded the review (`apps/backend/src/productAnalytics/reviewAnswers.ts`), and
+// migration `0122` filled the same value on the history `0120` reconstructed. That derivation reads
+// `sync.workspace_replicas.platform` only together with `actor_kind` on the same row, so a value
+// appears only for a `client_installation` replica on 'ios', 'android' or 'web': an
+// `agent_connection` replica stores 'web' for the machine API, an `ai_chat` replica stores a
+// hard-coded 'web' that describes no device, and seed/reset replicas store 'system'. Each of those,
+// and a review whose replica row is gone or whose resolution failed, stays NULL and lands in the
+// `unattributed` bucket, which means no resolved device fact - either the actor behind the row is
+// not a device or no device could be resolved for it - rather than either case alone. A machine-API
+// review lands there rather than under `agent`, because this event reports the device a person
+// answered a card on and a replica that is not a client installation resolves to NULL rather than to
+// a fourth value.
 export function buildReviewEventsByDateSql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "report");
 

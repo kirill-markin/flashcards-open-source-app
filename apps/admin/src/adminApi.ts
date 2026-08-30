@@ -38,8 +38,10 @@ export type AdminQueryResponse = Readonly<{
 //
 // `agent` exists so machine-API activity stays visible as its own series: a scheduled MCP client
 // merged into `web` would read as a person using the site. `unattributed` is where every row whose
-// platform column is NULL lands, and for a server-derived fact that means "not a device fact" rather
-// than "unknown device" - see the note on `buildReviewEventsByDateSql`.
+// platform column is NULL lands, which means the row carries no resolved device fact - either the
+// actor behind it is not a device or no device could be resolved for it - so it stays its own bucket
+// and is never guessed at. See the note on `buildReviewEventsByDateSql` for how a `review_answered`
+// row reaches a device bucket or this one.
 export const reviewEventPlatforms = ["web", "android", "ios", "agent", "unattributed"] as const;
 
 export type ReviewEventPlatform = (typeof reviewEventPlatforms)[number];
