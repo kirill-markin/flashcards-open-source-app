@@ -272,8 +272,9 @@ const reviewAnswerPlatformResolutionTimeoutMs = 2_000;
  *
  * Best effort, and it must be: the reviews are committed and this producer may not raise into a
  * caller whose transaction is already closed. A read that fails, a budget that is already spent, a
- * replica row that was deleted - each leaves its answers out of the map, and out of a per-platform
- * breakdown, rather than guessing at a platform the append-only table could never be corrected of.
+ * replica the scoped read does not reach - each leaves its answers out of the map, and out of a
+ * per-platform breakdown, rather than guessing at a platform the append-only table could never be
+ * corrected of.
  */
 async function resolveReviewAnswerPlatforms(
   answers: ReadonlyArray<ReviewAnswer>,
@@ -318,17 +319,35 @@ async function resolveReviewAnswerPlatforms(
         return result.rows;
       },
     );
-    if (replicas.length === 0) {
-      // The read succeeded and matched none of them, so nothing throws and the drain goes on to
-      // store every one of its reviews with a null platform. replicaIds is never empty here - the
-      // early return above leaves at least one answer to scope on - so a zero-row result is the
-      // scope or the policy no longer reaching rows this workspace's own reviews were recorded
-      // against, which is the one way this derivation can stop working while looking healthy.
+    if (replicas.length < replicaIds.length) {
+      // The read succeeded without matching every replica it asked about, so nothing throws and the
+      // answers behind the missing rows go on to be stored with a null platform. replicaIds is
+      // deduplicated and replica_id is the primary key of sync.workspace_replicas, so the read can
+      // only come back short, never long, and the shortfall is exactly what is reported here.
+      //
+      // Guarded on the shortfall rather than on a zero-row read, because a partial one is the same
+      // fault seen through fewer answers and is the harder of the two to notice: the reviews it
+      // silences arrive mixed in with resolved ones, so the per-platform chart stays lit and only
+      // undercounts. Nothing here makes it ordinary either. content.review_events.replica_id
+      // references sync.workspace_replicas (db/migrations/0037_workspace_delete_schema_cleanup.sql),
+      // so the row cannot have been deleted while the review naming it exists - what a missing row
+      // means is that this scoped read no longer reaches it. The policy admits a row only where the
+      // request's workspace scope reaches it and its user_id is the request's own
+      // (workspace_replicas_scoped_select_runtime,
+      // db/migrations/0035_sync_installations_and_workspace_replicas.sql), and that user_id is
+      // rewritten to the registering identity every time a replica re-registers
+      // (apps/backend/src/sync/identity/replica.ts), so one replica can drop out of a read the rest
+      // of the drain sails through.
+      //
+      // The zero-row case is the same record with matchedReplicaCount at 0, not a second action: it
+      // is this fault reaching every replica of the drain at once, and reading "0 of 4" and "3 of 4"
+      // off one record is what makes the difference between them visible.
       captureBackendRuntimeWarning({
-        action: "product_analytics_review_answered_platform_resolution_empty",
+        action: "product_analytics_review_answered_platform_resolution_incomplete",
         scope: resolutionScope,
         details: {
           replicaIdCount: replicaIds.length,
+          matchedReplicaCount: replicas.length,
           answerCount: answers.length,
         },
       });
@@ -417,10 +436,10 @@ function toReviewAnsweredEvent(
     // producer does not emit inline: answers are collected per transaction and drained after COMMIT,
     // so a whole drain's platforms cost one indexed lookup that the review write never waits for.
     //
-    // Null stays the answer for everything else - a replica the guard turns down, a replica row that
-    // no longer exists, a resolution the drain could not make - because a guess would file the
-    // review under a platform it never had, permanently, on an append-only table, while null only
-    // leaves it out of a per-platform breakdown.
+    // Null stays the answer for everything else - a replica the guard turns down, a replica the
+    // scoped read did not reach, a resolution the drain could not make - because a guess would file
+    // the review under a platform it never had, permanently, on an append-only table, while null
+    // only leaves it out of a per-platform breakdown.
     platform,
     properties: { rating: reviewAnsweredRatingNames[answer.rating] },
     // Provenance about how a row was produced belongs to the backfill that reconstructs history. An
