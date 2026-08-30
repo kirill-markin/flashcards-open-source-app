@@ -6,12 +6,13 @@ This document describes the supported analytical access paths for the persistent
 
 The supported read-only access paths are:
 
-- manual/operator analytics and Metabase-style SSH tunneling without making the production RDS instance itself publicly reachable
+- manual/operator analytics and Metabase-style tunneling without making the production RDS instance itself publicly reachable
 - controlled server-side admin analytics where the backend Lambda runs read-only admin reporting SQL inside the VPC
 
-The `reporting_readonly` role is part of the baseline schema in every environment. When analytical SSH access is enabled, the stack also creates:
+The `reporting_readonly` role is part of the baseline schema in every environment. When analytical access is enabled, the stack also creates:
 
-- a public EC2 bastion host dedicated to analytical SSH tunneling
+- an EC2 bastion host dedicated to analytical tunneling, reachable both through AWS Systems Manager Session Manager and through public SSH
+- an instance role with the AWS managed policy `AmazonSSMManagedInstanceCore`, which is what registers the bastion with Systems Manager
 - a private network path from that bastion host to the RDS instance on `5432`
 
 The current `reporting_readonly` password secret is also part of the baseline infrastructure in every environment, even when the SSH bastion is disabled. The deployed backend Lambda uses that same role for server-side admin analytics through a separate read-only pool and without SSH.
@@ -57,10 +58,11 @@ gh variable delete CDK_ANALYTICS_SSH_USERNAME --repo kirill-markin/flashcards-op
    - `AnalyticsSshHost`
    - `AnalyticsSshPort`
    - `AnalyticsSshUsername`
+   - `AnalyticsSsmInstanceId`
 
 Important current behavior: this disable flow removes the AWS-side bastion path only. It does not remove the baseline Postgres role `reporting_readonly`, its read grants, or the current reporting password secret/output used by server-side admin analytics.
 
-That means disabling analytics SSH access should be treated as removing the supported operator access path only. It should not be treated as a full schema-level removal of `reporting_readonly`.
+That means disabling analytics SSH access should be treated as removing the bastion and both of its operator access paths, SSH and SSM. It should not be treated as a full schema-level removal of `reporting_readonly`.
 
 ## What gets exposed
 
@@ -71,6 +73,7 @@ After deployment, CloudFormation always includes:
 
 When analytical access is enabled, CloudFormation also includes:
 
+- `AnalyticsSsmInstanceId`
 - `AnalyticsSshHost`
 - `AnalyticsSshPort`
 - `AnalyticsSshUsername`
@@ -83,7 +86,45 @@ The supported operator shortcut is:
 bash scripts/setup/get-analytics-db-access.sh --stack-name FlashcardsOpenSourceApp
 ```
 
-That helper reads the current stack outputs, resolves the current reporting secret by ARN, and prints a JSON bundle with the current SSH, database, and password values.
+That helper reads the current stack outputs, resolves the current reporting secret by ARN, and prints a JSON bundle with the current SSM, SSH, database, and password values.
+
+The SSM path is additive, so `ssmInstanceId` is empty on any stack that has not yet deployed it. The helper only notes that on stderr and still prints the SSH, database, and password values, which remain the working path in that window.
+
+## Preferred operator path: SSM port forwarding
+
+Session Manager port forwarding is the preferred supported operator path. It works from any network, needs no inbound port on the bastion, and needs no entry in `ANALYTICS_SSH_ALLOWED_CIDRS`, because the tunnel is established outbound by the SSM Agent on the bastion.
+
+Local prerequisite: the AWS CLI plus the `session-manager-plugin`, which the AWS CLI shells out to for `aws ssm start-session`.
+
+```bash
+brew install --cask session-manager-plugin
+```
+
+Operator IAM prerequisite: credentials allowed to `ssm:StartSession` on the bastion instance and on `arn:aws:ssm:<region>::document/AWS-StartPortForwardingSessionToRemoteHost`, plus `ssm:TerminateSession` and `ssm:ResumeSession` on their own `arn:aws:ssm:*:*:session/*` sessions, plus `ssm:DescribeInstanceInformation` for the registration check below. No SSH key and no source-IP allowlist entry are involved.
+
+Verify that the bastion is registered with Systems Manager before opening a tunnel:
+
+```bash
+aws ssm describe-instance-information \
+  --filters Key=InstanceIds,Values=<AnalyticsSsmInstanceId>
+```
+
+An empty result right after a deploy is normal rather than a broken deploy: the SSM Agent backs off while it has no credentials, so an already-running bastion that has just been given its instance role can take several minutes to appear. Retry before investigating further.
+
+Open the tunnel with the instance id from `AnalyticsSsmInstanceId`:
+
+```bash
+aws ssm start-session \
+  --target <AnalyticsSsmInstanceId> \
+  --document-name AWS-StartPortForwardingSessionToRemoteHost \
+  --parameters '{"host":["<DbEndpoint>"],"portNumber":["5432"],"localPortNumber":["15432"]}'
+```
+
+The session forwards `127.0.0.1:15432` to `<DbEndpoint>:5432` through the bastion, so every local client step below is identical to the SSH path.
+
+The two paths are not equally narrow. The SSH path is restricted by sshd to a tunnel into `<DbEndpoint>:5432` with no interactive shell, while `AmazonSSMManagedInstanceCore` registers the bastion with Session Manager generally, so a principal holding `ssm:StartSession` on it also gets an interactive shell on the bastion and port forwarding to any host reachable from it. That is accepted here because the only principals holding `ssm:StartSession` in this account are already account administrators.
+
+The public SSH path described in the rest of this document is still deployed and still supported. It is kept until the SSM path is confirmed in production, and it stays the path used by tools such as Metabase that speak SSH rather than SSM.
 
 ## Bastion behavior
 
@@ -96,7 +137,7 @@ The bastion host is public only for SSH and is expected to be protected by:
 - `PermitOpen <DbEndpoint>:5432`
 - no interactive shell access for the analytics SSH user
 
-The bastion exists only to forward traffic into the private database network. The RDS instance remains private, and the analytics SSH user is tunnel-only rather than a general shell user.
+These properties describe the SSH path. Over SSH the bastion exists only to forward traffic into the private database network: the RDS instance remains private, and the analytics SSH user is tunnel-only rather than a general shell user. The SSM path is not constrained by sshd, as described above.
 
 ## Database role: `reporting_readonly`
 
@@ -121,7 +162,7 @@ The baseline schema migration also enforces the persistent runtime policy for th
 
 Privileged role attributes such as `NOSUPERUSER` and `NOREPLICATION` are currently outside the normal migration path on RDS/PostgreSQL 18 and are not managed here.
 
-Important current behavior: this role is intentionally persistent across later bastion disablement because it is part of the baseline schema. The disable flow only removes the operator SSH access path.
+Important current behavior: this role is intentionally persistent across later bastion disablement because it is part of the baseline schema. The disable flow removes the bastion and both of its operator access paths, SSH and SSM, while leaving this role, its grants, and the reporting secret in place.
 
 ## Granted schemas
 
@@ -196,6 +237,7 @@ Example output:
   "sshHost": "ec2-203-0-113-10.eu-central-1.compute.amazonaws.com",
   "sshPort": "22",
   "sshUsername": "analytics",
+  "ssmInstanceId": "i-0123456789abcdef0",
   "dbEndpoint": "flashcards-db.abcdefghijkl.eu-central-1.rds.amazonaws.com",
   "dbName": "flashcards",
   "dbUsername": "reporting_readonly",
@@ -213,7 +255,16 @@ aws secretsmanager get-secret-value \
   --output text
 ```
 
-3. Start a local tunnel:
+3. Start a local tunnel. Preferred, with SSM port forwarding as described above:
+
+```bash
+aws ssm start-session \
+  --target <ssmInstanceId> \
+  --document-name AWS-StartPortForwardingSessionToRemoteHost \
+  --parameters '{"host":["<dbEndpoint>"],"portNumber":["5432"],"localPortNumber":["15432"]}'
+```
+
+Or over the still-supported SSH path:
 
 ```bash
 ssh -N \
@@ -262,7 +313,7 @@ The reporting password secret now uses a stable baseline Secrets Manager name, b
 
 ## Usage guidance
 
-Use `reporting_readonly` only for analytical queries and investigation. It must remain read-only for both operator SSH access and backend-owned admin analytics.
+Use `reporting_readonly` only for analytical queries and investigation. It must remain read-only for both operator bastion access and backend-owned admin analytics.
 
 Prefer querying stable business tables first:
 

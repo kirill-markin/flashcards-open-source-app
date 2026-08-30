@@ -1,4 +1,5 @@
-import type { DatabaseExecutor } from "../database";
+import { transactionWithWorkspaceScopeDeadline, type DatabaseExecutor } from "../database";
+import { getDatabaseErrorFields } from "../database/transient";
 // Report through `observability/runtime`, never through `observability/sentry`. This is the shared
 // discipline for product analytics producers, spelled out at length in contentCreations.ts:
 // `entrypoints/directImageIngestion/lambda.test.ts` walks the direct image ingestion Lambda's
@@ -13,6 +14,7 @@ import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
 } from "../observability/runtime";
+import type { ProductAnalyticsPlatform } from "./catalog";
 import type { PostCommitAnalyticsBudget } from "./postCommitBudget";
 import {
   deriveServerDerivedProductAnalyticsEventId,
@@ -71,6 +73,11 @@ export type ReviewAnsweredServerAnchor = "server_stamped" | "stored_unverified" 
 export type ReviewAnswer = Readonly<{
   reviewEventId: string;
   workspaceId: string;
+  // content.review_events.replica_id as stored, which is the one thing on the row that can name the
+  // device the answer was given on. It is carried as the id rather than as a platform because the
+  // replica row lives in another table: resolving it is one lookup for a whole drain instead of one
+  // per answer on the review write. See resolveReviewAnswerPlatforms.
+  replicaId: string;
   // security.current_user_id(), which is the identity every statement of the review write already
   // runs as.
   reviewedByUserId: string;
@@ -196,9 +203,167 @@ function resolveReviewAnsweredOccurredAt(reviewedAtClient: string, serverAnchor:
   return new Date(reviewedAtClientMs);
 }
 
+// The three columns the platform of one review is decided from, always read together. platform on
+// its own decides nothing: sync.workspace_replicas constrains it to ios, android, web and system,
+// and several actor kinds store a value in it that describes no device at all, so actor_kind is what
+// makes the column readable and is selected on the same row rather than assumed.
+type WorkspaceReplicaPlatformRow = Readonly<{
+  replica_id: string;
+  actor_kind: string;
+  platform: string;
+}>;
+
+/**
+ * The platform one replica answered on, or null where the replica names no device.
+ *
+ * Only a client_installation replica is a device a person used. The other actor kinds
+ * (db/migrations/0035_sync_installations_and_workspace_replicas.sql) each store something in
+ * platform that would be a lie here: an agent_connection replica stores 'web' for the machine API
+ * that is no browser, an ai_chat replica stores a hardcoded 'web' that describes no device, and
+ * workspace_seed and workspace_reset store 'system'. They resolve to null rather than to a fourth
+ * value: `agent` exists in productAnalyticsPlatforms and could be derived from the actor kind, but
+ * this event reports the device a person answered a card on, and deriving anything else from a
+ * replica that is not a client installation is separate work with its own case to make.
+ *
+ * The remaining check is the one the column's own constraint leaves open: 'system' never reaches a
+ * client_installation row, but reading platform as an analytics platform without confirming its
+ * value is what would let a later widening of that constraint file reviews under something this
+ * catalog never meant.
+ */
+function toReviewAnsweredPlatform(
+  replica: WorkspaceReplicaPlatformRow,
+): ProductAnalyticsPlatform | null {
+  if (replica.actor_kind !== "client_installation") {
+    return null;
+  }
+
+  if (replica.platform === "ios" || replica.platform === "android" || replica.platform === "web") {
+    return replica.platform;
+  }
+
+  return null;
+}
+
+// The most one drain may spend resolving its replicas, including the product connection it checks
+// out to do it.
+//
+// The read is a single primary-key lookup on a handful of ids, so nothing healthy approaches this;
+// it is a ceiling for a degraded pool. It sits below the ~4s per-operation figure
+// PostCommitAnalyticsBudget derives its tail from, so gating this read on the same budget as a chunk
+// leaves the guaranteed tail exactly where ./postCommitBudget.ts states it, rather than adding the
+// main pool's own 5s checkout timeout and an unbounded statement on top of it.
+const reviewAnswerPlatformResolutionTimeoutMs = 2_000;
+
+/**
+ * Resolves the replicas of one drain to the platform each of their reviews was answered on.
+ *
+ * One query for the whole drain, after the product transaction committed. That is what makes the
+ * derivation affordable at all: the answers were collected per transaction, so the review write
+ * itself pays nothing for this, and a batch of any size - a sync push, a whole-history import, a
+ * guest merge - resolves through the same single indexed lookup rather than one query per review.
+ *
+ * The read is scoped with the first answer's own identity and workspace, which is the scope the
+ * review write ran under and the only one the RLS policy on sync.workspace_replicas admits
+ * (workspace_replicas_scoped_select_runtime: the request-scoped workspace must match the row's and
+ * the row's user_id must be the request's). Every path that reaches this producer writes its reviews
+ * into one workspace as one identity, so that scope covers the whole drain; were that ever to stop
+ * being true, the same policy would filter the answers that no longer belong to it and they would be
+ * filed with a null platform rather than with another workspace's.
+ *
+ * Best effort, and it must be: the reviews are committed and this producer may not raise into a
+ * caller whose transaction is already closed. A read that fails, a budget that is already spent, a
+ * replica row that was deleted - each leaves its answers out of the map, and out of a per-platform
+ * breakdown, rather than guessing at a platform the append-only table could never be corrected of.
+ */
+async function resolveReviewAnswerPlatforms(
+  answers: ReadonlyArray<ReviewAnswer>,
+  budget: PostCommitAnalyticsBudget,
+): Promise<ReadonlyMap<string, ProductAnalyticsPlatform>> {
+  const platformByReplicaId = new Map<string, ProductAnalyticsPlatform>();
+  const scopingAnswer = answers[0];
+  // The budget is checked here for the same reason a chunk checks it: this runs after COMMIT on the
+  // request's own clock. A drain that finds it spent resolves nothing and the loop below then stops
+  // on the same check, so the request pays for neither.
+  if (scopingAnswer === undefined || !budget.hasTimeForAnotherOperation()) {
+    return platformByReplicaId;
+  }
+
+  const replicaIds = [...new Set(answers.map((answer) => answer.replicaId))];
+  const resolutionScope = createBackendObservationScope(
+    "backend-api",
+    null,
+    null,
+    null,
+    scopingAnswer.reviewedByUserId,
+    scopingAnswer.workspaceId,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
+  try {
+    const replicas = await transactionWithWorkspaceScopeDeadline(
+      { userId: scopingAnswer.reviewedByUserId, workspaceId: scopingAnswer.workspaceId },
+      Date.now() + reviewAnswerPlatformResolutionTimeoutMs,
+      async (executor) => {
+        const result = await executor.query<WorkspaceReplicaPlatformRow>(
+          [
+            "SELECT replica_id, actor_kind, platform",
+            "FROM sync.workspace_replicas",
+            "WHERE replica_id = ANY($1::uuid[])",
+          ].join(" "),
+          [replicaIds],
+        );
+        return result.rows;
+      },
+    );
+    if (replicas.length === 0) {
+      // The read succeeded and matched none of them, so nothing throws and the drain goes on to
+      // store every one of its reviews with a null platform. replicaIds is never empty here - the
+      // early return above leaves at least one answer to scope on - so a zero-row result is the
+      // scope or the policy no longer reaching rows this workspace's own reviews were recorded
+      // against, which is the one way this derivation can stop working while looking healthy.
+      captureBackendRuntimeWarning({
+        action: "product_analytics_review_answered_platform_resolution_empty",
+        scope: resolutionScope,
+        details: {
+          replicaIdCount: replicaIds.length,
+          answerCount: answers.length,
+        },
+      });
+    }
+    for (const replica of replicas) {
+      const platform = toReviewAnsweredPlatform(replica);
+      if (platform !== null) {
+        platformByReplicaId.set(replica.replica_id, platform);
+      }
+    }
+  } catch (error) {
+    // Reported rather than swallowed. The events themselves are unaffected and still worth storing,
+    // so nothing here stops the drain - but a resolution that fails for every drain is otherwise
+    // invisible, because the rows keep arriving and only the platform quietly stops being on them.
+    const errorDetails = getDatabaseErrorFields(error);
+    captureBackendRuntimeWarning({
+      action: "product_analytics_review_answered_platform_resolution_failed",
+      scope: resolutionScope,
+      details: {
+        replicaIdCount: replicaIds.length,
+        answerCount: answers.length,
+        sqlState: errorDetails.sqlState,
+        errorClass: errorDetails.errorClass,
+        errorMessage: errorDetails.errorMessage,
+      },
+    });
+  }
+
+  return platformByReplicaId;
+}
+
 function toReviewAnsweredEvent(
   answer: ReviewAnswer,
   recordedAt: Date,
+  platform: ProductAnalyticsPlatform | null,
 ): ServerDerivedProductAnalyticsEvent {
   const serverAnchor = resolveReviewAnsweredServerAnchor(answer, recordedAt);
   return {
@@ -236,15 +401,27 @@ function toReviewAnsweredEvent(
     // here is the guest/account split on the row itself, not the attribution.
     guestSessionId: null,
     workspaceId: answer.workspaceId,
-    // Null, and deliberately not derived. The only server-stored platform this fact could reach is
-    // sync.workspace_replicas.platform for the review's replica, and it is unusable twice over.
-    // Reading it costs one query per review on the product's hottest write path, which this must not
-    // add; and the column may never be read without actor_kind on the same row, because an
-    // agent_connection replica stores 'web' for the machine API, an ai_chat replica stores a
-    // hardcoded 'web' that describes no device, and workspace_seed and workspace_reset store
-    // 'system'. A guess would file the review under a platform it never had, permanently, while null
-    // only leaves it out of a per-platform breakdown.
-    platform: null,
+    // The device the person answered on, derived from sync.workspace_replicas for the replica that
+    // recorded the review and resolved once for the whole drain by resolveReviewAnswerPlatforms.
+    //
+    // This is the only server-stored platform the fact can reach, and the rule that governs it is
+    // unchanged: the column may never be read without actor_kind on the same row. That is what the
+    // resolution keeps rather than what it works around - it selects both columns on one row and
+    // admits only a client_installation on ios, android or web, so the agent_connection replica
+    // storing 'web' for the machine API, the ai_chat replica storing a hardcoded 'web' that
+    // describes no device, and the workspace_seed and workspace_reset replicas storing 'system' all
+    // arrive here as null exactly as they did when nothing was derived at all.
+    //
+    // What did change is the cost. One query per review on the product's hottest write path is
+    // still not affordable, but that is what reading the replica inline would have cost, and this
+    // producer does not emit inline: answers are collected per transaction and drained after COMMIT,
+    // so a whole drain's platforms cost one indexed lookup that the review write never waits for.
+    //
+    // Null stays the answer for everything else - a replica the guard turns down, a replica row that
+    // no longer exists, a resolution the drain could not make - because a guess would file the
+    // review under a platform it never had, permanently, on an append-only table, while null only
+    // leaves it out of a per-platform breakdown.
+    platform,
     properties: { rating: reviewAnsweredRatingNames[answer.rating] },
     // Provenance about how a row was produced belongs to the backfill that reconstructs history. An
     // answer observed as it happens has none.
@@ -340,11 +517,14 @@ function reportAbandonedReviewAnswers(
  * would be lost silently, which is the invariant ./writer.ts states and every sibling producer keeps.
  *
  * A chunk is one analytics transaction on one analytics connection and the chunks are awaited in
- * sequence, so this producer holds one connection at a time however large the transaction was.
+ * sequence, so this producer holds one connection at a time however large the transaction was. The
+ * platform resolution that runs before them is one short product-pool transaction, released before
+ * the first chunk is built, so that stays true across both pools.
  *
  * Analytics is best effort and a review is not: a chunk is swallowed and logged by
- * emitServerDerivedProductAnalyticsEvents rather than raised, so this function has no rejection path
- * and nothing here can surface as a failed review to a caller whose transaction already committed.
+ * emitServerDerivedProductAnalyticsEvents rather than raised, and the platform resolution is
+ * swallowed and logged by resolveReviewAnswerPlatforms, so this function has no rejection path and
+ * nothing here can surface as a failed review to a caller whose transaction already committed.
  * Neither stop discards the chunks already stored before it either - those are committed and stay
  * committed. What both give up is the rest of the drain, so that a degraded analytics pool cannot
  * push a request that already stored its reviews past the API Gateway integration timeout and answer
@@ -373,6 +553,10 @@ async function emitCollectedReviewAnswers(
   // value outright and caps a stored_unverified one. The drain's stop clock is no longer read here:
   // it belongs to the request rather than to this drain, so it is the budget's.
   const recordedAt = new Date();
+  // One read of the product database for the whole drain, before the first chunk and after the
+  // commit that released this transaction's connection. Answers whose replica it does not resolve
+  // keep the null platform they always had; nothing here can fail the drain.
+  const platformByReplicaId = await resolveReviewAnswerPlatforms(collected, budget);
   for (let chunkStart = 0; chunkStart < collected.length; chunkStart += reviewAnsweredEmitChunkSize) {
     if (!budget.hasTimeForAnotherOperation()) {
       const firstSkipped = collected[chunkStart];
@@ -397,7 +581,11 @@ async function emitCollectedReviewAnswers(
     // Never rejects: the writer's refusal comes back as an outcome, so this await cannot throw into
     // a caller whose review transaction has already committed.
     const outcome = await emitServerDerivedProductAnalyticsEvents(
-      chunk.map((answer) => toReviewAnsweredEvent(answer, recordedAt)),
+      chunk.map((answer) => toReviewAnsweredEvent(
+        answer,
+        recordedAt,
+        platformByReplicaId.get(answer.replicaId) ?? null,
+      )),
     );
     if (outcome === "stored") {
       continue;

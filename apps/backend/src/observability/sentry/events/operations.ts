@@ -525,6 +525,39 @@ export type ProductAnalyticsDrainAbortedDetails = Readonly<{
   skippedEventCount: number;
 }>;
 
+// Raised when a drain could not read the replicas its reviews were recorded against, so it could not
+// resolve the platform each review was answered on. Nothing was dropped: the review_answered rows
+// are still emitted and still stored, they just carry a null platform, and an append-only table
+// cannot be corrected of that afterwards. This and the empty read below are the only signals that a
+// per-platform breakdown is quietly going blank while the rows themselves keep arriving.
+//
+// Deliberately not the write failure above: no event was refused here, so no event count describes
+// what happened. The two numbers that do are the shape of the one lookup that failed -
+// replicaIdCount is how many distinct replicas it asked for, answerCount how many reviews were
+// waiting on the answer - because losing one replica for one review reads very differently from
+// losing a whole-history import's.
+export type ProductAnalyticsReviewAnsweredPlatformResolutionFailureDetails = Readonly<{
+  replicaIdCount: number;
+  answerCount: number;
+  sqlState: string | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+// Raised when that same read returned no rows at all: it succeeded, and matched none of the replicas
+// the drain asked about. Split from the failure above because Postgres saw nothing wrong - there is
+// no error to carry and nothing to retry - while the outcome for the events is identical, every
+// review of the drain stored with a null platform on a table that cannot be corrected of it.
+//
+// Only the zero-row case, and deliberately not a partial one. A single replica row that no longer
+// exists is ordinary and resolves to null by design; a read that matches nothing is the shape of a
+// scope that stopped reconstructing the review write's own, which would quietly take the platform
+// off every review answered from then on.
+export type ProductAnalyticsReviewAnsweredPlatformResolutionEmptyDetails = Readonly<{
+  replicaIdCount: number;
+  answerCount: number;
+}>;
+
 // A deliberate skip, not a dropped write: the upgrade committed and its guest_upgrade_completed event
 // was never attempted, because the request had no post-commit analytics clock left for another
 // operation. Reported under its own action so it never looks like
@@ -621,6 +654,14 @@ export type OperationsWarningEvent =
   | EventByAction<"product_analytics_server_event_write_failed", ProductAnalyticsServerEventWriteFailureDetails>
   | EventByAction<"product_analytics_content_creation_drain_aborted", ProductAnalyticsDrainAbortedDetails>
   | EventByAction<"product_analytics_review_answered_drain_aborted", ProductAnalyticsDrainAbortedDetails>
+  | EventByAction<
+    "product_analytics_review_answered_platform_resolution_failed",
+    ProductAnalyticsReviewAnsweredPlatformResolutionFailureDetails
+  >
+  | EventByAction<
+    "product_analytics_review_answered_platform_resolution_empty",
+    ProductAnalyticsReviewAnsweredPlatformResolutionEmptyDetails
+  >
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>
   | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>

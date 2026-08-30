@@ -76,11 +76,15 @@ function createSessionCsrfToken(sessionToken: string, csrfSecret: string): strin
 }
 
 function isMatchingToken(expectedToken: string, actualToken: string): boolean {
-  if (expectedToken.length !== actualToken.length) {
+  // `actualToken` is the client-supplied header, and `String.length` counts UTF-16 code units while
+  // `timingSafeEqual` compares bytes, so the guard has to measure the buffers it hands over.
+  const expectedBytes = Buffer.from(expectedToken);
+  const actualBytes = Buffer.from(actualToken);
+  if (expectedBytes.length !== actualBytes.length) {
     return false;
   }
 
-  return timingSafeEqual(Buffer.from(expectedToken), Buffer.from(actualToken));
+  return timingSafeEqual(expectedBytes, actualBytes);
 }
 
 function getBackendCsrfSecretArn(): string {
