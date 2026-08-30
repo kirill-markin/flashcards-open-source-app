@@ -341,10 +341,11 @@ owned by the source it names, else by a comment in `apps/auth/src/server/analyti
 - A sign-in retires the visitor identity even where the funnel may not attribute it
   (`reportSignInSucceeded` in `signInFunnel.ts`), so a `screen_viewed` with no outcome can be a
   completed sign-in rather than an abandonment; `analytics_visitor_retired_unreported` in the auth
-  Lambda log group counts those retirements, not that population. A report still in flight can
-  restore the cookie: a revoked token then produces no rows until the cookie is gone, and a live one
-  crosses the two people — already linked, it resolves the next account's own rows to the first
-  person; unlinked, the first person's tail to that account.
+  Lambda log group counts those retirements, not that population. Sign-out retires it too, and a
+  report still in flight can restore the cookie past any of those clears
+  (`clearAuthAnalyticsVisitor` in `visitorSession.ts`): a revoked token then produces no rows until
+  the cookie is gone, and a live one gives the first person's tail to whichever account signs in
+  next — always what a sign-out leaves, since no link runs there, and reachable past a sign-in too.
 - `signin_failed` carries no `screen`; a funnel filtered on `screen = 'signin'` reads it as zero.
 - Web session counts include auth-origin sessions; a visitor whose posts run slow adds one per event.
 - A conversion computed from `signin_succeeded` is a lower bound rather than a rate.

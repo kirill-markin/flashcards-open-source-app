@@ -481,11 +481,8 @@ export async function reportSignInFailed(
  * `routes/browser/loginPage.ts` mints the cookie on the render itself, so a browser answered 200 by
  * `tryRefreshSession` holds it having produced no `screen_viewed` at all.
  *
- * A report still in flight from a login page open elsewhere writes the cookie back after the clear,
- * and what survives decides the cost. A revoked token blocks the re-mint —
- * `deliverAuthAnalyticsEvent` mints only for a null one — so every later report is one logged
- * ingest failure and no row. A token no link bound is the kept-token misattribution above, and only
- * a tombstone cookie would close it, which a `5xx` under this race does not earn.
+ * A report still in flight defeats the clear by writing the cookie back after it;
+ * `clearAuthAnalyticsVisitor` weighs that survivor, and the link below is what can still retire it.
  */
 export async function reportSignInSucceeded(c: Context<AuthAppEnv>, idToken: string): Promise<void> {
   try {
