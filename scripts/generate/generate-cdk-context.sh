@@ -71,15 +71,12 @@ SENTRY_RELEASE="$(require_non_empty_value "${SENTRY_RELEASE:-}" "Set SENTRY_RELE
 SENTRY_TRACES_SAMPLE_RATE="$(require_non_empty_value "${SENTRY_TRACES_SAMPLE_RATE:-}" "Set SENTRY_TRACES_SAMPLE_RATE in root .env before generating a deploy CDK context.")"
 require_non_empty_value "${SENTRY_DSN_SECRET_ARN}" "Set SENTRY_DSN_SECRET_ARN in root .env or create the AWS secret ${SENTRY_DSN_SECRET_NAME} before generating a deploy CDK context." >/dev/null
 validate_sentry_traces_sample_rate "${SENTRY_TRACES_SAMPLE_RATE}"
-ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
-ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
-ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
+ANALYTICS_ACCESS_ENABLED="${ANALYTICS_ACCESS_ENABLED:-}"
 ADMIN_EMAILS="${ADMIN_EMAILS:-}"
 GLOBAL_METRICS_VISIBLE="${GLOBAL_METRICS_VISIBLE:-}"
-if [[ -n "${ANALYTICS_SSH_PUBLIC_KEYS}" || -n "${ANALYTICS_SSH_ALLOWED_CIDRS}" || -n "${ANALYTICS_SSH_USERNAME}" ]]; then
-  require_non_empty_value "${ANALYTICS_SSH_PUBLIC_KEYS}" "Set ANALYTICS_SSH_PUBLIC_KEYS in root .env when enabling analytical SSH access." >/dev/null
-  require_non_empty_value "${ANALYTICS_SSH_ALLOWED_CIDRS}" "Set ANALYTICS_SSH_ALLOWED_CIDRS in root .env when enabling analytical SSH access." >/dev/null
-  require_non_empty_value "${ANALYTICS_SSH_USERNAME}" "Set ANALYTICS_SSH_USERNAME in root .env when enabling analytical SSH access." >/dev/null
+if [[ -n "${ANALYTICS_ACCESS_ENABLED}" && "${ANALYTICS_ACCESS_ENABLED}" != "true" && "${ANALYTICS_ACCESS_ENABLED}" != "false" ]]; then
+  echo "ERROR: Set ANALYTICS_ACCESS_ENABLED in root .env to true or false, or leave it unset to keep the analytical bastion." >&2
+  exit 1
 fi
 RESEND_SENDER_EMAIL=""
 if [[ -n "${RESEND_SECRET_ARN}" ]]; then
@@ -109,9 +106,7 @@ export SENTRY_DSN_SECRET_ARN
 export SENTRY_ENVIRONMENT
 export SENTRY_RELEASE
 export SENTRY_TRACES_SAMPLE_RATE
-export ANALYTICS_SSH_PUBLIC_KEYS
-export ANALYTICS_SSH_ALLOWED_CIDRS
-export ANALYTICS_SSH_USERNAME
+export ANALYTICS_ACCESS_ENABLED
 export ADMIN_EMAILS
 export GLOBAL_METRICS_VISIBLE
 
@@ -148,9 +143,7 @@ values = {
     "sentryTracesSampleRate": os.environ.get("SENTRY_TRACES_SAMPLE_RATE", ""),
     "guestAiWeightedMonthlyTokenCap": os.environ.get("GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP", ""),
     "adminEmails": os.environ.get("ADMIN_EMAILS", ""),
-    "analyticsSshPublicKeys": os.environ.get("ANALYTICS_SSH_PUBLIC_KEYS", ""),
-    "analyticsSshAllowedCidrs": os.environ.get("ANALYTICS_SSH_ALLOWED_CIDRS", ""),
-    "analyticsSshUsername": os.environ.get("ANALYTICS_SSH_USERNAME", ""),
+    "analyticsAccessEnabled": os.environ.get("ANALYTICS_ACCESS_ENABLED", ""),
     "globalMetricsVisible": os.environ.get("GLOBAL_METRICS_VISIBLE", ""),
 }
 data = {key: value for key, value in values.items() if value}
