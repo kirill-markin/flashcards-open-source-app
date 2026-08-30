@@ -528,8 +528,8 @@ export type ProductAnalyticsDrainAbortedDetails = Readonly<{
 // Raised when a drain could not read the replicas its reviews were recorded against, so it could not
 // resolve the platform each review was answered on. Nothing was dropped: the review_answered rows
 // are still emitted and still stored, they just carry a null platform, and an append-only table
-// cannot be corrected of that afterwards. This and the empty read below are the only signals that a
-// per-platform breakdown is quietly going blank while the rows themselves keep arriving.
+// cannot be corrected of that afterwards. This and the incomplete read below are the only signals
+// that a per-platform breakdown is quietly going blank while the rows themselves keep arriving.
 //
 // Deliberately not the write failure above: no event was refused here, so no event count describes
 // what happened. The two numbers that do are the shape of the one lookup that failed -
@@ -544,17 +544,28 @@ export type ProductAnalyticsReviewAnsweredPlatformResolutionFailureDetails = Rea
   errorMessage: string;
 }>;
 
-// Raised when that same read returned no rows at all: it succeeded, and matched none of the replicas
-// the drain asked about. Split from the failure above because Postgres saw nothing wrong - there is
-// no error to carry and nothing to retry - while the outcome for the events is identical, every
-// review of the drain stored with a null platform on a table that cannot be corrected of it.
+// Raised when that same read succeeded but came back without every replica it asked about. Split
+// from the failure above because Postgres saw nothing wrong - there is no error to carry and nothing
+// to retry - while the outcome for the answers it did not resolve is identical, stored with a null
+// platform on a table that cannot be corrected of it.
 //
-// Only the zero-row case, and deliberately not a partial one. A single replica row that no longer
-// exists is ordinary and resolves to null by design; a read that matches nothing is the shape of a
-// scope that stopped reconstructing the review write's own, which would quietly take the platform
-// off every review answered from then on.
-export type ProductAnalyticsReviewAnsweredPlatformResolutionEmptyDetails = Readonly<{
+// One action for the whole shortfall rather than one for the zero-row read and another beside it,
+// because both answer the single question worth asking of this read: did it see every replica it
+// asked for? matchedReplicaCount against replicaIdCount is what separates them, so "0 of 4" and
+// "3 of 4" are read off one record instead of two actions an operator has to know the names of.
+// A partial read is no more ordinary than an empty one: content.review_events.replica_id still
+// references sync.workspace_replicas (0037_workspace_delete_schema_cleanup.sql), so a replica row
+// cannot simply be gone while the review naming it exists, and the row that did not come back is a
+// row this scoped read no longer reaches.
+export type ProductAnalyticsReviewAnsweredPlatformResolutionIncompleteDetails = Readonly<{
+  // Distinct replicas the read asked about, never zero where this is reported.
   replicaIdCount: number;
+  // Rows it came back with, always fewer than replicaIdCount here because replica_id is the primary
+  // key of sync.workspace_replicas and the ids asked for are deduplicated.
+  matchedReplicaCount: number;
+  // Reviews the drain was reporting when the read came back short. Only those recorded against a
+  // missing replica lose their platform, so this bounds the loss rather than counting it, and it is
+  // what separates the single answer of a submitReview from a whole-history import's.
   answerCount: number;
 }>;
 
@@ -659,8 +670,8 @@ export type OperationsWarningEvent =
     ProductAnalyticsReviewAnsweredPlatformResolutionFailureDetails
   >
   | EventByAction<
-    "product_analytics_review_answered_platform_resolution_empty",
-    ProductAnalyticsReviewAnsweredPlatformResolutionEmptyDetails
+    "product_analytics_review_answered_platform_resolution_incomplete",
+    ProductAnalyticsReviewAnsweredPlatformResolutionIncompleteDetails
   >
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>
