@@ -136,11 +136,9 @@ export const directImageIngestionLambdaTimeoutSeconds = 15;
 // they build their pools. Do not hardcode a pool max in either application; a value set there alone
 // would leave these checks passing while the guarantee silently broke.
 //
-// Hard guarantee. db.t4g.micro derives max_connections = LEAST({DBInstanceClassMemory/9531392},
-// 5000) ~= 112, about 3 of which are held for superusers, leaving ~109 usable. The reservations
-// below total 33 containers, so the worst case is 33 x 3 = 99 <= 109. That holds on the current
-// instance and does not depend on an instance-class upgrade landing first. The check under the
-// constants enforces it at synth time.
+// Hard guarantee. The db.t4g.small instance reports max_connections = 181 with 3 held for
+// superusers, leaving 178 usable. The reservations below total 33 containers, so the worst case is
+// 33 x 3 = 99 <= 178. The check under the constants enforces it at synth time.
 //
 // Expected steady state. A warm container holds close to one connection, not the pool ceiling. This
 // is measured, not assumed: during the 2026-08-29 06:40 UTC burst BackendHandler
@@ -148,10 +146,6 @@ export const directImageIngestionLambdaTimeoutSeconds = 15;
 // of about 1.1. So the expected draw here is 33 x ~1.1 ~= 36 connections, comfortably below the 62
 // this instance already carries. databasePoolMaxConnectionsPerContainer is a per-container safety
 // ceiling, not the expected per-container draw.
-//
-// Do not raise the total past 36 containers while the instance is db.t4g.micro: 36 x 3 = 108 is the
-// last allocation the synth check accepts, and it leaves nothing for the carve-outs below. Treat 33
-// as the practical ceiling until the instance grows.
 //
 // Do not lower databasePoolMaxConnectionsPerContainer below
 // minimumDatabasePoolMaxConnectionsPerContainer either. It is a floor, not a lever for fitting more
@@ -180,13 +174,8 @@ export const directImageIngestionLambdaTimeoutSeconds = 15;
 //   and its freshness checker draw on the reporting pool only, and DbMigrationHandler connects with
 //   its own owner credentials, so neither touches this pool.)
 //
-// The honest worst case is therefore 99 from the budget plus those carve-outs, not 99 flat. Against
-// the current ~109 that is tight and the remaining headroom is deliberately thin: do not read
-// 109 - 99 = 10 as room to grow the allocation toward 36 containers. The db.t4g.small upgrade takes
-// effect at the next sun:03:00-sun:03:30 UTC maintenance window and roughly doubles the derived
-// ceiling to ~225, about ~222 usable, where the full pessimistic figure fits comfortably. Raise
-// usableDatabaseConnections only once that window has passed and the new max_connections is
-// confirmed on the instance.
+// The honest worst case is therefore 99 from the budget plus those carve-outs, not 99 flat, and the
+// 178 - 99 = 79 left over covers them comfortably.
 //
 // Once a reservation saturates, Lambda throttles and the caller sees a gateway error. That bounded,
 // observable rejection is the intended trade against an unbounded database outage.
@@ -198,7 +187,7 @@ export const databasePoolMaxConnectionsPerContainer = 3;
 // import this file, so each keeps its own copy where it builds its pool and this one exists to stop
 // an unrunnable value from being synthesized in the first place.
 const minimumDatabasePoolMaxConnectionsPerContainer = 3;
-export const usableDatabaseConnections = 109;
+export const usableDatabaseConnections = 178;
 // Read by apps/backend/src/database/core.ts and apps/auth/src/db.ts when they build their pools.
 // Set it on every function that opens one of those pools and carries a reservation above.
 export const databasePoolMaxConnectionsEnvName = "DB_POOL_MAX_CONNECTIONS";

@@ -175,14 +175,11 @@ VITE_SENTRY_DSN="${VITE_SENTRY_DSN:-}"
 VITE_SENTRY_TRACES_SAMPLE_RATE="${VITE_SENTRY_TRACES_SAMPLE_RATE:-0}"
 SENTRY_WEB_PROJECT="${SENTRY_WEB_PROJECT:-}"
 SENTRY_AUTH_TOKEN="${SENTRY_AUTH_TOKEN:-}"
-ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
-ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
-ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
+ANALYTICS_ACCESS_ENABLED="${ANALYTICS_ACCESS_ENABLED:-}"
 GLOBAL_METRICS_VISIBLE="${GLOBAL_METRICS_VISIBLE:-}"
-if [[ -n "${ANALYTICS_SSH_PUBLIC_KEYS}" || -n "${ANALYTICS_SSH_ALLOWED_CIDRS}" || -n "${ANALYTICS_SSH_USERNAME}" ]]; then
-  require_non_empty_value "${ANALYTICS_SSH_PUBLIC_KEYS}" "Set ANALYTICS_SSH_PUBLIC_KEYS in root .env before running setup-github.sh when enabling analytical SSH access." >/dev/null
-  require_non_empty_value "${ANALYTICS_SSH_ALLOWED_CIDRS}" "Set ANALYTICS_SSH_ALLOWED_CIDRS in root .env before running setup-github.sh when enabling analytical SSH access." >/dev/null
-  require_non_empty_value "${ANALYTICS_SSH_USERNAME}" "Set ANALYTICS_SSH_USERNAME in root .env before running setup-github.sh when enabling analytical SSH access." >/dev/null
+if [[ -n "${ANALYTICS_ACCESS_ENABLED}" && "${ANALYTICS_ACCESS_ENABLED}" != "true" && "${ANALYTICS_ACCESS_ENABLED}" != "false" ]]; then
+  echo "ERROR: Set ANALYTICS_ACCESS_ENABLED in root .env to true or false, or leave it unset to keep the analytical bastion." >&2
+  exit 1
 fi
 RESEND_SENDER_EMAIL=""
 
@@ -234,9 +231,7 @@ set_variable_if_missing CDK_GLOBAL_METRICS_VISIBLE "$GLOBAL_METRICS_VISIBLE"
 # GitHub is the deploy-time source of truth for this non-secret CI input,
 # so later admin-list changes must be edited manually in GitHub or via `gh`.
 set_variable_if_missing CDK_ADMIN_EMAILS "$ADMIN_EMAILS"
-set_variable_if_missing CDK_ANALYTICS_SSH_PUBLIC_KEYS "$ANALYTICS_SSH_PUBLIC_KEYS"
-set_variable_if_missing CDK_ANALYTICS_SSH_ALLOWED_CIDRS "$ANALYTICS_SSH_ALLOWED_CIDRS"
-set_variable_if_missing CDK_ANALYTICS_SSH_USERNAME "$ANALYTICS_SSH_USERNAME"
+set_variable_if_missing CDK_ANALYTICS_ACCESS_ENABLED "$ANALYTICS_ACCESS_ENABLED"
 
 set_secret_if_missing AWS_DEPLOY_ROLE_ARN "$DEPLOY_ROLE_ARN"
 set_required_secret_if_missing SENTRY_AUTH_TOKEN "$SENTRY_AUTH_TOKEN" "Set SENTRY_AUTH_TOKEN in root .env before running setup-github.sh."
