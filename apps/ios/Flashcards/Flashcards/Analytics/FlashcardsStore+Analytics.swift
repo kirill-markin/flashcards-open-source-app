@@ -126,8 +126,10 @@ func analyticsSignInFailureReason(error: Error) -> AnalyticsSignInFailureReason 
     switch details.code {
     case "OTP_CODE_INVALID", "INVALID_EMAIL":
         return .invalidCode
-    case "OTP_SESSION_EXPIRED", "OTP_CHALLENGE_CONSUMED":
+    case "OTP_SESSION_EXPIRED":
         return .expiredCode
+    case "OTP_CHALLENGE_CONSUMED":
+        return .codeAlreadyUsed
     case "OTP_TOO_MANY_ATTEMPTS":
         return .rateLimited
     default:
