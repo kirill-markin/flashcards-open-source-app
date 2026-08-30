@@ -53,7 +53,7 @@ app.get("/logout-local", async (c) => {
 
   clearBrowserSessionCookies(c);
   // The account this browser measured under has been deleted, so its visitor identity is retired
-  // with it, for the reason spelled out in logoutPage.ts.
+  // with it, under the rule in `clearAuthAnalyticsVisitor`'s docstring.
   clearAuthAnalyticsVisitor(c);
   return c.redirect(appendAccountDeletedMarkers(redirectUri), 302);
 });

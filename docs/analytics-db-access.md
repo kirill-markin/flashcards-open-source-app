@@ -6,46 +6,32 @@ This document describes the supported analytical access paths for the persistent
 
 The supported read-only access paths are:
 
-- manual/operator analytics and Metabase-style tunneling without making the production RDS instance itself publicly reachable
+- manual/operator analytics through an SSM tunnel, without making the production RDS instance itself publicly reachable
 - controlled server-side admin analytics where the backend Lambda runs read-only admin reporting SQL inside the VPC
 
 The `reporting_readonly` role is part of the baseline schema in every environment. When analytical access is enabled, the stack also creates:
 
-- an EC2 bastion host dedicated to analytical tunneling, reachable both through AWS Systems Manager Session Manager and through public SSH
+- an EC2 bastion host dedicated to analytical tunneling, reachable only through AWS Systems Manager Session Manager
 - an instance role with the AWS managed policy `AmazonSSMManagedInstanceCore`, which is what registers the bastion with Systems Manager
 - a private network path from that bastion host to the RDS instance on `5432`
 
-The current `reporting_readonly` password secret is also part of the baseline infrastructure in every environment, even when the SSH bastion is disabled. The deployed backend Lambda uses that same role for server-side admin analytics through a separate read-only pool and without SSH.
+The bastion exposes no public port and its security group has no ingress rules at all. The current `reporting_readonly` password secret is also part of the baseline infrastructure in every environment, even when the bastion is disabled. The deployed backend Lambda uses that same role for server-side admin analytics through a separate read-only pool.
 
 ## How to enable it
 
-Set these values together in the root `.env`:
+Analytical access is enabled by default. A normal deploy creates the bastion with no extra configuration, so a stack can never lose its only database access path by forgetting to set something.
+
+The single optional switch is the root `.env` value:
 
 ```bash
-ANALYTICS_SSH_USERNAME=analytics
-ANALYTICS_SSH_ALLOWED_CIDRS=203.0.113.10/32,198.51.100.0/24
-ANALYTICS_SSH_PUBLIC_KEYS='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKirill kirill@laptop
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleMetabase metabase@cloud'
+ANALYTICS_ACCESS_ENABLED=true
 ```
 
-`ANALYTICS_SSH_PUBLIC_KEYS` is a newline-separated list of public keys. Keep the value shell-quoted in `.env` so the embedded newlines survive `source`.
+`bash scripts/setup/setup-github.sh` copies it into the GitHub Actions variable `CDK_ANALYTICS_ACCESS_ENABLED`, which the deploy workflow turns into the CDK context key `analyticsAccessEnabled`. Only the exact strings `true` and `false` are accepted; anything else fails the synth, and an unset or missing value means enabled.
 
-Then run the normal setup and deploy flow:
+Important: `bash scripts/setup/setup-github.sh` only adds missing GitHub Actions variables and secrets. It does not overwrite `CDK_ANALYTICS_ACCESS_ENABLED` once it already exists in GitHub.
 
-```bash
-bash scripts/setup/setup-github.sh
-```
-
-and deploy through the normal AWS release path.
-
-Important: `bash scripts/setup/setup-github.sh` only adds missing GitHub Actions variables and secrets. It does not remove or overwrite existing analytical SSH variables once they already exist in GitHub.
-
-## How to disable it
-
-To disable the analytical SSH bastion after it was previously enabled:
-
-1. Remove `ANALYTICS_SSH_PUBLIC_KEYS`, `ANALYTICS_SSH_ALLOWED_CIDRS`, and `ANALYTICS_SSH_USERNAME` from the root `.env`.
-2. Delete these GitHub Actions variables manually:
+An installation that predates the SSH removal must delete these now-stale GitHub Actions variables, because nothing reads them any more:
 
 ```bash
 gh variable delete CDK_ANALYTICS_SSH_PUBLIC_KEYS --repo kirill-markin/flashcards-open-source-app
@@ -53,16 +39,26 @@ gh variable delete CDK_ANALYTICS_SSH_ALLOWED_CIDRS --repo kirill-markin/flashcar
 gh variable delete CDK_ANALYTICS_SSH_USERNAME --repo kirill-markin/flashcards-open-source-app
 ```
 
-3. Trigger the normal AWS deploy flow so CloudFormation removes the analytical access resources.
-4. Confirm that these stack outputs are gone after deploy:
-   - `AnalyticsSshHost`
-   - `AnalyticsSshPort`
-   - `AnalyticsSshUsername`
-   - `AnalyticsSsmInstanceId`
+The matching `ANALYTICS_SSH_USERNAME`, `ANALYTICS_SSH_ALLOWED_CIDRS`, and `ANALYTICS_SSH_PUBLIC_KEYS` entries in root `.env` are dead too and should be removed.
+
+An installation that never enabled analytical access is affected in the opposite direction. Analytical access used to be opt-in and is now on by default, so the next AWS deploy creates the bastion, its instance role, and the `5432` ingress rule into the database security group even though that installation changed nothing. To keep it off, set `ANALYTICS_ACCESS_ENABLED=false` in root `.env` and `CDK_ANALYTICS_ACCESS_ENABLED=false` in GitHub before that deploy, as described in [How to disable it](#how-to-disable-it).
+
+## How to disable it
+
+To remove the analytical bastion:
+
+1. Set the GitHub Actions variable to `false`:
+
+```bash
+gh variable set CDK_ANALYTICS_ACCESS_ENABLED --body false --repo kirill-markin/flashcards-open-source-app
+```
+
+2. Trigger the normal AWS deploy flow so CloudFormation removes the analytical access resources.
+3. Confirm that the `AnalyticsSsmInstanceId` stack output is gone after deploy.
 
 Important current behavior: this disable flow removes the AWS-side bastion path only. It does not remove the baseline Postgres role `reporting_readonly`, its read grants, or the current reporting password secret/output used by server-side admin analytics.
 
-That means disabling analytics SSH access should be treated as removing the bastion and both of its operator access paths, SSH and SSM. It should not be treated as a full schema-level removal of `reporting_readonly`.
+That means disabling analytical access should be treated as removing the bastion and the operator tunnel it carries. It should not be treated as a full schema-level removal of `reporting_readonly`.
 
 ## What gets exposed
 
@@ -74,9 +70,6 @@ After deployment, CloudFormation always includes:
 When analytical access is enabled, CloudFormation also includes:
 
 - `AnalyticsSsmInstanceId`
-- `AnalyticsSshHost`
-- `AnalyticsSshPort`
-- `AnalyticsSshUsername`
 
 Use those outputs as the source of truth for connection settings.
 
@@ -86,13 +79,11 @@ The supported operator shortcut is:
 bash scripts/setup/get-analytics-db-access.sh --stack-name FlashcardsOpenSourceApp
 ```
 
-That helper reads the current stack outputs, resolves the current reporting secret by ARN, and prints a JSON bundle with the current SSM, SSH, database, and password values.
+That helper reads the current stack outputs, resolves the current reporting secret by ARN, and prints a JSON bundle with the current SSM, database, and password values. It fails when `AnalyticsSsmInstanceId` is missing, because that output is the whole operator path.
 
-The SSM path is additive, so `ssmInstanceId` is empty on any stack that has not yet deployed it. The helper only notes that on stderr and still prints the SSH, database, and password values, which remain the working path in that window.
+## Operator path: SSM port forwarding
 
-## Preferred operator path: SSM port forwarding
-
-Session Manager port forwarding is the preferred supported operator path. It works from any network, needs no inbound port on the bastion, and needs no entry in `ANALYTICS_SSH_ALLOWED_CIDRS`, because the tunnel is established outbound by the SSM Agent on the bastion.
+Session Manager port forwarding is the only supported operator path. It works from any network and needs no inbound port on the bastion, because the tunnel is established outbound by the SSM Agent on the bastion.
 
 Local prerequisite: the AWS CLI plus the `session-manager-plugin`, which the AWS CLI shells out to for `aws ssm start-session`.
 
@@ -100,7 +91,7 @@ Local prerequisite: the AWS CLI plus the `session-manager-plugin`, which the AWS
 brew install --cask session-manager-plugin
 ```
 
-Operator IAM prerequisite: credentials allowed to `ssm:StartSession` on the bastion instance and on `arn:aws:ssm:<region>::document/AWS-StartPortForwardingSessionToRemoteHost`, plus `ssm:TerminateSession` and `ssm:ResumeSession` on their own `arn:aws:ssm:*:*:session/*` sessions, plus `ssm:DescribeInstanceInformation` for the registration check below. No SSH key and no source-IP allowlist entry are involved.
+Operator IAM prerequisite: credentials allowed to `ssm:StartSession` on the bastion instance and on `arn:aws:ssm:<region>::document/AWS-StartPortForwardingSessionToRemoteHost`, plus `ssm:TerminateSession` and `ssm:ResumeSession` on their own `arn:aws:ssm:*:*:session/*` sessions, plus `ssm:DescribeInstanceInformation` for the registration check below.
 
 Verify that the bastion is registered with Systems Manager before opening a tunnel:
 
@@ -109,7 +100,15 @@ aws ssm describe-instance-information \
   --filters Key=InstanceIds,Values=<AnalyticsSsmInstanceId>
 ```
 
-An empty result right after a deploy is normal rather than a broken deploy: the SSM Agent backs off while it has no credentials, so an already-running bastion that has just been given its instance role can take several minutes to appear. Retry before investigating further.
+An empty result right after a deploy is normal rather than a broken deploy: the SSM Agent takes a few minutes to register, and it backs off for longer while it still has no credentials. Retry before investigating further.
+
+If the bastion still does not register after several minutes, reboot it and re-run the check above. An SSM Agent that came up before its instance role was usable keeps backing off until it restarts, and this bastion has already needed that once:
+
+```bash
+aws ec2 reboot-instances --instance-ids <AnalyticsSsmInstanceId>
+```
+
+A deploy that changes the bastion may also change its instance id, so re-read `AnalyticsSsmInstanceId` from the current stack outputs instead of reusing a previously noted id.
 
 Open the tunnel with the instance id from `AnalyticsSsmInstanceId`:
 
@@ -120,24 +119,13 @@ aws ssm start-session \
   --parameters '{"host":["<DbEndpoint>"],"portNumber":["5432"],"localPortNumber":["15432"]}'
 ```
 
-The session forwards `127.0.0.1:15432` to `<DbEndpoint>:5432` through the bastion, so every local client step below is identical to the SSH path.
+The session forwards `127.0.0.1:15432` to `<DbEndpoint>:5432` through the bastion, so local clients below connect as if the database were local.
 
-The two paths are not equally narrow. The SSH path is restricted by sshd to a tunnel into `<DbEndpoint>:5432` with no interactive shell, while `AmazonSSMManagedInstanceCore` registers the bastion with Session Manager generally, so a principal holding `ssm:StartSession` on it also gets an interactive shell on the bastion and port forwarding to any host reachable from it. That is accepted here because the only principals holding `ssm:StartSession` in this account are already account administrators.
-
-The public SSH path described in the rest of this document is still deployed and still supported. It is kept until the SSM path is confirmed in production, and it stays the path used by tools such as Metabase that speak SSH rather than SSM.
+The tunnel is not narrow. `AmazonSSMManagedInstanceCore` registers the bastion with Session Manager generally, so a principal holding `ssm:StartSession` on it also gets an interactive shell on the bastion and port forwarding to any host reachable from it. That is accepted here because the only principals holding `ssm:StartSession` in this account are already account administrators, so narrowing the session with a preferences document or an IAM condition would buy nothing real.
 
 ## Bastion behavior
 
-The bastion host is public only for SSH and is expected to be protected by:
-
-- `22/tcp` ingress limited to `ANALYTICS_SSH_ALLOWED_CIDRS`
-- SSH key authentication only
-- `PasswordAuthentication no`
-- `AllowTcpForwarding yes`
-- `PermitOpen <DbEndpoint>:5432`
-- no interactive shell access for the analytics SSH user
-
-These properties describe the SSH path. Over SSH the bastion exists only to forward traffic into the private database network: the RDS instance remains private, and the analytics SSH user is tunnel-only rather than a general shell user. The SSM path is not constrained by sshd, as described above.
+The bastion security group has no ingress rules, so nothing on the internet can open a connection to the host. Its only inbound reachability is the outbound session channel the SSM Agent maintains, and its only privileged network position is the `5432` rule that lets its security group reach the RDS instance. The RDS instance itself stays private.
 
 ## Database role: `reporting_readonly`
 
@@ -162,7 +150,7 @@ The baseline schema migration also enforces the persistent runtime policy for th
 
 Privileged role attributes such as `NOSUPERUSER` and `NOREPLICATION` are currently outside the normal migration path on RDS/PostgreSQL 18 and are not managed here.
 
-Important current behavior: this role is intentionally persistent across later bastion disablement because it is part of the baseline schema. The disable flow removes the bastion and both of its operator access paths, SSH and SSM, while leaving this role, its grants, and the reporting secret in place.
+Important current behavior: this role is intentionally persistent across later bastion disablement because it is part of the baseline schema. The disable flow removes the bastion and the operator tunnel it carries, while leaving this role, its grants, and the reporting secret in place.
 
 ## Granted schemas
 
@@ -234,9 +222,6 @@ Example output:
 
 ```json
 {
-  "sshHost": "ec2-203-0-113-10.eu-central-1.compute.amazonaws.com",
-  "sshPort": "22",
-  "sshUsername": "analytics",
   "ssmInstanceId": "i-0123456789abcdef0",
   "dbEndpoint": "flashcards-db.abcdefghijkl.eu-central-1.rds.amazonaws.com",
   "dbName": "flashcards",
@@ -255,23 +240,13 @@ aws secretsmanager get-secret-value \
   --output text
 ```
 
-3. Start a local tunnel. Preferred, with SSM port forwarding as described above:
+3. Start a local tunnel with SSM port forwarding as described above:
 
 ```bash
 aws ssm start-session \
   --target <ssmInstanceId> \
   --document-name AWS-StartPortForwardingSessionToRemoteHost \
   --parameters '{"host":["<dbEndpoint>"],"portNumber":["5432"],"localPortNumber":["15432"]}'
-```
-
-Or over the still-supported SSH path:
-
-```bash
-ssh -N \
-  -L 15432:<DbEndpoint>:5432 \
-  -i ~/.ssh/your-analytics-key \
-  <AnalyticsSshUsername>@<AnalyticsSshHost> \
-  -p <AnalyticsSshPort>
 ```
 
 4. Connect locally with `psql` or a SQL client:
@@ -281,33 +256,6 @@ psql "postgresql://<dbUsername>:<password>@127.0.0.1:15432/<dbName>?sslmode=requ
 ```
 
 The same tunnel can be reused by local desktop clients such as DataGrip or DBeaver by pointing them at `127.0.0.1:15432`.
-
-If you try a plain `ssh <AnalyticsSshUsername>@<AnalyticsSshHost> -p <AnalyticsSshPort>`, the connection is expected to refuse interactive shell access. That is intentional. To verify access, test an actual tunnel command instead.
-
-## Metabase SSH tunnel setup
-
-Configure the Postgres connection in Metabase like this:
-
-- `Use an SSH tunnel for database connections`: `Yes`
-- `Host`: `<DbEndpoint>`
-- `Port`: `5432`
-- `Database name`: `flashcards`
-- `Username`: `reporting_readonly`
-- `Password`: from the helper script JSON bundle or from `ReportingDbSecretArn`
-- `SSH tunnel host`: `<AnalyticsSshHost>`
-- `SSH tunnel port`: `<AnalyticsSshPort>`
-- `SSH tunnel username`: `<AnalyticsSshUsername>`
-- `SSH authentication`: `SSH Key`
-- `SSH private key`: the private key paired with one of the configured public keys
-
-Metabase should query the private RDS endpoint through the bastion. It should not target the bastion host as the Postgres host.
-
-This stack still matches Metabase's SSH tunneling requirements:
-
-- the bastion accepts SSH key authentication
-- `AllowTcpForwarding` is enabled
-- the allowed tunnel destination is restricted to `<DbEndpoint>:5432`
-- no shell access is required for the Metabase connection flow
 
 The reporting password secret now uses a stable baseline Secrets Manager name, but the supported operator discovery path remains the current `ReportingDbSecretArn` stack output and the helper script that resolves it. The deployed migration runner uses that secret to rotate the current database password without changing the schema-owned role policy.
 
