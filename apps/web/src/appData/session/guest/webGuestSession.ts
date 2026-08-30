@@ -247,9 +247,9 @@ export function readWebGuestSessionLinkAccountId(): string | null {
 
 /**
  * Records the account an envelope is being offered to, before the offer is made rather than after it
- * is answered: a `5xx` may commit the link and lose the revoke, and a tab closed mid-retry runs no
- * completion path at all, so an envelope that is still in storage afterwards must already carry the
- * account it was spent on.
+ * is answered: a tab closed mid-retry runs no completion path at all, and a response lost after the
+ * commit landed leaves this browser unable to tell a claimed guest from an unclaimed one — so an
+ * envelope still in storage afterwards must already carry the account it was spent on.
  *
  * Guarded on the stored envelope still being the one that is being offered, so that this can only
  * ever describe what is actually in storage: a stamp written over a dropped envelope would outlive
