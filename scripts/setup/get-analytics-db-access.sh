@@ -15,6 +15,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# bash 3.2 treats expanding an empty array under set -u as an unbound variable.
 AWS_REGION_ARGS=()
 if [[ -n "$REGION" ]]; then
   AWS_REGION_ARGS=(--region "$REGION")
@@ -23,7 +24,7 @@ fi
 get_stack_output() {
   local output_key="$1"
 
-  aws "${AWS_REGION_ARGS[@]}" cloudformation describe-stacks \
+  aws "${AWS_REGION_ARGS[@]+"${AWS_REGION_ARGS[@]}"}" cloudformation describe-stacks \
     --stack-name "$STACK_NAME" \
     --query "Stacks[0].Outputs[?OutputKey=='${output_key}'].OutputValue" \
     --output text
@@ -60,7 +61,7 @@ if [[ -z "$SECRET_ARN" || "$SECRET_ARN" == "None" ]]; then
   exit 1
 fi
 
-SECRET_JSON="$(aws "${AWS_REGION_ARGS[@]}" secretsmanager get-secret-value \
+SECRET_JSON="$(aws "${AWS_REGION_ARGS[@]+"${AWS_REGION_ARGS[@]}"}" secretsmanager get-secret-value \
   --secret-id "$SECRET_ARN" \
   --query 'SecretString' \
   --output text)"
