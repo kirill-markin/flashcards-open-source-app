@@ -111,11 +111,13 @@ function decodePayload(encodedPayload: string): ChatLiveAuthPayload {
 }
 
 function isMatchingSignature(expected: string, actual: string): boolean {
-  if (expected.length !== actual.length) {
+  const expectedBytes = Buffer.from(expected);
+  const actualBytes = Buffer.from(actual);
+  if (expectedBytes.length !== actualBytes.length) {
     return false;
   }
 
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(actual));
+  return timingSafeEqual(expectedBytes, actualBytes);
 }
 
 export async function createChatLiveStreamEnvelope(
