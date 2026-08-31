@@ -20,8 +20,9 @@ import type {
 const eventIdNotUuidV7Violation = "event_id_not_uuid_v7";
 
 // Reported to Sentry as a per-event contract violation. occurred_at_out_of_window is deliberately
-// absent: a device with a wrong clock is a fleet-wide rate to watch on a CloudWatch alarm, not an
-// issue to open per release.
+// absent because a device with a wrong clock is a fleet-wide rate to watch on a CloudWatch alarm.
+// retired_event_name is also absent: it marks an expected queued remnant from an older client, not a
+// broken current release.
 const sentryReportedRejectionReasons: ReadonlySet<ProductAnalyticsRejectionReason> = new Set([
   "invalid_event",
   "event_too_large",

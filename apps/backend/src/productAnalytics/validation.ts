@@ -4,6 +4,7 @@ import type { HttpErrorDetails, ValidationIssueSummary } from "../shared/errors"
 import {
   findProductAnalyticsEventDefinition,
   isPlainObject,
+  isRetiredProductAnalyticsClientEventName,
   parseProductAnalyticsExperimentAssignments,
   productAnalyticsNetworkStateSchema,
   productAnalyticsPropertyKeyLimit,
@@ -254,7 +255,12 @@ function validateEvent(
 
   const definition = findProductAnalyticsEventDefinition(event.eventName);
   if (definition === null) {
-    return reject(event.eventId, "unknown_event_name");
+    return reject(
+      event.eventId,
+      isRetiredProductAnalyticsClientEventName(event.eventName)
+        ? "retired_event_name"
+        : "unknown_event_name",
+    );
   }
 
   // A server-derived event records something the backend observed itself. Accepting one here would
