@@ -270,11 +270,9 @@ export function addProductAnalyticsMonitoring(
   // someone reading these records would look.
   const backendLogGroup = props.backendFn.logGroup;
 
-  // `contractRejectedCount` is emitted by the route as `rejectedCount` minus `outOfWindowCount`
-  // rather than being derived here. A metric filter cannot subtract one field from another, and the
-  // alternative - two filter metrics differenced by a MathExpression - would make this alarm depend
-  // on how two independently published metrics line up in a period. The subtraction has to happen
-  // somewhere, and the only place that knows the two counts describe the same batch is the route.
+  // `contractRejectedCount` is emitted by the route after excluding out-of-window events and exact
+  // retired-name tombstones rather than being derived here. A metric filter cannot classify one
+  // field from another, and the only place that knows every rejection reason is the route.
   const productAnalyticsContractRejectedMetricFilter = new logs.MetricFilter(
     scope,
     "ProductAnalyticsContractRejectedMetricFilter",
@@ -290,8 +288,9 @@ export function addProductAnalyticsMonitoring(
 
   // A contract rejection answers 200 with per-event results, so it touches neither the 4xx nor the
   // 5xx alarm above: nothing else in this stack can see a client release sending events this backend
-  // refuses. Out-of-window rejections are excluded from this count on purpose - they mean a device
-  // clock, not a client off contract, and they have their own alarm below.
+  // refuses. Out-of-window rejections are excluded on purpose because they mean a device clock and
+  // have their own alarm below. Exact retired-name tombstones are also excluded because they are an
+  // expected old-client queue tail rather than evidence that a current release is broken.
   props.notifyAlert(new cloudwatch.Alarm(scope, "ProductAnalyticsContractRejectionAlarm", {
     metric: productAnalyticsContractRejectedMetricFilter.metric({
       period: cdk.Duration.minutes(productAnalyticsAlarmPeriodMinutes),

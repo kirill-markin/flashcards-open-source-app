@@ -417,6 +417,19 @@ export const productAnalyticsEventCatalog = {
   },
 } as const satisfies Readonly<Record<string, ProductAnalyticsEventSpec>>;
 
+// Exact compatibility tombstones for client events intentionally removed from the active catalog.
+// Keeping them outside productAnalyticsEventCatalog makes them impossible to accept or store, while
+// client ingest can distinguish a valid queued remnant from a genuinely unknown event name.
+const retiredProductAnalyticsClientEventNames: ReadonlySet<string> = new Set([
+  "onboarding_step_completed",
+  "review_session_started",
+  "review_session_ended",
+]);
+
+export function isRetiredProductAnalyticsClientEventName(eventName: string): boolean {
+  return retiredProductAnalyticsClientEventNames.has(eventName);
+}
+
 export const productAnalyticsSurfaceSchema = z.enum(productAnalyticsSurfaces);
 export const productAnalyticsNetworkStateSchema = z.enum(productAnalyticsNetworkStates);
 
