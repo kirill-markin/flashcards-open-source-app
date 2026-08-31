@@ -81,7 +81,7 @@ export const platformLabels: Readonly<Record<ReviewEventPlatform, string>> = {
   // A row lands here because its `platform` column is NULL, which means no resolved device fact:
   // either the actor behind it is not a device, or no device could be resolved for it. It is kept as
   // its own series so it can never be read as a device or summed into one.
-  unattributed: "No device",
+  unattributed: "Unresolved",
 };
 
 const platformColors: Readonly<Record<ReviewEventPlatform, string>> = {
