@@ -172,9 +172,8 @@ function toContentCreationEvent(
     // to 'web' that describes no device, the machine API's agent_connection replica stores 'web'
     // while being no browser, and workspace_seed and workspace_reset store 'system'. Cards and decks
     // really are written by all of those, so this is the producer most likely to be handed a
-    // misleading replica. Reading the row would also cost one query per created row, which this path
-    // must not add. A missing platform leaves these rows out of a per-platform breakdown; a guessed
-    // one would file them under a platform they never had, permanently.
+    // misleading replica. A missing platform leaves these rows out of a per-platform breakdown; a
+    // guessed one would file them under a platform they never had, permanently.
     platform: null,
     properties: {},
     // Provenance about how a row was produced belongs to the backfill that reconstructs history.
