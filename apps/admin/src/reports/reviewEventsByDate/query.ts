@@ -591,7 +591,8 @@ export function buildReviewEventsByDateDefaultRangeSql(): string {
 //
 // PLATFORM IS READ OFF THE ROW AND NEVER DERIVED. The producer derives it once per drain from the
 // replica that recorded the review (`apps/backend/src/productAnalytics/reviewAnswers.ts`), and
-// migration `0122` filled the same value on the history `0120` reconstructed. That derivation reads
+// migration `0122` filled the same value on the history `0120` reconstructed, `0123` on the live
+// rows the producer wrote before it could resolve one. That derivation reads
 // `sync.workspace_replicas.platform` only together with `actor_kind` on the same row, so a value
 // appears only for a `client_installation` replica on 'ios', 'android' or 'web': an
 // `agent_connection` replica stores 'web' for the machine API, an `ai_chat` replica stores a
@@ -635,7 +636,7 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
     // `occurred_at` is the client clock, kept only inside a 30-day window that ends at a server
     // anchor and replaced by that anchor outside the window in EITHER direction - too far in the
     // future and too far in the past alike (`resolveReviewAnsweredOccurredAt`,
-    // `apps/backend/src/productAnalytics/reviewAnswers.ts:182-197`, against
+    // `apps/backend/src/productAnalytics/reviewAnswers.ts:189-204`, against
     // `productAnalyticsMaxEventAgeMs` at `validation.ts:24`; `0120:645-650` applies the identical
     // rule as `INTERVAL '720 hours'`, and that backfill produced almost all of the history below).
     // Inside the window this is the day the person answered rather than the day the answer synced,
