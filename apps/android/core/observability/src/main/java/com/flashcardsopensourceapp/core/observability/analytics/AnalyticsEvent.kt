@@ -21,9 +21,9 @@ package com.flashcardsopensourceapp.core.observability.analytics
  * `friendship_created`, `ai_message_sent` and `catalog_deck_installed`. A client batch that
  * contains any of them is rejected, so they are absent here on purpose.
  *
- * `onboarding_step_completed`, `review_session_started` and `review_session_ended` were removed
- * from the catalog outright, so the server no longer declares them and rejects them as unknown
- * event names.
+ * `onboarding_step_completed`, `review_session_started` and `review_session_ended` remain outside
+ * the active catalog. The server keeps exact backend-only tombstones for old queued copies and
+ * rejects them `retired_event_name`.
  *
  * Two client events the catalog declares are absent because this client does not observe them yet
  * rather than because it may not send them: `signin_code_requested` and `signin_succeeded`.

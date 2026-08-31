@@ -327,9 +327,9 @@ export type ProductAnalyticsIngestDetails = Readonly<{
   acceptedCount: number | null;
   rejectedCount: number | null;
   outOfWindowCount: number | null;
-  // rejectedCount minus outOfWindowCount, emitted rather than derived: an out-of-window rejection is
-  // a device clock and a contract rejection is a broken client, they are watched by two different
-  // alarms, and a CloudWatch metric filter cannot subtract one field of a record from another.
+  // The rejected events that indicate a current contract violation. Out-of-window events are device
+  // clock failures and exact retired-name tombstones are expected old-client remnants, so neither is
+  // included; a CloudWatch metric filter cannot derive this classification from rejectedCount.
   contractRejectedCount: number | null;
   storedCount: number | null;
   // null when the batch carried no identity link statement at all, which is every guest batch, every

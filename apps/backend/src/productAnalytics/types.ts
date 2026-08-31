@@ -49,6 +49,7 @@ export type ProductAnalyticsRejectionReason =
   | "unknown_field"
   | "server_owned_field"
   | "unknown_event_name"
+  | "retired_event_name"
   | "server_only_event"
   | "missing_screen"
   | "too_many_properties"
