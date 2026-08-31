@@ -57,9 +57,10 @@ const productAnalyticsOutOfWindowMetricName: string = "OccurredAtOutOfWindowEven
 // client contract publishes - 25 per period twice over needs several users at once on the broken
 // build, and a launch-day client at 3am can stay under it indefinitely.
 //
-// What covers that gap is not this alarm and not the client's own accounting: it is the route's
+// What covers that gap is not this alarm and not the client's own accounting: it is the backend's
 // Sentry capture of contract violations (`captureContractViolations` in
-// apps/backend/src/routes/productAnalytics.ts, emitted as `analytics_contract_violation`). It opens
+// apps/backend/src/productAnalytics/contractViolationReporting.ts, emitted as
+// `analytics_contract_violation`). It opens
 // one issue per fingerprint rather than per volume, so one install on a broken build is enough, and
 // it is the only place the `event_id_not_uuid_v7` violation is visible at all - the client is told a
 // generic `invalid_event`. Do not remove it on the strength of this alarm.
