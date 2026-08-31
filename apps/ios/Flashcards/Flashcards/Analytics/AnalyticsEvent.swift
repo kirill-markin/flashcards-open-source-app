@@ -23,9 +23,9 @@ import Foundation
  * other producers already report them is not this file's to track; the catalog entry is where their
  * shape is defined.
  *
- * `onboarding_step_completed`, `review_session_started` and `review_session_ended` were removed
- * from the catalog outright, so the server no longer declares them and rejects them as unknown
- * event names.
+ * `onboarding_step_completed`, `review_session_started` and `review_session_ended` remain outside
+ * the active catalog. The server keeps exact backend-only tombstones for old queued copies and
+ * rejects them `retired_event_name`.
  */
 enum AnalyticsEvent: Sendable, Equatable {
     case appOpened(launchType: AnalyticsLaunchType)

@@ -60,8 +60,9 @@ const productAnalyticsJsonBodyMaxBytes = 256 * 1024;
 const eventIdNotUuidV7Violation = "event_id_not_uuid_v7";
 
 // Reported to Sentry as a per-event contract violation. occurred_at_out_of_window is deliberately
-// absent: a device with a wrong clock is a fleet-wide rate to watch on a CloudWatch alarm, not an
-// issue to open per release.
+// absent because a device with a wrong clock is a fleet-wide rate to watch on a CloudWatch alarm.
+// retired_event_name is also absent: it marks an expected queued remnant from an older client, not a
+// broken current release.
 const sentryReportedRejectionReasons: ReadonlySet<ProductAnalyticsRejectionReason> = new Set([
   "invalid_event",
   "event_too_large",
@@ -550,15 +551,21 @@ function captureBatchViolation(
 }
 
 // An occurred_at_out_of_window rejection means a device clock rather than a client off contract, so
-// the two are counted apart on the ingest record: the clock signal is routed to its own alarm and is
-// deliberately kept out of Sentry, while every other rejection reason is a broken client release.
-// infra/aws/lib/product-analytics-monitoring.ts alarms on the difference directly, so the record
-// carries it as its own field: a CloudWatch metric filter can read a field but cannot subtract one
-// field from another, and this is the only place that knows the two counts describe the same batch.
+// the clock signal is routed to its own alarm. A retired_event_name rejection is an expected queued
+// remnant from an older client. Both remain ordinary rejections but are excluded from the broken-
+// contract signal and Sentry; every other rejection reason still represents a current violation.
 function countOutOfWindowRejections(
   rejected: ReadonlyArray<ProductAnalyticsRejectedEvent>,
 ): number {
   return rejected.filter((event) => event.reason === "occurred_at_out_of_window").length;
+}
+
+function countContractRejections(
+  rejected: ReadonlyArray<ProductAnalyticsRejectedEvent>,
+): number {
+  return rejected.filter(
+    (event) => event.reason !== "occurred_at_out_of_window" && event.reason !== "retired_event_name",
+  ).length;
 }
 
 function toIdentityLinkPairKey(anonymousId: string, userId: string): string {
@@ -795,6 +802,7 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
       }
 
       const outOfWindowCount = countOutOfWindowRejections(rejected);
+      const contractRejectedCount = countContractRejections(rejected);
       addBackendBreadcrumb({
         action: "analytics_events_ingest",
         scope,
@@ -808,7 +816,7 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
           acceptedCount: rows.length,
           rejectedCount: rejected.length,
           outOfWindowCount,
-          contractRejectedCount: rejected.length - outOfWindowCount,
+          contractRejectedCount,
           storedCount: stored.storedEventCount,
           // null when this batch carried no link statement, false when the pair was already linked.
           identityLinked: identityLink === null ? null : stored.storedIdentityLinkCount > 0,
@@ -832,6 +840,7 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
       const authTransport = requestContext === null ? "unknown" : requestContext.transport;
       captureBatchViolation(error, facts, authTransport, scope);
       const failedOutOfWindowCount = countOutOfWindowRejections(rejected);
+      const failedContractRejectedCount = countContractRejections(rejected);
       const details = {
         authTransport,
         trustLevel: toFailureTrustLevel(requestContext),
@@ -841,7 +850,7 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
         acceptedCount: rows.length,
         rejectedCount: rejected.length,
         outOfWindowCount: failedOutOfWindowCount,
-        contractRejectedCount: rejected.length - failedOutOfWindowCount,
+        contractRejectedCount: failedContractRejectedCount,
         storedCount: null,
         identityLinked: null,
         ...createBackendFailureDetails(error),
