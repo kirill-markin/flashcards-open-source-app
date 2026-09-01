@@ -259,6 +259,13 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 
+  // Both auth 5xx alarms need two consecutive periods. A saturated authHandlerReservedConcurrency
+  // reservation surfaces as an API Gateway 500 whose integrationStatus is 429, which
+  // infra/aws/lib/gateways/api-gateway.ts documents as the intended bounded rejection protecting the
+  // Postgres connection budget, so a crawler burst contained in one five-minute period is that bound
+  // working rather than an incident. Auth failure that outlasts a burst still pages here, and an
+  // auth host that stops serving pages through the public-endpoint heartbeat alarm on
+  // auth.<baseDomain> within fifteen minutes.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "AuthApiGateway5xxAlarm", {
     metric: new cloudwatch.Metric({
       namespace: "AWS/ApiGateway",
@@ -268,8 +275,10 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       statistic: "Sum",
     }),
     threshold: 3,
-    evaluationPeriods: 1,
-    alarmDescription: "Auth API Gateway returned 3+ server errors in 5 minutes",
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription:
+      "Auth API Gateway returned 3+ server errors in each of two consecutive 5-minute periods",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
@@ -354,8 +363,10 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       statistic: "Sum",
     }),
     threshold: 1,
-    evaluationPeriods: 1,
-    alarmDescription: "Auth API access logs include a 5xx response",
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription:
+      "Auth API access logs include a 5xx response in each of two consecutive 5-minute periods",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
