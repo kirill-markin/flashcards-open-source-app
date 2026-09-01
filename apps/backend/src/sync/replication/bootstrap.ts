@@ -3,7 +3,7 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
-import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/contentCreations";
+import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/serverFacts/contentCreations";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
 import { HttpError } from "../../shared/errors";
 import {

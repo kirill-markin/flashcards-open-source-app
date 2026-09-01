@@ -1,7 +1,7 @@
 // The wall clock one request may spend on analytics after its product transaction committed.
 //
 // Every server-derived producer does its work post-commit, on the request's own clock, and every
-// operation it does there costs up to ~4s: up to analyticsPoolConnectionTimeoutMs (2s, ./writer.ts)
+// operation it does there costs up to ~4s: up to analyticsPoolConnectionTimeoutMs (2s, ../writer.ts)
 // acquiring an analytics connection, then up to 2s under the SET LOCAL statement_timeout = '2s' that
 // runAnalyticsWrite sets. That is paid for a chunk the writer stores just as much as for one it
 // refuses, so no stop rule keyed on refusal alone bounds it.
@@ -26,7 +26,7 @@
 // content-only path alike. The guest upgrade is the one path above that figure, by choice: its
 // analytics identity link is exempt from the stop and always attempted, because it is the one write
 // here with no repair path, so that path's tail is 8.0s + 4.0s = 12.0s and it still keeps 17.0s.
-// ../guestAuth/index.ts states the exemption and what it buys.
+// ../../guestAuth/index.ts states the exemption and what it buys.
 //
 // What each path paid before this file existed: 16.0s on the guest upgrade - an 8.0s content drain
 // plus its two 4.0s writes - 8.0s on the sync push, and nothing at all on the review history import,
@@ -38,12 +38,12 @@
 // SET LOCAL / COMMIT round trips around the insert, nor the first `getAnalyticsPool()` of a cold
 // container, whose getDatabaseUrl() reaches Secrets Manager with SDK timeouts and retries of its own
 // (the product transaction that just committed has normally resolved that already, since
-// ../database/config.ts memoizes it process-wide, but nothing here guarantees it). The first
+// ../../database/config.ts memoizes it process-wide, but nothing here guarantees it). The first
 // post-commit operation of a cold invocation can therefore run past 4s and carry the whole tail past
 // the figures above, so read them as the shape of the bound and not as an unconditional cap.
 // Second, the budget bounds only the stages wired to it - the content creations drain, the review
 // answers drain and the guest upgrade's completion event. recordFriendshipCreatedAnalytics
-// (../community/analytics.ts) runs two sequential post-commit writes, and the catalog install and ai
+// (../../community/analytics.ts) runs two sequential post-commit writes, and the catalog install and ai
 // message producers one each, none of them drawing on a budget, so a request that reaches one of
 // those pays its cost outside this bound; wiring them in is separate work.
 //

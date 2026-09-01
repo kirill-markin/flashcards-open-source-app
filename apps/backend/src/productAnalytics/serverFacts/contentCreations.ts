@@ -2,8 +2,8 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
-} from "../database";
-import { unsafeTransaction } from "../database/unsafe";
+} from "../../database";
+import { unsafeTransaction } from "../../database/unsafe";
 // Report through `observability/runtime`, never through `observability/sentry`. Deck writes reach
 // this module from `decks/index.ts`, which the direct image ingestion Lambda pulls in through
 // `guestAuth/store/decks.ts`, and that bundle deliberately excludes the Sentry SDK -
@@ -17,8 +17,8 @@ import { unsafeTransaction } from "../database/unsafe";
 import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
-} from "../observability/runtime";
-import type { ProductAnalyticsEventName } from "./catalog";
+} from "../../observability/runtime";
+import type { ProductAnalyticsEventName } from "../catalog";
 import {
   createPostCommitAnalyticsBudget,
   type PostCommitAnalyticsBudget,
@@ -28,7 +28,7 @@ import {
   emitServerDerivedProductAnalyticsEvents,
   type ServerDerivedProductAnalyticsEvent,
 } from "./serverEvents";
-import { productAnalyticsMaxEventAgeMs } from "./validation";
+import { productAnalyticsMaxEventAgeMs } from "../validation";
 
 export type ContentCreationEntityType = "card" | "deck";
 

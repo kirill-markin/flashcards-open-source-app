@@ -9,7 +9,7 @@ import type {
   DatabaseExecutor,
   WorkspaceDatabaseScope,
 } from "../../../database";
-import { transactionWithWorkspaceScopeReportingContentCreations } from "../../../productAnalytics/contentCreations";
+import { transactionWithWorkspaceScopeReportingContentCreations } from "../../../productAnalytics/serverFacts/contentCreations";
 import { HttpError } from "../../../shared/errors";
 import { workspacePackageImportZipDefaultMaxCards } from "../importZip";
 import {

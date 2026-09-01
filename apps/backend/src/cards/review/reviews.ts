@@ -17,12 +17,12 @@ import {
 } from "../../sync/conflicts/fork";
 import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../../sync/replication/changes";
 import { getWorkspaceSchedulerConfig } from "../../scheduling/workspaceSettings";
-import { createPostCommitAnalyticsBudget } from "../../productAnalytics/postCommitBudget";
+import { createPostCommitAnalyticsBudget } from "../../productAnalytics/serverFacts/postCommitBudget";
 import {
   collectReviewAnswer,
   runTransactionReportingReviewAnswers,
   type ReviewAnsweredServerAnchor,
-} from "../../productAnalytics/reviewAnswers";
+} from "../../productAnalytics/serverFacts/reviewAnswers";
 import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,

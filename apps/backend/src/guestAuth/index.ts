@@ -9,17 +9,17 @@ import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
 } from "../observability/runtime";
-import { unsafeTransactionReportingContentCreations } from "../productAnalytics/contentCreations";
+import { unsafeTransactionReportingContentCreations } from "../productAnalytics/serverFacts/contentCreations";
 import {
   createPostCommitAnalyticsBudget,
   type PostCommitAnalyticsBudget,
-} from "../productAnalytics/postCommitBudget";
-import { runTransactionReportingReviewAnswers } from "../productAnalytics/reviewAnswers";
+} from "../productAnalytics/serverFacts/postCommitBudget";
+import { runTransactionReportingReviewAnswers } from "../productAnalytics/serverFacts/reviewAnswers";
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvent,
   linkServerDerivedProductAnalyticsIdentity,
-} from "../productAnalytics/serverEvents";
+} from "../productAnalytics/serverFacts/serverEvents";
 import {
   deleteGuestSessionInExecutor,
 } from "./delete/index";
@@ -243,7 +243,8 @@ export async function completeGuestUpgrade(
   // post-commit analytics budget created here instead of each carrying a bound of its own, which
   // would sum. Three of the four are gated on it; the identity link is exempt, for the reason
   // recordGuestUpgradeCompletedAnalytics gives. That puts this path's tail at 12.0s against the 29s
-  // integration timeout, and every other path's at 8.0s. See ../productAnalytics/postCommitBudget.ts.
+  // integration timeout, and every other path's at 8.0s. See
+  // ../productAnalytics/serverFacts/postCommitBudget.ts.
   const analyticsBudget = createPostCommitAnalyticsBudget();
   // The merge re-inserts the guest's review events into the target workspace under their original
   // review_event_id, so each collects a review_answered row that derives the id the guest's own

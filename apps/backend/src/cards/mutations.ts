@@ -6,7 +6,7 @@ import {
 import {
   collectContentCreation,
   transactionWithWorkspaceScopeReportingContentCreations,
-} from "../productAnalytics/contentCreations";
+} from "../productAnalytics/serverFacts/contentCreations";
 import { HttpError } from "../shared/errors";
 import {
   incomingLwwMetadataWins,
