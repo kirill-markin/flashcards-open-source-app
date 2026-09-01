@@ -23,6 +23,7 @@ import {
 import { setBrowserSessionCookies } from "../../server/browserSession.js";
 import { sign, verify } from "../../server/crypto.js";
 import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
+import { isReservedEmailDomain } from "../../server/reservedEmailDomains.js";
 import {
   decideOtpRateLimit,
   loadLatestSentOtpSessionToken,
@@ -166,6 +167,24 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         refreshToken: tokens.refreshToken,
         expiresIn: tokens.expiresIn,
       });
+    }
+
+    // Placed after the demo lookup on purpose: the review account allowlist above is restricted to
+    // @example.com, so refusing reserved domains any earlier would break Apple and Google sign-in.
+    // Cognito accepts these addresses and the asynchronous custom email sender cannot report back,
+    // so without this branch the person is told a code was sent that Resend permanently refuses.
+    if (isReservedEmailDomain(email)) {
+      log({
+        domain: "auth",
+        action: "send_code_error",
+        requestId,
+        route: c.req.path,
+        statusCode: 400,
+        code: "INVALID_EMAIL",
+        reasonCategory: "reserved_email_domain",
+      });
+      await reportSignInFailed(c, "server_error");
+      return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
     }
 
     const ipAddress = getClientIpAddress(c.req.raw);

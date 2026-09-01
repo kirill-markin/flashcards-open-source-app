@@ -295,6 +295,78 @@ export async function decryptSecretCode(
   return Buffer.from(plaintext).toString("utf-8");
 }
 
+const RESEND_VALIDATION_ERROR_STATUS = 422;
+const RESEND_VALIDATION_ERROR_NAME = "validation_error";
+const RESEND_TO_FIELD_REJECTION_PATTERN = /invalid\s+`?to`?\s+field/i;
+
+type ResendErrorBody = Readonly<{
+  message: string;
+  name: string;
+}>;
+
+function parseResendErrorBody(responseText: string): ResendErrorBody | null {
+  let parsedBody: unknown;
+  try {
+    parsedBody = JSON.parse(responseText);
+  } catch {
+    return null;
+  }
+
+  if (parsedBody === null || typeof parsedBody !== "object") {
+    return null;
+  }
+
+  const { message, name } = parsedBody as Readonly<Record<string, unknown>>;
+  if (typeof message !== "string" || typeof name !== "string") {
+    return null;
+  }
+
+  return { message, name };
+}
+
+/**
+ * Resend refuses an address it will never deliver to, such as an RFC 2606 reserved domain, with
+ * `422 validation_error` and a message naming the `to` field.
+ *
+ * Do not simplify this to status-and-name matching: Resend reuses `validation_error` for
+ * account-wide sending failures such as an unverified sending domain, so that would swallow a total
+ * sending outage and leave `CustomEmailSenderLambdaErrorAlarm` silent. Requiring positive evidence
+ * that the recipient is at fault keeps the failure direction safe — a reworded message stops
+ * matching and the send throws again, which pages but never hides.
+ */
+function isPermanentRecipientRejection(statusCode: number, responseText: string): boolean {
+  if (statusCode !== RESEND_VALIDATION_ERROR_STATUS) {
+    return false;
+  }
+
+  const errorBody = parseResendErrorBody(responseText);
+  if (errorBody === null || errorBody.name !== RESEND_VALIDATION_ERROR_NAME) {
+    return false;
+  }
+
+  return RESEND_TO_FIELD_REJECTION_PATTERN.test(errorBody.message);
+}
+
+function reportPermanentRecipientRejection(
+  payload: ResendEmailPayload,
+  statusCode: number,
+  responseText: string,
+): void {
+  Sentry.withScope((scope) => {
+    scope.setTag("action", "custom_email_sender_permanent_recipient_rejection");
+    // Keys and values are chosen to survive `scrubCustomEmailSenderEvent`: a `statusCode` key
+    // matches SENSITIVE_KEY_PATTERN, and even a masked address still matches EMAIL_PATTERN, so both
+    // would arrive redacted. The bare domain names the refused recipient without exposing anyone.
+    scope.setContext("custom_email_sender", {
+      recipientDomain: payload.toEmail.slice(payload.toEmail.lastIndexOf("@") + 1),
+      resendErrorBody: responseText,
+      resendStatus: statusCode,
+      subject: payload.subject,
+    });
+    Sentry.captureMessage("custom_email_sender_permanent_recipient_rejection", "warning");
+  });
+}
+
 export async function sendResendEmail(
   payload: ResendEmailPayload,
   fetchFn: FetchFunction,
@@ -335,6 +407,14 @@ export async function sendResendEmail(
     statusCode: response.status,
     subject: payload.subject,
   }));
+
+  if (isPermanentRecipientRejection(response.status, responseText)) {
+    // Cognito invokes this trigger asynchronously and retries a failed invocation twice, so throwing
+    // on a rejection that can never succeed only multiplies the Lambda error metric that pages.
+    reportPermanentRecipientRejection(payload, response.status, responseText);
+    return;
+  }
+
   throw new Error(`Resend email send failed with status ${response.status}: ${responseText}`);
 }
 
