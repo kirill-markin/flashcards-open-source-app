@@ -590,7 +590,7 @@ export function buildReviewEventsByDateDefaultRangeSql(): string {
 // `analytics.product_events_resolved` is the handle if they ever need filtering out.
 //
 // PLATFORM IS READ OFF THE ROW AND NEVER DERIVED. The producer derives it once per drain from the
-// replica that recorded the review (`apps/backend/src/productAnalytics/reviewAnswers.ts`), and
+// replica that recorded the review (`apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts`), and
 // migration `0122` filled the same value on the history `0120` reconstructed, `0123` on the live
 // rows the producer wrote before it could resolve one. That derivation reads
 // `sync.workspace_replicas.platform` only together with `actor_kind` on the same row, so a value
@@ -636,7 +636,7 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
     // `occurred_at` is the client clock, kept only inside a 30-day window that ends at a server
     // anchor and replaced by that anchor outside the window in EITHER direction - too far in the
     // future and too far in the past alike (`resolveReviewAnsweredOccurredAt`,
-    // `apps/backend/src/productAnalytics/reviewAnswers.ts:189-204`, against
+    // `apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts:189-204`, against
     // `productAnalyticsMaxEventAgeMs` at `validation.ts:24`; `0120:645-650` applies the identical
     // rule as `INTERVAL '720 hours'`, and that backfill produced almost all of the history below).
     // Inside the window this is the day the person answered rather than the day the answer synced,
@@ -701,7 +701,7 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
 // through the end of a day is that person's friendship count at the end of that day, which is what
 // the chart means. It is NOT exact against `community.friendships` itself, because the emission is
 // best effort and swallows its own failure
-// (`apps/backend/src/productAnalytics/serverEvents.ts:202-210`, and
+// (`apps/backend/src/productAnalytics/serverFacts/serverEvents.ts:202-210`, and
 // `apps/backend/src/community/analytics.ts:78-81` for this event specifically). Because the chart is
 // a cumulative sum, one dropped write is a permanent step-down: that actor's count is one lower on
 // that day and on every day after it, with no repair path. The old query read
