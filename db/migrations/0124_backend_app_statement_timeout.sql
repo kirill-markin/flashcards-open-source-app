@@ -1,0 +1,33 @@
+-- Migration status: Current / additive.
+-- Introduces: a role-level statement_timeout for backend_app, which had none. It is the last-resort
+--   bound on a single statement issued by the application runtime role, for the case where the
+--   client that issued it is already gone: PostgreSQL does not stop a running statement when its
+--   client disappears, and the RDS log for the 2026-09-01 MCP incident window, where two
+--   invocations were killed at the Lambda's own 30-second timeout, carries "could not receive data
+--   from client: Connection reset by peer".
+-- Schemas touched/read explicitly: none. ALTER ROLE stores a role-level configuration default and
+--   resolves no schema object.
+
+-- This is a guard, not a budget. It bounds one statement, not one invocation, and it is not what
+-- keeps a request responsive: a path that needs a real budget sets its own per-transaction
+-- SET LOCAL statement_timeout and lock_timeout (apps/backend/src/database/deadline.ts), which
+-- overrides this default wherever it applies. Agent-written SQL, the traffic that raised the
+-- incident above, is bounded that way in apps/backend/src/aiTools/agentSql.ts.
+--
+-- 300 seconds is deliberately far above every statement this product issues, because a value close
+-- to real work would turn a last-resort guard into an unpredictable failure mode. backend_app is
+-- the runtime role of the backend API handler, the chat worker, the chat live handler, the MCP
+-- handler, the direct image ingestion handler, the scheduled jobs and the catalog dump. Their
+-- Lambda budgets range from 15 seconds to 15 minutes, but a Lambda budget covers a whole
+-- invocation: many statements, with model calls and object-storage work between them. A single
+-- statement still running after five minutes is a runaway, not a workload. This is why the value
+-- cannot be the 30 seconds that db/migrations/0044_reporting_readonly_role.sql sets on
+-- reporting_readonly.
+--
+-- A role-level setting is read when a session starts, so pooled connections already open in a warm
+-- Lambda container keep the old unbounded value until that container is replaced.
+--
+-- Migrations are unaffected: the migration runner connects with the database owner credentials
+-- (infra/aws/lib/migration-runner.ts), not as backend_app, so the long backfills that set their own
+-- SET LOCAL statement_timeout keep the value they chose.
+ALTER ROLE backend_app SET statement_timeout = '300s';

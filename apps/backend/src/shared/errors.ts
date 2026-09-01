@@ -119,13 +119,16 @@ export class HttpError extends Error {
   readonly code: string | null;
   readonly details: HttpErrorDetails | null;
 
+  // `cause` carries the error this one was built from, for a caller that rewrites a failure into a
+  // new HttpError and would otherwise leave a classifier with nothing but the status and the code.
   constructor(
     statusCode: number,
     message: string,
     code?: string,
     details?: HttpErrorDetails,
+    cause?: unknown,
   ) {
-    super(message);
+    super(message, cause === undefined ? undefined : { cause });
     this.statusCode = statusCode;
     this.code = code ?? null;
     this.details = details ?? null;
