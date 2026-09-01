@@ -53,7 +53,7 @@ test("send-code returns non-retry-guided 503 after post-email transient DB failu
   const app = createTestApp(createSendCodeApp({
     initiateEmailOtp: async (email) => {
       initiateEmailOtpCalled = true;
-      assert.equal(email, "user@example.com");
+      assert.equal(email, "user@flashcards-open-source-app.com");
       return { session: "cognito-session-1" };
     },
     signInWithPassword: async () => {
@@ -84,7 +84,7 @@ test("send-code returns non-retry-guided 503 after post-email transient DB failu
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      email: "user@example.com",
+      email: "user@flashcards-open-source-app.com",
     }),
   });
   const payload = await response.json() as ServiceUnavailableResponse;

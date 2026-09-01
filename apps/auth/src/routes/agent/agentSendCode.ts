@@ -15,6 +15,7 @@ import { initiateEmailOtp } from "../../server/cognito/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../../server/agent/agentEnvelope.js";
 import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
+import { isReservedEmailDomain } from "../../server/reservedEmailDomains.js";
 import {
   createAgentOtpChallenge,
   reissueLatestAgentOtpChallenge,
@@ -142,6 +143,31 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
         }],
         DEMO_SEND_CODE_INSTRUCTIONS,
       ));
+    }
+
+    // Placed after the demo lookup on purpose: the review account allowlist above is restricted to
+    // @example.com, so refusing reserved domains any earlier would break Apple and Google sign-in.
+    // Cognito accepts these addresses and the asynchronous custom email sender cannot report back,
+    // so without this branch the agent is told a code was sent that Resend permanently refuses.
+    if (isReservedEmailDomain(email)) {
+      log({
+        domain: "auth",
+        action: "agent_send_code_error",
+        requestId,
+        route: c.req.path,
+        statusCode: 400,
+        code: "INVALID_EMAIL",
+        reasonCategory: "reserved_email_domain",
+      });
+      return c.json(
+        createAgentErrorEnvelope(
+          c.req.url,
+          "INVALID_EMAIL",
+          "Enter a valid email address.",
+          "This address uses a reserved documentation or testing domain that cannot receive email. Ask the user for a real email address, then call POST /api/agent/send-code again.",
+        ),
+        400,
+      );
     }
 
     const ipAddress = getClientIpAddress(c.req.raw);
