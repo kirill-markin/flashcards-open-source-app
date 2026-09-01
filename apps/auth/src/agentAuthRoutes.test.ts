@@ -137,7 +137,7 @@ test("agent send-code uses Cognito OTP for non-demo emails", async () => {
   const app = createAgentSendCodeApp({
     initiateEmailOtp: async (email) => {
       initiateEmailOtpCalled = true;
-      assert.equal(email, "user@example.com");
+      assert.equal(email, "user@flashcards-open-source-app.com");
       return { session: "cognito-session-1" };
     },
     getDemoEmailPassword: async () => null,
@@ -159,7 +159,7 @@ test("agent send-code uses Cognito OTP for non-demo emails", async () => {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      email: "user@example.com",
+      email: "user@flashcards-open-source-app.com",
     }),
   });
 
@@ -167,7 +167,7 @@ test("agent send-code uses Cognito OTP for non-demo emails", async () => {
 
   assert.equal(response.status, 200);
   assert.equal(payload.ok, true);
-  assert.equal(payload.data.email, "user@example.com");
+  assert.equal(payload.data.email, "user@flashcards-open-source-app.com");
   assert.equal(payload.data.otpSessionToken, "AGENT-OTP-TOKEN");
   assert.equal(payload.actions[0]?.name, "verify_code");
   assert.deepEqual(payload.docs, {
@@ -191,7 +191,7 @@ test("agent send-code avoids retry-after guidance after post-email transient DB 
   const app = createAgentSendCodeApp({
     initiateEmailOtp: async (email) => {
       initiateEmailOtpCalled = true;
-      assert.equal(email, "user@example.com");
+      assert.equal(email, "user@flashcards-open-source-app.com");
       return { session: "cognito-session-1" };
     },
     getDemoEmailPassword: async () => null,
@@ -212,7 +212,7 @@ test("agent send-code avoids retry-after guidance after post-email transient DB 
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      email: "user@example.com",
+      email: "user@flashcards-open-source-app.com",
     }),
   });
 
