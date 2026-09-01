@@ -7,9 +7,9 @@ import {
   type CurrentUserPublicProfileResolver,
 } from "../../community/reviewActivityFacts";
 import type { DatabaseExecutor } from "../../database";
-import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/contentCreations";
-import { createPostCommitAnalyticsBudget } from "../../productAnalytics/postCommitBudget";
-import { runTransactionReportingReviewAnswers } from "../../productAnalytics/reviewAnswers";
+import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/serverFacts/contentCreations";
+import { createPostCommitAnalyticsBudget } from "../../productAnalytics/serverFacts/postCommitBudget";
+import { runTransactionReportingReviewAnswers } from "../../productAnalytics/serverFacts/reviewAnswers";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
 import { normalizeIsoTimestamp } from "../conflicts/lww";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";

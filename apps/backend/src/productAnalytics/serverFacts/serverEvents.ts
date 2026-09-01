@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { getDatabaseErrorFields } from "../database/transient";
+import { getDatabaseErrorFields } from "../../database/transient";
 // Report through `observability/runtime`, never through `observability/sentry`, for the reason
 // spelled out in contentCreations.ts: the content-creation drain calls the batch emission below, and
 // it runs inside the direct image ingestion Lambda's import graph, whose bundle must reach no
@@ -9,15 +9,15 @@ import { getDatabaseErrorFields } from "../database/transient";
 import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
-} from "../observability/runtime";
+} from "../../observability/runtime";
 import {
   productAnalyticsSchemaVersion,
   type ProductAnalyticsEventName,
   type ProductAnalyticsEventProperties,
   type ProductAnalyticsPlatform,
-} from "./catalog";
-import type { ProductAnalyticsEventDetails, ProductAnalyticsEventRow } from "./types";
-import { insertProductAnalyticsEvents, insertProductAnalyticsIdentityLink } from "./writer";
+} from "../catalog";
+import type { ProductAnalyticsEventDetails, ProductAnalyticsEventRow } from "../types";
+import { insertProductAnalyticsEvents, insertProductAnalyticsIdentityLink } from "../writer";
 
 // A server-derived emission carries only what the backend observed itself. There is no field for
 // client context here on purpose: the row below leaves client_occurred_at, client_sent_at,
