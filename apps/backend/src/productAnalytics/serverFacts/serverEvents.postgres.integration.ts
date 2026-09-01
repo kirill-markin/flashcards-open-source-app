@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import pg from "pg";
-import type { ProductAnalyticsEventName } from "./catalog";
+import type { ProductAnalyticsEventName } from "../catalog";
 import { deriveServerDerivedProductAnalyticsEventId } from "./serverEvents";
 
 // analytics.derive_server_event_id (migration 0119) is a hand-written twin of

@@ -1,7 +1,7 @@
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvent,
-} from "../productAnalytics/serverEvents";
+} from "../productAnalytics/serverFacts/serverEvents";
 
 export type FriendInvitationCreatedFact = Readonly<{
   friendInvitationId: string;
