@@ -1,5 +1,5 @@
-import { transactionWithWorkspaceScopeDeadline, type DatabaseExecutor } from "../database";
-import { getDatabaseErrorFields } from "../database/transient";
+import { transactionWithWorkspaceScopeDeadline, type DatabaseExecutor } from "../../database";
+import { getDatabaseErrorFields } from "../../database/transient";
 // Report through `observability/runtime`, never through `observability/sentry`. This is the shared
 // discipline for product analytics producers, spelled out at length in contentCreations.ts:
 // `entrypoints/directImageIngestion/lambda.test.ts` walks the direct image ingestion Lambda's
@@ -13,15 +13,15 @@ import { getDatabaseErrorFields } from "../database/transient";
 import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
-} from "../observability/runtime";
-import type { ProductAnalyticsPlatform } from "./catalog";
+} from "../../observability/runtime";
+import type { ProductAnalyticsPlatform } from "../catalog";
 import type { PostCommitAnalyticsBudget } from "./postCommitBudget";
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvents,
   type ServerDerivedProductAnalyticsEvent,
 } from "./serverEvents";
-import { productAnalyticsMaxEventAgeMs } from "./validation";
+import { productAnalyticsMaxEventAgeMs } from "../validation";
 
 // db/migrations/0001_initial_schema.sql declares content.review_events.rating as
 // SMALLINT NOT NULL CHECK (rating BETWEEN 0 AND 3), and its column comment names the four values:
@@ -533,7 +533,7 @@ function reportAbandonedReviewAnswers(
  * Awaited, and that cannot lengthen the review write: the transaction has committed and released its
  * locks before the first chunk is built. Nothing here is left running past the response instead,
  * because a Lambda container is frozen and killed unpredictably and anything buffered across that
- * would be lost silently, which is the invariant ./writer.ts states and every sibling producer keeps.
+ * would be lost silently, which is the invariant ../writer.ts states and every sibling producer keeps.
  *
  * A chunk is one analytics transaction on one analytics connection and the chunks are awaited in
  * sequence, so this producer holds one connection at a time however large the transaction was. The

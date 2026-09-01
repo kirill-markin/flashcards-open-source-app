@@ -1,7 +1,7 @@
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvent,
-} from "../../productAnalytics/serverEvents";
+} from "../../productAnalytics/serverFacts/serverEvents";
 import type { ChatRunActor } from "./types";
 
 /**

@@ -17,7 +17,7 @@ import {
   type DeckFilterDefinition,
   type UpdateDeckInput,
 } from "../../decks";
-import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/contentCreations";
+import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/serverFacts/contentCreations";
 import { HttpError } from "../../shared/errors";
 import type { LegacyEffortLevel } from "../../sync/contracts/legacyEffort";
 import { isLegacyEffortLevel } from "../../sync/contracts/legacyEffort";

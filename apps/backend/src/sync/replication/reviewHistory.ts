@@ -4,8 +4,8 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
-import { createPostCommitAnalyticsBudget } from "../../productAnalytics/postCommitBudget";
-import { runTransactionReportingReviewAnswers } from "../../productAnalytics/reviewAnswers";
+import { createPostCommitAnalyticsBudget } from "../../productAnalytics/serverFacts/postCommitBudget";
+import { runTransactionReportingReviewAnswers } from "../../productAnalytics/serverFacts/reviewAnswers";
 import { HttpError } from "../../shared/errors";
 import { ensureWorkspaceReplicaInExecutor } from "../identity/replica";
 import { annotateSyncConflictHttpError } from "../conflicts/fork";

@@ -15,7 +15,7 @@ import {
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvent,
-} from "../../../productAnalytics/serverEvents";
+} from "../../../productAnalytics/serverFacts/serverEvents";
 import { HttpError } from "../../../shared/errors";
 import { normalizeCardImportTagOptions } from "../../../shared/cardImportTags";
 import { normalizeIsoTimestamp } from "../../../sync/conflicts/lww";

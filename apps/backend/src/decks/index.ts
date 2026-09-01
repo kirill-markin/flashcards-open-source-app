@@ -35,7 +35,7 @@ import { appendLegacyEffortTag } from "../cards/shared";
 import {
   collectContentCreation,
   transactionWithWorkspaceScopeReportingContentCreations,
-} from "../productAnalytics/contentCreations";
+} from "../productAnalytics/serverFacts/contentCreations";
 
 type TimestampValue = Date | string;
 type ErrorFactory = (message: string) => Error;
