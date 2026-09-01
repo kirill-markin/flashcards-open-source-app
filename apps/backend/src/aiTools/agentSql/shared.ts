@@ -545,13 +545,28 @@ export function previewSqlStatement(sql: string): string {
   return sql.length <= 120 ? sql : `${sql.slice(0, 117)}...`;
 }
 
+/**
+ * Names the failing statement of a batch, which the executors otherwise lose, and keeps the failure
+ * it wraps as the `cause`.
+ *
+ * The message and the HTTP status are not the whole error here: a database failure also carries the
+ * class and the SQLSTATE that classifiers read to map it to something actionable, and a rewrite that
+ * kept only the status and the code would silently reclassify every such failure in a batch. The
+ * agent SQL time budget (../agentSql.ts) is the first classifier to depend on this.
+ */
 export function wrapBatchExecutionError(error: unknown, statementIndex: number, sql: string): never {
   const message = error instanceof Error ? error.message : String(error);
   const prefixedMessage = `SQL batch statement ${statementIndex + 1} failed: ${message}. Statement: ${previewSqlStatement(sql)}`;
 
   if (error instanceof HttpError) {
-    throw new HttpError(error.statusCode, prefixedMessage, error.code ?? undefined, error.details ?? undefined);
+    throw new HttpError(
+      error.statusCode,
+      prefixedMessage,
+      error.code ?? undefined,
+      error.details ?? undefined,
+      error,
+    );
   }
 
-  throw new Error(prefixedMessage);
+  throw new Error(prefixedMessage, { cause: error });
 }
