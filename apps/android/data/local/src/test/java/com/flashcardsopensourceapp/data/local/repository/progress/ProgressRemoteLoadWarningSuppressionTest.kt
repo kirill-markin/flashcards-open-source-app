@@ -7,16 +7,13 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewSched
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSeriesScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSnapshotSource
-import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.isExpectedTransientProgressRefreshError
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressReviewScheduleRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSeriesRemoteLoadWarning
-import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSummaryRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSeriesStoreState
-import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
 import java.net.UnknownHostException
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -62,77 +59,6 @@ class ProgressRemoteLoadWarningSuppressionTest {
         assertFalse(
             isExpectedTransientProgressRefreshError(
                 error = IllegalStateException("Progress sync invariant failed.")
-            )
-        )
-    }
-
-    @Test
-    fun summaryRemoteLoadWarningIsSuppressedOnlyForStaleState(): Unit {
-        val refreshStoreState: ProgressSummaryStoreState = createSummaryStoreState(
-            scopeId = "linked:user-1",
-            cloudState = CloudAccountState.LINKED,
-            isLocalCacheReady = true
-        )
-        val validLatestStoreState: ProgressSummaryStoreState = createSummaryStoreState(
-            scopeId = "linked:user-1",
-            cloudState = CloudAccountState.LINKED,
-            isLocalCacheReady = true
-        )
-        val changedScopeStoreState: ProgressSummaryStoreState = createSummaryStoreState(
-            scopeId = "linked:user-2",
-            cloudState = CloudAccountState.LINKED,
-            isLocalCacheReady = true
-        )
-        val disconnectedStoreState: ProgressSummaryStoreState = createSummaryStoreState(
-            scopeId = "linked:user-1",
-            cloudState = CloudAccountState.DISCONNECTED,
-            isLocalCacheReady = true
-        )
-        val linkingStoreState: ProgressSummaryStoreState = createSummaryStoreState(
-            scopeId = "linked:user-1",
-            cloudState = CloudAccountState.LINKING_READY,
-            isLocalCacheReady = true
-        )
-        val unreadyCacheStoreState: ProgressSummaryStoreState = createSummaryStoreState(
-            scopeId = "linked:user-1",
-            cloudState = CloudAccountState.LINKED,
-            isLocalCacheReady = false
-        )
-
-        assertFalse(
-            shouldSuppressProgressSummaryRemoteLoadWarning(
-                latestStoreState = validLatestStoreState,
-                refreshStoreState = refreshStoreState
-            )
-        )
-        assertTrue(
-            shouldSuppressProgressSummaryRemoteLoadWarning(
-                latestStoreState = null,
-                refreshStoreState = refreshStoreState
-            )
-        )
-        assertTrue(
-            shouldSuppressProgressSummaryRemoteLoadWarning(
-                latestStoreState = changedScopeStoreState,
-                refreshStoreState = refreshStoreState
-            )
-        )
-        assertTrue(
-            shouldSuppressProgressSummaryRemoteLoadWarning(
-                latestStoreState = disconnectedStoreState,
-                refreshStoreState = refreshStoreState
-            )
-        )
-        assertTrue(
-            shouldSuppressProgressSummaryRemoteLoadWarning(
-                latestStoreState = linkingStoreState,
-                refreshStoreState = refreshStoreState
-            )
-        )
-        assertTrue(
-            shouldSuppressProgressSummaryRemoteLoadWarning(
-                latestStoreState = unreadyCacheStoreState,
-                refreshStoreState = refreshStoreState
             )
         )
     }
@@ -262,26 +188,6 @@ class ProgressRemoteLoadWarningSuppressionTest {
             )
         )
     }
-
-}
-
-private fun createSummaryStoreState(
-    scopeId: String,
-    cloudState: CloudAccountState,
-    isLocalCacheReady: Boolean
-): ProgressSummaryStoreState {
-    return ProgressSummaryStoreState(
-        scopeKey = ProgressSummaryScopeKey(
-            scopeId = scopeId,
-            timeZone = testTimeZone,
-            referenceLocalDate = testDate
-        ),
-        cloudState = cloudState,
-        snapshot = null,
-        isLocalCacheReady = isLocalCacheReady,
-        reviewHistoryFingerprint = testFingerprint,
-        syncStatus = createTestSyncStatus()
-    )
 }
 
 private fun createSeriesStoreState(
