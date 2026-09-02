@@ -9,7 +9,6 @@ import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIo
 import com.flashcardsopensourceapp.data.local.network.isRetryableHttpStatusCode
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSeriesStoreState
-import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -205,23 +204,6 @@ internal fun supportsServerRefresh(
     cloudState: CloudAccountState
 ): Boolean {
     return cloudState == CloudAccountState.GUEST || cloudState == CloudAccountState.LINKED
-}
-
-internal fun shouldSuppressProgressSummaryRemoteLoadWarning(
-    latestStoreState: ProgressSummaryStoreState?,
-    refreshStoreState: ProgressSummaryStoreState
-): Boolean {
-    if (latestStoreState == null) {
-        return true
-    }
-    if (latestStoreState.scopeKey != refreshStoreState.scopeKey) {
-        return true
-    }
-    if (supportsServerRefresh(cloudState = latestStoreState.cloudState).not()) {
-        return true
-    }
-
-    return latestStoreState.isLocalCacheReady.not()
 }
 
 internal fun shouldSuppressProgressSeriesRemoteLoadWarning(

@@ -3,9 +3,11 @@ package com.flashcardsopensourceapp.data.local.repository.progress.orchestration
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.progress.ProgressCloudIdentityTransitionException
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLocalCacheReadinessCoordinator
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCacheEntity
@@ -24,7 +26,6 @@ import com.flashcardsopensourceapp.data.local.repository.progress.runtime.Progre
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.createProgressRemoteRefreshSyncMode
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRemoteLoadFailure
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressSyncBeforeRemoteLoadFailure
-import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSummaryRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.supportsServerRefresh
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSummaryStoreState
@@ -279,10 +280,8 @@ internal class ProgressSummaryOrchestration(
             throw error
         } catch (error: Exception) {
             if (
-                shouldSuppressProgressSummaryRemoteLoadWarning(
-                    latestStoreState = currentStoreState(),
-                    refreshStoreState = resolvedRefreshStoreState
-                )
+                error is ProgressCloudIdentityTransitionException &&
+                resolvedRefreshStoreState.cloudState == CloudAccountState.LINKED
             ) {
                 return
             }
