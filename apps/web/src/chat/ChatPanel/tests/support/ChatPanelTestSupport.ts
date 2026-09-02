@@ -124,13 +124,21 @@ const {
     readonly statusCode: number;
     readonly requestId: string | null;
     readonly code: string | null;
+    readonly retryAfterMs: number | null;
 
-    constructor(message: string, statusCode: number, requestId: string | null, code: string | null) {
+    constructor(
+      message: string,
+      statusCode: number,
+      requestId: string | null,
+      code: string | null,
+      retryAfterMs: number | null,
+    ) {
       super(message);
       this.name = "ChatLiveHttpError";
       this.statusCode = statusCode;
       this.requestId = requestId;
       this.code = code;
+      this.retryAfterMs = retryAfterMs;
     }
   },
   ChatLiveTransportErrorMock: class ChatLiveTransportError extends Error {

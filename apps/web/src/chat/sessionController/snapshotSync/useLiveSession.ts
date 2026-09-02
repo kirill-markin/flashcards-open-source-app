@@ -21,7 +21,23 @@ type ActiveLiveStreamConnection = Readonly<{
   abortController: AbortController;
 }>;
 
+type PendingLiveStreamRecovery = Readonly<{
+  sessionId: string;
+  runId: string;
+  abortController: AbortController;
+}>;
+
+type LiveAttachThrottleRecoveryBudget = Readonly<{
+  runId: string;
+  attemptCount: number;
+}>;
+
+type RecoverableLiveStreamError = ChatLiveHttpError | ChatLiveTransportError;
+
 type LiveStreamDisposition = "pending" | "terminal";
+
+const liveAttachThrottleRecoveryDelaysMs: ReadonlyArray<number> = [500, 1_000, 2_000, 4_000];
+const maximumLiveAttachThrottleRecoveryDelayMs = 4_000;
 
 type UseChatLiveSessionParams = Readonly<{
   applyLiveEvent: (event: ChatLiveEvent) => void;
@@ -31,7 +47,7 @@ type UseChatLiveSessionParams = Readonly<{
   onRecoverableStreamError: (
     sessionId: string,
     runId: string,
-    error: ChatLiveTransportError,
+    error: RecoverableLiveStreamError,
     previousResumeAttemptId: number | null,
   ) => void;
   onUnexpectedStreamEnd: (sessionId: string, runId: string) => void;
@@ -152,6 +168,56 @@ function isRecoverableLiveTransportError(
     );
 }
 
+function isRecoverableLiveAttachThrottle(error: unknown): error is ChatLiveHttpError {
+  return error instanceof ChatLiveHttpError
+    && error.statusCode === 429
+    && error.code === null;
+}
+
+function getLiveAttachThrottleRecoveryDelayMs(
+  error: ChatLiveHttpError,
+  attemptCount: number,
+): number | null {
+  const fallbackDelayMs = liveAttachThrottleRecoveryDelaysMs[attemptCount];
+  if (fallbackDelayMs === undefined) {
+    return null;
+  }
+
+  const retryAfterMs = error.retryAfterMs;
+  const requestedDelayMs = retryAfterMs !== null
+    && Number.isSafeInteger(retryAfterMs)
+    && retryAfterMs >= 0
+    ? retryAfterMs
+    : fallbackDelayMs;
+  return Math.min(
+    Math.max(fallbackDelayMs, requestedDelayMs),
+    maximumLiveAttachThrottleRecoveryDelayMs,
+  );
+}
+
+function waitForLiveAttachThrottleRecovery(delayMs: number, signal: AbortSignal): Promise<boolean> {
+  if (signal.aborted) {
+    return Promise.resolve(false);
+  }
+
+  return new Promise<boolean>((resolve) => {
+    const timerId = window.setTimeout(handleDelayCompleted, delayMs);
+
+    function handleDelayCompleted(): void {
+      signal.removeEventListener("abort", handleAbort);
+      resolve(true);
+    }
+
+    function handleAbort(): void {
+      window.clearTimeout(timerId);
+      signal.removeEventListener("abort", handleAbort);
+      resolve(false);
+    }
+
+    signal.addEventListener("abort", handleAbort, { once: true });
+  });
+}
+
 /**
  * Owns the browser-side live SSE lifecycle for one visible chat surface.
  * Snapshot loading remains outside this hook. On resume, callers must refresh
@@ -171,6 +237,8 @@ export function useChatLiveSession(
   } = params;
   const [isLiveStreamConnected, setIsLiveStreamConnected] = useState<boolean>(false);
   const activeLiveConnectionRef = useRef<ActiveLiveStreamConnection | null>(null);
+  const pendingLiveStreamRecoveryRef = useRef<PendingLiveStreamRecovery | null>(null);
+  const liveAttachThrottleRecoveryBudgetRef = useRef<LiveAttachThrottleRecoveryBudget | null>(null);
   const preResponseRecoveryRunIdRef = useRef<string | null>(null);
   const isDocumentVisibleRef = useRef<boolean>(isDocumentVisible());
   const applyLiveEventRef = useRef<(event: ChatLiveEvent) => void>(applyLiveEvent);
@@ -179,7 +247,7 @@ export function useChatLiveSession(
   const onRecoverableStreamErrorRef = useRef<(
     sessionId: string,
     runId: string,
-    error: ChatLiveTransportError,
+    error: RecoverableLiveStreamError,
     previousResumeAttemptId: number | null,
   ) => void>(onRecoverableStreamError);
   const onUnexpectedStreamEndRef = useRef<(sessionId: string, runId: string) => void>(onUnexpectedStreamEnd);
@@ -190,21 +258,25 @@ export function useChatLiveSession(
 
   const detachLiveStream = useCallback((sessionId: string | null, runId: string | null): void => {
     const activeConnection = activeLiveConnectionRef.current;
-    if (activeConnection === null) {
-      return;
+    if (
+      activeConnection !== null
+      && (sessionId === null || activeConnection.sessionId === sessionId)
+      && (runId === null || activeConnection.runId === runId)
+    ) {
+      activeConnection.abortController.abort();
+      activeLiveConnectionRef.current = null;
+      setIsLiveStreamConnected(false);
     }
 
-    if (sessionId !== null && activeConnection.sessionId !== sessionId) {
-      return;
+    const pendingRecovery = pendingLiveStreamRecoveryRef.current;
+    if (
+      pendingRecovery !== null
+      && (sessionId === null || pendingRecovery.sessionId === sessionId)
+      && (runId === null || pendingRecovery.runId === runId)
+    ) {
+      pendingRecovery.abortController.abort();
+      pendingLiveStreamRecoveryRef.current = null;
     }
-
-    if (runId !== null && activeConnection.runId !== runId) {
-      return;
-    }
-
-    activeConnection.abortController.abort();
-    activeLiveConnectionRef.current = null;
-    setIsLiveStreamConnected(false);
   }, []);
 
   useEffect(() => {
@@ -251,6 +323,10 @@ export function useChatLiveSession(
   ): void => {
     detachLiveStream(null, null);
 
+    if (liveAttachThrottleRecoveryBudgetRef.current?.runId !== runId) {
+      liveAttachThrottleRecoveryBudgetRef.current = { runId, attemptCount: 0 };
+    }
+
     if (indexedDbOpenRecoveryState.hasFailed() || isDocumentVisibleRef.current === false) {
       return;
     }
@@ -290,6 +366,7 @@ export function useChatLiveSession(
         if (preResponseRecoveryRunIdRef.current === runId) {
           preResponseRecoveryRunIdRef.current = null;
         }
+        liveAttachThrottleRecoveryBudgetRef.current = { runId, attemptCount: 0 };
 
         if (event.type === "run_terminal") {
           liveStreamDisposition = "terminal";
@@ -338,6 +415,49 @@ export function useChatLiveSession(
         }
         onRecoverableStreamErrorRef.current(sessionId, runId, error, resumeAttemptId);
         return;
+      }
+
+      if (isRecoverableLiveAttachThrottle(error)) {
+        const recoveryBudget = liveAttachThrottleRecoveryBudgetRef.current?.runId === runId
+          ? liveAttachThrottleRecoveryBudgetRef.current
+          : { runId, attemptCount: 0 };
+        const delayMs = getLiveAttachThrottleRecoveryDelayMs(error, recoveryBudget.attemptCount);
+        if (delayMs !== null) {
+          liveAttachThrottleRecoveryBudgetRef.current = {
+            runId,
+            attemptCount: recoveryBudget.attemptCount + 1,
+          };
+          const recoveryAbortController = new AbortController();
+          const pendingRecovery: PendingLiveStreamRecovery = {
+            sessionId,
+            runId,
+            abortController: recoveryAbortController,
+          };
+          const {
+            signal: recoverySignal,
+            dispose: disposeRecoverySignal,
+          } = combineAbortSignals([
+            indexedDbOpenRecoveryState.signal,
+            recoveryAbortController.signal,
+          ]);
+          pendingLiveStreamRecoveryRef.current = pendingRecovery;
+          void waitForLiveAttachThrottleRecovery(delayMs, recoverySignal).then((didCompleteWait) => {
+            if (
+              didCompleteWait === false
+              || indexedDbOpenRecoveryState.hasFailed()
+              || isDocumentVisibleRef.current === false
+              || pendingLiveStreamRecoveryRef.current !== pendingRecovery
+            ) {
+              return;
+            }
+
+            pendingLiveStreamRecoveryRef.current = null;
+            onRecoverableStreamErrorRef.current(sessionId, runId, error, resumeAttemptId);
+          }).finally(() => {
+            disposeRecoverySignal();
+          });
+          return;
+        }
       }
 
       const normalizedError = normalizeCaughtError(error);
