@@ -73,14 +73,15 @@ export function toStoredOpenAIReplayItem(
   }
 
   if (item.type === "reasoning") {
-    if (typeof item.encrypted_content !== "string" || item.encrypted_content.length === 0) {
+    const encryptedContent = item.encrypted_content;
+    if (typeof encryptedContent !== "string" || encryptedContent.length === 0) {
       throw new Error("OpenAI reasoning item is missing encrypted_content for stateless replay");
     }
 
     return {
       type: "reasoning",
       summary: item.summary,
-      encrypted_content: item.encrypted_content,
+      encrypted_content: encryptedContent,
       ...(item.status !== undefined ? { status: item.status } : {}),
     };
   }
@@ -96,9 +97,14 @@ export function toStoredOpenAIReplayItem(
   }
 
   if (item.type === "function_call_output") {
+    const callId = item.call_id;
+    if (typeof callId !== "string" || callId.length === 0) {
+      throw new Error("OpenAI function call output is missing call_id for stateless replay");
+    }
+
     return {
       type: "function_call_output",
-      call_id: item.call_id,
+      call_id: callId,
       output: item.output,
       ...(item.status !== undefined && item.status !== null ? { status: item.status } : {}),
     };
@@ -124,14 +130,15 @@ function normalizeStoredOpenAIReplayItem(
   }
 
   if (item.type === "reasoning") {
-    if (typeof item.encrypted_content !== "string" || item.encrypted_content.length === 0) {
+    const encryptedContent = item.encrypted_content;
+    if (typeof encryptedContent !== "string" || encryptedContent.length === 0) {
       return null;
     }
 
     return {
       type: "reasoning",
       summary: item.summary,
-      encrypted_content: item.encrypted_content,
+      encrypted_content: encryptedContent,
       ...(item.status !== undefined ? { status: item.status } : {}),
     };
   }
@@ -147,9 +154,14 @@ function normalizeStoredOpenAIReplayItem(
   }
 
   if (item.type === "function_call_output") {
+    const callId = item.call_id;
+    if (typeof callId !== "string" || callId.length === 0) {
+      return null;
+    }
+
     return {
       type: "function_call_output",
-      call_id: item.call_id,
+      call_id: callId,
       output: item.output,
       ...(item.status !== undefined && item.status !== null ? { status: item.status } : {}),
     };
