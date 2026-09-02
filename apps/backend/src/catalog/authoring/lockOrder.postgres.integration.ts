@@ -4,8 +4,10 @@ import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
 import pg from "pg";
 import type { DatabaseExecutor, SqlValue } from "../../database";
+import { HttpError } from "../../shared/errors";
 import { updateCatalogPackageDraftInExecutor } from "./drafts";
 import {
+  createCatalogPackageVersionFromCards,
   publishCatalogPackageVersionInExecutor,
   updateCatalogPackageVersionReviewStatusInExecutor,
 } from "./versions";
@@ -19,6 +21,23 @@ type PersistedReviewStatusRow = Readonly<{
   submitted_at: Date | null;
   reviewed_at: Date | null;
   reviewed_by_admin_email: string | null;
+}>;
+
+type PackageCardIdConflictRollbackRow = Readonly<{
+  partial_version_count: number;
+  partial_card_count: number;
+  partial_media_asset_count: number;
+  partial_review_event_count: number;
+  original_version_count: number;
+  original_card_count: number;
+}>;
+
+type PersistedPackageCardSnapshotRow = Readonly<{
+  package_version_id: string;
+  version_number: number;
+  status: string;
+  package_card_id: string;
+  stable_card_key: string;
 }>;
 
 function requireTestDatabaseUrl(): string {
@@ -181,6 +200,219 @@ test("catalog review transitions use the package-status enum parameter consisten
       await client.query("ROLLBACK");
     }
     client.release();
+    await pool.end();
+  }
+});
+
+test("catalog package-card snapshot ID conflicts are actionable and atomic", async () => {
+  requireRuntimeDatabaseUrl();
+  const pool = new pg.Pool({
+    connectionString: requireTestDatabaseUrl(),
+    application_name: "catalog-package-card-id-conflict-integration",
+    max: 1,
+  });
+  const suffix = randomUUID().replaceAll("-", "");
+  const authorId = randomUUID();
+  const packageId = randomUUID();
+  const originalPackageVersionId = randomUUID();
+  const conflictingPackageVersionId = randomUUID();
+  const successfulPackageVersionId = randomUUID();
+  const originalPackageCardId = randomUUID();
+  const partialPackageCardId = randomUUID();
+  const successfulPackageCardId = randomUUID();
+  const stableCardKey = `stable-card-${suffix}`;
+  const adminEmail = "catalog-package-card-conflict@example.test";
+
+  try {
+    await pool.query(
+      [
+        "INSERT INTO catalog.authors (author_id, slug, display_name)",
+        "VALUES ($1, $2, $3)",
+      ].join(" "),
+      [authorId, `package-card-conflict-author-${suffix}`, "Package card conflict author"],
+    );
+    await pool.query(
+      [
+        "INSERT INTO catalog.packages",
+        "(package_id, author_id, slug, title, summary, description, language_tags, license)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+      ].join(" "),
+      [
+        packageId,
+        authorId,
+        `package-card-conflict-${suffix}`,
+        "Package card conflict",
+        "Package card conflict summary",
+        "Package card conflict description",
+        ["en"],
+        "CC-BY-4.0",
+      ],
+    );
+    await pool.query(
+      [
+        "INSERT INTO catalog.package_versions",
+        "(package_version_id, package_id, version_number, status, slug, title, summary, description,",
+        "language_tags, license, card_count, created_by_admin_email)",
+        "VALUES ($1, $2, 1, 'rejected', $3, $4, $5, $6, $7, $8, 1, $9)",
+      ].join(" "),
+      [
+        originalPackageVersionId,
+        packageId,
+        `package-card-conflict-${suffix}-v1`,
+        "Package card conflict",
+        "Package card conflict summary",
+        "Package card conflict description",
+        ["en"],
+        "CC-BY-4.0",
+        adminEmail,
+      ],
+    );
+    await pool.query(
+      [
+        "INSERT INTO catalog.package_cards",
+        "(package_card_id, package_version_id, stable_card_key, ordinal, front_text, back_text,",
+        "card_type, metadata, tags, media_asset_keys)",
+        "VALUES ($1, $2, $3, 1, $4, $5, 'basic', $6::jsonb, $7, $8)",
+      ].join(" "),
+      [
+        originalPackageCardId,
+        originalPackageVersionId,
+        stableCardKey,
+        "Original question",
+        "Original answer",
+        JSON.stringify({ version: 1, source: null }),
+        ["original"],
+        [],
+      ],
+    );
+
+    await assert.rejects(
+      createCatalogPackageVersionFromCards(
+        packageId,
+        {
+          packageVersionId: conflictingPackageVersionId,
+          cards: [
+            {
+              packageCardId: partialPackageCardId,
+              stableCardKey: `partial-card-${suffix}`,
+              ordinal: 1,
+              frontText: "Partial question",
+              backText: "Partial answer",
+              cardType: "basic",
+              metadata: { version: 1, source: null },
+              tags: [],
+              mediaAssetKeys: [],
+            },
+            {
+              packageCardId: originalPackageCardId,
+              stableCardKey,
+              ordinal: 2,
+              frontText: "Updated question",
+              backText: "Updated answer",
+              cardType: "basic",
+              metadata: { version: 1, source: null },
+              tags: ["updated"],
+              mediaAssetKeys: [],
+            },
+          ],
+        },
+        adminEmail,
+      ),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpError);
+        assert.equal(error.statusCode, 409);
+        assert.equal(error.code, "CATALOG_PACKAGE_CARD_ID_ALREADY_EXISTS");
+        assert.equal(
+          error.message,
+          "Catalog package-card snapshot ID already exists. Direct publishers must use a fresh packageCardId "
+            + "for every version snapshot and use stableCardKey to preserve cross-version logical identity.",
+        );
+        return true;
+      },
+    );
+
+    const rollbackResult = await pool.query<PackageCardIdConflictRollbackRow>(
+      [
+        "SELECT",
+        "(SELECT count(*)::integer FROM catalog.package_versions WHERE package_version_id = $1)",
+        "AS partial_version_count,",
+        "(SELECT count(*)::integer FROM catalog.package_cards WHERE package_version_id = $1)",
+        "AS partial_card_count,",
+        "(SELECT count(*)::integer FROM catalog.package_media_assets WHERE package_version_id = $1)",
+        "AS partial_media_asset_count,",
+        "(SELECT count(*)::integer FROM catalog.package_review_events WHERE package_version_id = $1)",
+        "AS partial_review_event_count,",
+        "(SELECT count(*)::integer FROM catalog.package_versions",
+        "WHERE package_version_id = $2 AND package_id = $3 AND version_number = 1 AND status = 'rejected')",
+        "AS original_version_count,",
+        "(SELECT count(*)::integer FROM catalog.package_cards",
+        "WHERE package_card_id = $4 AND package_version_id = $2 AND stable_card_key = $5",
+        "AND front_text = $6 AND back_text = $7)",
+        "AS original_card_count",
+      ].join(" "),
+      [
+        conflictingPackageVersionId,
+        originalPackageVersionId,
+        packageId,
+        originalPackageCardId,
+        stableCardKey,
+        "Original question",
+        "Original answer",
+      ],
+    );
+    assert.deepEqual(rollbackResult.rows[0], {
+      partial_version_count: 0,
+      partial_card_count: 0,
+      partial_media_asset_count: 0,
+      partial_review_event_count: 0,
+      original_version_count: 1,
+      original_card_count: 1,
+    });
+
+    const successfulVersion = await createCatalogPackageVersionFromCards(
+      packageId,
+      {
+        packageVersionId: successfulPackageVersionId,
+        cards: [{
+          packageCardId: successfulPackageCardId,
+          stableCardKey,
+          ordinal: 1,
+          frontText: "Updated question",
+          backText: "Updated answer",
+          cardType: "basic",
+          metadata: { version: 1, source: null },
+          tags: ["updated"],
+          mediaAssetKeys: [],
+        }],
+      },
+      adminEmail,
+    );
+    assert.equal(successfulVersion.packageVersionId, successfulPackageVersionId);
+    assert.equal(successfulVersion.versionNumber, 2);
+    assert.equal(successfulVersion.status, "draft");
+    assert.equal(successfulVersion.cardCount, 1);
+
+    const persistedSnapshotResult = await pool.query<PersistedPackageCardSnapshotRow>(
+      [
+        "SELECT package_versions.package_version_id, package_versions.version_number,",
+        "package_versions.status::text AS status, package_cards.package_card_id, package_cards.stable_card_key",
+        "FROM catalog.package_versions AS package_versions",
+        "INNER JOIN catalog.package_cards AS package_cards",
+        "ON package_cards.package_version_id = package_versions.package_version_id",
+        "WHERE package_versions.package_version_id = $1",
+      ].join(" "),
+      [successfulPackageVersionId],
+    );
+    assert.deepEqual(persistedSnapshotResult.rows[0], {
+      package_version_id: successfulPackageVersionId,
+      version_number: 2,
+      status: "draft",
+      package_card_id: successfulPackageCardId,
+      stable_card_key: stableCardKey,
+    });
+  } finally {
+    await pool.query("DELETE FROM catalog.packages WHERE package_id = $1", [packageId]);
+    await pool.query("DELETE FROM catalog.authors WHERE author_id = $1", [authorId]);
     await pool.end();
   }
 });
