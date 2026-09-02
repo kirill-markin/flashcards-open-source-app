@@ -369,7 +369,7 @@ test("legacy auth tombstone API Gateway mock response converts text under binary
   });
 });
 
-test("chat live Lambda Function URL CORS exposes request id header", () => {
+test("chat live Lambda Function URL CORS exposes recovery metadata", () => {
   const stack = new cdk.Stack();
   const fn = new lambda.Function(stack, "ChatLiveHandler", {
     runtime: lambda.Runtime.NODEJS_24_X,
@@ -410,7 +410,12 @@ test("chat live Lambda Function URL CORS exposes request id header", () => {
       ],
       AllowMethods: ["GET"],
       AllowOrigins: ["https://app.example.test"],
-      ExposeHeaders: ["content-disposition", "x-request-id"],
+      ExposeHeaders: [
+        "content-disposition",
+        "x-request-id",
+        "retry-after",
+        "x-amzn-requestid",
+      ],
     },
   });
 });
