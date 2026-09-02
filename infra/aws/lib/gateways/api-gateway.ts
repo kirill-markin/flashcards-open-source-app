@@ -137,13 +137,13 @@ export const directImageIngestionLambdaTimeoutSeconds = 15;
 // would leave these checks passing while the guarantee silently broke.
 //
 // Hard guarantee. The db.t4g.small instance reports max_connections = 181 with 3 held for
-// superusers, leaving 178 usable. The reservations below total 33 containers, so the worst case is
-// 33 x 3 = 99 <= 178. The check under the constants enforces it at synth time.
+// superusers, leaving 178 usable. The reservations below total 39 containers, so the worst case is
+// 39 x 3 = 117 <= 178. The check under the constants enforces it at synth time.
 //
 // Expected steady state. A warm container holds close to one connection, not the pool ceiling. This
 // is measured, not assumed: during the 2026-08-29 06:40 UTC burst BackendHandler
 // ConcurrentExecutions peaked at 110 in the same minute DatabaseConnections peaked at 110, a ratio
-// of about 1.1. So the expected draw here is 33 x ~1.1 ~= 36 connections, comfortably below the 62
+// of about 1.1. So the expected draw here is 39 x ~1.1 ~= 43 connections, comfortably below the 62
 // this instance already carries. databasePoolMaxConnectionsPerContainer is a per-container safety
 // ceiling, not the expected per-container draw.
 //
@@ -158,7 +158,7 @@ export const directImageIngestionLambdaTimeoutSeconds = 15;
 // enforces that direction too, so the stack cannot deploy a value the fleet cannot run.
 //
 // Carve-outs. Two real draws on this database sit outside the factor above and are covered by
-// headroom rather than by budget, so 99 is this budget's ceiling and not the whole fleet's:
+// headroom rather than by budget, so 117 is this budget's ceiling and not the whole fleet's:
 //
 //   Secondary pools. A backend container may additionally open the session advisory lock pool
 //   (max: 2), the product analytics writer pool (max: 4), and the reporting pool (max: 4). Each is
@@ -174,14 +174,14 @@ export const directImageIngestionLambdaTimeoutSeconds = 15;
 //   and its freshness checker draw on the reporting pool only, and DbMigrationHandler connects with
 //   its own owner credentials, so neither touches this pool.)
 //
-// The honest worst case is therefore 99 from the budget plus those carve-outs, not 99 flat, and the
-// 178 - 99 = 79 left over covers them comfortably.
+// The honest worst case is therefore 117 from the budget plus those carve-outs, not 117 flat, and
+// the 178 - 117 = 61 left over covers them comfortably.
 //
 // Once a reservation saturates, Lambda throttles and the caller sees a gateway error. That bounded,
 // observable rejection is the intended trade against an unbounded database outage.
 //
-// Sizing comes from ConcurrentExecutions observed 2026-08-22 to 2026-08-29, not from dividing the
-// budget across handlers, so each reservation sits above that handler's observed weekly demand.
+// Sizing comes from observed ConcurrentExecutions, not from dividing the budget across handlers,
+// so each reservation sits above that handler's observed demand.
 export const databasePoolMaxConnectionsPerContainer = 3;
 // The floor described above. Deliberately not shared with the applications: neither runtime can
 // import this file, so each keeps its own copy where it builds its pool and this one exists to stop
@@ -199,10 +199,11 @@ export const backendHandlerReservedConcurrency = 8;
 export const authHandlerReservedConcurrency = 6;
 // Observed 1/1/9. 4x p95.
 export const mcpHandlerReservedConcurrency = 4;
-// Observed 1/4/8, sized above the weekly max. SSE holds a container for the whole stream, up to
-// 222 s, so concurrency here is set by session duration rather than by requests per second; sizing
-// it like a short request handler would throttle live AI chat at its ordinary p95.
-const chatLiveHandlerReservedConcurrency = 10;
+// Production reached the previous cap of 10 on 2026-09-02, with two same-minute throttles and 40
+// throttles through 05:04 UTC. A reservation of 16 gives round headroom above at least 12
+// simultaneous attempts. SSE holds a container for the whole stream, up to 222 s, so concurrency
+// here is set by session duration rather than by requests per second.
+const chatLiveHandlerReservedConcurrency = 16;
 // Observed 1/1/2, sized above the weekly max. A run holds a container up to 720 s, under the shared
 // 15-minute timeout, so the same duration-driven reasoning applies.
 const chatRunWorkerHandlerReservedConcurrency = 3;
@@ -364,6 +365,11 @@ const browserCorsExposeHeaders = [
   "content-disposition",
   "x-request-id",
 ] as const;
+const chatLiveFunctionUrlCorsExposeHeaders = [
+  ...browserCorsExposeHeaders,
+  "retry-after",
+  "x-amzn-requestid",
+] as const;
 const dockerBundlingRepoRootPath = "/asset-repo-root";
 type DockerBundlingEnvironmentVariableName =
   | "GITHUB_ACTIONS"
@@ -410,7 +416,7 @@ export function createChatLiveFunctionUrlCorsOptions(
     allowedOrigins: [...allowedOrigins],
     allowedMethods: [lambda.HttpMethod.GET],
     allowedHeaders: [...browserCorsAllowHeaders],
-    exposedHeaders: [...browserCorsExposeHeaders],
+    exposedHeaders: [...chatLiveFunctionUrlCorsExposeHeaders],
     allowCredentials: true,
   };
 }

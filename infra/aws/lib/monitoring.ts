@@ -478,6 +478,17 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "ChatLiveLambdaThrottleAlarm", {
+    metric: props.chatLiveFn.metricThrottles({
+      period: cdk.Duration.minutes(1),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Chat live SSE Lambda had a pre-handler throttle",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
   notifyAlertTopic(new cloudwatch.Alarm(scope, "GlobalMetricsSnapshotLambdaErrorAlarm", {
     metric: props.globalMetricsSnapshotFn.metricErrors({
       period: cdk.Duration.minutes(15),
