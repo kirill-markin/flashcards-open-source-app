@@ -73,14 +73,15 @@ export function toStoredOpenAIReplayItem(
   }
 
   if (item.type === "reasoning") {
-    if (typeof item.encrypted_content !== "string" || item.encrypted_content.length === 0) {
+    const encryptedContent = item.encrypted_content;
+    if (typeof encryptedContent !== "string" || encryptedContent.length === 0) {
       throw new Error("OpenAI reasoning item is missing encrypted_content for stateless replay");
     }
 
     return {
       type: "reasoning",
       summary: item.summary,
-      encrypted_content: item.encrypted_content,
+      encrypted_content: encryptedContent,
       ...(item.status !== undefined ? { status: item.status } : {}),
     };
   }
@@ -124,14 +125,15 @@ function normalizeStoredOpenAIReplayItem(
   }
 
   if (item.type === "reasoning") {
-    if (typeof item.encrypted_content !== "string" || item.encrypted_content.length === 0) {
+    const encryptedContent = item.encrypted_content;
+    if (typeof encryptedContent !== "string" || encryptedContent.length === 0) {
       return null;
     }
 
     return {
       type: "reasoning",
       summary: item.summary,
-      encrypted_content: item.encrypted_content,
+      encrypted_content: encryptedContent,
       ...(item.status !== undefined ? { status: item.status } : {}),
     };
   }
