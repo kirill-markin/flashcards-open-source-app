@@ -97,9 +97,14 @@ export function toStoredOpenAIReplayItem(
   }
 
   if (item.type === "function_call_output") {
+    const callId = item.call_id;
+    if (typeof callId !== "string" || callId.length === 0) {
+      throw new Error("OpenAI function call output is missing call_id for stateless replay");
+    }
+
     return {
       type: "function_call_output",
-      call_id: item.call_id,
+      call_id: callId,
       output: item.output,
       ...(item.status !== undefined && item.status !== null ? { status: item.status } : {}),
     };
@@ -149,9 +154,14 @@ function normalizeStoredOpenAIReplayItem(
   }
 
   if (item.type === "function_call_output") {
+    const callId = item.call_id;
+    if (typeof callId !== "string" || callId.length === 0) {
+      return null;
+    }
+
     return {
       type: "function_call_output",
-      call_id: item.call_id,
+      call_id: callId,
       output: item.output,
       ...(item.status !== undefined && item.status !== null ? { status: item.status } : {}),
     };
