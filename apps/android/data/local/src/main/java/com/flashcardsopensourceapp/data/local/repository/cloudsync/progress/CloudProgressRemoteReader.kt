@@ -19,6 +19,12 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.Authe
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
 
+internal class ProgressCloudIdentityTransitionException(
+    val cloudState: CloudAccountState
+) : IllegalStateException(
+    "Progress refresh crossed a cloud identity transition to ${cloudState.name}."
+)
+
 internal class CloudProgressRemoteReader(
     private val preferencesStore: CloudPreferencesStore,
     private val remoteService: CloudRemoteGateway,
@@ -147,8 +153,11 @@ internal class CloudProgressRemoteReader(
                 )
             }
 
-            else -> {
-                throw IllegalStateException("Progress requires a linked or guest cloud account.")
+            CloudAccountState.DISCONNECTED,
+            CloudAccountState.LINKING_READY -> {
+                throw ProgressCloudIdentityTransitionException(
+                    cloudState = cloudSettings.cloudState
+                )
             }
         }
     }
