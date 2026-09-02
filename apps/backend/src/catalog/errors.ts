@@ -23,6 +23,13 @@ export function toCatalogPersistenceError(error: unknown): HttpError | null {
         return new HttpError(409, "Catalog author slug already exists.", "CATALOG_AUTHOR_SLUG_ALREADY_EXISTS");
       case "packages_slug_unique":
         return new HttpError(409, "Catalog package slug already exists.", "CATALOG_PACKAGE_SLUG_ALREADY_EXISTS");
+      case "package_cards_pkey":
+        return new HttpError(
+          409,
+          "Catalog package-card snapshot ID already exists. Direct publishers must use a fresh packageCardId "
+            + "for every version snapshot and use stableCardKey to preserve cross-version logical identity.",
+          "CATALOG_PACKAGE_CARD_ID_ALREADY_EXISTS",
+        );
       case "idx_package_versions_one_review_candidate":
         return new HttpError(
           409,
