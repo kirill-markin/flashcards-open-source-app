@@ -98,6 +98,8 @@ type ChatLiveErrorMetadata = Readonly<{
   code: string | null;
 }>;
 
+const maximumRetryAfterDelayMs = 4_000;
+
 export class ChatLiveContractError extends Error {
   readonly eventType: string | null;
   readonly payloadSnippet: string;
@@ -120,13 +122,21 @@ export class ChatLiveHttpError extends Error {
   readonly statusCode: number;
   readonly requestId: string | null;
   readonly code: string | null;
+  readonly retryAfterMs: number | null;
 
-  constructor(message: string, statusCode: number, requestId: string | null, code: string | null) {
+  constructor(
+    message: string,
+    statusCode: number,
+    requestId: string | null,
+    code: string | null,
+    retryAfterMs: number | null,
+  ) {
     super(message);
     this.name = "ChatLiveHttpError";
     this.statusCode = statusCode;
     this.requestId = requestId;
     this.code = code;
+    this.retryAfterMs = retryAfterMs;
   }
 }
 
@@ -521,16 +531,43 @@ function buildLiveStreamUrl(
   return url.toString();
 }
 
-function buildLiveStreamHttpError(statusCode: number, responseText: string, headerRequestId: string | null): ChatLiveHttpError {
+function getLiveResponseRequestId(response: Response): string | null {
+  return normalizeMetadataString(response.headers.get("X-Request-Id"))
+    ?? normalizeMetadataString(response.headers.get("X-Amzn-RequestId"));
+}
+
+function getRetryAfterMs(response: Response): number | null {
+  const value = response.headers.get("Retry-After")?.trim();
+  if (value === undefined || value === "") {
+    return null;
+  }
+
+  if (/^\d+$/.test(value)) {
+    const delaySeconds = Number(value);
+    const delayMs = delaySeconds * 1000;
+    return Math.min(delayMs, maximumRetryAfterDelayMs);
+  }
+
+  const retryAtMs = Date.parse(value);
+  return Number.isFinite(retryAtMs)
+    ? Math.min(
+      Math.max(0, retryAtMs - Date.now()),
+      maximumRetryAfterDelayMs,
+    )
+    : null;
+}
+
+function buildLiveStreamHttpError(response: Response, responseText: string): ChatLiveHttpError {
+  const statusCode = response.status;
   const payload = parseJsonObject(responseText);
-  const normalizedHeaderRequestId = normalizeMetadataString(headerRequestId);
+  const headerRequestId = getLiveResponseRequestId(response);
   const backendMessage = payload === null
     ? responseText.trim()
     : readStringField(payload, "error");
   const bodyRequestId = payload === null
     ? null
     : readStringField(payload, "requestId");
-  const requestId = normalizedHeaderRequestId ?? bodyRequestId;
+  const requestId = headerRequestId ?? normalizeMetadataString(bodyRequestId);
   const code = payload === null
     ? null
     : readStringField(payload, "code");
@@ -542,7 +579,7 @@ function buildLiveStreamHttpError(statusCode: number, responseText: string, head
     ? `AI live stream failed with status ${String(statusCode)}: ${baseMessage}`
     : `AI live stream failed with status ${String(statusCode)}: ${baseMessage} (requestId: ${requestId})`;
 
-  return new ChatLiveHttpError(message, statusCode, requestId, code);
+  return new ChatLiveHttpError(message, statusCode, requestId, code, getRetryAfterMs(response));
 }
 
 function consumeSSEBlock(
@@ -614,14 +651,13 @@ export async function consumeChatLiveStream(
 
   if (response.ok === false) {
     throw buildLiveStreamHttpError(
-      response.status,
+      response,
       await response.text(),
-      response.headers.get("X-Request-Id"),
     );
   }
 
   const responseMetadata: ChatLiveErrorMetadata = {
-    requestId: normalizeMetadataString(response.headers.get("X-Request-Id")),
+    requestId: getLiveResponseRequestId(response),
     statusCode: response.status,
     code: null,
   };

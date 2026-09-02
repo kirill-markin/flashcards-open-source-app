@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ChatLiveContractError,
+  ChatLiveHttpError,
   ChatLiveTransportError,
   consumeChatLiveStream,
   parseChatLiveEvent,
@@ -153,6 +154,143 @@ describe("consumeChatLiveStream", () => {
       code: null,
       originalErrorName: "TypeError",
     } satisfies Partial<ChatLiveTransportError>);
+  });
+
+  it("preserves the application request ID and delta-seconds Retry-After on HTTP errors", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      error: "Live attach refused",
+      requestId: "body-request-id",
+      code: null,
+    }), {
+      status: 429,
+      headers: {
+        "Retry-After": "2",
+        "X-Amzn-RequestId": "lambda-request-id",
+        "X-Request-Id": "application-request-id",
+      },
+    }));
+
+    const promise = consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: null,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    });
+
+    await expect(promise).rejects.toBeInstanceOf(ChatLiveHttpError);
+    await expect(promise).rejects.toMatchObject({
+      requestId: "application-request-id",
+      statusCode: 429,
+      code: null,
+      retryAfterMs: 2_000,
+    } satisfies Partial<ChatLiveHttpError>);
+  });
+
+  it.each([
+    ["zero delta-seconds", () => "0"],
+    ["past HTTP-date", () => new Date(Date.now() - 5_000).toUTCString()],
+  ])("falls back to the Lambda request ID and parses a %s Retry-After", async (_retryAfterKind, getRetryAfter) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      error: "Live attach refused",
+      requestId: "body-request-id",
+      code: null,
+    }), {
+      status: 429,
+      headers: {
+        "Retry-After": getRetryAfter(),
+        "X-Amzn-RequestId": "lambda-request-id",
+      },
+    }));
+
+    await expect(consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: null,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    })).rejects.toMatchObject({
+      requestId: "lambda-request-id",
+      statusCode: 429,
+      code: null,
+      retryAfterMs: 0,
+    } satisfies Partial<ChatLiveHttpError>);
+  });
+
+  it.each([
+    ["delta-seconds", () => "60"],
+    ["HTTP-date", () => new Date(Date.now() + 60_000).toUTCString()],
+  ])("caps an oversized %s Retry-After at the metadata boundary", async (_retryAfterKind, getRetryAfter) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      error: "Live attach refused",
+      requestId: "body-request-id",
+      code: null,
+    }), {
+      status: 429,
+      headers: {
+        "Retry-After": getRetryAfter(),
+      },
+    }));
+
+    await expect(consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: null,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    })).rejects.toMatchObject({
+      retryAfterMs: 4_000,
+    } satisfies Partial<ChatLiveHttpError>);
+  });
+
+  it("retains response-body error metadata and rejects an invalid Retry-After", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      error: "Coded refusal",
+      requestId: "body-request-id",
+      code: "LIVE_ATTACH_FORBIDDEN",
+    }), {
+      status: 403,
+      headers: {
+        "Retry-After": "not-a-delay",
+      },
+    }));
+
+    await expect(consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      runId: "run-1",
+      afterCursor: null,
+      resumeAttemptId: null,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    })).rejects.toMatchObject({
+      requestId: "body-request-id",
+      statusCode: 403,
+      code: "LIVE_ATTACH_FORBIDDEN",
+      retryAfterMs: null,
+    } satisfies Partial<ChatLiveHttpError>);
   });
 
   it("wraps post-response body read failures as transport errors with response metadata", async () => {
