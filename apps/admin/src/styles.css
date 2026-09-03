@@ -106,13 +106,24 @@ h2 {
   line-height: 1;
 }
 
-.subhead,
+.dashboard-section-description,
 .state-copy {
   margin: 0;
   max-width: 920px;
   color: var(--muted);
   font-size: 15px;
   line-height: 1.6;
+}
+
+.dashboard-section {
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.dashboard-section-header {
+  display: grid;
+  gap: 12px;
 }
 
 .summary-grid {
