@@ -7,7 +7,6 @@ import {
   type ReviewEventsByDateCommunityRow,
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUniqueUserCohort,
-  type ReviewEventsByDateUser,
 } from "../../../adminApi";
 
 export type ChartTooltipState = Readonly<{
@@ -45,7 +44,6 @@ export type ReviewEventsByDateChartModel = Readonly<{
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
   userIds: ReadonlyArray<string>;
-  userColorScale: d3.ScaleOrdinal<string, string>;
   dailyUniqueUserCohortMatrix: ReadonlyArray<MatrixChartEntry>;
   friendInvitationUserIds: ReadonlyArray<string>;
   friendshipUserIds: ReadonlyArray<string>;
@@ -105,25 +103,12 @@ export const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string
   new: "#2e6f95",
 };
 
-const userColorPalette: ReadonlyArray<string> = [
-  ...d3.schemeTableau10,
-  ...d3.schemeSet2,
-  ...d3.schemeDark2,
-  "#e15759",
-  "#76b7b2",
-  "#f28e2b",
-  "#59a14f",
-];
-
 export function buildReviewEventsByDateChartModel(
   report: ReviewEventsByDateReport,
-  stableUsers: ReadonlyArray<ReviewEventsByDateUser>,
 ): ReviewEventsByDateChartModel {
   const dates = report.dateTotals.map((item) => item.date);
   const tickDates = createTickDates(dates);
-  const allUserIds = getStableUserColorDomain(stableUsers);
   const userIds = report.users.map((user) => user.userId);
-  const userColorScale = getUserColorScale(allUserIds);
   const dailyUniqueUserCohortMatrix = buildDailyUniqueUserCohortMatrix(report.dailyUniqueUserCohorts);
   const dailyUniqueUserTotals = report.dailyUniqueUserCohorts.map((item) => ({
     date: item.date,
@@ -176,7 +161,6 @@ export function buildReviewEventsByDateChartModel(
     dates,
     tickDates,
     userIds,
-    userColorScale,
     dailyUniqueUserCohortMatrix,
     friendInvitationUserIds,
     friendshipUserIds,
@@ -326,26 +310,6 @@ function getPeakStackedValue(items: ReadonlyArray<MatrixChartEntry>): number {
 
 function getPeakGroupedValue(items: ReadonlyArray<MatrixChartEntry>): number {
   return d3.max(items, (item) => d3.max(reviewEventPlatforms, (platform) => item.valuesByKey[platform] ?? 0) ?? 0) ?? 0;
-}
-
-function getUserColorScale(userIds: ReadonlyArray<string>): d3.ScaleOrdinal<string, string> {
-  const colors = userIds.map((userId) => userColorPalette[getUserColorPaletteIndex(userId)]);
-
-  return d3.scaleOrdinal<string, string>(userIds, colors);
-}
-
-function getUserColorPaletteIndex(userId: string): number {
-  let hash = 0;
-
-  for (const character of userId) {
-    hash = ((hash << 5) - hash + character.charCodeAt(0)) | 0;
-  }
-
-  return Math.abs(hash) % userColorPalette.length;
-}
-
-function getStableUserColorDomain(users: ReadonlyArray<ReviewEventsByDateUser>): ReadonlyArray<string> {
-  return users.map((user) => user.userId).sort((leftUserId, rightUserId) => leftUserId.localeCompare(rightUserId));
 }
 
 function createTickDates(dates: ReadonlyArray<string>): ReadonlyArray<string> {

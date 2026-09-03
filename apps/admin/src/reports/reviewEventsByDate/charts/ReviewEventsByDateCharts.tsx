@@ -16,7 +16,8 @@ import {
   renderPlatformActiveUsersChart,
   renderPlatformReviewEventsChart,
   renderUserReviewEventsChart,
-} from "./chartRenderers";
+} from "../../../charts/chartRenderers";
+import type { UserColorScale } from "../../../dashboard/userColors";
 import { formatGeneratedAt } from "../formatting";
 
 type ReviewEventsByDateChartsProps = Readonly<{
@@ -24,6 +25,7 @@ type ReviewEventsByDateChartsProps = Readonly<{
   generatedAtUtc: string;
   isReportLoading: boolean;
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
+  userColorScale: UserColorScale;
   onUserFilterApply: (userId: string) => void;
 }>;
 
@@ -143,7 +145,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       tickDates: props.chartModel.tickDates,
       userMatrix: props.chartModel.userMatrix,
       userIds: props.chartModel.userIds,
-      userColorScale: props.chartModel.userColorScale,
+      userColorScale: props.userColorScale,
       userById: props.userById,
       totalReviewEventsByDate: props.chartModel.totalReviewEventsByDate,
       peakDailyVolume: props.chartModel.peakDailyVolume,
@@ -175,7 +177,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       tickDates: props.chartModel.tickDates,
       friendInvitationUserMatrix: props.chartModel.friendInvitationUserMatrix,
       friendInvitationUserIds: props.chartModel.friendInvitationUserIds,
-      userColorScale: props.chartModel.userColorScale,
+      userColorScale: props.userColorScale,
       userById: props.userById,
       totalFriendInvitationsByDate: props.chartModel.totalFriendInvitationsByDate,
       friendInvitationTotalsByUserId: props.chartModel.friendInvitationTotalsByUserId,
@@ -190,7 +192,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       tickDates: props.chartModel.tickDates,
       friendshipUserMatrix: props.chartModel.friendshipUserMatrix,
       friendshipUserIds: props.chartModel.friendshipUserIds,
-      userColorScale: props.chartModel.userColorScale,
+      userColorScale: props.userColorScale,
       userById: props.userById,
       totalFriendshipsByDate: props.chartModel.totalFriendshipsByDate,
       peakDailyFriendships: props.chartModel.peakDailyFriendships,
@@ -202,6 +204,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
     props.chartModel,
     props.isReportLoading,
     props.userById,
+    props.userColorScale,
     handleUserFilterApply,
   ]);
 
