@@ -6,26 +6,22 @@ import {
   type ReviewEventPlatform,
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUser,
-} from "../../adminApi";
-import { ReviewEventsByDateCharts } from "./charts/ReviewEventsByDateCharts";
-import { buildReviewEventsByDateChartModel } from "./charts/chartModel";
-import { ReviewEventsByDateFilters } from "./filters/ReviewEventsByDateFilters";
-import {
-  buildReviewEventsByDateSummaryCards,
-  ReviewEventsByDateSummary,
-} from "./ReviewEventsByDateSummary";
-import { formatDateRangeLabel } from "./formatting";
+} from "../adminApi";
+import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
+import { ReviewEventsByDateFilters } from "../reports/reviewEventsByDate/filters/ReviewEventsByDateFilters";
 import {
   buildActiveUserFilters,
   buildSearchableUserFilterOptions,
   doesUserMatchSearch,
   getNormalizedSearchValue,
   visibleUserFilterOptionLimit,
-} from "./filters/userFilters";
+} from "../reports/reviewEventsByDate/filters/userFilters";
+import { formatDateRangeLabel } from "../reports/reviewEventsByDate/formatting";
 import {
   filterReviewEventsByDateReport,
   type ReviewEventsByDateRange,
-} from "./query";
+} from "../reports/reviewEventsByDate/query";
+import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 function buildUserById(
   reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
@@ -84,7 +80,7 @@ function getUpdatedPlatformFilterSelection(
   return currentPlatforms.filter((currentPlatform) => currentPlatform !== platform);
 }
 
-export function ReviewEventsByDateDashboard(
+export function AdminDashboard(
   props: Readonly<{
     report: ReviewEventsByDateReport;
     adminEmail: string;
@@ -199,6 +195,10 @@ export function ReviewEventsByDateDashboard(
     () => buildUserById(filteredReport.users, filteredReport.communityOnlyUsers),
     [filteredReport.communityOnlyUsers, filteredReport.users],
   );
+  const userColorScale = useMemo(
+    () => getUserColorScale(getStableUserColorDomain(userFilterOptionUsers)),
+    [userFilterOptionUsers],
+  );
   const activeUserFilters = useMemo(
     () => buildActiveUserFilters(selectedUserIds, reportUserById),
     [selectedUserIds, reportUserById],
@@ -222,29 +222,14 @@ export function ReviewEventsByDateDashboard(
     [matchingUserFilterOptions],
   );
   const hiddenUserFilterOptionCount = matchingUserFilterOptions.length - visibleUserFilterOptions.length;
-  const chartModel = useMemo(
-    () => buildReviewEventsByDateChartModel(filteredReport, userFilterOptionUsers),
-    [filteredReport, userFilterOptionUsers],
-  );
-  const summaryCards = useMemo(
-    () => buildReviewEventsByDateSummaryCards(
-      filteredReport,
-      chartModel.peakDailyVolume,
-      chartModel.peakDailyUniqueUsers,
-    ),
-    [chartModel.peakDailyUniqueUsers, chartModel.peakDailyVolume, filteredReport],
-  );
 
   return (
     <main className="shell">
       <section className="hero">
         <div>
           <p className="eyebrow">Admin Analytics</p>
-          <h1>Review Events By Date</h1>
+          <h1>Product Analytics</h1>
         </div>
-        <p className="subhead">
-          Daily unique reviewers, stacked review-event volume, platform activity, friend invite links, and existing friend connections by calendar date. Dates are grouped in <strong>UTC</strong>.
-        </p>
         <div className="hero-meta">
           <span className="hero-badge">Signed in as {props.adminEmail}</span>
           <span className="hero-badge">Range {formatDateRangeLabel(props.report.from)} to {formatDateRangeLabel(props.report.to)}</span>
@@ -273,7 +258,7 @@ export function ReviewEventsByDateDashboard(
         matchingUserFilterOptionCount={matchingUserFilterOptions.length}
         hiddenUserFilterOptionCount={hiddenUserFilterOptionCount}
         activeUserFilters={activeUserFilters}
-        userColorScale={chartModel.userColorScale}
+        userColorScale={userColorScale}
         onFromDateChange={handleFromDateChange}
         onToDateChange={handleToDateChange}
         onDateRangeSubmit={handleDateRangeSubmit}
@@ -287,13 +272,12 @@ export function ReviewEventsByDateDashboard(
         onAllFiltersReset={handleAllFiltersReset}
       />
 
-      <ReviewEventsByDateSummary cards={summaryCards} />
-
-      <ReviewEventsByDateCharts
-        chartModel={chartModel}
+      <ReviewActivitySection
+        filteredReport={filteredReport}
         generatedAtUtc={props.report.generatedAtUtc}
         isReportLoading={props.isReportLoading}
-        userById={filteredUserById}
+        filteredUserById={filteredUserById}
+        userColorScale={userColorScale}
         onUserFilterApply={handleChartUserFilterApply}
       />
     </main>

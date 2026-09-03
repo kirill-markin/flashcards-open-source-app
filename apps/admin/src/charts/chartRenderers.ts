@@ -3,7 +3,7 @@ import {
   reviewEventPlatforms,
   type ReviewEventPlatform,
   type ReviewEventsByDateUser,
-} from "../../../adminApi";
+} from "../adminApi";
 import {
   chartMargin,
   chartWidth,
@@ -18,8 +18,8 @@ import {
   type MatrixChartEntry,
   type StackedChartRectEntry,
   type UniqueUserCohortKey,
-} from "./chartModel";
-import { escapeHtml, formatCompactDateLabel, formatDateRangeLabel } from "../formatting";
+} from "../reports/reviewEventsByDate/charts/chartModel";
+import { escapeHtml, formatCompactDateLabel, formatDateRangeLabel } from "../reports/reviewEventsByDate/formatting";
 
 type ChartFrameParams = Readonly<{
   chartHeight: number;
