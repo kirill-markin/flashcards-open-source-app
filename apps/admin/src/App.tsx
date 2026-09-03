@@ -3,10 +3,12 @@ import {
   AdminApiError,
   fetchAdminSession,
   type AdminSession,
+  type DailyActiveUsersReport,
   type ReviewEventsByDateReport,
 } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
 import { AdminDashboard } from "./dashboard/AdminDashboard";
+import { loadDailyActiveUsersReport } from "./reports/dailyActiveUsers/query";
 import {
   loadReviewEventsByDateDefaultRange,
   loadReviewEventsByDateReport,
@@ -24,6 +26,7 @@ type AppState =
       session: AdminSession;
       defaultRange: ReviewEventsByDateRange;
       report: ReviewEventsByDateReport;
+      dailyActiveUsersReport: DailyActiveUsersReport;
       isReportLoading: boolean;
       dateRangeError: string;
     }>;
@@ -163,7 +166,10 @@ export default function App(): JSX.Element {
         config = getAdminAppConfig();
         const session = await fetchAdminSession(config);
         const defaultRange = await loadReviewEventsByDateDefaultRange(config);
-        const report = await loadReviewEventsByDateReport(config, defaultRange.from, defaultRange.to);
+        const [report, dailyActiveUsersReport] = await Promise.all([
+          loadReviewEventsByDateReport(config, defaultRange.from, defaultRange.to),
+          loadDailyActiveUsersReport(config, defaultRange.from, defaultRange.to),
+        ]);
 
         if (cancelled) {
           return;
@@ -175,6 +181,7 @@ export default function App(): JSX.Element {
           session,
           defaultRange,
           report,
+          dailyActiveUsersReport,
           isReportLoading: false,
           dateRangeError: "",
         });
@@ -223,11 +230,10 @@ export default function App(): JSX.Element {
     });
 
     try {
-      const report = await loadReviewEventsByDateReport(
-        readyState.config,
-        range.from,
-        range.to,
-      );
+      const [report, dailyActiveUsersReport] = await Promise.all([
+        loadReviewEventsByDateReport(readyState.config, range.from, range.to),
+        loadDailyActiveUsersReport(readyState.config, range.from, range.to),
+      ]);
 
       setAppState((currentState) => {
         if (currentState.status !== "ready") {
@@ -237,6 +243,7 @@ export default function App(): JSX.Element {
         return {
           ...currentState,
           report,
+          dailyActiveUsersReport,
           isReportLoading: false,
           dateRangeError: "",
         };
@@ -283,6 +290,7 @@ export default function App(): JSX.Element {
   return (
     <AdminDashboard
       report={appState.report}
+      dailyActiveUsersReport={appState.dailyActiveUsersReport}
       adminEmail={appState.session.email}
       defaultRange={appState.defaultRange}
       isReportLoading={appState.isReportLoading}

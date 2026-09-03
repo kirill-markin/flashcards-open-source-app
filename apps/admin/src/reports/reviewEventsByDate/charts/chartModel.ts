@@ -1,41 +1,14 @@
 import * as d3 from "d3";
 import {
-  reviewEventCohorts,
   reviewEventPlatforms,
-  type ReviewEventCohort,
   type ReviewEventPlatform,
   type ReviewEventsByDateCommunityRow,
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUniqueUserCohort,
 } from "../../../adminApi";
-
-export type ChartTooltipState = Readonly<{
-  visible: boolean;
-  html: string;
-  left: number;
-  top: number;
-}>;
+import { createTickDates, type MatrixChartEntry } from "../../../charts/chartPrimitives";
 
 type DailyValueEntry = Readonly<{
-  date: string;
-  value: number;
-}>;
-
-export type MatrixChartEntry = Readonly<{
-  date: string;
-  valuesByKey: Readonly<Record<string, number>>;
-}>;
-
-export type StackedChartRectEntry = Readonly<{
-  key: string;
-  date: string;
-  value: number;
-  y0: number;
-  y1: number;
-}>;
-
-export type GroupedChartRectEntry = Readonly<{
-  key: ReviewEventPlatform;
   date: string;
   value: number;
 }>;
@@ -65,43 +38,6 @@ export type ReviewEventsByDateChartModel = Readonly<{
   peakDailyPlatformUsers: number;
   peakDailyPlatformReviewEvents: number;
 }>;
-
-export const chartMargin = { top: 28, right: 68, bottom: 88, left: 68 } as const;
-export const chartWidth = 1320;
-export const simpleChartHeight = 300;
-export const stackedChartHeight = 620;
-
-export const platformLabels: Readonly<Record<ReviewEventPlatform, string>> = {
-  web: "Web",
-  android: "Android",
-  ios: "iOS",
-  agent: "Agent API",
-  // A row lands here because its `platform` column is NULL, which means no resolved device fact:
-  // either the actor behind it is not a device, or no device could be resolved for it. It is kept as
-  // its own series so it can never be read as a device or summed into one.
-  unattributed: "Unresolved",
-};
-
-const platformColors: Readonly<Record<ReviewEventPlatform, string>> = {
-  web: "#4e79a7",
-  android: "#59a14f",
-  ios: "#f28e2b",
-  agent: "#af7aa1",
-  unattributed: "#8c8c8c",
-};
-
-export const uniqueUserCohortKeys = reviewEventCohorts;
-export type UniqueUserCohortKey = ReviewEventCohort;
-
-export const uniqueUserCohortLabels: Readonly<Record<UniqueUserCohortKey, string>> = {
-  returning: "Returning",
-  new: "New",
-};
-
-export const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string>> = {
-  returning: "var(--accent)",
-  new: "#2e6f95",
-};
 
 export function buildReviewEventsByDateChartModel(
   report: ReviewEventsByDateReport,
@@ -182,14 +118,6 @@ export function buildReviewEventsByDateChartModel(
     peakDailyPlatformUsers,
     peakDailyPlatformReviewEvents,
   };
-}
-
-export function getPlatformColor(platform: string): string {
-  if (reviewEventPlatforms.includes(platform as ReviewEventPlatform) === false) {
-    throw new Error(`Unsupported platform color key: ${platform}`);
-  }
-
-  return platformColors[platform as ReviewEventPlatform];
 }
 
 function buildDailyUniqueUserCohortMatrix(
@@ -310,10 +238,4 @@ function getPeakStackedValue(items: ReadonlyArray<MatrixChartEntry>): number {
 
 function getPeakGroupedValue(items: ReadonlyArray<MatrixChartEntry>): number {
   return d3.max(items, (item) => d3.max(reviewEventPlatforms, (platform) => item.valuesByKey[platform] ?? 0) ?? 0) ?? 0;
-}
-
-function createTickDates(dates: ReadonlyArray<string>): ReadonlyArray<string> {
-  return dates.filter(
-    (_date, index) => dates.length <= 22 || index % Math.ceil(dates.length / 16) === 0,
-  );
 }

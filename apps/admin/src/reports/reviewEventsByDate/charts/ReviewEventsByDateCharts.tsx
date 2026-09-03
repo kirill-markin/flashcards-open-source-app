@@ -1,14 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type JSX } from "react";
-import { reviewEventPlatforms, type ReviewEventsByDateUser } from "../../../adminApi";
-import {
-  getPlatformColor,
-  platformLabels,
-  uniqueUserCohortColors,
-  uniqueUserCohortKeys,
-  uniqueUserCohortLabels,
-  type ChartTooltipState,
-  type ReviewEventsByDateChartModel,
-} from "./chartModel";
+import { useCallback, useEffect, useRef, type JSX } from "react";
+import type { ReviewEventsByDateUser } from "../../../adminApi";
+import { PlatformKey, UniqueUserCohortKey } from "../../../charts/ChartLegends";
+import { ChartTooltip, useChartTooltip } from "../../../charts/ChartTooltip";
 import {
   renderDailyFriendInvitationsChart,
   renderDailyFriendshipsChart,
@@ -17,8 +10,9 @@ import {
   renderPlatformReviewEventsChart,
   renderUserReviewEventsChart,
 } from "../../../charts/chartRenderers";
+import { formatGeneratedAt } from "../../../charts/formatting";
 import type { UserColorScale } from "../../../dashboard/userColors";
-import { formatGeneratedAt } from "../formatting";
+import type { ReviewEventsByDateChartModel } from "./chartModel";
 
 type ReviewEventsByDateChartsProps = Readonly<{
   chartModel: ReviewEventsByDateChartModel;
@@ -29,42 +23,6 @@ type ReviewEventsByDateChartsProps = Readonly<{
   onUserFilterApply: (userId: string) => void;
 }>;
 
-function ChartTooltip(props: ChartTooltipState): JSX.Element {
-  return (
-    <div
-      className={`tooltip${props.visible ? " visible" : ""}`}
-      style={{ left: props.left, top: props.top }}
-      dangerouslySetInnerHTML={{ __html: props.html }}
-    />
-  );
-}
-
-function PlatformKey(): JSX.Element {
-  return (
-    <div className="platform-key" aria-label="Platform color key">
-      {reviewEventPlatforms.map((platform) => (
-        <span key={platform} className="platform-key-item">
-          <span className="platform-key-swatch" style={{ backgroundColor: getPlatformColor(platform) }} />
-          <span>{platformLabels[platform]}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function UniqueUserCohortKey(): JSX.Element {
-  return (
-    <div className="platform-key" aria-label="Unique users cohort color key">
-      {uniqueUserCohortKeys.map((cohort) => (
-        <span key={cohort} className="platform-key-item">
-          <span className="platform-key-swatch" style={{ backgroundColor: uniqueUserCohortColors[cohort] }} />
-          <span>{uniqueUserCohortLabels[cohort]}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): JSX.Element {
   const uniqueUsersChartRef = useRef<SVGSVGElement | null>(null);
   const userReviewEventsChartRef = useRef<SVGSVGElement | null>(null);
@@ -72,20 +30,12 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
   const platformReviewEventsChartRef = useRef<SVGSVGElement | null>(null);
   const friendInvitationsChartRef = useRef<SVGSVGElement | null>(null);
   const friendshipsChartRef = useRef<SVGSVGElement | null>(null);
-  const [tooltipState, setTooltipState] = useState<ChartTooltipState>({
-    visible: false,
-    html: "",
-    left: 0,
-    top: 0,
-  });
+  const { tooltipState, tooltipHandlers } = useChartTooltip();
 
   const handleUserFilterApply = useCallback((userId: string): void => {
     props.onUserFilterApply(userId);
-    setTooltipState((currentState) => ({
-      ...currentState,
-      visible: false,
-    }));
-  }, [props.onUserFilterApply]);
+    tooltipHandlers.hideTooltip();
+  }, [props.onUserFilterApply, tooltipHandlers]);
 
   useEffect(() => {
     const uniqueUsersSvgElement = uniqueUsersChartRef.current;
@@ -104,30 +54,6 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
     ) {
       return;
     }
-
-    function showTooltip(html: string, clientX: number, clientY: number): void {
-      const padding = 18;
-      const nextLeft = Math.max(padding, Math.min(window.innerWidth - 340, clientX + 18));
-      const nextTop = Math.max(padding, Math.min(window.innerHeight - 220, clientY + 18));
-      setTooltipState({
-        visible: true,
-        html,
-        left: nextLeft,
-        top: nextTop,
-      });
-    }
-
-    function hideTooltip(): void {
-      setTooltipState((currentState) => ({
-        ...currentState,
-        visible: false,
-      }));
-    }
-
-    const tooltipHandlers = {
-      showTooltip,
-      hideTooltip,
-    };
 
     renderDailyUniqueUsersChart({
       svgElement: uniqueUsersSvgElement,
@@ -206,6 +132,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
     props.userById,
     props.userColorScale,
     handleUserFilterApply,
+    tooltipHandlers,
   ]);
 
   return (
@@ -237,7 +164,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
 
         <div className="chart-shell">
           <div className="chart-meta">
-            <span>Daily active users by platform</span>
+            <span>Daily reviewing users by platform</span>
             <div className="chart-meta-right">
               <PlatformKey />
             </div>
