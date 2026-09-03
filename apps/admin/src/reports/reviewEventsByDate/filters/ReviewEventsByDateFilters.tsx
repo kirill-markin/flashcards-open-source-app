@@ -11,7 +11,7 @@ import {
   platformLabels,
   uniqueUserCohortColors,
   uniqueUserCohortLabels,
-} from "../charts/chartModel";
+} from "../../../charts/chartPrimitives";
 import type { ReviewEventsByDateRange } from "../query";
 import { getUserFilterLabel, type ActiveUserFilter } from "./userFilters";
 

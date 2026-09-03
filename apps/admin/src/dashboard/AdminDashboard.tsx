@@ -2,11 +2,16 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
 import {
   reviewEventCohorts,
   reviewEventPlatforms,
+  type DailyActiveUsersReport,
+  type DailyActiveUsersUser,
   type ReviewEventCohort,
   type ReviewEventPlatform,
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUser,
 } from "../adminApi";
+import { formatDateRangeLabel } from "../charts/formatting";
+import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
+import { filterDailyActiveUsersReport } from "../reports/dailyActiveUsers/query";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import { ReviewEventsByDateFilters } from "../reports/reviewEventsByDate/filters/ReviewEventsByDateFilters";
 import {
@@ -16,20 +21,46 @@ import {
   getNormalizedSearchValue,
   visibleUserFilterOptionLimit,
 } from "../reports/reviewEventsByDate/filters/userFilters";
-import { formatDateRangeLabel } from "../reports/reviewEventsByDate/formatting";
 import {
   filterReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "../reports/reviewEventsByDate/query";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
-function buildUserById(
+/**
+ * The people the shared user filter and the shared colour scale have to cover: everyone with review
+ * events, everyone with community activity, and everyone who opened the app. A person present in
+ * more than one section appears once. An active user with no review events in range carries a zero
+ * review total, which is what the filter list already shows for a community-only user.
+ */
+function buildUserFilterOptionUsers(
   reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
   communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>,
-): ReadonlyMap<string, ReviewEventsByDateUser> {
-  return new Map<string, ReviewEventsByDateUser>(
+  activeUsers: ReadonlyArray<DailyActiveUsersUser>,
+): ReadonlyArray<ReviewEventsByDateUser> {
+  const usersByUserId = new Map<string, ReviewEventsByDateUser>(
     [...reviewUsers, ...communityOnlyUsers].map((user) => [user.userId, user]),
   );
+
+  for (const activeUser of activeUsers) {
+    if (usersByUserId.has(activeUser.userId)) {
+      continue;
+    }
+
+    usersByUserId.set(activeUser.userId, {
+      userId: activeUser.userId,
+      email: activeUser.email,
+      totalReviewEvents: 0,
+    });
+  }
+
+  return Array.from(usersByUserId.values());
+}
+
+function buildUserById(
+  users: ReadonlyArray<ReviewEventsByDateUser>,
+): ReadonlyMap<string, ReviewEventsByDateUser> {
+  return new Map<string, ReviewEventsByDateUser>(users.map((user) => [user.userId, user]));
 }
 
 function getUpdatedUserFilterSelection(
@@ -83,6 +114,7 @@ function getUpdatedPlatformFilterSelection(
 export function AdminDashboard(
   props: Readonly<{
     report: ReviewEventsByDateReport;
+    dailyActiveUsersReport: DailyActiveUsersReport;
     adminEmail: string;
     defaultRange: ReviewEventsByDateRange;
     isReportLoading: boolean;
@@ -171,6 +203,14 @@ export function AdminDashboard(
     }),
     [props.report, selectedCohorts, selectedPlatforms, selectedUserIds],
   );
+  const filteredDailyActiveUsersReport = useMemo(
+    () => filterDailyActiveUsersReport(props.dailyActiveUsersReport, {
+      selectedUserIds,
+      selectedCohorts,
+      selectedPlatforms,
+    }),
+    [props.dailyActiveUsersReport, selectedCohorts, selectedPlatforms, selectedUserIds],
+  );
   const selectedUserIdSet = useMemo(
     () => new Set(selectedUserIds),
     [selectedUserIds],
@@ -184,20 +224,32 @@ export function AdminDashboard(
     [selectedPlatforms],
   );
   const userFilterOptionUsers = useMemo(
-    () => [...props.report.users, ...props.report.communityOnlyUsers],
-    [props.report.communityOnlyUsers, props.report.users],
+    () => buildUserFilterOptionUsers(
+      props.report.users,
+      props.report.communityOnlyUsers,
+      props.dailyActiveUsersReport.users,
+    ),
+    [props.dailyActiveUsersReport.users, props.report.communityOnlyUsers, props.report.users],
   );
+  // Every selectable person, so an active-user chip selected from the daily active users chart still
+  // resolves to a label even when that person has no review events.
   const reportUserById = useMemo(
-    () => buildUserById(props.report.users, props.report.communityOnlyUsers),
-    [props.report.communityOnlyUsers, props.report.users],
+    () => buildUserById(userFilterOptionUsers),
+    [userFilterOptionUsers],
   );
   const filteredUserById = useMemo(
-    () => buildUserById(filteredReport.users, filteredReport.communityOnlyUsers),
+    () => buildUserById([...filteredReport.users, ...filteredReport.communityOnlyUsers]),
     [filteredReport.communityOnlyUsers, filteredReport.users],
   );
+  // The domain is the union of every section's own user list, so a person keeps one colour wherever
+  // they appear and no section can ever ask the shared scale for an id it does not hold.
   const userColorScale = useMemo(
-    () => getUserColorScale(getStableUserColorDomain(userFilterOptionUsers)),
-    [userFilterOptionUsers],
+    () => getUserColorScale(getStableUserColorDomain([
+      ...props.report.users,
+      ...props.report.communityOnlyUsers,
+      ...props.dailyActiveUsersReport.users,
+    ])),
+    [props.dailyActiveUsersReport.users, props.report.communityOnlyUsers, props.report.users],
   );
   const activeUserFilters = useMemo(
     () => buildActiveUserFilters(selectedUserIds, reportUserById),
@@ -270,6 +322,14 @@ export function AdminDashboard(
         onCohortFilterChange={handleCohortFilterChange}
         onPlatformFilterChange={handlePlatformFilterChange}
         onAllFiltersReset={handleAllFiltersReset}
+      />
+
+      <DailyActiveUsersSection
+        filteredReport={filteredDailyActiveUsersReport}
+        generatedAtUtc={props.dailyActiveUsersReport.generatedAtUtc}
+        isReportLoading={props.isReportLoading}
+        userColorScale={userColorScale}
+        onUserFilterApply={handleChartUserFilterApply}
       />
 
       <ReviewActivitySection

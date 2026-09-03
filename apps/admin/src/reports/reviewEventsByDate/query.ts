@@ -19,6 +19,13 @@ import type {
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { escapeSqlStringLiteral } from "../../sql";
+import {
+  assertIsString,
+  assertPlatform,
+  assertValidDateRange,
+  buildRequestedDateRange,
+  toInteger,
+} from "../reportValues";
 
 type ReviewEventsByDateQueryRow = Readonly<{
   review_date: string;
@@ -63,90 +70,14 @@ type ReviewEventsByDateAggregateFields = Readonly<Pick<
   | "platformReviewEventTotals"
 >>;
 
-function parseCalendarDate(date: string): Date {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(date);
-  if (match === null) {
-    throw new Error(`Review events report date must use YYYY-MM-DD: ${date}`);
-  }
-
-  const year = Number.parseInt(match[1], 10);
-  const monthIndex = Number.parseInt(match[2], 10) - 1;
-  const day = Number.parseInt(match[3], 10);
-  const parsedDate = new Date(Date.UTC(year, monthIndex, day));
-
-  if (
-    Number.isNaN(parsedDate.getTime())
-    || parsedDate.getUTCFullYear() !== year
-    || parsedDate.getUTCMonth() !== monthIndex
-    || parsedDate.getUTCDate() !== day
-  ) {
-    throw new Error(`Review events report date is invalid: ${date}`);
-  }
-
-  return parsedDate;
-}
-
-function formatCalendarDate(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getUTCDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function buildRequestedDateRange(from: string, to: string): ReadonlyArray<string> {
-  const startDate = parseCalendarDate(from);
-  const endDate = parseCalendarDate(to);
-  if (startDate.getTime() > endDate.getTime()) {
-    throw new Error(`Review events report date range is invalid: ${from} > ${to}`);
-  }
-
-  const dates: Array<string> = [];
-  const currentDate = new Date(startDate);
-  while (currentDate.getTime() <= endDate.getTime()) {
-    dates.push(formatCalendarDate(currentDate));
-    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-  }
-
-  return dates;
-}
-
-function assertIsString(value: AdminQueryValue, fieldName: string): string {
-  if (typeof value !== "string") {
-    throw new Error(`Review events report field "${fieldName}" must be a string.`);
-  }
-
-  return value;
-}
-
-function toInteger(value: AdminQueryValue, fieldName: string): number {
-  if (typeof value === "number" && Number.isInteger(value)) {
-    return value;
-  }
-
-  if (typeof value === "string" && /^-?\d+$/u.test(value)) {
-    return Number.parseInt(value, 10);
-  }
-
-  throw new Error(`Review events report field "${fieldName}" must be an integer.`);
-}
-
-function assertPlatform(value: AdminQueryValue, fieldName: string): ReviewEventPlatform {
-  const platform = assertIsString(value, fieldName);
-  if (reviewEventPlatforms.includes(platform as ReviewEventPlatform) === false) {
-    throw new Error(`Review events report field "${fieldName}" must be a supported platform.`);
-  }
-
-  return platform as ReviewEventPlatform;
-}
-
 function toReviewEventsByDateQueryRow(resultSetRow: Readonly<Record<string, AdminQueryValue>>): ReviewEventsByDateQueryRow {
   return {
-    review_date: assertIsString(resultSetRow.review_date ?? null, "review_date"),
-    user_id: assertIsString(resultSetRow.user_id ?? null, "user_id"),
-    email: assertIsString(resultSetRow.email ?? null, "email"),
-    platform: assertPlatform(resultSetRow.platform ?? null, "platform"),
-    review_event_count: toInteger(resultSetRow.review_event_count ?? null, "review_event_count"),
-    user_first_review_date: assertIsString(resultSetRow.user_first_review_date ?? null, "user_first_review_date"),
+    review_date: assertIsString(resultSetRow.review_date ?? null, "Review events report", "review_date"),
+    user_id: assertIsString(resultSetRow.user_id ?? null, "Review events report", "user_id"),
+    email: assertIsString(resultSetRow.email ?? null, "Review events report", "email"),
+    platform: assertPlatform(resultSetRow.platform ?? null, "Review events report", "platform"),
+    review_event_count: toInteger(resultSetRow.review_event_count ?? null, "Review events report", "review_event_count"),
+    user_first_review_date: assertIsString(resultSetRow.user_first_review_date ?? null, "Review events report", "user_first_review_date"),
   };
 }
 
@@ -154,11 +85,11 @@ function toReviewEventsByDateCommunityQueryRow(
   resultSetRow: Readonly<Record<string, AdminQueryValue>>,
 ): ReviewEventsByDateCommunityQueryRow {
   return {
-    report_date: assertIsString(resultSetRow.report_date ?? null, "report_date"),
-    user_id: assertIsString(resultSetRow.user_id ?? null, "user_id"),
-    email: assertIsString(resultSetRow.email ?? null, "email"),
-    friend_invitation_count: toInteger(resultSetRow.friend_invitation_count ?? null, "friend_invitation_count"),
-    friendship_count: toInteger(resultSetRow.friendship_count ?? null, "friendship_count"),
+    report_date: assertIsString(resultSetRow.report_date ?? null, "Review events report", "report_date"),
+    user_id: assertIsString(resultSetRow.user_id ?? null, "Review events report", "user_id"),
+    email: assertIsString(resultSetRow.email ?? null, "Review events report", "email"),
+    friend_invitation_count: toInteger(resultSetRow.friend_invitation_count ?? null, "Review events report", "friend_invitation_count"),
+    friendship_count: toInteger(resultSetRow.friendship_count ?? null, "Review events report", "friendship_count"),
   };
 }
 
@@ -166,19 +97,9 @@ function toReviewEventsByDateDefaultRangeQueryRow(
   resultSetRow: Readonly<Record<string, AdminQueryValue>>,
 ): ReviewEventsByDateDefaultRangeQueryRow {
   return {
-    from_date: assertIsString(resultSetRow.from_date ?? null, "from_date"),
-    to_date: assertIsString(resultSetRow.to_date ?? null, "to_date"),
+    from_date: assertIsString(resultSetRow.from_date ?? null, "Review events report", "from_date"),
+    to_date: assertIsString(resultSetRow.to_date ?? null, "Review events report", "to_date"),
   };
-}
-
-function assertValidDateRange(range: ReviewEventsByDateRange, fieldName: string): ReviewEventsByDateRange {
-  const fromDate = parseCalendarDate(range.from);
-  const toDate = parseCalendarDate(range.to);
-  if (fromDate.getTime() > toDate.getTime()) {
-    throw new Error(`Review events ${fieldName} date range is invalid: ${range.from} > ${range.to}`);
-  }
-
-  return range;
 }
 
 function buildReviewEventsByDateUsers(rows: ReadonlyArray<ReviewEventsByDateRow>): ReadonlyArray<ReviewEventsByDateUser> {
@@ -353,7 +274,7 @@ function buildReviewEventsByDateReport(
       userId: row.user_id,
       email: row.email,
       platform: row.platform,
-      reviewEventCount: toInteger(row.review_event_count, "review_event_count"),
+      reviewEventCount: toInteger(row.review_event_count, "Review events report", "review_event_count"),
       firstReviewDate: row.user_first_review_date,
     }))
     .sort((left, right) => {
@@ -372,7 +293,7 @@ function buildReviewEventsByDateReport(
       return left.platform.localeCompare(right.platform);
     });
 
-  const dates = buildRequestedDateRange(from, to);
+  const dates = buildRequestedDateRange(from, to, "Review events report");
   const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
   const communityRows = communityResultSet.rows
     .map(toReviewEventsByDateCommunityQueryRow)
@@ -380,8 +301,8 @@ function buildReviewEventsByDateReport(
       date: row.report_date,
       userId: row.user_id,
       email: row.email,
-      friendInvitationCount: toInteger(row.friend_invitation_count, "friend_invitation_count"),
-      friendshipCount: toInteger(row.friendship_count, "friendship_count"),
+      friendInvitationCount: toInteger(row.friend_invitation_count, "Review events report", "friend_invitation_count"),
+      friendshipCount: toInteger(row.friendship_count, "Review events report", "friendship_count"),
     }))
     .sort((left, right) => {
       if (left.date !== right.date) {
@@ -473,7 +394,7 @@ export function filterReviewEventsByDateReport(
     filteredReviewUserIdSet,
     isRestrictedToFilteredReviewUsers,
   ));
-  const dates = buildRequestedDateRange(report.from, report.to);
+  const dates = buildRequestedDateRange(report.from, report.to, "Review events report");
   const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
 
   return {
@@ -485,7 +406,7 @@ export function filterReviewEventsByDateReport(
 }
 
 // The first calendar day the dashboard has anything to show, read from the same event table the
-// charts read. Three scalar subqueries rather than one `event_name IN (...)` aggregate: each of them
+// charts read. Four scalar subqueries rather than one `event_name IN (...)` aggregate: each of them
 // is a `MIN` over a single leading key value of `idx_product_events_event_name_occurred_at` (0119),
 // which is the shape Postgres can answer as an ordered index scan stopping at the first row. That is
 // the intent rather than a guarantee: these read `analytics.product_events_resolved`, so reaching
@@ -513,6 +434,13 @@ export function buildReviewEventsByDateDefaultRangeSql(): string {
     "            SELECT MIN(resolved.occurred_at)",
     "            FROM analytics.product_events_resolved AS resolved",
     "            WHERE resolved.event_name = 'friendship_created'",
+    "          ),",
+    // The daily-active-users section reads this event, and `0121` reconstructed its history back
+    // past the first review, so this is normally the subquery that decides the default range.
+    "          (",
+    "            SELECT MIN(resolved.occurred_at)",
+    "            FROM analytics.product_events_resolved AS resolved",
+    "            WHERE resolved.event_name = 'app_opened'",
     "          )",
     "        ) AT TIME ZONE 'UTC'",
     "      )::date,",
@@ -604,7 +532,7 @@ export function buildReviewEventsByDateDefaultRangeSql(): string {
 // answered a card on and a replica that is not a client installation resolves to NULL rather than to
 // a fourth value.
 export function buildReviewEventsByDateSql(from: string, to: string): string {
-  assertValidDateRange({ from, to }, "report");
+  assertValidDateRange({ from, to }, "Review events report");
 
   return [
     // Bounded above only. The cohort split needs each actor's first review day over all of history,
@@ -719,7 +647,7 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
 // can be excluded here. A real person befriending a test account now keeps that friend in their
 // count.
 export function buildReviewEventsByDateCommunitySql(from: string, to: string): string {
-  assertValidDateRange({ from, to }, "community report");
+  assertValidDateRange({ from, to }, "Review events community report");
 
   return [
     "WITH requested_dates AS (",
@@ -857,7 +785,7 @@ export async function loadReviewEventsByDateDefaultRange(
   return assertValidDateRange({
     from: rangeRow.from_date,
     to: rangeRow.to_date,
-  }, "default");
+  }, "Review events default");
 }
 
 export async function loadReviewEventsByDateReport(

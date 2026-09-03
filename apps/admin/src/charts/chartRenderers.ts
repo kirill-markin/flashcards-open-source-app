@@ -1,9 +1,11 @@
 import * as d3 from "d3";
 import {
   reviewEventPlatforms,
+  type DailyActiveUsersUser,
   type ReviewEventPlatform,
   type ReviewEventsByDateUser,
 } from "../adminApi";
+import type { UserColorScale } from "../dashboard/userColors";
 import {
   chartMargin,
   chartWidth,
@@ -14,12 +16,14 @@ import {
   uniqueUserCohortColors,
   uniqueUserCohortKeys,
   uniqueUserCohortLabels,
+  type ChartTooltipHandlers,
+  type ChartUser,
   type GroupedChartRectEntry,
   type MatrixChartEntry,
   type StackedChartRectEntry,
   type UniqueUserCohortKey,
-} from "../reports/reviewEventsByDate/charts/chartModel";
-import { escapeHtml, formatCompactDateLabel, formatDateRangeLabel } from "../reports/reviewEventsByDate/formatting";
+} from "./chartPrimitives";
+import { escapeHtml, formatCompactDateLabel, formatDateRangeLabel } from "./formatting";
 
 type ChartFrameParams = Readonly<{
   chartHeight: number;
@@ -30,26 +34,45 @@ type ChartFrameParams = Readonly<{
   xAxisLabel: string;
 }>;
 
-type ChartTooltipHandlers = Readonly<{
-  showTooltip: (html: string, clientX: number, clientY: number) => void;
-  hideTooltip: () => void;
-}>;
-
-type UserStackedBarChartParams = Readonly<{
+type UserStackedBarChartParams<User extends ChartUser> = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
   userMatrix: ReadonlyArray<MatrixChartEntry>;
   userIds: ReadonlyArray<string>;
-  userColorScale: d3.ScaleOrdinal<string, string>;
-  userById: ReadonlyMap<string, ReviewEventsByDateUser>;
+  userColorScale: UserColorScale;
+  userById: ReadonlyMap<string, User>;
   peakStackedValue: number;
   yAxisLabel: string;
   xAxisLabel: string;
   segmentClass: string;
-  buildTooltipMetricsHtml: (entry: StackedChartRectEntry, user: ReviewEventsByDateUser) => string;
+  buildTooltipMetricsHtml: (entry: StackedChartRectEntry, user: User) => string;
   isReportLoading: boolean;
   onUserFilterApply: (userId: string) => void;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+type UniqueUserCohortChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  cohortMatrix: ReadonlyArray<MatrixChartEntry>;
+  peakDailyUniqueUsers: number;
+  yAxisLabel: string;
+  xAxisLabel: string;
+  buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+type PlatformActiveUsersChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  platformActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
+  peakDailyPlatformUsers: number;
+  yAxisLabel: string;
+  xAxisLabel: string;
+  buildTooltipMetricsHtml: (entry: GroupedChartRectEntry) => string;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
@@ -70,10 +93,45 @@ export type RenderUserReviewEventsChartParams = Readonly<{
   tickDates: ReadonlyArray<string>;
   userMatrix: ReadonlyArray<MatrixChartEntry>;
   userIds: ReadonlyArray<string>;
-  userColorScale: d3.ScaleOrdinal<string, string>;
+  userColorScale: UserColorScale;
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
   totalReviewEventsByDate: ReadonlyMap<string, number>;
   peakDailyVolume: number;
+  isReportLoading: boolean;
+  onUserFilterApply: (userId: string) => void;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+export type RenderDailyActiveUsersChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  dailyActiveUserCohortMatrix: ReadonlyArray<MatrixChartEntry>;
+  dailyActiveUsersByDate: ReadonlyMap<string, number>;
+  peakDailyActiveUsers: number;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+export type RenderDailyActiveUsersByPlatformChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  platformActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
+  dailyActiveUsersByDate: ReadonlyMap<string, number>;
+  peakDailyPlatformActiveUsers: number;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+export type RenderDailyActiveUsersByUserChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  activeUserMatrix: ReadonlyArray<MatrixChartEntry>;
+  activeUserIds: ReadonlyArray<string>;
+  userColorScale: UserColorScale;
+  userById: ReadonlyMap<string, DailyActiveUsersUser>;
+  dailyActiveUsersByDate: ReadonlyMap<string, number>;
+  peakDailyActiveUsers: number;
   isReportLoading: boolean;
   onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
@@ -85,7 +143,7 @@ export type RenderDailyFriendInvitationsChartParams = Readonly<{
   tickDates: ReadonlyArray<string>;
   friendInvitationUserMatrix: ReadonlyArray<MatrixChartEntry>;
   friendInvitationUserIds: ReadonlyArray<string>;
-  userColorScale: d3.ScaleOrdinal<string, string>;
+  userColorScale: UserColorScale;
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
   totalFriendInvitationsByDate: ReadonlyMap<string, number>;
   friendInvitationTotalsByUserId: ReadonlyMap<string, number>;
@@ -101,7 +159,7 @@ export type RenderDailyFriendshipsChartParams = Readonly<{
   tickDates: ReadonlyArray<string>;
   friendshipUserMatrix: ReadonlyArray<MatrixChartEntry>;
   friendshipUserIds: ReadonlyArray<string>;
-  userColorScale: d3.ScaleOrdinal<string, string>;
+  userColorScale: UserColorScale;
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
   totalFriendshipsByDate: ReadonlyMap<string, number>;
   peakDailyFriendships: number;
@@ -219,7 +277,7 @@ function renderChartFrame(
   return group;
 }
 
-function renderUserStackedBarChart(params: UserStackedBarChartParams): void {
+function renderUserStackedBarChart<User extends ChartUser>(params: UserStackedBarChartParams<User>): void {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
   const innerHeight = getInnerHeight(stackedChartHeight);
@@ -286,7 +344,7 @@ function renderUserStackedBarChart(params: UserStackedBarChartParams): void {
   }
 }
 
-export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartParams): void {
+function renderUniqueUserCohortChart(params: UniqueUserCohortChartParams): void {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
   const innerHeight = getInnerHeight(simpleChartHeight);
@@ -299,12 +357,12 @@ export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartP
     x,
     y,
     tickDates: params.tickDates,
-    yAxisLabel: "Unique users",
-    xAxisLabel: "Review date",
+    yAxisLabel: params.yAxisLabel,
+    xAxisLabel: params.xAxisLabel,
   });
   const series = d3.stack<MatrixChartEntry>()
     .keys(uniqueUserCohortKeys)
-    .value((entry, key) => entry.valuesByKey[key] ?? 0)(params.dailyUniqueUserCohortMatrix);
+    .value((entry, key) => entry.valuesByKey[key] ?? 0)(params.cohortMatrix);
 
   group.selectAll(".series")
     .data(series)
@@ -330,20 +388,54 @@ export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartP
     .attr("stroke-width", 1)
     .on("mousemove", (event, entry: StackedChartRectEntry) => {
       const cohortKey = entry.key as UniqueUserCohortKey;
-      const totalUniqueUsers = params.dailyUniqueUsersByDate.get(entry.date) ?? entry.value;
       params.tooltipHandlers.showTooltip(
         [
           `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
           `<p class="tooltip-subtitle">${escapeHtml(uniqueUserCohortLabels[cohortKey])}</p>`,
-          `<div class="tooltip-metric"><span>Unique users in this cohort</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-          `<div class="tooltip-metric"><span>Total unique users</span><strong>${numberFormatter(totalUniqueUsers)}</strong></div>`,
-          `<div class="tooltip-metric"><span>Total review events</span><strong>${numberFormatter(params.totalReviewEventsByDate.get(entry.date) ?? 0)}</strong></div>`,
+          params.buildTooltipMetricsHtml(entry),
         ].join(""),
         event.clientX,
         event.clientY,
       );
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
+}
+
+export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartParams): void {
+  renderUniqueUserCohortChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    cohortMatrix: params.dailyUniqueUserCohortMatrix,
+    peakDailyUniqueUsers: params.peakDailyUniqueUsers,
+    yAxisLabel: "Unique users",
+    xAxisLabel: "Review date",
+    buildTooltipMetricsHtml: (entry) => [
+      `<div class="tooltip-metric"><span>Unique users in this cohort</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Total unique users</span><strong>${numberFormatter(params.dailyUniqueUsersByDate.get(entry.date) ?? entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Total review events</span><strong>${numberFormatter(params.totalReviewEventsByDate.get(entry.date) ?? 0)}</strong></div>`,
+    ].join(""),
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
+// New versus returning is the actor's first `app_opened` day over all history, which is the report's
+// own cohort definition and not the review report's first review day.
+export function renderDailyActiveUsersChart(params: RenderDailyActiveUsersChartParams): void {
+  renderUniqueUserCohortChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    cohortMatrix: params.dailyActiveUserCohortMatrix,
+    peakDailyUniqueUsers: params.peakDailyActiveUsers,
+    yAxisLabel: "Active users",
+    xAxisLabel: "Date",
+    buildTooltipMetricsHtml: (entry) => [
+      `<div class="tooltip-metric"><span>Active users in this cohort</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Total active users</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? entry.value)}</strong></div>`,
+    ].join(""),
+    tooltipHandlers: params.tooltipHandlers,
+  });
 }
 
 export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartParams): void {
@@ -418,7 +510,31 @@ export function renderDailyFriendshipsChart(params: RenderDailyFriendshipsChartP
   });
 }
 
-export function renderPlatformActiveUsersChart(params: RenderPlatformActiveUsersChartParams): void {
+export function renderDailyActiveUsersByUserChart(params: RenderDailyActiveUsersByUserChartParams): void {
+  renderUserStackedBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    userMatrix: params.activeUserMatrix,
+    userIds: params.activeUserIds,
+    userColorScale: params.userColorScale,
+    userById: params.userById,
+    peakStackedValue: params.peakDailyActiveUsers,
+    yAxisLabel: "Active users",
+    xAxisLabel: "Date",
+    segmentClass: "daily-active-users",
+    // Every segment is one person on one day, so the segment value itself carries no information.
+    buildTooltipMetricsHtml: (entry, user) => [
+      `<div class="tooltip-metric"><span>Total active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>User active days in range</span><strong>${numberFormatter(user.activeDayCount)}</strong></div>`,
+    ].join(""),
+    isReportLoading: params.isReportLoading,
+    onUserFilterApply: params.onUserFilterApply,
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
+function renderPlatformGroupedUsersChart(params: PlatformActiveUsersChartParams): void {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
   const innerHeight = getInnerHeight(stackedChartHeight);
@@ -436,8 +552,8 @@ export function renderPlatformActiveUsersChart(params: RenderPlatformActiveUsers
     x,
     y,
     tickDates: params.tickDates,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Review date",
+    yAxisLabel: params.yAxisLabel,
+    xAxisLabel: params.xAxisLabel,
   });
   const bars = params.platformActiveUsersMatrix.flatMap((entry) => reviewEventPlatforms.map((platform) => ({
     key: platform,
@@ -460,14 +576,49 @@ export function renderPlatformActiveUsersChart(params: RenderPlatformActiveUsers
         [
           `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
           `<p class="tooltip-subtitle">${escapeHtml(platformLabels[entry.key])}</p>`,
-          `<div class="tooltip-metric"><span>Active users on this platform</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-          `<div class="tooltip-metric"><span>Total unique users on this date</span><strong>${numberFormatter(params.dailyUniqueUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
+          params.buildTooltipMetricsHtml(entry),
         ].join(""),
         event.clientX,
         event.clientY,
       );
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
+}
+
+export function renderPlatformActiveUsersChart(params: RenderPlatformActiveUsersChartParams): void {
+  renderPlatformGroupedUsersChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    platformActiveUsersMatrix: params.platformActiveUsersMatrix,
+    peakDailyPlatformUsers: params.peakDailyPlatformUsers,
+    yAxisLabel: "Reviewing users",
+    xAxisLabel: "Review date",
+    buildTooltipMetricsHtml: (entry) => [
+      `<div class="tooltip-metric"><span>Reviewing users on this platform</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Total unique users on this date</span><strong>${numberFormatter(params.dailyUniqueUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
+    ].join(""),
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
+// Grouped rather than stacked: a person active on the phone and the browser on one day appears in
+// both platform bars, so the bars must never be read as parts of one total.
+export function renderDailyActiveUsersByPlatformChart(params: RenderDailyActiveUsersByPlatformChartParams): void {
+  renderPlatformGroupedUsersChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    platformActiveUsersMatrix: params.platformActiveUsersMatrix,
+    peakDailyPlatformUsers: params.peakDailyPlatformActiveUsers,
+    yAxisLabel: "Active users",
+    xAxisLabel: "Date",
+    buildTooltipMetricsHtml: (entry) => [
+      `<div class="tooltip-metric"><span>Active users on this platform</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Total unique active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
+    ].join(""),
+    tooltipHandlers: params.tooltipHandlers,
+  });
 }
 
 export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEventsChartParams): void {

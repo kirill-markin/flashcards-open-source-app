@@ -49,20 +49,24 @@ Do not host the browser entry on a raw CloudFront or other non-admin hostname, e
 
 ## Current scope
 
-v1 includes one dashboard page only:
+v1 includes one dashboard page only, carrying two report sections in page order:
 
+- `daily-active-users`
 - `review-events-by-date`
 
-The dashboard shows six charts:
+The dashboard shows nine charts:
 
-- daily unique users
-- stacked review events by user
+- daily unique active users, new vs returning
 - daily active users by platform
+- daily active users stacked by user
+- daily unique users with at least 1 review event, new vs returning
+- stacked review events by user
+- daily reviewing users by platform
 - daily review events by platform
 - daily friend invite links created, stacked by user
 - existing friend connections at the end of each day, counted per user and stacked by user
 
-The default chart range starts on the first calendar day carrying a `review_answered`, `friend_invitation_created`, or `friendship_created` event and ends on today, inclusive, in the dashboard timezone. The dashboard includes date range filters that can narrow the chart range and reset back to that default.
+The default chart range is shared by every section and starts on the first calendar day carrying an `app_opened`, `review_answered`, `friend_invitation_created`, or `friendship_created` event and ends on today, inclusive, in the dashboard timezone. The dashboard includes date range filters that can narrow the chart range and reset back to that default.
 The filter panel keeps date, user, new/returning cohort, and platform filters in one compact row. All four filters apply to every chart, including the friend invite and friend connection charts, which carry per-user community rows. A cohort or platform filter keeps community rows only for users that still have review events in range, and the user filter list also offers users with community activity but no review events in range. User emails and user IDs are shown only inside the user filter popup and chart tooltips, not as a persistent page list.
 
 Its SQL lives in the admin frontend as a chart-owned query and runs through the generic admin reporting endpoint.
