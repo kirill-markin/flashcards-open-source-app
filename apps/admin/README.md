@@ -49,16 +49,18 @@ Do not host the browser entry on a raw CloudFront or other non-admin hostname, e
 
 ## Current scope
 
-v1 includes one dashboard page only, carrying two report sections in page order:
+v1 includes one dashboard page only, carrying three report sections in page order:
 
 - `daily-active-users`
+- `catalog-deck-installs`
 - `review-events-by-date`
 
-The dashboard shows nine charts:
+The dashboard shows ten charts:
 
 - daily unique active users, new vs returning
 - daily active users by platform
 - daily active users stacked by user
+- daily catalog deck installs, stacked by deck
 - daily unique users with at least 1 review event, new vs returning
 - stacked review events by user
 - daily reviewing users by platform
@@ -73,11 +75,14 @@ Its SQL lives in the admin frontend as a chart-owned query and runs through the 
 
 ### Where the data comes from
 
-Every chart reads `analytics.product_events_resolved` and no other product table; the only other relation it touches is `org.user_settings`, joined from `actor_id` for the email the `%@example.com` exclusion needs. The dashboard does not join `content.review_events`, `sync.workspace_replicas`, `community.friend_invitations`, or `community.friendships` any more.
+Every chart reads `analytics.product_events_resolved` and no other product table. It touches two more relations and nothing else: `org.user_settings`, joined from `actor_id` for the email the `%@example.com` exclusion needs, and `auth.admin_users`, read by the installs chart alone to drop installs made by active admins. The dashboard does not join `content.review_events`, `sync.workspace_replicas`, `catalog.packages`, `community.friend_invitations`, or `community.friendships` any more.
 
 - review series: `review_answered`
+- catalog deck installs: `catalog_deck_installed`, with the deck named by its `package_slug` property
 - friend invite links: `friend_invitation_created`
 - friend connections at the end of each day: a running sum of `friendship_created`
+
+The installs chart is nearly empty on production data on purpose: installs of the delisted `test` fixture deck and installs by active admins are both excluded, and almost every real install so far is an admin install. That event carries no platform, so picking any device platform empties that section. See [docs/admin-app.md](../../docs/admin-app.md) for the full attribution contract.
 
 Rows are grouped by `actor_id`, never by `user_id`. The view already collapses a guest and the account that guest became into one person, so the previous `actor_kind` filter and the inline guest-merge reasoning are gone. `actor_id` is not always an account id: a guest who never upgraded stays on the guest user id.
 
