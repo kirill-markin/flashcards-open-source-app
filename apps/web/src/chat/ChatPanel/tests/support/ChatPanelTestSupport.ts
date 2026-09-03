@@ -13,6 +13,7 @@ import {
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
 } from "../../../composer/drafts/chatDraftStorage";
+import { createChatPanelTestBrowserEnvironment } from "./ChatPanelTestBrowserEnvironment";
 
 const {
   ApiErrorMock,
@@ -565,163 +566,21 @@ export function readStoredDraftPendingAttachmentCount(workspaceId: string, sessi
   return readChatDraftForSession(loadChatDraftWorkspaceState(workspaceId), sessionId)?.pendingAttachments.length ?? 0;
 }
 
-function createMediaStreamMock(): MediaStream {
-  return {
-    getTracks: () => [{
-      stop: vi.fn(),
-    } as unknown as MediaStreamTrack],
-  } as unknown as MediaStream;
-}
-
-class MockMediaRecorder {
-  static nextBlob: Blob = new Blob(["dictation"], { type: "audio/webm" });
-
-  readonly mimeType: string;
-  state: RecordingState;
-  private readonly listeners: Map<string, Set<(event: Event) => void>>;
-
-  constructor(_stream: MediaStream) {
-    this.mimeType = "audio/webm";
-    this.state = "inactive";
-    this.listeners = new Map();
-  }
-
-  addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
-    const callback = typeof listener === "function"
-      ? listener
-      : (event: Event) => listener.handleEvent(event);
-    const currentListeners = this.listeners.get(type) ?? new Set();
-    currentListeners.add(callback);
-    this.listeners.set(type, currentListeners);
-  }
-
-  removeEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
-    const currentListeners = this.listeners.get(type);
-    if (currentListeners === undefined) {
-      return;
-    }
-
-    const callback = typeof listener === "function"
-      ? listener
-      : (event: Event) => listener.handleEvent(event);
-    currentListeners.delete(callback);
-  }
-
-  start(): void {
-    this.state = "recording";
-  }
-
-  stop(): void {
-    this.state = "inactive";
-    const dataListeners = [...(this.listeners.get("dataavailable") ?? [])];
-    dataListeners.forEach((listener) => listener({ data: MockMediaRecorder.nextBlob } as unknown as Event));
-    const stopListeners = [...(this.listeners.get("stop") ?? [])];
-    stopListeners.forEach((listener) => listener(new Event("stop")));
-  }
-}
-
 export function setupChatPanelTest(): ChatPanelTestHarness {
   let container: HTMLDivElement | null = null;
   let root: ReactDOM.Root | null = null;
-  let scrollToMock: ReturnType<typeof vi.fn> | null = null;
-  let clipboardWriteTextMock: ReturnType<typeof vi.fn> | null = null;
-  let alertMock: ReturnType<typeof vi.fn> | null = null;
   let messagesScrollerMetrics: MessagesScrollerMetrics | null = null;
   let setLocalePreferenceRef: ((localePreference: LocalePreference) => void) | null = null;
-  let isMobileViewport = false;
-  const matchMediaListeners = new Set<(event: MediaQueryListEvent) => void>();
+  const browserEnvironment = createChatPanelTestBrowserEnvironment();
 
   beforeEach(() => {
-    isMobileViewport = false;
     messagesScrollerMetrics = null;
-    matchMediaListeners.clear();
-    const localStorageState = new Map<string, string>();
-    const localStorageMock: Storage = {
-      get length(): number {
-        return localStorageState.size;
-      },
-      clear(): void {
-        localStorageState.clear();
-      },
-      getItem(key: string): string | null {
-        return localStorageState.get(key) ?? null;
-      },
-      key(index: number): string | null {
-        return [...localStorageState.keys()][index] ?? null;
-      },
-      removeItem(key: string): void {
-        localStorageState.delete(key);
-      },
-      setItem(key: string, value: string): void {
-        localStorageState.set(key, value);
-      },
-    };
-
-    vi.useFakeTimers();
+    browserEnvironment.install();
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    Object.defineProperty(window, "localStorage", {
-      configurable: true,
-      value: localStorageMock,
-    });
-    Object.defineProperty(window, "matchMedia", {
-      configurable: true,
-      value: (query: string): MediaQueryList => ({
-        matches: query === "(max-width: 768px)" ? isMobileViewport : false,
-        media: query,
-        onchange: null,
-        addEventListener: (eventName: string, listener: EventListenerOrEventListenerObject): void => {
-          if (eventName !== "change") {
-            return;
-          }
-
-          const callback = typeof listener === "function"
-            ? listener
-            : (event: Event) => listener.handleEvent(event);
-          matchMediaListeners.add(callback as (event: MediaQueryListEvent) => void);
-        },
-        removeEventListener: (eventName: string, listener: EventListenerOrEventListenerObject): void => {
-          if (eventName !== "change") {
-            return;
-          }
-
-          const callback = typeof listener === "function"
-            ? listener
-            : (event: Event) => listener.handleEvent(event);
-          matchMediaListeners.delete(callback as (event: MediaQueryListEvent) => void);
-        },
-        addListener: (listener: ((event: MediaQueryListEvent) => void) | null): void => {
-          if (listener === null) {
-            return;
-          }
-
-          matchMediaListeners.add(listener);
-        },
-        removeListener: (listener: ((event: MediaQueryListEvent) => void) | null): void => {
-          if (listener === null) {
-            return;
-          }
-
-          matchMediaListeners.delete(listener);
-        },
-        dispatchEvent: (event: Event): boolean => {
-          matchMediaListeners.forEach((listener) => listener(event as MediaQueryListEvent));
-          return true;
-        },
-      }),
-    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
     setLocalePreferenceRef = null;
-    clipboardWriteTextMock = vi.fn().mockResolvedValue(undefined);
-    alertMock = vi.fn();
-    Object.defineProperty(window.navigator, "clipboard", {
-      configurable: true,
-      value: {
-        writeText: clipboardWriteTextMock,
-      },
-    });
-    vi.stubGlobal("alert", alertMock);
 
     useChatLayoutMock.mockReset();
     useAppDataMock.mockReset();
@@ -820,45 +679,10 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
     binaryPendingAttachmentExceedsSizeLimitMock.mockReturnValue(false);
     isBinaryPendingAttachmentMock.mockImplementation((attachment) => attachment.type === "binary");
-
-    scrollToMock = vi.fn(function thisBoundScrollTo(
-      this: HTMLElement,
-      options: ScrollToOptions | number,
-      y?: number,
-    ): void {
-      if (typeof options === "number") {
-        if (typeof y === "number") {
-          this.scrollTop = y;
-        }
-        return;
-      }
-
-      if (typeof options.top === "number") {
-        this.scrollTop = options.top;
-      }
-    });
-    Object.defineProperty(HTMLElement.prototype, "scrollTo", {
-      configurable: true,
-      writable: true,
-      value: scrollToMock,
-    });
-    vi.stubGlobal("MediaRecorder", MockMediaRecorder);
-    Object.defineProperty(window.navigator, "mediaDevices", {
-      configurable: true,
-      value: {
-        getUserMedia: vi.fn(async () => createMediaStreamMock()),
-      },
-    });
-    Object.defineProperty(window.navigator, "permissions", {
-      configurable: true,
-      value: {
-        query: vi.fn(async () => ({ state: "granted" })),
-      },
-    });
   });
 
   afterEach(() => {
-    vi.clearAllTimers();
+    browserEnvironment.clearTimers();
     const mountedRoot = root;
     if (mountedRoot !== null) {
       act(() => mountedRoot.unmount());
@@ -868,8 +692,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       container.remove();
       container = null;
     }
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
+    browserEnvironment.restore();
   });
 
   function getContainer(): HTMLDivElement {
@@ -881,27 +704,15 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   }
 
   function getScrollToMock(): ReturnType<typeof vi.fn> {
-    expect(scrollToMock).not.toBeNull();
-    if (scrollToMock === null) {
-      throw new Error("Expected scrollTo mock");
-    }
-    return scrollToMock;
+    return browserEnvironment.getScrollToMock();
   }
 
   function getClipboardWriteTextMock(): ReturnType<typeof vi.fn> {
-    expect(clipboardWriteTextMock).not.toBeNull();
-    if (clipboardWriteTextMock === null) {
-      throw new Error("Expected clipboard mock");
-    }
-    return clipboardWriteTextMock;
+    return browserEnvironment.getClipboardWriteTextMock();
   }
 
   function getAlertMock(): ReturnType<typeof vi.fn> {
-    expect(alertMock).not.toBeNull();
-    if (alertMock === null) {
-      throw new Error("Expected alert mock");
-    }
-    return alertMock;
+    return browserEnvironment.getAlertMock();
   }
 
   function setMessagesScrollerMetrics(metrics: MessagesScrollerMetrics): void {
@@ -909,9 +720,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   }
 
   function setMobileViewport(nextIsMobile: boolean): void {
-    isMobileViewport = nextIsMobile;
-    const changeEvent = { matches: isMobileViewport, media: "(max-width: 768px)" } as MediaQueryListEvent;
-    matchMediaListeners.forEach((listener) => listener(changeEvent));
+    browserEnvironment.setMobileViewport(nextIsMobile);
   }
 
   async function flushAsync(): Promise<void> {
