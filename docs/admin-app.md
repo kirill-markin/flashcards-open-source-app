@@ -9,8 +9,9 @@ Supported browser entrypoints:
 
 ## Scope
 
-v1 includes one report only:
+The dashboard carries two report sections, in page order:
 
+- `daily-active-users`
 - `review-events-by-date`
 
 The admin app is a separate React + TypeScript + Vite package. It does not reuse the web app runtime storage or sync code.
@@ -65,6 +66,17 @@ The query payload includes:
 - `executedAtUtc`
 - `resultSets[]`
 
+Attribution contract for `daily-active-users`:
+
+- the section answers how many people were in the app on each calendar day, not how many answered a card; an active day is a day carrying that person's `app_opened` event
+- identity works exactly as in `review-events-by-date`: grouped by `actor_id`, the same case-folded `org.user_settings` email join, the same `%@example.com` exclusion, and the same treatment of deleted accounts
+- one row is one (UTC date, actor, platform), so a person active on the phone and the browser on one day is two rows and one active person; every unique-users number is a distinct count of actors and the platform chart is grouped, never stacked or summed
+- `agent` stays its own visible series and is an upper bound on human agent use rather than a count of people, because a scheduled MCP client files an active day for its owner on every day it runs; `db/migrations/0121_backfill_synthetic_app_opened_days.sql` states this in full
+- history from before the clients emitted the event is reconstructed by that same migration from durable traces of somebody having been in a client, at roughly 85% coverage of the people who really opened the app on a sampled day
+- reconstructed and live rows are deliberately not distinguished anywhere in the UI
+- new versus returning is the actor's first `app_opened` day over all history, which is this section's own cohort definition; `review-events-by-date` keeps using the first review day
+- all four shared filters apply: date range reloads the section server-side, and user, cohort and platform are applied client-side
+
 Current v1 attribution contract for `review-events-by-date`:
 
 - the report is intended for the current single-effective-learner workspace model
@@ -74,7 +86,7 @@ Current v1 attribution contract for `review-events-by-date`:
 - the old dashboard showed nothing for them, but not because of its replica join: the same deletion drops the person's sole-member `org.workspaces` rows and `content.review_events` cascades with them, so the rows that query read were already gone
 - an account deleted before it had any analytics history is absent here entirely: there was nothing to anonymize, and the `0120` backfill keeps only reviews whose author still has an `org.user_settings` row, which that deletion removed; do not reconcile a total here against `content.review_events` expecting those reviews, in either table
 - the `org.user_settings` join folds the stored side with `pg_catalog.lower`, because `actor_id` is a UUID rendered as canonical lowercase hex while `org.user_settings.user_id` is an unconstrained `TEXT` primary key; comparing as stored would miss an uppercase-hex row and count a test account instead of excluding it
-- the default chart range starts on the first calendar day carrying a `review_answered`, `friend_invitation_created`, or `friendship_created` event and ends on today, inclusive, in the report timezone
+- the default chart range is shared by every section and starts on the first calendar day carrying an `app_opened`, `review_answered`, `friend_invitation_created`, or `friendship_created` event, ending on today, inclusive, in the report timezone
 - dashboard filters can narrow date range, user, new/returning cohort, and platform; all four filters apply to every chart, including the community charts, where a cohort or platform filter keeps community rows only for users that still have review events in range, and the user filter list also offers users with community activity but no review events in range; Reset all returns date range to the same first-activity-day-through-today default and restores all local filters
 - platform is read off the event row and never derived; the buckets are `web` / `android` / `ios` / `agent` / `unattributed` and are always split, never summed, so agent-API activity cannot read as a person on the site, though `review_answered` never populates `agent`
 - a `review_answered` row carries the platform the backend resolved from the replica that recorded the review, and migration `0122` filled the same value on the reconstructed history, `0123` on the live rows the producer wrote before it could resolve one; a value appears only for a `client_installation` replica on `ios`, `android`, or `web`, while a machine-API, an AI-chat, and a seed/reset replica all leave the column NULL, as does a review whose replica row is gone
@@ -156,10 +168,12 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - a listed admin email loads the dashboard, where the shared hero and filter row sit above titled report sections, each separated by a divider
 - a signed-in non-admin sees the access denied page
 - network traces show `POST /v1/admin/reports/query` for dashboard data
-- the default date filter starts on the first review, friend invite, or friendship day and ends on today
+- the default date filter starts on the first app open, review, friend invite, or friendship day and ends on today
 - date, user, new/returning cohort, and platform filters open as popups from the compact filter row
 - the dashboard does not show a persistent email or user list outside the user filter popup
+- the daily active users section renders above `Review activity`, with its new-vs-returning, platform, and stacked-by-user charts and no summary tiles
 - unique-users, stacked-by-user, platform-users, platform-events, friend-invite-links, and friend-connections charts all render
+- a person keeps the same colour in the daily active users charts and the review charts
 - narrowing the date filter reloads all charts, and Reset all restores the default range and all local filters
-- hover tooltips on the per-user stacked charts (review events, friend invite links, friend connections) may reveal the current email and user ID for the hovered segment, and clicking a segment applies that user filter
+- hover tooltips on the per-user stacked charts (daily active users, review events, friend invite links, friend connections) may reveal the current email and user ID for the hovered segment, and clicking a segment applies that user filter
 - backend logs do not show writes through the reporting path

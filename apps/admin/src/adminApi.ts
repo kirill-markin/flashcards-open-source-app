@@ -122,6 +122,55 @@ export type ReviewEventsByDateReport = Readonly<{
   communityRows: ReadonlyArray<ReviewEventsByDateCommunityRow>;
 }>;
 
+/**
+ * One person in the daily active users report.
+ *
+ * `userId` carries the same resolved `actor_id` as `ReviewEventsByDateUser`, so the same person keeps
+ * one identity, one filter entry and one colour across both sections.
+ */
+export type DailyActiveUsersUser = Readonly<{
+  userId: string;
+  email: string;
+  activeDayCount: number;
+}>;
+
+/** One (UTC date, actor, platform) the actor opened the app on. */
+export type DailyActiveUsersRow = Readonly<{
+  date: string;
+  userId: string;
+  email: string;
+  platform: ReviewEventPlatform;
+  firstActiveDate: string;
+}>;
+
+export type DailyActiveUsersCohortTotal = Readonly<{
+  date: string;
+  newActiveUsers: number;
+  returningActiveUsers: number;
+}>;
+
+export type DailyActiveUsersPlatformTotal = Readonly<{
+  date: string;
+  platform: ReviewEventPlatform;
+  activeUserCount: number;
+}>;
+
+export type DailyActiveUsersReport = Readonly<{
+  generatedAtUtc: string;
+  from: string;
+  to: string;
+  users: ReadonlyArray<DailyActiveUsersUser>;
+  /**
+   * Each actor's first `app_opened` UTC day over all history, which is the report's cohort
+   * definition. Exposed as a lookup so another section can apply the same cohort split without
+   * restating it.
+   */
+  firstActiveDateByUserId: ReadonlyMap<string, string>;
+  dailyCohortTotals: ReadonlyArray<DailyActiveUsersCohortTotal>;
+  platformActiveUserTotals: ReadonlyArray<DailyActiveUsersPlatformTotal>;
+  rows: ReadonlyArray<DailyActiveUsersRow>;
+}>;
+
 export class AdminApiError extends Error {
   readonly status: number;
   readonly code: string | null;
