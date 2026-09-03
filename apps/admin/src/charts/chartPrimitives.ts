@@ -1,3 +1,4 @@
+import * as d3 from "d3";
 import {
   reviewEventCohorts,
   reviewEventPlatforms,
@@ -78,6 +79,29 @@ export const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string
   returning: "var(--accent)",
   new: "#2e6f95",
 };
+
+export type PackageColorScale = d3.ScaleOrdinal<string, string, string>;
+
+const packageColorPalette: ReadonlyArray<string> = [...d3.schemeTableau10, ...d3.schemeSet2];
+
+// The scale outlives the render that reads it, and the `implicit` default of `d3.scaleOrdinal`
+// appends an unknown deck to the domain and hands back the next palette colour, so that deck's
+// colour would depend on which render asked for it first. An explicit unknown value prevents that.
+const unknownPackageColor = "#8c8c8c";
+
+/**
+ * Catalog decks are an open-ended set the dashboard only learns from the loaded range, so unlike the
+ * fixed platform colours these are positional over the deduplicated, sorted slugs. Build the scale
+ * from the decks of the loaded report rather than of the filtered one, or narrowing a filter shifts
+ * the colour of every deck sorted after the one it removed.
+ */
+export function getPackageColorScale(packageSlugs: ReadonlyArray<string>): PackageColorScale {
+  const sortedPackageSlugs = Array.from(new Set(packageSlugs))
+    .sort((leftSlug, rightSlug) => leftSlug.localeCompare(rightSlug));
+
+  return d3.scaleOrdinal<string, string>(sortedPackageSlugs, packageColorPalette)
+    .unknown(unknownPackageColor);
+}
 
 export function getPlatformColor(platform: string): string {
   if (reviewEventPlatforms.includes(platform as ReviewEventPlatform) === false) {
