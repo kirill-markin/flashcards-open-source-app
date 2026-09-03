@@ -171,6 +171,51 @@ export type DailyActiveUsersReport = Readonly<{
   rows: ReadonlyArray<DailyActiveUsersRow>;
 }>;
 
+/**
+ * One person who installed at least one catalog deck in the report range.
+ *
+ * `userId` carries the same resolved `actor_id` as `ReviewEventsByDateUser`, so an installer keeps
+ * one identity, one filter entry and one colour across every section.
+ */
+export type CatalogInstallsUser = Readonly<{
+  userId: string;
+  email: string;
+  installCount: number;
+}>;
+
+/**
+ * One deck in the report. The install event carries `catalog.packages.slug` and nothing else about
+ * the deck, so the slug is the whole deck dimension: there is no title and no version number here.
+ */
+export type CatalogInstallsPackage = Readonly<{
+  packageSlug: string;
+  installCount: number;
+}>;
+
+/**
+ * One (UTC date, actor, package slug). `installCount` counts install actions, and `cardCount` sums
+ * the cards those installs added.
+ */
+export type CatalogInstallsRow = Readonly<{
+  date: string;
+  userId: string;
+  email: string;
+  platform: ReviewEventPlatform;
+  packageSlug: string;
+  installCount: number;
+  cardCount: number;
+}>;
+
+export type CatalogInstallsReport = Readonly<{
+  generatedAtUtc: string;
+  from: string;
+  to: string;
+  totalInstalls: number;
+  users: ReadonlyArray<CatalogInstallsUser>;
+  packages: ReadonlyArray<CatalogInstallsPackage>;
+  rows: ReadonlyArray<CatalogInstallsRow>;
+}>;
+
 export class AdminApiError extends Error {
   readonly status: number;
   readonly code: string | null;

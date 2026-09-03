@@ -20,6 +20,7 @@ import {
   type ChartUser,
   type GroupedChartRectEntry,
   type MatrixChartEntry,
+  type PackageColorScale,
   type StackedChartRectEntry,
   type UniqueUserCohortKey,
 } from "./chartPrimitives";
@@ -58,6 +59,21 @@ type UniqueUserCohortChartParams = Readonly<{
   tickDates: ReadonlyArray<string>;
   cohortMatrix: ReadonlyArray<MatrixChartEntry>;
   peakDailyUniqueUsers: number;
+  yAxisLabel: string;
+  xAxisLabel: string;
+  buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+type KeyedStackedBarChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  matrix: ReadonlyArray<MatrixChartEntry>;
+  keys: ReadonlyArray<string>;
+  getKeyColor: (key: string) => string;
+  getKeyLabel: (key: string) => string;
+  peakStackedValue: number;
   yAxisLabel: string;
   xAxisLabel: string;
   buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
@@ -185,6 +201,20 @@ export type RenderPlatformReviewEventsChartParams = Readonly<{
   platformReviewEventsMatrix: ReadonlyArray<MatrixChartEntry>;
   totalPlatformReviewEventsByDate: ReadonlyMap<string, number>;
   peakDailyPlatformReviewEvents: number;
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+export type RenderCatalogInstallsByPackageChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  dates: ReadonlyArray<string>;
+  tickDates: ReadonlyArray<string>;
+  packageInstallsMatrix: ReadonlyArray<MatrixChartEntry>;
+  packageSlugs: ReadonlyArray<string>;
+  packageColorScale: PackageColorScale;
+  totalInstallsByDate: ReadonlyMap<string, number>;
+  /** Cards added per `${date}:${packageSlug}`, which is the granularity of one stack segment. */
+  cardCountByDateAndPackageSlug: ReadonlyMap<string, number>;
+  peakDailyInstalls: number;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
@@ -621,12 +651,12 @@ export function renderDailyActiveUsersByPlatformChart(params: RenderDailyActiveU
   });
 }
 
-export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEventsChartParams): void {
+function renderKeyedStackedBarChart(params: KeyedStackedBarChartParams): void {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
   const innerHeight = getInnerHeight(stackedChartHeight);
   const y = d3.scaleLinear()
-    .domain([0, Math.max(1, params.peakDailyPlatformReviewEvents)])
+    .domain([0, Math.max(1, params.peakStackedValue)])
     .nice()
     .range([innerHeight, 0]);
   const group = renderChartFrame(svg, {
@@ -634,18 +664,18 @@ export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEven
     x,
     y,
     tickDates: params.tickDates,
-    yAxisLabel: "Review events",
-    xAxisLabel: "Review date",
+    yAxisLabel: params.yAxisLabel,
+    xAxisLabel: params.xAxisLabel,
   });
   const series = d3.stack<MatrixChartEntry>()
-    .keys(reviewEventPlatforms)
-    .value((entry, key) => entry.valuesByKey[key] ?? 0)(params.platformReviewEventsMatrix);
+    .keys(params.keys)
+    .value((entry, key) => entry.valuesByKey[key] ?? 0)(params.matrix);
 
   group.selectAll(".series")
     .data(series)
     .join("g")
     .attr("class", "series")
-    .attr("fill", (segment) => getPlatformColor(segment.key))
+    .attr("fill", (segment) => params.getKeyColor(segment.key))
     .selectAll("rect")
     .data((segment) => segment.map((entry) => ({
       key: segment.key,
@@ -665,13 +695,56 @@ export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEven
       params.tooltipHandlers.showTooltip(
         [
           `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
-          `<p class="tooltip-subtitle">${escapeHtml(platformLabels[entry.key as ReviewEventPlatform])}</p>`,
-          `<div class="tooltip-metric"><span>Review events</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-          `<div class="tooltip-metric"><span>All platforms on this date</span><strong>${numberFormatter(params.totalPlatformReviewEventsByDate.get(entry.date) ?? 0)}</strong></div>`,
+          `<p class="tooltip-subtitle">${escapeHtml(params.getKeyLabel(entry.key))}</p>`,
+          params.buildTooltipMetricsHtml(entry),
         ].join(""),
         event.clientX,
         event.clientY,
       );
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
+}
+
+export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEventsChartParams): void {
+  renderKeyedStackedBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    matrix: params.platformReviewEventsMatrix,
+    keys: reviewEventPlatforms,
+    getKeyColor: getPlatformColor,
+    getKeyLabel: (key) => platformLabels[key as ReviewEventPlatform],
+    peakStackedValue: params.peakDailyPlatformReviewEvents,
+    yAxisLabel: "Review events",
+    xAxisLabel: "Review date",
+    buildTooltipMetricsHtml: (entry) => [
+      `<div class="tooltip-metric"><span>Review events</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>All platforms on this date</span><strong>${numberFormatter(params.totalPlatformReviewEventsByDate.get(entry.date) ?? 0)}</strong></div>`,
+    ].join(""),
+    tooltipHandlers: params.tooltipHandlers,
+  });
+}
+
+// Stacked by deck rather than by person: the section answers which decks were installed, and who
+// installed them is already the shared user filter's and the tooltip's job on the per-user charts.
+export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstallsByPackageChartParams): void {
+  renderKeyedStackedBarChart({
+    svgElement: params.svgElement,
+    dates: params.dates,
+    tickDates: params.tickDates,
+    matrix: params.packageInstallsMatrix,
+    keys: params.packageSlugs,
+    getKeyColor: params.packageColorScale,
+    // The deck dimension is the package slug: no catalog table is read, so no deck title exists here.
+    getKeyLabel: (key) => key,
+    peakStackedValue: params.peakDailyInstalls,
+    yAxisLabel: "Installs",
+    xAxisLabel: "Install date",
+    buildTooltipMetricsHtml: (entry) => [
+      `<div class="tooltip-metric"><span>Installs of this deck</span><strong>${numberFormatter(entry.value)}</strong></div>`,
+      `<div class="tooltip-metric"><span>All decks on this date</span><strong>${numberFormatter(params.totalInstallsByDate.get(entry.date) ?? 0)}</strong></div>`,
+      `<div class="tooltip-metric"><span>Cards added</span><strong>${numberFormatter(params.cardCountByDateAndPackageSlug.get(`${entry.date}:${entry.key}`) ?? 0)}</strong></div>`,
+    ].join(""),
+    tooltipHandlers: params.tooltipHandlers,
+  });
 }

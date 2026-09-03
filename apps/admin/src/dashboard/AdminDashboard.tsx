@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
 import {
   reviewEventCohorts,
   reviewEventPlatforms,
+  type CatalogInstallsReport,
+  type CatalogInstallsUser,
   type DailyActiveUsersReport,
   type DailyActiveUsersUser,
   type ReviewEventCohort,
@@ -9,7 +11,10 @@ import {
   type ReviewEventsByDateReport,
   type ReviewEventsByDateUser,
 } from "../adminApi";
+import { getPackageColorScale } from "../charts/chartPrimitives";
 import { formatDateRangeLabel } from "../charts/formatting";
+import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
+import { filterCatalogInstallsReport } from "../reports/catalogInstalls/query";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
 import { filterDailyActiveUsersReport } from "../reports/dailyActiveUsers/query";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
@@ -29,27 +34,29 @@ import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 /**
  * The people the shared user filter and the shared colour scale have to cover: everyone with review
- * events, everyone with community activity, and everyone who opened the app. A person present in
- * more than one section appears once. An active user with no review events in range carries a zero
- * review total, which is what the filter list already shows for a community-only user.
+ * events, everyone with community activity, everyone who opened the app, and everyone who installed
+ * a catalog deck. A person present in more than one section appears once. A user with no review
+ * events in range carries a zero review total, which is what the filter list already shows for a
+ * community-only user.
  */
 function buildUserFilterOptionUsers(
   reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
   communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>,
   activeUsers: ReadonlyArray<DailyActiveUsersUser>,
+  installerUsers: ReadonlyArray<CatalogInstallsUser>,
 ): ReadonlyArray<ReviewEventsByDateUser> {
   const usersByUserId = new Map<string, ReviewEventsByDateUser>(
     [...reviewUsers, ...communityOnlyUsers].map((user) => [user.userId, user]),
   );
 
-  for (const activeUser of activeUsers) {
-    if (usersByUserId.has(activeUser.userId)) {
+  for (const user of [...activeUsers, ...installerUsers]) {
+    if (usersByUserId.has(user.userId)) {
       continue;
     }
 
-    usersByUserId.set(activeUser.userId, {
-      userId: activeUser.userId,
-      email: activeUser.email,
+    usersByUserId.set(user.userId, {
+      userId: user.userId,
+      email: user.email,
       totalReviewEvents: 0,
     });
   }
@@ -115,6 +122,7 @@ export function AdminDashboard(
   props: Readonly<{
     report: ReviewEventsByDateReport;
     dailyActiveUsersReport: DailyActiveUsersReport;
+    catalogInstallsReport: CatalogInstallsReport;
     adminEmail: string;
     defaultRange: ReviewEventsByDateRange;
     isReportLoading: boolean;
@@ -211,6 +219,23 @@ export function AdminDashboard(
     }),
     [props.dailyActiveUsersReport, selectedCohorts, selectedPlatforms, selectedUserIds],
   );
+  // The cohort split comes from the unfiltered daily active users report, so narrowing a filter
+  // cannot change which day an installer counts as new on.
+  const filteredCatalogInstallsReport = useMemo(
+    () => filterCatalogInstallsReport(props.catalogInstallsReport, {
+      selectedUserIds,
+      selectedCohorts,
+      selectedPlatforms,
+      firstActiveDateByUserId: props.dailyActiveUsersReport.firstActiveDateByUserId,
+    }),
+    [
+      props.catalogInstallsReport,
+      props.dailyActiveUsersReport.firstActiveDateByUserId,
+      selectedCohorts,
+      selectedPlatforms,
+      selectedUserIds,
+    ],
+  );
   const selectedUserIdSet = useMemo(
     () => new Set(selectedUserIds),
     [selectedUserIds],
@@ -228,8 +253,14 @@ export function AdminDashboard(
       props.report.users,
       props.report.communityOnlyUsers,
       props.dailyActiveUsersReport.users,
+      props.catalogInstallsReport.users,
     ),
-    [props.dailyActiveUsersReport.users, props.report.communityOnlyUsers, props.report.users],
+    [
+      props.catalogInstallsReport.users,
+      props.dailyActiveUsersReport.users,
+      props.report.communityOnlyUsers,
+      props.report.users,
+    ],
   );
   // Every selectable person, so an active-user chip selected from the daily active users chart still
   // resolves to a label even when that person has no review events.
@@ -248,8 +279,22 @@ export function AdminDashboard(
       ...props.report.users,
       ...props.report.communityOnlyUsers,
       ...props.dailyActiveUsersReport.users,
+      ...props.catalogInstallsReport.users,
     ])),
-    [props.dailyActiveUsersReport.users, props.report.communityOnlyUsers, props.report.users],
+    [
+      props.catalogInstallsReport.users,
+      props.dailyActiveUsersReport.users,
+      props.report.communityOnlyUsers,
+      props.report.users,
+    ],
+  );
+  // Built from the loaded report rather than the filtered one, for the same reason the user colour
+  // domain is: a deck must not change colour because a filter removed another deck.
+  const packageColorScale = useMemo(
+    () => getPackageColorScale(
+      props.catalogInstallsReport.packages.map((catalogPackage) => catalogPackage.packageSlug),
+    ),
+    [props.catalogInstallsReport.packages],
   );
   const activeUserFilters = useMemo(
     () => buildActiveUserFilters(selectedUserIds, reportUserById),
@@ -330,6 +375,12 @@ export function AdminDashboard(
         isReportLoading={props.isReportLoading}
         userColorScale={userColorScale}
         onUserFilterApply={handleChartUserFilterApply}
+      />
+
+      <CatalogInstallsSection
+        filteredReport={filteredCatalogInstallsReport}
+        generatedAtUtc={props.catalogInstallsReport.generatedAtUtc}
+        packageColorScale={packageColorScale}
       />
 
       <ReviewActivitySection
