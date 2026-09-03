@@ -190,6 +190,7 @@ The role gets `SELECT` on these tables only:
 - `auth.guest_ai_monthly_usage`
 - selected audit columns on `auth.guest_upgrade_history`
 - `auth.guest_replica_aliases`
+- selected entitlement columns on `auth.admin_users`, the join key an admin report uses to exclude admin-generated activity
 - selected metadata columns on `ai.chat_sessions`
 - selected metadata columns on `ai.chat_runs`
 - selected metadata columns on `ai.chat_composer_suggestion_generations`
@@ -302,7 +303,7 @@ Use guest and account-conversion tables when the investigation needs guest activ
 - `auth.guest_upgrade_history`
 - `auth.guest_replica_aliases`
 
-Guest analytics intentionally do not expose guest session secret hashes, replay secret hashes, raw provider subjects, OTP challenge state, API key hashes, or admin entitlement rows.
+Guest analytics intentionally do not expose guest session secret hashes, replay secret hashes, raw provider subjects, OTP challenge state, or API key hashes.
 
 Use AI operational tables when the investigation needs chat session volume, run health, model/cost-policy distribution, or stuck/failed run timing:
 
