@@ -9,9 +9,10 @@ Supported browser entrypoints:
 
 ## Scope
 
-The dashboard carries two report sections, in page order:
+The dashboard carries three report sections, in page order:
 
 - `daily-active-users`
+- `catalog-deck-installs`
 - `review-events-by-date`
 
 The admin app is a separate React + TypeScript + Vite package. It does not reuse the web app runtime storage or sync code.
@@ -76,6 +77,20 @@ Attribution contract for `daily-active-users`:
 - reconstructed and live rows are deliberately not distinguished anywhere in the UI
 - new versus returning is the actor's first `app_opened` day over all history, which is this section's own cohort definition; `review-events-by-date` keeps using the first review day
 - all four shared filters apply: date range reloads the section server-side, and user, cohort and platform are applied client-side
+
+Attribution contract for `catalog-deck-installs`:
+
+- the section answers how many catalog decks were installed on each calendar day and which decks those were; one install action by one person is one event, from `catalog_deck_installed`
+- the event is server-emitted after the install transaction commits and keyed by `(workspace_id, install_id)`, so an idempotent replay of the same install cannot count twice
+- everything the section needs is on the event, so no `catalog` or `sync` table is read; the deck dimension is `package_slug` and there are no deck titles or version numbers here
+- identity works exactly as in `review-events-by-date`: grouped by `actor_id`, the same case-folded `org.user_settings` email join, and the same `%@example.com` exclusion
+- two further exclusions are deliberate: the delisted test fixture, narrowly by `package_slug` `'test'` and never by package status, which would need a `catalog` grant this report does not take; and installs by active admins, joined from `auth.admin_users` on the folded `org.user_settings` email with `revoked_at IS NULL`
+- almost every install in production history is an admin install, so a nearly empty chart is the intended default rather than a defect; the `auth.admin_users` column grant it needs is `db/migrations/0125_reporting_readonly_admin_users.sql`, and without it deployed the section fails as HTTP 500 `INTERNAL_ERROR` rather than as a readable permission error
+- platform is always `unattributed`: the producer writes NULL on purpose, because the install names no server-stored replica or guest session row and the request headers that do name a platform are a client claim, and `db/migrations/0120_backfill_product_analytics_server_facts.sql` wrote none either; the bucket is still derived with the same CASE as every other report, so picking any device platform empties this section
+- new versus returning is not recomputed here: the section reads `daily-active-users`' per-actor first `app_opened` day, so the cohort definition lives in one place
+- that lookup only covers actors with an `app_opened` day inside the loaded range, so an installer without one is in neither cohort and is dropped as soon as the cohort filter narrows, rather than being guessed into `new` or `returning`
+- all four shared filters apply: date range reloads the section server-side, and user, cohort and platform are applied client-side
+- the section carries one chart, installs per UTC day stacked by deck, plus summary tiles
 
 Current v1 attribution contract for `review-events-by-date`:
 
@@ -171,7 +186,11 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - the default date filter starts on the first app open, review, friend invite, or friendship day and ends on today
 - date, user, new/returning cohort, and platform filters open as popups from the compact filter row
 - the dashboard does not show a persistent email or user list outside the user filter popup
-- the daily active users section renders above `Review activity`, with its new-vs-returning, platform, and stacked-by-user charts and no summary tiles
+- the daily active users section renders above `Catalog deck installs`, with its new-vs-returning, platform, and stacked-by-user charts and no summary tiles
+- `Catalog deck installs` renders between `Daily active users` and `Review activity`, with its summary tiles and its one installs-per-day chart stacked by deck
+- the catalog installs chart is empty or nearly empty on production data, because installs of the `test` fixture deck and installs by active admins are excluded on purpose
+- selecting any device platform empties the catalog installs section while the other sections keep their data
+- hovering a catalog installs segment names the deck slug and shows installs of that deck, all decks on that date, and cards added
 - unique-users, stacked-by-user, platform-users, platform-events, friend-invite-links, and friend-connections charts all render
 - a person keeps the same colour in the daily active users charts and the review charts
 - narrowing the date filter reloads all charts, and Reset all restores the default range and all local filters
