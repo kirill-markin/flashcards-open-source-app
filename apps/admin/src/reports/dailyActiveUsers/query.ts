@@ -272,9 +272,11 @@ export function filterDailyActiveUsersReport(
 // `agent_connection` replica is the machine API, and a scheduled MCP client files an active day for
 // its owner on every calendar day it runs, so that series is an upper bound on human agent use.
 //
-// HISTORY BEFORE THE CLIENTS COULD REPORT IT IS RECONSTRUCTED by that same migration, at roughly 85%
-// coverage of the people who really opened the app on a sampled day. Reconstructed and live rows are
-// deliberately not distinguished here or anywhere in the UI.
+// HISTORY BEFORE THE CLIENTS COULD REPORT IT IS RECONSTRUCTED, at roughly 85% coverage of the people
+// who really opened the app on a sampled day, by that same migration and by its replays, the newest
+// being `db/migrations/0126_backfill_app_opened_rollout_gap.sql`. Replays keep running after the
+// clients went live, so `origin = 'backfill'` rows also fall on days a client was already reporting.
+// Reconstructed and live rows are deliberately not distinguished here or anywhere in the UI.
 export function buildDailyActiveUsersSql(from: string, to: string): string {
   assertValidDateRange({ from, to }, reportLabel);
 
