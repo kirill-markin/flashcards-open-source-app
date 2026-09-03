@@ -552,7 +552,7 @@ export function previewSqlStatement(sql: string): string {
  * The message and the HTTP status are not the whole error here: a database failure also carries the
  * class and the SQLSTATE that classifiers read to map it to something actionable, and a rewrite that
  * kept only the status and the code would silently reclassify every such failure in a batch. The
- * agent SQL time budget (../agentSql.ts) is the first classifier to depend on this.
+ * agent SQL time budget (databaseTimeBudget.ts) is the first classifier to depend on this.
  */
 export function wrapBatchExecutionError(error: unknown, statementIndex: number, sql: string): never {
   const message = error instanceof Error ? error.message : String(error);
