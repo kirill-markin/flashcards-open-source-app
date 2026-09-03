@@ -6,7 +6,7 @@ import {
   type ReviewEventsByDateReport,
 } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
-import { ReviewEventsByDateDashboard } from "./reports/reviewEventsByDate/ReviewEventsByDateDashboard";
+import { AdminDashboard } from "./dashboard/AdminDashboard";
 import {
   loadReviewEventsByDateDefaultRange,
   loadReviewEventsByDateReport,
@@ -281,7 +281,7 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <ReviewEventsByDateDashboard
+    <AdminDashboard
       report={appState.report}
       adminEmail={appState.session.email}
       defaultRange={appState.defaultRange}

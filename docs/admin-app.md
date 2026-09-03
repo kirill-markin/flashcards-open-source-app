@@ -153,7 +153,7 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 
 - `https://admin.<domain>` returns `200`
 - unauthenticated access redirects to the login flow
-- a listed admin email loads the dashboard
+- a listed admin email loads the dashboard, where the shared hero and filter row sit above titled report sections, each separated by a divider
 - a signed-in non-admin sees the access denied page
 - network traces show `POST /v1/admin/reports/query` for dashboard data
 - the default date filter starts on the first review, friend invite, or friendship day and ends on today
