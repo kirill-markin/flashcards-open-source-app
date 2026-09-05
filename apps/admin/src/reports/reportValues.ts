@@ -34,6 +34,29 @@ function formatCalendarDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+const defaultReportRangeLookbackDays = 30;
+
+// The window the dashboard opens on: the available range's last day back `defaultReportRangeLookbackDays`
+// days, both ends inclusive, clamped up to the available first day so the default can never fall
+// outside the range the picker and the range validation allow.
+export function buildDefaultReportRange(
+  availableRange: Readonly<{ from: string; to: string }>,
+  reportLabel: string,
+): Readonly<{ from: string; to: string }> {
+  const availableFromDate = parseCalendarDate(availableRange.from, reportLabel);
+  const availableToDate = parseCalendarDate(availableRange.to, reportLabel);
+
+  const defaultFromDate = new Date(availableToDate);
+  defaultFromDate.setUTCDate(defaultFromDate.getUTCDate() - defaultReportRangeLookbackDays);
+
+  return {
+    from: formatCalendarDate(
+      defaultFromDate.getTime() < availableFromDate.getTime() ? availableFromDate : defaultFromDate,
+    ),
+    to: formatCalendarDate(availableToDate),
+  };
+}
+
 export function buildRequestedDateRange(
   from: string,
   to: string,

@@ -124,6 +124,7 @@ export function AdminDashboard(
     dailyActiveUsersReport: DailyActiveUsersReport;
     catalogInstallsReport: CatalogInstallsReport;
     adminEmail: string;
+    availableRange: ReviewEventsByDateRange;
     defaultRange: ReviewEventsByDateRange;
     isReportLoading: boolean;
     dateRangeError: string;
@@ -335,6 +336,7 @@ export function AdminDashboard(
       </section>
 
       <ReviewEventsByDateFilters
+        availableRange={props.availableRange}
         defaultRange={props.defaultRange}
         appliedRange={{
           from: props.report.from,
