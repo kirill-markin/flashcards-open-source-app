@@ -55,7 +55,7 @@ export type ReviewEventsByDateFilterState = Readonly<{
   selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
 }>;
 
-type ReviewEventsByDateDefaultRangeQueryRow = Readonly<{
+type ReviewEventsByDateAvailableRangeQueryRow = Readonly<{
   from_date: string;
   to_date: string;
 }>;
@@ -93,9 +93,9 @@ function toReviewEventsByDateCommunityQueryRow(
   };
 }
 
-function toReviewEventsByDateDefaultRangeQueryRow(
+function toReviewEventsByDateAvailableRangeQueryRow(
   resultSetRow: Readonly<Record<string, AdminQueryValue>>,
-): ReviewEventsByDateDefaultRangeQueryRow {
+): ReviewEventsByDateAvailableRangeQueryRow {
   return {
     from_date: assertIsString(resultSetRow.from_date ?? null, "Review events report", "from_date"),
     to_date: assertIsString(resultSetRow.to_date ?? null, "Review events report", "to_date"),
@@ -413,7 +413,7 @@ export function filterReviewEventsByDateReport(
 // the index needs the planner to drop the view's two `LEFT JOIN`s first, and only `EXPLAIN` against
 // production settles whether it does. `LEAST` ignores NULLs, so an event name that has never been
 // emitted simply does not contribute a candidate.
-export function buildReviewEventsByDateDefaultRangeSql(): string {
+export function buildReviewEventsByDateAvailableRangeSql(): string {
   return [
     "SELECT",
     "  COALESCE(",
@@ -436,7 +436,7 @@ export function buildReviewEventsByDateDefaultRangeSql(): string {
     "            WHERE resolved.event_name = 'friendship_created'",
     "          ),",
     // The daily-active-users section reads this event, and `0121` reconstructed its history back
-    // past the first review, so this is normally the subquery that decides the default range.
+    // past the first review, so this is normally the subquery that decides the available range.
     "          (",
     "            SELECT MIN(resolved.occurred_at)",
     "            FROM analytics.product_events_resolved AS resolved",
@@ -759,33 +759,33 @@ export function buildReviewEventsByDateCommunitySql(from: string, to: string): s
   ].join("\n");
 }
 
-export async function loadReviewEventsByDateDefaultRange(
+export async function loadReviewEventsByDateAvailableRange(
   config: AdminAppConfig,
 ): Promise<ReviewEventsByDateRange> {
-  const response = await runAdminQuery(config, buildReviewEventsByDateDefaultRangeSql());
+  const response = await runAdminQuery(config, buildReviewEventsByDateAvailableRangeSql());
   if (response.resultSets.length !== 1) {
-    throw new Error("Review events default range query must return exactly one result set.");
+    throw new Error("Review events available range query must return exactly one result set.");
   }
 
   const resultSet = response.resultSets[0];
   if (resultSet === undefined) {
-    throw new Error("Review events default range query result set is missing.");
+    throw new Error("Review events available range query result set is missing.");
   }
 
   if (resultSet.rows.length !== 1) {
-    throw new Error(`Review events default range query must return exactly one row. Got ${resultSet.rows.length}.`);
+    throw new Error(`Review events available range query must return exactly one row. Got ${resultSet.rows.length}.`);
   }
 
   const row = resultSet.rows[0];
   if (row === undefined) {
-    throw new Error("Review events default range query row is missing.");
+    throw new Error("Review events available range query row is missing.");
   }
 
-  const rangeRow = toReviewEventsByDateDefaultRangeQueryRow(row);
+  const rangeRow = toReviewEventsByDateAvailableRangeQueryRow(row);
   return assertValidDateRange({
     from: rangeRow.from_date,
     to: rangeRow.to_date,
-  }, "Review events default");
+  }, "Review events available");
 }
 
 export async function loadReviewEventsByDateReport(
