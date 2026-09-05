@@ -11,8 +11,9 @@ import { getAdminAppConfig, type AdminAppConfig } from "./config";
 import { AdminDashboard } from "./dashboard/AdminDashboard";
 import { loadCatalogInstallsReport } from "./reports/catalogInstalls/query";
 import { loadDailyActiveUsersReport } from "./reports/dailyActiveUsers/query";
+import { buildDefaultReportRange } from "./reports/reportValues";
 import {
-  loadReviewEventsByDateDefaultRange,
+  loadReviewEventsByDateAvailableRange,
   loadReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "./reports/reviewEventsByDate/query";
@@ -26,6 +27,7 @@ type AppState =
       status: "ready";
       config: AdminAppConfig;
       session: AdminSession;
+      availableRange: ReviewEventsByDateRange;
       defaultRange: ReviewEventsByDateRange;
       report: ReviewEventsByDateReport;
       dailyActiveUsersReport: DailyActiveUsersReport;
@@ -65,7 +67,7 @@ function compareCalendarDates(left: string, right: string): number {
 
 function validateRequestedRange(
   range: ReviewEventsByDateRange,
-  defaultRange: ReviewEventsByDateRange,
+  availableRange: ReviewEventsByDateRange,
 ): string | null {
   try {
     parseCalendarDate(range.from, "From date");
@@ -78,12 +80,12 @@ function validateRequestedRange(
     return "From date must be on or before To date.";
   }
 
-  if (compareCalendarDates(range.from, defaultRange.from) < 0) {
-    return `From date must be on or after ${defaultRange.from}.`;
+  if (compareCalendarDates(range.from, availableRange.from) < 0) {
+    return `From date must be on or after ${availableRange.from}.`;
   }
 
-  if (compareCalendarDates(range.to, defaultRange.to) > 0) {
-    return `To date must be on or before ${defaultRange.to}.`;
+  if (compareCalendarDates(range.to, availableRange.to) > 0) {
+    return `To date must be on or before ${availableRange.to}.`;
   }
 
   return null;
@@ -168,7 +170,8 @@ export default function App(): JSX.Element {
       try {
         config = getAdminAppConfig();
         const session = await fetchAdminSession(config);
-        const defaultRange = await loadReviewEventsByDateDefaultRange(config);
+        const availableRange = await loadReviewEventsByDateAvailableRange(config);
+        const defaultRange = buildDefaultReportRange(availableRange, "Review events default");
         const [report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
           loadReviewEventsByDateReport(config, defaultRange.from, defaultRange.to),
           loadDailyActiveUsersReport(config, defaultRange.from, defaultRange.to),
@@ -183,6 +186,7 @@ export default function App(): JSX.Element {
           status: "ready",
           config,
           session,
+          availableRange,
           defaultRange,
           report,
           dailyActiveUsersReport,
@@ -218,7 +222,7 @@ export default function App(): JSX.Element {
       return;
     }
 
-    const validationError = validateRequestedRange(range, appState.defaultRange);
+    const validationError = validateRequestedRange(range, appState.availableRange);
     if (validationError !== null) {
       setAppState({
         ...appState,
@@ -300,6 +304,7 @@ export default function App(): JSX.Element {
       dailyActiveUsersReport={appState.dailyActiveUsersReport}
       catalogInstallsReport={appState.catalogInstallsReport}
       adminEmail={appState.session.email}
+      availableRange={appState.availableRange}
       defaultRange={appState.defaultRange}
       isReportLoading={appState.isReportLoading}
       dateRangeError={appState.dateRangeError}
