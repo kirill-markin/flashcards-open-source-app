@@ -23,6 +23,7 @@ type FilterButtonClassNameState = Readonly<{
 }>;
 
 type ReviewEventsByDateFiltersProps = Readonly<{
+  availableRange: ReviewEventsByDateRange;
   defaultRange: ReviewEventsByDateRange;
   appliedRange: ReviewEventsByDateRange;
   draftRange: ReviewEventsByDateRange;
@@ -262,8 +263,8 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                   <input
                     type="date"
                     value={props.draftRange.from}
-                    min={props.defaultRange.from}
-                    max={props.defaultRange.to}
+                    min={props.availableRange.from}
+                    max={props.availableRange.to}
                     disabled={props.isReportLoading}
                     onChange={(event) => props.onFromDateChange(event.currentTarget.value)}
                   />
@@ -273,8 +274,8 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                   <input
                     type="date"
                     value={props.draftRange.to}
-                    min={props.defaultRange.from}
-                    max={props.defaultRange.to}
+                    min={props.availableRange.from}
+                    max={props.availableRange.to}
                     disabled={props.isReportLoading}
                     onChange={(event) => props.onToDateChange(event.currentTarget.value)}
                   />
