@@ -1264,6 +1264,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   );
 
   restApi.root.addMethod("GET", integration);
+  // Includes the authenticated POST /agent/reviews/{next,reveal,submit} routes.
+  // Keep these on the existing greedy integration, like the agent SQL routes.
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
   addTextContentHandlingToMockOptionsMethods(restApi);
 

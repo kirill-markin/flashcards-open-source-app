@@ -1,3 +1,11 @@
+import { nextReviewCard, revealAnswer, submitAgentReview } from "../agent/reviews";
+import {
+  parseReviewRequest,
+  reviewWorkspaceSchema,
+  revealAnswerSchema,
+  submitReviewSchema,
+  REVIEW_FLOW_INSTRUCTIONS,
+} from "../agent/reviewContract";
 import { Hono } from "hono";
 import { createAgentEnvelope } from "../agent/envelope";
 import {
@@ -18,6 +26,7 @@ import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
   requireAgentConnectionId,
+  resolveAccessibleMcpWorkspaceId,
   requireAccessibleSelectedWorkspaceId,
 } from "../server/requestContext";
 import {
@@ -149,5 +158,33 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
 
     return context.json(createAgentEnvelope(context.req.url, result.data, result.instructions));
   });
+
+  app.post("/agent/reviews/next", async (context) => {
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const input = parseReviewRequest(reviewWorkspaceSchema, await parseJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const actor = { userId: requestContext.userId, workspaceId, connectionId };
+    const result = await nextReviewCard(actor);
+    return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
+  });
+
+  app.post("/agent/reviews/reveal", async (context) => {
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const input = parseReviewRequest(revealAnswerSchema, await parseJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const actor = { userId: requestContext.userId, workspaceId, connectionId };
+    const result = await revealAnswer(actor, input.cardId);
+    return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
+  });
+
+  app.post("/agent/reviews/submit", async (context) => {
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const input = parseReviewRequest(submitReviewSchema, await parseJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const actor = { userId: requestContext.userId, workspaceId, connectionId };
+    const result = await submitAgentReview(actor, input);
+    return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
+  });
+
   return app;
 }

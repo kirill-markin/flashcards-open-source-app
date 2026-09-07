@@ -15,7 +15,7 @@ import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
 } from "../../sync/conflicts/fork";
-import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../../sync/replication/changes";
+import { lockWorkspaceSyncMetadataForHotChangesInExecutor, type HotChangeWriteLock } from "../../sync/replication/changes";
 import { getWorkspaceSchedulerConfig } from "../../scheduling/workspaceSettings";
 import { createPostCommitAnalyticsBudget } from "../../productAnalytics/serverFacts/postCommitBudget";
 import {
@@ -275,76 +275,97 @@ export async function submitReview(
     (runInTransaction) => transactionWithWorkspaceScope({ userId, workspaceId }, runInTransaction),
     async (executor) => {
       const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
-      const existingCard = await loadReviewableCardForUpdate(executor, workspaceId, input.cardId);
-      const schedulerConfig = await getWorkspaceSchedulerConfig(executor, workspaceId);
-      const schedule = computeReviewSchedule(
-        toReviewableCardScheduleState(existingCard),
-        schedulerConfig,
-        input.rating,
-        reviewedAtClient,
-      );
-
-      await appendReviewEventSnapshotInExecutor(
-        executor,
-        workspaceId,
-        {
-          reviewEventId: input.reviewEventId ?? randomUUID(),
-          workspaceId,
-          cardId: input.cardId,
-          replicaId,
-          clientEventId: input.clientEventId ?? randomUUID(),
-          rating: input.rating,
-          reviewedAtClient: reviewedAtClient.toISOString(),
-          reviewedAtServer: new Date().toISOString(),
-          reviewedTimeZone: input.reviewedTimeZone,
-        },
-        normalizedMetadata.lastOperationId,
-        createCurrentUserPublicProfileResolver(executor),
-        // The reviewedAtServer field above is this request's own new Date(), so the anchor is a
-        // server clock reading and not anything the client sent.
-        "server_stamped",
-      );
-
-      const updatedCardResult = await executor.query<CardRow>(
-        [
-          "UPDATE content.cards",
-          "SET due_at = $1, reps = $2, lapses = $3, fsrs_card_state = $4, fsrs_step_index = $5,",
-          "fsrs_stability = $6, fsrs_difficulty = $7, fsrs_last_reviewed_at = $8, fsrs_scheduled_days = $9,",
-          "client_updated_at = $10, last_modified_by_replica_id = $11, last_operation_id = $12, updated_at = now()",
-          "WHERE workspace_id = $13 AND card_id = $14",
-          "RETURNING",
-          CARD_COLUMNS,
-        ].join(" "),
-        [
-          schedule.dueAt,
-          schedule.reps,
-          schedule.lapses,
-          schedule.fsrsCardState,
-          schedule.fsrsStepIndex,
-          schedule.fsrsStability,
-          schedule.fsrsDifficulty,
-          schedule.fsrsLastReviewedAt,
-          schedule.fsrsScheduledDays,
-          normalizedMetadata.clientUpdatedAt,
-          normalizedMetadata.lastModifiedByReplicaId,
-          normalizedMetadata.lastOperationId,
-          workspaceId,
-          input.cardId,
-        ],
-      );
-
-      const updatedCard = updatedCardResult.rows[0];
-      if (updatedCard === undefined) {
-        throw new Error("Card review update did not return a row");
-      }
-
-      const mappedCard = mapCard(updatedCard);
-      await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, mappedCard);
-
-      return {
-        card: mappedCard,
-        nextDueAt: schedule.dueAt.toISOString(),
-      };
+      return submitReviewInExecutor(executor, workspaceId, replicaId, input, normalizedMetadata, hotChangeWriteLock);
     },
   );
+}
+
+/** Shared authoritative write path. The caller owns the workspace hot-change lock
+ * and a runTransactionReportingReviewAnswers transaction, including any receipt. */
+export async function submitReviewInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  replicaId: string,
+  input: SubmitReviewInput,
+  metadata: CardMutationMetadata,
+  hotChangeWriteLock: HotChangeWriteLock,
+): Promise<ReviewResult> {
+  const reviewedAtClient = new Date(input.reviewedAtClient);
+  const normalizedMetadata = normalizeCardMutationMetadata(metadata);
+  const existingCard = await loadReviewableCardForUpdate(executor, workspaceId, input.cardId);
+  const schedulerConfig = await getWorkspaceSchedulerConfig(executor, workspaceId);
+  const schedule = computeReviewSchedule(
+    toReviewableCardScheduleState(existingCard),
+    schedulerConfig,
+    input.rating,
+    reviewedAtClient,
+  );
+
+  const appended = await appendReviewEventSnapshotInExecutor(
+    executor,
+    workspaceId,
+    {
+      reviewEventId: input.reviewEventId ?? randomUUID(),
+      workspaceId,
+      cardId: input.cardId,
+      replicaId,
+      clientEventId: input.clientEventId ?? randomUUID(),
+      rating: input.rating,
+      reviewedAtClient: reviewedAtClient.toISOString(),
+      reviewedAtServer: new Date().toISOString(),
+      reviewedTimeZone: input.reviewedTimeZone,
+    },
+    normalizedMetadata.lastOperationId,
+    createCurrentUserPublicProfileResolver(executor),
+    // The reviewedAtServer field above is this request's own new Date(), so the anchor is a
+    // server clock reading and not anything the client sent.
+    "server_stamped",
+  );
+
+  // Never advance scheduling when the append-only history deduplicates an event.
+  // Callers needing exact successful replay must check their durable receipt first.
+  if (!appended.applied) {
+    throw new HttpError(409, "Review event already exists", "REVIEW_EVENT_CONFLICT");
+  }
+
+  const updatedCardResult = await executor.query<CardRow>(
+    [
+      "UPDATE content.cards",
+      "SET due_at = $1, reps = $2, lapses = $3, fsrs_card_state = $4, fsrs_step_index = $5,",
+      "fsrs_stability = $6, fsrs_difficulty = $7, fsrs_last_reviewed_at = $8, fsrs_scheduled_days = $9,",
+      "client_updated_at = $10, last_modified_by_replica_id = $11, last_operation_id = $12, updated_at = now()",
+      "WHERE workspace_id = $13 AND card_id = $14",
+      "RETURNING",
+      CARD_COLUMNS,
+    ].join(" "),
+    [
+      schedule.dueAt,
+      schedule.reps,
+      schedule.lapses,
+      schedule.fsrsCardState,
+      schedule.fsrsStepIndex,
+      schedule.fsrsStability,
+      schedule.fsrsDifficulty,
+      schedule.fsrsLastReviewedAt,
+      schedule.fsrsScheduledDays,
+      normalizedMetadata.clientUpdatedAt,
+      normalizedMetadata.lastModifiedByReplicaId,
+      normalizedMetadata.lastOperationId,
+      workspaceId,
+      input.cardId,
+    ],
+  );
+
+  const updatedCard = updatedCardResult.rows[0];
+  if (updatedCard === undefined) {
+    throw new Error("Card review update did not return a row");
+  }
+
+  const mappedCard = mapCard(updatedCard);
+  await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, mappedCard);
+
+  return {
+    card: mappedCard,
+    nextDueAt: schedule.dueAt.toISOString(),
+  };
 }

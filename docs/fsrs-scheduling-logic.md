@@ -371,3 +371,13 @@ Any scheduler change must update:
 - this document
 - backend and iOS scheduler module comments
 - parity vectors
+
+
+## Dedicated agent review adapter
+
+The [conversational review contract](conversational-reviews.md) exposes the existing
+scheduler through MCP `submit_review` and HTTP `POST /v1/agent/reviews/submit`.
+It maps exact `Again`/`Hard`/`Good`/`Easy` strings to 0–3, keeps the client review
+time authoritative, and returns the due time, interval, state, reps, and lapses.
+The adapter adds durable idempotent receipts and stale-request rejection; it does
+not change the scheduler algorithm or released first-party sync contracts.

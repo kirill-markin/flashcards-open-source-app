@@ -179,6 +179,9 @@ function createFakeDependencies(
   workspaces: ReadonlyArray<WorkspaceSummaryWithStats>,
 ): McpServerDependencies {
   return {
+    nextReviewCard: async () => { throw new Error("Unexpected review read"); },
+    revealAnswer: async () => { throw new Error("Unexpected answer read"); },
+    submitAgentReview: async () => { throw new Error("Unexpected review write"); },
     resolveAccessibleMcpWorkspaceId: async (
       requestContext: WorkspaceRequestContext,
       explicitWorkspaceId: string | undefined,
@@ -296,10 +299,25 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     const toolNames = toolList.tools.map((tool) => tool.name).sort();
     assert.deepEqual(toolNames, [
       LIST_WORKSPACES_TOOL_NAME,
+      "next_review_card",
+      "reveal_answer",
       SQL_EXECUTE_TOOL_NAME,
       SQL_QUERY_TOOL_NAME,
+      "submit_review",
     ]);
     assert.equal(toolNames.some((toolName) => toolName.includes("media_assets")), false);
+
+    const reviewTool = requireTool(toolList.tools, "submit_review");
+    assert.deepEqual(reviewTool.annotations, {
+      readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true,
+    });
+    assert.deepEqual(reviewTool.inputSchema.required, ["cardId", "reviewId", "rating", "reviewedAtClient"]);
+    assert.equal(reviewTool.inputSchema.additionalProperties, false);
+    assert.deepEqual((reviewTool.inputSchema.properties!.rating as { enum: string[] }).enum, ["Again", "Hard", "Good", "Easy"]);
+    assert.match(reviewTool.description ?? "", /authoritative FSRS/);
+    for (const name of ["next_review_card", "reveal_answer"]) {
+      assert.equal(requireTool(toolList.tools, name).annotations?.readOnlyHint, true);
+    }
 
     const sqlQueryTool = requireTool(toolList.tools, SQL_QUERY_TOOL_NAME);
     const sqlExecuteTool = requireTool(toolList.tools, SQL_EXECUTE_TOOL_NAME);

@@ -185,7 +185,15 @@ export function createAgentErrorInstructions(
     case "WORKSPACE_ID_REQUIRED":
     case "WORKSPACE_ID_INVALID":
       return "Provide a valid workspaceId UUID in the request URL, then retry the action.";
+    case "REVIEW_STALE":
+      return "Reload the card and explain that it changed. Do not rewrite the original review timestamp or automatically submit another rating.";
+    case "REVIEW_ID_CONFLICT":
+    case "REVIEW_EVENT_CONFLICT":
+      return "This review identity already exists. Retry only the original unchanged request; use a new reviewId only for a new learner review.";
     case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
+      if (new URL(requestUrl).pathname.endsWith("/agent/reviews/submit")) {
+        return "Retry the identical review request with the same workspaceId, reviewId, cardId, rating, and review timestamp. Do not advance until the result is confirmed.";
+      }
       if (multipartAction === "completion") {
         return "The completion database commit outcome is unknown and rollback is not guaranteed. Reload or replay the exact completion with the same session and parts to observe canonical state before taking any other action; do not abort or replace the upload.";
       }
