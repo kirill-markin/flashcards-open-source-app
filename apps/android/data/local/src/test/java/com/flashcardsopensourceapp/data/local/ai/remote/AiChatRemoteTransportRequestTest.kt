@@ -389,6 +389,7 @@ class AiChatRemoteTransportRequestTest {
             assertEquals("42", headersRef.get()["X-chat-resume-attempt-id"])
             assertEquals("android", headersRef.get()["X-client-platform"])
             assertEquals(AI_CHAT_TEST_APP_VERSION, headersRef.get()["X-client-version"])
+            assertFalse(headersRef.get()["X-chat-live-client-id"].isNullOrEmpty())
             assertEquals("Live token-2", headersRef.get()["Authorization"])
             assertEquals("session-1", queryParametersRef.get()["sessionId"])
             assertEquals("run-1", queryParametersRef.get()["runId"])
@@ -434,6 +435,11 @@ class AiChatRemoteTransportRequestTest {
             ).toList()
 
             assertEquals("Bearer token-1", headersRef.get()["Authorization"])
+            // An initial attach carries no resume header but still identifies the client.
+            assertFalse(headersRef.get().containsKey("X-chat-resume-attempt-id"))
+            assertEquals("android", headersRef.get()["X-client-platform"])
+            assertEquals(AI_CHAT_TEST_APP_VERSION, headersRef.get()["X-client-version"])
+            assertFalse(headersRef.get()["X-chat-live-client-id"].isNullOrEmpty())
             assertEquals("session-1", queryParametersRef.get()["sessionId"])
             assertEquals("run-1", queryParametersRef.get()["runId"])
             assertEquals("5", queryParametersRef.get()["afterCursor"])

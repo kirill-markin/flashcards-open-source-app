@@ -4,9 +4,11 @@ import com.sun.net.httpserver.HttpExchange
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
+import okhttp3.OkHttpClient
 
 // Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
 internal const val AI_CHAT_TEST_APP_VERSION: String = "1.0.0"
+internal const val AI_CHAT_TEST_VERSION_CODE: Int = 1
 internal const val AI_CHAT_TEST_UI_LOCALE: String = "es-ES"
 internal const val AI_CHAT_TEST_WORKSPACE_ID: String = "workspace-1"
 
@@ -15,7 +17,13 @@ internal fun makeAiChatTestDispatchers(): AiCoroutineDispatchers {
 }
 
 internal fun makeAiChatTestLiveRemoteService(): AiChatLiveRemoteService {
-    return AiChatLiveRemoteService(dispatchers = makeAiChatTestDispatchers())
+    return AiChatLiveRemoteService(
+        dispatchers = makeAiChatTestDispatchers(),
+        okHttpClient = OkHttpClient(),
+        observability = NoopAiChatHttpObservability,
+        appVersion = AI_CHAT_TEST_APP_VERSION,
+        versionCode = AI_CHAT_TEST_VERSION_CODE
+    )
 }
 
 internal fun makeAiChatTestRemoteService(): AiChatRemoteService {
