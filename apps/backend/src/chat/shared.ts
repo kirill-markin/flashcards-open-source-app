@@ -34,6 +34,9 @@ function buildCardSideContractSection(): string {
   return joinLines([
     "Card side contract:",
     "- Front side must contain only a question or recall prompt. Never include the answer on the front side.",
+    "- Keep the front short by default: usually one word, a term, or a brief phrase, not a full sentence question.",
+    "- Front brevity does not limit the back side, which may still be long.",
+    "- Write a longer front only when the user asks for it, or when similar existing cards in the same deck, tag, or topic already use long fronts.",
     "- Back side must start with the direct answer.",
     "- When the back side is longer than one short sentence, format it as real Markdown instead of dense plain text.",
     "- Use blank lines between paragraphs on longer back sides so the rendered card stays readable.",
