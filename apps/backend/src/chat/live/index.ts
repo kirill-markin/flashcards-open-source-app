@@ -22,6 +22,7 @@ import {
   type ChatLiveLifecycleDetails,
 } from "../../observability/sentry";
 import {
+  claimChatLiveAttachOwnership,
   getChatRunSnapshot,
   getRecoveredChatSessionSnapshot,
   type ChatRunSnapshot,
@@ -50,9 +51,16 @@ const MAX_CONNECTION_DURATION_MS = 9 * 60 * 1000;
 type ChatLiveStreamDependencies = Readonly<{
   getRecoveredChatSessionSnapshot: typeof getRecoveredChatSessionSnapshot;
   getChatRunSnapshot: typeof getChatRunSnapshot;
+  claimChatLiveAttachOwnership: typeof claimChatLiveAttachOwnership;
   listChatMessagesAfterCursor: typeof listChatMessagesAfterCursor;
   listChatMessagesLatest: typeof listChatMessagesLatest;
   waitForNextPollInterval: typeof waitForNextPollInterval;
+}>;
+
+// The attach this connection owns, present only when the client identified its runtime.
+type LiveAttachOwnership = Readonly<{
+  clientId: string;
+  seq: number;
 }>;
 
 export type ChatLiveStreamResult = Readonly<{
@@ -83,6 +91,7 @@ type BacklogReplayState = Readonly<{
 const defaultChatLiveStreamDependencies: ChatLiveStreamDependencies = {
   getRecoveredChatSessionSnapshot,
   getChatRunSnapshot,
+  claimChatLiveAttachOwnership,
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
   waitForNextPollInterval,
@@ -132,6 +141,7 @@ function buildChatLiveLifecycleDetails(
       afterCursor: params.afterCursor ?? null,
       clientRequestId: params.clientRequestId ?? null,
       resumeAttemptId: params.resumeAttemptId ?? null,
+      liveAttachClientId: params.liveAttachClientId ?? null,
       clientPlatform: params.clientPlatform ?? null,
       clientVersion: params.clientVersion ?? null,
       connectionDurationMs: payload.connectionDurationMs,
@@ -150,6 +160,7 @@ function buildChatLiveLifecycleDetails(
     afterCursor: params.afterCursor ?? null,
     clientRequestId: params.clientRequestId ?? null,
     resumeAttemptId: params.resumeAttemptId ?? null,
+    liveAttachClientId: params.liveAttachClientId ?? null,
     clientPlatform: params.clientPlatform ?? null,
     clientVersion: params.clientVersion ?? null,
     connectionDurationMs: payload.connectionDurationMs,
@@ -214,6 +225,17 @@ function cursorOrNull(lastEmittedCursor: number): string | null {
 
 function isOpenRunStatus(status: ChatRunSnapshot["status"]): boolean {
   return status === "queued" || status === "running";
+}
+
+// Only the same client instance can supersede this attach. Two tabs or two devices on one run would
+// otherwise terminate each other and reconnect in a loop.
+function isSupersededAttach(
+  run: ChatRunSnapshot,
+  ownership: LiveAttachOwnership | null,
+): boolean {
+  return ownership !== null
+    && run.liveAttachClientId === ownership.clientId
+    && run.liveAttachSeq > ownership.seq;
 }
 
 function findAssistantMessageByItemId(
@@ -603,6 +625,19 @@ export async function runLiveStreamWithDependencies(
       return buildLiveStreamResult();
     }
 
+    const liveAttachClientId = params.liveAttachClientId;
+    const liveAttachOwnership: LiveAttachOwnership | null = liveAttachClientId === undefined
+      ? null
+      : {
+        clientId: liveAttachClientId,
+        seq: await dependencies.claimChatLiveAttachOwnership(
+          params.userId,
+          params.workspaceId,
+          params.runId,
+          liveAttachClientId,
+        ),
+      };
+
     const backlogState = await replayBacklogEvents(
       params,
       initialRun.assistantItemId,
@@ -645,6 +680,14 @@ export async function runLiveStreamWithDependencies(
       if (run === null || run.sessionId !== params.sessionId) {
         emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, initialRun.assistantItemId));
         terminationReason = "missing_run";
+        break;
+      }
+
+      // The same client instance attached again, so this container is redundant and released here.
+      // A client that already abandoned this connection locally simply ignores the reset.
+      if (isSupersededAttach(run, liveAttachOwnership)) {
+        emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
+        terminationReason = "superseded_attach";
         break;
       }
 

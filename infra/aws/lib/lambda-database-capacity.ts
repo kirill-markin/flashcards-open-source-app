@@ -78,8 +78,8 @@ export const authHandlerReservedConcurrency = 6;
 export const mcpHandlerReservedConcurrency = 4;
 // Production reached the previous cap of 10 on 2026-09-02, with two same-minute throttles and 40
 // throttles through 05:04 UTC. A reservation of 16 gives round headroom above at least 12
-// simultaneous attempts. SSE holds a container for the whole stream, up to 222 s, so concurrency
-// here is set by session duration rather than by requests per second.
+// simultaneous attempts. SSE holds a container for the whole stream, so concurrency here is set by
+// session duration rather than by requests per second.
 export const chatLiveHandlerReservedConcurrency = 16;
 // Observed 1/1/2, sized above the weekly max. A run holds a container up to 720 s, under the shared
 // 15-minute timeout, so the same duration-driven reasoning applies.

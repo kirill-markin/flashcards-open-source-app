@@ -24,6 +24,7 @@ export {
 export type { ChatRunClaimFenceParams, ChatRunClaimState } from "./runs/claimFence";
 
 export {
+  claimChatLiveAttachOwnership,
   getChatRunSnapshot,
   getRecoveredChatSessionSnapshot,
   getRecoveredPaginatedSession,

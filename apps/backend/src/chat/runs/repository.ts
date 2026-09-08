@@ -48,6 +48,13 @@ export type ChatRunRow = Readonly<{
   finished_at: string | null;
   last_error_message: string | null;
   initiating_auth_is_signed_in: boolean;
+  live_attach_client_id: string | null;
+  // BIGINT, which node-postgres hands back as a string.
+  live_attach_seq: string;
+}>;
+
+export type ChatLiveAttachOwnershipRow = Readonly<{
+  live_attach_seq: string;
 }>;
 
 export type ChatRunClaimRow = Readonly<{
@@ -139,7 +146,9 @@ const CHAT_RUN_COLUMNS_SQL = `
     started_at,
     finished_at,
     last_error_message,
-    initiating_auth_is_signed_in
+    initiating_auth_is_signed_in,
+    live_attach_client_id,
+    live_attach_seq
 `;
 
 const SELECT_CHAT_RUN_SQL = `
@@ -244,6 +253,15 @@ const UPDATE_CHAT_RUN_POLICY_SNAPSHOT_SQL = `
   WHERE run_id = $1
   RETURNING
 ${CHAT_RUN_COLUMNS_SQL}
+`;
+
+// Deliberately leaves updated_at alone: attaching to a run observes it, it does not progress it.
+const CLAIM_CHAT_LIVE_ATTACH_OWNERSHIP_SQL = `
+  UPDATE ai.chat_runs
+  SET live_attach_client_id = $2,
+      live_attach_seq = live_attach_seq + 1
+  WHERE run_id = $1
+  RETURNING live_attach_seq
 `;
 
 const SELECT_SESSION_FOR_UPDATE_SQL = `
@@ -590,6 +608,27 @@ export async function selectChatRunClaimForUpdateWithExecutor(
       [runId],
     );
     return rows[0] ?? null;
+  });
+}
+
+export async function claimChatLiveAttachOwnershipWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  runId: string,
+  liveAttachClientId: string,
+): Promise<string> {
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatLiveAttachOwnershipRow>(
+      executor,
+      CLAIM_CHAT_LIVE_ATTACH_OWNERSHIP_SQL,
+      [runId, liveAttachClientId],
+    );
+    const row = rows[0];
+    if (row === undefined) {
+      throw new ChatRunRowNotFoundError("live attach ownership claim");
+    }
+
+    return row.live_attach_seq;
   });
 }
 
