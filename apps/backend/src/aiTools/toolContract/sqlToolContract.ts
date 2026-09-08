@@ -12,7 +12,7 @@ export const SQL_EXECUTE_TOOL_NAME = "sql_execute";
  * answer. Shared so the MCP tools and the in-app AI agent stay on one contract.
  */
 export const FRONT_BACK_CONTRACT =
-  "Card side contract: front_text is only a question or review prompt and must never contain the answer; back_text contains the answer, optionally with a concrete example (prefer a fenced markdown code block when helpful).";
+  "Card side contract: front_text is only a question or review prompt and must never contain the answer; back_text contains the answer, optionally with a concrete example (prefer a fenced markdown code block when helpful). Keep front_text short by default, usually one word, a term, or a brief phrase rather than a full sentence question, while back_text may still be long; write a longer front_text only when the user asks for it or when similar existing cards in the same deck, tag, or topic already use long fronts.";
 
 /**
  * Canonical Markdown and LaTeX authoring contract for every agent surface.
