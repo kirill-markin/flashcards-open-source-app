@@ -157,7 +157,10 @@ final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelegate, @unc
             let requestId = extractAIChatLiveRequestId(httpResponse: httpResponse)
             let errorDetails = decodeCloudApiErrorDetails(
                 data: self.responseBody,
-                requestId: requestId
+                requestId: requestId,
+                retryAfterDelayNanoseconds: cloudRetryAfterDelayNanoseconds(
+                    value: httpResponse.value(forHTTPHeaderField: "Retry-After")
+                )
             )
             self.finish(throwing: AIChatLiveStreamError.invalidStatusCode(
                 httpStatusCode: httpResponse.statusCode,

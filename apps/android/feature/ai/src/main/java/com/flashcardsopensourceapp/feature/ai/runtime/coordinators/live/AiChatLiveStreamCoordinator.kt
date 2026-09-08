@@ -1,6 +1,8 @@
 package com.flashcardsopensourceapp.feature.ai.runtime.coordinators.live
 
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
+import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveAttachThrottledException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatLiveStreamException
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.remote.aiChatLiveStreamEndedBeforeTerminalCode
@@ -32,6 +34,7 @@ import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiErrorA
 import com.flashcardsopensourceapp.feature.ai.runtime.observability.makeAiUserFacingErrorPresentation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -39,6 +42,29 @@ import kotlinx.coroutines.launch
 private enum class AiLiveAttachDisposition {
     PENDING,
     TERMINAL_EVENT_SEEN
+}
+
+private val liveAttachThrottleRecoveryDelaysMs: List<Long> = listOf(500L, 1_000L, 2_000L, 4_000L)
+
+private const val maximumLiveAttachThrottleRecoveryDelayMs: Long = 4_000L
+
+/**
+ * Backoff before retrying a live attach the backend throttled, or null when the failure must surface.
+ */
+private fun liveAttachThrottleRecoveryDelayMs(
+    throttledError: AiChatLiveAttachThrottledException,
+    attemptCount: Int
+): Long? {
+    val fallbackDelayMs = liveAttachThrottleRecoveryDelaysMs.getOrNull(index = attemptCount) ?: return null
+    val requestedDelayMs = throttledError.retryAfterMs ?: fallbackDelayMs
+    return minOf(maxOf(fallbackDelayMs, requestedDelayMs), maximumLiveAttachThrottleRecoveryDelayMs)
+}
+
+/**
+ * Whether the composer still owns a live run, so this coordinator must keep its attach alive.
+ */
+private fun isLiveAiComposerPhase(composerPhase: AiComposerPhase): Boolean {
+    return composerPhase == AiComposerPhase.RUNNING || composerPhase == AiComposerPhase.STOPPING
 }
 
 internal class AiChatLiveStreamCoordinator(
@@ -153,80 +179,123 @@ internal class AiChatLiveStreamCoordinator(
         var liveJob: Job? = null
         liveJob = context.scope.launch {
             var liveAttachDisposition = AiLiveAttachDisposition.PENDING
+            var throttleAttemptCount = 0
             context.runtimeStateMutable.update { state ->
                 state.copy(isLiveAttached = true)
             }
             context.persistCurrentState()
             try {
-                context.aiChatRepository.attachLiveRun(
-                    workspaceId = workspaceId,
-                    sessionId = sessionId,
-                    runId = runId,
-                    liveStream = liveStream,
-                    afterCursor = afterCursor,
-                    resumeDiagnostics = resumeDiagnostics
-                ).collect { event ->
-                    if (event is AiChatLiveEvent.RunTerminal) {
-                        liveAttachDisposition = AiLiveAttachDisposition.TERMINAL_EVENT_SEEN
-                    }
-                    applyLiveEvent(event = event)
-                }
-                if (
-                    liveAttachDisposition == AiLiveAttachDisposition.PENDING
-                    && context.isScreenVisible
-                ) {
-                    reconcileUnexpectedLiveStreamDetach(
-                        workspaceId = workspaceId,
-                        sessionId = sessionId
-                    )
-                }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                if (isUnexpectedLiveStreamDetach(error = error)) {
-                    if (context.isScreenVisible) {
-                        reconcileUnexpectedLiveStreamDetach(
+                while (true) {
+                    try {
+                        context.aiChatRepository.attachLiveRun(
                             workspaceId = workspaceId,
-                            sessionId = sessionId
+                            sessionId = sessionId,
+                            runId = runId,
+                            liveStream = liveStream,
+                            afterCursor = afterCursor,
+                            resumeDiagnostics = resumeDiagnostics
+                        ).collect { event ->
+                            if (event is AiChatLiveEvent.RunTerminal) {
+                                liveAttachDisposition = AiLiveAttachDisposition.TERMINAL_EVENT_SEEN
+                            }
+                            throttleAttemptCount = 0
+                            applyLiveEvent(event = event)
+                        }
+                        if (
+                            liveAttachDisposition == AiLiveAttachDisposition.PENDING
+                            && context.isScreenVisible
+                        ) {
+                            reconcileUnexpectedLiveStreamDetach(
+                                workspaceId = workspaceId,
+                                sessionId = sessionId
+                            )
+                        }
+                        break
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        val throttledError = error as? AiChatLiveAttachThrottledException
+                        if (throttledError != null) {
+                            val throttleRecoveryDelayMs = liveAttachThrottleRecoveryDelayMs(
+                                throttledError = throttledError,
+                                attemptCount = throttleAttemptCount
+                            )
+                            if (throttleRecoveryDelayMs != null) {
+                                throttleAttemptCount += 1
+                                AiChatDiagnosticsLogger.warn(
+                                    event = "ai_live_attach_throttled",
+                                    fields = listOf(
+                                        "sessionId" to sessionId,
+                                        "runId" to runId,
+                                        "attempt" to throttleAttemptCount.toString(),
+                                        "delayMs" to throttleRecoveryDelayMs.toString(),
+                                        "requestId" to throttledError.remoteError.requestId
+                                    )
+                                )
+                                delay(timeMillis = throttleRecoveryDelayMs)
+                                // A stop finalizes the conversation without cancelling this job, so
+                                // give up quietly instead of alerting over an already idle run.
+                                val stateAfterBackoff = context.runtimeStateMutable.value
+                                if (
+                                    stateAfterBackoff.activeRun?.runId != runId
+                                    || isLiveAiComposerPhase(
+                                        composerPhase = stateAfterBackoff.composerPhase
+                                    ).not()
+                                    || context.isScreenVisible.not()
+                                ) {
+                                    break
+                                }
+                                continue
+                            }
+                        }
+                        if (isUnexpectedLiveStreamDetach(error = error)) {
+                            if (context.isScreenVisible) {
+                                reconcileUnexpectedLiveStreamDetach(
+                                    workspaceId = workspaceId,
+                                    sessionId = sessionId
+                                )
+                            }
+                            break
+                        }
+                        val surfacedError = throttledError?.remoteError ?: error
+                        val issueDisposition = aiChatFailureIssueDisposition(error = surfacedError)
+                        val technicalErrorAlreadyObserved = captureLiveStreamCrashIfNeeded(
+                            error = surfacedError,
+                            issueDisposition = issueDisposition,
+                            workspaceId = workspaceId,
+                            sessionId = sessionId,
+                            runId = runId
                         )
-                    }
-                    return@launch
-                }
-                val issueDisposition = aiChatFailureIssueDisposition(error = error)
-                val technicalErrorAlreadyObserved = captureLiveStreamCrashIfNeeded(
-                    error = error,
-                    issueDisposition = issueDisposition,
-                    workspaceId = workspaceId,
-                    sessionId = sessionId,
-                    runId = runId
-                )
-                val presentation = makeAiUserFacingErrorPresentation(
-                    error = error,
-                    surface = AiErrorSurface.CHAT,
-                    configuration = context.currentServerConfiguration(),
-                    textProvider = context.textProvider
-                )
-                context.runtimeStateMutable.update { state ->
-                    state.copy(
-                        activeRun = null,
-                        isLiveAttached = false,
-                        composerPhase = AiComposerPhase.IDLE,
-                        repairStatus = null,
-                        activeAlert = makeAiErrorAlert(
-                            presentation = presentation,
-                            technicalErrorAlreadyObserved = technicalErrorAlreadyObserved,
+                        val presentation = makeAiUserFacingErrorPresentation(
+                            error = surfacedError,
+                            surface = AiErrorSurface.CHAT,
+                            configuration = context.currentServerConfiguration(),
                             textProvider = context.textProvider
-                        ),
-                        errorMessage = ""
-                    )
+                        )
+                        context.runtimeStateMutable.update { state ->
+                            state.copy(
+                                activeRun = null,
+                                isLiveAttached = false,
+                                composerPhase = AiComposerPhase.IDLE,
+                                repairStatus = null,
+                                activeAlert = makeAiErrorAlert(
+                                    presentation = presentation,
+                                    technicalErrorAlreadyObserved = technicalErrorAlreadyObserved,
+                                    textProvider = context.textProvider
+                                ),
+                                errorMessage = ""
+                            )
+                        }
+                        context.persistCurrentState()
+                        break
+                    }
                 }
-                context.persistCurrentState()
             } finally {
                 if (context.activeLiveJob === liveJob) {
                     context.activeLiveJob = null
                 }
                 context.runtimeStateMutable.update { state ->
-                    if (state.composerPhase == AiComposerPhase.RUNNING || state.composerPhase == AiComposerPhase.STOPPING) {
+                    if (isLiveAiComposerPhase(composerPhase = state.composerPhase)) {
                         state
                     } else {
                         state.copy(isLiveAttached = false)

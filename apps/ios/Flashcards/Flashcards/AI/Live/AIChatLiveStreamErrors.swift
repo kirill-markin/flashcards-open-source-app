@@ -35,6 +35,43 @@ enum AIChatLiveStreamError: LocalizedError {
     }
 }
 
+private let aiChatLiveAttachThrottleRecoveryDelaysNanoseconds: [UInt64] = [
+    500_000_000,
+    1_000_000_000,
+    2_000_000_000,
+    4_000_000_000
+]
+
+private let aiChatMaximumLiveAttachThrottleRecoveryDelayNanoseconds: UInt64 = 4_000_000_000
+
+/**
+ * Backoff before retrying a live attach the backend rejected, or nil when the failure must surface.
+ * Only a bare HTTP 429 is retried: a pre-handler Lambda throttle rejects the attach before our
+ * handler runs, so it carries no application error code. A 429 that carries one of our codes is a
+ * product-level refusal and keeps failing.
+ */
+func aiChatLiveAttachThrottleRecoveryDelayNanoseconds(
+    error: Error,
+    attemptCount: Int
+) -> UInt64? {
+    guard let liveStreamError = error as? AIChatLiveStreamError,
+          case .invalidStatusCode(let httpStatusCode, let errorDetails, _, _) = liveStreamError,
+          httpStatusCode == 429,
+          errorDetails.code?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true,
+          attemptCount >= 0,
+          attemptCount < aiChatLiveAttachThrottleRecoveryDelaysNanoseconds.count
+    else {
+        return nil
+    }
+
+    let fallbackDelayNanoseconds = aiChatLiveAttachThrottleRecoveryDelaysNanoseconds[attemptCount]
+    let requestedDelayNanoseconds = errorDetails.retryAfterDelayNanoseconds ?? fallbackDelayNanoseconds
+    return min(
+        max(fallbackDelayNanoseconds, requestedDelayNanoseconds),
+        aiChatMaximumLiveAttachThrottleRecoveryDelayNanoseconds
+    )
+}
+
 func makeAIChatLiveStreamURL(
     liveUrl: String,
     sessionId: String,

@@ -460,6 +460,7 @@ enum AILiveLifecycleAction: String, Sendable {
     case finish = "ai_live_finish"
     case finishError = "ai_live_finish_error"
     case attach = "ai_live_attach"
+    case attachThrottled = "ai_live_attach_throttled"
     case error = "ai_live_error"
     case detach = "ai_live_detach"
     case eventHandleStart = "ai_live_event_handle_start"

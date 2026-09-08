@@ -137,45 +137,74 @@ actor AIChatSessionRuntime {
     ) {
         detach()
         activeLiveTask = Task {
-            logAIChatRuntimeEvent(
-                action: "ai_live_attach",
-                metadata: [
-                    "sessionId": sessionId,
-                    "runId": runId,
-                    "afterCursor": afterCursor ?? "-"
-                ]
-                .merging(
-                    resumeAttemptDiagnostics.map { ["resumeAttempt": $0.headerValue] } ?? [:]
-                ) { _, newValue in newValue }
-            )
-            do {
-                let termination = try await self.consumeLiveStream(
-                    liveStream: liveStream,
-                    sessionId: sessionId,
-                    runId: runId,
-                    afterCursor: afterCursor,
-                    configurationMode: configurationMode,
-                    resumeAttemptDiagnostics: resumeAttemptDiagnostics,
-                    eventHandler: eventHandler
-                )
-                await completionHandler(termination)
-            } catch is CancellationError {
-            } catch {
+            // The retry budget belongs to this attach only, so a cancelled previous attach that
+            // resumes late cannot spend or reset it.
+            var throttleAttemptCount = 0
+            while Task.isCancelled == false {
                 logAIChatRuntimeEvent(
-                    action: "ai_live_error",
-                    metadata: aiChatRuntimeErrorMetadata(
+                    action: "ai_live_attach",
+                    metadata: [
+                        "sessionId": sessionId,
+                        "runId": runId,
+                        "afterCursor": afterCursor ?? "-"
+                    ]
+                    .merging(
+                        resumeAttemptDiagnostics.map { ["resumeAttempt": $0.headerValue] } ?? [:]
+                    ) { _, newValue in newValue }
+                )
+                var throttleRecoveryDelayNanoseconds: UInt64?
+                do {
+                    let termination = try await self.consumeLiveStream(
+                        liveStream: liveStream,
+                        sessionId: sessionId,
+                        runId: runId,
+                        afterCursor: afterCursor,
+                        configurationMode: configurationMode,
+                        resumeAttemptDiagnostics: resumeAttemptDiagnostics,
+                        eventHandler: eventHandler,
+                        onLiveEventDelivered: { throttleAttemptCount = 0 }
+                    )
+                    await completionHandler(termination)
+                } catch is CancellationError {
+                } catch {
+                    let errorMetadata = aiChatRuntimeErrorMetadata(
                         error: error,
                         sessionId: sessionId,
                         runId: runId,
                         afterCursor: afterCursor,
                         resumeAttemptDiagnostics: resumeAttemptDiagnostics
                     )
-                )
-                await completionHandler(.failed(
-                    message: Flashcards.errorMessage(error: error),
-                    requestId: aiChatLiveErrorRequestId(error),
-                    clientRequestId: aiChatLiveErrorClientRequestId(error)
-                ))
+                    if let recoveryDelayNanoseconds = aiChatLiveAttachThrottleRecoveryDelayNanoseconds(
+                        error: error,
+                        attemptCount: throttleAttemptCount
+                    ) {
+                        throttleAttemptCount += 1
+                        throttleRecoveryDelayNanoseconds = recoveryDelayNanoseconds
+                        logAIChatRuntimeEvent(
+                            action: "ai_live_attach_throttled",
+                            metadata: errorMetadata
+                        )
+                    } else {
+                        logAIChatRuntimeEvent(
+                            action: "ai_live_error",
+                            metadata: errorMetadata
+                        )
+                        await completionHandler(.failed(
+                            message: Flashcards.errorMessage(error: error),
+                            requestId: aiChatLiveErrorRequestId(error),
+                            clientRequestId: aiChatLiveErrorClientRequestId(error)
+                        ))
+                    }
+                }
+
+                guard let throttleRecoveryDelayNanoseconds else {
+                    break
+                }
+                do {
+                    try await Task.sleep(nanoseconds: throttleRecoveryDelayNanoseconds)
+                } catch {
+                    break
+                }
             }
             logAIChatRuntimeEvent(
                 action: "ai_live_detach",
@@ -200,7 +229,8 @@ actor AIChatSessionRuntime {
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?,
-        eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void
+        eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void,
+        onLiveEventDelivered: () -> Void
     ) async throws -> AIChatLiveAttachTermination {
         if runId.isEmpty {
             throw AIChatLiveStreamSetupError.missingRunId(
@@ -236,6 +266,7 @@ actor AIChatSessionRuntime {
                 liveRequestId = aiChatLiveEventMetadata(liveEvent).requestId ?? liveRequestId
             }
 
+            onLiveEventDelivered()
             await eventHandler(event)
 
             switch event {
