@@ -3,6 +3,7 @@ import {
   recoverStaleRunWithExecutor,
 } from "./finalization";
 import {
+  claimChatLiveAttachOwnershipWithExecutor,
   selectChatRunWithExecutor,
   selectSessionForUpdateWithExecutor,
 } from "./repository";
@@ -22,6 +23,15 @@ function toEpochMillisOrNull(value: string | null): number | null {
   }
 
   return new Date(value).getTime();
+}
+
+function toLiveAttachSeq(value: string): number {
+  const liveAttachSeq = Number(value);
+  if (!Number.isSafeInteger(liveAttachSeq) || liveAttachSeq < 0) {
+    throw new RangeError(`Chat run live attach sequence is not a non-negative safe integer: ${value}`);
+  }
+
+  return liveAttachSeq;
 }
 
 /**
@@ -105,6 +115,27 @@ export async function getChatRunSnapshot(
       startedAt: toEpochMillisOrNull(run.started_at),
       finishedAt: toEpochMillisOrNull(run.finished_at),
       lastErrorMessage: run.last_error_message,
+      liveAttachClientId: run.live_attach_client_id,
+      liveAttachSeq: toLiveAttachSeq(run.live_attach_seq),
     };
   });
+}
+
+/**
+ * Makes this attach the owning live SSE connection for the run and returns the sequence it owns.
+ * A later attach from the same client instance supersedes it by taking a greater sequence.
+ */
+export async function claimChatLiveAttachOwnership(
+  userId: string,
+  workspaceId: string,
+  runId: string,
+  liveAttachClientId: string,
+): Promise<number> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    toLiveAttachSeq(await claimChatLiveAttachOwnershipWithExecutor(
+      executor,
+      { userId, workspaceId },
+      runId,
+      liveAttachClientId,
+    )));
 }
