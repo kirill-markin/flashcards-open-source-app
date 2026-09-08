@@ -47,7 +47,14 @@ function createRunSnapshot(
     startedAt: 1,
     finishedAt: params.status === "queued" || params.status === "running" ? null : 2,
     lastErrorMessage: params.lastErrorMessage,
+    liveAttachClientId: null,
+    liveAttachSeq: 0,
   };
+}
+
+// These attaches send no X-Chat-Live-Client-Id, so no ownership may ever be claimed for them.
+async function refuseLiveAttachOwnershipClaim(): Promise<number> {
+  throw new Error("Live attach ownership was claimed for an attach without a live client id.");
 }
 
 function createRunningSessionSnapshot(
@@ -168,6 +175,7 @@ test("resume replay emits terminal assistant backlog after afterCursor", async (
         assistantItemId: "assistant-1",
         lastErrorMessage: null,
       }),
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) =>
         afterCursor === 5
@@ -259,6 +267,7 @@ test("completed live replay emits composer suggestions before the terminal event
         assistantItemId: "assistant-1",
         lastErrorMessage: null,
       }),
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(composerSuggestions),
       listChatMessagesAfterCursor: async () => [],
       listChatMessagesLatest: async () => ({
@@ -320,6 +329,7 @@ test("interrupted live replay keeps the existing error outcome contract and incl
         assistantItemId: "assistant-1",
         lastErrorMessage: timeoutMessage,
       }),
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createInterruptedSessionSnapshot(),
       listChatMessagesAfterCursor: async () => [],
       listChatMessagesLatest: async () => ({
@@ -373,6 +383,7 @@ test("resume replay seeds in-progress assistant content and continues live delta
         assistantItemId: "assistant-2",
         lastErrorMessage: null,
       }),
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
         if (afterCursor === 5) {
@@ -457,6 +468,7 @@ test("terminal replay emits assistant_message_done before run_terminal when the 
             lastErrorMessage: null,
           });
       },
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
         if (afterCursor === 5) {
@@ -558,6 +570,7 @@ test("terminal replay falls back to reset_required when a completed run has only
             lastErrorMessage: null,
           });
       },
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
         if (afterCursor === 5) {
@@ -626,6 +639,7 @@ test("resume replay emits reset_required when backlog contains multiple in-progr
         assistantItemId: "assistant-3",
         lastErrorMessage: null,
       }),
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async () => [
         makeAssistantMessage({
@@ -693,6 +707,7 @@ test("recovered session read emits terminal events when the attached run finaliz
             lastErrorMessage: null,
           });
       },
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createIdleSessionSnapshot([]),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
         if (afterCursor === 5) {
@@ -778,6 +793,7 @@ test("recovered session read emits reset_required immediately when the attached 
         assistantItemId: "assistant-8",
         lastErrorMessage: null,
       }),
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => createInterruptedSessionSnapshot(),
       listChatMessagesAfterCursor: async () => [],
       listChatMessagesLatest: async () => ({
@@ -824,6 +840,7 @@ test("poll failures mark the stream result for Sentry flush and keep the termina
         assistantItemId: "assistant-9",
         lastErrorMessage: null,
       }),
+      claimChatLiveAttachOwnership: refuseLiveAttachOwnershipClaim,
       getRecoveredChatSessionSnapshot: async () => {
         throw new Error("session poll failed");
       },
