@@ -288,7 +288,7 @@ test("startOpenAILoopWithDeps retries a callIndex > 1 overflow once with the red
     },
     getObservedOpenAIClient: () => ({
       responses: {
-        stream: () => {
+        create: async () => {
           streamCallCount += 1;
           if (streamCallCount === 1) {
             return createResponseStream(

@@ -317,7 +317,9 @@ export function createSdkAbortedResponseStream(
 }
 
 export function createDependencies(
-  streamFactory: (request: OpenAI.Responses.ResponseCreateParams) => OpenAIResponseStream,
+  streamFactory: (
+    request: OpenAI.Responses.ResponseCreateParamsStreaming,
+  ) => OpenAIResponseStream,
   runOneToolCall: (
     params: Parameters<OpenAILoopDependencies["runOneToolCall"]>[0],
   ) => Promise<TestToolCallResult>,
@@ -327,7 +329,9 @@ export function createDependencies(
     buildChatCompletionInputWithBudget: async () => [],
     getObservedOpenAIClient: () => ({
       responses: {
-        stream: (request: OpenAI.Responses.ResponseCreateParams) => streamFactory(request),
+        create: async (
+          request: OpenAI.Responses.ResponseCreateParamsStreaming,
+        ): Promise<OpenAIResponseStream> => streamFactory(request),
       },
     } as unknown as OpenAI),
     runOneToolCall: async (params) => {
