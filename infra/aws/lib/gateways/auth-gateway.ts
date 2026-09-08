@@ -11,7 +11,7 @@ import {
   authHandlerReservedConcurrency,
   databasePoolMaxConnectionsEnvName,
   databasePoolMaxConnectionsEnvValue,
-} from "./api-gateway";
+} from "../lambda-database-capacity";
 import { authNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 
 export interface AuthGatewayProps {
@@ -159,7 +159,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(30),
     memorySize: 256,
-    // Share of the Postgres connection budget documented in ./api-gateway.ts.
+    // Share of the Postgres connection budget documented in ../lambda-database-capacity.ts.
     reservedConcurrentExecutions: authHandlerReservedConcurrency,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
