@@ -180,6 +180,7 @@ private func aiChatStoreLiveEventIsWarning(_ action: AILiveLifecycleAction) -> B
             .finish,
             .finishError,
             .attach,
+            .attachThrottled,
             .detach,
             .error,
             .eventParseFailed,
