@@ -46,7 +46,7 @@ export const catalogDumpPointerObjectKey = `${catalogDumpObjectKeyPrefix}/pointe
 /**
  * Prefix of the dump bucket the builder publishes public catalog media blobs to.
  * Must stay in sync with `catalogMediaObjectKeyPrefix` in
- * `apps/backend/src/catalog/distribution/public/mediaPublication.ts`.
+ * `apps/backend/src/catalog/distribution/public/publication/mediaPublication.ts`.
  */
 const catalogDumpMediaObjectKeyPrefix = `${catalogDumpObjectKeyPrefix}/media/`;
 
