@@ -48,7 +48,7 @@ export const multipartPayloadCompositeRow = `ROW(
   $3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
 )::content.multipart_media_blob_writer_attempt_payload`;
 
-function digest(): string {
+export function digest(): string {
   return createHash("sha256").update(randomUUID()).digest("hex");
 }
 

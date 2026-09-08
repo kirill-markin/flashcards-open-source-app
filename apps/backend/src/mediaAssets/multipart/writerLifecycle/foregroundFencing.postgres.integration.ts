@@ -9,6 +9,7 @@ import {
 } from "../../../testSupport/postgresIntegration";
 import {
   createMultipartPayloadFixture,
+  digest,
   type MultipartPayload,
   multipartPayloadCompositeRow as multipartRow,
   multipartPayloadValues as payloadValues,
