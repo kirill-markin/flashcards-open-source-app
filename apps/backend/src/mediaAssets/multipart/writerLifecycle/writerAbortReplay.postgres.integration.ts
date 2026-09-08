@@ -9,29 +9,13 @@ import {
   withPostgresIntegrationFixture,
 } from "../../../testSupport/postgresIntegration";
 import { buildMediaBlobStorageKey } from "../../storageKeys";
-
-type MultipartPayload = Readonly<{
-  userId: string;
-  workspaceId: string;
-  sessionId: string;
-  mediaAssetId: string;
-  replicaId: string;
-  lastOperationId: string;
-  sha256: string;
-  stagingStorageKey: string;
-  blobStorageKey: string;
-  s3UploadId: string;
-  mimeType: string;
-  sizeBytes: number;
-  partSizeBytes: number;
-  partCount: number;
-  sourceUrl: string | null;
-  assetCreatedAt: string;
-  clientUpdatedAt: string;
-  sessionExpiresAt: string;
-  normalizationVersion: string;
-  partsFingerprint: string;
-}>;
+import {
+  insertMultipartUploadSession as insertSession,
+  type MultipartPayload,
+  multipartPayloadCompositeRow as multipartRow,
+  multipartPayloadValues as multipartValues,
+  withMultipartPostgresTransaction,
+} from "../postgresTestSupport";
 
 type BeginRow = Readonly<{
   attempt_status: string;
@@ -63,9 +47,6 @@ const migration0098 = readFileSync(resolve(
   __dirname,
   "../../../../../../db/migrations/0098_multipart_writer_abort_and_terminal_replay.sql",
 ), "utf8");
-const multipartRow = `ROW(
-  $3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
-)::content.multipart_media_blob_writer_attempt_payload`;
 const beginSignature =
   "content.begin_media_upload_session_completion_attempt_with_owner(uuid,integer,content.multipart_media_blob_writer_attempt_payload)";
 const closeSignature =
@@ -114,31 +95,6 @@ function multipart(
   };
 }
 
-function multipartValues(payload: MultipartPayload): Array<SqlValue> {
-  return [
-    payload.userId,
-    payload.workspaceId,
-    payload.sessionId,
-    payload.mediaAssetId,
-    payload.replicaId,
-    payload.lastOperationId,
-    payload.sha256,
-    payload.stagingStorageKey,
-    payload.blobStorageKey,
-    payload.s3UploadId,
-    payload.mimeType,
-    payload.sizeBytes,
-    payload.partSizeBytes,
-    payload.partCount,
-    payload.sourceUrl,
-    payload.assetCreatedAt,
-    payload.clientUpdatedAt,
-    payload.sessionExpiresAt,
-    payload.normalizationVersion,
-    payload.partsFingerprint,
-  ];
-}
-
 function closeValues(payload: MultipartPayload): Array<SqlValue> {
   return [
     payload.userId,
@@ -162,58 +118,10 @@ async function scoped<Result>(
   workspaceId: string,
   callback: (client: pg.PoolClient) => Promise<Result>,
 ): Promise<Result> {
-  const client = await fixture.runtimePool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query(
-      "SELECT set_config('app.user_id',$1,true),set_config('app.workspace_id',$2,true)",
-      [userId, workspaceId],
-    );
-    const result = await callback(client);
-    await client.query("COMMIT");
-    return result;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
-  }
-}
-
-async function insertSession(
-  executor: QueryExecutor,
-  payload: MultipartPayload,
-  state: "active" | "completing" | "aborting",
-): Promise<void> {
-  await executor.query(
-    `INSERT INTO content.media_upload_sessions (
-       media_upload_session_id,workspace_id,media_asset_id,media_blob_sha256,
-       staging_storage_key,blob_storage_key,s3_upload_id,mime_type,size_bytes,
-       part_size_bytes,part_count,state,source_url,asset_created_at,client_updated_at,
-       last_modified_by_replica_id,last_operation_id,expires_at
-     ) VALUES (
-       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
-     )`,
-    [
-      payload.sessionId,
-      payload.workspaceId,
-      payload.mediaAssetId,
-      payload.sha256,
-      payload.stagingStorageKey,
-      payload.blobStorageKey,
-      payload.s3UploadId,
-      payload.mimeType,
-      payload.sizeBytes,
-      payload.partSizeBytes,
-      payload.partCount,
-      state,
-      payload.sourceUrl,
-      payload.assetCreatedAt,
-      payload.clientUpdatedAt,
-      payload.replicaId,
-      payload.lastOperationId,
-      payload.sessionExpiresAt,
-    ],
+  return withMultipartPostgresTransaction(
+    fixture.runtimePool,
+    { userId, workspaceId },
+    callback,
   );
 }
 
