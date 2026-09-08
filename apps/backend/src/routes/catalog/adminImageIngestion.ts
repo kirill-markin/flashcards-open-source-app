@@ -17,7 +17,7 @@ import { normalizePackageMediaKey } from "../../catalog/common";
 import {
   refreshPublicCatalogDump,
   type CatalogDumpRefreshTrigger,
-} from "../../catalog/distribution/public/dumpRefresh";
+} from "../../catalog/distribution/public/publication/dumpRefresh";
 import type {
   CatalogCollectionCover,
   CatalogPackageMediaAsset,

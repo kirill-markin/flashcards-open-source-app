@@ -18,7 +18,7 @@ import {
   databasePoolMaxConnectionsEnvName,
   databasePoolMaxConnectionsEnvValue,
   mcpHandlerReservedConcurrency,
-} from "./api-gateway";
+} from "../lambda-database-capacity";
 
 export interface McpGatewayProps {
   vpc: ec2.Vpc;
@@ -199,7 +199,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(30),
     memorySize: 256,
-    // Share of the Postgres connection budget documented in ./api-gateway.ts.
+    // Share of the Postgres connection budget documented in ../lambda-database-capacity.ts.
     reservedConcurrentExecutions: mcpHandlerReservedConcurrency,
     ...backendStructuredLoggingProps,
     vpc: props.vpc,
