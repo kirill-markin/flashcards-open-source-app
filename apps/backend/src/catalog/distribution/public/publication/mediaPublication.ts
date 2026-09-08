@@ -24,20 +24,20 @@ import {
   DeleteObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
-import type { DatabaseExecutor } from "../../../database";
-import { getMediaAssetsStorageConfig } from "../../../mediaAssets/storage/config";
-import { buildMediaBlobStorageKey } from "../../../mediaAssets/storageKeys";
+import type { DatabaseExecutor } from "../../../../database";
+import { getMediaAssetsStorageConfig } from "../../../../mediaAssets/storage/config";
+import { buildMediaBlobStorageKey } from "../../../../mediaAssets/storageKeys";
 import {
   addBackendBreadcrumb,
   type BackendObservationScope,
-} from "../../../observability/sentry";
-import { toSafeNumber } from "../../common";
+} from "../../../../observability/sentry";
+import { toSafeNumber } from "../../../common";
 import {
   buildCatalogMediaObjectKey,
   catalogMediaObjectKeyPrefix,
   isCatalogMediaSha256,
   isPublicCatalogMediaDeliverable,
-} from "../../publicMediaDelivery";
+} from "../../../publicMediaDelivery";
 import {
   formatCatalogDumpS3ErrorSummary,
   getCatalogDumpS3Client,
