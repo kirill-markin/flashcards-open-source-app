@@ -23,13 +23,13 @@ type CatalogDumpResponse = Readonly<{
 }>;
 
 type CatalogDumpRuntime = Readonly<{
-  generateAndWriteCatalogDump: typeof import("../../catalog/distribution/public/dumpGeneration").generateAndWriteCatalogDump;
+  generateAndWriteCatalogDump: typeof import("../../catalog/distribution/public/publication/dumpGeneration").generateAndWriteCatalogDump;
 }>;
 
 let catalogDumpRuntimePromise: Promise<CatalogDumpRuntime> | null = null;
 
 async function createCatalogDumpRuntime(): Promise<CatalogDumpRuntime> {
-  const { generateAndWriteCatalogDump } = await import("../../catalog/distribution/public/dumpGeneration");
+  const { generateAndWriteCatalogDump } = await import("../../catalog/distribution/public/publication/dumpGeneration");
   return {
     generateAndWriteCatalogDump,
   };

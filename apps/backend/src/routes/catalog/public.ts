@@ -13,12 +13,12 @@ import {
   normalizeSlug,
 } from "../../catalog/common";
 // Narrow path on purpose: the catalog barrels must not start carrying the dump
-// storage module into Lambdas that never touch the artifact bucket.
+// reader into Lambdas that never touch the artifact bucket.
 import {
   catalogDumpPointerUnavailableCode,
   loadCatalogDumpPointerFromS3,
   type CatalogDumpPointer,
-} from "../../catalog/distribution/public/dumpStorage";
+} from "../../catalog/distribution/public/publication/reader";
 import {
   buildCatalogMediaCdnUrl,
   getPublicCatalogMediaDeliveryIssue,
@@ -201,7 +201,7 @@ function createCatalogPublicScope(
  * That accessor also requires `CATALOG_DUMP_S3_BUCKET_NAME`, which the media and
  * browse routes never read. `GET /catalog` does read it: its
  * `loadCatalogDumpPointerFromS3` in
- * apps/backend/src/catalog/distribution/public/dumpStorage.ts calls
+ * apps/backend/src/catalog/distribution/public/publication/reader.ts calls
  * `getCatalogDumpStorageConfig()` to resolve the bucket the pointer object is
  * fetched from, so the variable stays required on `BackendHandler` in
  * infra/aws/lib/gateways/api-gateway.ts. Resolving the whole config here would
