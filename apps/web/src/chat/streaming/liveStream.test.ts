@@ -476,5 +476,50 @@ describe("consumeChatLiveStream", () => {
     expect(headers.get("X-Chat-Resume-Attempt-Id")).toBe("3");
     expect(headers.get("X-Client-Platform")).toBe("web");
     expect(headers.get("X-Client-Version")).toBeTruthy();
+    expect(headers.get("X-Chat-Live-Client-Id")).toBeTruthy();
+  });
+
+  it("identifies the client on an initial attach and reuses one live client id per runtime", async () => {
+    const responseBody = "event: assistant_delta\n"
+      + `data: ${JSON.stringify({
+        ...createEventMetadata({ cursor: "1" }),
+        type: "assistant_delta",
+        text: "hello",
+        itemId: "item-1",
+      })}\n\n`;
+    // Each attach needs its own response: a stream body can only be consumed once.
+    const fetchSpy = vi.spyOn(globalThis, "fetch")
+      .mockImplementation(() => Promise.resolve(createLiveStreamResponse(responseBody)));
+
+    const attachOnce = async (resumeAttemptId: number | null): Promise<Headers> => {
+      await consumeChatLiveStream({
+        liveStream: {
+          url: "https://chat-live.example.com",
+          authorization: "Live token",
+          expiresAt: Date.now() + 60_000,
+        },
+        sessionId: "session-1",
+        runId: "run-1",
+        afterCursor: null,
+        resumeAttemptId,
+        signal: new AbortController().signal,
+        onEvent: vi.fn(),
+      });
+
+      const [, init] = fetchSpy.mock.calls.at(-1) ?? [];
+      return new Headers(init?.headers);
+    };
+
+    const initialHeaders = await attachOnce(null);
+    expect(initialHeaders.get("X-Client-Platform")).toBe("web");
+    expect(initialHeaders.get("X-Client-Version")).toBeTruthy();
+    expect(initialHeaders.get("X-Chat-Live-Client-Id")).toBeTruthy();
+    expect(initialHeaders.get("X-Chat-Resume-Attempt-Id")).toBeNull();
+
+    // The backend supersedes an older attach only within one live client id, so a resume must
+    // keep the id the initial attach used.
+    const resumedHeaders = await attachOnce(1);
+    expect(resumedHeaders.get("X-Chat-Live-Client-Id"))
+      .toBe(initialHeaders.get("X-Chat-Live-Client-Id"));
   });
 });

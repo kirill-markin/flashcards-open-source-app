@@ -1,6 +1,10 @@
 import Foundation
 
 let aiChatClientPlatform: String = "ios"
+/// Identifies this app process on every live attach, including resumes. The backend ends an older
+/// attach only when the same id attaches again, so a per-request id would supersede the connection
+/// that is opening.
+let aiChatLiveClientId: String = UUID().uuidString.lowercased()
 let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
 let aiChatExternalProviderConsentRequiredMessage: String = "Review AI data use and accept it on this device before using AI features."

@@ -6,6 +6,7 @@ export const browserCorsAllowHeaders = [
   "baggage",
   "x-chat-request-id",
   "x-chat-resume-attempt-id",
+  "x-chat-live-client-id",
   "x-client-platform",
   "x-client-version",
   "x-media-asset-id",

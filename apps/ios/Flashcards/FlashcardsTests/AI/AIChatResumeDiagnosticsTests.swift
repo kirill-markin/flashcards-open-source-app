@@ -380,6 +380,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"), "12")
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Platform"), aiChatClientPlatform)
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Version"), aiChatAppVersion())
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-Chat-Live-Client-Id"), aiChatLiveClientId)
             let components = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)
             let queryItems = components?.queryItems ?? []
             XCTAssertEqual(queryItems.first(where: { $0.name == "sessionId" })?.value, "session-1")
@@ -407,6 +408,41 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             afterCursor: "5",
             configurationMode: .official,
             resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics(sequence: 12)
+        )
+        await self.fulfillment(of: [expectation], timeout: 1.0)
+        withExtendedLifetime(stream) {}
+    }
+
+    func testLiveStreamConnectIdentifiesClientOnInitialAttach() async throws {
+        let expectation = XCTestExpectation(description: "Initial live request captured")
+        let client = AIChatLiveStreamClient(urlSession: self.makeURLSession())
+        AIChatTestURLProtocol.requestHandler = { request in
+            XCTAssertNil(request.value(forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"))
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Platform"), aiChatClientPlatform)
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Version"), aiChatAppVersion())
+            // The same process must keep one live client id across attaches, otherwise the backend
+            // would supersede the attach that is opening.
+            XCTAssertEqual(request.value(forHTTPHeaderField: "X-Chat-Live-Client-Id"), aiChatLiveClientId)
+            expectation.fulfill()
+            return (
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "text/event-stream"]
+                )!,
+                Data()
+            )
+        }
+
+        let stream = await client.connect(
+            liveUrl: "https://api.example.com/chat/live",
+            authorization: "Live token",
+            sessionId: "session-1",
+            runId: "run-1",
+            afterCursor: nil,
+            configurationMode: .official,
+            resumeAttemptDiagnostics: nil
         )
         await self.fulfillment(of: [expectation], timeout: 1.0)
         withExtendedLifetime(stream) {}

@@ -24,11 +24,19 @@ import java.io.EOFException
 import java.io.IOException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 const val aiChatLiveStreamEndedBeforeTerminalCode: String = "ai_live_stream_ended_before_terminal"
 const val aiChatLiveStreamReadFailedCode: String = "ai_live_stream_read_failed"
+
+private const val aiChatLiveClientPlatform: String = "android"
+
+// Identifies this app process on every live attach, including resumes. The backend ends an older
+// attach only when the same id attaches again, so a per-request id would supersede the connection
+// that is opening.
+private val aiChatLiveClientId: String = UUID.randomUUID().toString()
 
 class AiChatLiveStreamException(
     message: String,
@@ -205,6 +213,12 @@ class AiChatLiveRemoteService private constructor(
             .cacheControl(CacheControl.FORCE_NETWORK)
             .header("Accept", "text/event-stream")
             .header("Authorization", authorization)
+            .header("X-Client-Platform", aiChatLiveClientPlatform)
+            .header("X-Chat-Live-Client-Id", aiChatLiveClientId)
+        val clientVersion = observationVersions.clientVersion
+        if (clientVersion != null) {
+            requestBuilder.header("X-Client-Version", clientVersion)
+        }
         if (allowOfficialLiveTracePropagation) {
             requestBuilder.tag(TracePropagationTarget::class.java, TracePropagationTarget.OFFICIAL_AI_LIVE)
         }
@@ -213,8 +227,6 @@ class AiChatLiveRemoteService private constructor(
                 "X-Chat-Resume-Attempt-Id",
                 resumeDiagnostics.resumeAttemptId.toString()
             )
-            requestBuilder.header("X-Client-Platform", resumeDiagnostics.clientPlatform)
-            requestBuilder.header("X-Client-Version", resumeDiagnostics.clientVersion)
         }
         val call = httpClient.newCall(requestBuilder.build())
         val coroutineJob = currentCoroutineContext().job
