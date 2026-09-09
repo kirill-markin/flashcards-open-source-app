@@ -85,13 +85,14 @@ actor AIChatLiveStreamClient {
                 request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
                 request.setValue(authorization, forHTTPHeaderField: "Authorization")
                 request.setValue(clientRequestId, forHTTPHeaderField: "X-Chat-Request-Id")
+                request.setValue(aiChatClientPlatform, forHTTPHeaderField: "X-Client-Platform")
+                request.setValue(aiChatAppVersion(), forHTTPHeaderField: "X-Client-Version")
+                request.setValue(aiChatLiveClientId, forHTTPHeaderField: "X-Chat-Live-Client-Id")
                 if let resumeAttemptDiagnostics {
                     request.setValue(
                         resumeAttemptDiagnostics.headerValue,
                         forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"
                     )
-                    request.setValue(aiChatClientPlatform, forHTTPHeaderField: "X-Client-Platform")
-                    request.setValue(aiChatAppVersion(), forHTTPHeaderField: "X-Client-Version")
                 }
                 request.timeoutInterval = liveConfiguration.requestTimeoutSeconds
 

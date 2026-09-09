@@ -72,6 +72,7 @@ export type ChatLiveLifecycleDetails = Readonly<{
   afterCursor: number | null;
   clientRequestId: string | null;
   resumeAttemptId: string | null;
+  liveAttachClientId: string | null;
   clientPlatform: string | null;
   clientVersion: string | null;
   connectionDurationMs: number | null;

@@ -117,6 +117,7 @@ test("handleLiveRequest uses the authoritative Cognito profile for downstream ac
     {
       "X-Chat-Resume-Attempt-Id": "resume-1",
       "X-Chat-Request-Id": "11111111-2222-4333-8444-555555555555",
+      "X-Chat-Live-Client-Id": "77777777-8888-4999-8aaa-bbbbbbbbbbbb",
       "X-Client-Platform": "web",
       "X-Client-Version": "web-test",
     },
@@ -179,6 +180,7 @@ test("handleLiveRequest uses the authoritative Cognito profile for downstream ac
     workspaceId: EXPLICIT_WORKSPACE_ID,
     clientRequestId: "11111111-2222-4333-8444-555555555555",
     resumeAttemptId: "resume-1",
+    liveAttachClientId: "77777777-8888-4999-8aaa-bbbbbbbbbbbb",
     clientPlatform: "web",
     clientVersion: "web-test",
     traceContext: null,

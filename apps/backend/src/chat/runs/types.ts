@@ -95,6 +95,8 @@ export type ChatRunSnapshot = Readonly<{
   startedAt: number | null;
   finishedAt: number | null;
   lastErrorMessage: string | null;
+  liveAttachClientId: string | null;
+  liveAttachSeq: number;
 }>;
 
 export type RecoveredPaginatedSession = Readonly<{

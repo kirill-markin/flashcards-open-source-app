@@ -2,7 +2,7 @@
  * What the public catalog may deliver, and where the delivered object lives.
  *
  * The predicate and the object key belong together: the reconcile in
- * `distribution/public/mediaPublication.ts` publishes exactly the blobs this
+ * `distribution/public/publication/mediaPublication.ts` publishes exactly the blobs this
  * predicate accepts, so a reader may only point at the CDN for an asset the
  * same predicate accepts. The builders live in this dependency-free module
  * rather than beside the reconcile so the read paths can address a published

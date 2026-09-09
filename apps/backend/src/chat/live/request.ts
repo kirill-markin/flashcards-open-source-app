@@ -30,6 +30,10 @@ export type LiveStreamParams = Readonly<{
   requestId?: string;
   clientRequestId?: string;
   resumeAttemptId?: string;
+  // The client runtime that opened this attach. Clients released before the header existed send
+  // nothing, and a value that is not a UUID is dropped on read; an attach without it is never
+  // superseded.
+  liveAttachClientId?: string;
   clientPlatform?: string;
   clientVersion?: string;
 }>;
@@ -52,7 +56,9 @@ const defaultHandleLiveRequestDependencies: HandleLiveRequestDependencies = {
   assertChatLiveRunAccessFn: assertChatLiveRunAccess,
 };
 
-const chatRequestIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Shape required of the two headers read through readOptionalUuidHeader: X-Chat-Request-Id and
+// X-Chat-Live-Client-Id.
+const uuidHeaderPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function readOptionalHeader(headers: Headers | Record<string, string | undefined>, name: string): string | undefined {
   if (headers instanceof Headers) {
@@ -71,20 +77,27 @@ function readOptionalHeader(headers: Headers | Record<string, string | undefined
   return undefined;
 }
 
-export function readOptionalChatRequestIdHeader(
+function readOptionalUuidHeader(
   headers: Headers | Record<string, string | undefined>,
+  name: string,
 ): string | undefined {
-  const value = readOptionalHeader(headers, "X-Chat-Request-Id");
+  const value = readOptionalHeader(headers, name);
   if (value === undefined) {
     return undefined;
   }
 
   const trimmedValue = value.trim();
-  if (trimmedValue === "" || !chatRequestIdPattern.test(trimmedValue)) {
+  if (trimmedValue === "" || !uuidHeaderPattern.test(trimmedValue)) {
     return undefined;
   }
 
   return trimmedValue;
+}
+
+export function readOptionalChatRequestIdHeader(
+  headers: Headers | Record<string, string | undefined>,
+): string | undefined {
+  return readOptionalUuidHeader(headers, "X-Chat-Request-Id");
 }
 
 /**
@@ -140,6 +153,7 @@ export async function handleLiveRequest(
       traceContext: verifiedLiveAuth.traceContext ?? null,
       ...(clientRequestId === undefined ? {} : { clientRequestId }),
       resumeAttemptId: readOptionalHeader(headers, "X-Chat-Resume-Attempt-Id"),
+      liveAttachClientId: readOptionalUuidHeader(headers, "X-Chat-Live-Client-Id"),
       clientPlatform: readOptionalHeader(headers, "X-Client-Platform"),
       clientVersion: readOptionalHeader(headers, "X-Client-Version"),
     };
@@ -199,6 +213,7 @@ export async function handleLiveRequest(
     traceContext: null,
     ...(clientRequestId === undefined ? {} : { clientRequestId }),
     resumeAttemptId: readOptionalHeader(headers, "X-Chat-Resume-Attempt-Id"),
+    liveAttachClientId: readOptionalUuidHeader(headers, "X-Chat-Live-Client-Id"),
     clientPlatform: readOptionalHeader(headers, "X-Client-Platform"),
     clientVersion: readOptionalHeader(headers, "X-Client-Version"),
   };

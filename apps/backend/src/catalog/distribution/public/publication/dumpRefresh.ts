@@ -28,7 +28,7 @@ import {
   captureBackendRuntimeException,
   createBackendObservationScope,
   normalizeCaughtError,
-} from "../../../observability/runtime";
+} from "../../../../observability/runtime";
 
 export type CatalogDumpRefreshTrigger = Readonly<{
   route: string;

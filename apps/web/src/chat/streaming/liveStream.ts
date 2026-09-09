@@ -3,7 +3,7 @@ import {
   parseContentPartArray,
 } from "../../apiContracts/chat";
 import { ApiContractError } from "../../apiContracts/core";
-import { webAppVersion } from "../../clientIdentity";
+import { getWebLiveClientId, webAppVersion } from "../../clientIdentity";
 import type {
   ChatComposerSuggestion,
   ChatLiveStream,
@@ -618,13 +618,14 @@ export async function consumeChatLiveStream(
   params: ConsumeChatLiveStreamParams,
 ): Promise<void> {
   const headers = new Headers({
-    Accept: "text/event-stream",
-    Authorization: params.liveStream.authorization,
+    "Accept": "text/event-stream",
+    "Authorization": params.liveStream.authorization,
+    "X-Client-Platform": "web",
+    "X-Client-Version": webAppVersion,
+    "X-Chat-Live-Client-Id": getWebLiveClientId(),
   });
   if (params.resumeAttemptId !== null) {
     headers.set("X-Chat-Resume-Attempt-Id", String(params.resumeAttemptId));
-    headers.set("X-Client-Platform", "web");
-    headers.set("X-Client-Version", webAppVersion);
   }
   const fetchFailureMetadata: ChatLiveErrorMetadata = {
     requestId: null,

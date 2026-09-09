@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import test from "node:test";
 import type pg from "pg";
@@ -7,30 +7,14 @@ import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
 } from "../../../testSupport/postgresIntegration";
-import { buildMediaBlobStorageKey } from "../../storageKeys";
-
-type MultipartPayload = Readonly<{
-  userId: string;
-  workspaceId: string;
-  sessionId: string;
-  mediaAssetId: string;
-  replicaId: string;
-  lastOperationId: string;
-  sha256: string;
-  stagingStorageKey: string;
-  blobStorageKey: string;
-  s3UploadId: string;
-  mimeType: string;
-  sizeBytes: number;
-  partSizeBytes: number;
-  partCount: number;
-  sourceUrl: string | null;
-  assetCreatedAt: string;
-  clientUpdatedAt: string;
-  sessionExpiresAt: string;
-  normalizationVersion: string;
-  partsFingerprint: string;
-}>;
+import {
+  createMultipartPayloadFixture,
+  digest,
+  type MultipartPayload,
+  multipartPayloadCompositeRow as multipartRow,
+  multipartPayloadValues as payloadValues,
+  withMultipartPostgresTransaction,
+} from "../postgresTestSupport";
 
 type BeginRow = Readonly<{
   attempt_status: string;
@@ -57,74 +41,24 @@ type BoundaryState = Readonly<{
   reservation_state: string;
 }>;
 type QueryExecutor = Pick<pg.Pool | pg.PoolClient, "query">;
-type SqlValue = string | number | null;
-
-const multipartRow = `ROW(
-  $3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
-)::content.multipart_media_blob_writer_attempt_payload`;
 const abortSignature =
   "content.begin_media_upload_session_abort_with_owner(text,uuid,uuid,uuid)";
 const revokedHandoffSignature =
   "content.handoff_media_upload_session_completion_attempt_after_access_revocation(uuid,uuid,content.multipart_media_blob_writer_attempt_payload)";
 
-function digest(): string {
-  return createHash("sha256").update(randomUUID()).digest("hex");
-}
-
 function createPayload(
   fixture: PostgresIntegrationFixture,
   mediaAssetId: string,
 ): MultipartPayload {
-  const sessionId = randomUUID();
-  const sha256 = digest();
-  return {
+  return createMultipartPayloadFixture({
     userId: fixture.userId,
     workspaceId: fixture.workspaceId,
-    sessionId,
     mediaAssetId,
     replicaId: fixture.replicaId,
-    lastOperationId: randomUUID(),
-    sha256,
-    stagingStorageKey:
-      `media/uploads/workspaces/${fixture.workspaceId}/assets/${mediaAssetId}/sessions/${sessionId}`,
-    blobStorageKey: buildMediaBlobStorageKey(sha256),
-    s3UploadId: `upload-${randomUUID()}`,
-    mimeType: "application/octet-stream",
-    sizeBytes: 42,
-    partSizeBytes: 42,
-    partCount: 1,
-    sourceUrl: null,
     assetCreatedAt: fixture.createdAt,
     clientUpdatedAt: fixture.createdAt,
     sessionExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
-    normalizationVersion: "passthrough-v1",
-    partsFingerprint: digest(),
-  };
-}
-
-function payloadValues(payload: MultipartPayload): ReadonlyArray<SqlValue> {
-  return [
-    payload.userId,
-    payload.workspaceId,
-    payload.sessionId,
-    payload.mediaAssetId,
-    payload.replicaId,
-    payload.lastOperationId,
-    payload.sha256,
-    payload.stagingStorageKey,
-    payload.blobStorageKey,
-    payload.s3UploadId,
-    payload.mimeType,
-    payload.sizeBytes,
-    payload.partSizeBytes,
-    payload.partCount,
-    payload.sourceUrl,
-    payload.assetCreatedAt,
-    payload.clientUpdatedAt,
-    payload.sessionExpiresAt,
-    payload.normalizationVersion,
-    payload.partsFingerprint,
-  ];
+  });
 }
 
 async function beginScopedTransaction(
@@ -145,22 +79,11 @@ async function scoped<Result>(
   fixture: PostgresIntegrationFixture,
   callback: (client: pg.PoolClient) => Promise<Result>,
 ): Promise<Result> {
-  const client = await fixture.runtimePool.connect();
-  try {
-    await beginScopedTransaction(
-      client,
-      fixture.userId,
-      fixture.workspaceId,
-    );
-    const result = await callback(client);
-    await client.query("COMMIT");
-    return result;
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
-  }
+  return withMultipartPostgresTransaction(
+    fixture.runtimePool,
+    { userId: fixture.userId, workspaceId: fixture.workspaceId },
+    callback,
+  );
 }
 
 async function insertSession(

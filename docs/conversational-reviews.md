@@ -141,7 +141,7 @@ FSRS mutation permission was added.
 Run backend `npm test`, `npm run lint`, `npm run test:mcp`, and
 `npm run test:postgres-integration` with an isolated PostgreSQL 18 administrative
 URL in `POSTGRES_INTEGRATION_ADMIN_URL`. The integration runner applies the full
-migration chain through `0127_agent_review_receipts.sql` and exercises real HTTP
+migration chain through `0128_agent_review_receipts.sql` and exercises real HTTP
 authentication, MCP protocol calls, all four ratings across scheduling states,
 concurrent retries, rollback, input validation, authorization, and both sync lanes.
 The deployment smoke script also checks the new tool inventory.

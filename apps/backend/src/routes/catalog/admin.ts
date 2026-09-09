@@ -21,7 +21,7 @@ import {
 import {
   refreshPublicCatalogDump,
   type CatalogDumpRefreshTrigger,
-} from "../../catalog/distribution/public/dumpRefresh";
+} from "../../catalog/distribution/public/publication/dumpRefresh";
 import {
   catalogPackageStatuses,
   type AttachCatalogPackageMediaAssetInput,

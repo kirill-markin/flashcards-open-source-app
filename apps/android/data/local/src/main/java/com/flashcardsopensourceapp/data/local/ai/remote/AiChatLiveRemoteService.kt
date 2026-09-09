@@ -24,11 +24,23 @@ import java.io.EOFException
 import java.io.IOException
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 const val aiChatLiveStreamEndedBeforeTerminalCode: String = "ai_live_stream_ended_before_terminal"
 const val aiChatLiveStreamReadFailedCode: String = "ai_live_stream_read_failed"
+
+private const val aiChatLiveClientPlatform: String = "android"
+
+private const val aiChatLiveAttachThrottleStatusCode: Int = 429
+
+private const val aiChatMaximumLiveAttachRetryAfterMs: Long = 4_000L
+
+// Identifies this app process on every live attach, including resumes. The backend ends an older
+// attach only when the same id attaches again, so a per-request id would supersede the connection
+// that is opening.
+private val aiChatLiveClientId: String = UUID.randomUUID().toString()
 
 class AiChatLiveStreamException(
     message: String,
@@ -36,6 +48,16 @@ class AiChatLiveStreamException(
     val code: String,
     cause: Throwable
 ) : IOException(message, cause)
+
+/**
+ * A pre-handler Lambda throttle rejects a live attach with a bare HTTP 429 before our handler runs,
+ * so the response carries no application error code. The session owner retries that with backoff
+ * instead of failing the run; a 429 that carries one of our codes stays a product-level refusal.
+ */
+class AiChatLiveAttachThrottledException(
+    val remoteError: AiChatRemoteException,
+    val retryAfterMs: Long?
+) : IOException(remoteError.message, remoteError)
 
 /**
  * Owns the low-level live SSE transport for Android AI chat.
@@ -205,6 +227,12 @@ class AiChatLiveRemoteService private constructor(
             .cacheControl(CacheControl.FORCE_NETWORK)
             .header("Accept", "text/event-stream")
             .header("Authorization", authorization)
+            .header("X-Client-Platform", aiChatLiveClientPlatform)
+            .header("X-Chat-Live-Client-Id", aiChatLiveClientId)
+        val clientVersion = observationVersions.clientVersion
+        if (clientVersion != null) {
+            requestBuilder.header("X-Client-Version", clientVersion)
+        }
         if (allowOfficialLiveTracePropagation) {
             requestBuilder.tag(TracePropagationTarget::class.java, TracePropagationTarget.OFFICIAL_AI_LIVE)
         }
@@ -213,8 +241,6 @@ class AiChatLiveRemoteService private constructor(
                 "X-Chat-Resume-Attempt-Id",
                 resumeDiagnostics.resumeAttemptId.toString()
             )
-            requestBuilder.header("X-Client-Platform", resumeDiagnostics.clientPlatform)
-            requestBuilder.header("X-Client-Version", resumeDiagnostics.clientVersion)
         }
         val call = httpClient.newCall(requestBuilder.build())
         val coroutineJob = currentCoroutineContext().job
@@ -233,12 +259,22 @@ class AiChatLiveRemoteService private constructor(
             call.awaitOkHttpResponse().use { response ->
                 if (response.isSuccessful.not()) {
                     val responseBody = readAiChatResponseBody(response = response)
-                    throw readAiChatRemoteErrorResponse(
+                    val remoteError = readAiChatRemoteErrorResponse(
                         response = response,
                         responseBody = responseBody,
                         observability = observability,
                         observationVersions = observationVersions
                     )
+                    if (
+                        remoteError.statusCode == aiChatLiveAttachThrottleStatusCode
+                        && remoteError.code.isNullOrBlank()
+                    ) {
+                        throw AiChatLiveAttachThrottledException(
+                            remoteError = remoteError,
+                            retryAfterMs = readLiveAttachRetryAfterMs(response = response)
+                        )
+                    }
+                    throw remoteError
                 }
 
                 val requestId = readAiChatRequestIdHeader(response = response)
@@ -329,6 +365,16 @@ class AiChatLiveRemoteService private constructor(
         } finally {
             cancellationHandle.dispose()
         }
+    }
+
+    private fun readLiveAttachRetryAfterMs(response: Response): Long? {
+        val retryAfterHeader = response.header(name = "Retry-After")
+        val retryAfterSeconds = retryAfterHeader?.trim()?.toLongOrNull() ?: return null
+        if (retryAfterSeconds < 0) {
+            return null
+        }
+
+        return minOf(retryAfterSeconds, aiChatMaximumLiveAttachRetryAfterMs / 1_000L) * 1_000L
     }
 
     private fun readAiChatResponseBody(response: Response): String? {

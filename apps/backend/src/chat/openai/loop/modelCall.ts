@@ -217,8 +217,8 @@ export async function runOneModelCallWithPhase(
 ): Promise<ModelCallResult> {
   params.onExecutionPhaseChanged?.("model");
   try {
-    const stream: ResponseStreamWithOptionalFinalResponse = params.client.responses.stream(
-      params.request,
+    const stream: ResponseStreamWithOptionalFinalResponse = await params.client.responses.create(
+      { ...params.request, stream: true },
       { signal: params.signal },
     );
     return await collectResponseStream({

@@ -16,6 +16,20 @@ function loadWebAppVersion(): string {
   return packageVersion;
 }
 
+let inMemoryLiveClientId: string | null = null;
+
+/**
+ * Returns the id of this page session's live chat client runtime, reused by every attach
+ * including resumes. The backend ends an older attach only when the same id attaches again,
+ * so a per-request id would supersede the connection that is opening. Deliberately not
+ * persisted: a reload is a new runtime and may safely release the previous attach.
+ */
+export function getWebLiveClientId(): string {
+  const liveClientId = inMemoryLiveClientId ?? crypto.randomUUID().toLowerCase();
+  inMemoryLiveClientId = liveClientId;
+  return liveClientId;
+}
+
 function loadStoredInstallationId(): string | null {
   const installationId = window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY);
   if (installationId === null || installationId.trim() === "") {

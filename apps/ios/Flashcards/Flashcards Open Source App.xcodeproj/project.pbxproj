@@ -570,7 +570,7 @@
 			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 9.26.1;
+				minimumVersion = 9.27.0;
 			};
 			traits = (
 			);
