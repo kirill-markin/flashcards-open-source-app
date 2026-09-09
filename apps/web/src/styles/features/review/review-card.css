@@ -43,44 +43,20 @@
 .review-pane-head-meta {
   display: flex;
   flex: 1 1 0;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
-.review-pane-tag-label {
-  display: inline-flex;
-  align-items: center;
+.review-metadata-chip {
   flex: 0 1 auto;
   min-height: 30px;
   min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.review-repetition-badge {
-  flex: 0 0 auto;
-  gap: 6px;
-  min-height: 30px;
+  max-width: 100%;
   padding-inline: 9px;
   border: 0;
-}
-
-.review-repetition-badge-new {
-  background: var(--accent);
-  color: #fff;
-}
-
-.review-repetition-badge-icon {
-  width: 14px;
-  height: 14px;
-  display: block;
-  flex-shrink: 0;
+  overflow-wrap: anywhere;
 }
 
 .review-repetition-badge-accessible-label {

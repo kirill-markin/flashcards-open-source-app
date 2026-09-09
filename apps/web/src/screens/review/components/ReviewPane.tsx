@@ -6,7 +6,6 @@ import { useI18n } from "../../../i18n";
 import { cardsRoute, chatRoute } from "../../../routes";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
-import { formatTagSummary } from "../../shared/featureFormatting";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
 import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
 import type { ReviewShortcutPointerEnterHandler } from "../input/useReviewKeyboardShortcuts";
@@ -117,20 +116,6 @@ function ReviewShortcutHint(props: ReviewShortcutHintProps): ReactElement {
   );
 }
 
-function ReviewRepetitionIcon(): ReactElement {
-  return (
-    <svg className="review-repetition-badge-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      <path
-        d="M21 12A9 9 0 1 1 18.36 5.64L21 8M21 3V8H16"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
   const {
     localReadVersion,
@@ -150,7 +135,9 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
         <div className="review-pane-head-meta">
           {loadingReviewCurrentCard !== null ? (
             <>
-              <span className="review-pane-tag-label">{formatTagSummary(loadingReviewCurrentCard.tags, t)}</span>
+              {(loadingReviewCurrentCard.tags.length === 0 ? [t("common.noTags")] : loadingReviewCurrentCard.tags).map((tag) => (
+                <span className="badge review-metadata-chip" key={tag}>{tag}</span>
+              ))}
             </>
           ) : (
             <>
@@ -347,9 +334,10 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     <>
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
-          <span className="review-pane-tag-label">{formatTagSummary(selectedCard.tags, t)}</span>
-          <span className={`badge review-repetition-badge${selectedCard.reps === 0 ? " review-repetition-badge-new" : ""}`}>
-            <ReviewRepetitionIcon />
+          {(selectedCard.tags.length === 0 ? [t("common.noTags")] : selectedCard.tags).map((tag) => (
+            <span className="badge review-metadata-chip" key={tag}>{tag}</span>
+          ))}
+          <span className="badge review-metadata-chip">
             <span aria-hidden="true">{repetitionValue}</span>
             <span className="review-repetition-badge-accessible-label">
               {t("reviewScreen.repetitionBadgeAriaLabel", { value: repetitionValue })}
