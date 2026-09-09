@@ -95,19 +95,19 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6.3.0
 
-      - name: Install Android SDK Command-line Tools 22.0
+      - name: Install Android SDK Command-line Tools 23.0
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           cmdline_tools_root="${ANDROID_SDK_ROOT}/cmdline-tools"
           runner_image_tools="${cmdline_tools_root}/latest"
           runner_image_backup="${cmdline_tools_root}/latest-runner-image-12.0"
-          installed_tools="${cmdline_tools_root}/22.0"
+          installed_tools="${cmdline_tools_root}/23.0"
 
-          "${runner_image_tools}/bin/sdkmanager" "cmdline-tools;22.0"
+          "${runner_image_tools}/bin/sdkmanager" "cmdline-tools;23.0"
 
           if [[ ! -x "${installed_tools}/bin/sdkmanager" || ! -x "${installed_tools}/bin/avdmanager" ]]; then
-            echo "::error::Command-line Tools 22.0 did not install correctly at ${installed_tools}."
+            echo "::error::Command-line Tools 23.0 did not install correctly at ${installed_tools}."
             exit 1
           fi
           if [[ -e "${runner_image_backup}" || -L "${runner_image_backup}" ]]; then
@@ -116,7 +116,7 @@ jobs:
           fi
 
           mv "${runner_image_tools}" "${runner_image_backup}"
-          ln -s "22.0" "${runner_image_tools}"
+          ln -s "23.0" "${runner_image_tools}"
           echo "${installed_tools}/bin" >> "${GITHUB_PATH}"
 
       - name: Install Android SDK packages
@@ -138,7 +138,7 @@ jobs:
           set -euo pipefail
 
           export ANDROID_AVD_HOME="${HOME}/.android/avd"
-          avdmanager_path="${ANDROID_SDK_ROOT}/cmdline-tools/22.0/bin/avdmanager"
+          avdmanager_path="${ANDROID_SDK_ROOT}/cmdline-tools/23.0/bin/avdmanager"
           avd_root_ini="${ANDROID_AVD_HOME}/test.ini"
 
           mkdir -p "${ANDROID_AVD_HOME}"
