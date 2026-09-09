@@ -92,7 +92,7 @@ for the complete voice-session flow and the external ChatGPT Voice limitation.
 | `list_workspaces` | List the authenticated user's workspaces so the client can pick one before querying. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `next_review_card` | Return one eligible card's question without its answer. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `reveal_answer` | Reveal the answer for one card after the learner attempts recall. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
-| `submit_review` | Append one explicit rating and update the authoritative schedule, with durable exact retry receipts. | `readOnlyHint: false`, `destructiveHint: false`, `idempotentHint: true`, `openWorldHint: false` |
+| `submit_review` | Append one agent-assessed or learner-selected rating and update the authoritative schedule, with durable exact retry receipts. | `readOnlyHint: false`, `destructiveHint: false`, `idempotentHint: true`, `openWorldHint: false` |
 
 ### SQL DSL safety model
 
