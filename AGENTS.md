@@ -58,7 +58,7 @@ Details, rollback rules, and live smoke references: [docs/release-gates.md](docs
 ## Data Sources for Analysis
 
 - Backend and auth runtime logs: CloudWatch Lambda log groups, read with the `flashcards-open-source-app` AWS profile; the default profile resolves to a different account and answers with an empty list instead of an error. Agent SQL executions emit one structured record per run on every surface, and every authenticated `/mcp` request emits one more; the record fields and the queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
-- Errors and crashes: Sentry, one project per surface (`SENTRY_BACKEND_PROJECT`, `SENTRY_WEB_PROJECT`, `SENTRY_ANDROID_PROJECT`, `SENTRY_IOS_PROJECT`) inside `SENTRY_ORG`. iOS `WatchdogTermination` events carry no stack trace by design; read [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md) before interpreting one.
+- Errors and crashes: Sentry, one project per surface (`SENTRY_BACKEND_PROJECT`, `SENTRY_WEB_PROJECT`, `SENTRY_ANDROID_PROJECT`, `SENTRY_IOS_PROJECT`) inside `SENTRY_ORG`. When resolving a fixed Sentry issue, default to `Resolved in current release` for backend/web/MCP and `Resolved in next release` for iOS/Android; use the actual shipped release when known. iOS `WatchdogTermination` events carry no stack trace by design; read [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md) before interpreting one.
 - AI chat and dictation traces: Langfuse when enabled, [docs/langfuse-operations.md](docs/langfuse-operations.md).
 - Direct SQL over product data: the read-only `reporting_readonly` role, [docs/analytics-db-access.md](docs/analytics-db-access.md).
 - Ready-made admin reports in the browser: [docs/admin-app.md](docs/admin-app.md).
