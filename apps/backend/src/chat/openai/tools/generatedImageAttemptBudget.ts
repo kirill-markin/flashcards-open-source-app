@@ -11,7 +11,7 @@ import {
   reserveGeneratedCardImageAttemptForActiveRunWithExecutor,
   bindGeneratedCardImageAttemptPayloadForActiveRunWithExecutor,
   markGeneratedCardImageProviderStartedForActiveRunWithExecutor,
-} from "../../runs/repository";
+} from "../../runs/generatedImageAttemptRepository";
 
 export const maximumGeneratedCardImageAttemptsPerRun = 3 as const;
 
