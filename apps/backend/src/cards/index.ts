@@ -91,7 +91,5 @@ export {
   appendReviewEventSnapshotInExecutor,
   getInvalidFsrsStateReason,
   listReviewHistoryPage,
-  listReviewQueue,
-  listReviewQueuePage,
   submitReview,
 } from "./review";

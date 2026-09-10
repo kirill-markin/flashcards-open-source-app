@@ -253,7 +253,7 @@ Cards that were reviewed recently but are still future-due are not active queue 
 Tie-breakers inside the recently reviewed due and other due buckets must remain stable:
 
 1. `dueAt ASC`
-2. `createdAt DESC`
+2. `createdAt ASC`
 3. `cardId ASC`
 
 The card currently displayed to the user remains pinned until it is answered, even if the canonical queue order changes in the background.
@@ -376,8 +376,9 @@ Any scheduler change must update:
 ## Dedicated agent review adapter
 
 The [conversational review contract](conversational-reviews.md) exposes the existing
-scheduler through MCP `submit_review` and HTTP `POST /v1/agent/reviews/submit`.
-It maps exact `Again`/`Hard`/`Good`/`Easy` strings to 0–3, keeps the client review
-time authoritative, and returns the due time, interval, state, reps, and lapses.
-The adapter adds durable idempotent receipts and stale-request rejection; it does
-not change the scheduler algorithm or released first-party sync contracts.
+scheduler through MCP `submit_review` and HTTP `POST /v1/agent/reviews/submit`, and
+selects its next card with the queue order above. It maps exact
+`Again`/`Hard`/`Good`/`Easy` strings to 0–3, stamps the review instant on the server
+because the surface is online only, and returns the due time, interval, state, reps,
+and lapses. It does not change the scheduler algorithm or released first-party sync
+contracts.

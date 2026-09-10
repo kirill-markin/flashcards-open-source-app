@@ -3,7 +3,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { nextReviewCard, revealAnswer, submitAgentReview } from "../agent/reviews";
 import {
-  reviewWorkspaceSchema,
+  makeAgentReviewCardFilter,
+  nextReviewCardSchema,
   revealAnswerSchema,
   submitReviewSchema,
   REVIEW_FLOW_INSTRUCTIONS,
@@ -166,13 +167,12 @@ function createMcpToolInstructions(code: string | null, statusCode: number, tool
     case "WORKSPACE_SELECTION_REQUIRED":
       return `This connection has no selected workspace. Call the list_workspaces tool to see the workspaces you can access (also embedded under error.details.workspaces when available), then call the ${toolName} tool again with the workspaceId argument set to the one you want.`;
     case "REVIEW_STALE":
-      return "Reload the card and explain that it changed. Do not rewrite the original review timestamp or automatically submit another rating.";
-    case "REVIEW_ID_CONFLICT":
+      return "The card's stored review time is at or after the current server time, so the scheduler cannot move forward from it. Reloading the card does not clear that; explain the conflict and review another card instead of submitting a rating for this one.";
     case "REVIEW_EVENT_CONFLICT":
-      return "This review identity already exists. Retry only the original unchanged request; use a new reviewId only for a new learner review.";
+      return "This review was already recorded, so nothing was stored again. Read the card's current schedule from error.details.reviewSchedule and move on; use a new reviewId only for a new learner review.";
     case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
       if (toolName === "submit_review") {
-        return "Retry submit_review with the identical workspaceId, reviewId, rating, cardId, and review timestamp. Do not advance until the result is confirmed.";
+        return "Retry submit_review with the identical workspaceId, reviewId, rating, and cardId. Do not advance until the result is confirmed.";
       }
       return `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call sql_query with a SELECT to check whether the change already applied, and only call the ${toolName} tool again if the change is confirmed absent.`;
     case "SERVICE_UNAVAILABLE":
@@ -603,14 +603,14 @@ export function createMcpServerWithDependencies(
   server.registerTool("next_review_card", {
     title: "Next flashcard question",
     description: `${NEXT_REVIEW_DESCRIPTION} ${WORKSPACE_ID_ARGUMENT_HINT}`,
-    inputSchema: reviewWorkspaceSchema,
+    inputSchema: nextReviewCardSchema,
     annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
-  }, async ({ workspaceId: requestedWorkspaceId }) => {
+  }, async (input) => {
     telemetry.recordInvokedTool("next_review_card");
     try {
-      const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
+      const workspaceId = await resolveWorkspaceId(input.workspaceId);
       const actor = { userId: connection.userId, workspaceId, connectionId: connection.connectionId };
-      const result = await dependencies.nextReviewCard(actor);
+      const result = await dependencies.nextReviewCard(actor, makeAgentReviewCardFilter(input));
       return buildToolResult(createAgentEnvelope(resourceUrl, result, REVIEW_FLOW_INSTRUCTIONS));
     } catch (error) {
       return buildToolErrorResult(error, resourceUrl, connection, "next_review_card", dependencies);
@@ -638,7 +638,9 @@ export function createMcpServerWithDependencies(
     title: "Submit flashcard review",
     description: `${SUBMIT_REVIEW_DESCRIPTION} ${WORKSPACE_ID_ARGUMENT_HINT}`,
     inputSchema: submitReviewSchema,
-    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true },
+    // destructiveHint is true because the write overwrites due_at, reps, lapses and the fsrs_*
+    // columns; only additive-only writes may claim false.
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: true },
   }, async (input) => {
     telemetry.recordInvokedTool("submit_review");
     try {

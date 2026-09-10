@@ -71,13 +71,14 @@ type MultipartAgentRequestAction =
   | "abort"
   | "other";
 
+/** An agent request URL can arrive relative, so every pathname read shares this fallback base. */
+function getAgentRequestPathname(requestUrl: string): string {
+  return new URL(requestUrl, "https://api.flashcards-open-source-app.com").pathname;
+}
+
 function getMultipartAgentRequestAction(
-  requestUrl: string,
+  pathname: string,
 ): MultipartAgentRequestAction {
-  const pathname = new URL(
-    requestUrl,
-    "https://api.flashcards-open-source-app.com",
-  ).pathname;
   if (
     /\/media-assets\/upload-sessions\/[^/]+\/complete\/?$/.test(pathname)
   ) {
@@ -96,7 +97,8 @@ export function createAgentErrorInstructions(
   statusCode: number,
   requestUrl: string,
 ): string {
-  const multipartAction = getMultipartAgentRequestAction(requestUrl);
+  const pathname = getAgentRequestPathname(requestUrl);
+  const multipartAction = getMultipartAgentRequestAction(pathname);
   switch (code) {
     case "SERVICE_UNAVAILABLE":
       if (multipartAction === "completion") {
@@ -186,13 +188,12 @@ export function createAgentErrorInstructions(
     case "WORKSPACE_ID_INVALID":
       return "Provide a valid workspaceId UUID in the request URL, then retry the action.";
     case "REVIEW_STALE":
-      return "Reload the card and explain that it changed. Do not rewrite the original review timestamp or automatically submit another rating.";
-    case "REVIEW_ID_CONFLICT":
+      return "The card's stored review time is at or after the current server time, so the scheduler cannot move forward from it. Reloading the card does not clear that; explain the conflict and review another card instead of submitting a rating for this one.";
     case "REVIEW_EVENT_CONFLICT":
-      return "This review identity already exists. Retry only the original unchanged request; use a new reviewId only for a new learner review.";
+      return "This review was already recorded, so nothing was stored again. Read the card's current schedule from error.details.reviewSchedule and move on; use a new reviewId only for a new learner review.";
     case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
-      if (new URL(requestUrl).pathname.endsWith("/agent/reviews/submit")) {
-        return "Retry the identical review request with the same workspaceId, reviewId, cardId, rating, and review timestamp. Do not advance until the result is confirmed.";
+      if (pathname.endsWith("/agent/reviews/submit")) {
+        return "Retry the identical review request with the same workspaceId, reviewId, cardId, and rating. Do not advance until the result is confirmed.";
       }
       if (multipartAction === "completion") {
         return "The completion database commit outcome is unknown and rollback is not guaranteed. Reload or replay the exact completion with the same session and parts to observe canonical state before taking any other action; do not abort or replace the upload.";

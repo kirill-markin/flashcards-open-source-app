@@ -281,7 +281,7 @@ export async function submitReview(
 }
 
 /** Shared authoritative write path. The caller owns the workspace hot-change lock
- * and a runTransactionReportingReviewAnswers transaction, including any receipt. */
+ * and a runTransactionReportingReviewAnswers transaction. */
 export async function submitReviewInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -323,7 +323,6 @@ export async function submitReviewInExecutor(
   );
 
   // Never advance scheduling when the append-only history deduplicates an event.
-  // Callers needing exact successful replay must check their durable receipt first.
   if (!appended.applied) {
     throw new HttpError(409, "Review event already exists", "REVIEW_EVENT_CONFLICT");
   }

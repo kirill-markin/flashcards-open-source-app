@@ -20,24 +20,40 @@ MCP retains `list_workspaces`, `sql_query`, and `sql_execute` and adds:
 | --- | --- | --- | --- |
 | `next_review_card` | `POST /v1/agent/reviews/next` | `workspaceId`, `card: {cardId, frontText}` or `card: null` | Read only |
 | `reveal_answer` | `POST /v1/agent/reviews/reveal` | `workspaceId`, `cardId`, `backText` | Read only |
-| `submit_review` | `POST /v1/agent/reviews/submit` | Original review receipt and resulting schedule | Idempotent write |
+| `submit_review` | `POST /v1/agent/reviews/submit` | The recorded review and its resulting schedule | Write |
 
-All three accept optional `workspaceId`; omission uses the connection's selected
-workspace. Resolve it before a session and keep the explicit returned workspace
-ID for every step and retry. `reveal_answer` also requires `cardId`.
-HTTP actions use `Authorization: ApiKey <fca_...>` and the same JSON arguments as
-the MCP tools. MCP continues to accept OAuth authorization or an API key as a
-Bearer token. Authentication and current workspace membership are checked on
-each request, including receipt replay. IDs are UUIDs. Unknown arguments fail.
+All three accept an optional `workspaceId`; omission uses the connection's selected
+workspace, and an HTTP request with no body at all is a valid call. `reveal_answer`
+requires `cardId`. HTTP actions use `Authorization: ApiKey <fca_...>` and the same
+JSON arguments as the MCP tools. MCP continues to accept OAuth authorization or an
+API key as a Bearer token. Authentication and current workspace membership are
+checked on each request. IDs are UUIDs. Unknown arguments fail.
 
-The next-card read returns one non-deleted card, choosing scheduled cards due at
-server time before new cards. Due cards sort by ascending due time; ties and new
-cards sort by creation time and card ID. Future cards are excluded. Reads do not
-reserve cards, grade answers, repair FSRS state, or move a queue cursor. Repeating
-a read can return the same card. There is no session or lease to lose on reconnect.
-The question tool selects only the front; neither its payload nor the submission
-receipt includes the answer. Reveal remains an explicit read, not an authorization
-boundary: existing SQL reads can still retrieve both sides.
+## Choosing the next card
+
+`next_review_card` returns one non-deleted card using the same queue order the web,
+iOS, and Android apps implement, described in
+[the review queue section of the scheduling document](fsrs-scheduling-logic.md#review-queue-presentation):
+cards that are due and were reviewed within the last hour first, then other due
+cards, then new cards, each bucket ordered by due time, then creation time, then
+card ID. Future-due cards are excluded. Reads do not reserve cards, grade answers,
+repair FSRS state, or move a queue cursor, so repeating a read can return the same
+card and there is no session or lease to lose on reconnect. The tool selects only
+the front; neither its payload nor the submission result includes the answer.
+Reveal is an explicit read, not an authorization boundary: SQL reads can still
+retrieve both sides.
+
+Two optional arguments narrow the queue, exactly like the apps' All cards / one
+deck / N tags filter:
+
+- `tags`: an array of exact tag names, matched as any of. An explicitly empty array
+  matches no card.
+- `deckId`: a saved deck. A deck holds no cards; `content.decks.filter_definition`
+  is a stored tag filter, so the deck resolves to its tags and takes the same path.
+  A deck with no tags matches every card. An unknown `deckId` is a `404`.
+
+They are mutually exclusive, because no client combines a deck with tags. Supplying
+both is a `400`. Nothing due stays `card: null`.
 
 ## Voice-session example
 
@@ -50,7 +66,7 @@ boundary: existing SQL reads can still retrieve both sides.
    and what was missing, and announce the rating with a short reason. For example:
    "You got the main idea, but missed the essential condition. I'll mark Again
    so we revisit it soon." Submit automatically without asking for confirmation.
-4. Persist a fresh `reviewId` and the actual client review timestamp, then call:
+4. Persist a fresh `reviewId`, then call:
 
    ```json
    {
@@ -60,7 +76,6 @@ boundary: existing SQL reads can still retrieve both sides.
        "cardId": "693c4863-28a2-45e8-8f55-9fa31fc95ff2",
        "reviewId": "429bb7cc-40fb-49f3-bb50-48a5db2826d1",
        "rating": "Again",
-       "reviewedAtClient": "2026-09-07T09:00:00.000Z",
        "reviewedTimeZone": "Europe/Sofia"
      }
    }
@@ -76,14 +91,15 @@ The corresponding HTTP request is:
 curl -X POST https://api.flashcards-open-source-app.com/v1/agent/reviews/submit \
   -H "Authorization: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY" \
   -H 'Content-Type: application/json' \
-  --data '{"workspaceId":"50b5b928-7f04-4cc8-878d-6cd0e8b98474","cardId":"693c4863-28a2-45e8-8f55-9fa31fc95ff2","reviewId":"429bb7cc-40fb-49f3-bb50-48a5db2826d1","rating":"Again","reviewedAtClient":"2026-09-07T09:00:00.000Z","reviewedTimeZone":"Europe/Sofia"}'
+  --data '{"workspaceId":"50b5b928-7f04-4cc8-878d-6cd0e8b98474","cardId":"693c4863-28a2-45e8-8f55-9fa31fc95ff2","reviewId":"429bb7cc-40fb-49f3-bb50-48a5db2826d1","rating":"Again","reviewedTimeZone":"Europe/Sofia"}'
 ```
 
-Use real workspace/card IDs and the actual review time; the values above are
-illustrative. Timestamps must include a timezone, are normalized to UTC with
-millisecond precision, and may not be over five minutes ahead of the server.
-`reviewedTimeZone` is an optional IANA timezone for progress/streak attribution;
-omission preserves the existing user-settings fallback.
+Use real workspace and card IDs; the values above are illustrative. There is no
+client review timestamp: this surface is online only, so the server stamps the
+review instant itself, and it is returned as `reviewedAt`. `reviewedTimeZone` is
+required and is the only clock-related value the caller owns; it decides which
+local day the review counts toward for streaks and progress, and without it a user
+who has never opened a first-party app would have no timezone to attribute it to.
 
 | Canonical rating string | Stored rating | Agent assessment of the original attempt |
 | --- | --- | --- |
@@ -110,10 +126,10 @@ rating, not Good, and not a value accepted by the API. Agree on aliases with the
 learner; ask for clarification when ambiguous. The dedicated API accepts the
 four exact strings; existing native/sync rating values remain 0–3.
 
-## Receipt, retries, and offline behavior
+## Result, retries, and offline behavior
 
 Successful `data` contains `workspaceId`, `cardId`, `reviewId`, `reviewEventId`,
-`rating`, `reviewedAtClient`, `dueAt`, `intervalSeconds`, `scheduledDays`, `state`,
+`rating`, `reviewedAt`, `dueAt`, `intervalSeconds`, `scheduledDays`, `state`,
 `reps`, and `lapses`. `intervalSeconds` is the exact delay from review time to
 due time, including learning steps; `scheduledDays` is the scheduler's stored
 day interval and can be zero for a minutes-long learning step. `state` is
@@ -125,18 +141,20 @@ writable through this contract.
   recovering an uncertain request. Reconnecting with a different connection or
   changing the ID is a new review, not a retry.
 - Retry a timeout, lost response, or unknown database commit outcome with the
-  original workspace, ID, card, rating, timestamp, and timezone. Identical retries
-  return the **original** schedule even after subsequent reviews or a card
-  tombstone. They never advance scheduling or add another event/progress count.
-- Reusing a review ID with a different normalized request returns
-  `409 REVIEW_ID_CONFLICT`. An unrelated pre-existing event identity returns
-  `409 REVIEW_EVENT_CONFLICT`; it cannot silently advance scheduling.
-- `409 REVIEW_STALE` means the submitted review would precede a newer card
-  mutation or would not follow the last review. Reload the card and explain the
-  conflict. Do not rewrite the timestamp or manufacture a new ID to force it.
-- A missing, deleted, or inaccessible card/workspace is not reviewable. A saved
-  receipt can be replayed after a card is deleted, but still requires current
-  workspace access. Account/workspace deletion removes its receipts.
+  original workspace, review ID, card, rating, and timezone. The retry is
+  deduplicated by the `UNIQUE (workspace_id, replica_id, client_event_id)`
+  constraint on `content.review_events`, so it can never record a second review or
+  advance the schedule again.
+- A retry whose review already landed returns `409 REVIEW_EVENT_CONFLICT` with the
+  card's current schedule in `error.details.reviewSchedule` (`cardId`, `dueAt`,
+  `intervalSeconds`, `scheduledDays`, `state`, `reps`, `lapses`). Report that
+  schedule to the learner; do not submit again. The same code answers an unrelated
+  pre-existing event identity, which likewise cannot advance scheduling.
+- `409 REVIEW_STALE` means the card's stored `fsrs_last_reviewed_at` is at or after
+  the current server time, so the scheduler cannot move forward from it. Only server
+  time passing that instant clears it: reloading the card and retrying do not, so
+  explain the conflict and review another card.
+- A missing, deleted, or inaccessible card or workspace is not reviewable.
 - If disconnected, a voice client can retain a pending request but must not
   claim that the review was saved or advance the session until acknowledged.
   This action does not import or replay historical offline scheduling. The web,
@@ -149,26 +167,23 @@ writable through this contract.
 HTTP. `apps/backend/src/agent/reviews.ts` uses the existing agent replica identity
 and delegates to `cards/review/reviews.ts::submitReviewInExecutor`. The scheduler
 algorithm is unchanged. One workspace-locked transaction inserts the review,
-updates FSRS state, records progress/activity facts and hot sync metadata, and
-stores an immutable receipt. Review history continues through its append-only
-sequence; post-commit analytics uses the existing writer. Database RLS and
-append-only receipt grants provide additional scoping. No SQL resource or hidden
-FSRS mutation permission was added.
+updates FSRS state, and records progress/activity facts and hot sync metadata;
+review history continues through its append-only sequence, and post-commit
+analytics uses the existing writer. No SQL resource or hidden FSRS mutation
+permission was added, and this work adds no table of its own.
 
 Run backend `npm test`, `npm run lint`, `npm run test:mcp`, and
 `npm run test:postgres-integration` with an isolated PostgreSQL 18 administrative
-URL in `POSTGRES_INTEGRATION_ADMIN_URL`. The integration runner applies the full
-migration chain through `0128_agent_review_receipts.sql` and exercises real HTTP
-authentication, MCP protocol calls, all four ratings across scheduling states,
-concurrent retries, rollback, input validation, authorization, and both sync lanes.
-The deployment smoke script also checks the new tool inventory.
+URL in `POSTGRES_INTEGRATION_ADMIN_URL`. The deployment smoke script also checks
+the tool inventory.
 
 For a manual voice smoke check after deployment, follow the session above with
 one disposable card for each rating. Verify that the agent explains gaps,
 announces its rating, saves without requiring a rating response, and waits for
 success before moving on. Include equivalent wording, a missing essential fact,
 an ambiguous transcript, a skip, and a request for manual ratings. Retry each
-exact submission and verify `reps` increases once, the next due time matches the
-receipt, the answer is not spoken early, and the first-party app receives the
-updated card after sync. Protocol tests verify the published instructions and
-rating contract; this voice smoke check evaluates the calling agent's judgment.
+exact submission and verify `reps` increases once, that the conflict response
+reports the same schedule as the original success, that the answer is not spoken
+early, and that the first-party app receives the updated card after sync. Protocol
+tests verify the published instructions and rating contract; this voice smoke check
+evaluates the calling agent's judgment.

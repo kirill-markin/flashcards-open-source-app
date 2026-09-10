@@ -183,7 +183,6 @@ Important tables and responsibilities:
 - `content.decks`: saved deck filters
 - `content.review_events`: append-only review history
 - `sync.devices`: known client devices per workspace
-- `sync.agent_review_receipts`: durable connection/workspace-scoped requests and exact original schedule results for online agent review retries
 - `sync.applied_operations_current`: bounded idempotency ledger for batched push requests
 - `sync.hot_changes`: compact hot-state change metadata for mutable roots
 - `sync.workspace_sync_metadata`: per-workspace sync retention and bootstrap metadata
@@ -266,7 +265,7 @@ The machine-facing API is intentionally narrower than the human app API:
 - account context at `GET /v1/agent/me`
 - workspace listing and bootstrap at `GET/POST /v1/agent/workspaces`
 - workspace selection at `POST /v1/agent/workspaces/{workspaceId}/select`
-- Conversational review at `POST /v1/agent/reviews/next`, `/reveal`, and `/submit`, mirrored by MCP `next_review_card`, `reveal_answer`, and `submit_review`; see [the review contract](conversational-reviews.md)
+- conversational review at `POST /v1/agent/reviews/next`, `/reveal`, and `/submit`, mirrored by MCP `next_review_card`, `reveal_answer`, and `submit_review`; see [the review contract](conversational-reviews.md)
 - SQL reads at `POST /v1/agent/sql/query` (read-only) and SQL writes at `POST /v1/agent/sql/execute`
 - conventional document probes at `GET /v1/openapi.json`, `GET /v1/swagger.json`, `GET /v1/agent/openapi.json`, and `GET /v1/agent/swagger.json`; all four return the same concise source-discovery JSON linking to the open-source repository and the relevant backend and auth route source files, not an OpenAPI document
 

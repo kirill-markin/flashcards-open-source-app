@@ -309,9 +309,9 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
 
     const reviewTool = requireTool(toolList.tools, "submit_review");
     assert.deepEqual(reviewTool.annotations, {
-      readOnlyHint: false, destructiveHint: false, openWorldHint: false, idempotentHint: true,
+      readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: true,
     });
-    assert.deepEqual(reviewTool.inputSchema.required, ["cardId", "reviewId", "rating", "reviewedAtClient"]);
+    assert.deepEqual(reviewTool.inputSchema.required, ["cardId", "reviewId", "rating", "reviewedTimeZone"]);
     assert.equal(reviewTool.inputSchema.additionalProperties, false);
     assert.deepEqual((reviewTool.inputSchema.properties!.rating as { enum: string[] }).enum, ["Again", "Hard", "Good", "Easy"]);
     assert.match(reviewTool.description ?? "", /authoritative FSRS/);

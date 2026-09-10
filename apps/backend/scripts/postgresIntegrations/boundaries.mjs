@@ -74,6 +74,7 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0129_correct_legacy_catalog_language_tag.sql",
     expectedMigrationCount: 131,
     testFiles: Object.freeze([
+      "src/agent/reviews.postgres.integration.ts",
       "src/catalog/authoring/versions/legacyLanguageTagCorrection.postgres.integration.ts",
     ]),
   }),
