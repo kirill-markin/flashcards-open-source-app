@@ -25,9 +25,9 @@ import { HttpError } from "../../shared/errors";
  *   = 15 s
  *
  * The tail is the term this deadline cannot shorten. A write that commits then
- * drains the server facts it collected on the analytics pool, outside this
- * deadline and after the transaction returned, for up to the 4 s budget plus
- * one operation of up to 4 s already in flight
+ * drains the server facts it collected, outside this deadline and after the
+ * transaction returned, for up to the 4 s budget plus one operation of up to
+ * 4 s already in flight
  * (`apps/backend/src/productAnalytics/serverFacts/postCommitBudget.ts`, which
  * sizes that ceiling against the same 29 s). Its wall time is therefore
  * additive: at 20 s this budget would leave a committing write about a second

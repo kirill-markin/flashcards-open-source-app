@@ -306,6 +306,7 @@ export async function upsertCardSnapshotInExecutor(
         entityType: "card",
         entityId: insertedCard.cardId,
         workspaceId,
+        replicaId: insertedCard.lastModifiedByReplicaId,
         clientUpdatedAt: insertedCard.clientUpdatedAt,
       });
 
@@ -437,6 +438,7 @@ export async function createCardInExecutor(
     entityType: "card",
     entityId: card.cardId,
     workspaceId,
+    replicaId: card.lastModifiedByReplicaId,
     clientUpdatedAt: card.clientUpdatedAt,
   });
   return card;
