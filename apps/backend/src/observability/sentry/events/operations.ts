@@ -569,6 +569,31 @@ export type ProductAnalyticsReviewAnsweredPlatformResolutionIncompleteDetails = 
   answerCount: number;
 }>;
 
+// The same two records for the content creations producer, which resolves the same replicas through
+// the same scoped read; the review-answered pair above states why they are two actions and what each
+// number is for. Both counts are narrower here, because that producer reads back only the replicas
+// its own transaction did not name: replicaIdCount is the replicas left to read rather than every
+// replica of the drain, and creationCount the cards and decks waiting on them - what separates one
+// card written in the app from a 5,000-card workspace-package import.
+export type ProductAnalyticsContentCreationPlatformResolutionFailureDetails = Readonly<{
+  replicaIdCount: number;
+  // Nothing was resolved, so every creation waiting on the read is stored with a null platform: here
+  // the count is exactly what this failure left with no platform.
+  creationCount: number;
+  sqlState: string | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+export type ProductAnalyticsContentCreationPlatformResolutionIncompleteDetails = Readonly<{
+  replicaIdCount: number;
+  matchedReplicaCount: number;
+  // Only the creations behind the replicaIdCount - matchedReplicaCount rows that did not come back
+  // lose their platform, the rest resolve normally, so this bounds the loss rather than counting it -
+  // as answerCount does on the review-answered record above.
+  creationCount: number;
+}>;
+
 // A deliberate skip, not a dropped write: the upgrade committed and its guest_upgrade_completed event
 // was never attempted, because the request had no post-commit analytics clock left for another
 // operation. Reported under its own action so it never looks like
@@ -672,6 +697,14 @@ export type OperationsWarningEvent =
   | EventByAction<
     "product_analytics_review_answered_platform_resolution_incomplete",
     ProductAnalyticsReviewAnsweredPlatformResolutionIncompleteDetails
+  >
+  | EventByAction<
+    "product_analytics_content_creation_platform_resolution_failed",
+    ProductAnalyticsContentCreationPlatformResolutionFailureDetails
+  >
+  | EventByAction<
+    "product_analytics_content_creation_platform_resolution_incomplete",
+    ProductAnalyticsContentCreationPlatformResolutionIncompleteDetails
   >
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>
