@@ -44,6 +44,9 @@ export type PublicCatalogVersionPresentationInput = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
+  educationalSubject: string | null;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -81,6 +84,7 @@ export type PublicCatalogVersionEligibilityIssue =
   | Readonly<{
     reason: "unsafe_version_field";
     field: "slug" | "title" | "summary" | "description" | "languageTags"
+      | "educationalSubject" | "educationalFramework" | "educationalLevel"
       | "license" | "contentWarning";
   }>
   | Readonly<{
@@ -233,6 +237,9 @@ function getPublicCatalogVersionPresentationIssue(
     ["title", version.title],
     ["summary", version.summary],
     ["description", version.description],
+    ["educationalSubject", version.educationalSubject],
+    ["educationalFramework", version.educationalFramework],
+    ["educationalLevel", version.educationalLevel],
     ["license", version.license],
     ["contentWarning", version.contentWarning],
   ] as const;
