@@ -38,13 +38,18 @@ async function assertSeededCardVisibleInCards(session: LiveSmokeSession): Promis
   const searchInput = page.getByTestId("cards-search-input");
   await trackedFill(diagnostics, "clear cards search input", searchInput, "");
   await trackedFill(diagnostics, `fill cards search input with ${scenario.seededFrontText}`, searchInput, scenario.seededFrontText);
+  const seededCardRow = page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(scenario.seededFrontText)}]`).first();
   await waitForCardVisibleUnlessSyncing(
     page,
     diagnostics,
     `confirm cards list shows ${scenario.seededFrontText}`,
-    page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(scenario.seededFrontText)}]`).first(),
+    seededCardRow,
     localUiTimeoutMs,
   );
+  await trackedClick(diagnostics, "open the seeded card by clicking its row", seededCardRow);
+  await diagnostics.runAction("confirm the row opens the matching card form", async () => {
+    await expect(page.getByTestId("card-form-front-text")).toHaveValue(scenario.seededFrontText);
+  });
 }
 
 async function reviewSeededCardFromQueue(session: LiveSmokeSession): Promise<void> {
