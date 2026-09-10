@@ -59,7 +59,7 @@ function createCatalogPackageVersion(sourceWorkspaceId: string): CatalogPackageV
     summary: "Test summary",
     description: "Test description",
     languageTags: [],
-    educationalSubject: null,
+    educationalSubject: "Statistics",
     educationalFramework: null,
     educationalLevel: null,
     license: "CC-BY-4.0",
@@ -170,7 +170,7 @@ function createCatalogPackageInputValidationApp(
   return app;
 }
 
-test("catalog package inputs lowercase language tags, carry educational alignment, and clear an omitted field", async () => {
+test("catalog package inputs lowercase language tags, keep the educational subject, and clear an omitted framework or level", async () => {
   const parsedInputs: Array<CreateCatalogPackageDraftInput | UpdateCatalogPackageDraftInput> = [];
   const app = createCatalogPackageInputCaptureApp((input) => {
     parsedInputs.push(input);
@@ -182,6 +182,7 @@ test("catalog package inputs lowercase language tags, carry educational alignmen
     summary: "Test summary",
     description: "Test description",
     languageTags: ["EN"],
+    educationalSubject: "Statistics",
     license: "CC0-1.0",
     contentWarning: null,
   };
@@ -192,12 +193,12 @@ test("catalog package inputs lowercase language tags, carry educational alignmen
     body: JSON.stringify({
       packageId,
       ...sharedPackageInput,
-      educationalSubject: "Statistics",
       educationalFramework: "AP Statistics",
       educationalLevel: "High school",
     }),
   });
-  // The draft PUT replaces the whole package, so a body without the fields asks for none.
+  // The draft PUT replaces the whole package, so a body without the framework and level asks for
+  // neither. The subject is required and has to be sent on every request.
   const updateResponse = await app.request(
     `http://localhost/admin/catalog/packages/${packageId}/draft`,
     {
@@ -221,9 +222,60 @@ test("catalog package inputs lowercase language tags, carry educational alignmen
     ]),
     [
       ["Statistics", "AP Statistics", "High school"],
-      [null, null, null],
+      ["Statistics", null, null],
     ],
   );
+});
+
+test("catalog package inputs reject a missing educational subject", async () => {
+  let processingCalls = 0;
+  const app = createCatalogPackageInputValidationApp(async () => {
+    processingCalls += 1;
+    throw new Error(
+      "Package input without an educational subject must be rejected before processing",
+    );
+  });
+  const sharedPackageInput = {
+    authorId,
+    slug: "test-package",
+    title: "Test package",
+    summary: "Test summary",
+    description: "Test description",
+    languageTags: ["en"],
+    license: "CC0-1.0",
+    contentWarning: null,
+  };
+  const requests = [
+    {
+      method: "POST",
+      path: "/admin/catalog/packages",
+      body: { packageId, ...sharedPackageInput },
+    },
+    {
+      method: "PUT",
+      path: `/admin/catalog/packages/${packageId}/draft`,
+      body: { ...sharedPackageInput, coverPackageMediaKey: null },
+    },
+    {
+      method: "PUT",
+      path: `/admin/catalog/packages/${packageId}/draft`,
+      body: { ...sharedPackageInput, educationalSubject: null, coverPackageMediaKey: null },
+    },
+  ] as const;
+
+  for (const request of requests) {
+    const response = await app.request(`http://localhost${request.path}`, {
+      method: request.method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request.body),
+    });
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {
+      error: "educationalSubject must be a string",
+      code: null,
+    });
+  }
+  assert.equal(processingCalls, 0);
 });
 
 test("catalog package inputs explicitly reject the removed topicTags field", async () => {

@@ -52,7 +52,7 @@ type CatalogPublicPackageRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  educational_subject: string | null;
+  educational_subject: string;
   educational_framework: string | null;
   educational_level: string | null;
   license: string;
