@@ -1008,9 +1008,6 @@ export const ruCatalog = {
       trigger: "Фильтр",
       triggerWithCount: "Фильтр ({{count}})",
     },
-    loading: {
-      open: "Открыть",
-    },
     loadingMore: "Загрузка дополнительных карточек...",
     search: {
       label: "Поиск",
@@ -1022,7 +1019,6 @@ export const ruCatalog = {
       due: "Срок",
       front: "Лицевая сторона",
       lapses: "Ошибки",
-      open: "Открыть",
       reps: "Повторы",
       tags: "Теги",
       updated: "Обновлено",

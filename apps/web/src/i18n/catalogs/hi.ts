@@ -1008,9 +1008,6 @@ const hiCatalog: TranslationCatalog = {
       trigger: "फ़िल्टर",
       triggerWithCount: "फ़िल्टर ({{count}})",
     },
-    loading: {
-      open: "खोलें",
-    },
     loadingMore: "और कार्ड लोड हो रहे हैं...",
     search: {
       label: "खोजें",
@@ -1022,7 +1019,6 @@ const hiCatalog: TranslationCatalog = {
       due: "बाकी",
       front: "सामने",
       lapses: "चूक",
-      open: "खोलें",
       reps: "रिव्यू",
       tags: "टैग",
       updated: "अपडेट किया गया",

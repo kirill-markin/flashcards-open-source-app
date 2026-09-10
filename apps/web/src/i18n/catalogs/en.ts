@@ -1006,9 +1006,6 @@ const enCatalog = {
       trigger: "Filter",
       triggerWithCount: "Filter ({{count}})",
     },
-    loading: {
-      open: "Open",
-    },
     loadingMore: "Loading more cards...",
     search: {
       label: "Search",
@@ -1020,7 +1017,6 @@ const enCatalog = {
       due: "Due",
       front: "Front",
       lapses: "Lapses",
-      open: "Open",
       reps: "Reps",
       tags: "Tags",
       updated: "Updated",

@@ -6,6 +6,11 @@
 }
 
 .review-queue-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   color: var(--text-secondary);
   font-size: 14px;
 }

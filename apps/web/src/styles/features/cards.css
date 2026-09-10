@@ -112,7 +112,6 @@
 }
 
 .cards-table {
-  --cards-col-open-width: 72px;
   --cards-col-front-width: 360px;
   --cards-col-back-width: 360px;
   --cards-col-tags-width: 220px;
@@ -121,8 +120,7 @@
   --cards-col-lapses-width: 72px;
   --cards-col-updated-width: 176px;
   min-width: calc(
-    var(--cards-col-open-width)
-    + var(--cards-col-front-width)
+    var(--cards-col-front-width)
     + var(--cards-col-back-width)
     + var(--cards-col-tags-width)
     + var(--cards-col-due-width)
@@ -186,16 +184,6 @@
   padding-block: 14px;
 }
 
-.cards-open-th,
-.cards-open-cell {
-  width: 1%;
-  white-space: nowrap;
-}
-
-.cards-table .cards-col-open {
-  width: var(--cards-col-open-width);
-}
-
 .cards-table .cards-col-front {
   width: var(--cards-col-front-width);
 }
@@ -224,24 +212,34 @@
   width: var(--cards-col-updated-width);
 }
 
-.cards-table .row-open-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 30px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  color: var(--text-secondary);
-  background: var(--surface-hover);
-  opacity: 0;
-  pointer-events: none;
-  font-size: 13px;
+.cards-row {
+  position: relative;
 }
 
-.cards-row:hover .row-open-link {
-  opacity: 1;
-  pointer-events: auto;
+.cards-row-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Extend the native link over every cell while retaining table semantics. */
+.cards-row-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+}
+
+.cards-row-link:focus-visible {
+  outline: none;
+}
+
+.cards-row-link:focus-visible::after {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+
+.cards-row:has(.cards-row-link:focus-visible) td {
+  background: var(--surface-hover);
 }
 
 .cards-loading-retry-btn {
@@ -249,11 +247,6 @@
 }
 
 .cards-loading-row {
-  pointer-events: none;
-}
-
-.cards-loading-row-open {
-  opacity: 1;
   pointer-events: none;
 }
 
@@ -294,10 +287,6 @@
   color: var(--text-secondary);
 }
 
-.cards-cell-disabled {
-  cursor: progress;
-}
-
 .cards-cell-multiline {
   white-space: normal;
 }
@@ -312,74 +301,9 @@
   overflow-wrap: anywhere;
 }
 
-.drilldown-editable {
-  cursor: pointer;
-}
-
-.drilldown-editable:hover {
-  color: var(--text);
-}
-
-.drilldown-editable-select::after {
-  content: " \25BE";
-  color: var(--text-tertiary);
-  font-size: 10px;
-  opacity: 0;
-}
-
-.drilldown-editable-select:hover::after {
-  opacity: 1;
-}
-
-.cell-editor-overlay {
-  z-index: 200;
-  display: flex;
-  min-width: 0;
-  min-height: 42px;
-  font-size: 16px;
-  font-family: inherit;
-  line-height: 1.5;
-  background: var(--surface);
-  color: var(--text);
-  border: 0;
-  border-radius: var(--radius-sm);
-  outline: 2px solid var(--text);
-  outline-offset: 2px;
-  box-shadow: none;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.cell-editor-overlay-multiline {
-  min-height: 120px;
-}
-
-.cell-editor-field {
-  flex: 1 1 auto;
-  width: 100%;
-  min-width: 0;
-  min-height: 42px;
-  padding: 10px 12px;
-  border: 0;
-  border-radius: inherit;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  line-height: inherit;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.cell-editor-field-multiline {
-  min-height: 120px;
-  white-space: pre-wrap;
-  resize: vertical;
-}
-
 .cell-select-overlay {
   --cell-select-overlay-padding: 6px;
   --cell-select-overlay-radius: var(--radius-md);
-  --cell-select-overlay-inner-radius: calc(var(--cell-select-overlay-radius) / 2);
   z-index: 200;
   display: flex;
   flex-direction: column;
@@ -395,55 +319,6 @@
 
 .cell-select-overlay .tag-input-field {
   font-size: 16px;
-}
-
-.cell-select-search {
-  width: 100%;
-  min-height: 42px;
-  border: none;
-  border-bottom: 1px solid var(--divider);
-  background: transparent;
-  color: var(--text);
-  padding: 0 12px;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.cell-select-search:focus {
-  outline: 2px solid var(--text);
-  outline-offset: -2px;
-}
-
-.cell-select-options {
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 6px;
-}
-
-.cell-select-option {
-  width: 100%;
-  min-height: 38px;
-  padding: 8px 10px;
-  border: none;
-  border-radius: var(--cell-select-overlay-inner-radius);
-  background: transparent;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 14px;
-  text-align: start;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.cell-select-option:hover,
-.cell-select-option-highlight {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.cell-select-option-active {
-  color: var(--accent-strong);
-  background: var(--accent-soft);
 }
 
 .deck-list {

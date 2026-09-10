@@ -1008,9 +1008,6 @@ export const jaCatalog = {
       trigger: "絞り込み",
       triggerWithCount: "絞り込み（{{count}}）",
     },
-    loading: {
-      open: "開く",
-    },
     loadingMore: "さらにカードを読み込んでいます...",
     search: {
       label: "検索",
@@ -1022,7 +1019,6 @@ export const jaCatalog = {
       due: "期限",
       front: "表面",
       lapses: "失敗",
-      open: "開く",
       reps: "復習回数",
       tags: "タグ",
       updated: "更新日時",

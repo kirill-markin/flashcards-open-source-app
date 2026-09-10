@@ -364,7 +364,6 @@ export type WebAppOperation =
   | "card_delete"
   | "cards_list_load"
   | "cards_page_load"
-  | "cards_inline_save"
   | "review_data_load"
   | "review_submit"
   | "review_rollback_lookup"
