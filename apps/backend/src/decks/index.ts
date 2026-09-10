@@ -671,6 +671,7 @@ export async function upsertDeckSnapshotInExecutor(
         entityType: "deck",
         entityId: insertedDeck.deckId,
         workspaceId,
+        replicaId: insertedDeck.lastModifiedByReplicaId,
         clientUpdatedAt: insertedDeck.clientUpdatedAt,
       });
 

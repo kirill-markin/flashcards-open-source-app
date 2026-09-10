@@ -148,6 +148,33 @@ export function runDatabaseOperationsWithDeadline<Result>(
   return databaseDeadlineStorage.run(effectiveDeadlineAtMs, callback);
 }
 
+/**
+ * Runs work under a deadline of its own, replacing whatever deadline the request installed rather
+ * than narrowing to it.
+ *
+ * runDatabaseOperationsWithDeadline takes whichever deadline is nearer, which is the right rule for
+ * work a caller is still waiting on: nothing may outlive the budget published above it. Work that
+ * runs after its transaction already committed is not that. Inheriting a nearly spent request budget
+ * would not shorten such work but cancel it before its first statement, and what it would have
+ * produced is lost rather than retried.
+ *
+ * Only for post-commit best-effort work whose failure changes nothing the caller sees, and only for
+ * work that carries a bound of its own; ../productAnalytics/serverFacts/postCommitBudget.ts is that
+ * bound for the analytics producers. Given to work a caller is still awaiting, it lets that work
+ * outlive the request budget that keeps the response inside the API Gateway integration timeout.
+ *
+ * Kept out of ./index.ts and reached only through ./unsafe.ts, like the other primitives here that
+ * step around a request-level guard, so the import path names the hazard rather than this docstring
+ * alone.
+ */
+export function unsafeRunDatabaseOperationsWithIndependentDeadline<Result>(
+  deadlineAtMs: number,
+  callback: () => Promise<Result>,
+): Promise<Result> {
+  validateDatabaseDeadline(deadlineAtMs);
+  return databaseDeadlineStorage.run(deadlineAtMs, callback);
+}
+
 async function executeQuery<Row extends pg.QueryResultRow>(
   executor: pg.Pool | pg.PoolClient,
   text: string,
