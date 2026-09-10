@@ -66,7 +66,7 @@ export type CatalogPackageRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  educational_subject: string | null;
+  educational_subject: string;
   educational_framework: string | null;
   educational_level: string | null;
   license: string;
@@ -87,7 +87,7 @@ export type CatalogPackage = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  educationalSubject: string | null;
+  educationalSubject: string;
   educationalFramework: string | null;
   educationalLevel: string | null;
   license: string;
@@ -108,7 +108,7 @@ export type CreateCatalogPackageDraftInput = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  educationalSubject: string | null;
+  educationalSubject: string;
   educationalFramework: string | null;
   educationalLevel: string | null;
   license: string;
@@ -123,7 +123,7 @@ export type UpdateCatalogPackageDraftInput = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  educationalSubject: string | null;
+  educationalSubject: string;
   educationalFramework: string | null;
   educationalLevel: string | null;
   license: string;
@@ -194,7 +194,7 @@ export type CatalogPackageVersionRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
-  educational_subject: string | null;
+  educational_subject: string;
   educational_framework: string | null;
   educational_level: string | null;
   license: string;
@@ -222,7 +222,7 @@ export type CatalogPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  educationalSubject: string | null;
+  educationalSubject: string;
   educationalFramework: string | null;
   educationalLevel: string | null;
   license: string;
@@ -238,6 +238,28 @@ export type CatalogPackageVersion = Readonly<{
   reviewedAt: string | null;
   publishedAt: string | null;
   delistedAt: string | null;
+}>;
+
+/**
+ * Every value of one explicit alignment correction. Nothing is optional and `educationalSubject`
+ * is not nullable: a correction names the whole classification it writes, and a deck published
+ * under the current standard always carries a subject.
+ */
+export type CorrectCatalogPackageEducationalAlignmentInput = Readonly<{
+  educationalSubject: string;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
+}>;
+
+/**
+ * What one correction actually wrote. `packageVersions` lists only the version rows whose
+ * classification changed, in `versionNumber` order, so it is empty when a replay found every row
+ * already correct; `catalogPackage` always carries the package row's current values whether or not
+ * that row was written.
+ */
+export type CatalogPackageEducationalAlignmentCorrection = Readonly<{
+  catalogPackage: CatalogPackage;
+  packageVersions: ReadonlyArray<CatalogPackageVersion>;
 }>;
 
 export type CatalogPublicAuthor = Readonly<{
@@ -258,7 +280,7 @@ export type CatalogPublicPackageVersionSummary = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  educationalSubject: string | null;
+  educationalSubject: string;
   educationalFramework: string | null;
   educationalLevel: string | null;
   license: string;
@@ -295,7 +317,7 @@ export type CatalogPublicPackageSummary = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  educationalSubject: string | null;
+  educationalSubject: string;
   educationalFramework: string | null;
   educationalLevel: string | null;
   license: string;
@@ -363,7 +385,14 @@ export type CatalogPublicCollectionCoverDownloadSource = Readonly<{
   sha256: string;
 }>;
 
-export const catalogPublicSnapshotSchemaVersion = 2 as const;
+/**
+ * Bumped to 3 by the migration that made `educational_subject` required, which is what turned
+ * `educationalSubject` on every snapshot package version from a value a reader had to treat as
+ * optional into one the artifact always carries. Every reader of the published artifact rejects a
+ * schema version it does not know, so this constant may only move once the marketing website that
+ * builds from the artifact has deployed its acceptance of the new value.
+ */
+export const catalogPublicSnapshotSchemaVersion = 3 as const;
 
 export type CatalogPublicSnapshotAuthor = Readonly<{
   authorId: string;
@@ -393,7 +422,7 @@ export type CatalogPublicSnapshotPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
-  educationalSubject: string | null;
+  educationalSubject: string;
   educationalFramework: string | null;
   educationalLevel: string | null;
   license: string;

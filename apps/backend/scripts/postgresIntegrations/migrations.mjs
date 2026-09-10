@@ -448,6 +448,37 @@ async function seedMigration0129LegacyCatalogLanguageTag(client) {
   }
 }
 
+// Migration 0131 makes educational_subject NOT NULL on both catalog tables. The row shape that
+// would abort that ALTER against production is an in-flight version row: version creation freezes
+// the alignment copy from catalog.packages, publication only flips the status, and 0130 backfilled
+// published rows alone, so any version created before 0130 still carries NULL whatever its status.
+// This adds exactly that row to the package the 0129 hook creates - version 5, draft, NULL
+// alignment, under idx_package_versions_one_review_candidate, which the four published versions
+// leave free. 0131 must fill it from its package parent, which 0130 set to the approved Civics
+// triple. The delisted 0105 test fixture covers the other blocked shape and is already present.
+async function seedMigration0131InFlightCatalogAlignment(client) {
+  const packageId = "12900000-0000-4000-8000-000000000002";
+  const packageVersionId = "13100000-0000-4000-8000-000000000001";
+
+  await client.query(
+    `INSERT INTO catalog.package_versions (
+       package_version_id, package_id, version_number, status, slug, title,
+       summary, description, language_tags, license, created_by_admin_email
+     ) VALUES (
+       $1, $2, 5, 'draft', 'us-citizenship-test',
+       'Migration 0131 in-flight version',
+       'Version seeded so migration 0131 has an in-flight row to fill.',
+       'Catalog package version created before the educational alignment backfill.',
+       ARRAY['en']::TEXT[], 'CC0-1.0', $3
+     )`,
+    [
+      packageVersionId,
+      packageId,
+      "migration-0131-in-flight-alignment@example.test",
+    ],
+  );
+}
+
 async function createExpectedMigrationRoles(
   client,
   fileName,
@@ -604,6 +635,16 @@ async function applySingleMigration(
           await client.query("BEGIN");
           transactionStarted = true;
           await seedMigration0129LegacyCatalogLanguageTag(client);
+          await client.query("COMMIT");
+          transactionStarted = false;
+        }
+        if (
+          fileName
+          === "0131_require_catalog_educational_subject.sql"
+        ) {
+          await client.query("BEGIN");
+          transactionStarted = true;
+          await seedMigration0131InFlightCatalogAlignment(client);
           await client.query("COMMIT");
           transactionStarted = false;
         }
