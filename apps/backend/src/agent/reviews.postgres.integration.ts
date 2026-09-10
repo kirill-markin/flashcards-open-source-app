@@ -287,7 +287,15 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
           await firstCardId({ kind: "tags", tags: ["beta", "alpha"] }),
           alpha.cardId,
         );
-        assert.equal(await firstCardId({ kind: "tags", tags: ["absent"] }), null);
+        // A requested name reaches the card query as the workspace's own spelling, and a name the
+        // workspace does not use is refused instead of reading back as an empty queue.
+        assert.equal(
+          await firstCardId({ kind: "tags", tags: ["BeTa"] }),
+          beta.cardId,
+        );
+        const absent = await post("next", { tags: ["absent"] });
+        assert.equal(absent.status, 400);
+        assert.equal(await readCode(absent), "REVIEW_INPUT_INVALID");
         // An explicitly empty tag filter selects nothing, while a deck without tags selects everything.
         assert.equal(await firstCardId({ kind: "tags", tags: [] }), null);
         assert.equal(
@@ -298,11 +306,24 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
           await firstCardId({ kind: "deck", deckId: everythingDeck.deckId }),
           alpha.cardId,
         );
+        // A name the workspace does use still answers card: null once its cards are not due, so the
+        // refusal stays reserved for a name no card carries.
+        const now = Date.now();
+        await scheduleCard(
+          beta.cardId,
+          new Date(now + 60 * 60_000).toISOString(),
+          new Date(now - 30 * 60_000).toISOString(),
+        );
+        assert.equal(await firstCardId({ kind: "tags", tags: ["beta"] }), null);
         await owner.query(
           "UPDATE content.cards SET deleted_at = now() WHERE card_id = ANY($1::uuid[])",
           [[alpha.cardId, beta.cardId]],
         );
-        assert.equal(await firstCardId({ kind: "tags", tags: ["alpha", "beta"] }), null);
+        // Tombstoning the only cards that carried them leaves both names outside the workspace.
+        assert.equal(
+          (await post("next", { tags: ["alpha", "beta"] })).status,
+          400,
+        );
         assert.equal(
           await firstCardId({ kind: "deck", deckId: everythingDeck.deckId }),
           untagged.cardId,
@@ -320,76 +341,75 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
     );
 
     await t.test(
-      "every rating from new, learning, review, and relearning uses the workspace scheduler at server time",
+      "a submitted review takes the workspace scheduler's schedule at the server-stamped instant",
       async () => {
         const baseTime = Date.now() - 7 * 86400_000;
-        for (const [stateName, prefix] of [
-          ["new", []],
-          ["learning", [0]],
-          ["review", [3]],
-          ["relearning", [3, 0]],
+        // The expected schedule comes from the scheduler the endpoint itself calls, so these cases
+        // prove delegation, the server-stamped instant, and the withheld answer, not the schedule
+        // itself. A first review and a lapse from review reach every one of those.
+        for (const [stateName, prefix, rating] of [
+          ["new", [], 2],
+          ["review", [3], 0],
         ] as const) {
-          for (const rating of [0, 1, 2, 3] as const) {
-            const card = await makeCard([], "2026-03-01T00:00:00.000Z");
-            const seeded = seedScheduleState(card.cardId, prefix, baseTime);
-            assert.equal(seeded.state.fsrsCardState, stateName);
-            if (prefix.length > 0) {
-              await owner.query(
-                [
-                  "UPDATE content.cards SET due_at = $2, reps = $3, lapses = $4, fsrs_card_state = $5,",
-                  "fsrs_step_index = $6, fsrs_stability = $7, fsrs_difficulty = $8,",
-                  "fsrs_last_reviewed_at = $9, fsrs_scheduled_days = $10 WHERE card_id = $1",
-                ].join(" "),
-                [
-                  card.cardId,
-                  seeded.dueAt,
-                  seeded.state.reps,
-                  seeded.state.lapses,
-                  seeded.state.fsrsCardState,
-                  seeded.state.fsrsStepIndex,
-                  seeded.state.fsrsStability,
-                  seeded.state.fsrsDifficulty,
-                  seeded.state.fsrsLastReviewedAt,
-                  seeded.state.fsrsScheduledDays,
-                ],
-              );
-            }
-
-            const result = await submit({
-              cardId: card.cardId,
-              reviewId: randomUUID(),
-              rating: ratingNames[rating],
-              reviewedTimeZone,
-            });
-            const persisted = await getCard(userId, workspaceId, card.cardId);
-            // The server owns the review instant, so the schedule is verified against the
-            // instant it stamped rather than against anything the request could have supplied.
-            // That instant is also the card's LWW clock, so a later client snapshot can only
-            // overwrite this review when it genuinely postdates it.
-            assert.equal(result.reviewedAt, persisted.fsrsLastReviewedAt);
-            assert.equal(result.reviewedAt, persisted.clientUpdatedAt);
-            const reviewedAt = new Date(result.reviewedAt);
-            const expected = computeReviewSchedule(
-              seeded.state,
-              defaultWorkspaceSchedulerConfig,
-              rating,
-              reviewedAt,
+          const card = await makeCard([], "2026-03-01T00:00:00.000Z");
+          const seeded = seedScheduleState(card.cardId, prefix, baseTime);
+          assert.equal(seeded.state.fsrsCardState, stateName);
+          if (prefix.length > 0) {
+            await owner.query(
+              [
+                "UPDATE content.cards SET due_at = $2, reps = $3, lapses = $4, fsrs_card_state = $5,",
+                "fsrs_step_index = $6, fsrs_stability = $7, fsrs_difficulty = $8,",
+                "fsrs_last_reviewed_at = $9, fsrs_scheduled_days = $10 WHERE card_id = $1",
+              ].join(" "),
+              [
+                card.cardId,
+                seeded.dueAt,
+                seeded.state.reps,
+                seeded.state.lapses,
+                seeded.state.fsrsCardState,
+                seeded.state.fsrsStepIndex,
+                seeded.state.fsrsStability,
+                seeded.state.fsrsDifficulty,
+                seeded.state.fsrsLastReviewedAt,
+                seeded.state.fsrsScheduledDays,
+              ],
             );
-            assert.equal(result.rating, ratingNames[rating]);
-            assert.equal(result.dueAt, expected.dueAt.toISOString());
-            assert.equal(
-              result.intervalSeconds,
-              (expected.dueAt.getTime() - reviewedAt.getTime()) / 1000,
-            );
-            assert.equal(result.scheduledDays, expected.fsrsScheduledDays);
-            assert.equal(result.state, expected.fsrsCardState);
-            assert.equal(result.reps, expected.reps);
-            assert.equal(result.lapses, expected.lapses);
-            assert.equal("backText" in result, false);
-            assert.equal(persisted.fsrsStability, expected.fsrsStability);
-            assert.equal(persisted.fsrsDifficulty, expected.fsrsDifficulty);
-            assert.equal(persisted.fsrsStepIndex, expected.fsrsStepIndex);
           }
+
+          const result = await submit({
+            cardId: card.cardId,
+            reviewId: randomUUID(),
+            rating: ratingNames[rating],
+            reviewedTimeZone,
+          });
+          const persisted = await getCard(userId, workspaceId, card.cardId);
+          // The server owns the review instant, so the schedule is verified against the
+          // instant it stamped rather than against anything the request could have supplied.
+          // That instant is also the card's LWW clock, so a later client snapshot can only
+          // overwrite this review when it genuinely postdates it.
+          assert.equal(result.reviewedAt, persisted.fsrsLastReviewedAt);
+          assert.equal(result.reviewedAt, persisted.clientUpdatedAt);
+          const reviewedAt = new Date(result.reviewedAt);
+          const expected = computeReviewSchedule(
+            seeded.state,
+            defaultWorkspaceSchedulerConfig,
+            rating,
+            reviewedAt,
+          );
+          assert.equal(result.rating, ratingNames[rating]);
+          assert.equal(result.dueAt, expected.dueAt.toISOString());
+          assert.equal(
+            result.intervalSeconds,
+            (expected.dueAt.getTime() - reviewedAt.getTime()) / 1000,
+          );
+          assert.equal(result.scheduledDays, expected.fsrsScheduledDays);
+          assert.equal(result.state, expected.fsrsCardState);
+          assert.equal(result.reps, expected.reps);
+          assert.equal(result.lapses, expected.lapses);
+          assert.equal("backText" in result, false);
+          assert.equal(persisted.fsrsStability, expected.fsrsStability);
+          assert.equal(persisted.fsrsDifficulty, expected.fsrsDifficulty);
+          assert.equal(persisted.fsrsStepIndex, expected.fsrsStepIndex);
         }
       },
     );
