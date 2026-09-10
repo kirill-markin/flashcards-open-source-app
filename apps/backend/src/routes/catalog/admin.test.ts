@@ -5,9 +5,12 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AdminRequestContext } from "../../admin/authz";
 import type {
   CatalogCollectionCover,
+  CatalogPackage,
   CatalogPackageMediaAsset,
   CatalogPackageVersion,
+  CreateCatalogPackageDraftInput,
   CreateCatalogPackageVersionFromWorkspaceInput,
+  UpdateCatalogPackageDraftInput,
 } from "../../catalog/types";
 import type {
   CatalogCollectionCoverImageIngestionResult,
@@ -56,6 +59,9 @@ function createCatalogPackageVersion(sourceWorkspaceId: string): CatalogPackageV
     summary: "Test summary",
     description: "Test description",
     languageTags: [],
+    educationalSubject: null,
+    educationalFramework: null,
+    educationalLevel: null,
     license: "CC-BY-4.0",
     contentWarning: null,
     coverPackageMediaKey: null,
@@ -98,6 +104,51 @@ function createCatalogAdminTestApp(
   return app;
 }
 
+function createCatalogPackageDraft(
+  input: CreateCatalogPackageDraftInput | UpdateCatalogPackageDraftInput,
+): CatalogPackage {
+  const timestamp = "2026-08-02T00:00:00.000Z";
+  return {
+    packageId,
+    authorId: input.authorId,
+    slug: input.slug,
+    title: input.title,
+    summary: input.summary,
+    description: input.description,
+    languageTags: input.languageTags,
+    educationalSubject: input.educationalSubject,
+    educationalFramework: input.educationalFramework,
+    educationalLevel: input.educationalLevel,
+    license: input.license,
+    contentWarning: input.contentWarning,
+    coverPackageMediaKey: null,
+    status: "draft",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    publishedAt: null,
+    delistedAt: null,
+  };
+}
+
+function createCatalogPackageInputCaptureApp(
+  capture: (input: CreateCatalogPackageDraftInput | UpdateCatalogPackageDraftInput) => void,
+): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
+  const processPackageInput = async (
+    input: CreateCatalogPackageDraftInput | UpdateCatalogPackageDraftInput,
+  ): Promise<CatalogPackage> => {
+    capture(input);
+    return createCatalogPackageDraft(input);
+  };
+  app.route("/", createCatalogAdminRoutes({
+    allowedOrigins: [],
+    requireAdminRequestFn: async () => createAdminRequestContext(),
+    createCatalogPackageDraftFn: processPackageInput,
+    updateCatalogPackageDraftFn: processPackageInput,
+  }));
+  return app;
+}
+
 function createCatalogPackageInputValidationApp(
   processPackageInput: () => Promise<never>,
 ): Hono<AppEnv> {
@@ -118,6 +169,58 @@ function createCatalogPackageInputValidationApp(
   }));
   return app;
 }
+
+test("catalog package inputs carry educational alignment, and an omitted field clears it", async () => {
+  const parsedInputs: Array<CreateCatalogPackageDraftInput | UpdateCatalogPackageDraftInput> = [];
+  const app = createCatalogPackageInputCaptureApp((input) => {
+    parsedInputs.push(input);
+  });
+  const sharedPackageInput = {
+    authorId,
+    slug: "test-package",
+    title: "Test package",
+    summary: "Test summary",
+    description: "Test description",
+    languageTags: ["en"],
+    license: "CC0-1.0",
+    contentWarning: null,
+  };
+
+  const createResponse = await app.request("http://localhost/admin/catalog/packages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      packageId,
+      ...sharedPackageInput,
+      educationalSubject: "Statistics",
+      educationalFramework: "AP Statistics",
+      educationalLevel: "High school",
+    }),
+  });
+  // The draft PUT replaces the whole package, so a body without the fields asks for none.
+  const updateResponse = await app.request(
+    `http://localhost/admin/catalog/packages/${packageId}/draft`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...sharedPackageInput, coverPackageMediaKey: null }),
+    },
+  );
+
+  assert.equal(createResponse.status, 201);
+  assert.equal(updateResponse.status, 200);
+  assert.deepEqual(
+    parsedInputs.map((input) => [
+      input.educationalSubject,
+      input.educationalFramework,
+      input.educationalLevel,
+    ]),
+    [
+      ["Statistics", "AP Statistics", "High school"],
+      [null, null, null],
+    ],
+  );
+});
 
 test("catalog package inputs explicitly reject the removed topicTags field", async () => {
   let processingCalls = 0;

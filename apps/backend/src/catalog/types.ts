@@ -50,6 +50,9 @@ export type CatalogPackageRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
+  educational_subject: string | null;
+  educational_framework: string | null;
+  educational_level: string | null;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -68,6 +71,9 @@ export type CatalogPackage = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
+  educationalSubject: string | null;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -86,6 +92,9 @@ export type CreateCatalogPackageDraftInput = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
+  educationalSubject: string | null;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
   license: string;
   contentWarning: string | null;
 }>;
@@ -98,6 +107,9 @@ export type UpdateCatalogPackageDraftInput = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
+  educationalSubject: string | null;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -166,6 +178,9 @@ export type CatalogPackageVersionRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
+  educational_subject: string | null;
+  educational_framework: string | null;
+  educational_level: string | null;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -191,6 +206,9 @@ export type CatalogPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
+  educationalSubject: string | null;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -224,6 +242,9 @@ export type CatalogPublicPackageVersionSummary = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
+  educationalSubject: string | null;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -258,6 +279,9 @@ export type CatalogPublicPackageSummary = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
+  educationalSubject: string | null;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
   license: string;
   contentWarning: string | null;
   coverPackageMediaKey: string | null;
@@ -353,6 +377,9 @@ export type CatalogPublicSnapshotPackageVersion = Readonly<{
   summary: string;
   description: string;
   languageTags: ReadonlyArray<string>;
+  educationalSubject: string | null;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
   license: string;
   contentWarning: string | null;
   coverMediaAssetId: string | null;

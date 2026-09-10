@@ -78,6 +78,9 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
       slug: "german-basics-v1",
       title: "German Basics",
       language_tags: ["de"],
+      educational_subject: "Deutsch",
+      educational_framework: "Goethe-Zertifikat",
+      educational_level: null,
       cover_package_media_key: null,
       card_count: 0,
     },
@@ -279,6 +282,12 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
   assert.equal(spanishPackage?.versionCount, 2);
   assert.equal(snapshot.packageVersions[0]?.coverMediaAssetId, packageMediaAssetId);
   assert.equal(snapshot.packageVersions[1]?.coverMediaAssetId, null);
+  const germanPackageVersion = snapshot.packageVersions.find(
+    (packageVersion) => packageVersion.packageVersionId === secondPackageVersionId,
+  );
+  assert.equal(germanPackageVersion?.educationalSubject, "Deutsch");
+  assert.equal(germanPackageVersion?.educationalFramework, "Goethe-Zertifikat");
+  assert.equal(germanPackageVersion?.educationalLevel, null);
   assert.deepEqual(snapshot.cards[0]?.mediaAssetIds, [packageMediaAssetId]);
   assert.equal(
     snapshot.mediaAssets[0]?.downloadUrl,

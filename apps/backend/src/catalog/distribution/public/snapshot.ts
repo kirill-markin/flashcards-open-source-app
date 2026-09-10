@@ -52,6 +52,9 @@ type CatalogPublicPackageRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
+  educational_subject: string | null;
+  educational_framework: string | null;
+  educational_level: string | null;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -143,6 +146,9 @@ function buildPublicCatalogSnapshotPackageVersionsQuery(): PublicCatalogQuery {
       "versions.summary AS summary,",
       "versions.description AS description,",
       "versions.language_tags AS language_tags,",
+      "versions.educational_subject AS educational_subject,",
+      "versions.educational_framework AS educational_framework,",
+      "versions.educational_level AS educational_level,",
       "versions.license AS license,",
       "versions.content_warning AS content_warning,",
       "versions.cover_package_media_key AS cover_package_media_key,",
@@ -392,6 +398,9 @@ function getEligibleSnapshotPackageVersionIds(
         summary: row.summary,
         description: row.description,
         languageTags: row.language_tags,
+        educationalSubject: row.educational_subject,
+        educationalFramework: row.educational_framework,
+        educationalLevel: row.educational_level,
         license: row.license,
         contentWarning: row.content_warning,
         coverPackageMediaKey: row.cover_package_media_key,
@@ -593,6 +602,9 @@ function mapCatalogPublicSnapshotPackageVersions(
       summary: row.summary,
       description: row.description,
       languageTags: [...row.language_tags],
+      educationalSubject: row.educational_subject,
+      educationalFramework: row.educational_framework,
+      educationalLevel: row.educational_level,
       license: row.license,
       contentWarning: row.content_warning,
       coverMediaAssetId,

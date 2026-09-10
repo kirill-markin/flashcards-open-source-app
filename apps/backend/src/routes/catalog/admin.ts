@@ -129,6 +129,20 @@ function expectNullableNonEmptyString(value: unknown, fieldName: string): string
   return expectNonEmptyString(value, fieldName);
 }
 
+/**
+ * Reads an absent field as null rather than rejecting it, unlike every other
+ * package field. `PUT /draft` replaces the whole draft instead of patching it,
+ * so a request without an educational alignment field is a request for the
+ * package to carry none, and it clears whatever the draft held.
+ */
+function expectOmittableNonEmptyString(value: unknown, fieldName: string): string | null {
+  if (value === undefined) {
+    return null;
+  }
+
+  return expectNullableNonEmptyString(value, fieldName);
+}
+
 function expectNullableAuthorWebsiteUrl(value: unknown): string | null {
   if (value === null) {
     return null;
@@ -223,6 +237,15 @@ function parsePackageCreateInput(record: Readonly<Record<string, unknown>>): Cre
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
     languageTags: expectStringArray(record.languageTags, "languageTags"),
+    educationalSubject: expectOmittableNonEmptyString(
+      record.educationalSubject,
+      "educationalSubject",
+    ),
+    educationalFramework: expectOmittableNonEmptyString(
+      record.educationalFramework,
+      "educationalFramework",
+    ),
+    educationalLevel: expectOmittableNonEmptyString(record.educationalLevel, "educationalLevel"),
     license: expectNonEmptyString(record.license, "license"),
     contentWarning: expectNullableNonEmptyString(record.contentWarning, "contentWarning"),
   };
@@ -241,6 +264,15 @@ function parsePackageUpdateInput(
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
     languageTags: expectStringArray(record.languageTags, "languageTags"),
+    educationalSubject: expectOmittableNonEmptyString(
+      record.educationalSubject,
+      "educationalSubject",
+    ),
+    educationalFramework: expectOmittableNonEmptyString(
+      record.educationalFramework,
+      "educationalFramework",
+    ),
+    educationalLevel: expectOmittableNonEmptyString(record.educationalLevel, "educationalLevel"),
     license: expectNonEmptyString(record.license, "license"),
     contentWarning: expectNullableNonEmptyString(record.contentWarning, "contentWarning"),
     coverPackageMediaKey: expectNullableNonEmptyString(record.coverPackageMediaKey, "coverPackageMediaKey"),
