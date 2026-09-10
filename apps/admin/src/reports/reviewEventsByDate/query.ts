@@ -522,15 +522,14 @@ export function buildReviewEventsByDateAvailableRangeSql(): string {
 // migration `0122` filled the same value on the history `0120` reconstructed, `0123` on the live
 // rows the producer wrote before it could resolve one. That derivation reads
 // `sync.workspace_replicas.platform` only together with `actor_kind` on the same row, so a value
-// appears only for a `client_installation` replica on 'ios', 'android' or 'web': an
-// `agent_connection` replica stores 'web' for the machine API, an `ai_chat` replica stores a
-// hard-coded 'web' that describes no device, and seed/reset replicas store 'system'. Each of those,
-// and a review whose replica row is gone or whose resolution failed, stays NULL and lands in the
-// `unattributed` bucket, which means no resolved device fact - either the actor behind the row is
-// not a device or no device could be resolved for it - rather than either case alone. A machine-API
-// review lands there rather than under `agent`, because this event reports the device a person
-// answered a card on and a replica that is not a client installation resolves to NULL rather than to
-// a fourth value.
+// read off that column appears only for a `client_installation` replica on 'ios', 'android' or
+// 'web': an `agent_connection` replica stores 'web' for the machine API, an `ai_chat` replica
+// stores a hard-coded 'web' that describes no device, and seed/reset replicas store 'system'. An
+// `agent_connection` replica resolves to `agent` from its actor kind instead of from that column.
+// An `ai_chat` or seed/reset replica, and a review whose replica row is gone or whose resolution
+// failed, stays NULL and lands in the `unattributed` bucket, which means no resolved device fact -
+// either the actor behind the row is not a device or no device could be resolved for it - rather
+// than either case alone.
 export function buildReviewEventsByDateSql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "Review events report");
 
