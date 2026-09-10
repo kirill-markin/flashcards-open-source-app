@@ -240,6 +240,28 @@ export type CatalogPackageVersion = Readonly<{
   delistedAt: string | null;
 }>;
 
+/**
+ * Every value of one explicit alignment correction. Nothing is optional and `educationalSubject`
+ * is not nullable: a correction names the whole classification it writes, and a deck published
+ * under the current standard always carries a subject.
+ */
+export type CorrectCatalogPackageEducationalAlignmentInput = Readonly<{
+  educationalSubject: string;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
+}>;
+
+/**
+ * What one correction actually wrote. `packageVersions` lists only the version rows whose
+ * classification changed, in `versionNumber` order, so it is empty when a replay found every row
+ * already correct; `catalogPackage` always carries the package row's current values whether or not
+ * that row was written.
+ */
+export type CatalogPackageEducationalAlignmentCorrection = Readonly<{
+  catalogPackage: CatalogPackage;
+  packageVersions: ReadonlyArray<CatalogPackageVersion>;
+}>;
+
 export type CatalogPublicAuthor = Readonly<{
   authorId: string;
   slug: string;
