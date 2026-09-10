@@ -86,7 +86,7 @@ export function createAssistantMessageItem(
 
 export function createResponse(
   output: ReadonlyArray<OpenAI.Responses.ResponseOutputItem>,
-  outputText: string,
+  outputText: string | undefined,
 ): OpenAI.Responses.Response {
   return {
     id: "response-1",
@@ -99,7 +99,7 @@ export function createResponse(
     max_output_tokens: null,
     model: "gpt-5.6-terra",
     output: [...output],
-    output_text: outputText,
+    ...(outputText === undefined ? {} : { output_text: outputText }),
     parallel_tool_calls: false,
     temperature: 1,
     tool_choice: "auto",
@@ -215,6 +215,16 @@ export function createTerminalEventStream(
       yield event;
     },
   };
+}
+
+export function createCompletedResponseStream(
+  response: OpenAI.Responses.Response,
+): OpenAIResponseStream {
+  return createTerminalEventStream({
+    type: "response.completed",
+    response,
+    sequence_number: 1,
+  } as OpenAI.Responses.ResponseCompletedEvent);
 }
 
 export function createStreamWithoutCompletedResponse(): OpenAIResponseStream {

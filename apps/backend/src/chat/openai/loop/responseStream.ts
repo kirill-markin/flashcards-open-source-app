@@ -236,6 +236,31 @@ async function getFinalResponseFromStream(
   });
 }
 
+function deriveAssistantOutputText(response: OpenAI.Responses.Response): string {
+  return response.output.flatMap((item) => {
+    if (item.type !== "message" || item.role !== "assistant") {
+      return [];
+    }
+
+    return item.content.flatMap((content) => (
+      content.type === "output_text" ? [content.text] : []
+    ));
+  }).join("");
+}
+
+function normalizeFinalResponse(
+  response: OpenAI.Responses.Response,
+): OpenAI.Responses.Response {
+  if (typeof response.output_text === "string") {
+    return response;
+  }
+
+  return {
+    ...response,
+    output_text: deriveAssistantOutputText(response),
+  };
+}
+
 export async function collectResponseStream(
   params: CollectResponseStreamParams,
 ): Promise<ModelCallResult> {
@@ -391,11 +416,13 @@ export async function collectResponseStream(
     }
   }
 
-  const finalResponse = await getFinalResponseFromStream(
-    params.stream,
-    completedResponse,
-    params.signal,
-    toStreamDiagnostics(streamCounters, streamedText.length),
+  const finalResponse = normalizeFinalResponse(
+    await getFinalResponseFromStream(
+      params.stream,
+      completedResponse,
+      params.signal,
+      toStreamDiagnostics(streamCounters, streamedText.length),
+    ),
   );
   return {
     finalResponse,
