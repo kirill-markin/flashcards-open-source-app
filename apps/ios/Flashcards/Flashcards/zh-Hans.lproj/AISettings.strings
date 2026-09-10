@@ -774,3 +774,22 @@
 "feedback.sheet.success" = "谢谢。你的反馈已发送。";
 "feedback.sheet.messageTooLong" = "请将反馈控制在 %d 个字符以内。";
 "feedback.sheet.emptyMessageError" = "发送前请先填写反馈。";
+
+"settings.account.server.validation.authService" = "认证服务";
+"settings.account.server.validation.apiService" = "API 服务";
+"settings.account.server.validation.invalidHealthUrl" = "健康检查 URL 无效：%@";
+"settings.account.server.validation.requestFailed" = "%@ 对 %@ 的健康检查失败：%@";
+"settings.account.server.validation.invalidStatusCode" = "%@ 的健康检查返回状态 %d（%@）";
+"settings.account.server.validation.redirectedToDifferentOrigin" = "%@ 对 %@ 的健康检查被重定向到另一台服务器：%@。请将其配置为由同一服务器响应，然后重试。";
+"settings.account.server.validation.invalidApiHealthResponse" = "%@ 的 API 健康信息未声明有效的服务和云协议。请更新并重新部署自定义服务器，然后重试。";
+"settings.account.server.validation.unexpectedApiService" = "%@ 的 API 健康信息标识为 %@，而不是兼容的 Flashcards 后端。请更新并重新部署自定义服务器，然后重试。";
+"settings.account.server.validation.unsupportedCloudContractVersion" = "%@ 的 API 健康信息声明了不受支持的云协议版本 %d。此应用需要版本 1。请更新并重新部署自定义服务器，然后重试。";
+"settings.sync.customGuestWorkspacePaused.message" = "此自定义服务器无法访问这个访客工作区。服务器可能不兼容或配置有误。同步已暂停，你的本地卡片和待处理更改仍安全保存在此设备上。";
+"settings.account.status.customGuestPause.title" = "访客云工作区不可用";
+"settings.account.status.customGuestPause.server" = "服务器";
+"settings.account.status.customGuestPause.httpStatus" = "HTTP 状态";
+"settings.account.status.customGuestPause.backendCode" = "后端代码";
+"settings.account.status.customGuestPause.reference" = "参考编号";
+"settings.account.status.customGuestPause.retry" = "重试";
+"settings.account.status.customGuestPause.changeServer" = "更换服务器";
+"settings.account.status.customGuestPause.retryFailed" = "重试失败。同步仍处于暂停状态。请检查自定义服务器，然后重试。";

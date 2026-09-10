@@ -372,6 +372,82 @@ async function seedMigration0103LegacyChatRun(client) {
   );
 }
 
+async function seedMigration0129LegacyCatalogLanguageTag(client) {
+  const authorId = "12900000-0000-4000-8000-000000000001";
+  const packageId = "12900000-0000-4000-8000-000000000002";
+  const packageVersions = [
+    { packageVersionId: "12900000-0000-4000-8000-000000000003", languageTags: ["en-us"] },
+    { packageVersionId: "12900000-0000-4000-8000-000000000004", languageTags: ["en-us"] },
+    { packageVersionId: "12900000-0000-4000-8000-000000000005", languageTags: ["en-us"] },
+    { packageVersionId: "12900000-0000-4000-8000-000000000006", languageTags: ["en"] },
+  ];
+  const packageSlug = "us-citizenship-test";
+  const packageTitle = "Migration 0129 legacy language tag";
+  const packageSummary = "Package seeded so migration 0129 has rows to correct.";
+  const packageDescription =
+    "Catalog package whose early published versions carry the legacy en-us tag.";
+  const adminEmail = "migration-0129-legacy-language-tag@example.test";
+  const timestamp = "2026-08-05T00:00:00.000Z";
+
+  await client.query(
+    `INSERT INTO catalog.authors (
+       author_id, slug, display_name
+     ) VALUES ($1, $2, $3)`,
+    [authorId, "migration-0129-legacy-language-tag", packageTitle],
+  );
+  await client.query(
+    `INSERT INTO catalog.packages (
+       package_id, author_id, slug, title, summary, description,
+       language_tags, license, status, published_at
+     ) VALUES (
+       $1, $2, $3, $4, $5, $6, ARRAY['en']::TEXT[], 'CC0-1.0', 'published', $7
+     )`,
+    [
+      packageId,
+      authorId,
+      packageSlug,
+      packageTitle,
+      packageSummary,
+      packageDescription,
+      timestamp,
+    ],
+  );
+  // Published versions are inserted directly. Both triggers that block this shape -
+  // package_versions_published_immutable and package_versions_status_transition - are
+  // BEFORE UPDATE, so only an update path has to walk the draft/submitted/approved
+  // lifecycle. The shape mirrors production: versions 1 to 3 carry ARRAY['en-us'] and
+  // are what makes migration 0129 take its DISABLE TRIGGER path in CI instead of first
+  // executing it against production, while the already-correct published version 4 must
+  // survive untouched, which is what separates the migration's exact-array WHERE from a
+  // package-wide one. Version 4 stays published on purpose: that is production's shape,
+  // and a draft, submitted or approved row would sit under
+  // idx_package_versions_one_review_candidate.
+  for (const [index, packageVersion] of packageVersions.entries()) {
+    await client.query(
+      `INSERT INTO catalog.package_versions (
+         package_version_id, package_id, version_number, status, slug, title,
+         summary, description, language_tags, license, created_by_admin_email,
+         published_at
+       ) VALUES (
+         $1, $2, $3, 'published', $4, $5, $6, $7, $8::TEXT[],
+         'CC0-1.0', $9, $10
+       )`,
+      [
+        packageVersion.packageVersionId,
+        packageId,
+        index + 1,
+        packageSlug,
+        packageTitle,
+        packageSummary,
+        packageDescription,
+        packageVersion.languageTags,
+        adminEmail,
+        timestamp,
+      ],
+    );
+  }
+}
+
 async function createExpectedMigrationRoles(
   client,
   fileName,
@@ -518,6 +594,16 @@ async function applySingleMigration(
           await client.query("BEGIN");
           transactionStarted = true;
           await seedMigration0103LegacyChatRun(client);
+          await client.query("COMMIT");
+          transactionStarted = false;
+        }
+        if (
+          fileName
+          === "0129_correct_legacy_catalog_language_tag.sql"
+        ) {
+          await client.query("BEGIN");
+          transactionStarted = true;
+          await seedMigration0129LegacyCatalogLanguageTag(client);
           await client.query("COMMIT");
           transactionStarted = false;
         }

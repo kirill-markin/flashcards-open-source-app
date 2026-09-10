@@ -759,6 +759,7 @@ extension FlashcardsStore {
     }
 
     func finishCloudLink(linkedSession: CloudLinkedSession, trigger: CloudSyncTrigger) async throws {
+        try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
         try await self.cloudRuntime.runCloudLinkTransition { [weak self] in
             guard let self else {
                 throw LocalStoreError.uninitialized("Flashcards store is unavailable")
@@ -860,6 +861,13 @@ extension FlashcardsStore {
                 self.syncStatus = .idle
                 throw error
             }
+            if try self.enterCustomGuestWorkspacePauseIfNeeded(
+                error: error,
+                linkedSession: linkedSession,
+                detectedAt: Date()
+            ) {
+                try self.throwIfCustomGuestWorkspacePaused()
+            }
             if didCompleteLocalLink == false {
                 logCloudFlowPhase(
                     phase: .linkLocalWorkspace,
@@ -913,6 +921,14 @@ extension FlashcardsStore {
             return true
         }
 
-        return try await self.isLinkedWorkspaceEmptyForBootstrap(linkedSession: linkedSession)
+        let remoteWorkspaceIsEmpty = try await self.isLinkedWorkspaceEmptyForBootstrap(
+            linkedSession: linkedSession
+        )
+        let isRetryBeforeInitialGuestLink = self.customGuestWorkspaceRetrySession == linkedSession
+            && self.cloudSettings?.cloudState != .guest
+        if isRetryBeforeInitialGuestLink && remoteWorkspaceIsEmpty == false {
+            throw CloudBootstrapEligibilityError.remoteWorkspaceIsNotEmpty
+        }
+        return remoteWorkspaceIsEmpty
     }
 }

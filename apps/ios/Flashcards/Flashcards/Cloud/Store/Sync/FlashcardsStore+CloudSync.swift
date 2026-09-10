@@ -163,6 +163,7 @@ extension FlashcardsStore {
             error: nil
         )
         do {
+        try self.throwIfCustomGuestWorkspacePaused()
         try self.throwIfCredentialRecoveryBlocksPendingGuestUpgrade()
         if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
             self.addCloudSyncForegroundOperationBreadcrumb(
@@ -358,6 +359,20 @@ extension FlashcardsStore {
                 startedAt: startedAt,
                 immediateStartSkipped: nil,
                 skipReason: "account_deletion_pending",
+                syncResult: nil,
+                error: nil
+            )
+            return
+        }
+        if self.isCustomGuestWorkspacePaused {
+            self.blockCloudSyncForCustomGuestWorkspacePause()
+            self.addCloudSyncForegroundOperationBreadcrumb(
+                stage: "sync_if_linked",
+                phase: .success,
+                trigger: trigger,
+                startedAt: startedAt,
+                immediateStartSkipped: nil,
+                skipReason: "custom_guest_workspace_pause",
                 syncResult: nil,
                 error: nil
             )
@@ -640,6 +655,9 @@ extension FlashcardsStore {
         if self.isCloudCredentialRecoveryRequired {
             return true
         }
+        if self.isCustomGuestWorkspacePaused {
+            return true
+        }
         if case .blocked = self.syncStatus {
             return true
         }
@@ -652,6 +670,7 @@ extension FlashcardsStore {
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
+        try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
         do {
             if try self.shouldRunGuestLocalRecoveryLinkedSync(linkedSession: linkedSession) {
                 return try await self.cloudRuntime.runGuestLocalRecoveryLinkedSync(linkedSession: linkedSession)
@@ -669,6 +688,13 @@ extension FlashcardsStore {
                 detectedAt: Date()
             ) {
                 try self.throwIfCloudCredentialRecoveryRequired()
+            }
+            if try self.enterCustomGuestWorkspacePauseIfNeeded(
+                error: failureError,
+                linkedSession: linkedSession,
+                detectedAt: Date()
+            ) {
+                try self.throwIfCustomGuestWorkspacePaused()
             }
             throw failureError
         }
@@ -689,6 +715,7 @@ extension FlashcardsStore {
 
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         try self.enforceCloudCredentialRecoveryGateOutsideIdentityResolution(detectedAt: Date())
+        try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: linkedSession)
         do {
             if try self.shouldRunGuestLocalRecoveryLinkedSync(linkedSession: linkedSession) {
                 return try await self.cloudRuntime.runFreshGuestLocalRecoveryLinkedSyncAfterActiveSyncSettles(
@@ -708,6 +735,13 @@ extension FlashcardsStore {
                 detectedAt: Date()
             ) {
                 try self.throwIfCloudCredentialRecoveryRequired()
+            }
+            if try self.enterCustomGuestWorkspacePauseIfNeeded(
+                error: failureError,
+                linkedSession: linkedSession,
+                detectedAt: Date()
+            ) {
+                try self.throwIfCustomGuestWorkspacePaused()
             }
             throw failureError
         }

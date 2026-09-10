@@ -214,16 +214,16 @@ type WorkspaceReplicaPlatformRow = Readonly<{
 }>;
 
 /**
- * The platform one replica answered on, or null where the replica names no device.
+ * The analytics platform one replica answered under, or null where none can be justified.
  *
  * Only a client_installation replica is a device a person used. The other actor kinds
  * (db/migrations/0035_sync_installations_and_workspace_replicas.sql) each store something in
  * platform that would be a lie here: an agent_connection replica stores 'web' for the machine API
  * that is no browser, an ai_chat replica stores a hardcoded 'web' that describes no device, and
- * workspace_seed and workspace_reset store 'system'. They resolve to null rather than to a fourth
- * value: `agent` exists in productAnalyticsPlatforms and could be derived from the actor kind, but
- * this event reports the device a person answered a card on, and deriving anything else from a
- * replica that is not a client installation is separate work with its own case to make.
+ * workspace_seed and workspace_reset store 'system'.
+ *
+ * An agent_connection replica is the machine API client itself, and no stored platform column holds
+ * `agent` (serverEvents.ts), so actor_kind is the only thing that can resolve it.
  *
  * The remaining check is the one the column's own constraint leaves open: 'system' never reaches a
  * client_installation row, but reading platform as an analytics platform without confirming its
@@ -233,6 +233,10 @@ type WorkspaceReplicaPlatformRow = Readonly<{
 function toReviewAnsweredPlatform(
   replica: WorkspaceReplicaPlatformRow,
 ): ProductAnalyticsPlatform | null {
+  if (replica.actor_kind === "agent_connection") {
+    return "agent";
+  }
+
   if (replica.actor_kind !== "client_installation") {
     return null;
   }
@@ -420,21 +424,20 @@ function toReviewAnsweredEvent(
     // here is the guest/account split on the row itself, not the attribution.
     guestSessionId: null,
     workspaceId: answer.workspaceId,
-    // The device the person answered on, derived from sync.workspace_replicas for the replica that
-    // recorded the review and resolved once for the whole drain by resolveReviewAnswerPlatforms.
+    // Derived from sync.workspace_replicas for the replica that recorded the review and resolved
+    // once for the whole drain by resolveReviewAnswerPlatforms.
     //
-    // This is the only server-stored platform the fact can reach, and the rule that governs it is
-    // unchanged: the column may never be read without actor_kind on the same row. That is what the
-    // resolution keeps rather than what it works around - it selects both columns on one row and
-    // admits only a client_installation on ios, android or web, so the agent_connection replica
-    // storing 'web' for the machine API, the ai_chat replica storing a hardcoded 'web' that
-    // describes no device, and the workspace_seed and workspace_reset replicas storing 'system' all
-    // arrive here as null exactly as they did when nothing was derived at all.
+    // The column may never be read without actor_kind on the same row. That is what the resolution
+    // keeps rather than what it works around - it selects both columns on one row and reads
+    // platform only for a client_installation on ios, android or web, so the ai_chat replica
+    // storing a hardcoded 'web' that describes no device and the workspace_seed and workspace_reset
+    // replicas storing 'system' arrive here as null, while an agent_connection replica resolves to
+    // agent from its actor kind instead of from that column.
     //
-    // What did change is the cost. One query per review on the product's hottest write path is
-    // still not affordable, but that is what reading the replica inline would have cost, and this
-    // producer does not emit inline: answers are collected per transaction and drained after COMMIT,
-    // so a whole drain's platforms cost one indexed lookup that the review write never waits for.
+    // One query per review on the product's hottest write path is not affordable, but that is what
+    // reading the replica inline would have cost, and this producer does not emit inline: answers
+    // are collected per transaction and drained after COMMIT, so a whole drain's platforms cost
+    // one indexed lookup that the review write never waits for.
     //
     // Null stays the answer for everything else - a replica the guard turns down, a replica the
     // scoped read did not reach, a resolution the drain could not make - because a guess would file

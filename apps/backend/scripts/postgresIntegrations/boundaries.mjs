@@ -71,10 +71,20 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0128_agent_review_receipts.sql",
+    migrationFileName: "0129_correct_legacy_catalog_language_tag.sql",
+    expectedMigrationCount: 131,
+    testFiles: Object.freeze([
+      "src/catalog/authoring/versions/legacyLanguageTagCorrection.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
+    migrationFileName: "0128_catalog_educational_alignment.sql",
     expectedMigrationCount: 130,
     testFiles: Object.freeze([
-      "src/agent/reviews.postgres.integration.ts",
+      "src/catalog/authoring/lockOrder.postgres.integration.ts",
+      "src/catalog/authoring/versions/publishedVersionAlignment.postgres.integration.ts",
+      "src/catalog/distribution/public/public.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -92,15 +102,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/serverFacts/serverEvents.postgres.integration.ts",
       "src/productAnalytics/writer.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0116_guest_session_web_platform.sql",
-    expectedMigrationCount: 118,
-    testFiles: Object.freeze([
-      "src/catalog/authoring/lockOrder.postgres.integration.ts",
-      "src/catalog/distribution/public/public.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

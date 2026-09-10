@@ -12,16 +12,10 @@ import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../../..
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { useI18n } from "../../../i18n";
 import { CardTagsInput, type CardTagsInputHandle } from "../CardTagsInput";
-import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
-import {
-  EditableCardTagsCell,
-  EditableCardTextCell,
-  type CardInlineEditorToken,
-} from "./CardsTableEditors";
 import { queryLocalCardsPage } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
-import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion, UpdateCardInput } from "../../../types";
+import type { Card, CardFilter, CardQuerySort, CardQuerySortDirection, CardQuerySortKey, QueryCardsPage, TagSuggestion } from "../../../types";
 import {
   buildCardsLoadingRowPreview,
   readCardsLoadingSnapshot,
@@ -54,7 +48,6 @@ type CardsQueryControl = Readonly<{
   nextCursor: string | null;
   activeRequest: CardsQueryRequestKind | null;
   authoritativeWindow: CardsQueryWindow;
-  hasPendingPublication: boolean;
 }>;
 
 const cardsPageSize = 50;
@@ -208,18 +201,12 @@ function mergeCardsQueryWindow(
   };
 }
 
-function getCardInlineEditorTokenKey(editorToken: CardInlineEditorToken): string {
-  return `${editorToken.cardId}:${editorToken.field}`;
-}
-
 export function CardsScreen(): ReactElement {
   const {
     activeWorkspace,
     cloudSettings,
     localReadVersion,
     session,
-    updateCardItem,
-    setErrorMessage,
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime, formatNumber } = useI18n();
@@ -229,7 +216,6 @@ export function CardsScreen(): ReactElement {
   const [cardFilter, setCardFilter] = useState<CardFilter | null>(null);
   const [draftCardFilter, setDraftCardFilter] = useState<CardFilter | null>(null);
   const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState<boolean>(false);
-  const [savingCardIds, setSavingCardIds] = useState<ReadonlySet<string>>(new Set<string>());
   const [cardsQueryState, setCardsQueryState] = useState<CardsQueryState>(createInitialCardsQueryState);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreSentinelRef = useRef<HTMLTableRowElement | null>(null);
@@ -251,11 +237,7 @@ export function CardsScreen(): ReactElement {
     nextCursor: null,
     activeRequest: null,
     authoritativeWindow: createEmptyCardsQueryWindow(),
-    hasPendingPublication: false,
   });
-  const activeEditorLifecyclesRef = useRef<Map<string, number>>(new Map());
-  const nextEditorLifecycleRef = useRef<number>(0);
-  const inlineSaveTailsRef = useRef<Map<string, Promise<void>>>(new Map());
   const observedQueryIdentityRef = useRef<string | null>(null);
   const observedLocalReadVersionRef = useRef<number>(localReadVersion);
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
@@ -306,7 +288,6 @@ export function CardsScreen(): ReactElement {
     requestSequence: number,
     queryWindow: CardsQueryWindow,
   ): void {
-    const shouldDeferPublication = activeEditorLifecyclesRef.current.size > 0;
     cardsQueryControlRef.current = {
       queryIdentity,
       requestSequence,
@@ -314,59 +295,11 @@ export function CardsScreen(): ReactElement {
       nextCursor: queryWindow.nextCursor,
       activeRequest: null,
       authoritativeWindow: queryWindow,
-      hasPendingPublication: shouldDeferPublication,
     };
-
-    if (shouldDeferPublication) {
-      setCardsQueryState((currentState) => ({
-        ...currentState,
-        isLoading: false,
-        isLoadingMore: false,
-        errorMessage: "",
-      }));
-      return;
-    }
 
     loadMoreSentinelIntersectionConsumedRef.current = false;
     setCardsQueryState(createPublishedCardsQueryState(queryWindow));
   }
-
-  const handleInlineEditorOpen = useCallback((editorToken: CardInlineEditorToken): number => {
-    const editorLifecycle = nextEditorLifecycleRef.current + 1;
-    nextEditorLifecycleRef.current = editorLifecycle;
-    activeEditorLifecyclesRef.current.set(
-      getCardInlineEditorTokenKey(editorToken),
-      editorLifecycle,
-    );
-    return editorLifecycle;
-  }, []);
-
-  const handleInlineEditorClose = useCallback((
-    editorToken: CardInlineEditorToken,
-    editorLifecycle: number,
-  ): void => {
-    const editorTokenKey = getCardInlineEditorTokenKey(editorToken);
-    if (activeEditorLifecyclesRef.current.get(editorTokenKey) !== editorLifecycle) {
-      return;
-    }
-
-    activeEditorLifecyclesRef.current.delete(editorTokenKey);
-    if (activeEditorLifecyclesRef.current.size > 0) {
-      return;
-    }
-
-    const currentControl = cardsQueryControlRef.current;
-    if (!currentControl.hasPendingPublication) {
-      return;
-    }
-
-    cardsQueryControlRef.current = {
-      ...currentControl,
-      hasPendingPublication: false,
-    };
-    loadMoreSentinelIntersectionConsumedRef.current = false;
-    setCardsQueryState(createPublishedCardsQueryState(currentControl.authoritativeWindow));
-  }, []);
 
   async function resetCardsQuery(queryIdentity: string): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -374,7 +307,6 @@ export function CardsScreen(): ReactElement {
     }
 
     const requestSequence = cardsQueryControlRef.current.requestSequence + 1;
-    activeEditorLifecyclesRef.current.clear();
     loadMoreSentinelIntersectionConsumedRef.current = false;
     cardsQueryControlRef.current = {
       queryIdentity,
@@ -383,7 +315,6 @@ export function CardsScreen(): ReactElement {
       nextCursor: null,
       activeRequest: activeWorkspace === null ? null : "reset",
       authoritativeWindow: createEmptyCardsQueryWindow(),
-      hasPendingPublication: false,
     };
 
     if (activeWorkspace === null) {
@@ -710,83 +641,6 @@ export function CardsScreen(): ReactElement {
     return () => observer.disconnect();
   }, [cardsQueryState.nextCursor, loadNextPage]);
 
-  function handleInlineSave(card: Card, patch: UpdateCardInput): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
-      return Promise.resolve();
-    }
-
-    setSavingCardIds((currentCardIds) => new Set([...currentCardIds, card.cardId]));
-    setErrorMessage("");
-
-    const previousTail = inlineSaveTailsRef.current.get(card.cardId) ?? Promise.resolve();
-    const savePromise = previousTail.then(async () => {
-      if (indexedDbOpenRecoveryState.hasFailed()) {
-        return;
-      }
-
-      try {
-        await updateCardItem(card.cardId, patch);
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-          return;
-        }
-        const expectedErrorMessage = getExpectedCardMutationInlineErrorMessage(error, t("cardForm.errors.cardNotFound"));
-        if (expectedErrorMessage !== null) {
-          setErrorMessage(expectedErrorMessage);
-          throw error;
-        }
-
-        const observationIdentity = observationIdentityRef.current;
-        captureAppOperationError(error, {
-          feature: "cards",
-          operation: "cards_inline_save",
-          userId: observationIdentity.userId,
-          workspaceId: activeWorkspace?.workspaceId ?? null,
-          installationId: observationIdentity.installationId,
-          entityId: card.cardId,
-        });
-        showCapturedTechnicalError(error);
-        setErrorMessage(t("appError.technicalError.message"));
-        throw error;
-      }
-
-      try {
-        await refreshCardsQuery(cardsQueryIdentity);
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-          return;
-        }
-        showCapturedTechnicalError(error);
-        setErrorMessage(t("appError.technicalError.message"));
-      }
-    });
-    const nextTail = savePromise.then(
-      () => undefined,
-      () => undefined,
-    );
-    inlineSaveTailsRef.current.set(card.cardId, nextTail);
-
-    void nextTail.then(() => {
-      if (inlineSaveTailsRef.current.get(card.cardId) !== nextTail) {
-        return;
-      }
-
-      inlineSaveTailsRef.current.delete(card.cardId);
-      if (indexedDbOpenRecoveryState.hasFailed()) {
-        return;
-      }
-      setSavingCardIds((currentCardIds) => {
-        const nextCardIds = new Set(currentCardIds);
-        nextCardIds.delete(card.cardId);
-        return nextCardIds;
-      });
-    });
-
-    return savePromise;
-  }
-
   function handleSortChange(sortKey: CardQuerySortKey): void {
     setSorts((currentSorts) => buildNextCardsTableSorts(currentSorts, sortKey));
     scrollContainerRef.current?.scrollTo({
@@ -962,7 +816,6 @@ export function CardsScreen(): ReactElement {
           <table className="txn-table cards-table">
             <thead>
               <tr>
-                <th className="txn-th cards-open-th cards-col-open" />
                 <th className="txn-th cards-header-th cards-col-front">{renderSortableHeaderCell("frontText", t("cardsScreen.table.front"))}</th>
                 <th className="txn-th cards-header-th cards-col-back">{renderSortableHeaderCell("backText", t("cardsScreen.table.back"))}</th>
                 <th className="txn-th cards-header-th cards-col-tags">{renderSortableHeaderCell("tags", t("cardsScreen.table.tags"))}</th>
@@ -977,9 +830,6 @@ export function CardsScreen(): ReactElement {
                 cardsLoadingSnapshot !== null && cardsLoadingSnapshot.rows.length > 0 ? (
                   cardsLoadingSnapshot.rows.map((card) => (
                     <tr key={card.cardId} className="txn-row cards-row cards-loading-row">
-                      <td className="txn-cell cards-open-cell cards-col-open">
-                        <span className="row-open-link cards-loading-row-open">{t("cardsScreen.loading.open")}</span>
-                      </td>
                       <td className="txn-cell cards-col-front cards-cell-multiline">
                         <span className="cards-loading-cell-text">{card.frontText}</span>
                       </td>
@@ -998,9 +848,6 @@ export function CardsScreen(): ReactElement {
                 ) : (
                   ["loading-1", "loading-2", "loading-3", "loading-4", "loading-5", "loading-6"].map((key) => (
                     <tr key={key} className="txn-row cards-row cards-loading-row" aria-hidden="true">
-                      <td className="txn-cell cards-open-cell cards-col-open">
-                        <span className="row-open-link cards-loading-row-open">{t("cardsScreen.loading.open")}</span>
-                      </td>
                       <td className="txn-cell cards-col-front"><span className="cards-loading-line cards-loading-line-wide" /></td>
                       <td className="txn-cell cards-col-back"><span className="cards-loading-line cards-loading-line-wide" /></td>
                       <td className="txn-cell cards-col-tags"><span className="cards-loading-line cards-loading-line-medium" /></td>
@@ -1011,61 +858,42 @@ export function CardsScreen(): ReactElement {
                     </tr>
                   ))
                 )
-              ) : cardsQueryState.items.map((card) => {
-                const isSaving = savingCardIds.has(card.cardId);
-                return (
-                  <tr
-                    key={card.cardId}
-                    className="txn-row cards-row"
-                    data-testid="cards-row"
-                    data-card-id={card.cardId}
-                    data-card-front-text={card.frontText}
-                  >
-                    <td className="txn-cell cards-open-cell cards-col-open">
-                      <Link className="row-open-link" to={`/cards/${card.cardId}`}>{t("cardsScreen.table.open")}</Link>
-                    </td>
-                    <EditableCardTextCell
-                      editorToken={{ cardId: card.cardId, field: "frontText" }}
-                      value={card.frontText}
-                      displayValue={card.frontText}
-                      cellClassName="cards-col-front"
-                      multiline={true}
-                      saving={isSaving}
-                      onCommit={(nextValue) => handleInlineSave(card, { frontText: nextValue })}
-                      onEditorOpen={handleInlineEditorOpen}
-                      onEditorClose={handleInlineEditorClose}
-                    />
-                    <EditableCardTextCell
-                      editorToken={{ cardId: card.cardId, field: "backText" }}
-                      value={card.backText}
-                      displayValue={card.backText}
-                      cellClassName="cards-col-back"
-                      multiline={true}
-                      saving={isSaving}
-                      onCommit={(nextValue) => handleInlineSave(card, { backText: nextValue })}
-                      onEditorOpen={handleInlineEditorOpen}
-                      onEditorClose={handleInlineEditorClose}
-                    />
-                    <EditableCardTagsCell
-                      editorToken={{ cardId: card.cardId, field: "tags" }}
-                      value={card.tags}
-                      suggestions={tagSuggestions}
-                      cellClassName="cards-col-tags cards-tag-cell"
-                      saving={isSaving}
-                      onCommit={(nextValue) => handleInlineSave(card, { tags: nextValue })}
-                      onEditorOpen={handleInlineEditorOpen}
-                      onEditorClose={handleInlineEditorClose}
-                    />
-                    <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
-                    <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
-                    <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
-                    <td className="txn-cell txn-cell-mono cards-col-updated">{formatNullableDateTime(card.updatedAt, formatDateTime, t)}</td>
-                  </tr>
-                );
-              })}
+              ) : cardsQueryState.items.map((card) => (
+                <tr
+                  key={card.cardId}
+                  className="txn-row cards-row"
+                  data-testid="cards-row"
+                  data-card-id={card.cardId}
+                  data-card-front-text={card.frontText}
+                >
+                  <td className="txn-cell cards-col-front cards-cell-multiline">
+                    <Link className="cards-row-link" to={`/cards/${card.cardId}`}>
+                      <span className="cards-cell-multiline-display">{card.frontText}</span>
+                    </Link>
+                  </td>
+                  <td className="txn-cell cards-col-back cards-cell-multiline">
+                    <span className="cards-cell-multiline-display">{card.backText === "" ? t("common.noBackText") : card.backText}</span>
+                  </td>
+                  <td className="txn-cell cards-col-tags cards-tag-cell">
+                    {card.tags.length === 0 ? <span className="tag-value-empty">{t("common.noTags")}</span> : (
+                      <span className="tag-value-list">
+                        {card.tags.map((tag) => (
+                          <span key={tag} className="tag-chip tag-chip-readonly">
+                            <span className="tag-chip-label">{tag}</span>
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </td>
+                  <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
+                  <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
+                  <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
+                  <td className="txn-cell txn-cell-mono cards-col-updated">{formatNullableDateTime(card.updatedAt, formatDateTime, t)}</td>
+                </tr>
+              ))}
               {isInitialCardsLoad ? null : cardsQueryState.items.length === 0 ? (
                 <tr>
-                  <td className="txn-cell txn-empty" colSpan={8}>
+                  <td className="txn-cell txn-empty" colSpan={7}>
                     {cardsQueryState.totalCount === 0 && hasActiveSearchOrFilter === false
                       ? t("cardsScreen.empty.noCards")
                       : t("cardsScreen.empty.noMatches")}
@@ -1074,7 +902,7 @@ export function CardsScreen(): ReactElement {
               ) : null}
               {cardsQueryState.nextCursor !== null ? (
                 <tr ref={loadMoreSentinelRef} className="cards-load-more-row" aria-hidden="true">
-                  <td className="txn-cell" colSpan={8}>
+                  <td className="txn-cell" colSpan={7}>
                     {cardsQueryState.isLoadingMore ? t("cardsScreen.loadingMore") : ""}
                   </td>
                 </tr>

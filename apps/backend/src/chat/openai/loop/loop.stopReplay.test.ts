@@ -27,6 +27,7 @@ import {
   collectEvents,
   createAbortedResponseStream,
   createAssistantMessageItem,
+  createCompletedResponseStream,
   createDependencies,
   createFunctionCallAddedEvent,
   createFunctionCallItem,
@@ -540,11 +541,12 @@ test("startOpenAILoopWithDeps reports phase transitions for model and tool execu
   assert.deepEqual(phases, ["idle", "model", "idle", "tool", "idle", "idle"]);
 });
 
-test("startOpenAILoopWithDeps reports model phase transitions for the tool-limit summary call", async () => {
+test("startOpenAILoopWithDeps completes a raw tool-limit summary and reports model phase transitions", async () => {
   let streamCallCount = 0;
   let toolCallCount = 0;
   const phases: Array<string> = [];
   const requests: Array<OpenAI.Responses.ResponseCreateParams> = [];
+  const { sink, events } = collectEvents();
 
   const result = await startOpenAILoopWithDeps(
     createParams({
@@ -552,7 +554,7 @@ test("startOpenAILoopWithDeps reports model phase transitions for the tool-limit
         phases.push(phase);
       },
     }),
-    async (): Promise<void> => undefined,
+    sink,
     createDependencies(
       (request) => {
         requests.push(request);
@@ -564,9 +566,8 @@ test("startOpenAILoopWithDeps reports model phase transitions for the tool-limit
           );
         }
 
-        return createResponseStream(
-          [],
-          createResponse([createAssistantMessageItem("summary")], "summary"),
+        return createCompletedResponseStream(
+          createResponse([createAssistantMessageItem("summary")], undefined),
         );
       },
       async () => {
@@ -583,6 +584,41 @@ test("startOpenAILoopWithDeps reports model phase transitions for the tool-limit
   assert.equal(result.terminationReason, "completed");
   assert.equal(streamCallCount, CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS + 1);
   assert.equal(toolCallCount, CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS);
+  assert.deepEqual(events.slice(-2), [
+    {
+      type: "delta",
+      text: "summary",
+      itemId: "tool-limit-summary",
+      responseIndex: CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS,
+      outputIndex: 0,
+      contentIndex: 0,
+      sequenceNumber: 0,
+    },
+    { type: "done" },
+  ]);
+  assert.equal(result.openaiItems.length, CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS * 2 + 1);
+  assert.deepEqual(result.openaiItems[0], {
+    type: "function_call",
+    call_id: "call-1",
+    name: "sql",
+    arguments: "{\"sql\":\"select 1\"}",
+    status: "completed",
+  });
+  assert.deepEqual(result.openaiItems.at(-2), {
+    type: "function_call_output",
+    call_id: `call-${String(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)}`,
+    output: `{\"call\":${String(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)}}`,
+  });
+  assert.deepEqual(result.openaiItems.at(-1), {
+    type: "message",
+    role: "assistant",
+    status: "completed",
+    content: [{
+      type: "output_text",
+      text: "summary",
+      annotations: [],
+    }],
+  });
   assert.deepEqual(
     requests.map((request) => request.safety_identifier),
     Array.from(

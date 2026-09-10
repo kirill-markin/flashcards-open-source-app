@@ -4,6 +4,7 @@ import Foundation
 extension FlashcardsStore {
     func currentActiveCloudSessionForAI() throws -> CloudLinkedSession {
         try self.throwIfCloudCredentialRecoveryRequired()
+        try self.throwIfCustomGuestWorkspacePaused()
         if case .blocked(let message) = self.syncStatus {
             throw LocalStoreError.validation(message)
         }
@@ -49,6 +50,7 @@ extension FlashcardsStore {
 
     func cloudSessionForAI() async throws -> CloudLinkedSession {
         try self.throwIfCloudCredentialRecoveryRequired()
+        try self.throwIfCustomGuestWorkspacePaused()
         if case .blocked(let message) = self.syncStatus {
             throw LocalStoreError.validation(message)
         }
@@ -121,6 +123,7 @@ extension FlashcardsStore {
 
     private func loadOrCreateGuestCloudSession() async throws -> CloudLinkedSession {
         try self.throwIfCloudCredentialRecoveryRequired()
+        try self.throwIfCustomGuestWorkspacePaused()
         let configuration = try self.currentCloudServiceConfiguration()
         let existingGuestSession = try self.loadUsableGuestSessionForCurrentConfiguration()
         if existingGuestSession == nil,

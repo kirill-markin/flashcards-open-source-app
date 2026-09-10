@@ -41,7 +41,7 @@ export type AdminQueryResponse = Readonly<{
 // platform column is NULL lands, which means the row carries no resolved device fact - either the
 // actor behind it is not a device or no device could be resolved for it - so it stays its own bucket
 // and is never guessed at. See the note on `buildReviewEventsByDateSql` for how a `review_answered`
-// row reaches a device bucket or this one.
+// row reaches its bucket.
 export const reviewEventPlatforms = ["web", "android", "ios", "agent", "unattributed"] as const;
 
 export type ReviewEventPlatform = (typeof reviewEventPlatforms)[number];

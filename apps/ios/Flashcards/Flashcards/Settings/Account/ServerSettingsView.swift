@@ -140,8 +140,15 @@ struct ServerSettingsView: View {
                         .foregroundStyle(.red)
                 }
 
-                Button(aiSettingsLocalized("settings.account.server.applyCustomServer", "Apply Custom Server")) {
+                Button {
                     self.prepareCustomServerApply()
+                } label: {
+                    HStack(spacing: 8) {
+                        if self.isSaving {
+                            ProgressView()
+                        }
+                        Text(aiSettingsLocalized("settings.account.server.applyCustomServer", "Apply Custom Server"))
+                    }
                 }
                 .disabled(self.isApplyDisabled)
             }

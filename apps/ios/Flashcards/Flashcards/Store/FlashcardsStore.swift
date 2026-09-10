@@ -86,6 +86,7 @@ final class FlashcardsStore {
     var lastSuccessfulCloudSyncAt: String?
     var cloudSyncFastPollingUntil: Date?
     var cloudCredentialRecoveryState: CloudCredentialRecoveryState?
+    var customGuestWorkspacePauseState: CustomGuestWorkspacePauseState?
     var pendingReviewCardIds: Set<String>
     var reviewSubmissionFailure: ReviewSubmissionFailure?
     /// Session-only buffer used to decide when to show the frequent-"Hard" reminder.
@@ -200,6 +201,7 @@ final class FlashcardsStore {
     @ObservationIgnored var activeAutomaticFeedbackPromptTask: Task<Void, Never>?
     @ObservationIgnored var nextAutomaticFeedbackPromptRetryAt: Date?
     @ObservationIgnored var capturedTechnicalErrorCaptureContextIDs: Set<String>
+    @ObservationIgnored var customGuestWorkspaceRetrySession: CloudLinkedSession?
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -367,6 +369,10 @@ final class FlashcardsStore {
             userDefaults: userDefaults,
             decoder: decoder
         )
+        let initialCustomGuestWorkspacePauseState = loadCustomGuestWorkspacePauseState(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
         let dependencies = FlashcardsStoreDependencies(
             cloudAuthService: cloudAuthService,
             cloudSyncService: cloudSyncService,
@@ -419,12 +425,15 @@ final class FlashcardsStore {
                     reason: initialCloudCredentialRecoveryState.reason
                 )
             )
+        } else if initialCustomGuestWorkspacePauseState != nil {
+            self.syncStatus = .blocked(message: localizedCustomGuestWorkspacePauseMessage())
         } else {
             self.syncStatus = .idle
         }
         self.lastSuccessfulCloudSyncAt = nil
         self.cloudSyncFastPollingUntil = nil
         self.cloudCredentialRecoveryState = initialCloudCredentialRecoveryState
+        self.customGuestWorkspacePauseState = initialCustomGuestWorkspacePauseState
         self.pendingReviewCardIds = initialReviewPublishedState.pendingReviewCardIds
         self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
         self.reviewHardReminderRecentRatings = []
@@ -546,6 +555,7 @@ final class FlashcardsStore {
         self.activeAutomaticFeedbackPromptTask = nil
         self.nextAutomaticFeedbackPromptRetryAt = nil
         self.capturedTechnicalErrorCaptureContextIDs = []
+        self.customGuestWorkspaceRetrySession = nil
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
@@ -558,6 +568,11 @@ final class FlashcardsStore {
             } catch {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
+        }
+        do {
+            try self.reconcileCustomGuestWorkspacePauseWithCurrentIdentity()
+        } catch {
+            self.globalErrorMessage = Flashcards.errorMessage(error: error)
         }
         self.reviewNotificationsSettings = loadReviewNotificationsSettings(
             userDefaults: userDefaults,

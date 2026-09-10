@@ -774,3 +774,22 @@
 "feedback.sheet.success" = "شكرًا. تم إرسال ملاحظاتك.";
 "feedback.sheet.messageTooLong" = "اجعل الملاحظات أقل من %d حرف.";
 "feedback.sheet.emptyMessageError" = "اكتب ملاحظات قبل الإرسال.";
+
+"settings.account.server.validation.authService" = "خدمة المصادقة";
+"settings.account.server.validation.apiService" = "خدمة API";
+"settings.account.server.validation.invalidHealthUrl" = "عنوان URL لفحص الحالة غير صالح: %@";
+"settings.account.server.validation.requestFailed" = "فشل فحص حالة %@ لـ %@: %@";
+"settings.account.server.validation.invalidStatusCode" = "أعاد فحص حالة %@ الرمز %d لـ %@";
+"settings.account.server.validation.redirectedToDifferentOrigin" = "تمت إعادة توجيه فحص حالة %@ لـ %@ إلى خادم آخر: %@. اضبطه ليستجيب على الخادم نفسه، ثم حاول مرة أخرى.";
+"settings.account.server.validation.invalidApiHealthResponse" = "لا تعلن حالة API على %@ عن خدمة وعقد سحابي صالحين. حدّث الخادم المخصص وأعد نشره، ثم حاول مرة أخرى.";
+"settings.account.server.validation.unexpectedApiService" = "تعرّف حالة API على %@ الخدمة %@ بدلاً من خلفية Flashcards متوافقة. حدّث الخادم المخصص وأعد نشره، ثم حاول مرة أخرى.";
+"settings.account.server.validation.unsupportedCloudContractVersion" = "تعلن حالة API على %@ عن إصدار عقد سحابي غير مدعوم %d. يتطلب هذا التطبيق الإصدار 1. حدّث الخادم المخصص وأعد نشره، ثم حاول مرة أخرى.";
+"settings.sync.customGuestWorkspacePaused.message" = "لا يستطيع هذا الخادم المخصص الوصول إلى مساحة عمل الضيف هذه. قد يكون الخادم غير متوافق أو مهيأ بشكل غير صحيح. تمت إيقاف المزامنة مؤقتًا، وبطاقاتك المحلية وتغييراتك المعلقة آمنة على هذا الجهاز.";
+"settings.account.status.customGuestPause.title" = "مساحة عمل الضيف السحابية غير متاحة";
+"settings.account.status.customGuestPause.server" = "الخادم";
+"settings.account.status.customGuestPause.httpStatus" = "حالة HTTP";
+"settings.account.status.customGuestPause.backendCode" = "رمز الخلفية";
+"settings.account.status.customGuestPause.reference" = "المرجع";
+"settings.account.status.customGuestPause.retry" = "إعادة المحاولة";
+"settings.account.status.customGuestPause.changeServer" = "تغيير الخادم";
+"settings.account.status.customGuestPause.retryFailed" = "فشلت إعادة المحاولة. لا تزال المزامنة متوقفة مؤقتًا. تحقق من الخادم المخصص وحاول مرة أخرى.";

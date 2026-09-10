@@ -58,7 +58,8 @@
 }
 
 .review-loading-queue-card {
-  min-height: 96px;
+  /* Matches a real single-line .review-queue-card, whose .review-queue-card-tags row is one 30px chip tall. */
+  min-height: 106px;
 }
 
 .review-queue-card:hover {

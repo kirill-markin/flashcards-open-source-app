@@ -774,3 +774,22 @@
 "feedback.sheet.success" = "Gracias. Tus comentarios se han enviado.";
 "feedback.sheet.messageTooLong" = "Mantén los comentarios por debajo de %d caracteres.";
 "feedback.sheet.emptyMessageError" = "Escribe un comentario antes de enviarlo.";
+
+"settings.account.server.validation.authService" = "Servicio de autenticación";
+"settings.account.server.validation.apiService" = "Servicio de API";
+"settings.account.server.validation.invalidHealthUrl" = "La URL de comprobación de estado no es válida: %@";
+"settings.account.server.validation.requestFailed" = "La comprobación de estado de %@ para %@ ha fallado: %@";
+"settings.account.server.validation.invalidStatusCode" = "La comprobación de estado de %@ ha devuelto el estado %d para %@";
+"settings.account.server.validation.redirectedToDifferentOrigin" = "La comprobación de estado de %@ para %@ se ha redirigido a otro servidor: %@. Configúrala para que responda en el mismo servidor y vuelve a intentarlo.";
+"settings.account.server.validation.invalidApiHealthResponse" = "El estado de la API en %@ no anuncia un servicio y contrato de nube válidos. Actualiza y vuelve a desplegar el servidor personalizado y, después, inténtalo de nuevo.";
+"settings.account.server.validation.unexpectedApiService" = "El estado de la API en %@ identifica %@ en lugar de un backend de Flashcards compatible. Actualiza y vuelve a desplegar el servidor personalizado y, después, inténtalo de nuevo.";
+"settings.account.server.validation.unsupportedCloudContractVersion" = "El estado de la API en %@ anuncia la versión de contrato de nube no compatible %d. Esta app requiere la versión 1. Actualiza y vuelve a desplegar el servidor personalizado y, después, inténtalo de nuevo.";
+"settings.sync.customGuestWorkspacePaused.message" = "Este servidor personalizado no puede acceder a este espacio de trabajo de invitado. Puede que el servidor sea incompatible o esté mal configurado. La sincronización está en pausa y tus tarjetas locales y cambios pendientes están seguros en este dispositivo.";
+"settings.account.status.customGuestPause.title" = "Espacio de trabajo de invitado no disponible";
+"settings.account.status.customGuestPause.server" = "Servidor";
+"settings.account.status.customGuestPause.httpStatus" = "Estado HTTP";
+"settings.account.status.customGuestPause.backendCode" = "Código del backend";
+"settings.account.status.customGuestPause.reference" = "Referencia";
+"settings.account.status.customGuestPause.retry" = "Reintentar";
+"settings.account.status.customGuestPause.changeServer" = "Cambiar servidor";
+"settings.account.status.customGuestPause.retryFailed" = "El reintento ha fallado. La sincronización sigue en pausa. Comprueba el servidor personalizado y vuelve a intentarlo.";

@@ -774,3 +774,22 @@
 "feedback.sheet.success" = "धन्यवाद। आपकी प्रतिक्रिया भेज दी गई है।";
 "feedback.sheet.messageTooLong" = "प्रतिक्रिया को %d वर्णों से कम रखें।";
 "feedback.sheet.emptyMessageError" = "भेजने से पहले प्रतिक्रिया लिखें।";
+
+"settings.account.server.validation.authService" = "प्रमाणीकरण सेवा";
+"settings.account.server.validation.apiService" = "API सेवा";
+"settings.account.server.validation.invalidHealthUrl" = "हेल्थ चेक URL अमान्य है: %@";
+"settings.account.server.validation.requestFailed" = "%@ का %@ के लिए हेल्थ चेक विफल हुआ: %@";
+"settings.account.server.validation.invalidStatusCode" = "%@ के हेल्थ चेक ने स्थिति %d लौटाई: %@";
+"settings.account.server.validation.redirectedToDifferentOrigin" = "%@ के %@ के लिए हेल्थ चेक को दूसरे सर्वर पर रीडायरेक्ट किया गया: %@। इसे उसी सर्वर पर जवाब देने के लिए कॉन्फ़िगर करें, फिर दोबारा कोशिश करें।";
+"settings.account.server.validation.invalidApiHealthResponse" = "%@ पर API हेल्थ मान्य सेवा और क्लाउड अनुबंध घोषित नहीं करता। कस्टम सर्वर को अपडेट करके फिर से डिप्लॉय करें, फिर दोबारा कोशिश करें।";
+"settings.account.server.validation.unexpectedApiService" = "%@ पर API हेल्थ संगत Flashcards बैकएंड के बजाय %@ की पहचान करता है। कस्टम सर्वर को अपडेट करके फिर से डिप्लॉय करें, फिर दोबारा कोशिश करें।";
+"settings.account.server.validation.unsupportedCloudContractVersion" = "%@ पर API हेल्थ असमर्थित क्लाउड अनुबंध संस्करण %d घोषित करता है। इस ऐप को संस्करण 1 चाहिए। कस्टम सर्वर को अपडेट करके फिर से डिप्लॉय करें, फिर दोबारा कोशिश करें।";
+"settings.sync.customGuestWorkspacePaused.message" = "यह कस्टम सर्वर इस अतिथि कार्यस्थान तक नहीं पहुँच सकता। सर्वर असंगत या गलत तरीके से कॉन्फ़िगर हो सकता है। सिंक रुका हुआ है और आपके स्थानीय कार्ड व लंबित बदलाव इस डिवाइस पर सुरक्षित हैं।";
+"settings.account.status.customGuestPause.title" = "अतिथि क्लाउड कार्यस्थान अनुपलब्ध";
+"settings.account.status.customGuestPause.server" = "सर्वर";
+"settings.account.status.customGuestPause.httpStatus" = "HTTP स्थिति";
+"settings.account.status.customGuestPause.backendCode" = "बैकएंड कोड";
+"settings.account.status.customGuestPause.reference" = "संदर्भ";
+"settings.account.status.customGuestPause.retry" = "दोबारा कोशिश करें";
+"settings.account.status.customGuestPause.changeServer" = "सर्वर बदलें";
+"settings.account.status.customGuestPause.retryFailed" = "दोबारा कोशिश विफल हुई। सिंक अभी भी रुका हुआ है। कस्टम सर्वर जाँचें और फिर कोशिश करें।";
