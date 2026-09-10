@@ -71,6 +71,13 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0129_correct_legacy_catalog_language_tag.sql",
+    expectedMigrationCount: 131,
+    testFiles: Object.freeze([
+      "src/catalog/authoring/versions/legacyLanguageTagCorrection.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0128_catalog_educational_alignment.sql",
     expectedMigrationCount: 130,
     testFiles: Object.freeze([
