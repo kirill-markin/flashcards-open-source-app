@@ -134,8 +134,11 @@ function expectNullableNonEmptyString(value: unknown, fieldName: string): string
 /**
  * Reads an absent field as null rather than rejecting it, unlike every other
  * package field. `PUT /draft` replaces the whole draft instead of patching it,
- * so a request without an educational alignment field is a request for the
- * package to carry none, and it clears whatever the draft held.
+ * so a request without `educationalFramework` or `educationalLevel` is a
+ * request for the package to carry neither, and it clears whatever the draft
+ * held. `educationalSubject` is not one of them: every deck teaches something,
+ * its column is NOT NULL, and an omitted subject is rejected like any other
+ * required package field.
  */
 function expectOmittableNonEmptyString(value: unknown, fieldName: string): string | null {
   if (value === undefined) {
@@ -258,10 +261,7 @@ function parsePackageCreateInput(record: Readonly<Record<string, unknown>>): Cre
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
     languageTags: expectCatalogAudienceLocaleArray(record.languageTags, "languageTags"),
-    educationalSubject: expectOmittableNonEmptyString(
-      record.educationalSubject,
-      "educationalSubject",
-    ),
+    educationalSubject: expectNonEmptyString(record.educationalSubject, "educationalSubject"),
     educationalFramework: expectOmittableNonEmptyString(
       record.educationalFramework,
       "educationalFramework",
@@ -285,10 +285,7 @@ function parsePackageUpdateInput(
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
     languageTags: expectCatalogAudienceLocaleArray(record.languageTags, "languageTags"),
-    educationalSubject: expectOmittableNonEmptyString(
-      record.educationalSubject,
-      "educationalSubject",
-    ),
+    educationalSubject: expectNonEmptyString(record.educationalSubject, "educationalSubject"),
     educationalFramework: expectOmittableNonEmptyString(
       record.educationalFramework,
       "educationalFramework",

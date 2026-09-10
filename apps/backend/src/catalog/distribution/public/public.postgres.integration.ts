@@ -45,6 +45,9 @@ test("latest migrations delist deterministic fixtures and expose test-owned publ
   const packageVersionSlug = `public-snapshot-version-${suffix}`;
   const collectionSlug = `public-snapshot-collection-${suffix}`;
   const adminEmail = "public-snapshot@example.test";
+  // Every catalog row carries a subject since the column became NOT NULL, so the fixture carries
+  // one too and the snapshot projection is read for it below.
+  const packageEducationalSubject = "Public snapshot subject";
 
   try {
     const setupClient = await pool.connect();
@@ -61,8 +64,9 @@ test("latest migrations delist deterministic fixtures and expose test-owned publ
       await setupClient.query(
         [
           "INSERT INTO catalog.packages",
-          "(package_id, author_id, slug, title, summary, description, language_tags, license)",
-          "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+          "(package_id, author_id, slug, title, summary, description, language_tags,",
+          "educational_subject, license)",
+          "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         ].join(" "),
         [
           packageId,
@@ -72,6 +76,7 @@ test("latest migrations delist deterministic fixtures and expose test-owned publ
           "Integration-owned snapshot package.",
           "Valid public catalog data created by the snapshot integration test.",
           ["en"],
+          packageEducationalSubject,
           "CC0-1.0",
         ],
       );
@@ -79,8 +84,8 @@ test("latest migrations delist deterministic fixtures and expose test-owned publ
         [
           "INSERT INTO catalog.package_versions",
           "(package_version_id, package_id, version_number, slug, title, summary, description,",
-          "language_tags, license, card_count, created_by_admin_email)",
-          "VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, 2, $9)",
+          "language_tags, educational_subject, license, card_count, created_by_admin_email)",
+          "VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, $9, 2, $10)",
         ].join(" "),
         [
           packageVersionId,
@@ -90,6 +95,7 @@ test("latest migrations delist deterministic fixtures and expose test-owned publ
           "Integration-owned snapshot package.",
           "Valid public catalog data created by the snapshot integration test.",
           ["en"],
+          packageEducationalSubject,
           "CC0-1.0",
           adminEmail,
         ],
@@ -233,7 +239,7 @@ test("latest migrations delist deterministic fixtures and expose test-owned publ
         && candidate.packageId === packageId,
     );
 
-    assert.equal(snapshot.schemaVersion, 2);
+    assert.equal(snapshot.schemaVersion, 3);
     assert.deepEqual(author, {
       authorId,
       slug: authorSlug,
@@ -248,6 +254,7 @@ test("latest migrations delist deterministic fixtures and expose test-owned publ
     assert.equal(catalogPackage?.versionCount, 1);
     assert.equal(packageVersion?.packageId, packageId);
     assert.equal(packageVersion?.versionNumber, 1);
+    assert.equal(packageVersion?.educationalSubject, packageEducationalSubject);
     assert.equal(packageVersion?.status, "published");
     assert.equal(packageVersion?.slug, packageVersionSlug);
     assert.equal(packageVersion?.title, "Public Snapshot Package");
