@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { useI18n } from "../../../i18n";
 
-export type ReviewCardTagsProps = Readonly<{
+type ReviewCardTagsProps = Readonly<{
   tags: ReadonlyArray<string>;
 }>;
 

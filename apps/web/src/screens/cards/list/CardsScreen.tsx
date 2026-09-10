@@ -875,7 +875,7 @@ export function CardsScreen(): ReactElement {
                     <span className="cards-cell-multiline-display">{card.backText === "" ? t("common.noBackText") : card.backText}</span>
                   </td>
                   <td className="txn-cell cards-col-tags cards-tag-cell">
-                    {card.tags.length === 0 ? <span className="tag-value-empty">—</span> : (
+                    {card.tags.length === 0 ? <span className="tag-value-empty">{t("common.noTags")}</span> : (
                       <span className="tag-value-list">
                         {card.tags.map((tag) => (
                           <span key={tag} className="tag-chip tag-chip-readonly">

@@ -399,7 +399,7 @@ test("foreground exact cleanup retries transient and unknown outcomes and waits 
         persistentInput.workspaceId,
         persistentInput.sessionId,
       );
-    const persistentDeadlines = createApplicationDeadlines(1_200, 2_400);
+    const persistentDeadlines = createApplicationDeadlines(2_000, 4_000);
     const persistentStorageFailure =
       new Error("Persistent foreground storage failure.");
     let persistentResolutionCalls = 0;

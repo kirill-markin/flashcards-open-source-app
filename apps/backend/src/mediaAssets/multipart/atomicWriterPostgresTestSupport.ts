@@ -133,6 +133,9 @@ export function applicationObservationScope(
   );
 }
 
+// operationBudgetMs has to clear multipartAttemptMinimumSettlementBudgetMs by more than the writer
+// attempt transactions the boundary runs inside it, or acquisition and the first lease renewal fail
+// on that settlement floor instead of reaching the behavior under test.
 export function createApplicationDeadlines(
   operationBudgetMs: number,
   requestBudgetMs: number,
