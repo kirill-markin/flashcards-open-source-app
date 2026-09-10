@@ -7,6 +7,7 @@ import { cardsRoute, chatRoute } from "../../../routes";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
+import { ReviewCardTags } from "./ReviewCardTags";
 import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
 import type { ReviewShortcutPointerEnterHandler } from "../input/useReviewKeyboardShortcuts";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
@@ -134,11 +135,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
           {loadingReviewCurrentCard !== null ? (
-            <>
-              {(loadingReviewCurrentCard.tags.length === 0 ? [t("common.noTags")] : loadingReviewCurrentCard.tags).map((tag) => (
-                <span className="badge review-metadata-chip" key={tag}>{tag}</span>
-              ))}
-            </>
+            <ReviewCardTags tags={loadingReviewCurrentCard.tags} />
           ) : (
             <>
               <span className="badge review-loading-badge">{t("reviewScreen.loading.queue")}</span>
@@ -334,12 +331,10 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
     <>
       <div className="review-pane-head">
         <div className="review-pane-head-meta">
-          {(selectedCard.tags.length === 0 ? [t("common.noTags")] : selectedCard.tags).map((tag) => (
-            <span className="badge review-metadata-chip" key={tag}>{tag}</span>
-          ))}
+          <ReviewCardTags tags={selectedCard.tags} />
           <span className="badge review-metadata-chip">
             <span aria-hidden="true">{repetitionValue}</span>
-            <span className="review-repetition-badge-accessible-label">
+            <span className="review-metadata-chip-accessible-label">
               {t("reviewScreen.repetitionBadgeAriaLabel", { value: repetitionValue })}
             </span>
           </span>

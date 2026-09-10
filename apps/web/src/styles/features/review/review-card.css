@@ -47,6 +47,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+  font-size: 13px;
 }
 
 .review-metadata-chip {
@@ -54,12 +55,12 @@
   min-height: 30px;
   min-width: 0;
   max-width: 100%;
-  padding-inline: 9px;
+  padding: 5px 9px;
   border: 0;
   overflow-wrap: anywhere;
 }
 
-.review-repetition-badge-accessible-label {
+.review-metadata-chip-accessible-label {
   position: absolute;
   width: 1px;
   height: 1px;
