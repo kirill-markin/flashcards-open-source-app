@@ -273,6 +273,14 @@ function isRetryableMultipartResolutionError(error: unknown): boolean {
     || isTransientDatabaseError(error);
 }
 
+// The safe lease expiry is also the database deadline of every exact attempt, so an attempt that
+// runs into it fails on the deadline rather than on whatever keeps resolution from settling.
+function isMultipartResolutionDeadlineError(error: unknown): boolean {
+  return error instanceof DatabaseDeadlineExceededError
+    || hasSqlState(error, "57014")
+    || hasSqlState(error, "55P03");
+}
+
 function calculateMultipartResolutionRetryDelayMs(attempt: number): number {
   return Math.min(
     multipartResolutionRetryMaximumDelayMs,
@@ -361,19 +369,26 @@ export async function resolveMultipartOperationExactlyUntilSafe<Result>(
         );
         return { kind: "resolved", value };
       } catch (error) {
-        lastResolutionError = error;
+        // A deadline failure reports when retrying stopped, never why it kept failing, so it is
+        // only worth reporting while no real resolution failure has been seen.
+        if (
+          !isMultipartResolutionDeadlineError(error)
+          || lastResolutionError === null
+        ) {
+          lastResolutionError = error;
+        }
         if (!isRetryableMultipartResolutionError(error)) {
           await waitForMultipartWriterLeaseExpiry(cleanupDeadline);
           return {
             kind: "safe_lease_expired",
-            resolutionError: error,
+            resolutionError: lastResolutionError,
           };
         }
         const remainingMs = safeLeaseExpiryAtMs - Date.now();
         if (remainingMs <= 0) {
           return {
             kind: "safe_lease_expired",
-            resolutionError: error,
+            resolutionError: lastResolutionError,
           };
         }
         const delayMs = Math.min(
