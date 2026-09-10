@@ -70,6 +70,18 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0130 needs its own boundary rather than an extra test file on 0129's: it writes the educational
+  // alignment columns of every published version of the package 0129's seed hook creates, including
+  // version 4, whose untouched updated_at is exactly what
+  // legacyLanguageTagCorrection.postgres.integration.ts asserts. Boundaries stop at their own
+  // migration, so 0129's database never sees this file.
+  Object.freeze({
+    migrationFileName: "0130_backfill_catalog_educational_alignment.sql",
+    expectedMigrationCount: 132,
+    testFiles: Object.freeze([
+      "src/catalog/authoring/versions/educationalAlignmentBackfill.postgres.integration.ts",
+    ]),
+  }),
   Object.freeze({
     migrationFileName: "0129_correct_legacy_catalog_language_tag.sql",
     expectedMigrationCount: 131,
