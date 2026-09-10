@@ -170,7 +170,7 @@ function createCatalogPackageInputValidationApp(
   return app;
 }
 
-test("catalog package inputs carry educational alignment, and an omitted field clears it", async () => {
+test("catalog package inputs lowercase language tags, carry educational alignment, and clear an omitted field", async () => {
   const parsedInputs: Array<CreateCatalogPackageDraftInput | UpdateCatalogPackageDraftInput> = [];
   const app = createCatalogPackageInputCaptureApp((input) => {
     parsedInputs.push(input);
@@ -181,7 +181,7 @@ test("catalog package inputs carry educational alignment, and an omitted field c
     title: "Test package",
     summary: "Test summary",
     description: "Test description",
-    languageTags: ["en"],
+    languageTags: ["EN"],
     license: "CC0-1.0",
     contentWarning: null,
   };
@@ -209,6 +209,10 @@ test("catalog package inputs carry educational alignment, and an omitted field c
 
   assert.equal(createResponse.status, 201);
   assert.equal(updateResponse.status, 200);
+  assert.deepEqual(
+    parsedInputs.map((input) => input.languageTags),
+    [["en"], ["en"]],
+  );
   assert.deepEqual(
     parsedInputs.map((input) => [
       input.educationalSubject,
@@ -262,6 +266,51 @@ test("catalog package inputs explicitly reject the removed topicTags field", asy
     assert.deepEqual(await response.json(), {
       error: "topicTags was removed; omit topicTags from catalog package requests.",
       code: "CATALOG_ADMIN_TOPIC_TAGS_REMOVED",
+    });
+  }
+  assert.equal(processingCalls, 0);
+});
+
+test("catalog package inputs reject a language tag outside the supported audience locales", async () => {
+  let processingCalls = 0;
+  const app = createCatalogPackageInputValidationApp(async () => {
+    processingCalls += 1;
+    throw new Error("Unsupported language tag must be rejected before processing");
+  });
+  const sharedPackageInput = {
+    authorId,
+    slug: "test-package",
+    title: "Test package",
+    summary: "Test summary",
+    description: "Test description",
+    languageTags: ["en", "world history"],
+    license: "CC0-1.0",
+    contentWarning: null,
+  };
+  const requests = [
+    {
+      method: "POST",
+      path: "/admin/catalog/packages",
+      body: { packageId, ...sharedPackageInput },
+    },
+    {
+      method: "PUT",
+      path: `/admin/catalog/packages/${packageId}/draft`,
+      body: { ...sharedPackageInput, coverPackageMediaKey: null },
+    },
+  ] as const;
+
+  for (const request of requests) {
+    const response = await app.request(`http://localhost${request.path}`, {
+      method: request.method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request.body),
+    });
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {
+      error: "languageTags[1] must be a supported catalog audience locale. "
+        + "tag=world history supported=ar, de, en, es, hi, ja, ru, zh",
+      code: "CATALOG_INVALID_INPUT",
     });
   }
   assert.equal(processingCalls, 0);
