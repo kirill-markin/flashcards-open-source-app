@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { listWorkspaceTagsMatchingKeys } from "../cards";
 import type { ReviewResult } from "../cards/types";
 import { submitReviewInExecutor } from "../cards/review/reviews";
 import {
@@ -56,9 +57,61 @@ const ratings: Readonly<Record<AgentReviewInput["rating"], ReviewRating>> = {
   Easy: 3,
 };
 
+/** Names enough of the unresolved tags for the caller to act on without letting the request body
+ * decide how large the error body grows. */
+const unresolvedTagsNamedInError = 5;
+
+function describeUnresolvedTags(unresolvedTags: ReadonlyArray<string>): string {
+  const named = unresolvedTags.slice(0, unresolvedTagsNamedInError).join(", ");
+  const remaining = unresolvedTags.length - unresolvedTagsNamedInError;
+  return remaining > 0 ? `${named} and ${remaining} more` : named;
+}
+
+/** Replaces the requested names with the spellings the workspace's cards store for them, since the
+ * queue query matches those spellings byte for byte. A caller has no tag picker to constrain it, so
+ * a name no card carries is refused here instead of reaching the queue as a predicate that cannot
+ * match, which reads back as nothing to review. */
+async function resolveRequestedTags(
+  context: AgentReviewContext,
+  requestedTags: ReadonlyArray<string>,
+): Promise<ReadonlyArray<string>> {
+  // Keys a requested name the way listWorkspaceTagsMatchingKeys keys a stored one: NFC, then
+  // lowercase, the contract having trimmed it on the same code points that function's btrim
+  // strips. Case folding is the one axis left diverging: Postgres lower() under the RDS
+  // en_US.UTF-8 ctype collapses more than V8 does, mapping U+0130 to "i" and every sigma to the
+  // medial one. Both directions of that are accepted because both stay case-only: "İstanbul" and
+  // "ΟΔΟΣ" are refused even where a card carries them, while "istanbul" and "οδοσ" resolve to
+  // those same cards.
+  const requestedByKey = new Map(
+    requestedTags.map(
+      (tag) => [tag.normalize("NFC").toLowerCase(), tag] as const,
+    ),
+  );
+  const storedTags = await listWorkspaceTagsMatchingKeys(
+    context.userId,
+    context.workspaceId,
+    [...requestedByKey.keys()],
+  );
+  const resolvedKeys = new Set(storedTags.map((stored) => stored.tagKey));
+  const unresolved = [...requestedByKey]
+    .filter(([key]) => !resolvedKeys.has(key))
+    .map(([, tag]) => `"${tag}"`);
+  if (unresolved.length > 0) {
+    throw new HttpError(
+      400,
+      `This workspace has no cards tagged ${describeUnresolvedTags(unresolved)}. Tag names are matched case-insensitively, so there is nothing to review under this filter.`,
+      "REVIEW_INPUT_INVALID",
+    );
+  }
+
+  return storedTags.map((stored) => stored.tag);
+}
+
 /** Resolves the requested filter to the tag list the card query must match, or null for every card.
  * A deck carries no cards: content.decks.filter_definition is a saved tag filter, and an empty one
- * selects the whole workspace, while an explicitly empty tags request selects nothing. */
+ * selects the whole workspace, while an explicitly empty tags request selects nothing. A deck's
+ * saved tags go to the query as they are and match stored spellings byte for byte, so the deck
+ * branch can skip cards the clients treat as part of that deck; resolving them is separate work. */
 async function resolveReviewFilterTags(
   context: AgentReviewContext,
   filter: AgentReviewCardFilter,
@@ -68,7 +121,9 @@ async function resolveReviewFilterTags(
   }
 
   if (filter.kind === "tags") {
-    return filter.tags;
+    return filter.tags.length === 0
+      ? filter.tags
+      : resolveRequestedTags(context, filter.tags);
   }
 
   const deck = await getDeck(context.userId, context.workspaceId, filter.deckId);

@@ -10,12 +10,18 @@ export const reviewWorkspaceSchema = z.strictObject({
       "Workspace UUID from list_workspaces; omit to use the selected workspace. Keep it fixed for a review and its retries.",
     ),
 });
+
+/** Bounds the tag-resolution query and the error body it can produce. No client's tag picker
+ * builds a filter this wide, and a caller wanting more of the workspace should omit tags. */
+const nextReviewCardTagsLimit = 100;
+
 export const nextReviewCardSchema = reviewWorkspaceSchema.extend({
   tags: z
     .array(z.string().trim().min(1))
+    .max(nextReviewCardTagsLimit)
     .optional()
     .describe(
-      "Restrict the queue to cards carrying any one of these exact tag names. An empty array matches no card. Cannot be combined with deckId.",
+      "Restrict the queue to cards carrying any one of these tag names, matched case-insensitively against the workspace's existing tags; a tag the workspace does not use is a 400, not an empty result. An empty array matches no card. Cannot be combined with deckId.",
     ),
   deckId: identifier
     .optional()
