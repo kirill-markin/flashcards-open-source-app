@@ -80,6 +80,7 @@ export {
   getCards,
   listCards,
   listCardsInExecutor,
+  listWorkspaceTagsMatchingKeys,
   listWorkspaceTagsSummary,
   queryCardsPage,
   searchCards,

@@ -46,11 +46,15 @@ retrieve both sides.
 Two optional arguments narrow the queue, exactly like the apps' All cards / one
 deck / N tags filter:
 
-- `tags`: an array of exact tag names, matched as any of. An explicitly empty array
-  matches no card.
+- `tags`: an array of tag names, matched as any of. Each name resolves
+  case-insensitively to the spellings the workspace stores, and a name the
+  workspace does not use is a `400` rather than an empty queue. An explicitly
+  empty array matches no card.
 - `deckId`: a saved deck. A deck holds no cards; `content.decks.filter_definition`
-  is a stored tag filter, so the deck resolves to its tags and takes the same path.
-  A deck with no tags matches every card. An unknown `deckId` is a `404`.
+  is a stored tag filter whose tags go to the queue as stored and are matched
+  exactly, so a deck tag the workspace no longer uses is an empty queue rather
+  than a `400`. A deck with no tags matches every card. An unknown `deckId` is a
+  `404`.
 
 They are mutually exclusive, because no client combines a deck with tags. Supplying
 both is a `400`. Nothing due stays `card: null`.

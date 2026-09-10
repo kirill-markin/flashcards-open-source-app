@@ -626,3 +626,35 @@ export async function listWorkspaceTagsSummary(userId: string, workspaceId: stri
     totalCards: toNumber(totalCardsRow.total_cards),
   };
 }
+
+/** The code points JS String.prototype.trim strips: ECMA-262 WhiteSpace, which is tab, line
+ * tabulation, form feed, U+FEFF and every Space_Separator, plus the line terminators. Postgres
+ * has no class that matches it: [[:space:]] under the RDS en_US.UTF-8 ctype covers most Unicode
+ * spaces but not U+00A0, U+2007, U+202F or U+FEFF, and it matches U+0085 and U+001C-U+001F, which
+ * JS trim keeps. Spelling the set out is what keeps the two trims identical. */
+const jsTrimCodePoints = String.raw`\u0009\u000A\u000B\u000C\u000D\u0020\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF`;
+
+/** A stored tag's key: NFC, then trim, then lowercase, the order normalizeTagKey keys a tag in on
+ * web (apps/web/src/appData/domain/index.ts); iOS omits the NFC step, and Android's trim-last
+ * order is equivalent because case mapping neither creates nor removes whitespace. Stored tags
+ * are trimmed here because no write path trims them, on exactly the code points above, so a
+ * spelling edged with one of them keys the same as the JS-trimmed name a caller sends.
+ * normalize() and Unicode escapes both require a UTF8 database and raise otherwise. */
+const storedTagKeyExpression = `lower(btrim(normalize(tag, NFC), E'${jsTrimCodePoints}'))`;
+
+/** The spellings the workspace's live cards store for the given tag keys, each with the key it
+ * matched, so nothing has to re-derive a stored tag's key in another engine. */
+export async function listWorkspaceTagsMatchingKeys(userId: string, workspaceId: string, tagKeys: ReadonlyArray<string>): Promise<ReadonlyArray<Readonly<{ tag: string; tagKey: string }>>> {
+  const tagRowsResult = await queryWithWorkspaceScopeReadOnly<Readonly<{ tag: string; tag_key: string }>>(
+    { userId, workspaceId },
+    [
+      `SELECT DISTINCT tag, ${storedTagKeyExpression} AS tag_key`,
+      "FROM content.cards cards",
+      "CROSS JOIN LATERAL unnest(cards.tags) AS tag",
+      `WHERE cards.workspace_id = $1 AND cards.deleted_at IS NULL AND ${storedTagKeyExpression} = ANY($2::text[])`,
+    ].join(" "),
+    [workspaceId, tagKeys],
+  );
+
+  return tagRowsResult.rows.map((row) => ({ tag: row.tag, tagKey: row.tag_key }));
+}
