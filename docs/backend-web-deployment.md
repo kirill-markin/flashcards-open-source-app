@@ -75,6 +75,16 @@ policy. The value must be one exact HTTP(S) origin without credentials, path,
 query, fragment, or wildcard. CDK deployments inject
 `https://app.<baseDomain>` automatically.
 
+### Client compatibility
+
+Before connecting a newer client, deploy the current backend and request
+`GET <API_BASE_URL>/health`. A compatible response returns HTTP `200` and
+includes an integer `cloudContractVersion`. This version identifies the
+supported guest-session and workspace-sync protocol generation; it is not an
+app release version or proof that the database is correct. If the field is
+missing or the client does not support the advertised version, update and
+redeploy the backend before connecting the client.
+
 ## First AWS deploy
 
 Keep the operator config in root `.env`. The important deploy-time values are:

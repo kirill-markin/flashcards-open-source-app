@@ -68,6 +68,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     return context.json({
       status: "ok",
       service: "flashcards-open-source-app-backend",
+      cloudContractVersion: 1,
       dbTime: result.rows[0]?.now ?? null,
     });
   });
