@@ -1008,9 +1008,6 @@ const esMxCatalog: TranslationCatalog = {
       trigger: "Filtrar",
       triggerWithCount: "Filtrar ({{count}})",
     },
-    loading: {
-      open: "Abrir",
-    },
     loadingMore: "Cargando más tarjetas...",
     search: {
       label: "Buscar",
@@ -1022,7 +1019,6 @@ const esMxCatalog: TranslationCatalog = {
       due: "Pendiente",
       front: "Frente",
       lapses: "Fallos",
-      open: "Abrir",
       reps: "Repasos",
       tags: "Etiquetas",
       updated: "Actualizado",

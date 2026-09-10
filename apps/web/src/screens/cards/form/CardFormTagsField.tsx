@@ -154,7 +154,7 @@ export const CardFormTagsField = forwardRef<CardFormTagsFieldHandle, CardFormTag
     setIsOpen(true);
   }
 
-  const triggerClassName = `settings-input card-form-tags-trigger${disabled ? " cards-cell-disabled" : ""}`;
+  const triggerClassName = "settings-input card-form-tags-trigger";
 
   return (
     <>

@@ -1008,9 +1008,6 @@ export const zhHansCatalog = {
       trigger: "筛选",
       triggerWithCount: "筛选（{{count}}）",
     },
-    loading: {
-      open: "打开",
-    },
     loadingMore: "正在加载更多卡片...",
     search: {
       label: "搜索",
@@ -1022,7 +1019,6 @@ export const zhHansCatalog = {
       due: "到期",
       front: "正面",
       lapses: "失误",
-      open: "打开",
       reps: "复习次数",
       tags: "标签",
       updated: "更新时间",
