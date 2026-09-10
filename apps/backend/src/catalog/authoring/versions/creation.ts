@@ -223,6 +223,16 @@ async function assertNoMutablePackageVersionInExecutor(
   );
 }
 
+/**
+ * Reads the next version number without locking the row it reads.
+ *
+ * The only caller takes the `catalog.packages` row lock immediately before calling this, which
+ * already serializes version numbering for that package, and
+ * `package_versions_package_number_unique` backstops it if that ever stops being true. Locking the
+ * highest-numbered version row here as well would put the package row before a version row on this
+ * path while publication, delisting and alignment correction all take a version row first, and two
+ * of those meeting would deadlock with SQLSTATE 40P01.
+ */
 async function getNextPackageVersionNumberInExecutor(
   executor: DatabaseExecutor,
   packageId: string,
@@ -234,7 +244,6 @@ async function getNextPackageVersionNumberInExecutor(
       "WHERE package_id = $1",
       "ORDER BY version_number DESC",
       "LIMIT 1",
-      "FOR UPDATE",
     ].join(" "),
     [packageId],
   );
