@@ -23,6 +23,7 @@ import {
   type CatalogDumpRefreshTrigger,
 } from "../../catalog/distribution/public/publication/dumpRefresh";
 import {
+  catalogAudienceLocales,
   catalogPackageStatuses,
   type AttachCatalogPackageMediaAssetInput,
   type CatalogAuthor,
@@ -99,6 +100,7 @@ type CatalogAdminRoutesOptions = Readonly<{
 
 const catalogAdminMaximumBodyBytes = 2_000_000;
 const catalogStatusSet: ReadonlySet<string> = new Set(catalogPackageStatuses);
+const catalogAudienceLocaleSet: ReadonlySet<string> = new Set(catalogAudienceLocales);
 
 async function parseCatalogAdminJsonBody(request: Request): Promise<Readonly<Record<string, unknown>>> {
   return expectRecord(await parseJsonBodyWithByteLimit(
@@ -163,6 +165,25 @@ function expectStringArray(value: unknown, fieldName: string): ReadonlyArray<str
   }
 
   return value.map((item, index) => expectNonEmptyString(item, `${fieldName}[${index}]`));
+}
+
+/**
+ * Checks membership case-insensitively and returns the lowercased tag, so an uppercase entry such as
+ * `EN` is accepted and every returned value is itself one of `catalogAudienceLocales`.
+ */
+function expectCatalogAudienceLocaleArray(value: unknown, fieldName: string): ReadonlyArray<string> {
+  return expectStringArray(value, fieldName).map((languageTag, index) => {
+    if (catalogAudienceLocaleSet.has(languageTag.toLowerCase()) === false) {
+      throw new HttpError(
+        400,
+        `${fieldName}[${index}] must be a supported catalog audience locale. `
+          + `tag=${languageTag} supported=${catalogAudienceLocales.join(", ")}`,
+        "CATALOG_INVALID_INPUT",
+      );
+    }
+
+    return languageTag.toLowerCase();
+  });
 }
 
 function rejectRemovedTopicTagsField(record: Readonly<Record<string, unknown>>): void {
@@ -236,7 +257,7 @@ function parsePackageCreateInput(record: Readonly<Record<string, unknown>>): Cre
     title: expectNonEmptyString(record.title, "title"),
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
-    languageTags: expectStringArray(record.languageTags, "languageTags"),
+    languageTags: expectCatalogAudienceLocaleArray(record.languageTags, "languageTags"),
     educationalSubject: expectOmittableNonEmptyString(
       record.educationalSubject,
       "educationalSubject",
@@ -263,7 +284,7 @@ function parsePackageUpdateInput(
     title: expectNonEmptyString(record.title, "title"),
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
-    languageTags: expectStringArray(record.languageTags, "languageTags"),
+    languageTags: expectCatalogAudienceLocaleArray(record.languageTags, "languageTags"),
     educationalSubject: expectOmittableNonEmptyString(
       record.educationalSubject,
       "educationalSubject",
