@@ -91,6 +91,13 @@ func localizedCloudCredentialRecoveryBlockedMessage(reason: CloudCredentialRecov
     }
 }
 
+func localizedCustomGuestWorkspacePauseMessage() -> String {
+    aiSettingsLocalized(
+        "settings.sync.customGuestWorkspacePaused.message",
+        "This custom server cannot access this guest workspace. The server may be incompatible or misconfigured. Sync is paused, and your local cards and pending changes are safe on this device."
+    )
+}
+
 func localizedCloudCredentialRecoveryWrongLinkedAccountMessage() -> String {
     aiSettingsLocalized(
         "settings.sync.recovery.wrongLinkedAccount",

@@ -85,6 +85,55 @@ app release version or proof that the database is correct. If the field is
 missing or the client does not support the advertised version, update and
 redeploy the backend before connecting the client.
 
+### iOS custom-server compatibility and guest recovery
+
+Validate this flow manually on the supported iOS device or simulator after an
+iOS build is available. Keep a copy of the local workspace, card, and pending
+outbox counts before each recovery action.
+
+1. Connect a custom deployment whose API `GET /health` returns HTTP `200`,
+   `service: "flashcards-open-source-app-backend"`, and integer
+   `cloudContractVersion: 1`, and whose auth health endpoint returns HTTP `2xx`.
+   Confirm iOS shows the destructive switch confirmation only after both checks
+   succeed.
+2. Repeat with the API health response missing `service`, using another service
+   value, missing or malformed `cloudContractVersion`, and using an unsupported
+   integer version. Confirm iOS explains that the custom server must be updated
+   and redeployed, does not show the switch confirmation, and keeps the saved
+   server configuration and credentials unchanged. Also confirm an auth health
+   failure still rejects the server. Make either health endpoint redirect to a
+   different scheme, host, or effective port and confirm iOS rejects it with the
+   final URL shown; confirm a same-origin redirect remains valid.
+3. On a compatible custom deployment, create or retain a guest session and make
+   its `POST /workspaces/<guest-workspace-id>/sync/bootstrap` return HTTP `404`
+   with `code: "WORKSPACE_NOT_FOUND"`. Exercise both the first bootstrap before
+   local-to-remote workspace migration and a later sync. Confirm Account Status
+   shows the paused custom-server explanation, server, HTTP status, backend code,
+   request reference when supplied, Retry, and Change Server. Confirm local
+   review, card editing, cards, pending outbox operations, and the stored guest
+   identity remain available, while polling and passive AI snapshot preparation
+   do not produce more requests or repeated error captures.
+4. Force-quit and relaunch while the custom server still returns the classified
+   `404`. Confirm the same pause and original diagnostics remain without an
+   automatic bootstrap attempt. Separately remove the paused guest credential
+   and relaunch: confirm iOS enters the existing guest-credential recovery flow
+   instead of creating a replacement guest. Repeat with an unreadable guest
+   credential and confirm iOS enters invalid stored-state recovery. Simulate an
+   interrupted local identity reset that leaves the pause record behind but
+   starts the app with a new installation ID; confirm the stale pause is cleared
+   and does not enter guest-credential recovery for the new installation.
+5. Repair the server so the same guest token, user, and workspace are accepted,
+   then tap Retry. Confirm immediate native loading feedback, a successful sync,
+   the pause clearing, and the same guest identity and local data remaining in
+   use. Repeat with the server still broken and confirm the failed retry remains
+   paused without creating another guest or workspace.
+6. Re-enter the paused state, choose Change Server, and switch through the
+   existing Server screen. Confirm the old pause cannot block or be revived by a
+   stale response from the previous server, and confirm local workspace and card
+   data remain on the device after the switch. The old guest credential belongs
+   to the previous server and follows the existing explicit server-switch
+   credential cleanup behavior.
+
 ## First AWS deploy
 
 Keep the operator config in root `.env`. The important deploy-time values are:

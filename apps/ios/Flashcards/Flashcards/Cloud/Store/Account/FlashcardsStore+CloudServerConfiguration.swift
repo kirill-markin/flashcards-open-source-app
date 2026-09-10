@@ -75,6 +75,7 @@ extension FlashcardsStore {
         } else {
             self.userDefaults.set(true, forKey: pendingCloudServerBootstrapUserDefaultsKey)
         }
+        self.clearCustomGuestWorkspacePause()
         self.syncStatus = .idle
         self.lastSuccessfulCloudSyncAt = nil
         self.globalErrorMessage = ""

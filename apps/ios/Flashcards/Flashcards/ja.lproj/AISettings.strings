@@ -774,3 +774,22 @@
 "feedback.sheet.success" = "ありがとうございます。フィードバックを送信しました。";
 "feedback.sheet.messageTooLong" = "フィードバックは %d 文字以内にしてください。";
 "feedback.sheet.emptyMessageError" = "送信する前にフィードバックを書いてください。";
+
+"settings.account.server.validation.authService" = "認証サービス";
+"settings.account.server.validation.apiService" = "API サービス";
+"settings.account.server.validation.invalidHealthUrl" = "ヘルスチェック URL が無効です：%@";
+"settings.account.server.validation.requestFailed" = "%@ の %@ に対するヘルスチェックに失敗しました：%@";
+"settings.account.server.validation.invalidStatusCode" = "%@ のヘルスチェックがステータス %d を返しました：%@";
+"settings.account.server.validation.redirectedToDifferentOrigin" = "%@ の %@ に対するヘルスチェックが別のサーバーにリダイレクトされました：%@。同じサーバーで応答するように設定してから、もう一度お試しください。";
+"settings.account.server.validation.invalidApiHealthResponse" = "%@ の API ヘルス情報に有効なサービスとクラウド契約がありません。カスタムサーバーを更新して再デプロイしてから、もう一度お試しください。";
+"settings.account.server.validation.unexpectedApiService" = "%@ の API ヘルス情報は、互換性のある Flashcards バックエンドではなく %@ を示しています。カスタムサーバーを更新して再デプロイしてから、もう一度お試しください。";
+"settings.account.server.validation.unsupportedCloudContractVersion" = "%@ の API ヘルス情報は、サポートされていないクラウド契約バージョン %d を示しています。このアプリにはバージョン 1 が必要です。カスタムサーバーを更新して再デプロイしてから、もう一度お試しください。";
+"settings.sync.customGuestWorkspacePaused.message" = "このカスタムサーバーは、このゲストワークスペースにアクセスできません。サーバーに互換性がないか、設定に誤りがある可能性があります。同期は一時停止され、ローカルのカードと保留中の変更はこのデバイスに安全に保存されています。";
+"settings.account.status.customGuestPause.title" = "ゲストクラウドワークスペースを利用できません";
+"settings.account.status.customGuestPause.server" = "サーバー";
+"settings.account.status.customGuestPause.httpStatus" = "HTTP ステータス";
+"settings.account.status.customGuestPause.backendCode" = "バックエンドコード";
+"settings.account.status.customGuestPause.reference" = "参照番号";
+"settings.account.status.customGuestPause.retry" = "再試行";
+"settings.account.status.customGuestPause.changeServer" = "サーバーを変更";
+"settings.account.status.customGuestPause.retryFailed" = "再試行に失敗しました。同期は引き続き一時停止されています。カスタムサーバーを確認して、もう一度お試しください。";

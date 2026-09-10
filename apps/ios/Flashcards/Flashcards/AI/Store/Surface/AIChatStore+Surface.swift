@@ -755,6 +755,9 @@ extension AIChatStore {
         guard self.hasExternalProviderConsent else {
             return
         }
+        guard self.flashcardsStore.isCustomGuestWorkspacePaused == false else {
+            return
+        }
 
         let requestSequence = self.beginPassiveSnapshotRefreshSequence()
         let refreshAccessContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()

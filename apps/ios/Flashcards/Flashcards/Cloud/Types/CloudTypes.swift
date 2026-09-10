@@ -245,6 +245,19 @@ struct StoredGuestCloudSession: Codable, Hashable, Sendable {
     let apiBaseUrl: String
 }
 
+struct CustomGuestWorkspacePauseState: Codable, Hashable, Sendable {
+    let installationId: String
+    let userId: String
+    let workspaceId: String
+    let apiBaseUrl: String
+    let customOrigin: String
+    let statusCode: Int
+    let backendCode: String
+    let requestId: String?
+    let backendMessage: String
+    let detectedAt: String
+}
+
 enum CloudGuestUpgradeMode: String, Codable, Hashable, Sendable {
     case bound
     case mergeRequired = "merge_required"
