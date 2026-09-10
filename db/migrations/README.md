@@ -9,8 +9,33 @@ Planned process:
 
 ## Corrections to applied migrations
 
-An applied migration is immutable, so a factual error in one is corrected here
-rather than edited in place.
+An applied migration is immutable. `scripts/deploy/migrate.sh` records every migration by filename
+in `schema_migrations` and skips a filename already present, so editing one is a silent no-op in
+production, and `scripts/checks/pr/check-migration-hygiene.mjs` rejects the diff. When later work
+makes an applied migration's header state something that is no longer true, the correction is
+recorded here instead of in the file.
+
+### `0128_catalog_educational_alignment.sql` — the guard list is out of date
+
+Its header says that "Nothing in the admin API writes catalog.package_versions.educational_* after
+version creation", that "Correcting a published version's alignment is therefore a migration-only
+operation today; an admin correction path is separate, later work", and that "the read-time
+assertions in the public catalog projections are the only guard on these three fields".
+
+None of the three is true any more. `PUT /v1/admin/catalog/packages/{packageId}/educational-alignment`
+(`apps/backend/src/routes/catalog/admin.ts`, backed by
+`correctCatalogPackageEducationalAlignmentInExecutor` in
+`apps/backend/src/catalog/authoring/versions/educationalAlignment.ts`) rewrites
+`catalog.packages.educational_*` together with the same three columns on every
+`catalog.package_versions` row of that package, whatever its status, in one transaction. Correcting
+a published deck's classification is therefore a product operation and needs no migration. That
+endpoint screens the submitted values with `getPublicCatalogEducationalAlignmentIssue`
+(`apps/backend/src/catalog/publicSafety.ts`) before it writes anything, so it is a third guard on
+these three fields beside the two read-time assertions in the public catalog projections.
+
+The rest of that header still holds: the three columns stay outside
+`catalog.prevent_published_package_version_update()`, which is exactly what lets the endpoint fix a
+wrong subject without creating a version nobody asked for.
 
 ### `0130_backfill_catalog_educational_alignment.sql` — the count 115 is wrong
 

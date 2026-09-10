@@ -38,6 +38,17 @@ export type PublicCatalogPackageEligibilityIssue = Readonly<{
   field: "slug";
 }>;
 
+export type PublicCatalogEducationalAlignmentInput = Readonly<{
+  educationalSubject: string;
+  educationalFramework: string | null;
+  educationalLevel: string | null;
+}>;
+
+export type PublicCatalogEducationalAlignmentIssue = Readonly<{
+  reason: "unsafe_alignment_field" | "unpresentable_alignment_field";
+  field: "educationalSubject" | "educationalFramework" | "educationalLevel";
+}>;
+
 export type PublicCatalogVersionPresentationInput = Readonly<{
   slug: string;
   title: string;
@@ -135,6 +146,68 @@ export function isPublicCatalogTextSafe(value: string | null): boolean {
 
 export function isPublicCatalogTextArraySafe(values: ReadonlyArray<string>): boolean {
   return values.every((value) => isPublicCatalogTextSafe(value));
+}
+
+/**
+ * Format characters that survive `String.prototype.trim()`.
+ *
+ * The marketing website prints the three educational alignment values verbatim into a visible deck
+ * page row and into the schema.org `educationalAlignment` target name, and decides presence on a
+ * trimmed comparison, so a value made only of these renders an empty row instead of being dropped.
+ * The set is exactly the one `0130_backfill_catalog_educational_alignment.sql` screened its values
+ * against, but the API is strictly stricter than that backfill: 0130 checked padding with
+ * `pg_catalog.btrim`, which strips spaces alone, and tested for no control character or line and
+ * paragraph separator at all, so a value ending in a tab passed there and is refused here. The
+ * eight are U+00AD SOFT HYPHEN, U+200B ZERO WIDTH SPACE, U+200C ZERO WIDTH NON-JOINER, U+200D ZERO
+ * WIDTH JOINER, U+200E LEFT-TO-RIGHT MARK, U+200F RIGHT-TO-LEFT MARK, U+2060 WORD JOINER and
+ * U+FEFF ZERO WIDTH NO-BREAK SPACE.
+ */
+const publicCatalogInvisibleCharacterPattern = /[\u00AD\u200B-\u200F\u2060\uFEFF]/u;
+
+/**
+ * Characters that break a line or a layout wherever the value is printed.
+ *
+ * Trimming catches padding at the ends only, so an interior newline, tab, U+2028 LINE SEPARATOR or
+ * U+2029 PARAGRAPH SEPARATOR would reach the visible deck row and the schema.org
+ * `educationalAlignment` target name verbatim. `\p{Cc}` is the C0 range U+0000-U+001F plus
+ * U+007F-U+009F, which covers DEL and the C1 controls as well. Interior single spaces stay valid:
+ * a multi-word value such as `College Board Advanced Placement` is the normal case, not an
+ * accident. Every one of the 169 distinct alignment values in the published catalog is already
+ * clean by this rule, so refusing them cannot leave an existing deck unfixable.
+ */
+const publicCatalogControlCharacterPattern = /[\p{Cc}\u2028\u2029]/u;
+
+/**
+ * Alignment values are stored in each deck's own audience language and are never trimmed, case
+ * normalized or otherwise tidied, so padding is rejected here rather than silently repaired.
+ */
+function isPublicCatalogEducationalAlignmentValuePresentable(value: string | null): boolean {
+  return value === null || (
+    value !== ""
+    && value === value.trim()
+    && publicCatalogInvisibleCharacterPattern.test(value) === false
+    && publicCatalogControlCharacterPattern.test(value) === false
+  );
+}
+
+export function getPublicCatalogEducationalAlignmentIssue(
+  alignment: PublicCatalogEducationalAlignmentInput,
+): PublicCatalogEducationalAlignmentIssue | null {
+  const alignmentFields = [
+    ["educationalSubject", alignment.educationalSubject],
+    ["educationalFramework", alignment.educationalFramework],
+    ["educationalLevel", alignment.educationalLevel],
+  ] as const;
+  for (const [field, value] of alignmentFields) {
+    if (isPublicCatalogEducationalAlignmentValuePresentable(value) === false) {
+      return { reason: "unpresentable_alignment_field", field };
+    }
+    if (isPublicCatalogTextSafe(value) === false) {
+      return { reason: "unsafe_alignment_field", field };
+    }
+  }
+
+  return null;
 }
 
 export function isPublicCatalogCardMarkdownSafe(markdown: string): boolean {
