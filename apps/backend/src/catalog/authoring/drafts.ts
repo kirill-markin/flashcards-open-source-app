@@ -86,7 +86,7 @@ function normalizeCreateCatalogPackageDraftInput(
     summary: normalizeNonEmptyString(input.summary, "summary"),
     description: normalizeNonEmptyString(input.description, "description"),
     languageTags: normalizeTextArray(input.languageTags, "languageTags", true),
-    educationalSubject: normalizeNullableString(input.educationalSubject, "educationalSubject"),
+    educationalSubject: normalizeNonEmptyString(input.educationalSubject, "educationalSubject"),
     educationalFramework: normalizeNullableString(
       input.educationalFramework,
       "educationalFramework",

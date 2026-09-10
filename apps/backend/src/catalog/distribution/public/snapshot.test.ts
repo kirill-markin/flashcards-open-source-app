@@ -270,7 +270,7 @@ test("public catalog snapshot resolves Markdown-only media and excludes incomple
     generatedAt,
   });
 
-  assert.equal(snapshot.schemaVersion, 2);
+  assert.equal(snapshot.schemaVersion, 3);
   assert.equal(snapshot.generatedAt, generatedAt);
   assert.deepEqual(snapshot.authors.map((author) => author.authorId), [testAuthorId, secondAuthorId]);
   assert.equal(
