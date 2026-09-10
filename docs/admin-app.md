@@ -115,6 +115,11 @@ Current v1 attribution contract for `review-events-by-date`:
 - a `friendship_created` event names only its own viewer, so a friendship whose other side is an `@example.com` test account is no longer excluded
 - do not interpret this report as durable review authorship: `content.review_events.reviewed_by_user_id` is `ON DELETE SET NULL`, and account-deletion anonymization rewrites `analytics.product_events.user_id`, so an actor here is who the events currently resolve to rather than a permanent author record
 
+Attribution contract for `card_created` and `deck_created`, which no admin report charts; these rows exist only in `analytics.product_events`, and this is for reading them there:
+
+- both resolve their platform from the same replica columns through the same rules as `review_answered`: a device value appears only for a `client_installation` replica on `ios`, `android`, or `web` and a machine-API replica resolves to `agent`, while an AI-chat replica, a replica the scoped read did not reach, and a resolution the drain could not make all leave the column NULL
+- that resolution exists only from the day the producer shipped it, and every earlier row of these two events carries NULL permanently: no table ever recorded who created a row, because `content.cards.last_modified_by_replica_id` holds the last writer that every review rewrites and `sync.hot_changes` is year-partitioned hot state rather than durable history, so these two events got nothing of the kind `0122` and `0123` gave `review_answered`; the cut-over day is the first `card_created` row carrying a non-NULL platform, and NULL before it is missing attribution rather than an absence of created cards
+
 ## Reporting data path
 
 Deployed admin analytics do not query Postgres from the browser.

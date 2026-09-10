@@ -4,6 +4,7 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
+import { declareContentCreationReplicaPlatform } from "../../productAnalytics/serverFacts/contentCreations";
 import { HttpError } from "../../shared/errors";
 import { lockWorkspaceAccessLifecycleInExecutor } from "../../workspaces/accessLocks";
 
@@ -128,6 +129,24 @@ async function ensureInstallationInExecutor(
   return assertNeverClaimStatus(claimRow.claim_status);
 }
 
+/**
+ * Writes the replica row for one workspace actor, and names the platform behind it for the content
+ * creations the same transaction goes on to write.
+ *
+ * Both branches pin actor_kind and platform - the insert writes them, the update matches on them and
+ * refuses a row that disagrees with either - so on success those two facts are known of the stored
+ * row rather than assumed of it, which is what makes declaring them sound. See
+ * declareContentCreationReplicaPlatform.
+ *
+ * A declaration is live only in a transaction opened through one of the reporting wrappers in
+ * ../../productAnalytics/serverFacts/contentCreations.ts, and dies with the executor it is keyed on
+ * anywhere else. There it answers for every creation stamped with this replica id - today every card
+ * and deck the transaction writes, for the three that ensure a replica here: the sync push
+ * (../replication/push.ts), the sync bootstrap push (../replication/bootstrap.ts) and the guest
+ * upgrade merge (../../guestAuth/merge/index.ts). ../replication/hotPull.ts and
+ * ../replication/reviewHistory.ts ensure replicas in transactions that create no cards or decks, so
+ * wiring either through a reporting wrapper means re-checking that.
+ */
 async function upsertWorkspaceReplicaInExecutor(
   executor: DatabaseExecutor,
   replicaId: string,
@@ -156,6 +175,7 @@ async function upsertWorkspaceReplicaInExecutor(
   signal?.throwIfAborted();
 
   if (insertResult.rows.length === 1) {
+    declareContentCreationReplicaPlatform(executor, replicaId, { actorKind, platform });
     return replicaId;
   }
 
@@ -177,6 +197,7 @@ async function upsertWorkspaceReplicaInExecutor(
   signal?.throwIfAborted();
 
   if (updateResult.rows.length === 1) {
+    declareContentCreationReplicaPlatform(executor, replicaId, { actorKind, platform });
     return replicaId;
   }
 
