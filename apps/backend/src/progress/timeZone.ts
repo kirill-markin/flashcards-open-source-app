@@ -1,7 +1,10 @@
 export type TimeZoneValidationIssue = "required" | "invalid";
 
+/** timeZone is the caller's own spelling, trimmed, so a validator can echo back the value it was
+ * given. canonicalTimeZone is Intl's resolved identifier, so europe/sofia and Europe/Sofia become
+ * one value; use it wherever the timezone is persisted. */
 export type TimeZoneValidationResult =
-  | Readonly<{ ok: true; timeZone: string }>
+  | Readonly<{ ok: true; timeZone: string; canonicalTimeZone: string }>
   | Readonly<{ ok: false; issue: TimeZoneValidationIssue }>;
 
 function getRequiredDatePart(
@@ -25,8 +28,11 @@ export function validateIanaTimeZone(value: string): TimeZoneValidationResult {
     };
   }
 
+  let canonicalTimeZone: string;
   try {
-    new Intl.DateTimeFormat("en-US", { timeZone: trimmedValue });
+    canonicalTimeZone = new Intl.DateTimeFormat("en-US", { timeZone: trimmedValue })
+      .resolvedOptions()
+      .timeZone;
   } catch {
     return {
       ok: false,
@@ -37,13 +43,14 @@ export function validateIanaTimeZone(value: string): TimeZoneValidationResult {
   return {
     ok: true,
     timeZone: trimmedValue,
+    canonicalTimeZone,
   };
 }
 
 export function requireIanaTimeZone(value: string, fieldName: string): string {
   const validation = validateIanaTimeZone(value);
   if (validation.ok) {
-    return validation.timeZone;
+    return validation.canonicalTimeZone;
   }
 
   if (validation.issue === "required") {

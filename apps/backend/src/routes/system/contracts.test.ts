@@ -466,3 +466,15 @@ test("API Gateway proxy forwards /me/progress/leaderboards/profiles/{publicProfi
 
   assertApiGatewayUsesBackendProxy(apiGatewaySource);
 });
+
+
+test("agent discovery advertises the dedicated conversational review surface", () => {
+  const discovery = createAgentDiscoveryEnvelope(testAgentRequestUrl);
+  const base = "https://api.flashcards-open-source-app.com/v1/agent/reviews";
+  assert.equal(discovery.data.surface.nextReviewCardUrl, `${base}/next`);
+  assert.equal(discovery.data.surface.revealAnswerUrl, `${base}/reveal`);
+  assert.equal(discovery.data.surface.submitReviewUrl, `${base}/submit`);
+  assert.match(discovery.instructions, /reviewId/);
+  assert.match(discovery.instructions, /perfectly remembered/);
+  assert.match(discovery.data.mcp.description, /submit_review/);
+});

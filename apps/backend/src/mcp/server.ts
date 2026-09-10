@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { nextReviewCard, revealAnswer, submitAgentReview } from "../agent/reviews";
+import {
+  makeAgentReviewCardFilter,
+  nextReviewCardSchema,
+  revealAnswerSchema,
+  submitReviewSchema,
+  REVIEW_FLOW_INSTRUCTIONS,
+  NEXT_REVIEW_DESCRIPTION,
+  REVEAL_ANSWER_DESCRIPTION,
+  SUBMIT_REVIEW_DESCRIPTION,
+} from "../agent/reviewContract";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
 import {
@@ -49,17 +60,21 @@ const SQL_QUERY_MCP_TOOL_DESCRIPTION = `${SQL_QUERY_TOOL_DESCRIPTION} ${FRONT_BA
 const SQL_EXECUTE_MCP_TOOL_DESCRIPTION = `${SQL_EXECUTE_TOOL_DESCRIPTION} ${FRONT_BACK_CONTRACT} ${WORKSPACE_ID_ARGUMENT_HINT}`;
 
 const SERVER_INSTRUCTIONS = [
-  "Call list_workspaces first to pick a workspaceId (or omit it to use the selected default). Use sql_query for reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and sql_execute for writes (INSERT, UPDATE, DELETE). The dialect is not full PostgreSQL.",
+  "Call list_workspaces first to pick a workspaceId (or omit it to use the selected default). Use sql_query for reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and sql_execute for card/deck authoring (INSERT, UPDATE, DELETE). The dialect is not full PostgreSQL.",
   FRONT_BACK_CONTRACT,
+  REVIEW_FLOW_INSTRUCTIONS,
   CARD_AUTHORING_CONTRACT,
   `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
 ].join(" ");
 
 const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
 const LIST_WORKSPACES_TOOL_DESCRIPTION =
-  "Lists the workspaces you can access, each with its workspaceId, name, active card count, last activity timestamp, and an isSelected flag marking your current default workspace. Use the returned workspaceId values for the sql_query and sql_execute workspaceId argument; pick the isSelected one to stay on the default.";
+  "Lists the workspaces you can access, each with its workspaceId, name, active card count, last activity timestamp, and an isSelected flag marking your current default workspace. Use the returned workspaceId values for any workspace-scoped tool workspaceId argument; pick the isSelected one to stay on the default.";
 
 export type McpServerDependencies = Readonly<{
+  nextReviewCard: typeof nextReviewCard;
+  revealAnswer: typeof revealAnswer;
+  submitAgentReview: typeof submitAgentReview;
   resolveAccessibleMcpWorkspaceId: (
     requestContext: WorkspaceRequestContext,
     explicitWorkspaceId: string | undefined,
@@ -81,6 +96,9 @@ export type McpServerDependencies = Readonly<{
 }>;
 
 const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
+  nextReviewCard,
+  revealAnswer,
+  submitAgentReview,
   resolveAccessibleMcpWorkspaceId,
   runSqlQuery,
   runSqlExecute,
@@ -134,8 +152,7 @@ function buildToolResult(payload: unknown): CallToolResult {
 /**
  * MCP-surface remediation instructions. Unlike the HTTP agent surface
  * (`createAgentInstructions` in apps/backend/src/server/app.ts), an MCP client
- * authenticates via an OAuth Bearer token and only has the split `sql_query`
- * and `sql_execute` tools (plus `list_workspaces`): it cannot set an `ApiKey`
+ * authenticates via an OAuth Bearer token and invokes tools rather than HTTP agent routes: it cannot set an `ApiKey`
  * Authorization header or call any `/v1/agent/*` route. So this phrases every
  * remediation in terms the MCP client can act on (re-call the same tool, or
  * re-authorize the connector) instead of pointing at HTTP endpoints and ApiKey
@@ -149,7 +166,14 @@ function createMcpToolInstructions(code: string | null, statusCode: number, tool
       return `Fix the sql string using error.message and any error.details.validationIssues, then call the ${toolName} tool again.`;
     case "WORKSPACE_SELECTION_REQUIRED":
       return `This connection has no selected workspace. Call the list_workspaces tool to see the workspaces you can access (also embedded under error.details.workspaces when available), then call the ${toolName} tool again with the workspaceId argument set to the one you want.`;
+    case "REVIEW_STALE":
+      return "The card's stored review time is at or after the current server time, so the scheduler cannot move forward from it. Reloading the card does not clear that; explain the conflict and review another card instead of submitting a rating for this one.";
+    case "REVIEW_EVENT_CONFLICT":
+      return "This review was already recorded, so nothing was stored again. Read the card's current schedule from error.details.reviewSchedule and move on; use a new reviewId only for a new learner review.";
     case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
+      if (toolName === "submit_review") {
+        return "Retry submit_review with the identical workspaceId, reviewId, rating, and cardId. Do not advance until the result is confirmed.";
+      }
       return `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call sql_query with a SELECT to check whether the change already applied, and only call the ${toolName} tool again if the change is confirmed absent.`;
     case "SERVICE_UNAVAILABLE":
       return `The service is temporarily unavailable. Retry the same ${toolName} tool call after a short delay without changing the request.`;
@@ -357,7 +381,7 @@ async function buildToolErrorResult(
       createAgentErrorEnvelope(
         resourceUrl,
         "INTERNAL_ERROR",
-        "Internal error executing SQL",
+        "Internal error executing tool",
         createMcpToolInstructions("INTERNAL_ERROR", 500, toolName),
       ),
     ).content,
@@ -365,15 +389,15 @@ async function buildToolErrorResult(
 }
 
 const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
-  "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To target a specific one, pass its workspaceId to sql_query or sql_execute; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
+  "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To target a specific one, pass its workspaceId to any workspace-scoped tool; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
 
 /**
  * Builds a stateless MCP server exposing a read-only `sql_query` tool and a
  * write `sql_execute` tool, each forwarding the SQL string to the shared
  * backend `runSqlQuery` / `runSqlExecute` execution functions, plus a
  * `list_workspaces` tool that returns the caller's accessible workspaces with
- * stats, all scoped to the connection resolved from the OAuth Bearer access
- * token.
+ * stats, plus dedicated question, answer, and idempotent review tools. All are
+ * scoped to the connection resolved from the OAuth or API-key Bearer token.
  *
  * The connection is captured per request (the Lambda creates one server per
  * call) so the tools never read ambient request state. `resourceUrl` is the
@@ -575,6 +599,59 @@ export function createMcpServerWithDependencies(
       }
     },
   );
+
+  server.registerTool("next_review_card", {
+    title: "Next flashcard question",
+    description: `${NEXT_REVIEW_DESCRIPTION} ${WORKSPACE_ID_ARGUMENT_HINT}`,
+    inputSchema: nextReviewCardSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+  }, async (input) => {
+    telemetry.recordInvokedTool("next_review_card");
+    try {
+      const workspaceId = await resolveWorkspaceId(input.workspaceId);
+      const actor = { userId: connection.userId, workspaceId, connectionId: connection.connectionId };
+      const result = await dependencies.nextReviewCard(actor, makeAgentReviewCardFilter(input));
+      return buildToolResult(createAgentEnvelope(resourceUrl, result, REVIEW_FLOW_INSTRUCTIONS));
+    } catch (error) {
+      return buildToolErrorResult(error, resourceUrl, connection, "next_review_card", dependencies);
+    }
+  });
+
+  server.registerTool("reveal_answer", {
+    title: "Reveal flashcard answer",
+    description: `${REVEAL_ANSWER_DESCRIPTION} ${WORKSPACE_ID_ARGUMENT_HINT}`,
+    inputSchema: revealAnswerSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+  }, async ({ workspaceId: requestedWorkspaceId, cardId }) => {
+    telemetry.recordInvokedTool("reveal_answer");
+    try {
+      const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
+      const actor = { userId: connection.userId, workspaceId, connectionId: connection.connectionId };
+      const result = await dependencies.revealAnswer(actor, cardId);
+      return buildToolResult(createAgentEnvelope(resourceUrl, result, REVIEW_FLOW_INSTRUCTIONS));
+    } catch (error) {
+      return buildToolErrorResult(error, resourceUrl, connection, "reveal_answer", dependencies);
+    }
+  });
+
+  server.registerTool("submit_review", {
+    title: "Submit flashcard review",
+    description: `${SUBMIT_REVIEW_DESCRIPTION} ${WORKSPACE_ID_ARGUMENT_HINT}`,
+    inputSchema: submitReviewSchema,
+    // destructiveHint is true because the write overwrites due_at, reps, lapses and the fsrs_*
+    // columns; only additive-only writes may claim false.
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: true },
+  }, async (input) => {
+    telemetry.recordInvokedTool("submit_review");
+    try {
+      const workspaceId = await resolveWorkspaceId(input.workspaceId);
+      const actor = { userId: connection.userId, workspaceId, connectionId: connection.connectionId };
+      const result = await dependencies.submitAgentReview(actor, input);
+      return buildToolResult(createAgentEnvelope(resourceUrl, result, REVIEW_FLOW_INSTRUCTIONS));
+    } catch (error) {
+      return buildToolErrorResult(error, resourceUrl, connection, "submit_review", dependencies);
+    }
+  });
 
   return server;
 }

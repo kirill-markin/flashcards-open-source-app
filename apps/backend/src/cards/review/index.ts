@@ -5,8 +5,6 @@ export {
 
 export {
   listReviewHistoryPage,
-  listReviewQueue,
-  listReviewQueuePage,
 } from "./queries";
 
 export {

@@ -411,7 +411,7 @@ assert payload["id"] == 2
 assert "error" not in payload
 tools = payload["result"]["tools"]
 tool_names = {tool["name"] for tool in tools}
-assert tool_names == {"list_workspaces", "sql_query", "sql_execute"}, sorted(tool_names)
+assert tool_names == {"list_workspaces", "sql_query", "sql_execute", "next_review_card", "reveal_answer", "submit_review"}, sorted(tool_names)
 assert "media_assets" not in tool_names
 assert all(not tool["name"].startswith("media") for tool in tools)
 PY
