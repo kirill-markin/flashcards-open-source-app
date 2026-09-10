@@ -17,6 +17,10 @@ import {
 import type { ProductAnalyticsPlatform } from "../catalog";
 import type { PostCommitAnalyticsBudget } from "./postCommitBudget";
 import {
+  toWorkspaceReplicaRowPlatform,
+  type WorkspaceReplicaPlatformRow,
+} from "./replicaPlatforms";
+import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvents,
   type ServerDerivedProductAnalyticsEvent,
@@ -203,51 +207,6 @@ function resolveReviewAnsweredOccurredAt(reviewedAtClient: string, serverAnchor:
   return new Date(reviewedAtClientMs);
 }
 
-// The three columns the platform of one review is decided from, always read together. platform on
-// its own decides nothing: sync.workspace_replicas constrains it to ios, android, web and system,
-// and several actor kinds store a value in it that describes no device at all, so actor_kind is what
-// makes the column readable and is selected on the same row rather than assumed.
-type WorkspaceReplicaPlatformRow = Readonly<{
-  replica_id: string;
-  actor_kind: string;
-  platform: string;
-}>;
-
-/**
- * The analytics platform one replica answered under, or null where none can be justified.
- *
- * Only a client_installation replica is a device a person used. The other actor kinds
- * (db/migrations/0035_sync_installations_and_workspace_replicas.sql) each store something in
- * platform that would be a lie here: an agent_connection replica stores 'web' for the machine API
- * that is no browser, an ai_chat replica stores a hardcoded 'web' that describes no device, and
- * workspace_seed and workspace_reset store 'system'.
- *
- * An agent_connection replica is the machine API client itself, and no stored platform column holds
- * `agent` (serverEvents.ts), so actor_kind is the only thing that can resolve it.
- *
- * The remaining check is the one the column's own constraint leaves open: 'system' never reaches a
- * client_installation row, but reading platform as an analytics platform without confirming its
- * value is what would let a later widening of that constraint file reviews under something this
- * catalog never meant.
- */
-function toReviewAnsweredPlatform(
-  replica: WorkspaceReplicaPlatformRow,
-): ProductAnalyticsPlatform | null {
-  if (replica.actor_kind === "agent_connection") {
-    return "agent";
-  }
-
-  if (replica.actor_kind !== "client_installation") {
-    return null;
-  }
-
-  if (replica.platform === "ios" || replica.platform === "android" || replica.platform === "web") {
-    return replica.platform;
-  }
-
-  return null;
-}
-
 // The most one drain may spend resolving its replicas, including the product connection it checks
 // out to do it.
 //
@@ -357,7 +316,7 @@ async function resolveReviewAnswerPlatforms(
       });
     }
     for (const replica of replicas) {
-      const platform = toReviewAnsweredPlatform(replica);
+      const platform = toWorkspaceReplicaRowPlatform(replica);
       if (platform !== null) {
         platformByReplicaId.set(replica.replica_id, platform);
       }

@@ -3,7 +3,11 @@ import {
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
 } from "../../database";
-import { unsafeTransaction } from "../../database/unsafe";
+import { getDatabaseErrorFields } from "../../database/transient";
+import {
+  unsafeRunDatabaseOperationsWithIndependentDeadline,
+  unsafeTransaction,
+} from "../../database/unsafe";
 // Report through `observability/runtime`, never through `observability/sentry`. Deck writes reach
 // this module from `decks/index.ts`, which the direct image ingestion Lambda pulls in through
 // `guestAuth/store/decks.ts`, and that bundle deliberately excludes the Sentry SDK -
@@ -18,11 +22,17 @@ import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
 } from "../../observability/runtime";
-import type { ProductAnalyticsEventName } from "../catalog";
+import type { ProductAnalyticsEventName, ProductAnalyticsPlatform } from "../catalog";
 import {
   createPostCommitAnalyticsBudget,
   type PostCommitAnalyticsBudget,
 } from "./postCommitBudget";
+import {
+  toWorkspaceReplicaPlatform,
+  toWorkspaceReplicaRowPlatform,
+  type WorkspaceReplicaPlatformFacts,
+  type WorkspaceReplicaPlatformRow,
+} from "./replicaPlatforms";
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvents,
@@ -47,6 +57,12 @@ export type ContentCreation = Readonly<{
   // The row's own id, always a canonical UUID because it is read back from a uuid column.
   entityId: string;
   workspaceId: string;
+  // content.cards.last_modified_by_replica_id or content.decks.last_modified_by_replica_id as the
+  // insert stored it, which on a creation is the replica that wrote the row rather than the last one
+  // to touch it. It is carried as the id rather than as a platform because the replica row lives in
+  // another table: resolving it is one lookup for a whole drain instead of one per row on the content
+  // write. See resolveContentCreationPlatforms.
+  replicaId: string;
   // sync.hot_changes.client_updated_at for the write that created the row, as an ISO string.
   clientUpdatedAt: string;
 }>;
@@ -98,6 +114,48 @@ export function collectContentCreation(
   collected.push(creation);
 }
 
+// The platform behind a replica this transaction writes through, keyed by the executor running it
+// and with the same lifetime as the creations above: created on first use, dropped with the executor.
+//
+// A caller that ensured a replica already holds everything the derivation needs, so what it names
+// here is exactly what the drain would otherwise read sync.workspace_replicas back for. A null value
+// is an answer like any other - "this replica justifies no platform" - and saves that read just as
+// much as a device does.
+const declaredReplicaPlatforms = new WeakMap<
+  DatabaseExecutor,
+  Map<string, ProductAnalyticsPlatform | null>
+>();
+
+/**
+ * Names the platform behind one replica, from the facts the caller ensured that replica with.
+ *
+ * Callers must pass the actor kind and platform the stored row really carries, which is what
+ * ensuring the replica guarantees: the upsert refuses a replica whose row disagrees with either. The
+ * derivation is the drain's own, so a platform named here and one read back later cannot differ.
+ *
+ * Declaring is optional everywhere. Creations naming a replica nothing declared are resolved by the
+ * drain instead, which is the only route left to a caller that was handed a replica id and no facts
+ * at all - a workspace-package import, or a tool write whose replica was ensured in an earlier
+ * transaction.
+ */
+export function declareContentCreationReplicaPlatform(
+  executor: DatabaseExecutor,
+  replicaId: string,
+  replica: WorkspaceReplicaPlatformFacts,
+): void {
+  const platform = toWorkspaceReplicaPlatform(replica);
+  const declared = declaredReplicaPlatforms.get(executor);
+  if (declared === undefined) {
+    declaredReplicaPlatforms.set(
+      executor,
+      new Map<string, ProductAnalyticsPlatform | null>([[replicaId, platform]]),
+    );
+    return;
+  }
+
+  declared.set(replicaId, platform);
+}
+
 /**
  * The moment the person made the change, corrected for the device clock that reported it.
  *
@@ -125,10 +183,151 @@ function resolveContentCreationOccurredAt(clientUpdatedAt: string, recordedAt: D
   return new Date(clientUpdatedAtMs);
 }
 
+// The most one drain may spend resolving the replicas nothing declared, including the product
+// connection it checks out to do it. It matches ./reviewAnswers.ts because the read, the table and
+// the budget gating it are the same, and that file derives the figure.
+const contentCreationPlatformResolutionTimeoutMs = 2_000;
+
+/**
+ * Resolves the replicas of one drain to the platform each of their rows was created on.
+ *
+ * What the transaction declared as it wrote is taken as it stands, and only the replicas it did not
+ * name are read back. A drain that named all of them opens no transaction and spends none of the
+ * post-commit budget, which is the common case by volume: the sync push, the sync bootstrap push and
+ * the guest upgrade merge all ensure every replica they write through on the transaction's own
+ * executor.
+ *
+ * What is left is one query for the whole drain, after the product transaction committed, which is
+ * what makes it affordable: the creations were collected per transaction, so the content write
+ * itself pays nothing and a 5,000-card import resolves through one indexed lookup rather than one
+ * query per card.
+ *
+ * The read is scoped with the drain's own actor and the workspace of the creations it is resolving,
+ * which is the scope those writes ran under and the only one the RLS policy on
+ * sync.workspace_replicas admits (workspace_replicas_scoped_select_runtime, stated in full in
+ * ./reviewAnswers.ts). Every path that reaches this producer writes into one workspace as one
+ * identity, the guest upgrade included: the merge recreates the guest's replicas under the target
+ * user and workspace and stores those ids on the rows it re-inserts, so the account the drain reports
+ * as the actor is also the account that owns the replicas behind them.
+ *
+ * Best effort, and it must be: the cards and decks are committed and this producer may not reject
+ * into a caller whose transaction is already closed. A read that fails, a budget that is already
+ * spent, a replica the scoped read does not reach - each leaves its creations out of a per-platform
+ * breakdown rather than guessing at a platform the append-only table could never be corrected of.
+ */
+async function resolveContentCreationPlatforms(
+  creations: ReadonlyArray<ContentCreation>,
+  declaredPlatformByReplicaId: ReadonlyMap<string, ProductAnalyticsPlatform | null>,
+  actorUserId: string,
+  budget: PostCommitAnalyticsBudget,
+): Promise<ReadonlyMap<string, ProductAnalyticsPlatform | null>> {
+  const undeclaredCreations = creations.filter(
+    (creation) => !declaredPlatformByReplicaId.has(creation.replicaId),
+  );
+  const scopingCreation = undeclaredCreations[0];
+  if (scopingCreation === undefined) {
+    return declaredPlatformByReplicaId;
+  }
+
+  // The budget is checked here for the same reason a chunk checks it: this runs after COMMIT on the
+  // request's own clock. A drain that finds it spent resolves nothing and the loop below then stops
+  // on the same check, so the request pays for neither. A drain with nothing left to read returned
+  // above without reaching this, so it neither starts that clock nor spends it.
+  if (!budget.hasTimeForAnotherOperation()) {
+    return declaredPlatformByReplicaId;
+  }
+
+  const replicaIds = [...new Set(undeclaredCreations.map((creation) => creation.replicaId))];
+  const platformByReplicaId = new Map(declaredPlatformByReplicaId);
+  const resolutionScope = createBackendObservationScope(
+    "backend-api",
+    null,
+    null,
+    null,
+    actorUserId,
+    scopingCreation.workspaceId,
+    null,
+    null,
+    null,
+    null,
+    null,
+  );
+  try {
+    // Its own clock, and deliberately not the request's:
+    // unsafeRunDatabaseOperationsWithIndependentDeadline replaces any ambient database deadline for
+    // the length of this read instead of narrowing to it, and transactionWithWorkspaceScope reads
+    // that deadline back out of the ambient store, so the read is bounded by it end to end. The
+    // agent SQL surface runs its whole execution under such a deadline
+    // (../../aiTools/agentSql/databaseTimeBudget.ts) and this read is not part of that execution:
+    // the cards are committed, nothing is waiting on the answer, and inheriting a nearly spent
+    // budget would not shorten the read but cancel it before its first statement - storing every
+    // card the machine API just created with no platform at all, permanently, on an append-only
+    // table, at the one surface where `agent` is a value only this read can produce.
+    const replicas = await unsafeRunDatabaseOperationsWithIndependentDeadline(
+      Date.now() + contentCreationPlatformResolutionTimeoutMs,
+      async () => transactionWithWorkspaceScope(
+        { userId: actorUserId, workspaceId: scopingCreation.workspaceId },
+        async (executor) => {
+          const result = await executor.query<WorkspaceReplicaPlatformRow>(
+            [
+              "SELECT replica_id, actor_kind, platform",
+              "FROM sync.workspace_replicas",
+              "WHERE replica_id = ANY($1::uuid[])",
+            ].join(" "),
+            [replicaIds],
+          );
+          return result.rows;
+        },
+      ),
+    );
+    if (replicas.length < replicaIds.length) {
+      // The read succeeded without matching every replica it asked about, so nothing throws and the
+      // creations behind the missing rows go on to be stored with a null platform. replicaIds is
+      // deduplicated and replica_id is the primary key of sync.workspace_replicas, so the read can
+      // only come back short, never long, and the shortfall is exactly what is reported here. Both
+      // content.cards.last_modified_by_replica_id and content.decks.last_modified_by_replica_id
+      // reference that table (db/migrations/0037_workspace_delete_schema_cleanup.sql), so a missing
+      // row is never a deleted replica - it is a row this scoped read no longer reaches, which
+      // ./reviewAnswers.ts states in full for the same read.
+      captureBackendRuntimeWarning({
+        action: "product_analytics_content_creation_platform_resolution_incomplete",
+        scope: resolutionScope,
+        details: {
+          replicaIdCount: replicaIds.length,
+          matchedReplicaCount: replicas.length,
+          creationCount: undeclaredCreations.length,
+        },
+      });
+    }
+    for (const replica of replicas) {
+      platformByReplicaId.set(replica.replica_id, toWorkspaceReplicaRowPlatform(replica));
+    }
+  } catch (error) {
+    // Reported rather than swallowed. The events themselves are unaffected and still worth storing,
+    // so nothing here stops the drain - but a resolution that fails for every drain is otherwise
+    // invisible, because the rows keep arriving and only the platform quietly stops being on them.
+    const errorDetails = getDatabaseErrorFields(error);
+    captureBackendRuntimeWarning({
+      action: "product_analytics_content_creation_platform_resolution_failed",
+      scope: resolutionScope,
+      details: {
+        replicaIdCount: replicaIds.length,
+        creationCount: undeclaredCreations.length,
+        sqlState: errorDetails.sqlState,
+        errorClass: errorDetails.errorClass,
+        errorMessage: errorDetails.errorMessage,
+      },
+    });
+  }
+
+  return platformByReplicaId;
+}
+
 function toContentCreationEvent(
   creation: ContentCreation,
   actorUserId: string,
   recordedAt: Date,
+  platform: ProductAnalyticsPlatform | null,
 ): ServerDerivedProductAnalyticsEvent {
   const eventName = contentCreationEventNames[creation.entityType];
   return {
@@ -166,15 +365,22 @@ function toContentCreationEvent(
     // itself, not the attribution.
     guestSessionId: null,
     workspaceId: creation.workspaceId,
-    // Null, and deliberately not derived. The only stored platform reachable from a content write is
-    // sync.workspace_replicas.platform for the replica that made it, and that column may never be
-    // read without actor_kind on the same row: the AI chat writes cards through a replica hardcoded
-    // to 'web' that describes no device, the machine API's agent_connection replica stores 'web'
-    // while being no browser, and workspace_seed and workspace_reset store 'system'. Cards and decks
-    // really are written by all of those, so this is the producer most likely to be handed a
-    // misleading replica. A missing platform leaves these rows out of a per-platform breakdown; a
-    // guessed one would file them under a platform they never had, permanently.
-    platform: null,
+    // The platform of the replica that wrote the row: named by the transaction that ensured that
+    // replica itself, and otherwise read back from sync.workspace_replicas once for the whole drain.
+    // See resolveContentCreationPlatforms.
+    //
+    // The platform column may never be read without the actor kind beside it, and the two actor kinds
+    // that reach this producer with no device behind them are why: the machine API writes cards
+    // through an agent_connection replica storing 'web' while being no browser, and the AI chat
+    // through an ai_chat replica whose hardcoded 'web' describes no device either.
+    // toWorkspaceReplicaPlatform is what keeps that rule, so the machine API resolves to agent from
+    // its actor kind rather than from that column, and the AI chat resolves to nothing at all.
+    //
+    // Null stays the answer for everything the resolution cannot justify - a replica the guard turns
+    // down, a replica the scoped read did not reach, a resolution the drain could not make - because
+    // a guess would file the row under a platform it never had, permanently, on an append-only table,
+    // while null only leaves it out of a per-platform breakdown.
+    platform,
     properties: {},
     // Provenance about how a row was produced belongs to the backfill that reconstructs history.
     // A write observed as it happens has none.
@@ -263,15 +469,18 @@ function reportAbandonedContentCreations(
  * request's shared post-commit analytics budget is spent, whichever comes first.
  *
  * A chunk is one analytics transaction on one analytics connection, and the chunks are awaited in
- * sequence, so this producer holds one connection at a time however large the transaction was. A
- * sync bootstrap pushes an entire library in one request and every entry of it is a creation, so one
- * emission per row would instead mean thousands of sequential analytics transactions after the
- * commit.
+ * sequence, so this producer holds one connection at a time however large the transaction was. The
+ * platform resolution that may run before them is one short product-pool transaction, released
+ * before the first chunk is built, so that stays true across both pools; a drain whose transaction
+ * named the platform behind every creation opens none at all. A sync bootstrap pushes an entire
+ * library in one request and every entry of it is a creation, so one emission per row would instead
+ * mean thousands of sequential analytics transactions after the commit.
  *
  * Analytics is best effort and a content write is not: a chunk is swallowed and logged by
- * emitServerDerivedProductAnalyticsEvents rather than raised, which is what keeps a rejected row
- * from surfacing as a failed card creation. Neither stop can discard the chunks already stored
- * before it either - those are committed and stay committed.
+ * emitServerDerivedProductAnalyticsEvents rather than raised, and the platform resolution is
+ * swallowed and logged by resolveContentCreationPlatforms, which is what keeps a rejected row from
+ * surfacing as a failed card creation. Neither stop can discard the chunks already stored before it
+ * either - those are committed and stay committed.
  *
  * This function therefore has no rejection path, and that is now load-bearing for a second producer
  * as well as for its own callers. On the sync push and the guest upgrade the content-creations
@@ -320,9 +529,22 @@ async function emitCollectedContentCreations(
   }
 
   collectedContentCreations.delete(executor);
+  const declaredPlatformByReplicaId: ReadonlyMap<string, ProductAnalyticsPlatform | null>
+    = declaredReplicaPlatforms.get(executor) ?? new Map<string, ProductAnalyticsPlatform | null>();
+  declaredReplicaPlatforms.delete(executor);
   // The server timestamp every event of this drain carries. The drain's stop clock is no longer read
   // here: it belongs to the request rather than to this drain, so it is the budget's.
   const recordedAt = new Date();
+  // What the transaction named as it wrote, plus at most one read of the product database for the
+  // replicas it did not, before the first chunk and after the commit that released this transaction's
+  // connection. Creations left unresolved keep the null platform they always had; nothing here can
+  // fail the drain.
+  const platformByReplicaId = await resolveContentCreationPlatforms(
+    collected,
+    declaredPlatformByReplicaId,
+    actorUserId,
+    budget,
+  );
   for (
     let chunkStart = 0;
     chunkStart < collected.length;
@@ -350,7 +572,12 @@ async function emitCollectedContentCreations(
     // Never rejects: the writer's refusal comes back as an outcome, so this await cannot throw into
     // a caller whose product transaction has already committed.
     const outcome = await emitServerDerivedProductAnalyticsEvents(
-      chunk.map((creation) => toContentCreationEvent(creation, actorUserId, recordedAt)),
+      chunk.map((creation) => toContentCreationEvent(
+        creation,
+        actorUserId,
+        recordedAt,
+        platformByReplicaId.get(creation.replicaId) ?? null,
+      )),
     );
     if (outcome === "stored") {
       continue;

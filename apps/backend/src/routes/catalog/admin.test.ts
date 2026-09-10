@@ -6,8 +6,11 @@ import type { AdminRequestContext } from "../../admin/authz";
 import type {
   CatalogCollectionCover,
   CatalogPackage,
+  CatalogPackageEducationalAlignmentCorrection,
   CatalogPackageMediaAsset,
+  CatalogPackageStatus,
   CatalogPackageVersion,
+  CorrectCatalogPackageEducationalAlignmentInput,
   CreateCatalogPackageDraftInput,
   CreateCatalogPackageVersionFromWorkspaceInput,
   UpdateCatalogPackageDraftInput,
@@ -59,7 +62,7 @@ function createCatalogPackageVersion(sourceWorkspaceId: string): CatalogPackageV
     summary: "Test summary",
     description: "Test description",
     languageTags: [],
-    educationalSubject: null,
+    educationalSubject: "Statistics",
     educationalFramework: null,
     educationalLevel: null,
     license: "CC-BY-4.0",
@@ -170,7 +173,7 @@ function createCatalogPackageInputValidationApp(
   return app;
 }
 
-test("catalog package inputs lowercase language tags, carry educational alignment, and clear an omitted field", async () => {
+test("catalog package inputs lowercase language tags, keep the educational subject, and clear an omitted framework or level", async () => {
   const parsedInputs: Array<CreateCatalogPackageDraftInput | UpdateCatalogPackageDraftInput> = [];
   const app = createCatalogPackageInputCaptureApp((input) => {
     parsedInputs.push(input);
@@ -182,6 +185,7 @@ test("catalog package inputs lowercase language tags, carry educational alignmen
     summary: "Test summary",
     description: "Test description",
     languageTags: ["EN"],
+    educationalSubject: "Statistics",
     license: "CC0-1.0",
     contentWarning: null,
   };
@@ -192,12 +196,12 @@ test("catalog package inputs lowercase language tags, carry educational alignmen
     body: JSON.stringify({
       packageId,
       ...sharedPackageInput,
-      educationalSubject: "Statistics",
       educationalFramework: "AP Statistics",
       educationalLevel: "High school",
     }),
   });
-  // The draft PUT replaces the whole package, so a body without the fields asks for none.
+  // The draft PUT replaces the whole package, so a body without the framework and level asks for
+  // neither. The subject is required and has to be sent on every request.
   const updateResponse = await app.request(
     `http://localhost/admin/catalog/packages/${packageId}/draft`,
     {
@@ -221,9 +225,60 @@ test("catalog package inputs lowercase language tags, carry educational alignmen
     ]),
     [
       ["Statistics", "AP Statistics", "High school"],
-      [null, null, null],
+      ["Statistics", null, null],
     ],
   );
+});
+
+test("catalog package inputs reject a missing educational subject", async () => {
+  let processingCalls = 0;
+  const app = createCatalogPackageInputValidationApp(async () => {
+    processingCalls += 1;
+    throw new Error(
+      "Package input without an educational subject must be rejected before processing",
+    );
+  });
+  const sharedPackageInput = {
+    authorId,
+    slug: "test-package",
+    title: "Test package",
+    summary: "Test summary",
+    description: "Test description",
+    languageTags: ["en"],
+    license: "CC0-1.0",
+    contentWarning: null,
+  };
+  const requests = [
+    {
+      method: "POST",
+      path: "/admin/catalog/packages",
+      body: { packageId, ...sharedPackageInput },
+    },
+    {
+      method: "PUT",
+      path: `/admin/catalog/packages/${packageId}/draft`,
+      body: { ...sharedPackageInput, coverPackageMediaKey: null },
+    },
+    {
+      method: "PUT",
+      path: `/admin/catalog/packages/${packageId}/draft`,
+      body: { ...sharedPackageInput, educationalSubject: null, coverPackageMediaKey: null },
+    },
+  ] as const;
+
+  for (const request of requests) {
+    const response = await app.request(`http://localhost${request.path}`, {
+      method: request.method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request.body),
+    });
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {
+      error: "educationalSubject must be a string",
+      code: null,
+    });
+  }
+  assert.equal(processingCalls, 0);
 });
 
 test("catalog package inputs explicitly reject the removed topicTags field", async () => {
@@ -314,6 +369,173 @@ test("catalog package inputs reject a language tag outside the supported audienc
     });
   }
   assert.equal(processingCalls, 0);
+});
+
+function createEducationalAlignmentCorrection(
+  input: CorrectCatalogPackageEducationalAlignmentInput,
+  writtenVersions: ReadonlyArray<readonly [number, CatalogPackageStatus]>,
+): CatalogPackageEducationalAlignmentCorrection {
+  return {
+    catalogPackage: createCatalogPackageDraft({
+      packageId,
+      authorId,
+      slug: "test-package",
+      title: "Test package",
+      summary: "Test summary",
+      description: "Test description",
+      languageTags: ["en"],
+      license: "CC0-1.0",
+      contentWarning: null,
+      ...input,
+    }),
+    packageVersions: writtenVersions.map(([versionNumber, status]) => ({
+      ...createCatalogPackageVersion(legacyWorkspaceId),
+      versionNumber,
+      status,
+      ...input,
+    })),
+  };
+}
+
+function createCatalogAlignmentCorrectionApp(
+  correct: (
+    receivedPackageId: string,
+    input: CorrectCatalogPackageEducationalAlignmentInput,
+  ) => Promise<CatalogPackageEducationalAlignmentCorrection>,
+  refresh: () => void,
+): Hono<AppEnv> {
+  const app = new Hono<AppEnv>();
+  app.use("*", async (context, next) => {
+    context.set("requestId", "request-1");
+    await next();
+  });
+  app.onError((error, context) => {
+    if (error instanceof HttpError) {
+      context.status(error.statusCode as ContentfulStatusCode);
+      return context.json({ error: error.message, code: error.code });
+    }
+
+    throw error;
+  });
+  app.route("/", createCatalogAdminRoutes({
+    allowedOrigins: [],
+    requireAdminRequestFn: async () => createAdminRequestContext(),
+    correctCatalogPackageEducationalAlignmentFn: correct,
+    refreshPublicCatalogDumpFn: async () => {
+      refresh();
+    },
+  }));
+  return app;
+}
+
+test("PUT catalog educational alignment corrects published versions and refreshes the artifact", async () => {
+  const correctedInputs: Array<CorrectCatalogPackageEducationalAlignmentInput> = [];
+  // Only the first call writes a published version row. The second is a replay that found every
+  // row already correct and wrote nothing, and the third reached an in-flight draft alone; neither
+  // changes what the public artifact projects, so neither queues a rebuild.
+  const writtenVersionsByCall: ReadonlyArray<ReadonlyArray<readonly [number, CatalogPackageStatus]>> = [
+    [[1, "published"], [2, "published"]],
+    [],
+    [[3, "draft"]],
+  ];
+  let refreshCalls = 0;
+  const app = createCatalogAlignmentCorrectionApp(
+    async (receivedPackageId, input) => {
+      assert.equal(receivedPackageId, packageId);
+      const writtenVersions = writtenVersionsByCall[correctedInputs.length] ?? [];
+      correctedInputs.push(input);
+      return createEducationalAlignmentCorrection(input, writtenVersions);
+    },
+    () => {
+      refreshCalls += 1;
+    },
+  );
+  const requestBodies = [
+    {
+      educationalSubject: "Estadística",
+      educationalFramework: "College Board Advanced Placement",
+      educationalLevel: "Bachillerato",
+    },
+    { educationalSubject: "Estadística", educationalFramework: null, educationalLevel: null },
+    { educationalSubject: "Estadística", educationalFramework: null, educationalLevel: null },
+  ] as const;
+
+  const responses: Array<Response> = [];
+  for (const body of requestBodies) {
+    responses.push(await app.request(
+      `http://localhost/admin/catalog/packages/${packageId}/educational-alignment`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ));
+  }
+
+  assert.deepEqual(responses.map((response) => response.status), [200, 200, 200]);
+  assert.deepEqual(correctedInputs, [...requestBodies]);
+  assert.equal(refreshCalls, 1);
+  const replayPayload = await responses[1]?.json() as CatalogPackageEducationalAlignmentCorrection;
+  assert.equal(replayPayload.catalogPackage.educationalSubject, "Estadística");
+  assert.deepEqual(replayPayload.packageVersions, []);
+  const payload = await responses[0]?.json() as CatalogPackageEducationalAlignmentCorrection;
+  assert.equal(payload.catalogPackage.educationalSubject, "Estadística");
+  assert.deepEqual(
+    payload.packageVersions.map((packageVersion) => [
+      packageVersion.versionNumber,
+      packageVersion.educationalFramework,
+    ]),
+    [[1, "College Board Advanced Placement"], [2, "College Board Advanced Placement"]],
+  );
+});
+
+test("PUT catalog educational alignment requires every value and never trims one", async () => {
+  const correctedInputs: Array<CorrectCatalogPackageEducationalAlignmentInput> = [];
+  const app = createCatalogAlignmentCorrectionApp(
+    async (_receivedPackageId, input) => {
+      correctedInputs.push(input);
+      return createEducationalAlignmentCorrection(input, [[1, "published"]]);
+    },
+    () => {},
+  );
+  const requests = [
+    { educationalFramework: null, educationalLevel: null },
+    { educationalSubject: null, educationalFramework: null, educationalLevel: null },
+    {
+      educationalSubject: "Estadística",
+      educationalLevel: null,
+    },
+  ] as const;
+
+  for (const body of requests) {
+    const response = await app.request(
+      `http://localhost/admin/catalog/packages/${packageId}/educational-alignment`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    assert.equal(response.status, 400);
+  }
+  assert.equal(correctedInputs.length, 0);
+
+  // A padded value reaches the authoring screen exactly as written; that screen is what rejects it,
+  // so trimming it here would hide the input it exists to refuse.
+  const paddedResponse = await app.request(
+    `http://localhost/admin/catalog/packages/${packageId}/educational-alignment`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        educationalSubject: "  Estadística  ",
+        educationalFramework: null,
+        educationalLevel: null,
+      }),
+    },
+  );
+  assert.equal(paddedResponse.status, 200);
+  assert.deepEqual(correctedInputs.map((input) => input.educationalSubject), ["  Estadística  "]);
 });
 
 test("POST catalog version from workspace normalizes a legacy PostgreSQL workspace ID", async () => {
