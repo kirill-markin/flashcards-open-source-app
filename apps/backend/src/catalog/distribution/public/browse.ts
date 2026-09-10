@@ -48,6 +48,9 @@ type CatalogPublicPackageRow = Readonly<{
   summary: string;
   description: string;
   language_tags: ReadonlyArray<string>;
+  educational_subject: string | null;
+  educational_framework: string | null;
+  educational_level: string | null;
   license: string;
   content_warning: string | null;
   cover_package_media_key: string | null;
@@ -95,6 +98,9 @@ const publicCatalogPackageSelectColumns = [
   "versions.summary AS summary",
   "versions.description AS description",
   "versions.language_tags AS language_tags",
+  "versions.educational_subject AS educational_subject",
+  "versions.educational_framework AS educational_framework",
+  "versions.educational_level AS educational_level",
   "versions.license AS license",
   "versions.content_warning AS content_warning",
   "versions.cover_package_media_key AS cover_package_media_key",
@@ -122,7 +128,8 @@ const latestPublishedVersionsCte = [
   "WITH latest_published_versions AS (",
   "SELECT DISTINCT ON (package_id)",
   "package_version_id, package_id, version_number, status, title, summary, description,",
-  "language_tags, license, content_warning, cover_package_media_key, card_count,",
+  "language_tags, educational_subject, educational_framework, educational_level,",
+  "license, content_warning, cover_package_media_key, card_count,",
   "updated_at, published_at",
   "FROM catalog.package_versions",
   "WHERE status = 'published'",
@@ -291,6 +298,9 @@ function mapCatalogPublicPackageVersionSummary(
   assertPublicCatalogTextSafe(row.package_version_id, row.summary);
   assertPublicCatalogTextSafe(row.package_version_id, row.description);
   assertPublicCatalogTextArraySafe(row.package_version_id, row.language_tags);
+  assertPublicCatalogTextSafe(row.package_version_id, row.educational_subject);
+  assertPublicCatalogTextSafe(row.package_version_id, row.educational_framework);
+  assertPublicCatalogTextSafe(row.package_version_id, row.educational_level);
   assertPublicCatalogTextSafe(row.package_version_id, row.license);
   assertPublicCatalogTextSafe(row.package_version_id, row.content_warning);
 
@@ -304,6 +314,9 @@ function mapCatalogPublicPackageVersionSummary(
     summary: row.summary,
     description: row.description,
     languageTags: [...row.language_tags],
+    educationalSubject: row.educational_subject,
+    educationalFramework: row.educational_framework,
+    educationalLevel: row.educational_level,
     license: row.license,
     contentWarning: row.content_warning,
     coverPackageMediaKey: row.cover_package_media_key,
@@ -348,6 +361,9 @@ function mapCatalogPublicPackageSummary(row: CatalogPublicPackageRow): CatalogPu
     summary: latestVersion.summary,
     description: latestVersion.description,
     languageTags: latestVersion.languageTags,
+    educationalSubject: latestVersion.educationalSubject,
+    educationalFramework: latestVersion.educationalFramework,
+    educationalLevel: latestVersion.educationalLevel,
     license: latestVersion.license,
     contentWarning: latestVersion.contentWarning,
     coverPackageMediaKey: latestVersion.coverPackageMediaKey,

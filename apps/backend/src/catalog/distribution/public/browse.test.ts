@@ -81,6 +81,10 @@ test("public catalog list reads only published, non-delisted package snapshots",
   assert.equal(catalogPackages[0]?.status, "published");
   assert.equal(catalogPackages[0]?.latestVersion.status, "published");
   assert.equal(catalogPackages[0]?.latestVersion.packageVersionId, testPackageVersionId);
+  assert.equal(catalogPackages[0]?.latestVersion.educationalSubject, "Spanish");
+  assert.equal(catalogPackages[0]?.latestVersion.educationalFramework, null);
+  assert.equal(catalogPackages[0]?.latestVersion.educationalLevel, "Beginner");
+  assert.equal(catalogPackages[0]?.educationalSubject, "Spanish");
   assert.doesNotMatch(JSON.stringify(catalogPackages), /mediaBlobId|storageKey|sha256|createdByAdminEmail|sourceWorkspaceId/);
 });
 

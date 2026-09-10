@@ -42,8 +42,9 @@ type CatalogPublicationBoundaryHarnessInput = Readonly<{
   }>>;
   versionPatch: Readonly<Partial<Pick<
     CatalogPackageVersionRow,
-    "slug" | "title" | "summary" | "description" | "language_tags" | "license"
-      | "content_warning"
+    "slug" | "title" | "summary" | "description" | "language_tags"
+      | "educational_subject" | "educational_framework" | "educational_level"
+      | "license" | "content_warning"
   >>>;
   mediaPatch: Readonly<Partial<{
     alt_text: string | null;
@@ -495,6 +496,48 @@ const unsafePublicationFixtures: ReadonlyArray<Readonly<{
       mediaAssetKeys: [],
     },
     expectedSource: /versionField=title/,
+  },
+  {
+    label: "unsafe educational subject",
+    draftMediaKeys: [],
+    versionPatch: { educational_subject: unsafePublicCatalogStorageReference },
+    mediaPatch: {},
+    card: {
+      frontText: "Prompt",
+      backText: "Answer",
+      cardType: "basic",
+      tags: [],
+      mediaAssetKeys: [],
+    },
+    expectedSource: /versionField=educationalSubject/,
+  },
+  {
+    label: "unsafe educational framework",
+    draftMediaKeys: [],
+    versionPatch: { educational_framework: unsafePublicCatalogStorageReference },
+    mediaPatch: {},
+    card: {
+      frontText: "Prompt",
+      backText: "Answer",
+      cardType: "basic",
+      tags: [],
+      mediaAssetKeys: [],
+    },
+    expectedSource: /versionField=educationalFramework/,
+  },
+  {
+    label: "unsafe educational level",
+    draftMediaKeys: [],
+    versionPatch: { educational_level: unsafePublicCatalogStorageReference },
+    mediaPatch: {},
+    card: {
+      frontText: "Prompt",
+      backText: "Answer",
+      cardType: "basic",
+      tags: [],
+      mediaAssetKeys: [],
+    },
+    expectedSource: /versionField=educationalLevel/,
   },
   {
     label: "unsafe card metadata",
