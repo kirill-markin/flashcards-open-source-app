@@ -7,7 +7,10 @@ extension FlashcardsStore {
         fallbackCloudState: CloudAccountState?,
         trigger: CloudSyncTrigger
     ) -> SyncStatus {
-        self.syncStatus(
+        if self.isCustomGuestWorkspacePaused {
+            return .blocked(message: localizedCustomGuestWorkspacePauseMessage())
+        }
+        return self.syncStatus(
             decision: CloudSyncFailurePolicy.statusDecision(
                 recoveryReason: self.cloudCredentialRecoveryState?.reason,
                 postAuthenticationFailureIsIdle: trigger.source == .postAuth,
@@ -19,7 +22,10 @@ extension FlashcardsStore {
     }
 
     func transitionSyncStatusForCloudFailure(error: Error) -> SyncStatus {
-        self.syncStatus(
+        if self.isCustomGuestWorkspacePaused {
+            return .blocked(message: localizedCustomGuestWorkspacePauseMessage())
+        }
+        return self.syncStatus(
             decision: CloudSyncFailurePolicy.statusDecision(
                 recoveryReason: self.cloudCredentialRecoveryState?.reason,
                 postAuthenticationFailureIsIdle: false,
@@ -31,7 +37,10 @@ extension FlashcardsStore {
     }
 
     func transitionSyncStatusForCloudFailure(error: Error, trigger: CloudSyncTrigger) -> SyncStatus {
-        self.syncStatus(
+        if self.isCustomGuestWorkspacePaused {
+            return .blocked(message: localizedCustomGuestWorkspacePauseMessage())
+        }
+        return self.syncStatus(
             decision: CloudSyncFailurePolicy.statusDecision(
                 recoveryReason: self.cloudCredentialRecoveryState?.reason,
                 postAuthenticationFailureIsIdle: trigger.source == .postAuth,
@@ -92,6 +101,31 @@ extension FlashcardsStore {
         trigger: CloudSyncTrigger,
         action: String
     ) -> Bool {
+        if let pauseState = self.customGuestWorkspacePauseState,
+            let installationId = self.cloudSettings?.installationId,
+            customGuestWorkspacePauseMatchesSession(
+                pauseState: pauseState,
+                linkedSession: linkedSession,
+                installationId: installationId
+            ),
+            let localStoreError = error as? LocalStoreError,
+            case .validation(let message) = localStoreError,
+            message == localizedCustomGuestWorkspacePauseMessage() {
+            return false
+        }
+        if let pauseState = self.customGuestWorkspacePauseState,
+            let installationId = self.cloudSettings?.installationId,
+            let syncError = error as? CloudSyncError,
+            case .invalidResponse(let details, let statusCode) = syncError,
+            statusCode == pauseState.statusCode,
+            details.code == pauseState.backendCode,
+            customGuestWorkspacePauseMatchesSession(
+                pauseState: pauseState,
+                linkedSession: linkedSession,
+                installationId: installationId
+            ) {
+            return false
+        }
         if self.cloudCredentialRecoveryState?.reason == .linkedWorkspaceUnavailable,
             let localStoreError = error as? LocalStoreError,
             case .validation(let message) = localStoreError,

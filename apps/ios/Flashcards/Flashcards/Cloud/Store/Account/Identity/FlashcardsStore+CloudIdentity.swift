@@ -76,6 +76,7 @@ extension FlashcardsStore {
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
         try self.reload()
         self.clearCloudCredentialRecoveryState()
+        self.clearCustomGuestWorkspacePause()
     }
 
     /**

@@ -39,6 +39,7 @@ let customCloudServerOverrideUserDefaultsKey: String = "custom-cloud-server-over
 let pendingCloudServerBootstrapUserDefaultsKey: String = "pending-cloud-server-bootstrap"
 let cloudCredentialRecoveryStateUserDefaultsKey: String = "cloud-credential-recovery-state"
 let cloudCredentialRecoveryStateSilentFailureDigestUserDefaultsKey: String = "cloud-credential-recovery-state-silent-failure-digest"
+let customGuestWorkspacePauseStateUserDefaultsKey: String = "custom-guest-workspace-pause-state"
 let guestLocalRecoveryWorkspaceCheckpointUserDefaultsKey: String = "guest-local-recovery-workspace-checkpoint"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
 let flashcardsAppShareUrl: URL = {
@@ -255,6 +256,48 @@ func clearCloudCredentialRecoveryState(userDefaults: UserDefaults) {
     userDefaults.removeObject(forKey: cloudCredentialRecoveryStateUserDefaultsKey)
     userDefaults.removeObject(forKey: cloudCredentialRecoveryStateSilentFailureDigestUserDefaultsKey)
     clearGuestLocalRecoveryWorkspaceCheckpoint(userDefaults: userDefaults)
+}
+
+func loadCustomGuestWorkspacePauseState(
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder
+) -> CustomGuestWorkspacePauseState? {
+    guard let storedData = userDefaults.data(forKey: customGuestWorkspacePauseStateUserDefaultsKey) else {
+        return nil
+    }
+
+    do {
+        return try decoder.decode(CustomGuestWorkspacePauseState.self, from: storedData)
+    } catch {
+        captureCloudCredentialRecoveryStateSilentFailure(
+            error: error,
+            action: "custom_guest_workspace_pause_state_load",
+            stage: "decode"
+        )
+        userDefaults.removeObject(forKey: customGuestWorkspacePauseStateUserDefaultsKey)
+        return nil
+    }
+}
+
+func saveCustomGuestWorkspacePauseState(
+    state: CustomGuestWorkspacePauseState,
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder
+) throws {
+    do {
+        userDefaults.set(
+            try encoder.encode(state),
+            forKey: customGuestWorkspacePauseStateUserDefaultsKey
+        )
+    } catch {
+        throw LocalStoreError.validation(
+            "Custom guest workspace pause state could not be saved: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+func clearCustomGuestWorkspacePauseState(userDefaults: UserDefaults) {
+    userDefaults.removeObject(forKey: customGuestWorkspacePauseStateUserDefaultsKey)
 }
 
 func loadGuestLocalRecoveryWorkspaceCheckpoint(

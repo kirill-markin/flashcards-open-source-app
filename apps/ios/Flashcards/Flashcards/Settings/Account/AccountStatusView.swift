@@ -35,6 +35,8 @@ struct AccountStatusView: View {
 
     @State private var isCloudSignInPresented: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
+    @State private var isCustomGuestWorkspaceRetrying: Bool = false
+    @State private var customGuestWorkspaceRetryFailureMessage: String?
 
     private var settingsAttentionSummary: SettingsAttentionSummary {
         makeSettingsAttentionSummary(
@@ -44,6 +46,70 @@ struct AccountStatusView: View {
 
     var body: some View {
         List {
+            if store.isCustomGuestWorkspacePaused,
+                let pauseState = store.customGuestWorkspacePauseState {
+                Section(
+                    aiSettingsLocalized(
+                        "settings.account.status.customGuestPause.title",
+                        "Guest Cloud Workspace Unavailable"
+                    )
+                ) {
+                    Label {
+                        Text(localizedCustomGuestWorkspacePauseMessage())
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                    }
+
+                    LabeledContent(aiSettingsLocalized("settings.account.status.customGuestPause.server", "Server")) {
+                        Text(pauseState.customOrigin)
+                            .font(.caption.monospaced())
+                            .multilineTextAlignment(.trailing)
+                    }
+
+                    LabeledContent(aiSettingsLocalized("settings.account.status.customGuestPause.httpStatus", "HTTP status")) {
+                        Text(pauseState.statusCode.formatted())
+                            .monospacedDigit()
+                    }
+
+                    LabeledContent(aiSettingsLocalized("settings.account.status.customGuestPause.backendCode", "Backend code")) {
+                        Text(pauseState.backendCode)
+                            .font(.caption.monospaced())
+                            .multilineTextAlignment(.trailing)
+                    }
+
+                    if let requestId = pauseState.requestId, requestId.isEmpty == false {
+                        LabeledContent(aiSettingsLocalized("settings.account.status.customGuestPause.reference", "Reference")) {
+                            Text(requestId)
+                                .font(.caption.monospaced())
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if let customGuestWorkspaceRetryFailureMessage {
+                        Text(customGuestWorkspaceRetryFailureMessage)
+                            .foregroundStyle(.red)
+                    }
+
+                    Button {
+                        self.retryCustomGuestWorkspace()
+                    } label: {
+                        HStack(spacing: 8) {
+                            if self.isCustomGuestWorkspaceRetrying {
+                                ProgressView()
+                            }
+                            Text(aiSettingsLocalized("settings.account.status.customGuestPause.retry", "Retry"))
+                        }
+                    }
+                    .disabled(self.isCustomGuestWorkspaceRetrying)
+
+                    NavigationLink(value: SettingsNavigationDestination.accountServer) {
+                        Text(aiSettingsLocalized("settings.account.status.customGuestPause.changeServer", "Change Server"))
+                    }
+                    .disabled(self.isCustomGuestWorkspaceRetrying)
+                }
+            }
+
             Section(aiSettingsLocalized("settings.account.status.section.accountStatus", "Account Status")) {
                 if let cloudSettings = store.cloudSettings {
                     let syncStatusPresentation = makeSyncStatusPresentation(
@@ -87,43 +153,45 @@ struct AccountStatusView: View {
                     )
                         .foregroundStyle(.secondary)
 
-                    switch cloudSettings.cloudState {
-                    case .disconnected, .linkingReady:
-                        Button {
-                            self.isCloudSignInPresented = true
-                        } label: {
-                            AccountStatusPrimaryActionLabel(
-                                title: aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up"),
-                                attentionCount: self.settingsAttentionSummary.accountStatusPrimaryActionCount
-                            )
-                        }
-                        .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
-                    case .guest:
-                        Button {
-                            self.isCloudSignInPresented = true
-                        } label: {
-                            AccountStatusPrimaryActionLabel(
-                                title: aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up"),
-                                attentionCount: self.settingsAttentionSummary.accountStatusPrimaryActionCount
-                            )
-                        }
-                        .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
-                    case .linked:
-                        Button(aiSettingsLocalized("settings.account.status.syncNow", "Sync now")) {
-                            self.syncNow()
-                        }
-                        .disabled(isSyncInFlight(status: store.syncStatus) || self.isSyncBlocked)
-                        .accessibilityIdentifier(UITestIdentifier.accountStatusSyncNowButton)
+                    if store.isCustomGuestWorkspacePaused == false {
+                        switch cloudSettings.cloudState {
+                        case .disconnected, .linkingReady:
+                            Button {
+                                self.isCloudSignInPresented = true
+                            } label: {
+                                AccountStatusPrimaryActionLabel(
+                                    title: aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up"),
+                                    attentionCount: self.settingsAttentionSummary.accountStatusPrimaryActionCount
+                                )
+                            }
+                            .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
+                        case .guest:
+                            Button {
+                                self.isCloudSignInPresented = true
+                            } label: {
+                                AccountStatusPrimaryActionLabel(
+                                    title: aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up"),
+                                    attentionCount: self.settingsAttentionSummary.accountStatusPrimaryActionCount
+                                )
+                            }
+                            .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
+                        case .linked:
+                            Button(aiSettingsLocalized("settings.account.status.syncNow", "Sync now")) {
+                                self.syncNow()
+                            }
+                            .disabled(isSyncInFlight(status: store.syncStatus) || self.isSyncBlocked)
+                            .accessibilityIdentifier(UITestIdentifier.accountStatusSyncNowButton)
 
-                        Button(aiSettingsLocalized("settings.account.status.switchAccount", "Switch account")) {
-                            self.isCloudSignInPresented = true
-                        }
-                        .accessibilityIdentifier(UITestIdentifier.accountStatusSwitchAccountButton)
+                            Button(aiSettingsLocalized("settings.account.status.switchAccount", "Switch account")) {
+                                self.isCloudSignInPresented = true
+                            }
+                            .accessibilityIdentifier(UITestIdentifier.accountStatusSwitchAccountButton)
 
-                        Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
-                            self.isLogoutConfirmationPresented = true
+                            Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
+                                self.isLogoutConfirmationPresented = true
+                            }
+                            .accessibilityIdentifier(UITestIdentifier.accountStatusLogoutButton)
                         }
-                        .accessibilityIdentifier(UITestIdentifier.accountStatusLogoutButton)
                     }
                 } else {
                     Text(aiSettingsLocalized("settings.account.status.unavailable", "Cloud settings are unavailable."))
@@ -171,6 +239,32 @@ struct AccountStatusView: View {
                 if self.shouldPresentManualSyncTechnicalError(error: error) {
                     self.store.presentTechnicalError(error)
                 }
+            }
+        }
+    }
+
+    private func retryCustomGuestWorkspace() {
+        guard self.isCustomGuestWorkspaceRetrying == false else {
+            return
+        }
+
+        self.isCustomGuestWorkspaceRetrying = true
+        self.customGuestWorkspaceRetryFailureMessage = nil
+        Task { @MainActor in
+            defer {
+                self.isCustomGuestWorkspaceRetrying = false
+            }
+
+            do {
+                try await self.store.retryCustomGuestWorkspace()
+            } catch {
+                if isRequestCancellationError(error: error) {
+                    return
+                }
+                self.customGuestWorkspaceRetryFailureMessage = aiSettingsLocalized(
+                    "settings.account.status.customGuestPause.retryFailed",
+                    "Retry failed. Sync is still paused. Check the custom server and try again."
+                )
             }
         }
     }

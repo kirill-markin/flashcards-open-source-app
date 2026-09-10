@@ -774,3 +774,22 @@
 "feedback.sheet.success" = "Danke. Ihr Feedback wurde gesendet.";
 "feedback.sheet.messageTooLong" = "Feedback bitte unter %d Zeichen halten.";
 "feedback.sheet.emptyMessageError" = "Schreiben Sie Feedback, bevor Sie senden.";
+
+"settings.account.server.validation.authService" = "Authentifizierungsdienst";
+"settings.account.server.validation.apiService" = "API-Dienst";
+"settings.account.server.validation.invalidHealthUrl" = "Die URL der Statusprüfung ist ungültig: %@";
+"settings.account.server.validation.requestFailed" = "Die Statusprüfung von %@ ist für %@ fehlgeschlagen: %@";
+"settings.account.server.validation.invalidStatusCode" = "Die Statusprüfung von %@ hat Status %d für %@ zurückgegeben";
+"settings.account.server.validation.redirectedToDifferentOrigin" = "Die Statusprüfung von %@ für %@ wurde an einen anderen Server weitergeleitet: %@. Konfigurieren Sie sie so, dass sie auf demselben Server antwortet, und versuchen Sie es erneut.";
+"settings.account.server.validation.invalidApiHealthResponse" = "Der API-Status unter %@ gibt keinen gültigen Dienst und Cloud-Vertrag an. Aktualisieren Sie den benutzerdefinierten Server, stellen Sie ihn erneut bereit und versuchen Sie es dann erneut.";
+"settings.account.server.validation.unexpectedApiService" = "Der API-Status unter %@ identifiziert %@ statt eines kompatiblen Flashcards-Backends. Aktualisieren Sie den benutzerdefinierten Server, stellen Sie ihn erneut bereit und versuchen Sie es dann erneut.";
+"settings.account.server.validation.unsupportedCloudContractVersion" = "Der API-Status unter %@ gibt die nicht unterstützte Cloud-Vertragsversion %d an. Diese App benötigt Version 1. Aktualisieren Sie den benutzerdefinierten Server, stellen Sie ihn erneut bereit und versuchen Sie es dann erneut.";
+"settings.sync.customGuestWorkspacePaused.message" = "Dieser benutzerdefinierte Server kann nicht auf diesen Gast-Arbeitsbereich zugreifen. Der Server ist möglicherweise inkompatibel oder falsch konfiguriert. Die Synchronisierung ist pausiert; Ihre lokalen Karten und ausstehenden Änderungen sind auf diesem Gerät sicher.";
+"settings.account.status.customGuestPause.title" = "Gast-Cloud-Arbeitsbereich nicht verfügbar";
+"settings.account.status.customGuestPause.server" = "Server";
+"settings.account.status.customGuestPause.httpStatus" = "HTTP-Status";
+"settings.account.status.customGuestPause.backendCode" = "Backend-Code";
+"settings.account.status.customGuestPause.reference" = "Referenz";
+"settings.account.status.customGuestPause.retry" = "Erneut versuchen";
+"settings.account.status.customGuestPause.changeServer" = "Server wechseln";
+"settings.account.status.customGuestPause.retryFailed" = "Der erneute Versuch ist fehlgeschlagen. Die Synchronisierung bleibt pausiert. Prüfen Sie den benutzerdefinierten Server und versuchen Sie es erneut.";

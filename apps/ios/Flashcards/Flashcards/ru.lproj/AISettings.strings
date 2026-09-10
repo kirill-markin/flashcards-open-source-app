@@ -774,3 +774,22 @@
 "feedback.sheet.success" = "Спасибо. Ваш отзыв отправлен.";
 "feedback.sheet.messageTooLong" = "Отзыв должен быть короче %d символов.";
 "feedback.sheet.emptyMessageError" = "Напишите отзыв перед отправкой.";
+
+"settings.account.server.validation.authService" = "Сервис авторизации";
+"settings.account.server.validation.apiService" = "Сервис API";
+"settings.account.server.validation.invalidHealthUrl" = "Некорректный URL проверки состояния: %@";
+"settings.account.server.validation.requestFailed" = "Не удалось проверить состояние %@ по адресу %@: %@";
+"settings.account.server.validation.invalidStatusCode" = "Проверка состояния %@ вернула статус %d по адресу %@";
+"settings.account.server.validation.redirectedToDifferentOrigin" = "Проверка состояния %@ по адресу %@ перенаправлена на другой сервер: %@. Настройте ответ с того же сервера и повторите попытку.";
+"settings.account.server.validation.invalidApiHealthResponse" = "API по адресу %@ не сообщает корректные данные о сервисе и облачном контракте. Обновите и заново разверните пользовательский сервер, затем повторите попытку.";
+"settings.account.server.validation.unexpectedApiService" = "API по адресу %@ сообщает сервис %@ вместо совместимого бэкенда Flashcards. Обновите и заново разверните пользовательский сервер, затем повторите попытку.";
+"settings.account.server.validation.unsupportedCloudContractVersion" = "API по адресу %@ сообщает неподдерживаемую версию облачного контракта %d. Этому приложению нужна версия 1. Обновите и заново разверните пользовательский сервер, затем повторите попытку.";
+"settings.sync.customGuestWorkspacePaused.message" = "Этот пользовательский сервер не может получить доступ к гостевому рабочему пространству. Возможно, сервер несовместим или настроен неправильно. Синхронизация приостановлена, а локальные карточки и ожидающие изменения сохранены на этом устройстве.";
+"settings.account.status.customGuestPause.title" = "Гостевое облачное пространство недоступно";
+"settings.account.status.customGuestPause.server" = "Сервер";
+"settings.account.status.customGuestPause.httpStatus" = "Статус HTTP";
+"settings.account.status.customGuestPause.backendCode" = "Код бэкенда";
+"settings.account.status.customGuestPause.reference" = "Идентификатор";
+"settings.account.status.customGuestPause.retry" = "Повторить";
+"settings.account.status.customGuestPause.changeServer" = "Сменить сервер";
+"settings.account.status.customGuestPause.retryFailed" = "Повторная попытка не удалась. Синхронизация по-прежнему приостановлена. Проверьте пользовательский сервер и повторите попытку.";
