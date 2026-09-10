@@ -1008,9 +1008,6 @@ const deCatalog: TranslationCatalog = {
       trigger: "Filtern",
       triggerWithCount: "Filtern ({{count}})",
     },
-    loading: {
-      open: "Öffnen",
-    },
     loadingMore: "Weitere Karten werden geladen...",
     search: {
       label: "Suchen",
@@ -1022,7 +1019,6 @@ const deCatalog: TranslationCatalog = {
       due: "Fällig",
       front: "Vorderseite",
       lapses: "Fehlversuche",
-      open: "Öffnen",
       reps: "Wiederholungen",
       tags: "Tags",
       updated: "Aktualisiert",

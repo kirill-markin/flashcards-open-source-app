@@ -1008,9 +1008,6 @@ const arCatalog: TranslationCatalog = {
       trigger: "فلترة",
       triggerWithCount: "فلترة ({{count}})",
     },
-    loading: {
-      open: "فتح",
-    },
     loadingMore: "جارٍ تحميل مزيد من البطاقات...",
     search: {
       label: "بحث",
@@ -1022,7 +1019,6 @@ const arCatalog: TranslationCatalog = {
       due: "مستحق",
       front: "الأمام",
       lapses: "الإخفاقات",
-      open: "فتح",
       reps: "المراجعات",
       tags: "الوسوم",
       updated: "تم التحديث",
