@@ -1,3 +1,12 @@
+import { nextReviewCard, revealAnswer, submitAgentReview } from "../agent/reviews";
+import {
+  makeAgentReviewCardFilter,
+  nextReviewCardSchema,
+  parseReviewRequest,
+  revealAnswerSchema,
+  submitReviewSchema,
+  REVIEW_FLOW_INSTRUCTIONS,
+} from "../agent/reviewContract";
 import { Hono } from "hono";
 import { createAgentEnvelope } from "../agent/envelope";
 import {
@@ -18,6 +27,7 @@ import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
   requireAgentConnectionId,
+  resolveAccessibleMcpWorkspaceId,
   requireAccessibleSelectedWorkspaceId,
 } from "../server/requestContext";
 import {
@@ -25,6 +35,7 @@ import {
   expectRecord,
   parseJsonBody,
 } from "../server/requestParsing";
+import { HttpError } from "../shared/errors";
 import type { AppEnv } from "../server/app";
 
 type AgentRoutesOptions = Readonly<{
@@ -40,6 +51,21 @@ function parsePageQueryInput(request: Request): Readonly<{
     cursor: parseOptionalCursorQuery(url.searchParams.get("cursor") ?? undefined, "cursor"),
     limit: parseRequiredPageLimit(url.searchParams.get("limit") ?? undefined, "limit", 100),
   };
+}
+
+/** The review actions document that every argument may be omitted, so a body-less POST is a
+ * valid call and must not fail the way an empty body fails request.json(). */
+async function parseOptionalJsonBody(request: Request): Promise<unknown> {
+  const bodyText = await request.text();
+  if (bodyText.trim() === "") {
+    return {};
+  }
+
+  try {
+    return JSON.parse(bodyText) as unknown;
+  } catch {
+    throw new HttpError(400, "Invalid JSON body");
+  }
 }
 
 function parseSqlBody(value: unknown): Readonly<{ sql: string }> {
@@ -149,5 +175,33 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
 
     return context.json(createAgentEnvelope(context.req.url, result.data, result.instructions));
   });
+
+  app.post("/agent/reviews/next", async (context) => {
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const input = parseReviewRequest(nextReviewCardSchema, await parseOptionalJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const actor = { userId: requestContext.userId, workspaceId, connectionId };
+    const result = await nextReviewCard(actor, makeAgentReviewCardFilter(input));
+    return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
+  });
+
+  app.post("/agent/reviews/reveal", async (context) => {
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const input = parseReviewRequest(revealAnswerSchema, await parseOptionalJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const actor = { userId: requestContext.userId, workspaceId, connectionId };
+    const result = await revealAnswer(actor, input.cardId);
+    return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
+  });
+
+  app.post("/agent/reviews/submit", async (context) => {
+    const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const input = parseReviewRequest(submitReviewSchema, await parseOptionalJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const actor = { userId: requestContext.userId, workspaceId, connectionId };
+    const result = await submitAgentReview(actor, input);
+    return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
+  });
+
   return app;
 }

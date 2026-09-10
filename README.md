@@ -20,7 +20,9 @@ Card scheduling uses FSRS-based spaced repetition. Detailed scheduling rules liv
 
 ## MCP connector
 
-The hosted MCP server is available at `https://mcp.flashcards-open-source-app.com/mcp` and is listed in MCP registries as `com.flashcards-open-source-app/flashcards`. It exposes three workspace-scoped tools: `list_workspaces`, `sql_query`, and `sql_execute`.
+The hosted MCP server is available at `https://mcp.flashcards-open-source-app.com/mcp` and is listed in MCP registries as `com.flashcards-open-source-app/flashcards`. It exposes six workspace-scoped tools: `list_workspaces`, `sql_query`, `sql_execute`, `next_review_card`, `reveal_answer`, and `submit_review`.
+
+The dedicated review tools support one-question-at-a-time conversations and idempotent FSRS scheduling. See [conversational reviews](docs/conversational-reviews.md) for the MCP/Agent API contract and voice-session examples. ChatGPT Voice currently does not invoke apps/MCP; these tools do not remove that external limitation.
 
 Interactive clients authenticate with OAuth 2.1 authorization code + PKCE and Dynamic Client Registration. Headless clients can use an `fca_` Bearer token.
 

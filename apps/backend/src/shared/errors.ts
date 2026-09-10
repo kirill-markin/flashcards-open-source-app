@@ -1,3 +1,5 @@
+import type { FsrsCardState } from "../scheduling";
+
 export type ValidationIssueSummary = Readonly<{
   path: string;
   code: string;
@@ -54,11 +56,24 @@ export type CatalogImageBlobErrorDetails = Readonly<
   }
 >;
 
+/** The card's stored schedule, reported when a review write is refused as a duplicate so the
+ * caller can still tell the learner when the card is next due. */
+export type ReviewScheduleErrorDetails = Readonly<{
+  cardId: string;
+  dueAt: string | null;
+  intervalSeconds: number | null;
+  scheduledDays: number | null;
+  state: FsrsCardState;
+  reps: number;
+  lapses: number;
+}>;
+
 export type HttpErrorDetails = Readonly<{
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: SyncConflictDetails;
   mediaAssetStorage?: MediaAssetStorageErrorDetails;
   catalogImageBlob?: CatalogImageBlobErrorDetails;
+  reviewSchedule?: ReviewScheduleErrorDetails;
   retryAfterSeconds?: number;
 }>;
 
@@ -75,6 +90,7 @@ export type PublicHttpErrorDetails = Readonly<{
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: PublicSyncConflictDetails;
   mediaAssetStorage?: PublicMediaAssetStorageErrorDetails;
+  reviewSchedule?: ReviewScheduleErrorDetails;
 }>;
 
 function createPublicSyncConflictDetails(details: SyncConflictDetails): PublicSyncConflictDetails {
@@ -96,7 +112,13 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
   const validationIssues = details.validationIssues;
   const syncConflict = details.syncConflict;
   const mediaAssetStorage = details.mediaAssetStorage;
-  if (validationIssues === undefined && syncConflict === undefined && mediaAssetStorage === undefined) {
+  const reviewSchedule = details.reviewSchedule;
+  if (
+    validationIssues === undefined
+    && syncConflict === undefined
+    && mediaAssetStorage === undefined
+    && reviewSchedule === undefined
+  ) {
     return null;
   }
 
@@ -111,6 +133,7 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
         retryable: mediaAssetStorage.retryable,
       },
     }),
+    ...(reviewSchedule === undefined ? {} : { reviewSchedule }),
   };
 }
 
