@@ -70,6 +70,18 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0131 needs its own boundary rather than an extra test file on 0130's: it turns
+  // educational_subject NOT NULL, and 0130's database stops one migration short of that schema. The
+  // two row shapes that would abort that ALTER exist only here - the delisted 0105 test fixture
+  // 0130 deliberately never reached, and the in-flight version row this boundary's own seed hook
+  // creates just before the migration runs.
+  Object.freeze({
+    migrationFileName: "0131_require_catalog_educational_subject.sql",
+    expectedMigrationCount: 133,
+    testFiles: Object.freeze([
+      "src/catalog/authoring/versions/requiredEducationalSubject.postgres.integration.ts",
+    ]),
+  }),
   // 0130 needs its own boundary rather than an extra test file on 0129's: it writes the educational
   // alignment columns of every published version of the package 0129's seed hook creates, including
   // version 4, whose untouched updated_at is exactly what

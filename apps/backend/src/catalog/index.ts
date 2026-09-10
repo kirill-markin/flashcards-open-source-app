@@ -30,6 +30,8 @@ export {
 } from "./authoring/drafts";
 export {
   assertCatalogPackageVersionStatusTransitionAllowed,
+  correctCatalogPackageEducationalAlignment,
+  correctCatalogPackageEducationalAlignmentInExecutor,
   createCatalogPackageVersionFromCards,
   createCatalogPackageVersionFromCardsInExecutor,
   createCatalogPackageVersionFromWorkspaceSelection,

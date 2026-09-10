@@ -6,6 +6,7 @@ import {
 import { normalizeCardMetadata } from "../../cards/shared";
 import {
   attachCatalogPackageDraftMediaAsset,
+  correctCatalogPackageEducationalAlignment,
   createCatalogAuthor,
   createCatalogPackageDraft,
   createCatalogPackageVersionFromCards,
@@ -30,10 +31,12 @@ import {
   type CatalogPackage,
   type CatalogPackageCardSnapshotInput,
   type CatalogPackageDraft,
+  type CatalogPackageEducationalAlignmentCorrection,
   type CatalogPackageMediaAsset,
   type CatalogPackageStatus,
   type CatalogPackageVersion,
   type CatalogPackageVersionAudit,
+  type CorrectCatalogPackageEducationalAlignmentInput,
   type CreateCatalogPackageDraftInput,
   type CreateCatalogPackageVersionFromWorkspaceInput,
   type CreateCatalogPackageVersionInput,
@@ -62,6 +65,10 @@ type CatalogAdminRoutesOptions = Readonly<{
   createCatalogPackageDraftFn?: (input: CreateCatalogPackageDraftInput) => Promise<CatalogPackage>;
   updateCatalogPackageDraftFn?: (input: UpdateCatalogPackageDraftInput) => Promise<CatalogPackage>;
   loadCatalogPackageDraftFn?: (packageId: string) => Promise<CatalogPackageDraft>;
+  correctCatalogPackageEducationalAlignmentFn?: (
+    packageId: string,
+    input: CorrectCatalogPackageEducationalAlignmentInput,
+  ) => Promise<CatalogPackageEducationalAlignmentCorrection>;
   listCatalogPackageVersionsForAuditFn?: (
     packageId: string,
   ) => Promise<ReadonlyArray<CatalogPackageVersionAudit>>;
@@ -134,8 +141,11 @@ function expectNullableNonEmptyString(value: unknown, fieldName: string): string
 /**
  * Reads an absent field as null rather than rejecting it, unlike every other
  * package field. `PUT /draft` replaces the whole draft instead of patching it,
- * so a request without an educational alignment field is a request for the
- * package to carry none, and it clears whatever the draft held.
+ * so a request without `educationalFramework` or `educationalLevel` is a
+ * request for the package to carry neither, and it clears whatever the draft
+ * held. `educationalSubject` is not one of them: every deck teaches something,
+ * its column is NOT NULL, and an omitted subject is rejected like any other
+ * required package field.
  */
 function expectOmittableNonEmptyString(value: unknown, fieldName: string): string | null {
   if (value === undefined) {
@@ -143,6 +153,30 @@ function expectOmittableNonEmptyString(value: unknown, fieldName: string): strin
   }
 
   return expectNullableNonEmptyString(value, fieldName);
+}
+
+/**
+ * Returns the string exactly as written, where `expectNonEmptyString` trims it.
+ *
+ * Educational alignment values are stored and printed verbatim, so the presentation screen in the
+ * authoring layer rejects a whitespace-padded value instead of repairing it. Trimming here would
+ * hide the very input that screen exists to refuse, the same reason `expectNullableAuthorWebsiteUrl`
+ * leaves a website URL untouched for `publicSafety` to judge.
+ */
+function expectVerbatimString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string") {
+    throw new HttpError(400, `${fieldName} must be a string`);
+  }
+
+  return value;
+}
+
+function expectNullableVerbatimString(value: unknown, fieldName: string): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  return expectVerbatimString(value, fieldName);
 }
 
 function expectNullableAuthorWebsiteUrl(value: unknown): string | null {
@@ -258,10 +292,7 @@ function parsePackageCreateInput(record: Readonly<Record<string, unknown>>): Cre
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
     languageTags: expectCatalogAudienceLocaleArray(record.languageTags, "languageTags"),
-    educationalSubject: expectOmittableNonEmptyString(
-      record.educationalSubject,
-      "educationalSubject",
-    ),
+    educationalSubject: expectNonEmptyString(record.educationalSubject, "educationalSubject"),
     educationalFramework: expectOmittableNonEmptyString(
       record.educationalFramework,
       "educationalFramework",
@@ -285,10 +316,7 @@ function parsePackageUpdateInput(
     summary: expectNonEmptyString(record.summary, "summary"),
     description: expectNonEmptyString(record.description, "description"),
     languageTags: expectCatalogAudienceLocaleArray(record.languageTags, "languageTags"),
-    educationalSubject: expectOmittableNonEmptyString(
-      record.educationalSubject,
-      "educationalSubject",
-    ),
+    educationalSubject: expectNonEmptyString(record.educationalSubject, "educationalSubject"),
     educationalFramework: expectOmittableNonEmptyString(
       record.educationalFramework,
       "educationalFramework",
@@ -297,6 +325,24 @@ function parsePackageUpdateInput(
     license: expectNonEmptyString(record.license, "license"),
     contentWarning: expectNullableNonEmptyString(record.contentWarning, "contentWarning"),
     coverPackageMediaKey: expectNullableNonEmptyString(record.coverPackageMediaKey, "coverPackageMediaKey"),
+  };
+}
+
+/**
+ * Reads one explicit alignment correction. Nothing here is omittable, unlike the draft parsers
+ * above: a request that leaves `educationalSubject` out is rejected rather than read as `null`, so
+ * a correction can never be an accidental clearing.
+ */
+function parseEducationalAlignmentCorrectionInput(
+  record: Readonly<Record<string, unknown>>,
+): CorrectCatalogPackageEducationalAlignmentInput {
+  return {
+    educationalSubject: expectVerbatimString(record.educationalSubject, "educationalSubject"),
+    educationalFramework: expectNullableVerbatimString(
+      record.educationalFramework,
+      "educationalFramework",
+    ),
+    educationalLevel: expectNullableVerbatimString(record.educationalLevel, "educationalLevel"),
   };
 }
 
@@ -382,6 +428,8 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
   const createCatalogPackageDraftFn = options.createCatalogPackageDraftFn ?? createCatalogPackageDraft;
   const updateCatalogPackageDraftFn = options.updateCatalogPackageDraftFn ?? updateCatalogPackageDraft;
   const loadCatalogPackageDraftFn = options.loadCatalogPackageDraftFn ?? loadCatalogPackageDraft;
+  const correctCatalogPackageEducationalAlignmentFn = options.correctCatalogPackageEducationalAlignmentFn
+    ?? correctCatalogPackageEducationalAlignment;
   const listCatalogPackageVersionsForAuditFn = options.listCatalogPackageVersionsForAuditFn
     ?? listCatalogPackageVersionsForAudit;
   const attachCatalogPackageDraftMediaAssetFn = options.attachCatalogPackageDraftMediaAssetFn
@@ -448,6 +496,35 @@ export function createCatalogAdminRoutes(options: CatalogAdminRoutesOptions): Ho
     }
 
     return context.json({ catalogPackage });
+  });
+
+  /**
+   * Corrects the educational classification of a package and of every version row of it.
+   *
+   * It is a route of its own rather than part of the draft PUT above: that request replaces the
+   * whole draft and reads an omitted alignment field as `null`, so folding this write into it would
+   * let a routine stale-artifact re-trigger silently reclassify every published version of a deck.
+   */
+  app.put("/admin/catalog/packages/:packageId/educational-alignment", async (context) => {
+    // `adminContext` is bound rather than discarded because this is the one admin write that
+    // changes the classification of an already-public deck, so the identity behind it is worth
+    // having to hand. Nothing records it yet: the correction is not a status transition and earns
+    // no catalog.package_review_events row, and no route in this file emits a structured
+    // log record that could carry `adminContext.email` instead.
+    const adminContext = await requireAdminRequestFn(context.req.raw, options.allowedOrigins);
+    const packageId = parseUuidParam(context.req.param("packageId"), "packageId");
+    const correction = await correctCatalogPackageEducationalAlignmentFn(
+      packageId,
+      parseEducationalAlignmentCorrectionInput(await parseCatalogAdminJsonBody(context.req.raw)),
+    );
+    // The public snapshot projects published version rows alone, and `correction.packageVersions`
+    // holds only the rows this call actually wrote, so a replay that changed nothing and a
+    // correction that reached no published row both skip the 15 s rebuild.
+    if (correction.packageVersions.some((packageVersion) => packageVersion.status === "published")) {
+      await refreshPublicCatalogDumpFn(createCatalogDumpRefreshTrigger(context));
+    }
+
+    return context.json(correction);
   });
 
   app.post("/admin/catalog/packages/:packageId/media-assets", async (context) => {

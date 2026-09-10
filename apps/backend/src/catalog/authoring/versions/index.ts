@@ -1,10 +1,15 @@
 import { unsafeTransaction } from "../../../database/core";
 import type {
+  CatalogPackageEducationalAlignmentCorrection,
   CatalogPackageVersion,
+  CorrectCatalogPackageEducationalAlignmentInput,
   CreateCatalogPackageVersionFromWorkspaceInput,
   CreateCatalogPackageVersionInput,
   UpdateCatalogPackageVersionStatusInput,
 } from "../../types";
+import {
+  correctCatalogPackageEducationalAlignmentInExecutor,
+} from "./educationalAlignment";
 import {
   createCatalogPackageVersionFromCardsInExecutor,
 } from "./creation";
@@ -23,6 +28,9 @@ export {
 } from "./audit";
 
 export {
+  correctCatalogPackageEducationalAlignmentInExecutor,
+} from "./educationalAlignment";
+export {
   createCatalogPackageVersionFromCardsInExecutor,
 } from "./creation";
 export {
@@ -35,6 +43,15 @@ export {
   publishCatalogPackageVersionInExecutor,
   updateCatalogPackageVersionReviewStatusInExecutor,
 } from "./publication";
+
+export async function correctCatalogPackageEducationalAlignment(
+  packageId: string,
+  input: CorrectCatalogPackageEducationalAlignmentInput,
+): Promise<CatalogPackageEducationalAlignmentCorrection> {
+  return unsafeTransaction(async (executor) => (
+    correctCatalogPackageEducationalAlignmentInExecutor(executor, packageId, input)
+  ));
+}
 
 export async function createCatalogPackageVersionFromCards(
   packageId: string,
