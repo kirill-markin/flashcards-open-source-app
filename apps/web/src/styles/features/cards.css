@@ -112,7 +112,6 @@
 }
 
 .cards-table {
-  --cards-col-open-width: 72px;
   --cards-col-front-width: 360px;
   --cards-col-back-width: 360px;
   --cards-col-tags-width: 220px;
@@ -121,8 +120,7 @@
   --cards-col-lapses-width: 72px;
   --cards-col-updated-width: 176px;
   min-width: calc(
-    var(--cards-col-open-width)
-    + var(--cards-col-front-width)
+    var(--cards-col-front-width)
     + var(--cards-col-back-width)
     + var(--cards-col-tags-width)
     + var(--cards-col-due-width)
@@ -186,16 +184,6 @@
   padding-block: 14px;
 }
 
-.cards-open-th,
-.cards-open-cell {
-  width: 1%;
-  white-space: nowrap;
-}
-
-.cards-table .cards-col-open {
-  width: var(--cards-col-open-width);
-}
-
 .cards-table .cards-col-front {
   width: var(--cards-col-front-width);
 }
@@ -224,24 +212,34 @@
   width: var(--cards-col-updated-width);
 }
 
-.cards-table .row-open-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 30px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  color: var(--text-secondary);
-  background: var(--surface-hover);
-  opacity: 0;
-  pointer-events: none;
-  font-size: 13px;
+.cards-row {
+  position: relative;
 }
 
-.cards-row:hover .row-open-link {
-  opacity: 1;
-  pointer-events: auto;
+.cards-row-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Extend the native link over every cell while retaining table semantics. */
+.cards-row-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+}
+
+.cards-row-link:focus-visible {
+  outline: none;
+}
+
+.cards-row-link:focus-visible::after {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+
+.cards-row:has(.cards-row-link:focus-visible) td {
+  background: var(--surface-hover);
 }
 
 .cards-loading-retry-btn {
@@ -249,11 +247,6 @@
 }
 
 .cards-loading-row {
-  pointer-events: none;
-}
-
-.cards-loading-row-open {
-  opacity: 1;
   pointer-events: none;
 }
 
@@ -292,10 +285,6 @@
 .cards-load-more-row .txn-cell {
   text-align: center;
   color: var(--text-secondary);
-}
-
-.cards-cell-disabled {
-  cursor: progress;
 }
 
 .cards-cell-multiline {
