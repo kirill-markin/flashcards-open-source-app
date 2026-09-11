@@ -7,8 +7,7 @@ import type { CardFilter } from "./types";
 function normalizeCardFilterTags(tags: ReadonlyArray<string>): ReadonlyArray<string> {
   return tags.reduce<Array<string>>((result, tag) => {
     const normalizedTag = tag.trim();
-    const normalizedTagKey = normalizedTag.toLowerCase();
-    if (normalizedTag === "" || result.some((value) => value.toLowerCase() === normalizedTagKey)) {
+    if (normalizedTag === "" || result.includes(normalizedTag)) {
       return result;
     }
 

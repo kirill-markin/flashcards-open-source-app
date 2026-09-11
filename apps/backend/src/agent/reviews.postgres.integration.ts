@@ -244,7 +244,7 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
     );
 
     await t.test(
-      "tags match any of, a deck resolves to its tags, and both empty inputs keep their asymmetry",
+      "tags match any of, a deck resolves its tags to stored spellings, and both empty inputs keep their asymmetry",
       async () => {
         await tombstoneEveryCard();
         const alpha = await makeCard(["alpha"], "2026-02-01T00:00:00.000Z");
@@ -270,6 +270,15 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
           {
             name: "Everything",
             filterDefinition: { version: 2, tags: [] },
+          },
+          { ...deckMetadata, lastOperationId: randomUUID() },
+        );
+        const upperBetaAndStaleDeck = await createDeck(
+          userId,
+          workspaceId,
+          {
+            name: "Beta upper and stale",
+            filterDefinition: { version: 2, tags: ["BeTa", "absent"] },
           },
           { ...deckMetadata, lastOperationId: randomUUID() },
         );
@@ -302,6 +311,16 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
           await firstCardId({ kind: "deck", deckId: betaDeck.deckId }),
           beta.cardId,
         );
+        // A deck resolves its tags to the workspace's spellings, so a casing no card stores still
+        // reviews that deck's cards, while a name no card carries drops out instead of refusing the
+        // deck or widening it back to the workspace.
+        assert.equal(
+          await firstCardId({
+            kind: "deck",
+            deckId: upperBetaAndStaleDeck.deckId,
+          }),
+          beta.cardId,
+        );
         assert.equal(
           await firstCardId({ kind: "deck", deckId: everythingDeck.deckId }),
           alpha.cardId,
@@ -323,6 +342,13 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
         assert.equal(
           (await post("next", { tags: ["alpha", "beta"] })).status,
           400,
+        );
+        // The workspace saved the same name into this deck, so it is dropped rather than refused,
+        // and the deck matches no card: the untagged card the next assertion reaches shows the
+        // queue stayed narrowed rather than widening back to the workspace.
+        assert.equal(
+          await firstCardId({ kind: "deck", deckId: betaDeck.deckId }),
+          null,
         );
         assert.equal(
           await firstCardId({ kind: "deck", deckId: everythingDeck.deckId }),

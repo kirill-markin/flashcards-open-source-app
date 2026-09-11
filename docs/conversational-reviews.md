@@ -51,10 +51,10 @@ deck / N tags filter:
   workspace does not use is a `400` rather than an empty queue. An explicitly
   empty array matches no card.
 - `deckId`: a saved deck. A deck holds no cards; `content.decks.filter_definition`
-  is a stored tag filter whose tags go to the queue as stored and are matched
-  exactly, so a deck tag the workspace no longer uses is an empty queue rather
-  than a `400`. A deck with no tags matches every card. An unknown `deckId` is a
-  `404`.
+  is a stored tag filter whose tags resolve case-insensitively to the
+  workspace's spellings, like `tags`. A deck tag the workspace no longer uses is
+  dropped rather than refused, so a deck whose tags are all unused matches no
+  card. A deck with no tags matches every card. An unknown `deckId` is a `404`.
 
 They are mutually exclusive, because no client combines a deck with tags. Supplying
 both is a `400`. Nothing due stays `card: null`.

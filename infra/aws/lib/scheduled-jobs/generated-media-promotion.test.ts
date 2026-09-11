@@ -95,15 +95,9 @@ test("shared worker has exact permanent-prefix access and no public route", () =
 });
 
 test("release disables cleanup until the latest migration is confirmed", () => {
-  for (const { relativePath, requiredMigration } of [
-    {
-      relativePath: "../../.github/workflows/aws-web-release.yml",
-      requiredMigration: "0123_backfill_live_review_answered_platform.sql",
-    },
-    {
-      relativePath: "../../scripts/deploy/bootstrap.sh",
-      requiredMigration: "0110_collection_cover_media.sql",
-    },
+  for (const relativePath of [
+    "../../.github/workflows/aws-web-release.yml",
+    "../../scripts/deploy/bootstrap.sh",
   ]) {
     const source = readSource(relativePath);
     const disabled = source.indexOf(
@@ -112,9 +106,7 @@ test("release disables cleanup until the latest migration is confirmed", () => {
     const cleanupDisabled = source.indexOf(
       "mediaBlobCleanupEnabled=false",
     );
-    const migration = source.indexOf(
-      `--require-migration ${requiredMigration}`,
-    );
+    const migration = source.indexOf("--require-latest-migration");
     const enabled = source.indexOf(
       "generatedMediaPromotionScheduleState=ENABLED",
     );

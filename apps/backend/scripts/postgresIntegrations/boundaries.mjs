@@ -70,6 +70,14 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  Object.freeze({
+    migrationFileName: "0132_direct_writer_absolute_lease_target.sql",
+    expectedMigrationCount: 134,
+    testFiles: Object.freeze([
+      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
+      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
+    ]),
+  }),
   // 0131 needs its own boundary rather than an extra test file on 0130's: it turns
   // educational_subject NOT NULL, and 0130's database stops one migration short of that schema. The
   // two row shapes that would abort that ALTER exist only here - the delisted 0105 test fixture
@@ -178,8 +186,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 101,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
-      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
@@ -189,8 +195,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 100,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
-      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
   }),

@@ -5,6 +5,7 @@ import {
   type SqlValue,
 } from "../database";
 import { HttpError } from "../shared/errors";
+import { normalizeTagKey, storedTagKeyExpression } from "../shared/tagKey";
 import {
   buildTokenizedAndLikeClause,
   MAX_SEARCH_TOKEN_COUNT,
@@ -42,8 +43,8 @@ import type {
 const defaultCardsQueryPageSize = 50;
 const maximumCardsQuerySortCount = 3;
 const cardSearchExpressionFactories: ReadonlyArray<SearchTokenClauseFactory> = [
-  (paramIndex) => `lower(front_text || ' ' || back_text) LIKE $${paramIndex}`,
-  (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(tag) LIKE $${paramIndex})`,
+  (paramIndex) => `lower(normalize(front_text || ' ' || back_text, NFC)) LIKE $${paramIndex}`,
+  (paramIndex) => `EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE lower(normalize(tag, NFC)) LIKE $${paramIndex})`,
 ];
 
 type CursorValue = string | number | null;
@@ -329,8 +330,13 @@ export function buildCardsQueryFilterClause(
   const params: Array<SqlValue> = [];
 
   if (filter.tags.length > 0) {
+    // A typed spelling stays matched byte for byte: the key arm alone loses it where V8 and
+    // Postgres lower() disagree (see storedTagKeyExpression).
     params.push(filter.tags);
-    clauses.push(`tags && $${startIndex + params.length}::text[]`);
+    const spellingsParamIndex = startIndex + params.length;
+    params.push(filter.tags.map(normalizeTagKey));
+    const keysParamIndex = startIndex + params.length;
+    clauses.push(`(tags && $${spellingsParamIndex}::text[] OR EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE ${storedTagKeyExpression} = ANY($${keysParamIndex}::text[])))`);
   }
 
   if (clauses.length === 0) {
@@ -626,21 +632,6 @@ export async function listWorkspaceTagsSummary(userId: string, workspaceId: stri
     totalCards: toNumber(totalCardsRow.total_cards),
   };
 }
-
-/** The code points JS String.prototype.trim strips: ECMA-262 WhiteSpace, which is tab, line
- * tabulation, form feed, U+FEFF and every Space_Separator, plus the line terminators. Postgres
- * has no class that matches it: [[:space:]] under the RDS en_US.UTF-8 ctype covers most Unicode
- * spaces but not U+00A0, U+2007, U+202F or U+FEFF, and it matches U+0085 and U+001C-U+001F, which
- * JS trim keeps. Spelling the set out is what keeps the two trims identical. */
-const jsTrimCodePoints = String.raw`\u0009\u000A\u000B\u000C\u000D\u0020\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF`;
-
-/** A stored tag's key: NFC, then trim, then lowercase, the order normalizeTagKey keys a tag in on
- * web (apps/web/src/appData/domain/index.ts); iOS omits the NFC step, and Android's trim-last
- * order is equivalent because case mapping neither creates nor removes whitespace. Stored tags
- * are trimmed here because no write path trims them, on exactly the code points above, so a
- * spelling edged with one of them keys the same as the JS-trimmed name a caller sends.
- * normalize() and Unicode escapes both require a UTF8 database and raise otherwise. */
-const storedTagKeyExpression = `lower(btrim(normalize(tag, NFC), E'${jsTrimCodePoints}'))`;
 
 /** The spellings the workspace's live cards store for the given tag keys, each with the key it
  * matched, so nothing has to re-derive a stored tag's key in another engine. */
