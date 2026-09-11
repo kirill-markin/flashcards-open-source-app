@@ -178,9 +178,9 @@ const reviewQueueBuckets: ReadonlyArray<
 
 /** Reads every bucket as its own LIMIT 1 query, the way the clients read theirs.
  * idx_cards_workspace_due_active bounds both due buckets and supplies their leading due_at order.
- * No index carries the new-card bucket's created_at ASC, card_id ASC order, and UNION ALL evaluates
- * that bucket even when a due bucket already has a candidate, so every call top-N sorts the
- * workspace's new cards. */
+ * UNION ALL evaluates the new-card bucket even when a due bucket already has a candidate. Its scan
+ * runs to the first accepted new card in a later created_at group, else through every live card;
+ * a rare tag switches it to a due_at bitmap over every new card (docs/fsrs-scheduling-logic.md). */
 function buildNextReviewCardQuery(tagFilter: string): string {
   const bucketQueries = reviewQueueBuckets.map((bucket, rank) =>
     [
