@@ -23,10 +23,20 @@ import {
   createBackendObservationScope,
 } from "../../observability/runtime";
 import type { ProductAnalyticsEventName, ProductAnalyticsPlatform } from "../catalog";
+import { productAnalyticsMaxEventAgeMs } from "../validation";
 import {
   createPostCommitAnalyticsBudget,
   type PostCommitAnalyticsBudget,
 } from "./postCommitBudget";
+import {
+  collectPostCommitFact,
+  createPostCommitFactBuffer,
+  emitPostCommitFactEvents,
+  runTransactionWithPostCommitDrain,
+  takePostCommitFacts,
+  type CommittedTransaction,
+  type PostCommitFactEmissionAbortedOutcome,
+} from "./postCommitFactLifecycle";
 import {
   toWorkspaceReplicaPlatform,
   toWorkspaceReplicaRowPlatform,
@@ -35,10 +45,8 @@ import {
 } from "./replicaPlatforms";
 import {
   deriveServerDerivedProductAnalyticsEventId,
-  emitServerDerivedProductAnalyticsEvents,
   type ServerDerivedProductAnalyticsEvent,
 } from "./serverEvents";
-import { productAnalyticsMaxEventAgeMs } from "../validation";
 
 export type ContentCreationEntityType = "card" | "deck";
 
@@ -74,21 +82,10 @@ const contentCreationEventNames: Readonly<
   deck: "deck_created",
 };
 
-// Creations observed inside one open transaction, keyed by the executor that is running it.
-//
-// Nothing is emitted while the transaction is open. Every content write holds
-// sync.workspace_sync_metadata FOR UPDATE for the whole mutation, the analytics writer opens its
-// own transaction on its own pool connection to store a row, and the sync push and bootstrap loops
-// are unbounded, so emitting inline would have held the workspace's hot-change lock across one
-// extra analytics transaction per created row. The same connection split is why an inline emission
-// could not be rolled back with the product write: the analytics row commits first, so a product
-// transaction that failed afterwards would have left permanent rows on an append-only table for
-// cards that never existed.
-//
-// The buffer is created on first use and dropped when the executor is, so a transaction that throws
-// leaves nothing behind and a caller that never flushes reports nothing rather than reporting
-// something wrong.
-const collectedContentCreations = new WeakMap<DatabaseExecutor, Array<ContentCreation>>();
+// Reporting inline would hold sync.workspace_sync_metadata's write lock across a second database
+// transaction per creation, and that analytics transaction could not roll back with the product
+// write. The shared lifecycle keeps the facts on this executor until its transaction commits.
+const collectedContentCreations = createPostCommitFactBuffer<ContentCreation>();
 
 /**
  * Records that this transaction created one card or deck, to be reported once it commits.
@@ -105,13 +102,7 @@ export function collectContentCreation(
   executor: DatabaseExecutor,
   creation: ContentCreation,
 ): void {
-  const collected = collectedContentCreations.get(executor);
-  if (collected === undefined) {
-    collectedContentCreations.set(executor, [creation]);
-    return;
-  }
-
-  collected.push(creation);
+  collectPostCommitFact(collectedContentCreations, executor, creation);
 }
 
 // The platform behind a replica this transaction writes through, keyed by the executor running it
@@ -388,28 +379,6 @@ function toContentCreationEvent(
   };
 }
 
-// The most creations this producer hands the analytics writer in one statement.
-//
-// A drain is bounded by nothing a person chose: a workspace-package import applies up to
-// workspacePackageImportZipDefaultMaxCards (5,000) cards in one transaction, and a bootstrap push or
-// a guest merge is bounded only by the request body. Every batch the writer receives is a single
-// unnest statement run under SET LOCAL statement_timeout = '2s' on a pool that refuses an
-// acquisition after 2s, and the largest batch that path has ever carried is the client ingest cap of
-// 50 events, so one unbounded statement would put the biggest and most valuable drains - a first
-// full-library bootstrap, a whole-history guest merge - behind the single timeout that loses all of
-// them at once. Chunking bounds what one refusal can cost while keeping the per-row transaction cost
-// that batching exists to avoid: one analytics transaction per 500 creations, not one per creation.
-//
-// Chunking is only safe together with both of the drain's stop rules. A chunk count is a multiplier
-// on the analytics timeouts, and it is paid after the product transaction committed, so a drain that
-// continued through every chunk would let a degraded analytics pool time out the product request
-// itself. Refusal is not the only way that happens: a chunk that is slow but still finishes inside
-// the writer's statement timeout answers "stored", so a stop rule keyed on refusal alone would carry
-// the full multiplier. The drain therefore stops at the first refusal and again once the request's
-// post-commit analytics clock is spent. See PostCommitAnalyticsBudget and
-// emitCollectedContentCreations.
-const contentCreationEmitChunkSize = 500;
-
 /**
  * Names the creations the drain gave up on, so an aborted drain is legible rather than silent.
  *
@@ -426,13 +395,9 @@ const contentCreationEmitChunkSize = 500;
  * chunk - which is almost all of them - still produces exactly one warning for one refusal.
  */
 function reportAbandonedContentCreations(
-  abandoned: Readonly<{
-    reason: "writer_refused" | "budget_exhausted";
+  abandoned: PostCommitFactEmissionAbortedOutcome & Readonly<{
     actorUserId: string;
     workspaceId: string | null;
-    storedEventCount: number;
-    failedEventCount: number;
-    skippedEventCount: number;
   }>,
 ): void {
   if (abandoned.skippedEventCount <= 0) {
@@ -464,71 +429,25 @@ function reportAbandonedContentCreations(
 }
 
 /**
- * Reports the creations the committed transaction collected, in chunks of at most
- * contentCreationEmitChunkSize, stopping at the first chunk the analytics writer refuses or once the
- * request's shared post-commit analytics budget is spent, whichever comes first.
+ * Reports one committed transaction's creations after resolving all undeclared replica platforms.
+ * Workspace-package imports, bootstrap pushes and guest merges can collect thousands of creations;
+ * the shared lifecycle bounds and partitions their sequential writer work. The platform lookup is
+ * released before emission starts, so a drain still holds at most one database connection at once.
  *
- * A chunk is one analytics transaction on one analytics connection, and the chunks are awaited in
- * sequence, so this producer holds one connection at a time however large the transaction was. The
- * platform resolution that may run before them is one short product-pool transaction, released
- * before the first chunk is built, so that stays true across both pools; a drain whose transaction
- * named the platform behind every creation opens none at all. A sync bootstrap pushes an entire
- * library in one request and every entry of it is a creation, so one emission per row would instead
- * mean thousands of sequential analytics transactions after the commit.
- *
- * Analytics is best effort and a content write is not: a chunk is swallowed and logged by
- * emitServerDerivedProductAnalyticsEvents rather than raised, and the platform resolution is
- * swallowed and logged by resolveContentCreationPlatforms, which is what keeps a rejected row from
- * surfacing as a failed card creation. Neither stop can discard the chunks already stored before it
- * either - those are committed and stay committed.
- *
- * This function therefore has no rejection path, and that is now load-bearing for a second producer
- * as well as for its own callers. On the sync push and the guest upgrade the content-creations
- * wrapper is opened from inside runTransactionReportingReviewAnswers, so this drain runs before the
- * review-answered drain of the same request: a rejection here would discard that transaction's
- * collected answers unreported and surface to a caller whose product transaction had already
- * committed. Any future emitter added below must keep swallowing its own failures.
- *
- * What both stops give up is the rest of the drain, for the same reason. A chunk costs up to 2s
- * waiting for an analytics pool connection plus up to 2s under the writer's statement timeout, and
- * continuing pays that again per remaining chunk while the product transaction has already
- * committed. A 5,000-card import is ten chunks, and a bootstrap push or a guest merge has no chunk
- * cap at all, so an unstopped drain would push the request past the 29s API Gateway integration
- * timeout. The caller would then see a 504 for an import that committed, and retry it - and an
- * import mints a fresh card id per card, so the retry duplicates the whole library. Analytics must
- * never be able to cost a person their content.
- *
- * The budget is checked before each chunk and shared with every other gated post-commit analytics
- * stage of the request, so the gated tail is bounded at 4.0s of budget plus the one ~4.0s chunk
- * already in flight - 8.0s against the 29s integration timeout, whatever else the request goes on to
- * report. The guest upgrade adds its deliberately exempt identity link on top of that, for 12.0s.
- * The derivation, that exemption and what each path used to pay are in ./postCommitBudget.ts.
- *
- * The two stops answer the two ways that happens, and are reported apart because they mean different
- * things. A refusal - the writer degraded or down - is detected on the outcome. Chunks that are
- * merely slow are never refused at all: each one answers "stored" just inside the writer's statement
- * timeout while still spending the request's clock, so only the elapsed time catches them. Chunking
- * still does what it was added for under both: everything stored before the stop is kept, rather
- * than one timeout losing a whole full-library bootstrap at once.
- *
- * A refused chunk raises its own write failure carrying its length as eventCount; the remainder of
- * either stop is named by reportAbandonedContentCreations, whose three counts partition everything
- * the drain held, so both halves of an aborted drain are reported and neither is inferred from the
- * other. The drain runs before the request returns rather than being deferred, because a Lambda
- * container is frozen and killed unpredictably and anything left buffered across that would be lost
- * silently.
+ * Bounding the drain is especially important for a 5,000-card import: allowing analytics timeouts
+ * to push the response past API Gateway's limit could invite a retry after the product commit, and
+ * that retry would mint new card ids and duplicate the imported library.
  */
 async function emitCollectedContentCreations(
   executor: DatabaseExecutor,
   actorUserId: string,
   budget: PostCommitAnalyticsBudget,
 ): Promise<void> {
-  const collected = collectedContentCreations.get(executor);
+  const collected = takePostCommitFacts(collectedContentCreations, executor);
   if (collected === undefined) {
     return;
   }
 
-  collectedContentCreations.delete(executor);
   const declaredPlatformByReplicaId: ReadonlyMap<string, ProductAnalyticsPlatform | null>
     = declaredReplicaPlatforms.get(executor) ?? new Map<string, ProductAnalyticsPlatform | null>();
   declaredReplicaPlatforms.delete(executor);
@@ -545,64 +464,26 @@ async function emitCollectedContentCreations(
     actorUserId,
     budget,
   );
-  for (
-    let chunkStart = 0;
-    chunkStart < collected.length;
-    chunkStart += contentCreationEmitChunkSize
-  ) {
-    if (!budget.hasTimeForAnotherOperation()) {
-      reportAbandonedContentCreations({
-        reason: "budget_exhausted",
-        actorUserId,
-        // The first creation this drain will not reach. Unlike a refusal there is no paired write
-        // failure naming a row, so this is the only workspace the stop reports.
-        workspaceId: collected[chunkStart]?.workspaceId ?? null,
-        storedEventCount: chunkStart,
-        // Every chunk the writer was handed was stored, so nothing failed - including when the
-        // budget was spent by an earlier stage of the same request and this drain stored nothing at
-        // all. The loop condition puts at least one creation behind this point, so the stop is never
-        // silently dropped by the skip guard in the reporter.
-        failedEventCount: 0,
-        skippedEventCount: collected.length - chunkStart,
-      });
-      return;
-    }
-
-    const chunk = collected.slice(chunkStart, chunkStart + contentCreationEmitChunkSize);
-    // Never rejects: the writer's refusal comes back as an outcome, so this await cannot throw into
-    // a caller whose product transaction has already committed.
-    const outcome = await emitServerDerivedProductAnalyticsEvents(
-      chunk.map((creation) => toContentCreationEvent(
-        creation,
-        actorUserId,
-        recordedAt,
-        platformByReplicaId.get(creation.replicaId) ?? null,
-      )),
-    );
-    if (outcome === "stored") {
-      continue;
-    }
-
-    reportAbandonedContentCreations({
-      reason: "writer_refused",
+  const outcome = await emitPostCommitFactEvents(
+    collected,
+    budget,
+    (creation) => toContentCreationEvent(
+      creation,
       actorUserId,
-      // The refused chunk's first creation, which is the row its write failure named too.
-      workspaceId: chunk[0]?.workspaceId ?? null,
-      storedEventCount: chunkStart,
-      failedEventCount: chunk.length,
-      skippedEventCount: collected.length - chunkStart - chunk.length,
+      recordedAt,
+      platformByReplicaId.get(creation.replicaId) ?? null,
+    ),
+  );
+  if (outcome.status === "aborted") {
+    reportAbandonedContentCreations({
+      ...outcome,
+      actorUserId,
+      // For either stop this is the first event not stored, and for a refusal it is also the event
+      // named by the writer's failure warning.
+      workspaceId: collected[outcome.storedEventCount]?.workspaceId ?? null,
     });
-    return;
   }
 }
-
-// The executor the transaction ran on, carried out alongside its result purely so the creations it
-// collected can be drained afterwards. It is only ever used as the WeakMap key above: the pool
-// client behind it is released once the transaction returns, and nothing here queries it.
-type CommittedTransaction<Result> = Readonly<{
-  executor: DatabaseExecutor;
-  result: Result;
-}>;
 
 async function runTransactionReportingContentCreations<Result>(
   openTransaction: (
@@ -612,18 +493,15 @@ async function runTransactionReportingContentCreations<Result>(
   resolveActorUserId: (result: Result) => string,
   budget: PostCommitAnalyticsBudget,
 ): Promise<Result> {
-  // The transaction returns only after its COMMIT succeeded, so nothing is reported for a
-  // transaction that threw: it never reaches this line and its buffer is dropped with its executor.
-  const committed = await openTransaction(async (executor) => ({
-    executor,
-    result: await body(executor),
-  }));
-  await emitCollectedContentCreations(
-    committed.executor,
-    resolveActorUserId(committed.result),
-    budget,
+  return runTransactionWithPostCommitDrain(
+    openTransaction,
+    body,
+    async (committed) => emitCollectedContentCreations(
+      committed.executor,
+      resolveActorUserId(committed.result),
+      budget,
+    ),
   );
-  return committed.result;
 }
 
 // The post-commit analytics clock both wrappers below hand their drain.
