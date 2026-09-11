@@ -15,6 +15,11 @@ production, and `scripts/checks/pr/check-migration-hygiene.mjs` rejects the diff
 makes an applied migration's header state something that is no longer true, the correction is
 recorded here instead of in the file.
 
+### `0013_cards_query_indexes.sql` — the trigram index is gone
+
+Its header says "the trigram/search indexing remains relevant". `0133_drop_cards_search_trgm_index.sql`
+drops `content.idx_cards_active_search_trgm` and records why the planner could never choose it.
+
 ### `0128_catalog_educational_alignment.sql` — the guard list is out of date
 
 Its header says that "Nothing in the admin API writes catalog.package_versions.educational_* after
