@@ -260,6 +260,35 @@ The card currently displayed to the user remains pinned until it is answered, ev
 Cards that become due after `Again` or another short-step review can rise ahead of a large old-overdue tail on the next normal queue refresh or review action because their `fsrsLastReviewedAt` is recent.
 There is no requirement to refresh an idle review screen solely because a card crosses into the due window.
 
+### Backend new-card bucket storage
+
+`buildNextReviewCardQuery` in `apps/backend/src/agent/reviews.ts` reads bucket 3 as `workspace_id = $1 AND deleted_at IS NULL AND due_at IS NULL ORDER BY created_at ASC, card_id ASC LIMIT 1` (a deck or tags filter adds `AND tags && $2::text[]`; an explicitly empty tags request sends `'{}'`, a shape not observed below and expected to take the bitmap plan), and `UNION ALL` evaluates it on every call.
+It has no dedicated partial index on purpose.
+`EXPLAIN (ANALYZE, BUFFERS)` on production (PostgreSQL 18.6, September 2026, observed as `reporting_readonly`) shows two plans, chosen by how many cards the planner expects the filter to accept:
+
+- Unfiltered, or filtered by a tag the statistics consider common: a backward scan of `idx_cards_workspace_created_at_active` plus an Incremental Sort. The sort emits nothing until it has closed the first accepted `created_at` group, and the rows `due_at IS NULL` and the tag filter reject never reach it, so the scan runs to the first accepted new card in a later `created_at` group, or through every live card of the workspace when no such card exists. A workspace whose accepted new cards are sparse (a single old new card, or a deck or tag filter matching few cards) can therefore walk most or all of its live cards.
+- Filtered by a rare tag (a planner estimate of a few accepted cards): a bitmap scan of `idx_cards_workspace_due_active` over every new card of the workspace, the tag filter on the heap, and a top-N sort.
+
+| Workspace shape | Filter | live / new cards | Plan | Index entries visited | Bucket 3 | Whole statement |
+| --- | --- | --- | --- | --- | --- | --- |
+| largest | none | 8,613 / 5,603 | `created_at` scan | 6 | 0.06 ms | 0.13 ms |
+| largest | old sparse deck (181 cards, 178 new) | 8,613 / 5,603 | `created_at` scan | 6 | 0.14 ms | 0.82 ms |
+| largest | common tag whose new cards are late (1,404 cards) | 8,613 / 5,603 | `created_at` scan | 5,899 | 5.4 ms | 5.7 ms |
+| largest | rare tag (1 card, none new) | 8,613 / 5,603 | `due_at` bitmap | 5,761 + 408 heap pages | 3.1 ms | 3.8 ms |
+| mostly new | none | 2,929 / 2,884 | `created_at` scan | 69 | 0.14 ms | 0.19 ms |
+| mostly due | none | 2,217 / 688 | `created_at` scan | 81 | 0.17 ms | 0.27 ms |
+| oldest card new, next new card 173 entries later | none | 545 / 331 | `created_at` scan | 174 | 0.33 ms | 0.54 ms |
+| 483 new cards in one group, then only reviewed cards | none | 539 / 483 | `created_at` scan | 539 | 0.74 ms | 0.97 ms |
+| almost all due | none | 348 / 8 | `created_at` scan | 348 | 0.36 ms | 0.40 ms |
+| no new cards | none | 256 / 0 | `created_at` scan | 256 | 0.27 ms | 0.33 ms |
+
+As `reporting_readonly`, whose cards policy is `USING (true)`, either plan's worst case walks every live card, or every new card, of the workspace at about 1 µs per entry from shared buffers, under 10 ms for the largest workspace.
+The backend runs as `backend_app` with `app.user_id` and `app.workspace_id` set (`apps/backend/src/database/core.ts`), where `cards_scoped_select_runtime` adds `security.current_workspace_access_allowed(workspace_id)` as a per-row filter qual on the same cards scan; it calls `security.user_has_workspace_access`, a `SECURITY DEFINER` function the planner cannot inline.
+Where the planner places that qual among the scan's quals was not measured, so in either plan the function runs at least once per visited row the other quals accept and at most once per visited row.
+Its per-call cost was not measured, and the policy quals also enter the row estimates that pick the plan, so neither the plan choice nor the bound above is established for the backend.
+Measuring that as `backend_app` is the open question and comes before treating these numbers as a production bound.
+Re-measure before adding `(workspace_id, created_at, card_id) WHERE deleted_at IS NULL AND due_at IS NULL` only once a workspace has sparse accepted new cards: all of its oldest cards reviewed, a single old new card, or a deck or tag filter matching few of them; a `backend_app` measurement comes before choosing any size threshold.
+
 ## FSRS math
 
 The implementation uses the official FSRS-6 default weights for:
