@@ -38,6 +38,10 @@ function getWorkspacePackageValidationErrorMessage(
     return null;
   }
 
+  if (error.statusCode === 413) {
+    return t("workspaceImport.packageTooLarge");
+  }
+
   switch (error.code) {
     case "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_EMPTY":
     case "WORKSPACE_PACKAGE_IMPORT_PREVIEW_ZIP_INVALID":

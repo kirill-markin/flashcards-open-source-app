@@ -553,8 +553,8 @@ export async function searchDecksPage(
   }
 
   const searchClauseResult = buildTokenizedOrLikeClause(searchTokens, 1, [
-    (paramIndex) => `lower(name) LIKE $${paramIndex}`,
-    (paramIndex) => `EXISTS (SELECT 1 FROM jsonb_array_elements_text(filter_definition->'tags') AS tag WHERE lower(tag) LIKE $${paramIndex})`,
+    (paramIndex) => `lower(normalize(name, NFC)) LIKE $${paramIndex}`,
+    (paramIndex) => `EXISTS (SELECT 1 FROM jsonb_array_elements_text(filter_definition->'tags') AS tag WHERE lower(normalize(tag, NFC)) LIKE $${paramIndex})`,
   ]);
   const decodedCursor = input.cursor === null ? null : decodeDeckPageCursor(input.cursor);
   const cursorClause = decodedCursor === null

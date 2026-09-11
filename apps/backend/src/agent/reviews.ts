@@ -11,6 +11,7 @@ import { createPostCommitAnalyticsBudget } from "../productAnalytics/serverFacts
 import { runTransactionReportingReviewAnswers } from "../productAnalytics/serverFacts/reviewAnswers";
 import type { FsrsCardState, ReviewRating } from "../scheduling";
 import { HttpError, type ReviewScheduleErrorDetails } from "../shared/errors";
+import { normalizeTagKey } from "../shared/tagKey";
 import { lockWorkspaceSyncMetadataForHotChangesInExecutor } from "../sync/replication/changes";
 import { ensureAgentSyncReplica } from "./syncIdentity";
 import {
@@ -78,16 +79,9 @@ async function resolveTagsToStoredSpellings(
     unresolvedTags: ReadonlyArray<string>;
   }>
 > {
-  // Keys a requested name the way listWorkspaceTagsMatchingKeys keys a stored one: NFC, then
-  // lowercase, the request contract and normalizeDeckTags having trimmed it on the same code
-  // points that function's btrim strips. Case folding is the one axis left diverging: Postgres
-  // lower() under the RDS en_US.UTF-8 ctype collapses more than V8 does, mapping U+0130 to "i" and
-  // every sigma to the medial one. Both directions of that are accepted because both stay
-  // case-only: "İstanbul" and "ΟΔΟΣ" resolve to nothing even where a card carries them, while
-  // "istanbul" and "οδοσ" resolve to those same cards.
   const requestedByKey = new Map(
     requestedTags.map(
-      (tag) => [tag.normalize("NFC").toLowerCase(), tag] as const,
+      (tag) => [normalizeTagKey(tag), tag] as const,
     ),
   );
   const storedTags = await listWorkspaceTagsMatchingKeys(

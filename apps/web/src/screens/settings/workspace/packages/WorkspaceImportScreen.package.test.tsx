@@ -21,10 +21,12 @@ import { WorkspaceImportScreen } from "./WorkspaceImportScreen";
 const workspaceReplicaId = "45268888-5620-5912-9ed1-4bd6f2105aff";
 
 const {
+  captureAppOperationErrorMock,
   confirmWorkspacePackageImportMock,
   previewWorkspacePackageImportMock,
   useAppDataMock,
 } = vi.hoisted(() => ({
+  captureAppOperationErrorMock: vi.fn(),
   confirmWorkspacePackageImportMock: vi.fn<(
     workspaceId: string,
     file: File,
@@ -48,6 +50,10 @@ vi.mock("../../../../api", async (importOriginal) => {
 
 vi.mock("../../../../appData", () => ({
   useAppData: useAppDataMock,
+}));
+
+vi.mock("../../../../observability/appOperationObservation", () => ({
+  captureAppOperationError: captureAppOperationErrorMock,
 }));
 
 type Mutable<Type> = {
@@ -207,6 +213,8 @@ function setupWorkspaceImportScreen(): WorkspaceImportScreenHarness {
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     useAppDataMock.mockReset();
+    captureAppOperationErrorMock.mockReset();
+    captureAppOperationErrorMock.mockReturnValue(true);
     previewWorkspacePackageImportMock.mockReset();
     confirmWorkspacePackageImportMock.mockReset();
     appData = createAppData();
@@ -669,5 +677,59 @@ describe("WorkspaceImportScreen package import", () => {
     expect(getContainer().querySelector("[data-testid='workspace-package-import-preview']")).toBeNull();
     expect(document.body.querySelector("[data-testid='app-error-dialog']")).toBeNull();
     expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+  });
+
+  it("shows inline package-too-large guidance for a code-less preview 413 without capturing it", async () => {
+    const file = createZipFile("flashcards.zip");
+    previewWorkspacePackageImportMock.mockRejectedValueOnce(new ApiError({
+      statusCode: 413,
+      message: "Request body is too large",
+      code: null,
+      requestId: null,
+      retryAfterMs: null,
+      endpoint: "POST /workspaces/workspace-1/packages/import/preview",
+      responseBodyKind: "empty",
+    }));
+
+    await renderScreen();
+    await choosePackageFile(file);
+    await waitForCondition("Package-too-large guidance was not shown", () => (
+      getContainer().querySelector("[data-testid='workspace-import-error']") !== null
+    ));
+
+    expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement).textContent).toContain(
+      "The selected package is too large. Choose a smaller flashcards.zip.",
+    );
+    expect(document.body.querySelector("[data-testid='app-error-dialog']")).toBeNull();
+    expect(captureAppOperationErrorMock).not.toHaveBeenCalled();
+    expect(confirmWorkspacePackageImportMock).not.toHaveBeenCalled();
+  });
+
+  it("shows inline package-too-large guidance for a coded confirm 413 without capturing it", async () => {
+    const file = createZipFile("flashcards.zip");
+    confirmWorkspacePackageImportMock.mockRejectedValueOnce(new ApiError({
+      statusCode: 413,
+      message: "Workspace package is too large",
+      code: "WORKSPACE_PACKAGE_IMPORT_FILE_TOO_LARGE",
+      requestId: "7684327b-64e3-41b2-a4f0-7bf428d4e225",
+      retryAfterMs: null,
+      endpoint: "POST /workspaces/workspace-1/packages/import/confirm",
+      responseBodyKind: "json",
+    }));
+
+    await renderScreen();
+    await choosePackageFile(file);
+    await waitForPreview();
+    await clickElement(requireElement("[data-testid='workspace-package-import-confirm-button']", HTMLButtonElement));
+    await waitForCondition("Package-too-large guidance was not shown", () => (
+      getContainer().querySelector("[data-testid='workspace-import-error']") !== null
+    ));
+
+    expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement).textContent).toContain(
+      "The selected package is too large. Choose a smaller flashcards.zip.",
+    );
+    expect(document.body.querySelector("[data-testid='app-error-dialog']")).toBeNull();
+    expect(captureAppOperationErrorMock).not.toHaveBeenCalled();
+    expect(confirmWorkspacePackageImportMock).toHaveBeenCalledTimes(1);
   });
 });
