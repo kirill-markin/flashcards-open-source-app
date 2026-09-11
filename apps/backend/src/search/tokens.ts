@@ -1,4 +1,5 @@
 import type { SqlValue } from "../database";
+import { normalizeTagKey } from "../shared/tagKey";
 
 export const MAX_SEARCH_TOKEN_COUNT = 5;
 
@@ -9,11 +10,6 @@ export type TokenizedSearchClause = Readonly<{
   params: ReadonlyArray<SqlValue>;
 }>;
 
-/**
- * Canonical text-search tokenization shared by card search features:
- * trim, lowercase, split by whitespace, and keep at most five tokens by
- * merging any overflow into the fifth token.
- */
 export function tokenizeSearchText(
   searchText: string,
   maximumTokenCount: number,
@@ -22,7 +18,7 @@ export function tokenizeSearchText(
     throw new Error("maximumTokenCount must be at least 1");
   }
 
-  const normalizedSearchText = searchText.trim().toLowerCase();
+  const normalizedSearchText = normalizeTagKey(searchText);
   if (normalizedSearchText === "") {
     return [];
   }
@@ -83,10 +79,6 @@ export function buildTokenizedOrLikeClause(
   };
 }
 
-/**
- * Canonical card-search semantics: all tokens are required (AND), while each
- * token may match any supported field expression (OR).
- */
 export function buildTokenizedAndLikeClause(
   searchTokens: ReadonlyArray<string>,
   startIndex: number,

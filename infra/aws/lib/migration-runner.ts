@@ -5,6 +5,7 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as customResources from "aws-cdk-lib/custom-resources";
 import * as rds from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
+import * as fs from "fs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 import { backendStructuredLoggingProps } from "./backend-lambda-logging";
 import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
@@ -28,6 +29,27 @@ const dbAssetPaths = {
   migrations: resolveFromRepoRoot("db", "migrations"),
   views: resolveFromRepoRoot("db", "views"),
 };
+
+// Mirrors resolve_latest_migration in scripts/deploy/migrate-aws.sh: the same
+// NNNN_*.sql glob over the directory the bundle copies from, sorted in byte
+// order, last wins. Keeping the two definitions identical is what stops the
+// gate and the release step from disagreeing about which file is newest.
+const migrationFileNamePattern = /^[0-9]{4}_.*\.sql$/;
+
+function resolveLatestMigrationFileName(migrationsDirectory: string): string {
+  const migrationFileNames = fs
+    .readdirSync(migrationsDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && migrationFileNamePattern.test(entry.name))
+    .map((entry) => entry.name)
+    .sort();
+  const latestMigrationFileName = migrationFileNames.at(-1);
+  if (latestMigrationFileName === undefined) {
+    throw new Error(
+      `No NNNN_*.sql migration found in ${migrationsDirectory}; cannot resolve the migration the database migration gate must require.`,
+    );
+  }
+  return latestMigrationFileName;
+}
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
@@ -124,12 +146,13 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
 /**
  * Runs the current migration bundle during the stack deployment. A version
  * token makes CloudFormation update this resource whenever the bundled
- * migration Lambda changes.
+ * migration Lambda changes. The required migration is the newest file in the
+ * bundled directory, resolved at synth time, so the gate can never pin a
+ * stale name.
  */
 export function databaseMigrationGate(
   scope: Construct,
   migrationFn: lambda.Function,
-  requiredMigration: string,
 ): cdk.CustomResource {
   const provider = new customResources.Provider(scope, "DatabaseMigrationProvider", {
     onEventHandler: migrationFn,
@@ -138,7 +161,7 @@ export function databaseMigrationGate(
     serviceToken: provider.serviceToken,
     properties: {
       MigrationBundleVersion: migrationFn.currentVersion.version,
-      RequiredMigration: requiredMigration,
+      RequiredMigration: resolveLatestMigrationFileName(dbAssetPaths.migrations),
     },
   });
 }

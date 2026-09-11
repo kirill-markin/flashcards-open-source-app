@@ -326,11 +326,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       adminEmails,
       ...sentryContext,
     });
-    const migrationGate = databaseMigrationGate(
-      this,
-      migrationFn,
-      "0123_backfill_live_review_answered_platform.sql",
-    );
+    const migrationGate = databaseMigrationGate(this, migrationFn);
     const api = apiGateway(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,

@@ -18,7 +18,7 @@ import {
   finalizeMediaBlobWriterInExecutor, markMediaBlobWriterAmbiguousInExecutor,
   mediaBlobCleanupDelayMs,
   MediaBlobLifecycleBusyError, MediaBlobLifecycleConflictError,
-  MediaBlobWriterFenceError, MediaBlobWriterLeaseDeadlineError,
+  MediaBlobWriterFenceError,
   reconcileMediaBlobWriterInExecutor, reserveMediaBlobWriterInExecutor,
   resolveDirectMediaBlobWriterAttemptAfterAccessRevocation,
   resolveDirectMediaBlobWriterAttemptFailureWithOwner,
@@ -40,6 +40,18 @@ type LifecycleUpgradeRow = Readonly<{
   backend_reserve_access: boolean; backend_fence_access: boolean;
   backend_terminalize_access: boolean; auth_terminalize_access: boolean;
   backend_generated_failure_access: boolean;
+}>;
+type DirectAttemptBeginRow = Readonly<{
+  attempt_status: string;
+  reservation_token: string | null;
+  normalization_version: string | null;
+  lease_expires_at: string | Date | null;
+}>;
+type CleanupClaimPrivileges = Readonly<{
+  backend_execute: boolean;
+  auth_execute: boolean;
+  reporting_execute: boolean;
+  no_public_execute: boolean;
 }>;
 function createUniqueSha256(): string { return createHash("sha256").update(randomUUID()).digest("hex"); }
 const lifecycleMigrationSql = readFileSync(resolve(
@@ -77,6 +89,45 @@ function createDirectAttemptLease(): DirectMediaBlobWriterAttemptLease {
     leaseTargetAt: new Date(nowMs + 60_000).toISOString(),
     operationDeadlineAt: new Date(nowMs + 30_000).toISOString(),
   };
+}
+async function grantLegacyCleanupClaimToFixtureExecutor(
+  fixture: PostgresIntegrationFixture,
+): Promise<void> {
+  const privileges = (await fixture.ownerPool.query<CleanupClaimPrivileges>(
+    `SELECT
+       has_function_privilege(
+         'backend_app', 'content.claim_media_blob_cleanup(text,integer)', 'EXECUTE'
+       ) AS backend_execute,
+       has_function_privilege(
+         'auth_app', 'content.claim_media_blob_cleanup(text,integer)', 'EXECUTE'
+       ) AS auth_execute,
+       has_function_privilege(
+         'reporting_readonly', 'content.claim_media_blob_cleanup(text,integer)', 'EXECUTE'
+       ) AS reporting_execute,
+       NOT EXISTS (
+         SELECT 1
+         FROM pg_catalog.pg_proc AS functions
+         CROSS JOIN LATERAL pg_catalog.aclexplode(
+           COALESCE(
+             functions.proacl,
+             pg_catalog.acldefault('f', functions.proowner)
+           )
+         ) AS grants
+         WHERE functions.oid =
+           'content.claim_media_blob_cleanup(text,integer)'::regprocedure
+           AND grants.grantee = 0
+       ) AS no_public_execute`,
+  )).rows[0];
+  assert.deepEqual(privileges, {
+    backend_execute: false,
+    auth_execute: false,
+    reporting_execute: false,
+    no_public_execute: true,
+  });
+  await fixture.ownerPool.query(
+    `GRANT EXECUTE ON FUNCTION content.claim_media_blob_cleanup(TEXT, INTEGER)
+     TO backend_app`,
+  );
 }
 async function insertDirectAttemptAsset(
   executor: DatabaseExecutor, input: DirectMediaBlobWriterAttemptInput,
@@ -211,6 +262,8 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
       DROP FUNCTION content.reserve_media_blob_writer(TEXT, TEXT, TEXT, BIGINT, TEXT, TEXT, UUID, UUID, TEXT), content.finalize_media_blob_writer(UUID, TEXT, UUID, UUID);
       DROP FUNCTION content.mark_media_blob_writer_ambiguous(UUID), content.reconcile_media_blob_writer(UUID, TEXT, UUID, UUID, INTEGER);
       DROP FUNCTION content.fail_media_blob_writer(UUID, INTEGER), content.claim_media_blob_cleanup(TEXT, INTEGER), content.generated_media_promotion_operation_applied(UUID, UUID);
+      DROP TABLE content.media_blob_cleanup_claims, content.media_blob_cleanup_renewals, content.media_blob_cleanup_failures;
+      DROP TABLE content.media_blob_cleanup_attempts;
       DROP TABLE content.media_blob_writer_owner_snapshots;
       DROP TABLE content.media_blob_writer_reservations, content.media_blob_lifecycles
     `);
@@ -253,7 +306,7 @@ async function assertLifecycleMigrationUpgrade(fixture: PostgresIntegrationFixtu
   }
 }
 
-async function waitForDirectAttemptAdvisoryLock(
+async function waitForDirectAttemptLock(
   fixture: PostgresIntegrationFixture,
 ): Promise<void> {
   const deadlineAtMs = Date.now() + 2_000;
@@ -264,18 +317,40 @@ async function waitForDirectAttemptAdvisoryLock(
          FROM pg_stat_activity
          WHERE usename = 'backend_app'
            AND wait_event_type = 'Lock'
-           AND query LIKE '%begin_direct_media_blob_writer_attempt_with_owner%'
+           AND query LIKE '%begin_direct_media_blob_writer_attempt_at_lease_target_with_owner%'
        ) AS waiting`,
     )).rows[0]?.waiting;
     if (waiting === true) return;
     if (Date.now() >= deadlineAtMs) {
-      throw new Error("Direct writer attempt did not reach its advisory lock.");
+      throw new Error("Direct writer attempt did not reach its blocking lock.");
     }
     await wait(10);
   }
 }
 
-test("direct writer acquisition rolls back a lease extended by lock latency", async () => {
+async function beginDirectAttemptAtLeaseTarget(
+  executor: DatabaseExecutor,
+  input: DirectMediaBlobWriterAttemptInput,
+  leaseTargetAt: string,
+): Promise<ReadonlyArray<DirectAttemptBeginRow>> {
+  return (await executor.query<DirectAttemptBeginRow>(
+    `SELECT attempt_status, reservation_token, normalization_version, lease_expires_at
+     FROM content.begin_direct_media_blob_writer_attempt_at_lease_target_with_owner(
+       $1,$2::TIMESTAMPTZ,
+       ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       ::content.direct_media_blob_writer_attempt_payload
+     )`,
+    [
+      input.attemptToken, leaseTargetAt, input.userId, input.workspaceId,
+      input.mediaAssetId, input.operationId, input.lastModifiedByReplicaId,
+      input.sha256, input.storageKey, input.mimeType, input.sizeBytes,
+      input.normalizationVersion, input.sourceUrl, input.assetCreatedAt,
+      input.clientUpdatedAt,
+    ],
+  )).rows;
+}
+
+test("direct writer absolute targets survive lock latency and reject expired admission", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const sha256 = createUniqueSha256();
     const attemptInput = directAttemptInput(fixture, sha256);
@@ -288,24 +363,283 @@ test("direct writer acquisition rolls back a lease extended by lock latency", as
         [fixture.userId, fixture.workspaceId],
       );
       const nowMs = Date.now();
+      const leaseTargetAt = new Date(nowMs + 5_000).toISOString();
       const outcome = beginDirectMediaBlobWriterAttemptWithOwner(
         attemptInput,
         {
           operationDeadlineAt: new Date(nowMs + 4_000).toISOString(),
-          leaseTargetAt: new Date(nowMs + 5_000).toISOString(),
+          leaseTargetAt,
         },
-      ).then(
-        (value) => ({ value, error: null }),
-        (error: unknown) => ({ value: null, error }),
       );
-      await waitForDirectAttemptAdvisoryLock(fixture);
+      await waitForDirectAttemptLock(fixture);
       await wait(250);
       await holder.query("COMMIT");
       holderCommitted = true;
 
-      const settled = await outcome;
-      assert.equal(settled.value, null);
-      assert.ok(settled.error instanceof MediaBlobWriterLeaseDeadlineError);
+      const acquired = await outcome;
+      assert.equal(acquired.status, "acquired");
+      if (!("reservationToken" in acquired)) {
+        throw new Error("Delayed direct writer attempt did not acquire.");
+      }
+      assert.equal(
+        Date.parse(acquired.leaseExpiresAt),
+        Date.parse(leaseTargetAt) - 100,
+      );
+      const renewalHolder = await fixture.ownerPool.connect();
+      let renewalHolderCommitted = false;
+      try {
+        await renewalHolder.query("BEGIN");
+        await renewalHolder.query(
+          `SELECT 1
+           FROM content.media_blob_writer_attempts
+           WHERE attempt_token = $1
+           FOR UPDATE`,
+          [attemptInput.attemptToken],
+        );
+        const renewalTargetAtMs = Date.now() + 3_000;
+        const renewalRowsPromise = transactionWithWorkspaceScope(
+          { userId: fixture.userId, workspaceId: fixture.workspaceId },
+          (executor) => beginDirectAttemptAtLeaseTarget(
+            executor,
+            attemptInput,
+            new Date(renewalTargetAtMs).toISOString(),
+          ),
+        );
+        await waitForDirectAttemptLock(fixture);
+        assert.ok(Date.now() < renewalTargetAtMs);
+        await wait(Math.max(1, renewalTargetAtMs - Date.now() + 50));
+        assert.ok(Date.now() >= renewalTargetAtMs);
+        await renewalHolder.query("COMMIT");
+        renewalHolderCommitted = true;
+
+        assert.deepEqual(await renewalRowsPromise, []);
+        const leaseAfterRejectedRenewal = (await fixture.ownerPool.query<{
+          lease_expires_at: Date;
+        }>(
+          `SELECT lease_expires_at
+           FROM content.media_blob_writer_attempts
+           WHERE attempt_token = $1`,
+          [attemptInput.attemptToken],
+        )).rows[0]?.lease_expires_at;
+        assert.equal(
+          leaseAfterRejectedRenewal?.getTime(),
+          Date.parse(acquired.leaseExpiresAt),
+        );
+      } finally {
+        if (!renewalHolderCommitted) {
+          await renewalHolder.query("ROLLBACK");
+        }
+        renewalHolder.release();
+      }
+      const blockedAcquisitionSha256 = createUniqueSha256();
+      const blockedAcquisitionInput = directAttemptInput(
+        fixture,
+        blockedAcquisitionSha256,
+      );
+      const acquisitionHolder = await fixture.ownerPool.connect();
+      let acquisitionHolderCommitted = false;
+      try {
+        await acquisitionHolder.query("BEGIN");
+        await acquisitionHolder.query(
+          `INSERT INTO content.media_blob_lifecycles (
+             sha256, storage_key, mime_type, size_bytes, normalization_version
+           ) VALUES ($1, $2, $3, $4, $5)`,
+          [
+            blockedAcquisitionInput.sha256,
+            blockedAcquisitionInput.storageKey,
+            blockedAcquisitionInput.mimeType,
+            blockedAcquisitionInput.sizeBytes,
+            blockedAcquisitionInput.normalizationVersion,
+          ],
+        );
+        const acquisitionTargetAtMs = Date.now() + 3_000;
+        const acquisitionRowsPromise = transactionWithWorkspaceScope(
+          { userId: fixture.userId, workspaceId: fixture.workspaceId },
+          (executor) => beginDirectAttemptAtLeaseTarget(
+            executor,
+            blockedAcquisitionInput,
+            new Date(acquisitionTargetAtMs).toISOString(),
+          ),
+        );
+        await waitForDirectAttemptLock(fixture);
+        assert.ok(Date.now() < acquisitionTargetAtMs);
+        await wait(Math.max(1, acquisitionTargetAtMs - Date.now() + 50));
+        assert.ok(Date.now() >= acquisitionTargetAtMs);
+        await acquisitionHolder.query("COMMIT");
+        acquisitionHolderCommitted = true;
+
+        assert.deepEqual(await acquisitionRowsPromise, []);
+        const acquisitionResidue = (await fixture.ownerPool.query<{
+          attempt_exists: boolean;
+          reservation_exists: boolean;
+        }>(
+          `SELECT
+             EXISTS (
+               SELECT 1 FROM content.media_blob_writer_attempts
+               WHERE attempt_token = $1
+             ) AS attempt_exists,
+             EXISTS (
+               SELECT 1 FROM content.media_blob_writer_reservations
+               WHERE writer_kind = 'direct_ingestion'
+                 AND workspace_id = $2
+                 AND media_asset_id = $3
+                 AND operation_id = $4
+             ) AS reservation_exists`,
+          [
+            blockedAcquisitionInput.attemptToken,
+            blockedAcquisitionInput.workspaceId,
+            blockedAcquisitionInput.mediaAssetId,
+            blockedAcquisitionInput.operationId,
+          ],
+        )).rows[0];
+        assert.deepEqual(acquisitionResidue, {
+          attempt_exists: false,
+          reservation_exists: false,
+        });
+      } finally {
+        if (!acquisitionHolderCommitted) {
+          await acquisitionHolder.query("ROLLBACK");
+        }
+        acquisitionHolder.release();
+      }
+      const existingAssetInput = directAttemptInput(
+        fixture,
+        createUniqueSha256(),
+      );
+      const expiredPeer = await beginDirectMediaBlobWriterAttemptWithOwner(
+        existingAssetInput,
+        createDirectAttemptLease(),
+      );
+      if (!("reservationToken" in expiredPeer)) {
+        throw new Error("Existing-asset peer attempt did not acquire.");
+      }
+      await transactionWithWorkspaceScope(
+        { userId: fixture.userId, workspaceId: fixture.workspaceId },
+        (executor) => insertDirectAttemptAsset(executor, existingAssetInput),
+      );
+      await fixture.ownerPool.query(
+        `UPDATE content.media_blob_writer_attempts
+         SET lease_expires_at = clock_timestamp() - interval '1 second'
+         WHERE attempt_token = $1`,
+        [existingAssetInput.attemptToken],
+      );
+      const blockedFenceInput = {
+        ...existingAssetInput,
+        attemptToken: randomUUID(),
+      };
+      const fenceHolder = await fixture.ownerPool.connect();
+      let fenceHolderCommitted = false;
+      try {
+        await fenceHolder.query("BEGIN");
+        await fenceHolder.query(
+          `SELECT 1
+           FROM content.media_assets AS assets
+           INNER JOIN content.media_blobs AS blobs
+             ON blobs.media_blob_id = assets.media_blob_id
+           WHERE assets.media_asset_id = $1
+           FOR UPDATE OF assets, blobs`,
+          [existingAssetInput.mediaAssetId],
+        );
+        const fenceTargetAtMs = Date.now() + 3_000;
+        const fenceRowsPromise = transactionWithWorkspaceScope(
+          { userId: fixture.userId, workspaceId: fixture.workspaceId },
+          (executor) => beginDirectAttemptAtLeaseTarget(
+            executor,
+            blockedFenceInput,
+            new Date(fenceTargetAtMs).toISOString(),
+          ),
+        );
+        await waitForDirectAttemptLock(fixture);
+        assert.ok(Date.now() < fenceTargetAtMs);
+        await wait(Math.max(1, fenceTargetAtMs - Date.now() + 50));
+        assert.ok(Date.now() >= fenceTargetAtMs);
+        await fenceHolder.query("COMMIT");
+        fenceHolderCommitted = true;
+
+        assert.deepEqual(await fenceRowsPromise, []);
+        const fenceResidue = (await fixture.ownerPool.query<{
+          new_attempt_exists: boolean;
+          peer_state: string | null;
+          peer_outcome: string | null;
+          peer_terminal_at: Date | null;
+          attempt_count: number;
+          reservation_count: number;
+          reservation_unchanged: boolean;
+        }>(
+          `SELECT
+             EXISTS (
+               SELECT 1 FROM content.media_blob_writer_attempts
+               WHERE attempt_token = $1
+             ) AS new_attempt_exists,
+             (
+               SELECT state FROM content.media_blob_writer_attempts
+               WHERE attempt_token = $2
+             ) AS peer_state,
+             (
+               SELECT outcome FROM content.media_blob_writer_attempts
+               WHERE attempt_token = $2
+             ) AS peer_outcome,
+             (
+               SELECT terminal_at FROM content.media_blob_writer_attempts
+               WHERE attempt_token = $2
+             ) AS peer_terminal_at,
+             (
+               SELECT count(*)::INTEGER
+               FROM content.media_blob_writer_attempts
+               WHERE writer_kind = 'direct_ingestion'
+                 AND workspace_id = $3
+                 AND media_asset_id = $4
+                 AND operation_id = $5
+             ) AS attempt_count,
+             (
+               SELECT count(*)::INTEGER
+               FROM content.media_blob_writer_reservations
+               WHERE writer_kind = 'direct_ingestion'
+                 AND workspace_id = $3
+                 AND media_asset_id = $4
+                 AND operation_id = $5
+             ) AS reservation_count,
+             EXISTS (
+               SELECT 1
+               FROM content.media_blob_writer_reservations
+               WHERE reservation_token = $6
+                 AND state = 'active'
+             ) AS reservation_unchanged`,
+          [
+            blockedFenceInput.attemptToken,
+            existingAssetInput.attemptToken,
+            existingAssetInput.workspaceId,
+            existingAssetInput.mediaAssetId,
+            existingAssetInput.operationId,
+            expiredPeer.reservationToken,
+          ],
+        )).rows[0];
+        assert.deepEqual(fenceResidue, {
+          new_attempt_exists: false,
+          peer_state: "leased",
+          peer_outcome: null,
+          peer_terminal_at: null,
+          attempt_count: 1,
+          reservation_count: 1,
+          reservation_unchanged: true,
+        });
+      } finally {
+        if (!fenceHolderCommitted) {
+          await fenceHolder.query("ROLLBACK");
+        }
+        fenceHolder.release();
+      }
+      const expiredSha256 = createUniqueSha256();
+      const expiredInput = directAttemptInput(fixture, expiredSha256);
+      const expiredRows = await transactionWithWorkspaceScope(
+        { userId: fixture.userId, workspaceId: fixture.workspaceId },
+        (executor) => beginDirectAttemptAtLeaseTarget(
+          executor,
+          expiredInput,
+          new Date(Date.now() - 1_000).toISOString(),
+        ),
+      );
+      assert.deepEqual(expiredRows, []);
       const residue = (await fixture.ownerPool.query<{
         attempt_exists: boolean;
         reservation_exists: boolean;
@@ -324,12 +658,46 @@ test("direct writer acquisition rolls back a lease extended by lock latency", as
              SELECT 1 FROM content.media_blob_lifecycles
              WHERE sha256 = $2
            ) AS lifecycle_exists`,
-        [attemptInput.attemptToken, sha256],
+        [expiredInput.attemptToken, expiredSha256],
       )).rows[0];
       assert.deepEqual(residue, {
         attempt_exists: false,
         reservation_exists: false,
         lifecycle_exists: false,
+      });
+      const privileges = (await fixture.ownerPool.query<{
+        legacy_backend_execute: boolean;
+        absolute_backend_execute: boolean;
+        absolute_auth_execute: boolean;
+        absolute_reporting_execute: boolean;
+      }>(
+        `SELECT
+           has_function_privilege(
+             'backend_app',
+             'content.begin_direct_media_blob_writer_attempt_with_owner(uuid,integer,content.direct_media_blob_writer_attempt_payload)',
+             'EXECUTE'
+           ) AS legacy_backend_execute,
+           has_function_privilege(
+             'backend_app',
+             'content.begin_direct_media_blob_writer_attempt_at_lease_target_with_owner(uuid,timestamp with time zone,content.direct_media_blob_writer_attempt_payload)',
+             'EXECUTE'
+           ) AS absolute_backend_execute,
+           has_function_privilege(
+             'auth_app',
+             'content.begin_direct_media_blob_writer_attempt_at_lease_target_with_owner(uuid,timestamp with time zone,content.direct_media_blob_writer_attempt_payload)',
+             'EXECUTE'
+           ) AS absolute_auth_execute,
+           has_function_privilege(
+             'reporting_readonly',
+             'content.begin_direct_media_blob_writer_attempt_at_lease_target_with_owner(uuid,timestamp with time zone,content.direct_media_blob_writer_attempt_payload)',
+             'EXECUTE'
+           ) AS absolute_reporting_execute`,
+      )).rows[0];
+      assert.deepEqual(privileges, {
+        legacy_backend_execute: true,
+        absolute_backend_execute: true,
+        absolute_auth_execute: false,
+        absolute_reporting_execute: false,
       });
     } finally {
       if (!holderCommitted) {
@@ -386,7 +754,9 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
       mimeType: "application/vnd.flashcards_test+json",
       sizeBytes: 0,
     };
+    const errors: Array<unknown> = [];
     try {
+      await grantLegacyCleanupClaimToFixtureExecutor(fixture);
       const attemptInput = directAttemptInput(fixture, attemptSha);
       const initialLease = createDirectAttemptLease();
       const attempt = await beginDirectMediaBlobWriterAttemptWithOwner(attemptInput, initialLease);
@@ -913,10 +1283,12 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
            INSERT INTO catalog.authors (author_id, slug, display_name) VALUES ($1, $3, 'Lifecycle integration')
            RETURNING author_id
          )
-         INSERT INTO catalog.packages (package_id, author_id, slug, title, summary, description,
-                                       language_tags, topic_tags, license)
+         INSERT INTO catalog.packages (
+           package_id, author_id, slug, title, summary, description,
+           language_tags, educational_subject, license
+         )
          SELECT $2, author_id, $3 || '-package', 'Lifecycle', 'Lifecycle', 'Lifecycle',
-                ARRAY['en'], ARRAY[]::text[], 'CC0-1.0'
+                ARRAY['en'], 'Software testing', 'CC0-1.0'
          FROM inserted_author`,
         [authorId, packageId, catalogSlug],
       );
@@ -1014,42 +1386,70 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
           normalizationVersion: revokedReservation.normalizationVersion,
         }),
       ), "unreferenced");
+    } catch (error) {
+      errors.push(error);
     } finally {
-      await fixture.ownerPool.query(
-        "DELETE FROM org.workspaces WHERE workspace_id = $1", [abortedWorkspaceId],
-      );
-      await fixture.ownerPool.query("DELETE FROM catalog.packages WHERE package_id = $1", [packageId]);
-      await fixture.ownerPool.query("DELETE FROM catalog.authors WHERE author_id = $1", [authorId]);
-      await fixture.ownerPool.query("DELETE FROM content.media_assets WHERE media_blob_id IN (SELECT media_blob_id FROM content.media_blobs WHERE sha256=ANY($1::text[]))", [attemptFixtureSha256s]);
-      await fixture.ownerPool.query("DELETE FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])", [attemptFixtureSha256s]);
-      await fixture.ownerPool.query(
-        "DELETE FROM content.media_blob_writer_reservations WHERE sha256 = ANY($1::text[])",
-        [fixtureSha256s],
-      );
-      await fixture.ownerPool.query(
-        `DELETE FROM content.media_blobs AS blobs
-         WHERE blobs.sha256 = ANY($1::text[])
-           AND NOT EXISTS (SELECT 1 FROM content.media_assets AS assets
-                           WHERE assets.media_blob_id = blobs.media_blob_id)
-           AND NOT EXISTS (SELECT 1 FROM catalog.package_media_assets AS package_assets
-                           WHERE package_assets.media_blob_id = blobs.media_blob_id)`,
-        [fixtureSha256s],
-      );
-      await fixture.ownerPool.query(
-        `DELETE FROM content.media_blob_lifecycles AS lifecycles
-         WHERE lifecycles.sha256 = ANY($1::text[])
-           AND NOT EXISTS (SELECT 1 FROM content.media_blobs AS blobs
-                           WHERE blobs.sha256 = lifecycles.sha256)
-          AND NOT EXISTS (SELECT 1 FROM content.media_blob_writer_reservations AS reservations
-                           WHERE reservations.sha256 = lifecycles.sha256)`,
-        [fixtureSha256s],
-      );
-      const attemptResidue = (await fixture.ownerPool.query(`SELECT (SELECT count(*)::int FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])) AS attempts,(SELECT count(*)::int FROM content.media_blob_writer_reservations WHERE sha256=ANY($1::text[])) AS reservations,(SELECT count(*)::int FROM content.media_blob_lifecycles WHERE sha256=ANY($1::text[])) AS lifecycles,(SELECT count(*)::int FROM content.media_blobs WHERE sha256=ANY($1::text[])) AS blobs`, [attemptFixtureSha256s])).rows[0];
-      assert.deepEqual(attemptResidue, { attempts: 0, reservations: 0, lifecycles: 0, blobs: 0 });
-      await fixture.ownerPool.query(
-        "DELETE FROM org.workspaces WHERE workspace_id = $1",
-        [concurrentWorkspaceId],
-      );
+      const cleanupActions: ReadonlyArray<() => Promise<unknown>> = [
+        () => fixture.ownerPool.query(
+          `REVOKE EXECUTE ON FUNCTION content.claim_media_blob_cleanup(TEXT, INTEGER)
+           FROM backend_app`,
+        ),
+        () => fixture.ownerPool.query(
+          "DELETE FROM org.workspaces WHERE workspace_id = $1", [abortedWorkspaceId],
+        ),
+        () => fixture.ownerPool.query(
+          "DELETE FROM catalog.packages WHERE package_id = $1", [packageId],
+        ),
+        () => fixture.ownerPool.query(
+          "DELETE FROM catalog.authors WHERE author_id = $1", [authorId],
+        ),
+        () => fixture.ownerPool.query("DELETE FROM content.media_assets WHERE media_blob_id IN (SELECT media_blob_id FROM content.media_blobs WHERE sha256=ANY($1::text[]))", [attemptFixtureSha256s]),
+        () => fixture.ownerPool.query("DELETE FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])", [attemptFixtureSha256s]),
+        () => fixture.ownerPool.query(
+          "DELETE FROM content.media_blob_writer_reservations WHERE sha256 = ANY($1::text[])",
+          [fixtureSha256s],
+        ),
+        () => fixture.ownerPool.query(
+          `DELETE FROM content.media_blobs AS blobs
+           WHERE blobs.sha256 = ANY($1::text[])
+             AND NOT EXISTS (SELECT 1 FROM content.media_assets AS assets
+                             WHERE assets.media_blob_id = blobs.media_blob_id)
+             AND NOT EXISTS (SELECT 1 FROM catalog.package_media_assets AS package_assets
+                             WHERE package_assets.media_blob_id = blobs.media_blob_id)`,
+          [fixtureSha256s],
+        ),
+        () => fixture.ownerPool.query(
+          `DELETE FROM content.media_blob_lifecycles AS lifecycles
+           WHERE lifecycles.sha256 = ANY($1::text[])
+             AND NOT EXISTS (SELECT 1 FROM content.media_blobs AS blobs
+                             WHERE blobs.sha256 = lifecycles.sha256)
+            AND NOT EXISTS (SELECT 1 FROM content.media_blob_writer_reservations AS reservations
+                             WHERE reservations.sha256 = lifecycles.sha256)`,
+          [fixtureSha256s],
+        ),
+        async () => {
+          const attemptResidue = (await fixture.ownerPool.query(`SELECT (SELECT count(*)::int FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])) AS attempts,(SELECT count(*)::int FROM content.media_blob_writer_reservations WHERE sha256=ANY($1::text[])) AS reservations,(SELECT count(*)::int FROM content.media_blob_lifecycles WHERE sha256=ANY($1::text[])) AS lifecycles,(SELECT count(*)::int FROM content.media_blobs WHERE sha256=ANY($1::text[])) AS blobs`, [attemptFixtureSha256s])).rows[0];
+          assert.deepEqual(attemptResidue, { attempts: 0, reservations: 0, lifecycles: 0, blobs: 0 });
+        },
+        () => fixture.ownerPool.query(
+          "DELETE FROM org.workspaces WHERE workspace_id = $1",
+          [concurrentWorkspaceId],
+        ),
+      ];
+      for (const cleanup of cleanupActions) {
+        try {
+          await cleanup();
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    }
+
+    if (errors.length === 1) {
+      throw errors[0];
+    }
+    if (errors.length > 1) {
+      throw new AggregateError(errors, "Media blob lifecycle test or cleanup failed.");
     }
   });
 });
