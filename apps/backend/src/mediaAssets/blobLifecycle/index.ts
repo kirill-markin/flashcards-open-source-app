@@ -21,7 +21,7 @@ const maximumOperationIdLength = 1_024;
 const maximumMediaBlobWriterAttemptLeaseDurationMs = 3_600_000;
 const maximumMediaBlobWriterOperationDeadlineMs = 3_600_000;
 const maximumMediaBlobCleanupDelayMs = 604_800_000;
-const directMediaBlobWriterLeaseDatabaseSkewMarginMs = 100;
+const directMediaBlobWriterAbsoluteLeaseGrantPaddingMs = 100;
 export const mediaBlobCleanupDelayMs = 3_600_000;
 export const mediaBlobWriterKinds = ["direct_ingestion", "multipart_completion", "generated_promotion"] as const;
 export type MediaBlobWriterKind = typeof mediaBlobWriterKinds[number];
@@ -244,36 +244,16 @@ function snapshotDirectAttemptLease(
   const leaseTargetAtMs = Date.parse(leaseTargetAt);
   const remainingLeaseMs = leaseTargetAtMs - Date.now();
   if (
-    remainingLeaseMs <= 0
+    remainingLeaseMs <= directMediaBlobWriterAbsoluteLeaseGrantPaddingMs
     || remainingLeaseMs > maximumMediaBlobWriterAttemptLeaseDurationMs
-    || leaseTargetAtMs <= deadline.operationDeadlineAtMs
+    || leaseTargetAtMs - directMediaBlobWriterAbsoluteLeaseGrantPaddingMs
+      <= deadline.operationDeadlineAtMs
   ) {
     throw new MediaBlobWriterLeaseDeadlineError(
-      "leaseTargetAt must be a future timestamp strictly after operationDeadlineAt.",
+      `leaseTargetAt must be more than ${directMediaBlobWriterAbsoluteLeaseGrantPaddingMs} milliseconds in the future and remain strictly after operationDeadlineAt after padding.`,
     );
   }
   return Object.freeze({ leaseTargetAt, leaseTargetAtMs, ...deadline });
-}
-function deriveDirectAttemptLeaseDurationMs(
-  lease: DirectMediaBlobWriterAttemptLeaseSnapshot,
-): number {
-  const nowMs = Date.now();
-  const leaseDurationMs = Math.floor(
-    lease.leaseTargetAtMs
-    - nowMs
-    - directMediaBlobWriterLeaseDatabaseSkewMarginMs,
-  );
-  assertPositiveBoundedDuration(
-    leaseDurationMs,
-    "leaseDurationMs",
-    maximumMediaBlobWriterAttemptLeaseDurationMs,
-  );
-  if (lease.operationDeadlineAtMs - nowMs >= leaseDurationMs) {
-    throw new MediaBlobWriterLeaseDeadlineError(
-      "Insufficient exact writer lease budget remains for the operation deadline.",
-    );
-  }
-  return leaseDurationMs;
 }
 function snapshotDirectAttemptInput(
   input: DirectMediaBlobWriterAttemptInput,
@@ -470,15 +450,24 @@ async function beginDirectMediaBlobWriterAttemptSnapshotInExecutor(
   input: DirectMediaBlobWriterAttemptInput,
   lease: DirectMediaBlobWriterAttemptLeaseSnapshot,
 ): Promise<DirectMediaBlobWriterAttemptResult> {
-  const leaseDurationMs = deriveDirectAttemptLeaseDurationMs(lease);
   const result = await executor.query<AttemptBeginRow>(
     `SELECT attempt_status, reservation_token, normalization_version, lease_expires_at
-     FROM content.begin_direct_media_blob_writer_attempt_with_owner(
-       $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+     FROM content.begin_direct_media_blob_writer_attempt_at_lease_target_with_owner(
+       $1,pg_catalog.to_timestamp($2::BIGINT / 1000.0),
+       ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        ::content.direct_media_blob_writer_attempt_payload
      )`,
-    [input.attemptToken, leaseDurationMs, ...toDirectAttemptParams(input)],
+    [
+      input.attemptToken,
+      lease.leaseTargetAtMs - directMediaBlobWriterAbsoluteLeaseGrantPaddingMs,
+      ...toDirectAttemptParams(input),
+    ],
   );
+  if (result.rows.length === 0) {
+    throw new MediaBlobWriterLeaseDeadlineError(
+      "Direct media blob writer lease target expired before PostgreSQL admission.",
+    );
+  }
   if (result.rows.length !== 1) {
     throw new TypeError("PostgreSQL returned an invalid direct writer attempt row count.");
   }
@@ -492,15 +481,6 @@ async function beginDirectMediaBlobWriterAttemptSnapshotInExecutor(
     assertMediaBlobWriterReservationToken(row.reservation_token);
     const normalizationVersion = requireNormalizationVersion(row.normalization_version);
     const leaseExpiresAt = requireIsoTimestamp(row.lease_expires_at, "leaseExpiresAt");
-    const leaseExpiresAtMs = Date.parse(leaseExpiresAt);
-    if (
-      leaseExpiresAtMs <= lease.operationDeadlineAtMs
-      || leaseExpiresAtMs > lease.leaseTargetAtMs
-    ) {
-      throw new MediaBlobWriterLeaseDeadlineError(
-        "PostgreSQL returned a writer lease outside the exact operation window.",
-      );
-    }
     const exactInput = Object.freeze({
       ...input,
       reservationToken: row.reservation_token,
