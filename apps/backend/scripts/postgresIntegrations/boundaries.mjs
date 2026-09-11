@@ -75,6 +75,7 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 134,
     testFiles: Object.freeze([
       "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
+      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
     ]),
   }),
   // 0131 needs its own boundary rather than an extra test file on 0130's: it turns
@@ -185,7 +186,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 101,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
@@ -195,7 +195,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 100,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
   }),
