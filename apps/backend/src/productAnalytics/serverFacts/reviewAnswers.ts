@@ -15,17 +15,24 @@ import {
   createBackendObservationScope,
 } from "../../observability/runtime";
 import type { ProductAnalyticsPlatform } from "../catalog";
+import { productAnalyticsMaxEventAgeMs } from "../validation";
 import type { PostCommitAnalyticsBudget } from "./postCommitBudget";
+import {
+  collectPostCommitFact,
+  createPostCommitFactBuffer,
+  emitPostCommitFactEvents,
+  runTransactionWithPostCommitDrain,
+  takePostCommitFacts,
+  type PostCommitFactEmissionAbortedOutcome,
+} from "./postCommitFactLifecycle";
 import {
   toWorkspaceReplicaRowPlatform,
   type WorkspaceReplicaPlatformRow,
 } from "./replicaPlatforms";
 import {
   deriveServerDerivedProductAnalyticsEventId,
-  emitServerDerivedProductAnalyticsEvents,
   type ServerDerivedProductAnalyticsEvent,
 } from "./serverEvents";
-import { productAnalyticsMaxEventAgeMs } from "../validation";
 
 // db/migrations/0001_initial_schema.sql declares content.review_events.rating as
 // SMALLINT NOT NULL CHECK (rating BETWEEN 0 AND 3), and its column comment names the four values:
@@ -92,19 +99,10 @@ export type ReviewAnswer = Readonly<{
   serverAnchor: ReviewAnsweredServerAnchor;
 }>;
 
-// Answers observed inside one open transaction, keyed by the executor that is running it.
-//
-// Nothing is emitted while the transaction is open, for the two reasons the sibling producer gives.
-// The analytics writer opens its own transaction on its own pool connection, so an inline emission
-// would hold the review write's locks across one extra analytics transaction per graded answer on
-// the product's hottest write path; and it could not be rolled back with the review, so a sync push,
-// a review history import or a guest merge that failed at the k-th review - each of which applies
-// its whole batch in one transaction - would have left permanent rows on an append-only table for
-// reviews the workspace never kept.
-//
-// The buffer is created on first use and dropped when the executor is, so a transaction that throws
-// leaves nothing behind.
-const collectedReviewAnswers = new WeakMap<DatabaseExecutor, Array<ReviewAnswer>>();
+// Reporting inline would hold the product's hottest write path across a second database transaction
+// per answer, and a failed sync push, history import or guest merge could leave analytics rows for a
+// product transaction that rolled back. The shared lifecycle waits for the commit before draining.
+const collectedReviewAnswers = createPostCommitFactBuffer<ReviewAnswer>();
 
 /**
  * Records that this transaction appended one review event, to be reported once it commits.
@@ -131,13 +129,7 @@ const collectedReviewAnswers = new WeakMap<DatabaseExecutor, Array<ReviewAnswer>
  * any new caller, which is where a fifth review write path is caught.
  */
 export function collectReviewAnswer(executor: DatabaseExecutor, answer: ReviewAnswer): void {
-  const collected = collectedReviewAnswers.get(executor);
-  if (collected === undefined) {
-    collectedReviewAnswers.set(executor, [answer]);
-    return;
-  }
-
-  collected.push(answer);
+  collectPostCommitFact(collectedReviewAnswers, executor, answer);
 }
 
 /**
@@ -410,28 +402,6 @@ function toReviewAnsweredEvent(
   };
 }
 
-// The most answers this producer hands the analytics writer in one statement.
-//
-// A drain is bounded by nothing a person chose: a review history import applies a batch bounded only
-// by the request body, a guest merge re-inserts a guest workspace's whole review history, and every
-// entry of both is an answer, while a sync push is bounded only by its operation list. Every batch
-// the writer receives is a single unnest statement run under SET LOCAL statement_timeout = '2s' on a
-// pool that refuses an acquisition after 2s, so one unbounded statement would put the biggest and
-// most valuable drains - a whole-history guest merge, a full history import - behind the single
-// timeout that loses all of them at once. Chunking bounds what one refusal can cost while keeping
-// the per-row transaction cost that batching exists to avoid. The size matches the content creations
-// producer because the writer, the statement and the timeout behind it are the same.
-//
-// Chunking is only safe together with both of the drain's stop rules. A chunk count is a multiplier
-// on the analytics timeouts and it is paid after the product transaction committed, so a drain that
-// continued through every chunk would let a degraded analytics pool time out the product request
-// itself. Refusal is not the only way that happens: a chunk that is slow but still finishes inside
-// the writer's statement timeout answers "stored", so the elapsed clock is the only stop that
-// catches it. The drain therefore stops at the first refusal and again once the request's
-// post-commit analytics clock is spent. See PostCommitAnalyticsBudget and
-// emitCollectedReviewAnswers.
-const reviewAnsweredEmitChunkSize = 500;
-
 /**
  * Names the answers the drain gave up on, so an aborted drain is legible rather than silent.
  *
@@ -450,13 +420,9 @@ const reviewAnsweredEmitChunkSize = 500;
  * submitReview always drains - still produces exactly one warning for one refusal.
  */
 function reportAbandonedReviewAnswers(
-  abandoned: Readonly<{
-    reason: "writer_refused" | "budget_exhausted";
+  abandoned: PostCommitFactEmissionAbortedOutcome & Readonly<{
     reviewedByUserId: string | null;
     workspaceId: string | null;
-    storedEventCount: number;
-    failedEventCount: number;
-    skippedEventCount: number;
   }>,
 ): void {
   if (abandoned.skippedEventCount <= 0) {
@@ -488,48 +454,20 @@ function reportAbandonedReviewAnswers(
 }
 
 /**
- * Reports the answers the committed transaction collected, in chunks of at most
- * reviewAnsweredEmitChunkSize, stopping at the first chunk the analytics writer refuses or once the
- * request's shared post-commit analytics budget is spent, whichever comes first.
- *
- * Awaited, and that cannot lengthen the review write: the transaction has committed and released its
- * locks before the first chunk is built. Nothing here is left running past the response instead,
- * because a Lambda container is frozen and killed unpredictably and anything buffered across that
- * would be lost silently, which is the invariant ../writer.ts states and every sibling producer keeps.
- *
- * A chunk is one analytics transaction on one analytics connection and the chunks are awaited in
- * sequence, so this producer holds one connection at a time however large the transaction was. The
- * platform resolution that runs before them is one short product-pool transaction, released before
- * the first chunk is built, so that stays true across both pools.
- *
- * Analytics is best effort and a review is not: a chunk is swallowed and logged by
- * emitServerDerivedProductAnalyticsEvents rather than raised, and the platform resolution is
- * swallowed and logged by resolveReviewAnswerPlatforms, so this function has no rejection path and
- * nothing here can surface as a failed review to a caller whose transaction already committed.
- * Neither stop discards the chunks already stored before it either - those are committed and stay
- * committed. What both give up is the rest of the drain, so that a degraded analytics pool cannot
- * push a request that already stored its reviews past the API Gateway integration timeout and answer
- * a 504 for work that succeeded.
- *
- * The budget is checked before each chunk and shared with every other gated post-commit analytics
- * stage of the request, so the gated tail is bounded at 4.0s of budget plus the one ~4.0s chunk
- * already in flight - 8.0s against the 29s integration timeout - however many stages the request
- * runs. That is what makes this drain's cost independent of the content-creations drain it follows
- * on the sync push and the guest upgrade, and of the completion event the guest upgrade goes on to
- * write. That upgrade also writes an analytics identity link that is deliberately exempt from the
- * budget, so its path alone carries 12.0s rather than 8.0s. The derivation, that exemption and what
- * each path used to pay are in ./postCommitBudget.ts.
+ * Reports one committed transaction's answers after resolving its replica platforms. Review history
+ * imports, sync pushes and guest merges are unbounded by an analytics batch size, so the shared
+ * lifecycle bounds and partitions their sequential writer work. The platform lookup is released
+ * before emission starts, so a drain still holds at most one database connection at once.
  */
 async function emitCollectedReviewAnswers(
   executor: DatabaseExecutor,
   budget: PostCommitAnalyticsBudget,
 ): Promise<void> {
-  const collected = collectedReviewAnswers.get(executor);
+  const collected = takePostCommitFacts(collectedReviewAnswers, executor);
   if (collected === undefined) {
     return;
   }
 
-  collectedReviewAnswers.delete(executor);
   // The server clock every anchor of this drain is resolved against: it replaces a client_supplied
   // value outright and caps a stored_unverified one. The drain's stop clock is no longer read here:
   // it belongs to the request rather than to this drain, so it is the budget's.
@@ -538,58 +476,28 @@ async function emitCollectedReviewAnswers(
   // commit that released this transaction's connection. Answers whose replica it does not resolve
   // keep the null platform they always had; nothing here can fail the drain.
   const platformByReplicaId = await resolveReviewAnswerPlatforms(collected, budget);
-  for (let chunkStart = 0; chunkStart < collected.length; chunkStart += reviewAnsweredEmitChunkSize) {
-    if (!budget.hasTimeForAnotherOperation()) {
-      const firstSkipped = collected[chunkStart];
-      reportAbandonedReviewAnswers({
-        reason: "budget_exhausted",
-        // The first answer this drain will not reach. Unlike a refusal there is no paired write
-        // failure naming a row, so this is the only identity the stop reports.
-        reviewedByUserId: firstSkipped?.reviewedByUserId ?? null,
-        workspaceId: firstSkipped?.workspaceId ?? null,
-        storedEventCount: chunkStart,
-        // Every chunk the writer was handed was stored, so nothing failed - including when the
-        // budget was spent by an earlier stage of the same request and this drain stored nothing at
-        // all. The loop condition puts at least one answer behind this point, so the stop is never
-        // dropped by the skip guard.
-        failedEventCount: 0,
-        skippedEventCount: collected.length - chunkStart,
-      });
-      return;
-    }
-
-    const chunk = collected.slice(chunkStart, chunkStart + reviewAnsweredEmitChunkSize);
-    // Never rejects: the writer's refusal comes back as an outcome, so this await cannot throw into
-    // a caller whose review transaction has already committed.
-    const outcome = await emitServerDerivedProductAnalyticsEvents(
-      chunk.map((answer) => toReviewAnsweredEvent(
-        answer,
-        recordedAt,
-        platformByReplicaId.get(answer.replicaId) ?? null,
-      )),
-    );
-    if (outcome === "stored") {
-      continue;
-    }
-
-    const firstRefused = chunk[0];
+  const outcome = await emitPostCommitFactEvents(
+    collected,
+    budget,
+    (answer) => toReviewAnsweredEvent(
+      answer,
+      recordedAt,
+      platformByReplicaId.get(answer.replicaId) ?? null,
+    ),
+  );
+  if (outcome.status === "aborted") {
+    const firstUnstored = collected[outcome.storedEventCount];
     reportAbandonedReviewAnswers({
-      reason: "writer_refused",
-      // The refused chunk's first answer, which is the row its write failure named too.
-      reviewedByUserId: firstRefused?.reviewedByUserId ?? null,
-      workspaceId: firstRefused?.workspaceId ?? null,
-      storedEventCount: chunkStart,
-      failedEventCount: chunk.length,
-      skippedEventCount: collected.length - chunkStart - chunk.length,
+      ...outcome,
+      // For either stop this is the first event not stored, and for a refusal it is also the event
+      // named by the writer's failure warning.
+      reviewedByUserId: firstUnstored?.reviewedByUserId ?? null,
+      workspaceId: firstUnstored?.workspaceId ?? null,
     });
-    return;
   }
 }
 
-// The executor the transaction ran on, carried out alongside its result purely so the answers it
-// collected can be drained afterwards. It is only ever used as the WeakMap key above: the pool client
-// behind it is released once the transaction returns, and nothing here queries it. Exported only
-// because it appears in the exported signature below; no caller has to name it.
+// Exported because it appears in the wrapper signature; callers do not have to name it.
 export type CommittedReviewTransaction<Result> = Readonly<{
   executor: DatabaseExecutor;
   result: Result;
@@ -609,10 +517,8 @@ export type CommittedReviewTransaction<Result> = Readonly<{
  * dropped with its executor.
  *
  * Where the opener is a content creations wrapper, that wrapper's own drain runs inside
- * openTransaction and therefore strictly before this one, which makes its no-rejection guarantee
- * load-bearing here: a rejection from it would abandon this transaction's collected answers
- * unreported and surface to a caller whose transaction had already committed. The invariant is
- * stated on emitCollectedContentCreations, which is where it has to be kept.
+ * openTransaction and therefore strictly before this one. The shared lifecycle's no-rejection
+ * contract keeps the later answer drain reachable after the product transaction has committed.
  *
  * budget is the post-commit analytics clock the whole request shares, so that this drain, the
  * content creations drain nested inside openTransaction, and anything the caller reports after this
@@ -628,10 +534,9 @@ export async function runTransactionReportingReviewAnswers<Result>(
   ) => Promise<CommittedReviewTransaction<Result>>,
   body: (executor: DatabaseExecutor) => Promise<Result>,
 ): Promise<Result> {
-  const committed = await openTransaction(async (executor) => ({
-    executor,
-    result: await body(executor),
-  }));
-  await emitCollectedReviewAnswers(committed.executor, budget);
-  return committed.result;
+  return runTransactionWithPostCommitDrain(
+    openTransaction,
+    body,
+    async (committed) => emitCollectedReviewAnswers(committed.executor, budget),
+  );
 }
