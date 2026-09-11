@@ -47,6 +47,12 @@ type DirectAttemptBeginRow = Readonly<{
   normalization_version: string | null;
   lease_expires_at: string | Date | null;
 }>;
+type CleanupClaimPrivileges = Readonly<{
+  backend_execute: boolean;
+  auth_execute: boolean;
+  reporting_execute: boolean;
+  no_public_execute: boolean;
+}>;
 function createUniqueSha256(): string { return createHash("sha256").update(randomUUID()).digest("hex"); }
 const lifecycleMigrationSql = readFileSync(resolve(
   __dirname, "../../../../../db/migrations/0091_durable_media_blob_lifecycle.sql",
@@ -83,6 +89,45 @@ function createDirectAttemptLease(): DirectMediaBlobWriterAttemptLease {
     leaseTargetAt: new Date(nowMs + 60_000).toISOString(),
     operationDeadlineAt: new Date(nowMs + 30_000).toISOString(),
   };
+}
+async function grantLegacyCleanupClaimToFixtureExecutor(
+  fixture: PostgresIntegrationFixture,
+): Promise<void> {
+  const privileges = (await fixture.ownerPool.query<CleanupClaimPrivileges>(
+    `SELECT
+       has_function_privilege(
+         'backend_app', 'content.claim_media_blob_cleanup(text,integer)', 'EXECUTE'
+       ) AS backend_execute,
+       has_function_privilege(
+         'auth_app', 'content.claim_media_blob_cleanup(text,integer)', 'EXECUTE'
+       ) AS auth_execute,
+       has_function_privilege(
+         'reporting_readonly', 'content.claim_media_blob_cleanup(text,integer)', 'EXECUTE'
+       ) AS reporting_execute,
+       NOT EXISTS (
+         SELECT 1
+         FROM pg_catalog.pg_proc AS functions
+         CROSS JOIN LATERAL pg_catalog.aclexplode(
+           COALESCE(
+             functions.proacl,
+             pg_catalog.acldefault('f', functions.proowner)
+           )
+         ) AS grants
+         WHERE functions.oid =
+           'content.claim_media_blob_cleanup(text,integer)'::regprocedure
+           AND grants.grantee = 0
+       ) AS no_public_execute`,
+  )).rows[0];
+  assert.deepEqual(privileges, {
+    backend_execute: false,
+    auth_execute: false,
+    reporting_execute: false,
+    no_public_execute: true,
+  });
+  await fixture.ownerPool.query(
+    `GRANT EXECUTE ON FUNCTION content.claim_media_blob_cleanup(TEXT, INTEGER)
+     TO backend_app`,
+  );
 }
 async function insertDirectAttemptAsset(
   executor: DatabaseExecutor, input: DirectMediaBlobWriterAttemptInput,
@@ -709,7 +754,9 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
       mimeType: "application/vnd.flashcards_test+json",
       sizeBytes: 0,
     };
+    const errors: Array<unknown> = [];
     try {
+      await grantLegacyCleanupClaimToFixtureExecutor(fixture);
       const attemptInput = directAttemptInput(fixture, attemptSha);
       const initialLease = createDirectAttemptLease();
       const attempt = await beginDirectMediaBlobWriterAttemptWithOwner(attemptInput, initialLease);
@@ -1339,42 +1386,70 @@ test("media blob lifecycle coordinates writers, ambiguity, cleanup leases, and g
           normalizationVersion: revokedReservation.normalizationVersion,
         }),
       ), "unreferenced");
+    } catch (error) {
+      errors.push(error);
     } finally {
-      await fixture.ownerPool.query(
-        "DELETE FROM org.workspaces WHERE workspace_id = $1", [abortedWorkspaceId],
-      );
-      await fixture.ownerPool.query("DELETE FROM catalog.packages WHERE package_id = $1", [packageId]);
-      await fixture.ownerPool.query("DELETE FROM catalog.authors WHERE author_id = $1", [authorId]);
-      await fixture.ownerPool.query("DELETE FROM content.media_assets WHERE media_blob_id IN (SELECT media_blob_id FROM content.media_blobs WHERE sha256=ANY($1::text[]))", [attemptFixtureSha256s]);
-      await fixture.ownerPool.query("DELETE FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])", [attemptFixtureSha256s]);
-      await fixture.ownerPool.query(
-        "DELETE FROM content.media_blob_writer_reservations WHERE sha256 = ANY($1::text[])",
-        [fixtureSha256s],
-      );
-      await fixture.ownerPool.query(
-        `DELETE FROM content.media_blobs AS blobs
-         WHERE blobs.sha256 = ANY($1::text[])
-           AND NOT EXISTS (SELECT 1 FROM content.media_assets AS assets
-                           WHERE assets.media_blob_id = blobs.media_blob_id)
-           AND NOT EXISTS (SELECT 1 FROM catalog.package_media_assets AS package_assets
-                           WHERE package_assets.media_blob_id = blobs.media_blob_id)`,
-        [fixtureSha256s],
-      );
-      await fixture.ownerPool.query(
-        `DELETE FROM content.media_blob_lifecycles AS lifecycles
-         WHERE lifecycles.sha256 = ANY($1::text[])
-           AND NOT EXISTS (SELECT 1 FROM content.media_blobs AS blobs
-                           WHERE blobs.sha256 = lifecycles.sha256)
-          AND NOT EXISTS (SELECT 1 FROM content.media_blob_writer_reservations AS reservations
-                           WHERE reservations.sha256 = lifecycles.sha256)`,
-        [fixtureSha256s],
-      );
-      const attemptResidue = (await fixture.ownerPool.query(`SELECT (SELECT count(*)::int FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])) AS attempts,(SELECT count(*)::int FROM content.media_blob_writer_reservations WHERE sha256=ANY($1::text[])) AS reservations,(SELECT count(*)::int FROM content.media_blob_lifecycles WHERE sha256=ANY($1::text[])) AS lifecycles,(SELECT count(*)::int FROM content.media_blobs WHERE sha256=ANY($1::text[])) AS blobs`, [attemptFixtureSha256s])).rows[0];
-      assert.deepEqual(attemptResidue, { attempts: 0, reservations: 0, lifecycles: 0, blobs: 0 });
-      await fixture.ownerPool.query(
-        "DELETE FROM org.workspaces WHERE workspace_id = $1",
-        [concurrentWorkspaceId],
-      );
+      const cleanupActions: ReadonlyArray<() => Promise<unknown>> = [
+        () => fixture.ownerPool.query(
+          `REVOKE EXECUTE ON FUNCTION content.claim_media_blob_cleanup(TEXT, INTEGER)
+           FROM backend_app`,
+        ),
+        () => fixture.ownerPool.query(
+          "DELETE FROM org.workspaces WHERE workspace_id = $1", [abortedWorkspaceId],
+        ),
+        () => fixture.ownerPool.query(
+          "DELETE FROM catalog.packages WHERE package_id = $1", [packageId],
+        ),
+        () => fixture.ownerPool.query(
+          "DELETE FROM catalog.authors WHERE author_id = $1", [authorId],
+        ),
+        () => fixture.ownerPool.query("DELETE FROM content.media_assets WHERE media_blob_id IN (SELECT media_blob_id FROM content.media_blobs WHERE sha256=ANY($1::text[]))", [attemptFixtureSha256s]),
+        () => fixture.ownerPool.query("DELETE FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])", [attemptFixtureSha256s]),
+        () => fixture.ownerPool.query(
+          "DELETE FROM content.media_blob_writer_reservations WHERE sha256 = ANY($1::text[])",
+          [fixtureSha256s],
+        ),
+        () => fixture.ownerPool.query(
+          `DELETE FROM content.media_blobs AS blobs
+           WHERE blobs.sha256 = ANY($1::text[])
+             AND NOT EXISTS (SELECT 1 FROM content.media_assets AS assets
+                             WHERE assets.media_blob_id = blobs.media_blob_id)
+             AND NOT EXISTS (SELECT 1 FROM catalog.package_media_assets AS package_assets
+                             WHERE package_assets.media_blob_id = blobs.media_blob_id)`,
+          [fixtureSha256s],
+        ),
+        () => fixture.ownerPool.query(
+          `DELETE FROM content.media_blob_lifecycles AS lifecycles
+           WHERE lifecycles.sha256 = ANY($1::text[])
+             AND NOT EXISTS (SELECT 1 FROM content.media_blobs AS blobs
+                             WHERE blobs.sha256 = lifecycles.sha256)
+            AND NOT EXISTS (SELECT 1 FROM content.media_blob_writer_reservations AS reservations
+                             WHERE reservations.sha256 = lifecycles.sha256)`,
+          [fixtureSha256s],
+        ),
+        async () => {
+          const attemptResidue = (await fixture.ownerPool.query(`SELECT (SELECT count(*)::int FROM content.media_blob_writer_attempts WHERE sha256=ANY($1::text[])) AS attempts,(SELECT count(*)::int FROM content.media_blob_writer_reservations WHERE sha256=ANY($1::text[])) AS reservations,(SELECT count(*)::int FROM content.media_blob_lifecycles WHERE sha256=ANY($1::text[])) AS lifecycles,(SELECT count(*)::int FROM content.media_blobs WHERE sha256=ANY($1::text[])) AS blobs`, [attemptFixtureSha256s])).rows[0];
+          assert.deepEqual(attemptResidue, { attempts: 0, reservations: 0, lifecycles: 0, blobs: 0 });
+        },
+        () => fixture.ownerPool.query(
+          "DELETE FROM org.workspaces WHERE workspace_id = $1",
+          [concurrentWorkspaceId],
+        ),
+      ];
+      for (const cleanup of cleanupActions) {
+        try {
+          await cleanup();
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    }
+
+    if (errors.length === 1) {
+      throw errors[0];
+    }
+    if (errors.length > 1) {
+      throw new AggregateError(errors, "Media blob lifecycle test or cleanup failed.");
     }
   });
 });
