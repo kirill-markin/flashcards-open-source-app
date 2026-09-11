@@ -207,9 +207,7 @@ test("release deploys migration-gated runtime disabled, verifies migrations, the
   const disabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=DISABLED",
   );
-  const requiredMigration = workflow.indexOf(
-    "--require-migration 0123_backfill_live_review_answered_platform.sql",
-  );
+  const requiredMigration = workflow.indexOf("--require-latest-migration");
   const enabledDeploy = workflow.indexOf(
     "multipartCompletionReconciliationScheduleState=ENABLED",
   );
