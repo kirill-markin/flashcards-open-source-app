@@ -184,6 +184,7 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = initialLocalWorkspaceId)
 
         val syncJob = launch {
             syncRepository.syncNow()

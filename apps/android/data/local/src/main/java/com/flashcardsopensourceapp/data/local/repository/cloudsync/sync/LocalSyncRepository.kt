@@ -11,9 +11,8 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.cloudCredentialRecoveryRequiredMessage
@@ -27,9 +26,12 @@ import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isCloudIdentityConflictError
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isRemoteAccountDeletedError
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudLinkedWorkspaceTransitionCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.resolvePreferredPostAuthWorkspaceId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -48,6 +50,15 @@ class LocalSyncRepository(
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
     private val appVersion: String
 ) : SyncRepository, AutoSyncEventRepository {
+    private val transitionCoordinator: CloudLinkedWorkspaceTransitionCoordinator =
+        CloudLinkedWorkspaceTransitionCoordinator(
+            database = database,
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            syncLocalStore = syncLocalStore,
+            operationCoordinator = operationCoordinator,
+            appVersion = appVersion
+        )
     private val syncStatusState = MutableStateFlow(
         SyncStatusSnapshot(
             status = SyncStatus.Idle,
@@ -321,11 +332,10 @@ class LocalSyncRepository(
         return when (cloudSettings.cloudState) {
             CloudAccountState.LINKED -> {
                 val authenticatedSession = authenticatedSession()
-                val workspaceId = requireNotNull(
-                    cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
-                ) {
-                    "Cloud sync requires an active linked workspace."
-                }
+                val workspaceId = reconcileLinkedWorkspaceWithServer(
+                    cloudSettings = cloudSettings,
+                    authenticatedSession = authenticatedSession
+                )
                 CloudSyncTarget(
                     workspaceId = workspaceId,
                     session = CloudSyncSession(
@@ -367,7 +377,39 @@ class LocalSyncRepository(
         }
     }
 
-    private suspend fun authenticatedSession(): SyncAuthenticatedCloudSession {
+    /**
+     * A workspace deleted from another client vanishes from the account snapshot while the server
+     * has already selected its replacement; syncing the stale id would only repeat
+     * `WORKSPACE_NOT_FOUND`, so the replacement is applied before the regular sync runs.
+     */
+    private suspend fun reconcileLinkedWorkspaceWithServer(
+        cloudSettings: CloudSettings,
+        authenticatedSession: AuthenticatedCloudSession
+    ): String {
+        val persistedWorkspaceId: String = requireNotNull(
+            cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
+        ) {
+            "Cloud sync requires an active linked workspace."
+        }
+        val workspaces: List<CloudWorkspaceSummary> = authenticatedSession.accountSnapshot.workspaces
+        if (workspaces.any { workspace -> workspace.workspaceId == persistedWorkspaceId }) {
+            return persistedWorkspaceId
+        }
+        val replacementWorkspaceId: String = checkNotNull(
+            resolvePreferredPostAuthWorkspaceId(workspaces = workspaces)
+        ) {
+            "Linked workspace '$persistedWorkspaceId' is no longer listed for this account and " +
+                "no single server-selected replacement workspace exists. " +
+                "listedWorkspaceIds=${workspaces.map(CloudWorkspaceSummary::workspaceId)}"
+        }
+        transitionCoordinator.applyDeletedWorkspaceReplacement(
+            authenticatedSession = authenticatedSession,
+            replacementWorkspace = workspaces.first { workspace -> workspace.workspaceId == replacementWorkspaceId }
+        )
+        return replacementWorkspaceId
+    }
+
+    private suspend fun authenticatedSession(): AuthenticatedCloudSession {
         val configuration = preferencesStore.currentServerConfiguration()
         val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
             "Cloud account is not signed in."
@@ -391,7 +433,7 @@ class LocalSyncRepository(
         )
         requireFetchedAccountMatchesActiveLinkedIdentity(accountSnapshot = accountSnapshot)
         preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
-        return SyncAuthenticatedCloudSession(
+        return AuthenticatedCloudSession(
             configuration = configuration,
             credentials = refreshedCredentials,
             accountSnapshot = accountSnapshot
@@ -438,12 +480,6 @@ class LocalSyncRepository(
         )
     }
 }
-
-private data class SyncAuthenticatedCloudSession(
-    val configuration: CloudServiceConfiguration,
-    val credentials: StoredCloudCredentials,
-    val accountSnapshot: CloudAccountSnapshot
-)
 
 private class CloudLinkedAccountMismatchException(
     message: String

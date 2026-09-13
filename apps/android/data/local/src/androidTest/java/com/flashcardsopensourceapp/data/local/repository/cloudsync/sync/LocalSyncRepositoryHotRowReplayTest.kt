@@ -163,6 +163,7 @@ class LocalSyncRepositoryHotRowReplayTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        baseGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         syncRepository.syncNow()
 
@@ -302,6 +303,7 @@ class LocalSyncRepositoryHotRowReplayTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        baseGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         syncRepository.syncNow()
 
@@ -414,6 +416,7 @@ class LocalSyncRepositoryHotRowReplayTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        baseGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         syncRepository.syncNow()
 

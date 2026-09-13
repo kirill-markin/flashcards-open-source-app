@@ -74,6 +74,7 @@ class LocalSyncRepositoryReviewHistoryImportRecoveryTest {
         val interruptedRepository = environment.createSyncRepository(remoteGateway = interruptedGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        baseGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         try {
             interruptedRepository.syncNow()
@@ -94,6 +95,7 @@ class LocalSyncRepositoryReviewHistoryImportRecoveryTest {
             bootstrapRemoteIsEmptyResponses = listOf(false),
             importReviewHistoryErrors = emptyList()
         )
+        resumedGateway.registerLinkedWorkspace(workspaceId = workspaceId)
         val resumedRepository = environment.createSyncRepository(remoteGateway = resumedGateway)
 
         resumedRepository.syncNow()
@@ -133,6 +135,7 @@ class LocalSyncRepositoryReviewHistoryImportRecoveryTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         try {
             syncRepository.syncNow()
@@ -198,6 +201,7 @@ class LocalSyncRepositoryReviewHistoryImportRecoveryTest {
         val interruptedRepository = environment.createSyncRepository(remoteGateway = interruptedGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        baseGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         try {
             interruptedRepository.syncNow()
@@ -218,6 +222,7 @@ class LocalSyncRepositoryReviewHistoryImportRecoveryTest {
             bootstrapRemoteIsEmptyResponses = listOf(false),
             importReviewHistoryErrors = emptyList()
         )
+        resumedGateway.registerLinkedWorkspace(workspaceId = workspaceId)
         val resumedRepository = environment.createSyncRepository(remoteGateway = resumedGateway)
 
         resumedRepository.syncNow()
@@ -265,6 +270,7 @@ class LocalSyncRepositoryReviewHistoryImportRecoveryTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         syncRepository.syncNow()
 
@@ -327,6 +333,7 @@ class LocalSyncRepositoryReviewHistoryImportRecoveryTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         try {
             syncRepository.syncNow()
