@@ -291,6 +291,7 @@ class LocalSyncRepositoryDisconnectedStateTest {
             linkedEmail = "user@example.com",
             activeWorkspaceId = localWorkspaceId
         )
+        remoteGateway.registerLinkedWorkspace(workspaceId = localWorkspaceId)
 
         syncRepository.syncNow()
 
