@@ -63,3 +63,19 @@ export function StreakFreezeIcon(): ReactElement {
     </svg>
   );
 }
+
+export function ReviewRepetitionBadgeIcon(): ReactElement {
+  return (
+    <svg
+      className="review-progress-badge-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M19.73 9.93A8 8 0 1 1 12.7 4.03L12.52 6.02A6 6 0 1 0 17.8 10.45ZM16.4 5.36L12.31 8.41L12.91 1.64Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
