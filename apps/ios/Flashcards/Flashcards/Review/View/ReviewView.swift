@@ -54,7 +54,6 @@ struct ReviewView: View {
     )
     @State var screenErrorMessage: String = ""
     @State var reviewTagSummaries: [WorkspaceTagSummary] = []
-    @State var reviewDeckSummaries: [DeckSummary] = []
     @State var totalCardsCount: Int = 0
     @State var isReviewFilterPopoverPresented: Bool = false
     @State var reviewFilterDraft: ReviewFilter = .allCards
@@ -74,8 +73,8 @@ struct ReviewView: View {
         case .allCards:
             return localizedAllCardsLabel()
         case .deck(let deckId):
-            return self.reviewDeckSummaries.first(where: { deckSummary in
-                deckSummary.deckId == deckId
+            return store.decks.first(where: { deck in
+                deck.deckId == deckId
             })?.name ?? localizedAllCardsLabel()
         case .tags(let tags):
             return localizedReviewTagsFilterTitle(tags: tags)
@@ -350,7 +349,7 @@ struct ReviewView: View {
         .popover(isPresented: self.$isReviewFilterPopoverPresented) {
             ReviewFilterPopover(
                 reviewFilter: self.$reviewFilterDraft,
-                deckSummaries: self.reviewDeckSummaries,
+                decks: store.decks,
                 tagSummaries: self.reviewTagSummaries,
                 onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
             )
