@@ -134,7 +134,6 @@ export function createCatalogInstallAnalyticsRoutes(
       const isOutOfWindow = error instanceof HttpError
         && error.code === "CATALOG_INSTALL_ANALYTICS_EVENT_TIME_INVALID";
       const details = {
-        statusCode: error instanceof HttpError ? error.statusCode : 500,
         authTransport: "none",
         trustLevel: "anonymous_client",
         platform: "web",
