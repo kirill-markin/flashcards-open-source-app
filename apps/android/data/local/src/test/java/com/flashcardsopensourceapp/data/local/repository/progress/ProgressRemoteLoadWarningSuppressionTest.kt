@@ -12,16 +12,19 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.isExpectedTransientProgressRefreshError
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressReviewScheduleRemoteLoadWarning
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.shouldSuppressProgressSeriesRemoteLoadWarning
+import com.flashcardsopensourceapp.data.local.repository.progress.runtime.transportClassifiedCloudHttpFailureSuppressionReason
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressReviewScheduleStoreState
 import com.flashcardsopensourceapp.data.local.repository.progress.snapshots.ProgressSeriesStoreState
 import java.net.UnknownHostException
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProgressRemoteLoadWarningSuppressionTest {
     @Test
-    fun progressRefreshWarningIsSuppressedOnlyForExpectedTransientFailures(): Unit {
+    fun progressRefreshWarningIsSuppressedOnlyForTransientOrTransportClassifiedFailures(): Unit {
         assertTrue(
             isExpectedTransientProgressRefreshError(
                 error = CloudRemoteException(
@@ -43,8 +46,9 @@ class ProgressRemoteLoadWarningSuppressionTest {
                 )
             )
         )
-        assertFalse(
-            isExpectedTransientProgressRefreshError(
+        assertEquals(
+            "expected_cloud_http_failure",
+            transportClassifiedCloudHttpFailureSuppressionReason(
                 error = CloudRemoteException(
                     message = "Invalid sync request",
                     statusCode = 400,
@@ -56,8 +60,44 @@ class ProgressRemoteLoadWarningSuppressionTest {
                 )
             )
         )
+        assertEquals(
+            "expected_cloud_http_failure",
+            transportClassifiedCloudHttpFailureSuppressionReason(
+                error = IllegalStateException(
+                    "Wrapped sync pull failure",
+                    CloudRemoteException(
+                        message = "Workspace not found",
+                        statusCode = 404,
+                        responseBody = """{"code":"WORKSPACE_NOT_FOUND"}""",
+                        errorCode = "WORKSPACE_NOT_FOUND",
+                        requestId = "request-3",
+                        syncConflict = null,
+                        androidObservationAlreadyCaptured = false
+                    )
+                )
+            )
+        )
+        assertEquals(
+            "already_captured_cloud_http_failure",
+            transportClassifiedCloudHttpFailureSuppressionReason(
+                error = CloudRemoteException(
+                    message = "Unexpected client error",
+                    statusCode = 422,
+                    responseBody = "",
+                    errorCode = null,
+                    requestId = "request-4",
+                    syncConflict = null,
+                    androidObservationAlreadyCaptured = true
+                )
+            )
+        )
         assertFalse(
             isExpectedTransientProgressRefreshError(
+                error = IllegalStateException("Progress sync invariant failed.")
+            )
+        )
+        assertNull(
+            transportClassifiedCloudHttpFailureSuppressionReason(
                 error = IllegalStateException("Progress sync invariant failed.")
             )
         )
