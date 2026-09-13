@@ -882,29 +882,17 @@ private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
 @ViewBuilder
 private func reviewRepetitionBadge(reps: Int) -> some View {
     let accessibilityLabel = String(localized: "Reps", table: reviewCardsStringsTableName)
+    let accessibilityValue = reps == 0
+        ? String(localized: "New", table: reviewCardsStringsTableName)
+        : localizedCardCountValue(count: reps)
 
-    if reps == 0 {
-        let accessibilityValue = String(localized: "New", table: reviewCardsStringsTableName)
-
-        Label(accessibilityValue, systemImage: "arrow.clockwise")
-            .fontWeight(.semibold)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.accentColor, in: Capsule(style: .continuous))
-            .accessibilityLabel(accessibilityLabel)
-            .accessibilityValue(accessibilityValue)
-    } else {
-        let accessibilityValue = localizedCardCountValue(count: reps)
-
-        Label(accessibilityValue, systemImage: "arrow.clockwise")
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.thinMaterial, in: Capsule(style: .continuous))
-            .accessibilityLabel(accessibilityLabel)
-            .accessibilityValue(accessibilityValue)
-    }
+    Label(accessibilityValue, systemImage: "arrow.clockwise")
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.thinMaterial, in: Capsule(style: .continuous))
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(accessibilityValue)
 }
 
 #Preview {
