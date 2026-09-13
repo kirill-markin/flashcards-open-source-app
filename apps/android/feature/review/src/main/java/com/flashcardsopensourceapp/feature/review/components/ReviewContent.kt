@@ -385,16 +385,8 @@ private fun ReviewRepetitionPill(
     )
     Surface(
         shape = RoundedCornerShape(percent = 50),
-        color = if (isNew) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHighest
-        },
-        contentColor = if (isNew) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.clearAndSetSemantics {
             contentDescription = repetitionContentDescription
         }

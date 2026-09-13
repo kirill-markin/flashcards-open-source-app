@@ -6,6 +6,7 @@ import { useI18n } from "../../../i18n";
 import { cardsRoute, chatRoute } from "../../../routes";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
+import { ReviewRepetitionBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
 import { ReviewCardTags } from "./ReviewCardTags";
 import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
@@ -333,6 +334,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
         <div className="review-pane-head-meta">
           <ReviewCardTags tags={selectedCard.tags} />
           <span className="badge review-metadata-chip">
+            <ReviewRepetitionBadgeIcon />
             <span aria-hidden="true">{repetitionValue}</span>
             <span className="review-metadata-chip-accessible-label">
               {t("reviewScreen.repetitionBadgeAriaLabel", { value: repetitionValue })}
