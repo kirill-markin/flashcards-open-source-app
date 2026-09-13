@@ -126,6 +126,7 @@ export const publicRestApiDefaultIntegrationTimeoutSeconds = 29;
 const productAnalyticsIngestMethodPath = "/analytics/events/POST";
 const productAnalyticsIngestThrottlingRateLimit = 20;
 const productAnalyticsIngestThrottlingBurstLimit = 40;
+const catalogInstallAnalyticsMethodPath = "/analytics/catalog-install-events/POST";
 export const directImageIngestionMaximumOnDemandInitSeconds = 10;
 export const directImageIngestionLambdaTimeoutSeconds = 15;
 
@@ -297,6 +298,14 @@ function createPublicCatalogCorsPreflightOptions(allowedOrigins: string[]): apig
     allowOrigins: allowedOrigins,
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage", "x-client-platform", "x-client-version"],
+  };
+}
+
+function createCatalogInstallAnalyticsCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
+  return {
+    allowOrigins: allowedOrigins,
+    allowMethods: ["POST", "OPTIONS"],
+    allowHeaders: ["content-type", "sentry-trace", "baggage"],
   };
 }
 
@@ -827,6 +836,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     publicAppOrigin,
     "http://localhost:3000",
   ];
+  const catalogInstallAnalyticsAllowedOrigins = [
+    publicSiteOrigin,
+    publicAppOrigin,
+    `https://auth.${props.baseDomain}`,
+    "http://localhost:3000",
+    "http://localhost:8081",
+    "http://localhost:4321",
+  ];
   const allowedOrigins = [
     publicAppOrigin,
     `https://admin.${props.baseDomain}`,
@@ -1041,6 +1058,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
           throttlingRateLimit: productAnalyticsIngestThrottlingRateLimit,
           throttlingBurstLimit: productAnalyticsIngestThrottlingBurstLimit,
         },
+        [catalogInstallAnalyticsMethodPath]: {
+          metricsEnabled: true,
+          throttlingRateLimit: productAnalyticsIngestThrottlingRateLimit,
+          throttlingBurstLimit: productAnalyticsIngestThrottlingBurstLimit,
+        },
       },
       metricsEnabled: true,
       dataTraceEnabled: false,
@@ -1132,6 +1154,13 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const analyticsEvents = analytics.addResource("events");
   analyticsEvents.addMethod("ANY", integration);
   analyticsEvents.addMethod("POST", integration);
+  const catalogInstallAnalyticsEvents = analytics.addResource("catalog-install-events", {
+    defaultCorsPreflightOptions: createCatalogInstallAnalyticsCorsPreflightOptions(
+      catalogInstallAnalyticsAllowedOrigins,
+    ),
+  });
+  catalogInstallAnalyticsEvents.addMethod("ANY", integration);
+  catalogInstallAnalyticsEvents.addMethod("POST", integration);
 
   // POST /guest-auth/identity/link, which lets a freshly signed-in browser or install claim the
   // analytics history of the guest identity it held. The root {proxy+} already forwards it, so this

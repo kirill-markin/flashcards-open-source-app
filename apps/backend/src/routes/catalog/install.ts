@@ -99,6 +99,9 @@ function parseCatalogPackageInstallConfirmInput(value: unknown): CatalogPackageI
     clientUpdatedAt: expectNonEmptyString(record.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: expectUuidString(record.lastModifiedByReplicaId, "lastModifiedByReplicaId"),
     operationIdPrefix: parseCatalogPackageInstallOperationIdPrefix(record.operationIdPrefix),
+    ...(record.installJourneyId === undefined
+      ? {}
+      : { installJourneyId: expectUuidString(record.installJourneyId, "installJourneyId") }),
     addImportTag,
     importTag,
     removeTags: parseCatalogPackageInstallRemoveTags(record.removeTags),
