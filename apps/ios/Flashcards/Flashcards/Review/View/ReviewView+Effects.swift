@@ -103,10 +103,7 @@ extension ReviewView {
 
     func reloadReviewMetadata() async {
         do {
-            let now = Date()
-            let decksSnapshot = try store.loadDecksListSnapshot(now: now)
             let tagsSummary = try store.loadWorkspaceTagsSummary()
-            self.reviewDeckSummaries = decksSnapshot.deckSummaries
             self.reviewTagSummaries = tagsSummary.tags
             self.totalCardsCount = tagsSummary.totalCards
             self.screenErrorMessage = ""
