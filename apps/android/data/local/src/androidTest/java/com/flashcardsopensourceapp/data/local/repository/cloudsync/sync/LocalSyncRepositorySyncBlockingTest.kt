@@ -60,6 +60,7 @@ class LocalSyncRepositorySyncBlockingTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = initialLocalWorkspaceId)
 
         try {
             syncRepository.syncNow()
@@ -101,6 +102,7 @@ class LocalSyncRepositorySyncBlockingTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = initialLocalWorkspaceId)
 
         try {
             syncRepository.syncNow()
@@ -142,6 +144,7 @@ class LocalSyncRepositorySyncBlockingTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = initialLocalWorkspaceId)
 
         try {
             syncRepository.syncNow()
@@ -236,6 +239,7 @@ class LocalSyncRepositorySyncBlockingTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        baseGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         try {
             syncRepository.syncNow()

@@ -135,6 +135,7 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        baseGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         syncRepository.syncNow()
 
@@ -278,6 +279,7 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        baseGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         syncRepository.syncNow()
 
@@ -321,6 +323,7 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         syncRepository.syncNow()
 
@@ -371,6 +374,7 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        remoteGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         try {
             syncRepository.syncNow()
@@ -417,6 +421,7 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
             "Cloud sync bootstrap push is blocked for workspace '$workspaceId': automatic local id recovery already repaired card '$seededCardId' in this sync attempt and the backend still reports the same conflict. Reference: request-fork-bootstrap-2"
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        blockingGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         try {
             initialRepository.syncNow()
@@ -472,6 +477,7 @@ class LocalSyncRepositoryWorkspaceForkRecoveryTest {
         val syncRepository = environment.createSyncRepository(remoteGateway = blockingGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+        blockingGateway.registerLinkedWorkspace(workspaceId = workspaceId)
 
         try {
             syncRepository.syncNow()

@@ -48,6 +48,7 @@ class LocalSyncRepositoryCoordinatorLockingTest {
             workspaceId = "workspace-after-lock",
             createdAtMillis = 200L
         )
+        remoteGateway.registerLinkedWorkspace(workspaceId = "workspace-after-lock")
         environment.cloudPreferencesStore.updateCloudSettings(
             cloudState = CloudAccountState.LINKED,
             linkedUserId = "user-1",
