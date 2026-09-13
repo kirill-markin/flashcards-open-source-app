@@ -411,6 +411,25 @@ internal class FakeCloudRemoteGateway private constructor(
         linkGuestIdentityError = error
     }
 
+    /**
+     * The real `/v1/workspaces` always lists a linked workspace, and a linked id missing from it is
+     * what sync treats as deleted elsewhere. Listed as non-selected so the default selected
+     * workspace keeps deciding the post-auth choice.
+     */
+    fun registerLinkedWorkspace(workspaceId: String): Unit {
+        if (accountSnapshot.workspaces.any { workspace -> workspace.workspaceId == workspaceId }) {
+            return
+        }
+        accountSnapshot = accountSnapshot.copy(
+            workspaces = accountSnapshot.workspaces + createCloudWorkspaceSummary(
+                workspaceId = workspaceId,
+                name = localWorkspaceName,
+                createdAtMillis = 100L,
+                isSelected = false
+            )
+        )
+    }
+
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
     }
 
