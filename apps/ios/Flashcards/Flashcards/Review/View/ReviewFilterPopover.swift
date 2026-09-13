@@ -9,7 +9,7 @@ private let reviewFilterRowSpacing: CGFloat = 12
 
 struct ReviewFilterPopover: View {
     @Binding var reviewFilter: ReviewFilter
-    let deckSummaries: [DeckSummary]
+    let decks: [Deck]
     let tagSummaries: [WorkspaceTagSummary]
     let onEditDecks: () -> Void
 
@@ -25,11 +25,11 @@ struct ReviewFilterPopover: View {
         case .allCards:
             selectedTags = self.storedTagNames
         case .deck(let deckId):
-            selectedTags = self.deckSummaries.first(where: { deckSummary in
-                deckSummary.deckId == deckId
-            }).map { deckSummary in
+            selectedTags = self.decks.first(where: { deck in
+                deck.deckId == deckId
+            }).map { deck in
                 selectedReviewDeckTagNames(
-                    deckFilterTagNames: deckSummary.filterDefinition.tags,
+                    deckFilterTagNames: deck.filterDefinition.tags,
                     storedTagNames: self.storedTagNames
                 )
             } ?? []
@@ -49,9 +49,9 @@ struct ReviewFilterPopover: View {
                 self.allCardsButton
                     .id("all-cards")
 
-                ForEach(self.deckSummaries, id: \.deckId) { deckSummary in
-                    self.deckButton(deckSummary: deckSummary)
-                        .id("deck:\(deckSummary.deckId)")
+                ForEach(self.decks, id: \.deckId) { deck in
+                    self.deckButton(deck: deck)
+                        .id("deck:\(deck.deckId)")
                 }
 
                 self.editDecksButton
@@ -86,12 +86,12 @@ struct ReviewFilterPopover: View {
         )
     }
 
-    private func deckButton(deckSummary: DeckSummary) -> some View {
-        let deckFilter = ReviewFilter.deck(deckId: deckSummary.deckId)
+    private func deckButton(deck: Deck) -> some View {
+        let deckFilter = ReviewFilter.deck(deckId: deck.deckId)
         return self.selectionButton(
-            title: deckSummary.name,
+            title: deck.name,
             isSelected: self.reviewFilter == deckFilter,
-            accessibilityIdentifier: UITestIdentifier.reviewFilterDeckActionPrefix + deckSummary.deckId,
+            accessibilityIdentifier: UITestIdentifier.reviewFilterDeckActionPrefix + deck.deckId,
             action: {
                 self.reviewFilter = deckFilter
             }
@@ -161,8 +161,8 @@ struct ReviewFilterPopover: View {
         let tagFilter: ReviewFilter
         switch self.reviewFilter {
         case .deck(let deckId):
-            let deckTags = self.deckSummaries.first(where: { deckSummary in
-                deckSummary.deckId == deckId
+            let deckTags = self.decks.first(where: { deck in
+                deck.deckId == deckId
             })?.filterDefinition.tags ?? []
             tagFilter = makeReviewTagsFilter(
                 tags: selectedReviewDeckTagNames(
