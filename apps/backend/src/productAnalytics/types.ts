@@ -30,6 +30,7 @@ export type ProductAnalyticsTrustLevel =
   | "server_derived"
   | "authenticated_client"
   | "guest_client"
+  | "anonymous_client"
   | "backfill_derived";
 
 // Batch-level device context. It describes the device, never the person, and every field is

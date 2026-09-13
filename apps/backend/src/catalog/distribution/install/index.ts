@@ -146,9 +146,14 @@ function normalizeCatalogInstallIsoTimestamp(value: string, fieldName: string): 
   }
 }
 
+type NormalizedCatalogPackageInstallConfirmInputWithJourney =
+  NormalizedCatalogPackageInstallConfirmInput & Readonly<{
+    installJourneyId: string | null;
+  }>;
+
 function normalizeCatalogPackageInstallConfirmInput(
   input: CatalogPackageInstallConfirmInput,
-): NormalizedCatalogPackageInstallConfirmInput {
+): NormalizedCatalogPackageInstallConfirmInputWithJourney {
   let normalizedTagOptions: ReturnType<typeof normalizeCardImportTagOptions>;
   try {
     normalizedTagOptions = normalizeCardImportTagOptions({
@@ -170,6 +175,9 @@ function normalizeCatalogPackageInstallConfirmInput(
     clientUpdatedAt: normalizeCatalogInstallIsoTimestamp(input.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: normalizeUuidString(input.lastModifiedByReplicaId, "lastModifiedByReplicaId"),
     operationIdPrefix: normalizeCatalogPackageInstallOperationIdPrefix(input.operationIdPrefix),
+    installJourneyId: input.installJourneyId === undefined
+      ? null
+      : normalizeUuidString(input.installJourneyId, "installJourneyId"),
     addImportTag: normalizedTagOptions.addImportTag,
     importTag: normalizedTagOptions.importTag,
     removeTags: normalizedTagOptions.removeTags,
@@ -198,6 +206,8 @@ export async function installCatalogPackageVersionInExecutor(
   const normalizedWorkspaceId = normalizeCatalogWorkspaceId(workspaceId);
   const normalizedPackageVersionId = normalizeUuidString(packageVersionId, "packageVersionId");
   const normalizedInput = normalizeCatalogPackageInstallConfirmInput(input);
+  // Journey metadata follows the eventual server fact but does not change the product operation,
+  // so losing or restoring analytics context must not create an idempotency conflict on retry.
   const requestIdentity = createCatalogPackageInstallRequestIdentity(
     normalizedPackageVersionId,
     normalizedInput,
@@ -367,6 +377,7 @@ export async function installCatalogPackageVersion(
   const result = await transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => (
     installCatalogPackageVersionInExecutor(executor, workspaceId, packageVersionId, input)
   ));
+  const installJourneyId = normalizeCatalogPackageInstallConfirmInput(input).installJourneyId;
   // The same normalization already succeeded inside the transaction, so it cannot throw here.
   const normalizedWorkspaceId = normalizeCatalogWorkspaceId(workspaceId);
   // package_slug means catalog.packages.slug across this repository, and the client's
@@ -438,9 +449,10 @@ export async function installCatalogPackageVersion(
     properties: {
       package_slug: packageSlug.packageSlug,
       card_count: result.summary.cardCount,
+      package_version_id: result.packageVersion.packageVersionId,
+      ...(installJourneyId === null ? {} : { install_journey_id: installJourneyId }),
     },
     details: null,
   });
   return result;
 }
-
