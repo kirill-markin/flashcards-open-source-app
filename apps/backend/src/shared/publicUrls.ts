@@ -132,6 +132,18 @@ export function getConfiguredPublicCatalogCorsOrigins(): ReadonlyArray<string> {
   return origins;
 }
 
+export function getConfiguredCatalogInstallAnalyticsCorsOrigins(): ReadonlyArray<string> {
+  const origins = [...getConfiguredPublicCatalogCorsOrigins()];
+  const publicAuthBaseUrl = process.env.PUBLIC_AUTH_BASE_URL;
+  if (publicAuthBaseUrl !== undefined && publicAuthBaseUrl !== "") {
+    origins.push(
+      parsePublicOrigin(stripTrailingSlash(publicAuthBaseUrl), "PUBLIC_AUTH_BASE_URL"),
+    );
+  }
+
+  return origins;
+}
+
 /**
  * Resolves the public backend base URL used by external AI-agent responses.
  * The public contract is versioned under `/v1`, even when the current request

@@ -609,6 +609,7 @@ export type CatalogPackageInstallConfirmInput = Readonly<{
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   operationIdPrefix: string;
+  installJourneyId?: string;
   addImportTag?: boolean;
   importTag?: string;
   removeTags?: ReadonlyArray<string>;

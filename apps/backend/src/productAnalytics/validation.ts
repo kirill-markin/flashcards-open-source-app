@@ -205,7 +205,7 @@ function parseEventProperties(
 
 // Segment skew correction: the device clock is trusted only for the interval between the event and
 // the send, and the server clock supplies the anchor.
-function correctClockSkew(
+export function correctProductAnalyticsClockSkew(
   clientOccurredAt: Date,
   clientSentAt: Date,
   serverReceivedAt: Date,
@@ -290,7 +290,7 @@ function validateEvent(
     return reject(event.eventId, "invalid_event");
   }
 
-  const occurredAt = correctClockSkew(clientOccurredAt, clientSentAt, serverReceivedAt);
+  const occurredAt = correctProductAnalyticsClockSkew(clientOccurredAt, clientSentAt, serverReceivedAt);
   if (occurredAt === null) {
     return reject(event.eventId, "occurred_at_out_of_window");
   }

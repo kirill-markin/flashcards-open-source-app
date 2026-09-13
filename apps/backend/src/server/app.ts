@@ -26,6 +26,7 @@ import { createFeedbackRoutes } from "../routes/feedback";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
 import { createMediaAssetsRoutes } from "../routes/mediaAssets";
 import { createProductAnalyticsRoutes } from "../routes/productAnalytics";
+import { createCatalogInstallAnalyticsRoutes } from "../routes/catalogInstallAnalytics";
 import { createWorkspacePackageRoutes } from "../routes/workspacePackages";
 import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
@@ -43,6 +44,7 @@ import { getGuestAiWeightedMonthlyTokenCap } from "../guestAiQuota/config";
 import { logRequestError } from "./logging";
 import { getAllowedOrigins } from "./requestContext";
 import {
+  getConfiguredCatalogInstallAnalyticsCorsOrigins,
   getConfiguredPublicCatalogCorsOrigins,
   validatePublicUrlConfiguration,
 } from "../shared/publicUrls";
@@ -85,6 +87,11 @@ const publicCatalogCorsExposeHeaders = [
 ] as const;
 const localPublicCatalogOrigins = [
   "http://localhost:3000",
+] as const;
+const localCatalogInstallAnalyticsOrigins = [
+  "http://localhost:3000",
+  "http://localhost:8081",
+  "http://localhost:4321",
 ] as const;
 
 export function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
@@ -182,6 +189,11 @@ function isPublicCatalogPath(path: string): boolean {
     || path.startsWith("/v1/catalog/");
 }
 
+function isCatalogInstallAnalyticsPath(path: string): boolean {
+  return path === "/analytics/catalog-install-events"
+    || path === "/v1/analytics/catalog-install-events";
+}
+
 function getPublicCatalogCorsOrigin(origin: string): string | null {
   if (origin === "") {
     return null;
@@ -194,13 +206,37 @@ function getPublicCatalogCorsOrigin(origin: string): string | null {
   return allowedOrigins.includes(origin) ? origin : null;
 }
 
+function getCatalogInstallAnalyticsCorsOrigin(
+  origin: string,
+  allowedOrigins: ReadonlyArray<string>,
+): string | null {
+  if (origin === "") {
+    return null;
+  }
+
+  return allowedOrigins.includes(origin) ? origin : null;
+}
+
 function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
   const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
+  const catalogInstallAnalyticsAllowedOrigins = [
+    ...getConfiguredCatalogInstallAnalyticsCorsOrigins(),
+    ...localCatalogInstallAnalyticsOrigins,
+  ];
   const publicCatalogCorsMiddleware = cors({
     origin: (origin) => getPublicCatalogCorsOrigin(origin),
     allowMethods: ["GET", "OPTIONS"],
     allowHeaders: [...publicCatalogCorsAllowHeaders],
     exposeHeaders: [...publicCatalogCorsExposeHeaders],
+  });
+  const catalogInstallAnalyticsCorsMiddleware = cors({
+    origin: (origin) => getCatalogInstallAnalyticsCorsOrigin(
+      origin,
+      catalogInstallAnalyticsAllowedOrigins,
+    ),
+    allowMethods: ["POST", "OPTIONS"],
+    allowHeaders: ["content-type", "sentry-trace", "baggage"],
+    exposeHeaders: ["content-type", "x-request-id", "retry-after"],
   });
   const browserCorsMiddleware = cors({
     origin: allowedOrigins,
@@ -232,6 +268,10 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       return publicCatalogCorsMiddleware(context, next);
     }
 
+    if (isCatalogInstallAnalyticsPath(context.req.path)) {
+      return catalogInstallAnalyticsCorsMiddleware(context, next);
+    }
+
     await next();
   });
   app.use(globalSnapshotPath, cors({
@@ -241,7 +281,10 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     exposeHeaders: ["retry-after"],
   }));
   app.use("*", async (context, next) => {
-    if (isPublicCatalogPath(context.req.path)) {
+    if (
+      isPublicCatalogPath(context.req.path)
+      || isCatalogInstallAnalyticsPath(context.req.path)
+    ) {
       await next();
       return;
     }
@@ -412,6 +455,9 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspacePackageRoutes({ allowedOrigins }));
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
   app.route("/", createProductAnalyticsRoutes({ allowedOrigins }));
+  app.route("/", createCatalogInstallAnalyticsRoutes({
+    allowedOrigins: catalogInstallAnalyticsAllowedOrigins,
+  }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());
   app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));

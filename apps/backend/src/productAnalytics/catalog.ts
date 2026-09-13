@@ -11,10 +11,10 @@ import { z } from "zod";
 // across the revision that retired the session and onboarding events and added the fact-shaped
 // ones. 0119 deleted every row written under the previous generation, so no stored row belongs to
 // it: bumping would have created a generation with no rows and no meaning. It stays 1 through the
-// sign-in funnel revision too, which only adds: no event is retired, no property changes meaning and
-// no stored row reads differently, so a query for one of the new names returns nothing from before
-// the deploy under either version, while a boundary here would force every existing query to weigh
-// two generations for nothing. The bump is reserved for the first revision that leaves rows
+// sign-in and catalog install funnel revisions too, which only add: no event is retired, no property
+// changes meaning and no stored row reads differently, so a query for one of the new names returns
+// nothing from before the deploy under either version, while a boundary here would force every
+// existing query to weigh two generations for nothing. The bump is reserved for the first revision that leaves rows
 // surviving on both sides of it reading differently, because that is when a query has to tell the
 // two generations apart.
 export const productAnalyticsSchemaVersion = 1;
@@ -39,6 +39,9 @@ export const productAnalyticsPropertyKeyLimit = 25;
 // The repository's canonical slug shape, mirrored from apps/backend/src/catalog/common.ts so this
 // contract stays readable on its own for the clients that mirror it by hand.
 export const productAnalyticsSlugPattern = /^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$/u;
+
+export const productAnalyticsUuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 
 // Experiment keys and variant values are chosen by the client on both sides of the map, and unlike
 // the person-linked columns, account anonymization deliberately leaves experiment_assignments in
@@ -174,12 +177,14 @@ export type ProductAnalyticsEventProperties = Readonly<Record<string, ProductAna
 export type ProductAnalyticsExperimentAssignments = Readonly<Record<string, string>>;
 
 type ProductAnalyticsPropertySpec =
-  | Readonly<{ kind: "enum"; values: ReadonlyArray<string> }>
-  // pattern is required, so a string property that would accept unbounded free text cannot compile.
-  | Readonly<{ kind: "string"; pattern: RegExp }>
-  // Every numeric property in this catalog is a counter or a measure. The table is append-only, so a
-  // client that writes -1 or 1.5 cannot be repaired afterwards; the contract admits neither.
-  | Readonly<{ kind: "nonNegativeInteger" }>;
+  (
+    | Readonly<{ kind: "enum"; values: ReadonlyArray<string> }>
+    // pattern is required, so a string property that would accept unbounded free text cannot compile.
+    | Readonly<{ kind: "string"; pattern: RegExp }>
+    // Every numeric property in this catalog is a counter or a measure. The table is append-only, so a
+    // client that writes -1 or 1.5 cannot be repaired afterwards; the contract admits neither.
+    | Readonly<{ kind: "nonNegativeInteger" }>
+  ) & Readonly<{ optional?: true }>;
 
 type ProductAnalyticsEventSpecProperties = Readonly<{
   properties: Readonly<Record<string, ProductAnalyticsPropertySpec>>;
@@ -392,11 +397,104 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  catalog_install_clicked: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      placement: { kind: "enum", values: ["top", "middle", "bottom"] },
+      source: {
+        kind: "enum",
+        values: ["direct", "search", "social", "referral", "internal", "unknown"],
+      },
+      device_category: {
+        kind: "enum",
+        values: ["desktop", "mobile", "tablet", "unknown"],
+      },
+    },
+  },
+  catalog_install_landed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      auth_state: { kind: "enum", values: ["signed_in", "signed_out"] },
+    },
+  },
+  catalog_install_signin_started: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+    },
+  },
+  catalog_install_signin_code_requested: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+    },
+  },
+  catalog_install_signin_succeeded: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+    },
+  },
+  catalog_install_preview_ready: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+    },
+  },
+  catalog_install_failed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      stage: {
+        kind: "enum",
+        values: ["landing", "signin", "preview", "preinstall_sync", "install", "postinstall_sync"],
+      },
+      reason: {
+        kind: "enum",
+        values: [
+          "invalid_link",
+          "package_unavailable",
+          "workspace_unavailable",
+          "invalid_code",
+          "expired_code",
+          "code_already_used",
+          "rate_limited",
+          "offline",
+          "timeout",
+          "network_error",
+          "unauthorized",
+          "conflict",
+          "storage_error",
+          "contract_error",
+          "server_error",
+          "cancelled",
+        ],
+      },
+    },
+  },
   catalog_deck_install_started: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
       package_slug: { kind: "string", pattern: productAnalyticsSlugPattern },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
     },
   },
   catalog_deck_installed: {
@@ -405,6 +503,8 @@ export const productAnalyticsEventCatalog = {
     properties: {
       package_slug: { kind: "string", pattern: productAnalyticsSlugPattern },
       card_count: { kind: "nonNegativeInteger" },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
     },
   },
   analytics_events_dropped: {
@@ -445,7 +545,7 @@ export type ProductAnalyticsEventDefinition = Readonly<{
   parseProperties: (value: unknown) => ProductAnalyticsEventProperties | null;
 }>;
 
-function createPropertySchema(spec: ProductAnalyticsPropertySpec) {
+function createRequiredPropertySchema(spec: ProductAnalyticsPropertySpec) {
   if (spec.kind === "enum") {
     return z.enum(spec.values);
   }
@@ -455,6 +555,11 @@ function createPropertySchema(spec: ProductAnalyticsPropertySpec) {
   }
 
   return z.string().min(1).max(productAnalyticsPropertyStringMaxLength).regex(spec.pattern);
+}
+
+function createPropertySchema(spec: ProductAnalyticsPropertySpec) {
+  const schema = createRequiredPropertySchema(spec);
+  return spec.optional === true ? schema.optional() : schema;
 }
 
 function createPropertiesParser(
@@ -468,7 +573,19 @@ function createPropertiesParser(
   const schema = z.object(shape).strict();
   return (value: unknown): ProductAnalyticsEventProperties | null => {
     const parsed = schema.safeParse(value);
-    return parsed.success ? parsed.data : null;
+    if (parsed.success === false) {
+      return null;
+    }
+
+    const properties = parsed.data as ProductAnalyticsEventProperties;
+    if (
+      typeof properties.install_journey_id === "string"
+      && typeof properties.package_version_id !== "string"
+    ) {
+      return null;
+    }
+
+    return properties;
   };
 }
 
