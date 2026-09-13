@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.remote.transport.isExpectedCloudHttpFailure
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.data.local.network.isRetryableHttpStatusCode
@@ -135,6 +136,18 @@ internal fun logProgressSyncBeforeRemoteLoadFailure(
         )
         return
     }
+    val transportSuppressionReason = transportClassifiedCloudHttpFailureSuppressionReason(error = error)
+    if (transportSuppressionReason != null) {
+        logProgressRepositoryWarning(
+            event = event,
+            fields = fields + listOf(
+                "sentryWarningSuppressed" to "true",
+                "suppressionReason" to transportSuppressionReason
+            ),
+            error = error
+        )
+        return
+    }
 
     logProgressRefreshWarning(
         observability = observability,
@@ -162,6 +175,18 @@ internal fun logProgressRemoteLoadFailure(
             fields = fields + listOf(
                 "sentryWarningSuppressed" to "true",
                 "suppressionReason" to "transient_remote_load_failure"
+            ),
+            error = error
+        )
+        return
+    }
+    val transportSuppressionReason = transportClassifiedCloudHttpFailureSuppressionReason(error = error)
+    if (transportSuppressionReason != null) {
+        logProgressRepositoryWarning(
+            event = event,
+            fields = fields + listOf(
+                "sentryWarningSuppressed" to "true",
+                "suppressionReason" to transportSuppressionReason
             ),
             error = error
         )
@@ -198,6 +223,33 @@ internal fun isExpectedTransientProgressRefreshError(error: Throwable): Boolean 
     }
 
     return false
+}
+
+// Sentry suppression reason for a failure the HTTP transport already captured itself or
+// classified as an expected cloud failure (breadcrumb only); null keeps the Sentry warning.
+internal fun transportClassifiedCloudHttpFailureSuppressionReason(error: Throwable): String? {
+    var currentError: Throwable? = error
+    while (currentError != null) {
+        if (currentError is CloudRemoteException) {
+            if (currentError.androidObservationAlreadyCaptured) {
+                return "already_captured_cloud_http_failure"
+            }
+            val statusCode = currentError.statusCode
+            if (
+                statusCode != null &&
+                isExpectedCloudHttpFailure(
+                    statusCode = statusCode,
+                    code = currentError.errorCode,
+                    syncConflict = currentError.syncConflict
+                )
+            ) {
+                return "expected_cloud_http_failure"
+            }
+        }
+        currentError = currentError.cause
+    }
+
+    return null
 }
 
 internal fun supportsServerRefresh(
