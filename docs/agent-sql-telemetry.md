@@ -113,13 +113,19 @@ needs to be read rather than counted.
 vocabulary and will make it more specific over time; nothing in this record
 depends on which values appear.
 
-A write whose result overflowed the budget still succeeds: `sql_execute` drops
-the returned rows of the already committed write instead of failing it, so such
-an execution is recorded as `succeeded = 1`, with `rowsOmitted = 1` whenever it
-had rows to drop. Reads never omit rows; an oversized read fails with
-`errorCode = "QUERY_RESULT_TOO_LARGE"`.
-`resultChars` is the same measurement the budget enforces, taken on the payload
-that was actually emitted, so it is the post-reduction size on a degraded write.
+A write whose result overflowed the budget still succeeds: `sql_execute` shrinks
+the already committed write's payload instead of failing it, so such an
+execution is recorded as `succeeded = 1`. It tries the echoed statement text
+first, shortening it to a preview only when that makes the emitted payload
+smaller, a reduction the emitted payload marks as `data.sqlOmitted` and this
+record has no field of its own for, and drops the returned rows when the payload
+is still over budget, which is what sets `rowsOmitted = 1`. A short statement
+with large returned rows is shrunk by the rows alone, so `rowsOmitted = 1` with
+`data.sqlOmitted` false is an ordinary degraded write rather than a lever that
+failed. Reads never omit rows; an oversized read fails with
+`errorCode = "QUERY_RESULT_TOO_LARGE"`. `resultChars` is the same measurement
+the budget enforces, taken on the payload that was actually emitted, so it is
+the post-reduction size on a degraded write.
 
 ## The MCP caller label
 
@@ -247,9 +253,11 @@ filter message.domain = "backend" and message.action = "agent_sql"
 
 `degradedWrites` counts successful writes that answered without their rows. The
 percentiles skip the `chat-tool` surface, whose `resultChars` is always `null`.
-A write that returned no rows has nothing to drop and is emitted untouched, so
-`resultChars` above the 48,000-character budget with `rowsOmitted = 0` is
-expected rather than a broken guard.
+An over-budget write first tries shortening its echoed statement text, applies
+that only when it makes the emitted payload smaller, and keeps its rows whenever
+the payload fits the budget without dropping them, so `rowsOmitted = 0` does not
+by itself mean the payload was emitted untouched or above the 48,000-character
+budget.
 
 If a log group renders `message.succeeded` and `message.rowsOmitted` as
 `true`/`false` instead of `1`/`0`, compare them against `"true"` and `"false"`
