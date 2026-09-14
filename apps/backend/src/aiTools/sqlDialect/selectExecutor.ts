@@ -356,11 +356,13 @@ function paginateRows(
   offset: number,
 ): Readonly<{
   rows: ReadonlyArray<SqlRow>;
+  totalRowCount: number;
   hasMore: boolean;
 }> {
   const pagedRows = rows.slice(offset, offset + limit);
   return {
     rows: pagedRows,
+    totalRowCount: rows.length,
     hasMore: offset + pagedRows.length < rows.length,
   };
 }
@@ -637,6 +639,7 @@ export function executeSqlSelect(
   return {
     rows: paginatedRows.rows,
     rowCount: paginatedRows.rows.length,
+    totalRowCount: paginatedRows.totalRowCount,
     limit,
     offset,
     hasMore: paginatedRows.hasMore,

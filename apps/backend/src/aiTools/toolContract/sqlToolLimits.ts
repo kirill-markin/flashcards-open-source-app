@@ -12,8 +12,10 @@ export const MAX_SQL_BATCH_STATEMENT_COUNT = 50;
  * Maximum serialized size (in UTF-16 code units, i.e. JS string length) of the
  * agent envelope a single agent SQL tool/endpoint result is emitted in.
  *
- * Reads reject a payload above this budget; writes are already committed when
- * the payload is measured, so they shrink instead of failing: they shorten the
+ * A single `SELECT` comes back truncated to the rows that fit, marked
+ * `rowsTruncated`, whenever dropping rows leaves at least one row that fits;
+ * every other oversized read is rejected. Writes are already committed when the
+ * payload is measured, so they shrink instead of failing: they shorten the
  * echoed statement text when that makes the emitted payload smaller, then drop
  * the returned rows if the payload is still over budget.
  *
