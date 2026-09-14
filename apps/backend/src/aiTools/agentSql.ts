@@ -17,6 +17,7 @@ import { executeSqlReadBatch, executeSqlReadStatement } from "./agentSql/readExe
 import {
   isSqlMutationStatement,
   isSqlReadStatement,
+  previewSqlStatement,
   type AgentSqlBatchExecutionResult,
   type AgentSqlContext,
   type AgentSqlExecutionResult,
@@ -123,7 +124,8 @@ type AgentSqlEmission<Result extends AgentSqlExecutionResult> = Readonly<{
  * committed on a read, and the remedies are concrete: narrow the result set.
  *
  * Writes must never reach this: their transaction is already committed when the
- * size is measured, so they drop rows instead (see the reducers below).
+ * size is measured, so they shrink the emitted payload instead (see the
+ * reducers below).
  */
 function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(
   result: T,
@@ -142,11 +144,95 @@ function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(
 }
 
 /**
- * Appended to the instructions of a committed write whose payload had to shrink,
- * so the model knows the rows are missing by design.
+ * Appended to the instructions of a committed write whose returned rows had to
+ * be dropped, so the model knows they are missing by design.
  */
 const OMITTED_MUTATION_ROWS_INSTRUCTION =
   "The affected rows were omitted from this result because the payload exceeded the result-size budget. The write itself succeeded, so do not repeat it: a follow-up SELECT still recovers the rows an INSERT or UPDATE left in place, but the rows a DELETE removed are gone, so split the work into smaller batches to keep them next time.";
+
+/**
+ * Appended to the instructions of a committed write whose echoed statement text
+ * had to shrink, so the model does not read the preview back as the statement
+ * that ran.
+ */
+const OMITTED_MUTATION_SQL_INSTRUCTION =
+  "The echoed statement text in data.sql and data.normalizedSql was shortened where it exceeded the preview length, because the payload exceeded the result-size budget. The write itself succeeded and the statement that ran is unchanged, so do not repeat it.";
+
+/**
+ * The reducers' first lever: it replaces the echoed statement text with a
+ * preview. The echo is text the caller itself submitted and still holds, so
+ * shortening it discards nothing the caller cannot reproduce, which is why it
+ * runs before the returned rows are dropped. It is also the only lever a
+ * committed write whose own SQL dominates the payload has, such as a long
+ * DELETE without a RETURNING clause, or a batch of them, which returns no rows.
+ *
+ * A field that already fits the preview length keeps the submitted statement in
+ * full, so the lever shortens the echo where it is long rather than both fields
+ * alike.
+ *
+ * Only the echo shrinks: the statement that ran is the submitted one, which is
+ * why `data.sqlOmitted` and the appended instruction exist to keep a model from
+ * reading the preview back as the statement it sent.
+ */
+function shortenMutationSqlEcho(
+  result: AgentSqlMutationExecutionResult,
+): AgentSqlMutationExecutionResult {
+  return {
+    data: {
+      ...result.data,
+      sql: previewSqlStatement(result.data.sql),
+      normalizedSql: previewSqlStatement(result.data.normalizedSql),
+      sqlOmitted: true,
+    },
+    instructions: `${result.instructions} ${OMITTED_MUTATION_SQL_INSTRUCTION}`,
+  };
+}
+
+/**
+ * Batch counterpart of the lever above. A batch echoes the submitted SQL in the
+ * same two top-level fields, so it shrinks the same way.
+ */
+function shortenBatchSqlEcho(
+  result: AgentSqlBatchExecutionResult,
+): AgentSqlBatchExecutionResult {
+  return {
+    data: {
+      ...result.data,
+      sql: previewSqlStatement(result.data.sql),
+      normalizedSql: previewSqlStatement(result.data.normalizedSql),
+      sqlOmitted: true,
+    },
+    instructions: `${result.instructions} ${OMITTED_MUTATION_SQL_INSTRUCTION}`,
+  };
+}
+
+/**
+ * Applies the echo lever only when it measurably shrinks the emitted payload,
+ * and reports the size measured on whichever result it returns.
+ *
+ * The lever is not free: `sqlOmitted: true` and its appended sentence add more
+ * characters than a marginal truncation removes, and `previewSqlStatement`
+ * returns an already short statement unchanged, so a per-field length
+ * comparison would let a "reduction" grow the payload while the marker and its
+ * prose claim it shrank to fit the budget. Measuring the whole shortened
+ * envelope is the only comparison those two claims match, and taking it on the
+ * object returned here keeps the emitted result and its reported size from
+ * disagreeing.
+ */
+function shortenSqlEchoIfSmaller<Result extends AgentSqlExecutionResult>(
+  result: Result,
+  resultChars: number,
+  shortenSqlEcho: (result: Result) => Result,
+  requestUrl: string,
+): Readonly<{ result: Result; resultChars: number }> {
+  const shortenedResult = shortenSqlEcho(result);
+  const shortenedChars = measureAgentSqlEnvelopeChars(shortenedResult, requestUrl);
+  if (shortenedChars >= resultChars) {
+    return { result, resultChars };
+  }
+
+  return { result: shortenedResult, resultChars: shortenedChars };
+}
 
 /**
  * Shrinks an oversized committed write result instead of rejecting it.
@@ -154,75 +240,88 @@ const OMITTED_MUTATION_ROWS_INSTRUCTION =
  * `executeSqlMutationStatement` and `executeSqlMutationBatch` return after their
  * transaction committed, so answering with `QUERY_RESULT_TOO_LARGE` would report
  * a successful write as a failure and invite the caller to retry it and
- * duplicate the data. Only the returned rows are dropped; the counts, the echoed
- * SQL, and the atomicity contract stay intact, and `data.rowsOmitted` records
- * the reduction structurally so a model and our telemetry can both read it
- * without parsing the appended instruction prose.
+ * duplicate the data. The counts, the records the write touched, and the
+ * atomicity contract stay intact whatever is reduced, and `data.rowsOmitted` and
+ * `data.sqlOmitted` both record their reduction structurally in the emitted
+ * payload, so a model reads either without parsing the appended instruction
+ * prose. Only `rowsOmitted` also reaches our telemetry record.
  *
- * The rows are the only thing this reducer can drop, so a write that returned
- * none, such as a DELETE without a RETURNING clause, is emitted untouched with
- * `rowsOmitted: false` and a `resultChars` above the budget. The marker and the
- * appended prose report a reduction that happened, never the budget verdict
- * that asked for one, so they cannot claim rows the caller never had.
+ * The echoed SQL is shortened first: it is text the caller itself submitted and
+ * still holds, while the rows a DELETE ... RETURNING gives back are the one
+ * mutation result nothing can recover. The rows are dropped only when shortening
+ * the echo left the payload over budget. Each marker and its appended prose
+ * report a reduction that happened, never the budget verdict that asked for one,
+ * so a write that returned no rows is never marked as having lost any, and an
+ * echo whose shortening would not make the emitted payload smaller is left
+ * alone rather than marked as shortened.
  */
 function reduceMutationResultToSizeBudget(
   result: AgentSqlMutationExecutionResult,
   requestUrl: string,
 ): AgentSqlEmission<AgentSqlMutationExecutionResult> {
   const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
-  const hasRowsToDrop = result.data.rows.length > 0;
-  if (resultChars <= MAX_SQL_RESULT_CHARS || !hasRowsToDrop) {
+  if (resultChars <= MAX_SQL_RESULT_CHARS) {
     return { result, resultChars };
   }
 
-  const reducedResult: AgentSqlMutationExecutionResult = {
+  const shortened = shortenSqlEchoIfSmaller(result, resultChars, shortenMutationSqlEcho, requestUrl);
+  if (shortened.resultChars <= MAX_SQL_RESULT_CHARS || result.data.rows.length === 0) {
+    return shortened;
+  }
+
+  const withoutRowsResult: AgentSqlMutationExecutionResult = {
     data: {
-      ...result.data,
+      ...shortened.result.data,
       rows: [],
       rowsOmitted: true,
     },
-    instructions: `${result.instructions} ${OMITTED_MUTATION_ROWS_INSTRUCTION}`,
+    instructions: `${shortened.result.instructions} ${OMITTED_MUTATION_ROWS_INSTRUCTION}`,
   };
 
   return {
-    result: reducedResult,
-    resultChars: measureAgentSqlEnvelopeChars(reducedResult, requestUrl),
+    result: withoutRowsResult,
+    resultChars: measureAgentSqlEnvelopeChars(withoutRowsResult, requestUrl),
   };
 }
 
 /**
- * Batch counterpart of the reducer above. The reduction is all-or-nothing: the
- * budget covers the whole emitted payload, so every statement loses its rows
+ * Batch counterpart of the reducer above. The rows reduction is all-or-nothing:
+ * the budget covers the whole emitted payload, so every statement loses its rows
  * even when its own rows were small, and the single `data.rowsOmitted` marker
- * describes exactly that. A batch in which no statement returned a row is
- * emitted untouched for the same reason the single reducer leaves such a write
- * alone.
+ * describes exactly that. A batch in which no statement returned a row stops
+ * after the echo lever, for the same reason the single reducer leaves such a
+ * write's rows alone.
  */
 function reduceBatchMutationResultToSizeBudget(
   result: AgentSqlBatchExecutionResult,
   requestUrl: string,
 ): AgentSqlEmission<AgentSqlBatchExecutionResult> {
   const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
-  const hasRowsToDrop = result.data.statements.some((statement) => statement.rows.length > 0);
-  if (resultChars <= MAX_SQL_RESULT_CHARS || !hasRowsToDrop) {
+  if (resultChars <= MAX_SQL_RESULT_CHARS) {
     return { result, resultChars };
   }
 
-  const reducedResult: AgentSqlBatchExecutionResult = {
+  const shortened = shortenSqlEchoIfSmaller(result, resultChars, shortenBatchSqlEcho, requestUrl);
+  const hasRowsToDrop = result.data.statements.some((statement) => statement.rows.length > 0);
+  if (shortened.resultChars <= MAX_SQL_RESULT_CHARS || !hasRowsToDrop) {
+    return shortened;
+  }
+
+  const withoutRowsResult: AgentSqlBatchExecutionResult = {
     data: {
-      ...result.data,
-      statements: result.data.statements.map((statement) => ({
+      ...shortened.result.data,
+      statements: shortened.result.data.statements.map((statement) => ({
         ...statement,
         rows: [],
       })),
       rowsOmitted: true,
     },
-    instructions: `${result.instructions} ${OMITTED_MUTATION_ROWS_INSTRUCTION}`,
+    instructions: `${shortened.result.instructions} ${OMITTED_MUTATION_ROWS_INSTRUCTION}`,
   };
 
   return {
-    result: reducedResult,
-    resultChars: measureAgentSqlEnvelopeChars(reducedResult, requestUrl),
+    result: withoutRowsResult,
+    resultChars: measureAgentSqlEnvelopeChars(withoutRowsResult, requestUrl),
   };
 }
 
