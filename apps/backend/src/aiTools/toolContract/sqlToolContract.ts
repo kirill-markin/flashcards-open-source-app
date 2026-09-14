@@ -284,12 +284,14 @@ export const SQL_BATCH_ATOMICITY_DESCRIPTION =
  *
  * Deliberately limited to the three limits the dialect actually enforces on
  * every write surface. Result-payload budgets differ per surface (`sql_query`
- * rejects an oversized payload; `sql_execute` shrinks the already committed
- * write instead, shortening the echoed statement text first and only when that
- * makes the emitted payload smaller, then dropping the returned rows if the
- * payload is still over budget; and the in-app `sql` tool truncates its own
- * serialized result in `capSerializedEnvelope`,
- * `apps/backend/src/chat/openai/tools/tools.ts`), so they are not stated here.
+ * truncates a single `SELECT` to the rows that fit whenever dropping rows
+ * leaves at least one row that fits, and rejects every other oversized read;
+ * `sql_execute` shrinks the already committed write instead, shortening the
+ * echoed statement text first and only when that makes the emitted payload
+ * smaller, then dropping the returned rows if the payload is still over budget;
+ * and the in-app `sql` tool truncates its own serialized result in
+ * `capSerializedEnvelope`, `apps/backend/src/chat/openai/tools/tools.ts`), so
+ * they are not stated here.
  */
 export const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
   `Bulk-write split arithmetic: at most ${MAX_SQL_RECORD_LIMIT} rows affected per statement, at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements per batch, and a batch must not mix read and write statements. Split larger work across separate statements or separate tool calls.`;
@@ -400,6 +402,7 @@ export const SQL_DIALECT_GUIDE = [
   "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, and SELECT on sql_query; INSERT, UPDATE, and DELETE on sql_execute.",
   `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement, and INSERT, UPDATE, and DELETE affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
   "Paginate inside the SQL string with LIMIT and OFFSET; there is no cursor and no separate pagination argument.",
+  "A single SELECT whose result is too large comes back partial rather than failing whenever dropping rows leaves at least one row that fits; every other oversized read fails, so handle that error too. On a partial result data.rows holds the leading rows that fit, data.rowsTruncated is true, and data.totalRowCount reports how many rows the statement produced, i.e. after WHERE, UNNEST, and any GROUP BY. When those rows are not enough, narrow the query, or read the dropped rows by repeating it at OFFSET = data.offset + data.rowCount; the usual data.offset + data.limit step skips them, because data.limit stays the limit you asked for.",
   SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
   SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION,
   "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",

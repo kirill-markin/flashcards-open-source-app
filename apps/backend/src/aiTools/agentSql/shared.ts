@@ -38,6 +38,32 @@ export type AgentSqlReadStatementPayload = Readonly<{
   resource: SqlResourceName | null;
   rows: ReadonlyArray<SqlRow>;
   rowCount: number;
+  /**
+   * How many rows the statement produced in total, after WHERE, UNNEST, and any
+   * GROUP BY but before LIMIT and OFFSET and before any size-budget truncation,
+   * while `rowCount` counts only the rows this payload carries. The pair is what
+   * lets a caller judge a partial answer on its own instead of guessing a
+   * narrower query: `hasMore` says only that something remains, this says how
+   * much.
+   *
+   * `SHOW TABLES` and `DESCRIBE` report their own full row count here, because
+   * they are never paginated and never truncated.
+   */
+  totalRowCount: number;
+  /**
+   * Structural record that the rows this payload carries are the leading prefix
+   * that fit the result-size budget rather than the whole page, set by the
+   * single-select reducer in `apps/backend/src/aiTools/agentSql.ts`.
+   *
+   * `totalRowCount` is never reduced with the rows, which is what separates a
+   * truncated payload from a page that simply ended. It stays `false` on every
+   * payload emitted whole, including `SHOW TABLES`, `DESCRIBE`, and every entry
+   * of a read batch: those are still rejected when oversized rather than shrunk.
+   * It is the read counterpart of the write path's `rowsOmitted`, and
+   * deliberately a separate field, because a truncated read keeps the rows that
+   * fit while an omitted write loses all of them.
+   */
+  rowsTruncated: boolean;
   limit: number | null;
   offset: number | null;
   hasMore: boolean;
@@ -79,8 +105,10 @@ type AgentSqlSubmittedSql = Readonly<{
  * dropped from one whose statement returned no rows of its own. `false` means
  * no row was dropped rather than that the payload fit, because a payload can
  * instead have been reduced through `sqlOmitted`. Read batches carry `false`
- * always and single read payloads omit the field entirely, since an oversized
- * read is rejected instead of shrunk.
+ * always and single read payloads omit the field entirely: a single select
+ * keeps the rows that fit and reports that through its own `rowsTruncated`
+ * whenever dropping rows leaves at least one row that fits, and every other
+ * oversized read is rejected rather than shrunk.
  */
 type AgentSqlRowsOmitted = Readonly<{
   rowsOmitted: boolean;
@@ -98,8 +126,10 @@ type AgentSqlRowsOmitted = Readonly<{
  * length, so a field that already fit still holds the submitted statement in
  * full; the write itself is unaffected, because the statement that ran is the
  * submitted one. Read batches carry `false` always and single read payloads
- * omit the field entirely, since an oversized read is rejected instead of
- * shrunk.
+ * omit the field entirely: a read echoes the submitted statement too, but never
+ * shortens it, because a single select drops rows instead whenever dropping
+ * rows leaves at least one row that fits, and every other oversized read is
+ * rejected.
  */
 type AgentSqlSqlOmitted = Readonly<{
   sqlOmitted: boolean;
@@ -509,16 +539,37 @@ export function buildDeckUpdateInput(
   };
 }
 
-export function buildReadInstructions(statementType: "show_tables" | "describe" | "select", hasMore: boolean): string {
+/**
+ * The read result's own instructions, and the only untruncated channel a read
+ * has: every tool description that could carry this text instead is metadata
+ * under a character budget, so the explanation of a partial answer belongs
+ * here, next to the fields it names.
+ *
+ * `rowsTruncated` is passed rather than read off the payload because the
+ * single-select reducer in `apps/backend/src/aiTools/agentSql.ts` decides on
+ * truncation only after the payload was built, and rebuilds these instructions
+ * with it.
+ */
+export function buildReadInstructions(
+  statementType: "show_tables" | "describe" | "select",
+  hasMore: boolean,
+  rowsTruncated: boolean,
+): string {
   if (statementType === "show_tables" || statementType === "describe") {
     return "Read rows from data.rows. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.";
   }
 
-  const paginationHint = hasMore
-    ? "Repeat the same query with a larger OFFSET to continue pagination."
-    : "No further rows are available for this query.";
+  const resultHint = rowsTruncated
+    ? "This answer is partial: data.rowsTruncated is true, so data.rows holds only the leading rows that fit the result-size budget and the rest of the page was dropped. data.rowCount counts the rows you received and data.totalRowCount how many rows the statement produced in total, i.e. after WHERE, UNNEST, and any GROUP BY. Answer from these rows when they are enough; otherwise narrow the query with more WHERE filters, fewer selected columns, or a smaller LIMIT."
+    : "data.rowsTruncated is false, so no row of this page was dropped for size while this result was built, and data.totalRowCount reports how many rows the statement produced before LIMIT and OFFSET, i.e. after WHERE, UNNEST, and any GROUP BY.";
 
-  return `${paginationHint} LIMIT defaults to 100 and is capped at 100. SELECT returns at most 100 rows per statement. Prefer a stable ORDER BY clause when paginating. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.`;
+  const paginationHint = rowsTruncated
+    ? "To read on instead, do not advance by LIMIT here: data.limit is still the limit you asked for, not the number of rows delivered, so the usual data.offset + data.limit step would skip the dropped rows and silently lose them. Repeat the same query, with the same ORDER BY, at OFFSET = data.offset + data.rowCount."
+    : hasMore
+      ? "Repeat the same query with a larger OFFSET to continue pagination."
+      : "No further rows are available for this query.";
+
+  return `${resultHint} ${paginationHint} LIMIT defaults to 100 and is capped at 100. SELECT returns at most 100 rows per statement. Prefer a stable ORDER BY clause when paginating. This endpoint supports the published SQL dialect, not full PostgreSQL. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.`;
 }
 
 export function buildMutationInstructions(): string {
