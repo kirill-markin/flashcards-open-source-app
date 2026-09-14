@@ -68,6 +68,11 @@
           "readOnly": false
         },
         {
+          "name": "get_guide",
+          "description": "Returns one on-demand reference guide: sql_dialect, card_authoring, bulk_authoring, or review_flow.",
+          "readOnly": true
+        },
+        {
           "name": "next_review_card",
           "description": "Returns the question of the next card due for review, without its answer.",
           "readOnly": true

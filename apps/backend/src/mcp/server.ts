@@ -18,6 +18,8 @@ import {
   CARD_AUTHORING_CONTRACT,
   CARD_AUTHORING_TOOL_CALL_EXAMPLE,
   FRONT_BACK_CONTRACT,
+  GUIDE_BODIES,
+  GUIDE_TOPICS,
   SQL_EXECUTE_TOOL_DESCRIPTION,
   SQL_EXECUTE_TOOL_NAME,
   SQL_QUERY_TOOL_DESCRIPTION,
@@ -70,6 +72,20 @@ const SERVER_INSTRUCTIONS = [
 const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
 const LIST_WORKSPACES_TOOL_DESCRIPTION =
   "Lists the workspaces you can access, each with its workspaceId, name, active card count, last activity timestamp, and an isSelected flag marking your current default workspace. Use the returned workspaceId values for any workspace-scoped tool workspaceId argument; pick the isSelected one to stay on the default.";
+
+const GET_GUIDE_TOOL_NAME = "get_guide";
+/**
+ * `get_guide` is the on-demand home for instructions a client only needs at one
+ * moment, so none of this text has to sit in the always-loaded tool metadata.
+ * The bodies live next to the contracts they are composed from, in
+ * `apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
+ */
+const GET_GUIDE_TOOL_DESCRIPTION =
+  "Returns one reference guide for working with this server, as plain text. Topics: sql_dialect (the full SELECT and WHERE grammar, text-column rules, UNNEST and OVERLAP, RETURNING, row and batch limits, pagination, and worked examples), card_authoring (the front/back contract, tag and duplicate rules, matching the user's existing card style, and Markdown/LaTeX formatting), bulk_authoring (splitting a large authoring job into atomic batches, resuming an interrupted run, and verifying it), and review_flow (the one-question-at-a-time review and rating loop). Reads no workspace data and changes nothing. Call it before your first authoring write, and again after a SQL syntax error, instead of guessing at the dialect.";
+const GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION =
+  "Which guide to return: sql_dialect for the SELECT and WHERE grammar, limits, and examples; card_authoring for the front/back contract, tags, duplicate checks, and card formatting; bulk_authoring for splitting and verifying a large write job; review_flow for the review and rating loop.";
+const GET_GUIDE_RESULT_INSTRUCTIONS =
+  "This is reference material for you, not text to show the user and not card content. Apply it for the rest of this task, and call get_guide again with another topic when you need a different area.";
 
 export type McpServerDependencies = Readonly<{
   nextReviewCard: typeof nextReviewCard;
@@ -396,8 +412,9 @@ const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
  * write `sql_execute` tool, each forwarding the SQL string to the shared
  * backend `runSqlQuery` / `runSqlExecute` execution functions, plus a
  * `list_workspaces` tool that returns the caller's accessible workspaces with
- * stats, plus dedicated question, answer, and idempotent review tools. All are
- * scoped to the connection resolved from the OAuth or API-key Bearer token.
+ * stats, a `get_guide` tool that serves the on-demand instruction guides, and
+ * dedicated question, answer, and idempotent review tools. All are scoped to
+ * the connection resolved from the OAuth or API-key Bearer token.
  *
  * The connection is captured per request (the Lambda creates one server per
  * call) so the tools never read ambient request state. `resourceUrl` is the
@@ -594,6 +611,40 @@ export function createMcpServerWithDependencies(
           resourceUrl,
           connection,
           LIST_WORKSPACES_TOOL_NAME,
+          dependencies,
+        );
+      }
+    },
+  );
+
+  server.registerTool(
+    GET_GUIDE_TOOL_NAME,
+    {
+      title: "Get flashcards usage guide",
+      description: GET_GUIDE_TOOL_DESCRIPTION,
+      inputSchema: {
+        topic: z.enum(GUIDE_TOPICS).describe(GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION),
+      },
+      // Returns static contract text: no workspace is read, nothing is written,
+      // and the same topic always returns the same body.
+      annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    },
+    async ({ topic }): Promise<CallToolResult> => {
+      telemetry.recordInvokedTool(GET_GUIDE_TOOL_NAME);
+      try {
+        return buildToolResult(
+          createAgentEnvelope(
+            resourceUrl,
+            { topic, guide: GUIDE_BODIES[topic] },
+            GET_GUIDE_RESULT_INSTRUCTIONS,
+          ),
+        );
+      } catch (error) {
+        return await buildToolErrorResult(
+          error,
+          resourceUrl,
+          connection,
+          GET_GUIDE_TOOL_NAME,
           dependencies,
         );
       }

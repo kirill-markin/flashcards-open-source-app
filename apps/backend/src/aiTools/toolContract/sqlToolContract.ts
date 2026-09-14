@@ -1,5 +1,6 @@
 import type { FunctionTool } from "openai/resources/responses/responses";
 import { z } from "zod";
+import { REVIEW_FLOW_INSTRUCTIONS } from "../../agent/reviewContract";
 import { MAX_SQL_BATCH_STATEMENT_COUNT, MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
 
 export const SQL_TOOL_NAME = "sql";
@@ -23,6 +24,50 @@ export const CARD_AUTHORING_CONTRACT =
 
 export const CARD_AUTHORING_TOOL_CALL_EXAMPLE =
   "{\"sql\":\"INSERT INTO cards (front_text, back_text, tags) VALUES ('Question?', 'Answer: the ratio $a/b$ is written as\\n\\n$$\\n\\\\frac{a}{b}\\n$$', ('math'))\"}";
+
+/**
+ * Product rules for the back side of a card. Shared so the in-app chat system
+ * prompt and the MCP `card_authoring` guide state them once. Each entry is a
+ * ready-to-use bullet line; the consuming surface supplies its own heading.
+ */
+export const CARD_BACK_SIDE_RULE_LINES = Object.freeze([
+  "- Back side must start with the direct answer.",
+  "- When the back side is longer than one short sentence, format it as real Markdown instead of dense plain text.",
+  "- Use blank lines between paragraphs on longer back sides so the rendered card stays readable.",
+  "- Use short Markdown lists when they improve scanability.",
+  "- Include concrete examples by default when creating a card unless the user explicitly asks not to.",
+  "- For code cards, concrete code snippets are preferred inside the card content itself, usually in fenced Markdown code blocks on the back side.",
+]);
+
+/**
+ * Tagging rules for newly authored cards, shared by the chat system prompt and
+ * the MCP `card_authoring` guide.
+ */
+export const CARD_TAGGING_RULE_LINES = Object.freeze([
+  "- Every newly proposed card must include at least one tag.",
+  "- Reuse existing workspace tags whenever that is logically appropriate.",
+]);
+
+/**
+ * Duplicate check that precedes any card or deck creation, shared by the chat
+ * system prompt and the MCP `card_authoring` guide.
+ */
+export const CARD_DUPLICATE_CHECK_RULE_LINES = Object.freeze([
+  "- Before proposing or executing any new card or deck creation, you must first inspect the workspace for exact or similar items with a SELECT read.",
+  "- You must summarize what you found and discuss possible duplicates or overlap with the user before proposing a creation plan.",
+]);
+
+/**
+ * Style-alignment rules that keep generated cards close to the cards the user
+ * already writes, shared by the chat system prompt and the MCP
+ * `card_authoring` guide.
+ */
+export const CARD_STYLE_ALIGNMENT_RULE_LINES = Object.freeze([
+  "- When creating new cards or editing existing cards, if the user did not ask for a specific format, first inspect a small set of related existing cards with a SELECT read.",
+  "- Infer the user's local card style from similar cards and follow it unless it would violate the card side contract.",
+  "- Preserve patterns such as one-word fronts, topic-specific examples on backs, punctuation choices, sentence length, Markdown density, and tag style.",
+  "- If similar cards conflict, prefer the pattern from the closest topic or deck and keep the proposed change simple.",
+]);
 
 export const SQL_TOOL_ARGUMENT_VALIDATOR = z.object({
   sql: z.string().trim().min(1),
@@ -166,6 +211,13 @@ const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
   `UPDATE and DELETE WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}. ${SQL_TEXT_COLUMN_FORMS_DESCRIPTION} ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`;
 
 /**
+ * Batch atomicity, shared by every write surface and by the bulk-authoring
+ * guide so the "all or nothing" promise is stated in exactly one place.
+ */
+export const SQL_BATCH_ATOMICITY_DESCRIPTION =
+  "Mutation batches are applied atomically: all statements succeed or the whole batch fails.";
+
+/**
  * Self-contained bulk-write split arithmetic for every write surface, so an
  * agent can size a batch without cross-referencing other description lines.
  *
@@ -200,7 +252,7 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
   ...SQL_DIALECT_DESCRIPTION_LINES,
   "Supported statements: INSERT, UPDATE, DELETE.",
   "This tool is write-only and rejects SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT; use sql_query for reads.",
-  "Mutation batches are applied atomically: all statements succeed or the whole batch fails.",
+  SQL_BATCH_ATOMICITY_DESCRIPTION,
   SQL_BULK_WRITE_SPLIT_DESCRIPTION,
   "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
   SQL_RETURNING_DESCRIPTION,
@@ -216,7 +268,7 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     "Query and mutate the flashcards workspace with the published SQL dialect.",
     ...SQL_DIALECT_DESCRIPTION_LINES,
     "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
-    "Mutation batches are applied atomically: all statements succeed or the whole batch fails.",
+    SQL_BATCH_ATOMICITY_DESCRIPTION,
     `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
     SQL_BULK_WRITE_SPLIT_DESCRIPTION,
     SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
@@ -239,3 +291,124 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     additionalProperties: false,
   },
 };
+
+/**
+ * On-demand guide bodies for the MCP `get_guide` tool.
+ *
+ * Every guide is composed from the constants above (and from
+ * `REVIEW_FLOW_INSTRUCTIONS`) rather than restating them, so a rule that
+ * changes in its own constant changes in the guide too. Guides are the intended
+ * home for the long tail of instructions a client only needs at a specific
+ * moment. They are not yet its only home: several of these constants also sit
+ * inside the always-loaded `sql_query` and `sql_execute` descriptions and
+ * inside the MCP server instructions, because shortening those is a separate
+ * change. So do not read a guide body as proof that its text lives nowhere
+ * else.
+ */
+export const SQL_DIALECT_GUIDE = [
+  "SQL dialect guide.",
+  ...SQL_DIALECT_DESCRIPTION_LINES,
+  "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, and SELECT on sql_query; INSERT, UPDATE, and DELETE on sql_execute.",
+  `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement, and INSERT, UPDATE, and DELETE affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
+  "Paginate inside the SQL string with LIMIT and OFFSET; there is no cursor and no separate pagination argument.",
+  SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
+  SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION,
+  "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
+  SQL_RETURNING_DESCRIPTION,
+  SQL_BATCH_ATOMICITY_DESCRIPTION,
+  SQL_BULK_WRITE_SPLIT_DESCRIPTION,
+  "Examples (tool-call JSON):",
+  ...SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES,
+  ...SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES,
+].join("\n");
+
+export const CARD_AUTHORING_GUIDE = [
+  "Card authoring guide.",
+  FRONT_BACK_CONTRACT,
+  "Back side:",
+  ...CARD_BACK_SIDE_RULE_LINES,
+  "Tags:",
+  ...CARD_TAGGING_RULE_LINES,
+  "Duplicate check before any creation:",
+  ...CARD_DUPLICATE_CHECK_RULE_LINES,
+  "Card style alignment:",
+  ...CARD_STYLE_ALIGNMENT_RULE_LINES,
+  "Markdown and LaTeX:",
+  CARD_AUTHORING_CONTRACT,
+  `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
+].join("\n");
+
+/**
+ * The database time budget quoted below is the one enforced in
+ * `apps/backend/src/aiTools/agentSql/databaseTimeBudget.ts`. Everything this
+ * guide says about it is derived from that module and has to stay aligned with
+ * it: the seconds, the QUERY_TIME_LIMIT_EXCEEDED code, the cost model that
+ * follows rows touched rather than the caller's statement count, and the claim
+ * that a batch at both caps ends in that error instead of landing.
+ *
+ * The recovery rules below key on `error.code` and name no HTTP status, because
+ * a failed call returns an envelope whose `error` object carries only `code`,
+ * `message` and `details` (`createAgentErrorEnvelope` in
+ * apps/backend/src/agent/envelope.ts): a reader of this guide never sees the
+ * status an error was raised with. That same envelope also carries
+ * `instructions` from `createMcpToolInstructions`
+ * (apps/backend/src/mcp/server.ts), the per-code remediation text the
+ * model reads next to this guide, so the recovery rules below are kept
+ * consistent with it. What each rule prescribes comes from the
+ * write path's own failure sites. Every rejection `runSqlExecute` can raise -
+ * from `parseSqlBatch` before the transaction opens, or from the mutation
+ * executors inside it - leaves a never-opened or rolled-back transaction, so
+ * nothing lands and the remedy is to fix the sql string; a spent budget cancels
+ * the statement and takes its transaction down with it (databaseTimeBudget.ts),
+ * so nothing lands there either and the remedy is a smaller batch; and a
+ * transient failure at COMMIT becomes DATABASE_COMMIT_OUTCOME_UNKNOWN rather
+ * than a rollback (`toDatabaseCommitBoundaryError` in
+ * apps/backend/src/database/transient.ts), the one outcome that has to be read
+ * back instead of retried, which is why it is stated first.
+ *
+ * No recommended batch size is named, because that module's numbers do not
+ * support one: it records the 15 s budget, an 80 ms median execution, a
+ * five-statement batch that took 17.0 s before the budget existed, and a cost
+ * model counted in executor round trips (four per affected row on the mutation
+ * path) rather than in time per row. That yields an upper bound already known
+ * to fail and no per-row latency to divide the budget by, so the guide turns
+ * the caps into ceilings and has the agent size batches from its own observed
+ * call times instead.
+ */
+export const BULK_AUTHORING_GUIDE = [
+  "Bulk authoring guide.",
+  SQL_BULK_WRITE_SPLIT_DESCRIPTION,
+  SQL_BATCH_ATOMICITY_DESCRIPTION,
+  "One sql_execute call also gets 15 seconds of database time. A call that spends it fails with QUERY_TIME_LIMIT_EXCEEDED: the transaction is cancelled, so nothing lands.",
+  `That time follows the number of rows touched rather than the number of statements, so treat the ${MAX_SQL_RECORD_LIMIT}-row and ${MAX_SQL_BATCH_STATEMENT_COUNT}-statement caps as hard ceilings rather than sizes to aim for: a batch at both caps ends in that error instead of landing.`,
+  `Plan the split before the first write: N cards need at least ceil(N / ${MAX_SQL_RECORD_LIMIT}) statements. Start with a small batch and watch how long each call takes. The 15 seconds bound the database work alone, so an observed call is always longer than the part that is budgeted; growing the next batch only while the observed time still leaves clear headroom under the 15 seconds therefore errs toward smaller batches on purpose. The first call of a job may carry cold start, so if its wall time stands out from the calls after it, judge growth from those instead.`,
+  "Because a batch either lands completely or not at all, keep each batch meaningful on its own and never split one logical card across two batches.",
+  "The read/write split is per call: run any SELECT you need in its own sql_query call before or after the write batch.",
+  "An error does not always mean the batch rolled back, so read error.code before you retry.",
+  "When the outcome is unknown - a DATABASE_COMMIT_OUTCOME_UNKNOWN error, or a run interrupted before you saw a result - the batch may already have committed: never re-send it blindly, first read it back with a SELECT to see what applied, then send only the rows that are still missing.",
+  "On QUERY_TIME_LIMIT_EXCEEDED the transaction is cancelled, so nothing lands: retry the same rows in a smaller batch, because re-sending the same batch unchanged only spends the budget again.",
+  "On QUERY_INVALID_SQL or QUERY_UNSUPPORTED_SYNTAX the batch was rejected, so nothing lands either: fix the sql string, because a smaller batch helps only when the rejection was one of the size caps above.",
+  "When bulk creating cards you cannot choose identifiers: card_id is server-generated and INSERT rejects it. Read back on what you wrote instead, such as the tags you set or the front_text values, and keep the ids each INSERT returns as you go.",
+  "When bulk updating or deleting existing cards, the card ids are the resume handle: keep the list of ids you are working through and read back which of them already changed.",
+  "Verify the finished job with a read-back SELECT: count the rows you intended to write and compare that with what the workspace now holds.",
+  "RETURNING reports the affected rows in the same write call, which is enough for a small batch; use a separate SELECT when the returned text would be large.",
+].join("\n");
+
+/** The review loop is already one canonical block, so the guide is that block. */
+export const REVIEW_FLOW_GUIDE = REVIEW_FLOW_INSTRUCTIONS;
+
+export const GUIDE_TOPICS = Object.freeze([
+  "sql_dialect",
+  "card_authoring",
+  "bulk_authoring",
+  "review_flow",
+] as const);
+
+export type GuideTopic = (typeof GUIDE_TOPICS)[number];
+
+export const GUIDE_BODIES: Readonly<Record<GuideTopic, string>> = Object.freeze({
+  sql_dialect: SQL_DIALECT_GUIDE,
+  card_authoring: CARD_AUTHORING_GUIDE,
+  bulk_authoring: BULK_AUTHORING_GUIDE,
+  review_flow: REVIEW_FLOW_GUIDE,
+});

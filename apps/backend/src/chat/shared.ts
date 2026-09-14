@@ -6,6 +6,10 @@
 import {
   CARD_AUTHORING_CONTRACT,
   CARD_AUTHORING_TOOL_CALL_EXAMPLE,
+  CARD_BACK_SIDE_RULE_LINES,
+  CARD_DUPLICATE_CHECK_RULE_LINES,
+  CARD_STYLE_ALIGNMENT_RULE_LINES,
+  CARD_TAGGING_RULE_LINES,
 } from "../aiTools/toolContract/sqlToolContract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
@@ -37,12 +41,7 @@ function buildCardSideContractSection(): string {
     "- Keep the front short by default: usually one word, a term, or a brief phrase, not a full sentence question.",
     "- Front brevity does not limit the back side, which may still be long.",
     "- Write a longer front only when the user asks for it, or when similar existing cards in the same deck, tag, or topic already use long fronts.",
-    "- Back side must start with the direct answer.",
-    "- When the back side is longer than one short sentence, format it as real Markdown instead of dense plain text.",
-    "- Use blank lines between paragraphs on longer back sides so the rendered card stays readable.",
-    "- Use short Markdown lists when they improve scanability.",
-    "- Include concrete examples by default when creating a card unless the user explicitly asks not to.",
-    "- For code cards, concrete code snippets are preferred inside the card content itself, usually in fenced Markdown code blocks on the back side.",
+    ...CARD_BACK_SIDE_RULE_LINES,
   ]);
 }
 
@@ -56,10 +55,7 @@ function buildCardAuthoringSection(): string {
 function buildCardStyleAlignmentSection(): string {
   return joinLines([
     "Card style alignment:",
-    "- When creating new cards or editing existing cards, if the user did not ask for a specific format, first inspect a small set of related existing cards with the shared sql tool.",
-    "- Infer the user's local card style from similar cards and follow it unless it would violate the card side contract.",
-    "- Preserve patterns such as one-word fronts, topic-specific examples on backs, punctuation choices, sentence length, Markdown density, and tag style.",
-    "- If similar cards conflict, prefer the pattern from the closest topic or deck and keep the proposed change simple.",
+    ...CARD_STYLE_ALIGNMENT_RULE_LINES,
   ]);
 }
 
@@ -77,14 +73,12 @@ function buildWritePolicySection(): string {
   return joinLines([
     "Write policy:",
     "- Before any create, update, or delete tool call, you must first describe the exact changes you plan to make.",
-    "- Before proposing or executing any new card or deck creation, you must first inspect the workspace for exact or similar items through the shared sql tool.",
-    "- You must summarize what you found and discuss possible duplicates or overlap with the user before proposing a creation plan.",
+    ...CARD_DUPLICATE_CHECK_RULE_LINES,
     "- A clear user request for a specific low-risk change counts as permission to execute it.",
     "- If the user already gave explicit permission earlier in this chat, do not ask again for ordinary low-risk writes.",
     "- Ask for confirmation again only when the action is risky or unclear, for example broad deletes, broad updates, destructive resets, revokes, overwrites, or ambiguous instructions.",
     "- Creating one card or making one small focused edit usually does not need a second confirmation.",
-    "- Every newly proposed card must include at least one tag.",
-    "- Reuse existing workspace tags whenever that is logically appropriate.",
+    ...CARD_TAGGING_RULE_LINES,
     "- Do not mutate hidden FSRS fields, sync metadata, or arbitrary non-product tables directly.",
   ]);
 }
