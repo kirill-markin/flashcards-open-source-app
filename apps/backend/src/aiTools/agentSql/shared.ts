@@ -53,12 +53,18 @@ export type AgentSqlReadStatementPayload = Readonly<{
   /**
    * Structural record that the rows this payload carries are the leading prefix
    * that fit the result-size budget rather than the whole page, set by the
-   * single-select reducer in `apps/backend/src/aiTools/agentSql.ts`.
+   * single-select reducer in `apps/backend/src/aiTools/agentSql.ts`, and on the
+   * chat surface by `capReadEnvelopeByRows` in
+   * `apps/backend/src/chat/openai/tools/tools.ts`, which marks a payload no
+   * agent-side reducer ran on, because `executeAgentSql` applies no size budget
+   * of its own, so that cap is the first size gate that payload meets.
    *
    * `totalRowCount` is never reduced with the rows, which is what separates a
    * truncated payload from a page that simply ended. It stays `false` on every
    * payload emitted whole, including `SHOW TABLES`, `DESCRIBE`, and every entry
-   * of a read batch: those are still rejected when oversized rather than shrunk.
+   * of a read batch: no surface drops rows from those, so an oversized one is
+   * rejected on the MCP and REST surfaces and returned as a serialized preview
+   * slice in the chat.
    * It is the read counterpart of the write path's `rowsOmitted`, and
    * deliberately a separate field, because a truncated read keeps the rows that
    * fit while an omitted write loses all of them.
@@ -107,8 +113,8 @@ type AgentSqlSubmittedSql = Readonly<{
  * instead have been reduced through `sqlOmitted`. Read batches carry `false`
  * always and single read payloads omit the field entirely: a single select
  * keeps the rows that fit and reports that through its own `rowsTruncated`
- * whenever dropping rows leaves at least one row that fits, and every other
- * oversized read is rejected rather than shrunk.
+ * whenever dropping rows leaves at least one row that fits, and no other
+ * oversized read has rows dropped on any surface.
  */
 type AgentSqlRowsOmitted = Readonly<{
   rowsOmitted: boolean;
@@ -126,10 +132,11 @@ type AgentSqlRowsOmitted = Readonly<{
  * length, so a field that already fit still holds the submitted statement in
  * full; the write itself is unaffected, because the statement that ran is the
  * submitted one. Read batches carry `false` always and single read payloads
- * omit the field entirely: a read echoes the submitted statement too, but never
- * shortens it, because a single select drops rows instead whenever dropping
- * rows leaves at least one row that fits, and every other oversized read is
- * rejected.
+ * omit the field entirely: a read echoes the submitted statement too, but the
+ * lever above is reached only from the write reducers, so no read path applies
+ * it. A single select drops rows instead whenever dropping rows leaves at least
+ * one row that fits; every other oversized read is rejected on the MCP and REST
+ * surfaces.
  */
 type AgentSqlSqlOmitted = Readonly<{
   sqlOmitted: boolean;
