@@ -15,6 +15,7 @@ import {
 import { executeSqlMutationBatch } from "./agentSql/batchMutation";
 import { executeSqlReadBatch, executeSqlReadStatement } from "./agentSql/readExecution";
 import {
+  buildReadInstructions,
   isSqlMutationStatement,
   isSqlReadStatement,
   previewSqlStatement,
@@ -23,6 +24,7 @@ import {
   type AgentSqlExecutionResult,
   type AgentSqlMutationExecutionResult,
   type AgentSqlPayload,
+  type AgentSqlReadExecutionResult,
   type AgentSqlSinglePayload,
 } from "./agentSql/shared";
 import { executeSqlMutationStatement } from "./agentSql/singleMutation";
@@ -118,10 +120,17 @@ type AgentSqlEmission<Result extends AgentSqlExecutionResult> = Readonly<{
  * Read-path result-size budget shared by the MCP surface (`sql_query`) and the
  * REST surface (`POST /agent/sql/query`).
  *
- * On overflow we fail with an actionable error (matching the repo's "clear,
- * actionable errors / no silent fallbacks" principle) instead of returning a
- * payload that exceeds the directory's tool-result token limit. Nothing is
- * committed on a read, and the remedies are concrete: narrow the result set.
+ * This is the rejecting form, and it stays the answer for every read that
+ * cannot be partial, among them a read batch, where dropping rows would mean
+ * picking which statement loses them, and `SHOW TABLES` and `DESCRIBE`, whose
+ * payloads are small and whose truncated schema listing would be worse than an
+ * error. Only a single `SELECT` can come back partial; every other single
+ * read enters `truncateReadResultToSizeBudget` below and is handed
+ * straight back here. That `SELECT` comes back partial whenever dropping
+ * rows leaves at least one row that fits, and rejects with a message of
+ * its own when no row count leaves one. Nothing is committed on a read
+ * either way, and the remedies here are concrete: narrow the result set, or
+ * split the batch.
  *
  * Writes must never reach this: their transaction is already committed when the
  * size is measured, so they shrink the emitted payload instead (see the
@@ -141,6 +150,133 @@ function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(
   }
 
   return { result, resultChars };
+}
+
+/**
+ * Rebuilds a `SELECT` result around the first `rowCount` of its rows, marked as
+ * the partial answer it now is.
+ *
+ * Only the rows shrink. `totalRowCount` keeps reporting everything the statement
+ * produced after WHERE, UNNEST, and any GROUP BY, which is what makes the
+ * partial answer judgeable, and `hasMore` becomes true because dropping at least
+ * one row always leaves rows a larger `OFFSET` can still read.
+ *
+ * The instructions are rebuilt rather than appended to: `buildReadInstructions`
+ * is where the read contract is stated, and a truncated read needs the truncated
+ * wording of that same sentence rather than a second one contradicting it.
+ */
+function takeSelectRowPrefix(
+  result: AgentSqlReadExecutionResult,
+  rowCount: number,
+): AgentSqlReadExecutionResult {
+  const rows = result.data.rows.slice(0, rowCount);
+
+  return {
+    data: {
+      ...result.data,
+      rows,
+      rowCount: rows.length,
+      rowsTruncated: true,
+      hasMore: true,
+    },
+    instructions: buildReadInstructions("select", true, true),
+  };
+}
+
+/**
+ * The rejection a `SELECT` with rows takes when dropping rows never leaves at
+ * least one row that fits: one row does not fit the budget on its own, so no
+ * row count reaches it.
+ *
+ * It carries its own message rather than the generic one, because a size
+ * reported without saying it was measured on one row reads as the whole
+ * result's size, and because the generic remedies point the wrong way here: a
+ * smaller LIMIT only reduces the row count, while the offending row is always
+ * the first of the requested page, so stepping past it - a larger OFFSET, or a
+ * WHERE filter that excludes it - is what usually lets the caller read on. The
+ * message hedges that step for both of the reasons it names: the next row can
+ * be over budget too, and this rejection also fires when the echoed statement
+ * rather than the row fills the budget, where stepping past changes nothing and
+ * only shortening the statement helps. The `QUERY_RESULT_TOO_LARGE` code is
+ * kept so existing telemetry queries still match.
+ */
+function rejectOversizedSingleSelectRow(singleRowChars: number): never {
+  throw new HttpError(
+    400,
+    `A single row of this result is too large to return, or the submitted statement fills the budget by itself (${singleRowChars} characters measured on the smallest answer this query has, limit ${MAX_SQL_RESULT_CHARS}). It is the first row of the page you asked for, so a smaller LIMIT cannot help, but stepping past it usually does: repeat the same query, with the same ORDER BY, at an OFFSET one larger than this query's (OFFSET 1 when it had none), or add a WHERE filter that excludes this row, and the rows after it come back normally when they are smaller; if the next row is also over budget, or the submitted statement is what fills it, the same error repeats. To read the row itself, SELECT fewer or narrower columns, leaving out long text columns such as back_text, or shorten the text stored in the row. A very long submitted statement counts toward the same budget, so shorten the statement when it is a large one.`,
+    "QUERY_RESULT_TOO_LARGE",
+  );
+}
+
+/**
+ * Emits the largest leading prefix of an oversized single `SELECT` that fits the
+ * result-size budget, instead of rejecting the read outright.
+ *
+ * A rejection leaves the caller guessing a narrower query from nothing; a
+ * partial answer carrying `data.rowsTruncated` and `data.totalRowCount` lets it
+ * decide whether what it already received is enough. Nothing is committed on a
+ * read, so a partial answer costs only the rows it does not carry, all of which
+ * a larger `OFFSET` still reaches.
+ *
+ * The prefix is found by binary search over the row count rather than by
+ * predicting where to cut: serialized size grows monotonically with the prefix
+ * length, so the search finds the exact largest fitting prefix, and a handful of
+ * measurement passes on a payload that is already an outlier is cheaper than
+ * being clever about it.
+ *
+ * The rule the branches below implement: a single `SELECT` is truncated to the
+ * rows that fit whenever dropping rows leaves at least one row that fits, and
+ * every other oversized read is rejected. A truncated answer therefore always
+ * carries at least one row, so the caller can see the shape of the data.
+ *
+ * Of the rejections, a `SELECT` that did return rows but that no row count
+ * brings under the budget goes through `rejectOversizedSingleSelectRow`,
+ * measured on the one-row payload it would have been emitted in: the size of
+ * the smallest answer this query has is what tells the caller the rows
+ * themselves are too large and that no smaller row count would have helped.
+ * Every other one takes the generic message of
+ * `assertSqlResultWithinSizeBudget`.
+ */
+function truncateReadResultToSizeBudget(
+  result: AgentSqlReadExecutionResult,
+  requestUrl: string,
+): AgentSqlEmission<AgentSqlReadExecutionResult> {
+  const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
+  if (resultChars <= MAX_SQL_RESULT_CHARS) {
+    return { result, resultChars };
+  }
+
+  if (result.data.statementType !== "select" || result.data.rows.length === 0) {
+    return assertSqlResultWithinSizeBudget(result, requestUrl);
+  }
+
+  if (result.data.rows.length === 1) {
+    rejectOversizedSingleSelectRow(resultChars);
+  }
+
+  let lowestRowCount = 1;
+  let highestRowCount = result.data.rows.length - 1;
+  let largestFitting: AgentSqlEmission<AgentSqlReadExecutionResult> | null = null;
+
+  while (lowestRowCount <= highestRowCount) {
+    const candidateRowCount = Math.floor((lowestRowCount + highestRowCount) / 2);
+    const candidate = takeSelectRowPrefix(result, candidateRowCount);
+    const candidateChars = measureAgentSqlEnvelopeChars(candidate, requestUrl);
+    if (candidateChars <= MAX_SQL_RESULT_CHARS) {
+      largestFitting = { result: candidate, resultChars: candidateChars };
+      lowestRowCount = candidateRowCount + 1;
+    } else {
+      highestRowCount = candidateRowCount - 1;
+    }
+  }
+
+  if (largestFitting === null) {
+    rejectOversizedSingleSelectRow(
+      measureAgentSqlEnvelopeChars(takeSelectRowPrefix(result, 1), requestUrl),
+    );
+  }
+
+  return largestFitting;
 }
 
 /**
@@ -351,8 +487,11 @@ function getAgentSqlStatementCount(payload: AgentSqlPayload): number {
 }
 
 /**
- * Reads the payload's own omission marker. Read payloads carry none, and a read
- * never omits rows: it rejects an oversized result instead.
+ * Reads the payload's own omission marker. Read payloads carry none, because no
+ * read drops all of its rows: an oversized single `SELECT` keeps the rows that
+ * fit and marks itself `data.rowsTruncated`, which this record has no field of
+ * its own for, whenever dropping rows leaves at least one row that fits, and
+ * every other oversized read is rejected.
  */
 function getAgentSqlRowsOmitted(payload: AgentSqlPayload): boolean {
   return "rowsOmitted" in payload ? payload.rowsOmitted : false;
@@ -544,7 +683,7 @@ export async function runSqlQuery(
 
     if (statements.every(isSqlReadStatement)) {
       if (statements.length === 1) {
-        return assertSqlResultWithinSizeBudget(
+        return truncateReadResultToSizeBudget(
           await executeSqlReadStatement(dependencies, context, sql, statements[0]),
           requestUrl,
         );

@@ -145,6 +145,10 @@ export async function loadSelectRows(
  * Runs one read statement into a batch-entry payload, which carries no echo of
  * the submitted SQL. `executeSqlReadStatement` adds that echo for the
  * single-statement top-level payload.
+ *
+ * Every payload leaves here whole, so `rowsTruncated` is `false` on all of
+ * them. Only the single-select reducer in `apps/backend/src/aiTools/agentSql.ts`
+ * ever sets it, after measuring the envelope this payload is emitted in.
  */
 async function executeReadStatementPayload(
   dependencies: AgentToolOperationDependencies,
@@ -169,11 +173,13 @@ async function executeReadStatementPayload(
         resource: null,
         rows,
         rowCount: rows.length,
+        totalRowCount: rows.length,
+        rowsTruncated: false,
         limit: null,
         offset: null,
         hasMore: false,
       },
-      instructions: buildReadInstructions("show_tables", false),
+      instructions: buildReadInstructions("show_tables", false, false),
     };
   }
 
@@ -194,11 +200,13 @@ async function executeReadStatementPayload(
         resource: statement.resourceName,
         rows,
         rowCount: rows.length,
+        totalRowCount: rows.length,
+        rowsTruncated: false,
         limit: null,
         offset: null,
         hasMore: false,
       },
-      instructions: buildReadInstructions("describe", false),
+      instructions: buildReadInstructions("describe", false, false),
     };
   }
 
@@ -210,11 +218,13 @@ async function executeReadStatementPayload(
       resource: statement.source.resourceName,
       rows: result.rows,
       rowCount: result.rowCount,
+      totalRowCount: result.totalRowCount,
+      rowsTruncated: false,
       limit: result.limit,
       offset: result.offset,
       hasMore: result.hasMore,
     },
-    instructions: buildReadInstructions("select", result.hasMore),
+    instructions: buildReadInstructions("select", result.hasMore, false),
   };
 }
 

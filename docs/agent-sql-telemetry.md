@@ -122,10 +122,22 @@ record has no field of its own for, and drops the returned rows when the payload
 is still over budget, which is what sets `rowsOmitted = 1`. A short statement
 with large returned rows is shrunk by the rows alone, so `rowsOmitted = 1` with
 `data.sqlOmitted` false is an ordinary degraded write rather than a lever that
-failed. Reads never omit rows; an oversized read fails with
-`errorCode = "QUERY_RESULT_TOO_LARGE"`. `resultChars` is the same measurement
-the budget enforces, taken on the payload that was actually emitted, so it is
-the post-reduction size on a degraded write.
+failed. Reads never omit rows, so `rowsOmitted = 0` on every one of them. An
+oversized single `SELECT` is not always a failure either: whenever dropping rows
+leaves at least one row that fits it comes back truncated to the rows that fit
+and is recorded as `succeeded = 1`, a reduction the emitted payload marks as
+`data.rowsTruncated` and this record has no field of its own for. On such a read
+`rowOrAffectedCount` counts only the rows that survived truncation, and the
+count of rows the statement produced in total, i.e. after WHERE, UNNEST, and any
+GROUP BY, which the payload reports as `data.totalRowCount`, has no field here
+either, so a truncated read is invisible to the "Degraded writes and payload
+size" query below and surfaces only as a `resultChars` sitting just under the
+budget. Every other oversized read still fails with
+`errorCode = "QUERY_RESULT_TOO_LARGE"`, including a read batch, `SHOW TABLES`,
+`DESCRIBE`, and a single `SELECT` whose one row is over budget on its own.
+`resultChars` is the same measurement the budget enforces, taken on the payload
+that was actually emitted, so it is the post-reduction size on a degraded write
+and the post-truncation size on a truncated read.
 
 ## The MCP caller label
 
