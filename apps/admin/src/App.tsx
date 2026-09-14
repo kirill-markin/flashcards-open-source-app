@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from "react";
+import { useCallback, useEffect, useState, type JSX } from "react";
 import {
   AdminApiError,
   fetchAdminSession,
@@ -144,7 +144,7 @@ function getErrorMessage(error: unknown): string {
 export default function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: "loading" });
 
-  function handleTerminalAdminError(error: unknown, config: AdminAppConfig): boolean {
+  const handleTerminalAdminError = useCallback((error: unknown, config: AdminAppConfig): boolean => {
     if (error instanceof AdminApiError) {
       if (error.status === 401) {
         setAppState({ status: "redirecting" });
@@ -159,7 +159,7 @@ export default function App(): JSX.Element {
     }
 
     return false;
-  }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -215,7 +215,7 @@ export default function App(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [handleTerminalAdminError]);
 
   async function reloadReport(range: ReviewEventsByDateRange): Promise<void> {
     if (appState.status !== "ready" || appState.isReportLoading) {
@@ -300,6 +300,7 @@ export default function App(): JSX.Element {
 
   return (
     <AdminDashboard
+      config={appState.config}
       report={appState.report}
       dailyActiveUsersReport={appState.dailyActiveUsersReport}
       catalogInstallsReport={appState.catalogInstallsReport}
@@ -310,6 +311,7 @@ export default function App(): JSX.Element {
       dateRangeError={appState.dateRangeError}
       onDateRangeApply={(range) => void reloadReport(range)}
       onDateRangeReset={resetReportRange}
+      onTerminalAdminError={handleTerminalAdminError}
     />
   );
 }
