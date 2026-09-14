@@ -402,14 +402,14 @@ assert payload["data"]["resource"] is None
 assert {"workspace", "cards", "decks", "review_events"}.issubset(table_names)
 PY
 
-request_json "POST" "${API_BASE_URL%/}/agent/sql/query" "{\"sql\":\"SELECT * FROM cards WHERE deleted_at IS NULL LIMIT 20 OFFSET 0\"}" "authorization: ApiKey ${AGENT_API_KEY}"
+request_json "POST" "${API_BASE_URL%/}/agent/sql/query" "{\"sql\":\"SELECT * FROM cards WHERE metadata IS NULL LIMIT 20 OFFSET 0\"}" "authorization: ApiKey ${AGENT_API_KEY}"
 assert_status "400" "POST /v1/agent/sql/query invalid filter"
 python3 - <<'PY' "${LAST_BODY_FILE}"
 import json
 import sys
 
 payload = json.load(open(sys.argv[1], encoding="utf-8"))
-expected_message = "Column is not filterable: deleted_at"
+expected_message = "Column is not filterable: metadata"
 
 assert payload["ok"] is False
 assert payload["data"] == {}

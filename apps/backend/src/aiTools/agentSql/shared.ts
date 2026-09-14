@@ -179,7 +179,6 @@ export function toCardRow(card: Card): SqlRow {
     reps: card.reps,
     lapses: card.lapses,
     updated_at: card.updatedAt,
-    deleted_at: card.deletedAt,
     fsrs_card_state: card.fsrsCardState,
     fsrs_step_index: card.fsrsStepIndex,
     fsrs_stability: card.fsrsStability,
@@ -196,7 +195,6 @@ export function toDeckRow(deck: Deck): SqlRow {
     tags: deck.filterDefinition.tags,
     created_at: deck.createdAt,
     updated_at: deck.updatedAt,
-    deleted_at: deck.deletedAt,
   };
 }
 
