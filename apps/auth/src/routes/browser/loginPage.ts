@@ -14,6 +14,7 @@ import {
 } from "../../server/analytics/visitorSession.js";
 import { validateSessionToken } from "../../server/browserSession.js";
 import { log, logWarning } from "../../server/logger.js";
+import { getPublicApiBaseUrl } from "../../server/publicUrls.js";
 import { resolveLoginPageLocale } from "./loginPageLocale.js";
 import { renderLoginPage } from "../../templates/login.js";
 
@@ -64,6 +65,50 @@ export function buildWebsiteHomeUrl(redirectUri: string): string {
   homeUrl.search = "";
   homeUrl.hash = "";
   return homeUrl.toString();
+}
+
+const catalogImportPathPattern = /^\/catalog\/import\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/iu;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+function isAppHostname(hostname: string): boolean {
+  return hostname.startsWith("app.")
+    || hostname === "localhost"
+    || hostname === "127.0.0.1"
+    || hostname === "[::1]";
+}
+
+function resolveCatalogInstallAnalyticsContext(
+  redirectUri: string,
+  requestUrl: string,
+): Readonly<{
+  collectorUrl: string;
+  installJourneyId: string;
+  packageVersionId: string;
+}> | null {
+  const redirectUrl = new URL(redirectUri);
+  const pathMatch = catalogImportPathPattern.exec(redirectUrl.pathname);
+  const installJourneyId = redirectUrl.searchParams
+    .get("install_journey_id")
+    ?.trim()
+    .toLowerCase() ?? "";
+  if (
+    isAppHostname(redirectUrl.hostname) === false
+    || pathMatch === null
+    || uuidPattern.test(installJourneyId) === false
+  ) {
+    return null;
+  }
+
+  const packageVersionId = pathMatch[1];
+  if (packageVersionId === undefined) {
+    return null;
+  }
+
+  return {
+    collectorUrl: `${getPublicApiBaseUrl(requestUrl)}/analytics/catalog-install-events`,
+    installJourneyId,
+    packageVersionId: packageVersionId.toLowerCase(),
+  };
 }
 
 /**
@@ -117,7 +162,12 @@ app.get("/login", async (c) => {
 
   const websiteHomeUrl = buildWebsiteHomeUrl(redirectUri);
   const locale = resolveLoginPageLocale(localeHint, c.req.header("accept-language"));
-  const html = renderLoginPage(redirectUri, websiteHomeUrl, locale);
+  const html = renderLoginPage(
+    redirectUri,
+    websiteHomeUrl,
+    locale,
+    resolveCatalogInstallAnalyticsContext(redirectUri, c.req.url),
+  );
   ensureAnalyticsVisitor(c);
   // This response now carries a per-visitor identity in a `Set-Cookie`, which makes it a response
   // for exactly one requester. No cache between this origin and that one browser may store it, and

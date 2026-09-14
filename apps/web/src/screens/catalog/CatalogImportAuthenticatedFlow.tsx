@@ -1,10 +1,15 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import {
+  reportCatalogInstallFailure,
+  reportCatalogInstallPreviewReady,
+  toCatalogInstallFailureReason,
   trackCatalogDeckInstallStarted,
   useAnalyticsScreenView,
+  type CatalogInstallFailureStage,
   type AnalyticsSurface,
 } from "../../analytics";
 import {
+  ApiContractError,
   confirmCatalogPackageInstall,
   isAuthRedirectError,
   previewCatalogPackageInstall,
@@ -405,13 +410,23 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       }
       setSyncState({ status: "succeeded" });
     } catch (error) {
-      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-        return;
-      }
+      const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
+        indexedDbOpenRecoveryState,
+        error,
+      );
       if (
         activeSyncRequestRef.current !== requestGeneration
         || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, identity)
       ) {
+        return;
+      }
+      reportCatalogInstallFailure(
+        catalogContext.installJourneyId,
+        catalogContext.packageVersionId,
+        "postinstall_sync",
+        toCatalogInstallFailureReason(error),
+      );
+      if (indexedDbRecoveryFailed) {
         return;
       }
       if (isAuthRedirectError(error)) {
@@ -431,7 +446,15 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         activeSyncRequestRef.current = null;
       }
     }
-  }, [indexedDbOpenRecoveryState, refreshLocalData, showCapturedTechnicalError, t, technicalErrorMessage]);
+  }, [
+    catalogContext.installJourneyId,
+    catalogContext.packageVersionId,
+    indexedDbOpenRecoveryState,
+    refreshLocalData,
+    showCapturedTechnicalError,
+    t,
+    technicalErrorMessage,
+  ]);
 
   const refreshPreview = useCallback(async function refreshPreview(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -440,6 +463,12 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
 
     const requestIdentity = workspaceIdentityRef.current;
     if (!isImportAvailable || requestIdentity === null) {
+      reportCatalogInstallFailure(
+        catalogContext.installJourneyId,
+        catalogContext.packageVersionId,
+        "preview",
+        "workspace_unavailable",
+      );
       setErrorMessage(t("catalogImport.workspaceUnavailable"));
       return;
     }
@@ -473,8 +502,10 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       );
       indexedDbOpenRecoveryState.throwIfFailed();
       if (response.packageVersion.packageVersionId !== catalogContext.packageVersionId) {
-        throw new Error(
-          `Catalog install preview returned a different package version. expected=${catalogContext.packageVersionId} actual=${response.packageVersion.packageVersionId}`,
+        throw new ApiContractError(
+          "POST /workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install/preview",
+          "packageVersion.packageVersionId",
+          JSON.stringify(catalogContext.packageVersionId),
         );
       }
       if (
@@ -483,6 +514,10 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       ) {
         return;
       }
+      reportCatalogInstallPreviewReady(
+        catalogContext.installJourneyId,
+        catalogContext.packageVersionId,
+      );
       setPreview(response);
       setPreviewIdentity(requestIdentity);
       setOptions({
@@ -491,13 +526,25 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         removeTags: [...response.defaultOptions.removedTags],
       });
     } catch (error) {
-      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-        return;
-      }
+      const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
+        indexedDbOpenRecoveryState,
+        error,
+      );
       if (
         activePreviewRequestRef.current !== requestGeneration
         || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, requestIdentity)
       ) {
+        return;
+      }
+      reportCatalogInstallFailure(
+        catalogContext.installJourneyId,
+        catalogContext.packageVersionId,
+        "preview",
+        isCatalogVersionUnavailableError(error)
+          ? "package_unavailable"
+          : toCatalogInstallFailureReason(error),
+      );
+      if (indexedDbRecoveryFailed) {
         return;
       }
       if (isAuthRedirectError(error)) {
@@ -524,6 +571,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     }
   }, [
     captureCatalogImportError,
+    catalogContext.installJourneyId,
     catalogContext.packageVersionId,
     indexedDbOpenRecoveryState,
     isImportAvailable,
@@ -638,6 +686,12 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
 
     const requestIdentity = workspaceIdentityRef.current;
     if (!isImportAvailable || requestIdentity === null || activeWorkspace === null) {
+      reportCatalogInstallFailure(
+        catalogContext.installJourneyId,
+        catalogContext.packageVersionId,
+        "preinstall_sync",
+        "workspace_unavailable",
+      );
       setErrorMessage(t("catalogImport.workspaceUnavailable"));
       return;
     }
@@ -673,12 +727,25 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     activeInstallRequestRef.current = requestGeneration;
     setIsInstalling(true);
     setErrorMessage("");
-    trackCatalogDeckInstallStarted(preview.packageVersion.slug);
+    trackCatalogDeckInstallStarted(
+      preview.packageVersion.slug,
+      catalogContext.installJourneyId,
+      catalogContext.packageVersionId,
+    );
+    let failureStage: CatalogInstallFailureStage = currentAttempt === null
+      ? "preinstall_sync"
+      : "install";
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
       if (currentAttempt === null) {
         const installationId = requireCloudInstallationId(cloudSettings);
         if (installationId !== requestIdentity.installationId) {
+          reportCatalogInstallFailure(
+            catalogContext.installJourneyId,
+            catalogContext.packageVersionId,
+            "preinstall_sync",
+            "workspace_unavailable",
+          );
           setErrorMessage(t("catalogImport.workspaceUnavailable"));
           return;
         }
@@ -714,6 +781,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
             clientUpdatedAt: installedAt,
             lastModifiedByReplicaId: replicaId,
             operationIdPrefix: installId,
+            ...(catalogContext.installJourneyId === null
+              ? {}
+              : { installJourneyId: catalogContext.installJourneyId }),
           },
           cardCount: preview.summary.cardCount,
           importTag: importOptions.addImportTag ? importTag : null,
@@ -723,6 +793,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       }
 
       const requestAttempt = currentAttempt;
+      failureStage = "install";
       indexedDbOpenRecoveryState.throwIfFailed();
       const result = await confirmCatalogPackageInstall(
         requestAttempt.identity.workspaceId,
@@ -737,13 +808,17 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         return;
       }
       if (result.packageVersion.packageVersionId !== catalogContext.packageVersionId) {
-        throw new Error(
-          `Catalog install returned a different package version. expected=${catalogContext.packageVersionId} actual=${result.packageVersion.packageVersionId}`,
+        throw new ApiContractError(
+          "POST /workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install",
+          "packageVersion.packageVersionId",
+          JSON.stringify(catalogContext.packageVersionId),
         );
       }
       if (result.summary.installId !== requestAttempt.options.installId) {
-        throw new Error(
-          `Catalog install returned a different install id. expected=${requestAttempt.options.installId} actual=${result.summary.installId}`,
+        throw new ApiContractError(
+          "POST /workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install",
+          "summary.installId",
+          JSON.stringify(requestAttempt.options.installId),
         );
       }
 
@@ -760,13 +835,25 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       setStep("done");
       void runPostInstallSync(requestAttempt.identity);
     } catch (error) {
-      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-        return;
-      }
+      const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
+        indexedDbOpenRecoveryState,
+        error,
+      );
       if (
         activeInstallRequestRef.current !== requestGeneration
         || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, requestIdentity)
       ) {
+        return;
+      }
+      reportCatalogInstallFailure(
+        catalogContext.installJourneyId,
+        catalogContext.packageVersionId,
+        failureStage,
+        isCatalogVersionUnavailableError(error)
+          ? "package_unavailable"
+          : toCatalogInstallFailureReason(error),
+      );
+      if (indexedDbRecoveryFailed) {
         return;
       }
       if (isAuthRedirectError(error)) {
