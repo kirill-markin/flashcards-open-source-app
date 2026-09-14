@@ -77,18 +77,41 @@ type AgentSqlSubmittedSql = Readonly<{
  *
  * Counts are never reduced, which is what separates a payload whose rows were
  * dropped from one whose statement returned no rows of its own. `false` means
- * no row was dropped rather than that the payload fit, because a write with no
- * rows to drop is emitted over budget and still marked `false`. Read batches
- * carry `false` always and single read payloads omit the field entirely, since
- * an oversized read is rejected instead of shrunk.
+ * no row was dropped rather than that the payload fit, because a payload can
+ * instead have been reduced through `sqlOmitted`. Read batches carry `false`
+ * always and single read payloads omit the field entirely, since an oversized
+ * read is rejected instead of shrunk.
  */
 type AgentSqlRowsOmitted = Readonly<{
   rowsOmitted: boolean;
 }>;
 
+/**
+ * Structural record that the echoed statement text in `sql` and `normalizedSql`
+ * was shortened to a `previewSqlStatement` preview to fit the result-size
+ * budget, carried by the whole result for the same reason `rowsOmitted` is.
+ *
+ * It is the first lever the reducers in `apps/backend/src/aiTools/agentSql.ts`
+ * reach for, so it is set whenever shortening an over-budget write's echo made
+ * the emitted payload measurably smaller, whether or not the rows had to go as
+ * well. `true` means the echo was shortened wherever it exceeded the preview
+ * length, so a field that already fit still holds the submitted statement in
+ * full; the write itself is unaffected, because the statement that ran is the
+ * submitted one. Read batches carry `false` always and single read payloads
+ * omit the field entirely, since an oversized read is rejected instead of
+ * shrunk.
+ */
+type AgentSqlSqlOmitted = Readonly<{
+  sqlOmitted: boolean;
+}>;
+
 export type AgentSqlReadPayload = AgentSqlReadStatementPayload & AgentSqlSubmittedSql;
 
-export type AgentSqlMutationPayload = AgentSqlMutationStatementPayload & AgentSqlSubmittedSql & AgentSqlRowsOmitted;
+export type AgentSqlMutationPayload =
+  AgentSqlMutationStatementPayload
+  & AgentSqlSubmittedSql
+  & AgentSqlRowsOmitted
+  & AgentSqlSqlOmitted;
 
 export type AgentSqlSinglePayload = AgentSqlReadStatementPayload | AgentSqlMutationStatementPayload;
 
@@ -100,7 +123,7 @@ export type AgentSqlBatchPayload = Readonly<{
   statements: ReadonlyArray<AgentSqlSinglePayload>;
   statementCount: number;
   affectedCountTotal: number | null;
-}> & AgentSqlRowsOmitted;
+}> & AgentSqlRowsOmitted & AgentSqlSqlOmitted;
 
 export type AgentSqlPayload = AgentSqlReadPayload | AgentSqlMutationPayload | AgentSqlBatchPayload;
 
