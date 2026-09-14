@@ -108,15 +108,14 @@ function buildToolCallRulesSection(): string {
  * capped, and the in-app chat has no `get_guide` tool to fetch a guide with.
  * Every constant here is one `SQL_DIALECT_GUIDE` composes too, directly or
  * through `SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION`, so the in-app chat
- * and MCP stay on one dialect. The filterable/sortable line is a literal on
- * purpose: the shared grammar constants state the rule only for `metadata`, and
- * widening them would rewrite the guide bodies for every surface.
+ * and MCP stay on one dialect. That includes the filterable/sortable rule,
+ * which `SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION` carries for every surface:
+ * restating it here as a literal would state it twice in one prompt.
  */
 function buildSqlDialectSection(): string {
   return joinLines([
     "SQL dialect:",
     SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
-    "DESCRIBE and SHOW COLUMNS report filterable and sortable per column: a column with filterable false is rejected in a WHERE clause, and a column with sortable false is rejected in ORDER BY.",
     "UPDATE and DELETE WHERE clauses support the same forms as SELECT WHERE clauses.",
     SQL_MUTATION_TAG_FILTER_DESCRIPTION,
     "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
