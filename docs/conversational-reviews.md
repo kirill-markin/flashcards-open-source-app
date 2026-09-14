@@ -14,7 +14,9 @@ microphone, speech recognition, speech synthesis, or a ChatGPT Voice integration
 
 ## Tools and HTTP actions
 
-MCP retains `list_workspaces`, `sql_query`, and `sql_execute` and adds:
+MCP retains `list_workspaces`, `sql_query`, and `sql_execute`, adds `get_guide`
+(whose `review_flow` topic returns this review contract), and adds the review
+tools:
 
 | MCP tool | Agent API action | Result in `data` | Effect |
 | --- | --- | --- | --- |
