@@ -81,7 +81,7 @@ payload at `https://api.flashcards-open-source-app.com/v1/` (mirrored at
 
 ## Tool inventory
 
-The remote MCP server exposes six tools. Reads, authoring writes, and review submission
+The remote MCP server exposes seven tools. Reads, authoring writes, and review submission
 have separate contracts. See [conversational reviews](conversational-reviews.md)
 for the complete voice-session flow and the external ChatGPT Voice limitation.
 
@@ -90,6 +90,7 @@ for the complete voice-session flow and the external ChatGPT Voice limitation.
 | `sql_query` | Strictly read-only access to cards and decks (`SHOW TABLES`, `DESCRIBE`, `SHOW COLUMNS`, `SELECT`); every mutation is rejected at parse time and execution runs inside a read-only database scope. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `sql_execute` | Write access to cards and decks (`INSERT`, `UPDATE`, `DELETE`) as an atomic batch. | `readOnlyHint: false`, `destructiveHint: true`, `openWorldHint: false` |
 | `list_workspaces` | List the authenticated user's workspaces so the client can pick one before querying. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
+| `get_guide` | Return one on-demand reference guide (`sql_dialect`, `card_authoring`, `bulk_authoring`, or `review_flow`) as text; reads no workspace data. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `next_review_card` | Return one eligible card's question without its answer. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `reveal_answer` | Reveal the answer for one card after the learner attempts recall. | `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: false` |
 | `submit_review` | Append one agent-assessed or learner-selected rating and update the authoritative schedule. A repeated `reviewId` is deduplicated by the review-history uniqueness constraint. | `readOnlyHint: false`, `destructiveHint: true`, `idempotentHint: true`, `openWorldHint: false` |
