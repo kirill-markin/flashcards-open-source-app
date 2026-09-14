@@ -299,6 +299,7 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
     const toolList = await client.listTools();
     const toolNames = toolList.tools.map((tool) => tool.name).sort();
     assert.deepEqual(toolNames, [
+      "get_guide",
       LIST_WORKSPACES_TOOL_NAME,
       "next_review_card",
       "reveal_answer",
