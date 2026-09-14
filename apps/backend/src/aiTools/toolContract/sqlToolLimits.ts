@@ -28,3 +28,46 @@ export const MAX_SQL_BATCH_STATEMENT_COUNT = 50;
  * directory limit.
  */
 export const MAX_SQL_RESULT_CHARS = 48_000;
+
+/**
+ * Maximum combined size, in `o200k_base` tokens, of everything a `tools/list`
+ * response carries.
+ *
+ * ChatGPT rejects an MCP server whose tool definitions together exceed 5,000
+ * tokens. We hold 4,500 and keep the remaining 500 tokens as headroom for the
+ * per-tool envelope a host wraps around our metadata before it counts.
+ */
+export const MAX_ALL_TOOLS_METADATA_TOKENS = 4_500;
+
+/**
+ * Maximum length of a single tool description.
+ *
+ * OpenAI's published limit for a function description is 1,024 characters.
+ * Claude Code separately truncates a tool description at 2,048, so the tighter
+ * number governs.
+ */
+export const MAX_TOOL_DESCRIPTION_CHARS = 1_024;
+
+/**
+ * Maximum length of the server instructions block: Claude Code truncates
+ * server instructions at 2 KB.
+ */
+export const MAX_SERVER_INSTRUCTIONS_CHARS = 2_048;
+
+/**
+ * Maximum length of one input-schema field description.
+ *
+ * This is our own sub-budget rather than a vendor limit: field descriptions are
+ * counted inside the same `tools/list` total as the tool descriptions above, so
+ * a field that grows unchecked spends a budget every tool shares.
+ */
+export const MAX_TOOL_FIELD_DESCRIPTION_CHARS = 512;
+
+/**
+ * Maximum length of a tool name in the form the model finally sees.
+ *
+ * Anthropic and OpenAI both cap a tool name at 64 characters, and clients
+ * prefix an MCP tool with the server name (`mcp__<server>__<tool>`), so the
+ * prefix is spent out of the same 64.
+ */
+export const MAX_PREFIXED_TOOL_NAME_CHARS = 64;
