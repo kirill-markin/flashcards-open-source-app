@@ -219,13 +219,32 @@ const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
  * unsupported-predicate error for every column type. `metadata` reaches neither
  * gate because the dialect schema marks it `filterable: false`.
  *
+ * The closing `filterable`/`sortable` rule is stated generally, not per column.
+ * Twelve of the columns `DESCRIBE` publishes set one flag or both to `false` -
+ * the five `fsrs_*` internals, both step-minutes arrays, `metadata`, and
+ * `decks.tags`, `fsrs_card_state`, `replica_id` and `client_event_id`, which
+ * are filterable but not sortable - so naming one of them leaves an agent that
+ * tries any other with a bare rejection and nothing it could have read first.
+ * `cards.tags` is not one of them: it is sortable, so the rule has to name the
+ * deck column rather than the bare name the two resources share.
+ * `DESCRIBE` already returns both flags per column, so the rule is actionable
+ * as stated. Every surface takes it from here: do not restate it as a local
+ * literal anywhere that already composes this constant.
+ *
+ * The `sortable` half carries its GROUP BY exception because
+ * `validateAggregateSelect` in `selectExecutor.ts` never reads `sortable`: it
+ * accepts any ORDER BY item naming an aggregate output or a GROUP BY column,
+ * so `SELECT fsrs_card_state, COUNT(*) FROM cards GROUP BY fsrs_card_state
+ * ORDER BY fsrs_card_state` succeeds. `validateRowOrderBy`, the only reader of
+ * the flag, runs on the wildcard and projected paths alone.
+ *
  * Every outcome claim here is read out of the evaluator. Do not add an intuited
  * one: it would ship a wrong mental model into `SQL_DIALECT_GUIDE` and the
  * in-app chat system prompt. No tool description composes it, so it is not
  * under a character budget.
  */
 const SQL_TEXT_COLUMN_FORMS_DESCRIPTION =
-  "LIKE, NOT LIKE, ILIKE, their LOWER(column) variants, and LOWER(column) = 'value' apply only to text-valued columns, meaning the string, uuid, and datetime column types; on array columns such as tags they are rejected with a clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare text values only; plain column IN (...) compares the column value exactly, so pass integer and boolean literals unquoted. On an array column such as tags none of these IN forms are rejected, but they all match no rows. The negated form exists only as LOWER(column) NOT IN (...); a plain column NOT IN (...) is rejected as an unsupported predicate for every column type. Match tags with tags OVERLAP ('english') or tags = ('english', 'slang') instead. metadata is neither filterable nor sortable, so it can never appear in WHERE or ORDER BY.";
+  "LIKE, NOT LIKE, ILIKE, their LOWER(column) variants, and LOWER(column) = 'value' apply only to text-valued columns, meaning the string, uuid, and datetime column types; on array columns such as tags they are rejected with a clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare text values only; plain column IN (...) compares the column value exactly, so pass integer and boolean literals unquoted. On an array column such as tags none of these IN forms are rejected, but they all match no rows. The negated form exists only as LOWER(column) NOT IN (...); a plain column NOT IN (...) is rejected as an unsupported predicate for every column type. Match tags with tags OVERLAP ('english') or tags = ('english', 'slang') instead. DESCRIBE and SHOW COLUMNS report filterable and sortable per column: a column with filterable false is rejected in a WHERE clause, and a column with sortable false is rejected in ORDER BY unless it is a GROUP BY column. Read both flags before filtering or sorting on an unfamiliar column; metadata, for one, is neither.";
 
 /**
  * Shared supported-forms sentence reused by `SQL_DIALECT_GUIDE` and by the
