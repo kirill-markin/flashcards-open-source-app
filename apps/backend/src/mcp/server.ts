@@ -15,9 +15,6 @@ import {
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
 import {
-  CARD_AUTHORING_CONTRACT,
-  CARD_AUTHORING_TOOL_CALL_EXAMPLE,
-  FRONT_BACK_CONTRACT,
   GUIDE_BODIES,
   GUIDE_TOPICS,
   SQL_EXECUTE_TOOL_DESCRIPTION,
@@ -25,6 +22,7 @@ import {
   SQL_QUERY_TOOL_DESCRIPTION,
   SQL_QUERY_TOOL_NAME,
 } from "../aiTools/toolContract/sqlToolContract";
+import { MAX_SQL_RESULT_CHARS } from "../aiTools/toolContract/sqlToolLimits";
 import {
   resolveAccessibleMcpWorkspaceId,
   type WorkspaceRequestContext,
@@ -51,22 +49,20 @@ const SERVER_VERSION = "v1";
 const workspaceIdStringSchema = z.string().trim().check(z.guid()).toLowerCase();
 
 /**
- * Descriptions for the split MCP `sql_query` (read-only) and `sql_execute`
- * (write) tools. Reuse the published split tool-call descriptions so the MCP
- * surface and the in-app AI agent stay on one contract, then append the shared
- * card-side contract and the workspaceId argument hint.
+ * Server instructions are always loaded, and a client that truncates them keeps
+ * the head, so the routing path and the rules a call must not get wrong come
+ * first and the dialect caveat and reference material follow.
+ *
+ * The review loop is deliberately absent: every review tool already returns
+ * `REVIEW_FLOW_INSTRUCTIONS` in full with each result, and `get_guide` topic
+ * `review_flow` serves the same block on demand. The card-authoring contract
+ * and its example are likewise absent: `sql_execute` carries the rules a write
+ * must not get wrong, and `get_guide` topic `card_authoring` carries the rest.
  */
-const WORKSPACE_ID_ARGUMENT_HINT =
-  "Optional workspaceId targets a specific workspace you belong to; omit it to use your currently selected workspace. Call the list_workspaces tool to get the selectable workspace ids (and their card counts and last activity) for this workspaceId argument.";
-const SQL_QUERY_MCP_TOOL_DESCRIPTION = `${SQL_QUERY_TOOL_DESCRIPTION} ${FRONT_BACK_CONTRACT} ${WORKSPACE_ID_ARGUMENT_HINT}`;
-const SQL_EXECUTE_MCP_TOOL_DESCRIPTION = `${SQL_EXECUTE_TOOL_DESCRIPTION} ${FRONT_BACK_CONTRACT} ${WORKSPACE_ID_ARGUMENT_HINT}`;
-
 const SERVER_INSTRUCTIONS = [
-  "Call list_workspaces first to pick a workspaceId (or omit it to use the selected default). Use sql_query for reads (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT) and sql_execute for card/deck authoring (INSERT, UPDATE, DELETE). The dialect is not full PostgreSQL.",
-  FRONT_BACK_CONTRACT,
-  REVIEW_FLOW_INSTRUCTIONS,
-  CARD_AUTHORING_CONTRACT,
-  `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
+  "Call list_workspaces first to pick a workspaceId, or omit it for the selected default. Then use sql_query for reads and sql_execute for authoring writes. To review, call next_review_card, then reveal_answer, then submit_review. Call get_guide for detail.",
+  "Hard rules: front_text is a question and never the answer; every new card needs at least one tag; reuse existing workspace tags; check for duplicates with sql_query before creating; describe broad deletes or updates before running them.",
+  "The dialect is not full PostgreSQL. Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags. get_guide topics: sql_dialect for the grammar, limits, and examples; card_authoring for the card contract and formatting; bulk_authoring for splitting and verifying a large write job; review_flow for the review loop.",
 ].join(" ");
 
 const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
@@ -81,7 +77,7 @@ const GET_GUIDE_TOOL_NAME = "get_guide";
  * `apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
  */
 const GET_GUIDE_TOOL_DESCRIPTION =
-  "Returns one reference guide for working with this server, as plain text. Topics: sql_dialect (the full SELECT and WHERE grammar, text-column rules, UNNEST and OVERLAP, RETURNING, row and batch limits, pagination, and worked examples), card_authoring (the front/back contract, tag and duplicate rules, matching the user's existing card style, and Markdown/LaTeX formatting), bulk_authoring (splitting a large authoring job into atomic batches, resuming an interrupted run, and verifying it), and review_flow (the one-question-at-a-time review and rating loop). Reads no workspace data and changes nothing. Call it before your first authoring write, and again after a SQL syntax error, instead of guessing at the dialect.";
+  "Returns one reference guide for working with this server, as plain text. Topics: sql_dialect (the full SELECT and WHERE grammar, text-column rules, UNNEST and OVERLAP, RETURNING, row and batch limits, pagination, and worked examples), card_authoring (the front/back contract, tag and duplicate rules, matching the user's existing card style, and Markdown/LaTeX formatting), bulk_authoring (sizing a batch against the database time budget, splitting a large authoring job into atomic batches, recovering an interrupted or unconfirmed run, and verifying it), and review_flow (the one-question-at-a-time review and rating loop). Reads no workspace data and changes nothing. Call it before your first authoring write, and again after a SQL syntax error, instead of guessing at the dialect.";
 const GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION =
   "Which guide to return: sql_dialect for the SELECT and WHERE grammar, limits, and examples; card_authoring for the front/back contract, tags, duplicate checks, and card formatting; bulk_authoring for splitting and verifying a large write job; review_flow for the review and rating loop.";
 const GET_GUIDE_RESULT_INSTRUCTIONS =
@@ -179,7 +175,10 @@ function createMcpToolInstructions(code: string | null, statusCode: number, tool
   switch (code) {
     case "QUERY_INVALID_SQL":
     case "QUERY_UNSUPPORTED_SYNTAX":
-      return `Fix the sql string using error.message and any error.details.validationIssues, then call the ${toolName} tool again.`;
+      // Name get_guide here as well as in its own description: this is the
+      // moment the model needs the dialect, and the tool description it would
+      // have to recall that from was loaded long before the failing call.
+      return `Fix the sql string using error.message and any error.details.validationIssues, then call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`;
     case "WORKSPACE_SELECTION_REQUIRED":
       return `This connection has no selected workspace. Call the list_workspaces tool to see the workspaces you can access (also embedded under error.details.workspaces when available), then call the ${toolName} tool again with the workspaceId argument set to the one you want.`;
     case "REVIEW_STALE":
@@ -480,7 +479,12 @@ export function createMcpServerWithDependencies(
     SQL_QUERY_TOOL_NAME,
     {
       title: "Flashcards SQL query (read-only)",
-      description: SQL_QUERY_MCP_TOOL_DESCRIPTION,
+      description: SQL_QUERY_TOOL_DESCRIPTION,
+      // Our own emitted-result budget, not a client preference: a result this
+      // size is one we already bounded, so a client must keep it inline in the
+      // conversation instead of offloading it to a file the model then has to
+      // read back.
+      _meta: { "anthropic/maxResultSizeChars": MAX_SQL_RESULT_CHARS },
       inputSchema: {
         sql: z
           .string()
@@ -534,7 +538,11 @@ export function createMcpServerWithDependencies(
     SQL_EXECUTE_TOOL_NAME,
     {
       title: "Flashcards SQL execute (write)",
-      description: SQL_EXECUTE_MCP_TOOL_DESCRIPTION,
+      description: SQL_EXECUTE_TOOL_DESCRIPTION,
+      // Same budget as sql_query, and for the same reason: this is the size we
+      // already shrink a committed write's result down to, so the client should
+      // keep it inline rather than offload it to a file.
+      _meta: { "anthropic/maxResultSizeChars": MAX_SQL_RESULT_CHARS },
       inputSchema: {
         sql: z
           .string()
@@ -653,7 +661,7 @@ export function createMcpServerWithDependencies(
 
   server.registerTool("next_review_card", {
     title: "Next flashcard question",
-    description: `${NEXT_REVIEW_DESCRIPTION} ${WORKSPACE_ID_ARGUMENT_HINT}`,
+    description: NEXT_REVIEW_DESCRIPTION,
     inputSchema: nextReviewCardSchema,
     annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
   }, async (input) => {
@@ -670,7 +678,7 @@ export function createMcpServerWithDependencies(
 
   server.registerTool("reveal_answer", {
     title: "Reveal flashcard answer",
-    description: `${REVEAL_ANSWER_DESCRIPTION} ${WORKSPACE_ID_ARGUMENT_HINT}`,
+    description: REVEAL_ANSWER_DESCRIPTION,
     inputSchema: revealAnswerSchema,
     annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
   }, async ({ workspaceId: requestedWorkspaceId, cardId }) => {
@@ -687,7 +695,7 @@ export function createMcpServerWithDependencies(
 
   server.registerTool("submit_review", {
     title: "Submit flashcard review",
-    description: `${SUBMIT_REVIEW_DESCRIPTION} ${WORKSPACE_ID_ARGUMENT_HINT}`,
+    description: SUBMIT_REVIEW_DESCRIPTION,
     inputSchema: submitReviewSchema,
     // destructiveHint is true because the write overwrites due_at, reps, lapses and the fsrs_*
     // columns; only additive-only writes may claim false.
