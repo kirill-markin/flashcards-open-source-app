@@ -40,6 +40,7 @@
     "@types/node": "^24.13.3",
     "@types/pg": "^8.23.1",
     "@types/yauzl": "^3.4.0",
+    "js-tiktoken": "^1.0.21",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   },
