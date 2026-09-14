@@ -216,6 +216,8 @@ function createFakeDependencies(
             back_text: "Paris",
           }],
           rowCount: 1,
+          totalRowCount: 1,
+          rowsTruncated: false,
           limit: null,
           offset: null,
           hasMore: false,
