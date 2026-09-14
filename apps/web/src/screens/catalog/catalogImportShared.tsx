@@ -3,6 +3,7 @@ import { ApiError } from "../../api";
 import { useI18n } from "../../i18n";
 
 export type CatalogImportContext = Readonly<{
+  installJourneyId: string | null;
   packageVersionId: string;
   title: string;
   cardCount: number;
