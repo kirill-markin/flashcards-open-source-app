@@ -74,7 +74,7 @@ export const SQL_TOOL_ARGUMENT_VALIDATOR = z.object({
 }).strict();
 
 /**
- * The two read examples the always-loaded `sql_query` description carries: one
+ * The read examples pulled out for descriptions under a character budget: one
  * stably ordered paged read, and one tag filter, because tags are the only
  * association between a card and a deck. They stay part of the full example
  * list below, which the `sql_dialect` guide serves in full.
@@ -87,9 +87,9 @@ const SQL_QUERY_TAG_FILTER_EXAMPLE_LINE =
 /**
  * The full read-only example list for the `sql_query` surface, covering only
  * the read statements (`SHOW TABLES`, `DESCRIBE`, `SHOW COLUMNS`, `SELECT`).
- * It is served in full by `SQL_DIALECT_GUIDE` and by the combined in-app `sql`
- * tool description; the always-loaded `sql_query` description advertises only
- * the two lines pulled out above.
+ * It is served in full by `SQL_DIALECT_GUIDE` and by the in-app chat system
+ * prompt; descriptions under a character budget advertise only the lines pulled
+ * out above.
  */
 export const SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   "- sql_query => {\"sql\": \"SHOW TABLES\"}",
@@ -111,7 +111,7 @@ export const SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
 ]);
 
 /**
- * The two write examples the always-loaded `sql_execute` description carries:
+ * The write examples pulled out for descriptions under a character budget:
  * one tagged card creation that reads its own result back through RETURNING,
  * and one tag-filtered mutation, the only way to target rows by tag on the
  * write side. They stay part of the full example list below, which the
@@ -143,6 +143,14 @@ export const SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
 ]);
 
 /**
+ * Rewrites a split-surface example line onto the combined in-app `sql` tool
+ * name, so every surface stays on one DSL and no example is restated by hand.
+ */
+function toInAppSqlExampleLine(line: string): string {
+  return line.replace(/^- sql_query => /, "- sql => ").replace(/^- sql_execute => /, "- sql => ");
+}
+
+/**
  * Combined read+write example lines for the internal in-app chat `sql` tool,
  * which intentionally stays a single tool. Built from the split read/write
  * lines (with the `sql` tool prefix) so all surfaces stay on one DSL.
@@ -150,21 +158,19 @@ export const SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
 export const SQL_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
   ...SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES,
   ...SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES,
-].map((line) => line.replace(/^- sql_query => /, "- sql => ").replace(/^- sql_execute => /, "- sql => ")));
+].map(toInAppSqlExampleLine));
 
 /**
- * Shared dialect description fragment reused by the combined in-app `sql` tool
- * description (`OPENAI_SQL_TOOL`) and by `SQL_DIALECT_GUIDE`, so those surfaces
- * advertise the same limits and semantics.
+ * Shared dialect description fragment. `SQL_DIALECT_GUIDE` is its only
+ * consumer: no SQL tool description composes it, because every tool description
+ * is metadata under a character budget and restates only the few facts a call
+ * cannot get right by guessing.
  *
- * The split MCP `sql_query` and `sql_execute` descriptions no longer compose
- * it: they are always-loaded metadata under a per-tool character budget, so
- * they restate only the few facts a call cannot get right by guessing. The rest
- * lives in `SQL_DIALECT_GUIDE`, reachable through `get_guide` topic
- * `sql_dialect`. `sql_query` names that topic in its own description;
- * `sql_execute` has no room to, and relies on `GET_GUIDE_TOOL_DESCRIPTION`,
- * `SERVER_INSTRUCTIONS`, and the `QUERY_INVALID_SQL` instruction in
- * `apps/backend/src/mcp/server.ts` naming it instead.
+ * On MCP the rest is reachable through `get_guide` topic `sql_dialect`.
+ * `sql_query` names that topic in its own description; `sql_execute` has no
+ * room to, and relies on `GET_GUIDE_TOOL_DESCRIPTION`, `SERVER_INSTRUCTIONS`,
+ * and the `QUERY_INVALID_SQL` instruction in `apps/backend/src/mcp/server.ts`
+ * naming it instead.
  */
 const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
   "This is not full PostgreSQL.",
@@ -215,75 +221,78 @@ const SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION =
  * gate because the dialect schema marks it `filterable: false`.
  *
  * Every outcome claim here is read out of the evaluator. Do not add an intuited
- * one: it would ship a wrong mental model into the in-app and MCP SQL tool
- * descriptions.
+ * one: it would ship a wrong mental model into `SQL_DIALECT_GUIDE` and the
+ * in-app chat system prompt. No tool description composes it, so it is not
+ * under a character budget.
  */
 const SQL_TEXT_COLUMN_FORMS_DESCRIPTION =
   "LIKE, NOT LIKE, ILIKE, their LOWER(column) variants, and LOWER(column) = 'value' apply only to text-valued columns, meaning the string, uuid, and datetime column types; on array columns such as tags they are rejected with a clear error. LOWER(column) IN (...) and LOWER(column) NOT IN (...) compare text values only; plain column IN (...) compares the column value exactly, so pass integer and boolean literals unquoted. On an array column such as tags none of these IN forms are rejected, but they all match no rows. The negated form exists only as LOWER(column) NOT IN (...); a plain column NOT IN (...) is rejected as an unsupported predicate for every column type. Match tags with tags OVERLAP ('english') or tags = ('english', 'slang') instead. metadata is neither filterable nor sortable, so it can never appear in WHERE or ORDER BY.";
 
 /**
- * Shared supported-forms sentence reused by the combined in-app `sql` tool
- * description and by `SQL_DIALECT_GUIDE`, so both advertise the same SELECT
- * grammar. The always-loaded MCP `sql_query` description does not carry it and
- * points at the `sql_dialect` guide instead.
+ * Shared supported-forms sentence reused by `SQL_DIALECT_GUIDE` and by the
+ * in-app chat system prompt, so both advertise the same SELECT grammar. No tool
+ * description carries it: the MCP `sql_query` description points at the
+ * `sql_dialect` guide instead, and the in-app `sql` description points at the
+ * system instructions.
  */
-const SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION =
+export const SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION =
   `SELECT supports projected column lists, COUNT(*), SUM, AVG, MIN, MAX, GROUP BY, NOW(), standalone ORDER BY RANDOM(), and cards UNNEST tags AS tag. SELECT WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}. ${SQL_TEXT_COLUMN_FORMS_DESCRIPTION}`;
 
 /**
  * Tag filtering on the write side. `UNNEST` only exists in `SELECT`, so `OVERLAP`
  * is the only way to target rows by tag in `UPDATE` and `DELETE`.
  */
-const SQL_MUTATION_TAG_FILTER_DESCRIPTION =
+export const SQL_MUTATION_TAG_FILTER_DESCRIPTION =
   "Filter by tag in UPDATE and DELETE with tags OVERLAP ('tag'), because UNNEST is only available in SELECT.";
 
 /**
- * Write-side result projection, shared by the in-app `sql` tool description,
- * `SQL_DIALECT_GUIDE`, and the agent discovery payload in
- * `apps/backend/src/agent/discovery.ts`. The always-loaded MCP `sql_execute`
- * description states the same rule in one shorter sentence of its own instead
- * of composing this constant.
+ * Write-side result projection, shared by `SQL_DIALECT_GUIDE`, the in-app chat
+ * system prompt, and the agent discovery payload in
+ * `apps/backend/src/agent/discovery.ts`. Descriptions under a character budget,
+ * such as the always-loaded MCP `sql_execute` description, state the same rule
+ * in one shorter sentence of their own instead of composing this constant.
  */
 export const SQL_RETURNING_DESCRIPTION =
   "INSERT, UPDATE, and DELETE accept a trailing RETURNING * or RETURNING col1, col2 clause; without it INSERT and UPDATE return only the identifier column and DELETE returns no rows. DELETE RETURNING reports each row as it was before deletion. Prefer a narrow column list over RETURNING *.";
 
 /**
  * Write-side mirror of the WHERE grammar, composed from the same predicate
- * guidance as the in-app `sql` description. `SQL_DIALECT_GUIDE` is now its only
- * consumer: the always-loaded MCP `sql_execute` description has no room for the
- * grammar, so a caller reaches it through `get_guide` topic `sql_dialect`,
- * which `sql_execute` has no room to name either.
+ * guidance as `SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION`. `SQL_DIALECT_GUIDE` is
+ * its only consumer: the always-loaded MCP `sql_execute` description has no room
+ * for the grammar, so a caller reaches it through `get_guide` topic
+ * `sql_dialect`, which `sql_execute` has no room to name either.
  * Runtime parsing lives in `apps/backend/src/aiTools/sqlDialect/predicateParser.ts`.
  */
 const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
   `UPDATE and DELETE WHERE clauses support ${SQL_WHERE_SUPPORTED_FORMS_DESCRIPTION}. ${SQL_TEXT_COLUMN_FORMS_DESCRIPTION} ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`;
 
 /**
- * Batch atomicity, shared by the in-app `sql` tool description,
- * `SQL_DIALECT_GUIDE`, and `BULK_AUTHORING_GUIDE`. The always-loaded MCP
- * `sql_execute` description makes the same all-or-nothing promise in its own
- * condensed words; every other surface keeps composing this constant, so a
- * change here still reaches all of them.
+ * Batch atomicity, shared by `SQL_DIALECT_GUIDE` and `BULK_AUTHORING_GUIDE`.
+ * Descriptions under a character budget - the always-loaded MCP `sql_execute`
+ * description and the in-app `sql` tool description - make the same
+ * all-or-nothing promise in their own condensed words, so a change here does
+ * not reach them.
  */
 export const SQL_BATCH_ATOMICITY_DESCRIPTION =
   "Mutation batches are applied atomically: all statements succeed or the whole batch fails.";
 
 /**
- * Self-contained bulk-write split arithmetic for the in-app `sql` tool
- * description, `SQL_DIALECT_GUIDE`, and `BULK_AUTHORING_GUIDE`, so an agent can
- * size a batch without cross-referencing other description lines. The
- * always-loaded MCP `sql_execute` description restates the same caps in one
- * shorter sentence instead of composing this constant.
+ * Self-contained bulk-write split arithmetic for the in-app chat system prompt,
+ * `SQL_DIALECT_GUIDE`, and `BULK_AUTHORING_GUIDE`, so an agent can size a batch
+ * without cross-referencing other lines. The always-loaded MCP `sql_execute`
+ * description restates the same caps in one shorter sentence instead of
+ * composing this constant.
  *
  * Deliberately limited to the three limits the dialect actually enforces on
  * every write surface. Result-payload budgets differ per surface (`sql_query`
  * rejects an oversized payload; `sql_execute` shrinks the already committed
  * write instead, shortening the echoed statement text first and only when that
  * makes the emitted payload smaller, then dropping the returned rows if the
- * payload is still over budget; and the in-app `sql` tool truncates), so they
- * are not stated here.
+ * payload is still over budget; and the in-app `sql` tool truncates its own
+ * serialized result in `capSerializedEnvelope`,
+ * `apps/backend/src/chat/openai/tools/tools.ts`), so they are not stated here.
  */
-const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
+export const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
   `Bulk-write split arithmetic: at most ${MAX_SQL_RECORD_LIMIT} rows affected per statement, at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements per batch, and a batch must not mix read and write statements. Split larger work across separate statements or separate tool calls.`;
 
 /**
@@ -331,23 +340,29 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
   "Call get_guide with topic card_authoring before authoring.",
 ].join(" ");
 
+/**
+ * Combined read+write tool for the in-app chat, which intentionally stays a
+ * single tool.
+ *
+ * OpenAI caps a function description at 1024 characters, so this one carries
+ * only the routing facts a call cannot guess plus one read and one write
+ * example. The grammar, the text-column rules, RETURNING, the batch-sizing
+ * arithmetic, and the full example list live in the chat system prompt
+ * (`buildSystemInstructions` in `apps/backend/src/chat/shared.ts`), which has no
+ * such cap; the in-app chat has no `get_guide` tool to reach a guide with.
+ */
 export const OPENAI_SQL_TOOL: FunctionTool = {
   type: "function",
   name: SQL_TOOL_NAME,
   description: [
     "Query and mutate the flashcards workspace with the published SQL dialect.",
-    ...SQL_DIALECT_DESCRIPTION_LINES,
     "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
-    SQL_BATCH_ATOMICITY_DESCRIPTION,
-    `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
-    SQL_BULK_WRITE_SPLIT_DESCRIPTION,
-    SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
-    "UPDATE and DELETE WHERE clauses support the same forms as SELECT WHERE clauses.",
-    SQL_MUTATION_TAG_FILTER_DESCRIPTION,
-    "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
-    SQL_RETURNING_DESCRIPTION,
+    "Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags.",
+    `Each statement reads or affects at most ${MAX_SQL_RECORD_LIMIT} rows; up to ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated statements in one sql string form one batch, and a batch is applied atomically.`,
     "Examples (tool-call JSON):",
-    ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
+    toInAppSqlExampleLine(SQL_QUERY_PAGED_READ_EXAMPLE_LINE),
+    toInAppSqlExampleLine(SQL_EXECUTE_CREATE_CARD_EXAMPLE_LINE),
+    "The full grammar and the authoring contract are in the system instructions.",
   ].join(" "),
   strict: false,
   parameters: {
