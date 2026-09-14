@@ -465,14 +465,14 @@ assert {"workspace", "cards", "decks", "review_events"}.issubset(table_names), s
 assert "media_assets" not in table_names
 PY
 
-request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_query\",\"arguments\":{\"sql\":\"SELECT * FROM cards WHERE deleted_at IS NULL LIMIT 20 OFFSET 0\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_query\",\"arguments\":{\"sql\":\"SELECT * FROM cards WHERE metadata IS NULL LIMIT 20 OFFSET 0\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
 assert_status "200" "MCP tools/call sql_query invalid filter"
 python3 - <<'PY' "${LAST_BODY_FILE}"
 import json
 import sys
 
 payload = json.load(open(sys.argv[1], encoding="utf-8"))
-expected_message = "Column is not filterable: deleted_at"
+expected_message = "Column is not filterable: metadata"
 
 assert payload["jsonrpc"] == "2.0"
 assert payload["id"] == 5
