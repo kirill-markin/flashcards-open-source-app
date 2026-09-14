@@ -78,6 +78,7 @@ export async function executeSqlMutationStatement(
         rows: toCardMutationRows(payload.cards, statement.returning),
         affectedCount: payload.createdCount,
         rowsOmitted: false,
+        sqlOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -102,6 +103,7 @@ export async function executeSqlMutationStatement(
         rows: toDeckMutationRows(payload.decks, statement.returning),
         affectedCount: payload.createdCount,
         rowsOmitted: false,
+        sqlOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -134,6 +136,7 @@ export async function executeSqlMutationStatement(
         rows: toCardMutationRows(payload.cards, statement.returning),
         affectedCount: payload.updatedCount,
         rowsOmitted: false,
+        sqlOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -157,6 +160,7 @@ export async function executeSqlMutationStatement(
         rows: toDeckMutationRows(payload.decks, statement.returning),
         affectedCount: payload.updatedCount,
         rowsOmitted: false,
+        sqlOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -180,6 +184,7 @@ export async function executeSqlMutationStatement(
         rows: toDeletedMutationRows("cards", payload.deletedCardIds, matchedRows, statement.returning),
         affectedCount: payload.deletedCount,
         rowsOmitted: false,
+        sqlOmitted: false,
       },
       instructions: buildMutationInstructions(),
     };
@@ -202,6 +207,7 @@ export async function executeSqlMutationStatement(
       rows: toDeletedMutationRows("decks", payload.deletedDeckIds, matchedRows, statement.returning),
       affectedCount: payload.deletedCount,
       rowsOmitted: false,
+      sqlOmitted: false,
     },
     instructions: buildMutationInstructions(),
   };
