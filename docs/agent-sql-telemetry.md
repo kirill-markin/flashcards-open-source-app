@@ -87,6 +87,7 @@ be made in the stack. The MCP and chat worker groups are not managed this way.
 | `rowOrAffectedCount` | Rows read or records affected; `null` on failure |
 | `resultChars` | Characters of the emitted agent envelope, as measured against the result-size budget; `null` on failure and on `chat-tool`, which builds no envelope |
 | `rowsOmitted` | `true` when a committed write's rows were dropped to fit that budget; `null` on failure |
+| `rowsTruncated` | `true` when an oversized single `SELECT` answered with only the leading rows that fit that budget; `null` on a mutation, on a batch, and on failure |
 | `durationMs` | Wall-clock duration of the execution |
 | `sqlLength` | Character length of the submitted SQL |
 | `sqlFingerprint` | SHA-256 hex digest of the submitted SQL |
@@ -125,19 +126,23 @@ with large returned rows is shrunk by the rows alone, so `rowsOmitted = 1` with
 failed. Reads never omit rows, so `rowsOmitted = 0` on every one of them. An
 oversized single `SELECT` is not always a failure either: whenever dropping rows
 leaves at least one row that fits it comes back truncated to the rows that fit
-and is recorded as `succeeded = 1`, a reduction the emitted payload marks as
-`data.rowsTruncated` and this record has no field of its own for. On such a read
-`rowOrAffectedCount` counts only the rows that survived truncation, and the
-count of rows the statement produced in total, i.e. after WHERE, UNNEST, and any
-GROUP BY, which the payload reports as `data.totalRowCount`, has no field here
-either, so a truncated read is invisible to the "Degraded writes and payload
-size" query below and surfaces only as a `resultChars` sitting just under the
-budget. Every other oversized read still fails with
-`errorCode = "QUERY_RESULT_TOO_LARGE"`, including a read batch, `SHOW TABLES`,
-`DESCRIBE`, and a single `SELECT` whose one row is over budget on its own.
-`resultChars` is the same measurement the budget enforces, taken on the payload
-that was actually emitted, so it is the post-reduction size on a degraded write
-and the post-truncation size on a truncated read.
+and is recorded as `succeeded = 1` with `rowsTruncated = 1`, the same reduction
+the emitted payload marks as `data.rowsTruncated`. A single read emitted whole
+records `rowsTruncated = 0`, and a mutation or a batch records `null`, because
+neither can be truncated. On such a read `rowOrAffectedCount` counts only the
+rows that survived truncation, and the count of rows the statement produced in
+total, i.e. after WHERE, UNNEST, and any GROUP BY, which the payload reports as
+`data.totalRowCount`, still has no field here, so the record says that an answer
+was cut short without saying how much of it was dropped. Every other oversized
+read still fails with `errorCode = "QUERY_RESULT_TOO_LARGE"`, including a read
+batch, `SHOW TABLES`, `DESCRIBE`, and a single `SELECT` whose one row is over
+budget on its own. `resultChars` is the same measurement the budget enforces,
+taken on the payload that was actually emitted, so it is the post-reduction size
+on a degraded write and the post-truncation size on a truncated read. The
+`chat-tool` surface builds no envelope and applies none of this, so its single
+reads record `rowsTruncated = 0` and its read batches `null`, like every other
+batch: the chat tool truncates its own tool output separately, after this record
+is emitted, and that truncation is not recorded anywhere.
 
 ## The MCP caller label
 
@@ -257,20 +262,23 @@ filter message.domain = "backend" and message.action = "agent_sql"
        and message.succeeded = 1
 | stats count(*) as executions,
         sum(message.rowsOmitted = 1) as degradedWrites,
+        sum(message.rowsTruncated = 1) as truncatedReads,
         pct(message.resultChars, 50) as p50ResultChars,
         pct(message.resultChars, 90) as p90ResultChars,
         max(message.resultChars) as maxResultChars
   by message.surface
 ```
 
-`degradedWrites` counts successful writes that answered without their rows. The
-percentiles skip the `chat-tool` surface, whose `resultChars` is always `null`.
-An over-budget write first tries shortening its echoed statement text, applies
-that only when it makes the emitted payload smaller, and keeps its rows whenever
-the payload fits the budget without dropping them, so `rowsOmitted = 0` does not
-by itself mean the payload was emitted untouched or above the 48,000-character
-budget.
+`degradedWrites` counts successful writes that answered without their rows, and
+`truncatedReads` successful single `SELECT`s that answered with only the leading
+rows that fit the budget. The percentiles skip the `chat-tool` surface, whose
+`resultChars` is always `null`, and `truncatedReads` is always `0` there, for
+the same reason: that surface applies no envelope budget. An over-budget write
+first tries shortening its echoed statement text, applies that only when it
+makes the emitted payload smaller, and keeps its rows whenever the payload fits
+the budget without dropping them, so `rowsOmitted = 0` does not by itself mean
+the payload was emitted untouched or above the 48,000-character budget.
 
-If a log group renders `message.succeeded` and `message.rowsOmitted` as
-`true`/`false` instead of `1`/`0`, compare them against `"true"` and `"false"`
-in the queries above.
+If a log group renders `message.succeeded`, `message.rowsOmitted`, and
+`message.rowsTruncated` as `true`/`false` instead of `1`/`0`, compare them
+against `"true"` and `"false"` in the queries above.

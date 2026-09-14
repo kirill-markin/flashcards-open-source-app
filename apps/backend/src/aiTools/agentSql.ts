@@ -489,12 +489,25 @@ function getAgentSqlStatementCount(payload: AgentSqlPayload): number {
 /**
  * Reads the payload's own omission marker. Read payloads carry none, because no
  * read drops all of its rows: an oversized single `SELECT` keeps the rows that
- * fit and marks itself `data.rowsTruncated`, which this record has no field of
- * its own for, whenever dropping rows leaves at least one row that fits, and
- * every other oversized read is rejected.
+ * fit and marks itself `data.rowsTruncated`, which `getAgentSqlRowsTruncated`
+ * below records separately, whenever dropping rows leaves at least one row that
+ * fits, and every other oversized read is rejected on the MCP and REST
+ * surfaces, while the chat surface caps its tool output instead of rejecting.
  */
 function getAgentSqlRowsOmitted(payload: AgentSqlPayload): boolean {
   return "rowsOmitted" in payload ? payload.rowsOmitted : false;
+}
+
+/**
+ * Reads the payload's own truncation marker, the read counterpart of
+ * `getAgentSqlRowsOmitted` above.
+ *
+ * Only a single read payload carries the marker, so a mutation and a batch
+ * record `null` rather than `false`: neither can be truncated, and `false`
+ * there would read as a payload that was measured and kept whole.
+ */
+function getAgentSqlRowsTruncated(payload: AgentSqlPayload): boolean | null {
+  return "rowsTruncated" in payload ? payload.rowsTruncated : null;
 }
 
 function getAgentSqlErrorCode(error: unknown): string | null {
@@ -586,6 +599,7 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       rowOrAffectedCount: getAgentSqlRowOrAffectedCount(result.data),
       resultChars,
       rowsOmitted: getAgentSqlRowsOmitted(result.data),
+      rowsTruncated: getAgentSqlRowsTruncated(result.data),
       durationMs: Date.now() - startedAt,
       errorCode: null,
       dialectReason: null,
@@ -603,6 +617,7 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       rowOrAffectedCount: null,
       resultChars: null,
       rowsOmitted: null,
+      rowsTruncated: null,
       durationMs: Date.now() - startedAt,
       errorCode: getAgentSqlErrorCode(error),
       dialectReason: getAgentSqlDialectReason(error),
