@@ -215,6 +215,14 @@ export type ParsedSqlStatement =
 export type SqlSelectExecutionResult = Readonly<{
   rows: ReadonlyArray<SqlRow>;
   rowCount: number;
+  /**
+   * How many rows the statement produced before LIMIT and OFFSET were applied,
+   * i.e. after WHERE, UNNEST, and any GROUP BY. It is the same number `hasMore`
+   * compares the page against, so a caller reading both sees one consistent
+   * picture of how many rows the statement produced rather than only whether
+   * more exists.
+   */
+  totalRowCount: number;
   limit: number;
   offset: number;
   hasMore: boolean;
