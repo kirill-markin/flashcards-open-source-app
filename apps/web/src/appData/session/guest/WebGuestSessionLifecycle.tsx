@@ -1,5 +1,7 @@
 import { useEffect } from "react";
+import { matchPath } from "react-router";
 import { registerAnalyticsGuestCredentialRefusalHandler } from "../../../analytics";
+import { catalogImportRoutePattern } from "../../../routes";
 import {
   discardRefusedWebGuestSession,
   registerWebGuestOwnerForAnalytics,
@@ -8,7 +10,8 @@ import {
 
 /**
  * Watches for the first real interaction on any surface a signed-out visitor can reach, and asks for
- * a guest session then — never on a page view.
+ * a guest session then — never on a page view. The catalog import route stays outside this lifecycle
+ * because its public funnel collector must not create a guest account.
  *
  * That boundary is what keeps crawlers and pure readers out of `auth.guest_sessions`. A crawler
  * renders the page and dispatches no pointer or keyboard events at all, and `isTrusted` additionally
@@ -46,6 +49,10 @@ function isRealInteraction(event: Event): boolean {
   return target.closest(interactiveElementSelector) !== null;
 }
 
+function isCatalogImportRoute(pathname: string): boolean {
+  return matchPath(catalogImportRoutePattern, pathname) !== null;
+}
+
 export function WebGuestSessionLifecycle(): null {
   useEffect(() => {
     // Registered before the session layer can confirm an account owner, so a sign-in that follows an
@@ -60,7 +67,7 @@ export function WebGuestSessionLifecycle(): null {
 
   useEffect(() => {
     function handleInteraction(event: Event): void {
-      if (isRealInteraction(event)) {
+      if (isCatalogImportRoute(window.location.pathname) === false && isRealInteraction(event)) {
         requestWebGuestSessionOnInteraction();
       }
     }

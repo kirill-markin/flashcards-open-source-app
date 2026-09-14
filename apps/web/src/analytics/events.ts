@@ -168,6 +168,8 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "catalog_deck_install_started";
     packageSlug: string;
+    installJourneyId: string | null;
+    packageVersionId: string | null;
   }>
   | Readonly<{
     name: "analytics_events_dropped";
@@ -204,6 +206,7 @@ export type AnalyticsWireBatch = Readonly<{
 }>;
 
 export const analyticsCatalogSlugPattern = /^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$/u;
+export const analyticsUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 
 /** Catalog property names are snake_case on the wire; the union carries them as camelCase. */
 export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsEventProperties | null {
@@ -223,7 +226,11 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "sync_failed":
       return { reason: event.reason };
     case "catalog_deck_install_started":
-      return { package_slug: event.packageSlug };
+      return {
+        package_slug: event.packageSlug,
+        ...(event.installJourneyId === null ? {} : { install_journey_id: event.installJourneyId }),
+        ...(event.packageVersionId === null ? {} : { package_version_id: event.packageVersionId }),
+      };
     case "analytics_events_dropped":
       return { reason: event.reason, count: event.count };
   }

@@ -201,7 +201,18 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
  * and client JS redirects to redirect_uri.
  */
 
-export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, locale: LoginPageLocale): string => {
+type CatalogInstallAnalyticsContext = Readonly<{
+  collectorUrl: string;
+  installJourneyId: string;
+  packageVersionId: string;
+}>;
+
+export const renderLoginPage = (
+  redirectUri: string,
+  websiteHomeUrl: string,
+  locale: LoginPageLocale,
+  catalogInstallAnalyticsContext: CatalogInstallAnalyticsContext | null,
+): string => {
   const copy = LOGIN_PAGE_COPY[locale];
   const direction = getLoginPageLocaleDirection(locale);
 
@@ -502,6 +513,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
     (function() {
       var redirectUri = ${JSON.stringify(redirectUri)};
       var copy = ${JSON.stringify(copy)};
+      var catalogInstallAnalyticsContext = ${JSON.stringify(catalogInstallAnalyticsContext)};
 
       var csrfToken = "";
 
@@ -575,6 +587,142 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
         emailInput.focus();
       }
 
+      function createCatalogInstallEventId() {
+        var bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        var timestampMs = Date.now();
+        bytes[0] = Math.floor(timestampMs / Math.pow(2, 40)) & 255;
+        bytes[1] = Math.floor(timestampMs / Math.pow(2, 32)) & 255;
+        bytes[2] = Math.floor(timestampMs / Math.pow(2, 24)) & 255;
+        bytes[3] = Math.floor(timestampMs / Math.pow(2, 16)) & 255;
+        bytes[4] = Math.floor(timestampMs / Math.pow(2, 8)) & 255;
+        bytes[5] = timestampMs & 255;
+        bytes[6] = (bytes[6] & 15) | 112;
+        bytes[8] = (bytes[8] & 63) | 128;
+        var hex = Array.prototype.map.call(bytes, function(value) {
+          return value.toString(16).padStart(2, "0");
+        }).join("");
+        return [
+          hex.slice(0, 8),
+          hex.slice(8, 12),
+          hex.slice(12, 16),
+          hex.slice(16, 20),
+          hex.slice(20, 32),
+        ].join("-");
+      }
+
+      function readCatalogInstallDeviceLocale() {
+        var value = typeof navigator.language === "string" ? navigator.language.trim() : "";
+        if (value === "" || value.length > 64 || typeof Intl.Locale !== "function") {
+          return null;
+        }
+        try {
+          var normalizedLocale = new Intl.Locale(value).toString();
+          return normalizedLocale.length <= 64 ? normalizedLocale : null;
+        } catch (_error) {
+          return null;
+        }
+      }
+
+      function warnCatalogInstallAnalytics(eventName, properties, statusCode, code, requestId) {
+        console.warn("Catalog install analytics delivery failed", {
+          eventName: eventName,
+          stage: typeof properties.stage === "string" ? properties.stage : null,
+          reason: typeof properties.reason === "string" ? properties.reason : null,
+          statusCode: statusCode,
+          code: code,
+          requestId: requestId,
+        });
+      }
+
+      function reportCatalogInstallEvent(eventName, extraProperties) {
+        if (catalogInstallAnalyticsContext === null) {
+          return;
+        }
+
+        var properties = {
+          install_journey_id: catalogInstallAnalyticsContext.installJourneyId,
+          package_version_id: catalogInstallAnalyticsContext.packageVersionId,
+        };
+        Object.keys(extraProperties).forEach(function(key) {
+          properties[key] = extraProperties[key];
+        });
+        try {
+          var clientOccurredAt = new Date().toISOString();
+          fetch(catalogInstallAnalyticsContext.collectorUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "omit",
+            keepalive: true,
+            body: JSON.stringify({
+              eventId: createCatalogInstallEventId(),
+              eventName: eventName,
+              clientOccurredAt: clientOccurredAt,
+              clientSentAt: new Date().toISOString(),
+              deviceLocale: readCatalogInstallDeviceLocale(),
+              properties: properties,
+            }),
+          }).then(function(response) {
+            if (response.ok) {
+              return;
+            }
+            return response.json().catch(function() {
+              return null;
+            }).then(function(data) {
+              var code = data && typeof data.code === "string" ? data.code : null;
+              var bodyRequestId = data && typeof data.requestId === "string" ? data.requestId : null;
+              warnCatalogInstallAnalytics(
+                eventName,
+                properties,
+                response.status,
+                code,
+                response.headers.get("X-Request-Id") || bodyRequestId,
+              );
+            });
+          }).catch(function() {
+            warnCatalogInstallAnalytics(eventName, properties, null, null, null);
+          });
+        } catch (_error) {
+          warnCatalogInstallAnalytics(eventName, properties, null, null, null);
+        }
+      }
+
+      function toCatalogInstallSignInFailureReason(statusCode, code) {
+        if (navigator.onLine === false) {
+          return "offline";
+        }
+        if (code === "OTP_SESSION_EXPIRED") {
+          return "expired_code";
+        }
+        if (code === "OTP_CHALLENGE_CONSUMED") {
+          return "code_already_used";
+        }
+        if (code === "OTP_CODE_INVALID" || code === "PASSWORD_SIGN_IN_FAILED") {
+          return "invalid_code";
+        }
+        if (code === "RATE_LIMITED" || code === "OTP_TOO_MANY_ATTEMPTS" || statusCode === 429) {
+          return "rate_limited";
+        }
+        if (statusCode === 401 || statusCode === 403) {
+          return "unauthorized";
+        }
+        return "server_error";
+      }
+
+      function reportCatalogInstallSignInFailure(statusCode, code) {
+        reportCatalogInstallEvent("catalog_install_failed", {
+          stage: "signin",
+          reason: toCatalogInstallSignInFailureReason(statusCode, code),
+        });
+      }
+
+      function reportCatalogInstallSignInTransportFailure() {
+        reportCatalogInstallEvent("catalog_install_failed", {
+          stage: "signin",
+          reason: navigator.onLine === false ? "offline" : "network_error",
+        });
+      }
+
       function tryRefreshSession() {
         // The screen marker tells the endpoint which of its callers this is; the audit of who may
         // send it is in server/analytics/signInFunnel.ts.
@@ -583,6 +731,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
           credentials: "same-origin",
         }).then(function(res) {
           if (res.ok) {
+            reportCatalogInstallEvent("catalog_install_signin_succeeded", {});
             window.location.href = redirectUri;
             return;
           }
@@ -624,6 +773,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
           .then(function(res) {
             return res.json().then(function(data) {
               if (!res.ok) {
+                reportCatalogInstallSignInFailure(res.status, data.code);
                 showError(emailError, data.error || copy.genericErrorPrefix + ": " + res.status);
                 return;
               }
@@ -632,9 +782,11 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
                 && typeof data.refreshToken === "string" && data.refreshToken !== ""
               ) {
                 // Configured review account emails can complete sign-in immediately.
+                reportCatalogInstallEvent("catalog_install_signin_succeeded", {});
                 window.location.href = redirectUri;
                 return;
               }
+              reportCatalogInstallEvent("catalog_install_signin_code_requested", {});
               csrfToken = data.csrfToken || "";
               stepEmail.classList.add("hidden");
               stepOtp.classList.remove("hidden");
@@ -642,6 +794,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
             });
           })
           .catch(function(err) {
+            reportCatalogInstallSignInTransportFailure();
             showErrorWithDetails(
               emailError,
               copy.sendCodeTransportErrorMessage,
@@ -674,14 +827,17 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
           .then(function(res) {
             return res.json().then(function(data) {
               if (!res.ok) {
+                reportCatalogInstallSignInFailure(res.status, data.code);
                 showError(otpError, data.error || copy.genericErrorPrefix + ": " + res.status);
                 return;
               }
               // Cookies set by server response — redirect to app
+              reportCatalogInstallEvent("catalog_install_signin_succeeded", {});
               window.location.href = redirectUri;
             });
           })
           .catch(function(err) {
+            reportCatalogInstallSignInTransportFailure();
             showErrorWithDetails(
               otpError,
               copy.verifyCodeTransportErrorMessage,

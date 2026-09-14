@@ -7,6 +7,7 @@ import {
 } from "../api";
 import {
   analyticsCatalogSlugPattern,
+  analyticsUuidPattern,
   type AnalyticsDropReason,
   type AnalyticsEvent,
   type AnalyticsSurface,
@@ -124,6 +125,10 @@ let isQueueOwnerReconciled = false;
  * delete events of, the next one.
  */
 let analyticsGeneration = 0;
+
+export function isAnalyticsEnabledForCurrentRuntime(): boolean {
+  return isEnabled;
+}
 
 /** Losses are counted here and emitted as `analytics_events_dropped` on the next flush. */
 function countDropped(reason: AnalyticsDropReason, count: number): void {
@@ -741,15 +746,23 @@ export function track(event: AnalyticsEvent): void {
 }
 
 /**
- * `package_slug` is a declared string property with a slug pattern, so a slug the catalog cannot
- * produce is skipped rather than shipped as an event the server would reject.
+ * The existing general collector remains the sole owner of install intent. Carrying the journey
+ * fields here keeps that event joinable without adding a duplicate through the public collector.
  */
-export function trackCatalogDeckInstallStarted(packageSlug: string): void {
-  if (analyticsCatalogSlugPattern.test(packageSlug) === false) {
+export function trackCatalogDeckInstallStarted(
+  packageSlug: string,
+  installJourneyId: string | null,
+  packageVersionId: string | null,
+): void {
+  if (
+    analyticsCatalogSlugPattern.test(packageSlug) === false
+    || (installJourneyId !== null && analyticsUuidPattern.test(installJourneyId) === false)
+    || (packageVersionId !== null && analyticsUuidPattern.test(packageVersionId) === false)
+  ) {
     return;
   }
 
-  track({ name: "catalog_deck_install_started", packageSlug });
+  track({ name: "catalog_deck_install_started", packageSlug, installJourneyId, packageVersionId });
 }
 
 export function flush(): void {
