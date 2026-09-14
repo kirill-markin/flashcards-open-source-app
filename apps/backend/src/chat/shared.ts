@@ -10,6 +10,11 @@ import {
   CARD_DUPLICATE_CHECK_RULE_LINES,
   CARD_STYLE_ALIGNMENT_RULE_LINES,
   CARD_TAGGING_RULE_LINES,
+  SQL_BULK_WRITE_SPLIT_DESCRIPTION,
+  SQL_MUTATION_TAG_FILTER_DESCRIPTION,
+  SQL_RETURNING_DESCRIPTION,
+  SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
+  SQL_TOOL_PROMPT_EXAMPLE_LINES,
 } from "../aiTools/toolContract/sqlToolContract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
@@ -97,6 +102,38 @@ function buildToolCallRulesSection(): string {
   ]);
 }
 
+/**
+ * The dialect grammar the in-app `sql` tool description has no room for: OpenAI
+ * caps a function description at 1024 characters, these instructions are not
+ * capped, and the in-app chat has no `get_guide` tool to fetch a guide with.
+ * Every constant here is one `SQL_DIALECT_GUIDE` composes too, directly or
+ * through `SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION`, so the in-app chat
+ * and MCP stay on one dialect. The filterable/sortable lines are literals on
+ * purpose: the shared grammar constants name only `metadata`, and widening them
+ * would rewrite the guide bodies for every surface.
+ */
+function buildSqlDialectSection(): string {
+  return joinLines([
+    "SQL dialect:",
+    SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
+    "DESCRIBE and SHOW COLUMNS report filterable and sortable per column: a column with filterable false is rejected in a WHERE clause, and a column with sortable false is rejected in ORDER BY.",
+    "deleted_at is returned by reads on cards and decks but is neither filterable nor sortable, so it can never appear in a WHERE clause or in ORDER BY.",
+    "UPDATE and DELETE WHERE clauses support the same forms as SELECT WHERE clauses.",
+    SQL_MUTATION_TAG_FILTER_DESCRIPTION,
+    "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
+    SQL_RETURNING_DESCRIPTION,
+    SQL_BULK_WRITE_SPLIT_DESCRIPTION,
+  ]);
+}
+
+/** The full example list; the tool description carries only one read and one write example. */
+function buildSqlExampleSection(): string {
+  return joinLines([
+    "Examples (tool-call JSON):",
+    ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
+  ]);
+}
+
 function buildGeneratedImagePolicySection(): string {
   return joinLines([
     "Generated-image policy:",
@@ -147,6 +184,8 @@ export function buildSystemInstructions(
     buildPlainTextChatFormattingSection(),
     buildWritePolicySection(),
     buildToolCallRulesSection(),
+    buildSqlDialectSection(),
+    buildSqlExampleSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),
     "Be concise, direct, and operational.",
