@@ -259,6 +259,7 @@ export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
     rowOrAffectedCount: payload.rowOrAffectedCount,
     resultChars: payload.resultChars,
     rowsOmitted: payload.rowsOmitted,
+    rowsTruncated: payload.rowsTruncated,
     durationMs: payload.durationMs,
     sqlLength: payload.sqlLength,
     sqlFingerprint: payload.sqlFingerprint,

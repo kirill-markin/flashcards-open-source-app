@@ -17,11 +17,14 @@ export type AdminQueryDetails = Readonly<{
  * validation-issue code carried by the failure, recorded as an opaque value:
  * the dialect owns that vocabulary and may change it.
  *
- * `resultChars` and `rowsOmitted` describe the emitted result: the size the
- * result-size budget measured for the payload the surface really sent, and
- * whether that payload is a committed write whose rows the budget dropped. Both
- * are null on failure, and `resultChars` is null on the `chat-tool` surface,
- * which builds no agent envelope to measure.
+ * `resultChars`, `rowsOmitted`, and `rowsTruncated` describe the emitted
+ * result: the size the result-size budget measured for the payload the surface
+ * really sent, whether that payload is a committed write whose rows the budget
+ * dropped, and whether it is a read the budget cut down to the rows that fit.
+ * All three are null on failure. `resultChars` is also null on the `chat-tool`
+ * surface, which builds no agent envelope to measure, and `rowsTruncated` is
+ * also null on a mutation and on a batch, neither of which can be truncated,
+ * rather than false.
  *
  * Raw SQL text is deliberately absent; `sqlFingerprint` plus `sqlLength` are
  * what make repeated failures groupable, matching `AdminQueryDetails`.
@@ -42,6 +45,7 @@ export type AgentSqlDetails = Readonly<{
   rowOrAffectedCount: number | null;
   resultChars: number | null;
   rowsOmitted: boolean | null;
+  rowsTruncated: boolean | null;
   durationMs: number;
   sqlLength: number;
   sqlFingerprint: string;
