@@ -20,7 +20,11 @@ import {
   type AgentToolOperationDependencies,
 } from "../../../aiTools/agentSql/operations";
 import { parseSqlStatement, splitSqlStatements } from "../../../aiTools/sqlDialect";
-import { isSqlMutationStatement, type AgentSqlPayload } from "../../../aiTools/agentSql/shared";
+import {
+  isSqlMutationStatement,
+  type AgentSqlPayload,
+  type AgentSqlReadPayload,
+} from "../../../aiTools/agentSql/shared";
 import {
   OPENAI_SQL_TOOL,
   SQL_TOOL_ARGUMENT_VALIDATOR,
@@ -156,6 +160,20 @@ function createToolDependencies(context: OpenAIToolContext): AgentToolOperationD
  * Returns the serialized envelope when it already fits, otherwise rebuilds it with the heavy
  * field swapped for a `<fieldKey>Preview` slice plus `truncated`/`omittedChars` markers so the
  * model still receives valid JSON and can tell the result was capped and re-query more narrowly.
+ *
+ * The slice cuts at a character offset, so the preview itself is a JSON fragment the model can
+ * read only as text. That is the right trade wherever nothing better exists, and this is where
+ * every shape that cannot lose part of itself and still make sense ends up: a failure's
+ * `details`, a write echoing a long statement, a read batch, `SHOW TABLES`, `DESCRIBE`. A single
+ * `SELECT` drops whole rows instead (see `capReadEnvelopeByRows`) and only falls back here when
+ * not even one row fits.
+ *
+ * Only `envelope[fieldKey]` is replaced. Everything else is carried through untouched - the
+ * top-level `sql` echo above all - so a payload whose non-`data` parts alone exceed
+ * `MAX_TOOL_OUTPUT_CHARS` is returned over budget. What brings an oversized `SELECT` here is a
+ * separate question with more than one answer: a single row too large to fit does it, and so does
+ * a statement echo that fills the budget by itself, which is the pair of causes the rejection
+ * message in `apps/backend/src/aiTools/agentSql.ts` hedges between.
  */
 function capSerializedEnvelope(
   envelope: Readonly<Record<string, unknown>>,
@@ -178,7 +196,10 @@ function capSerializedEnvelope(
     });
 
   // Reserve headroom for the marker fields, then trim once more for JSON escaping of the
-  // preview slice so the final string is a hard bound at or below MAX_TOOL_OUTPUT_CHARS.
+  // preview slice. Neither pass is a hard bound: `omittedChars` is recomputed on every
+  // `buildCapped` call and grows as the preview shrinks, so it can gain decimal digits between
+  // passes that neither the reserved headroom nor the overflow correction accounts for, leaving
+  // the returned string a few characters over MAX_TOOL_OUTPUT_CHARS.
   const reservedLength = buildCapped(0).length;
   const firstPass = buildCapped(Math.max(0, MAX_TOOL_OUTPUT_CHARS - reservedLength));
   if (firstPass.length <= MAX_TOOL_OUTPUT_CHARS) {
@@ -189,17 +210,128 @@ function capSerializedEnvelope(
   return buildCapped(Math.max(0, MAX_TOOL_OUTPUT_CHARS - reservedLength - overflow));
 }
 
-function createToolSuccessResult(
-  payload: Readonly<Record<string, unknown>>,
-): string {
-  return capSerializedEnvelope(
-    {
-      ok: true,
-      tool: SQL_TOOL_NAME,
+type SqlToolSuccessPayload = Readonly<{
+  sql: string;
+  data: AgentSqlPayload;
+  instructions: string;
+}>;
+
+function buildSqlToolEnvelope(
+  payload: SqlToolSuccessPayload,
+): Readonly<Record<string, unknown>> {
+  return {
+    ok: true,
+    tool: SQL_TOOL_NAME,
+    ...payload,
+  };
+}
+
+/**
+ * The instructions a read carries once rows have been dropped, so the model reports what it
+ * received as the partial answer it is instead of as the whole result set.
+ *
+ * It replaces the arriving instructions rather than extending them, for the same reason the
+ * external surfaces rebuild theirs: an untruncated read is handed out saying `data.rowsTruncated`
+ * is false and no row was dropped, which a truncated payload contradicts outright, so keeping
+ * that sentence alongside this one would send the model two opposite readings of the same field.
+ * What the rest of the arriving string carries - the dialect note, the row cap, the pagination
+ * hint, and pointers to envelope fields the chat does not emit - the chat system prompt already
+ * states for this surface.
+ *
+ * It names `data.limit` only to keep a model from paginating straight past the dropped rows, and
+ * gives no resume recipe on purpose: the chat exposes one combined `sql` tool, so a model that
+ * needs the rest simply asks again.
+ */
+const TRUNCATED_READ_ROWS_INSTRUCTION =
+  "This answer is partial: data.rows carries only the leading rows of the result, because the whole result did not fit the size limit of a single tool result, and data.rowsTruncated is true because the rest were dropped here rather than by your query. data.rowCount counts the rows you received and data.totalRowCount how many rows the statement produced, so compare the two before you answer and tell the user the answer is partial whenever the rows you are missing could change it. data.limit is still the limit you asked for rather than the number of rows delivered, so continuing from data.offset + data.limit would skip the rows dropped here. Nothing was written, so when those rows matter, ask again for less at a time: select fewer or narrower columns, add WHERE filters, or aggregate instead of listing rows.";
+
+/**
+ * Shrinks an oversized single `SELECT` to the largest leading run of rows whose serialized
+ * envelope fits `MAX_TOOL_OUTPUT_CHARS`, marked as the partial answer it is.
+ *
+ * Only the rows shrink. `data.totalRowCount` is left exactly as it arrived, so the model still
+ * sees how many rows the statement produced while `data.rowCount` counts the rows it actually
+ * received, `data.hasMore` becomes true because dropping rows always leaves rows behind, and the
+ * instructions are replaced with the truncated wording rather than appended to.
+ *
+ * The prefix is found by binary search over the row count rather than by predicting where to
+ * cut: serialized size grows with the prefix length, so the search finds the exact largest
+ * fitting prefix, and a handful of measurement passes on a payload that is already an outlier
+ * is cheaper than being clever about it. The search stops one row short of the whole page,
+ * because a payload that kept every row is not a truncated one and must not be marked as such.
+ *
+ * Returns null when not even one row fits, which is the caller's signal to fall back to the
+ * preview slice: a partial answer carrying no row shows the model neither the data nor its
+ * shape, and the chat has no rejection path here, so something bounded still has to go back.
+ *
+ * This is the chat's own loop rather than the read budget of
+ * `apps/backend/src/aiTools/agentSql.ts` because neither half of that budget transfers: it
+ * measures a built agent envelope, and it measures it against `MAX_SQL_RESULT_CHARS`, while the
+ * chat emits this `{ ok, tool, ... }` shape under a smaller limit of its own.
+ */
+function capReadEnvelopeByRows(
+  payload: SqlToolSuccessPayload,
+  data: AgentSqlReadPayload,
+): string | null {
+  const serializeRowPrefix = (rowCount: number): string =>
+    JSON.stringify(buildSqlToolEnvelope({
       ...payload,
-    },
-    "data",
-  );
+      data: {
+        ...data,
+        rows: data.rows.slice(0, rowCount),
+        rowCount,
+        rowsTruncated: true,
+        hasMore: true,
+      },
+      instructions: TRUNCATED_READ_ROWS_INSTRUCTION,
+    }));
+
+  let lowestRowCount = 1;
+  let highestRowCount = data.rows.length - 1;
+  let largestFitting: string | null = null;
+
+  while (lowestRowCount <= highestRowCount) {
+    const candidateRowCount = Math.floor((lowestRowCount + highestRowCount) / 2);
+    const candidate = serializeRowPrefix(candidateRowCount);
+    if (candidate.length <= MAX_TOOL_OUTPUT_CHARS) {
+      largestFitting = candidate;
+      lowestRowCount = candidateRowCount + 1;
+    } else {
+      highestRowCount = candidateRowCount - 1;
+    }
+  }
+
+  return largestFitting;
+}
+
+/**
+ * Serializes one successful SQL tool call, shrunk toward `MAX_TOOL_OUTPUT_CHARS` when the whole
+ * envelope does not fit.
+ *
+ * An oversized single `SELECT` loses rows from the end rather than the tail of its serialized
+ * `data`, so the model keeps whole rows it can read as data and learns from `data.rowsTruncated`
+ * and `data.totalRowCount` exactly what it is missing. A row-capped result is measured whole, so
+ * it does fit. Everything else falls back to the preview slice and to the softer bound documented
+ * on `capSerializedEnvelope`: every shape that is not a single `SELECT` carrying rows, and every
+ * `SELECT` for which `capReadEnvelopeByRows` finds no fitting prefix of rows, whatever put the
+ * envelope over budget.
+ */
+function createToolSuccessResult(payload: SqlToolSuccessPayload): string {
+  const envelope = buildSqlToolEnvelope(payload);
+  const serialized = JSON.stringify(envelope);
+  if (serialized.length <= MAX_TOOL_OUTPUT_CHARS) {
+    return serialized;
+  }
+
+  const data = payload.data;
+  if (data.statementType === "select" && data.rows.length > 0) {
+    const rowCapped = capReadEnvelopeByRows(payload, data);
+    if (rowCapped !== null) {
+      return rowCapped;
+    }
+  }
+
+  return capSerializedEnvelope(envelope, "data");
 }
 
 function createToolErrorResult(payload: ToolErrorPayload): string {
