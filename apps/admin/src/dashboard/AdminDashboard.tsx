@@ -13,6 +13,8 @@ import {
 } from "../adminApi";
 import { getPackageColorScale } from "../charts/chartPrimitives";
 import { formatDateRangeLabel } from "../charts/formatting";
+import type { AdminAppConfig } from "../config";
+import { CatalogInstallFunnelSection } from "../reports/catalogInstallFunnel/CatalogInstallFunnelSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { filterCatalogInstallsReport } from "../reports/catalogInstalls/query";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
@@ -120,6 +122,7 @@ function getUpdatedPlatformFilterSelection(
 
 export function AdminDashboard(
   props: Readonly<{
+    config: AdminAppConfig;
     report: ReviewEventsByDateReport;
     dailyActiveUsersReport: DailyActiveUsersReport;
     catalogInstallsReport: CatalogInstallsReport;
@@ -130,8 +133,10 @@ export function AdminDashboard(
     dateRangeError: string;
     onDateRangeApply: (range: ReviewEventsByDateRange) => void;
     onDateRangeReset: () => void;
+    onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
+  const [activeArea, setActiveArea] = useState<"general" | "funnels">("general");
   const [draftRange, setDraftRange] = useState<ReviewEventsByDateRange>({
     from: props.report.from,
     to: props.report.to,
@@ -330,12 +335,18 @@ export function AdminDashboard(
         </div>
         <div className="hero-meta">
           <span className="hero-badge">Signed in as {props.adminEmail}</span>
-          <span className="hero-badge">Range {formatDateRangeLabel(props.report.from)} to {formatDateRangeLabel(props.report.to)}</span>
+          <span className="hero-badge">General range {formatDateRangeLabel(props.report.from)} to {formatDateRangeLabel(props.report.to)}</span>
           <span className="hero-badge">All dates and times in UTC</span>
         </div>
       </section>
 
-      <ReviewEventsByDateFilters
+      <nav className="analytics-navigation" aria-label="Analytics sections">
+        <button className={activeArea === "general" ? "active" : ""} type="button" aria-current={activeArea === "general" ? "page" : undefined} onClick={() => setActiveArea("general")}>General</button>
+        <button className={activeArea === "funnels" ? "active" : ""} type="button" aria-current={activeArea === "funnels" ? "page" : undefined} onClick={() => setActiveArea("funnels")}>Funnels</button>
+      </nav>
+
+      {activeArea === "general" ? <>
+        <ReviewEventsByDateFilters
         availableRange={props.availableRange}
         defaultRange={props.defaultRange}
         appliedRange={{
@@ -371,7 +382,7 @@ export function AdminDashboard(
         onAllFiltersReset={handleAllFiltersReset}
       />
 
-      <DailyActiveUsersSection
+        <DailyActiveUsersSection
         filteredReport={filteredDailyActiveUsersReport}
         generatedAtUtc={props.dailyActiveUsersReport.generatedAtUtc}
         isReportLoading={props.isReportLoading}
@@ -379,20 +390,26 @@ export function AdminDashboard(
         onUserFilterApply={handleChartUserFilterApply}
       />
 
-      <CatalogInstallsSection
+        <CatalogInstallsSection
         filteredReport={filteredCatalogInstallsReport}
         generatedAtUtc={props.catalogInstallsReport.generatedAtUtc}
         packageColorScale={packageColorScale}
       />
 
-      <ReviewActivitySection
+        <ReviewActivitySection
         filteredReport={filteredReport}
         generatedAtUtc={props.report.generatedAtUtc}
         isReportLoading={props.isReportLoading}
         filteredUserById={filteredUserById}
         userColorScale={userColorScale}
         onUserFilterApply={handleChartUserFilterApply}
-      />
+        />
+      </> : (
+        <CatalogInstallFunnelSection
+          config={props.config}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+      )}
     </main>
   );
 }

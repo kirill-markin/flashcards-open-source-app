@@ -9,11 +9,13 @@ Supported browser entrypoints:
 
 ## Scope
 
-The dashboard carries three report sections, in page order:
+The dashboard has two top-level analytics sections. `General` preserves these three report sections, in page order:
 
 - `daily-active-users`
 - `catalog-deck-installs`
 - `review-events-by-date`
+
+`Funnels` is separate from General and currently carries `catalog-installation`. Each funnel owns its query, parser, controls, and display so later funnels can be added without changing General or introducing a generic reporting engine.
 
 The admin app is a separate React + TypeScript + Vite package. It does not reuse the web app runtime storage or sync code.
 
@@ -91,6 +93,19 @@ Attribution contract for `catalog-deck-installs`:
 - that lookup only covers actors with an `app_opened` day inside the loaded range, so an installer without one is in neither cohort and is dropped as soon as the cohort filter narrows, rather than being guessed into `new` or `returning`
 - all four shared filters apply: date range reloads the section server-side, and user, cohort and platform are applied client-side
 - the section carries one chart, installs per UTC day stacked by deck, plus summary tiles
+
+Attribution contract for the `catalog-installation` funnel:
+
+- the denominator is distinct `install_journey_id` attempts with an actual `catalog_install_clicked` whose `occurred_at` falls in the selected UTC click-cohort dates; there is no historical backfill and no Vercel aggregate is converted into attempt history
+- selectable history is loaded independently from General and begins on the first client catalog click or landing, so abandoned signed-out landings remain available to the no-click diagnostic
+- later steps must keep the click's `package_version_id`, occur in order with equal timestamps allowed, and fall within seven days of the click even when that follow-up is after the selected cohort's end date; repeated milestones do not add another attempt
+- the main path is clicked, landed, preview ready, install started, then installed; only an `origin = 'server'` `catalog_deck_installed` is success, while `catalog_deck_install_started` remains intent
+- signed-in landings proceed directly through the main path and never have to pass a sign-in step; signed-out landings have a separate authentication branch whose success count includes resumed sessions that legitimately have no earlier code-request event
+- deck/version, placement, locale, source, and device filters use the click's acquisition context and are independent of General's user, cohort, and platform filters, which preserves anonymous attempts
+- failure totals count distinct attempts per observed stage/reason, so they are not inferred abandonments and are not mutually exclusive; the report separately shows selected-range landings without an earlier selected-range click and click attempts whose seven-day window is still maturing
+- the delisted `test` deck is excluded when an install-start fact identifies it; `@example.com` and active-admin journeys are excluded only when a matching server install identifies the actor. The public collector stores no user identity or identity link, so anonymous attempts that never install cannot always be classified or excluded
+
+The complete event and producer contract is in [catalog-install-funnel.md](catalog-install-funnel.md).
 
 Current v1 attribution contract for `review-events-by-date`:
 
@@ -186,6 +201,7 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - `https://admin.<domain>` returns `200`
 - unauthenticated access redirects to the login flow
 - a listed admin email loads the dashboard, where the shared hero and filter row sit above titled report sections, each separated by a divider
+- General opens by default and still contains every existing chart; Funnels opens separately with Catalog installation and its own date and acquisition controls
 - a signed-in non-admin sees the access denied page
 - network traces show `POST /v1/admin/reports/query` for dashboard data
 - the default date filter covers the last 30 days ending today, and widens back to the first app open, review, friend invite, or friendship day
@@ -201,3 +217,6 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - narrowing the date filter reloads all charts, and Reset all restores the default range and all local filters
 - hover tooltips on the per-user stacked charts (daily active users, review events, friend invite links, friend connections) may reveal the current email and user ID for the hovered segment, and clicking a segment applies that user filter
 - backend logs do not show writes through the reporting path
+- the catalog installation funnel treats only a matching server install as success, allows signed-in users to bypass authentication, labels session-resume/code-request bypasses, and shows `—` or an explicit empty state instead of NaN or invented history
+- the funnel date picker can reach the first catalog click or landing even when it predates General's first selectable event
+- a click near the range end remains marked as maturing until its seven-day window closes, while a matching follow-up after the cohort end still counts
