@@ -376,16 +376,6 @@ export async function resolveAccessibleMcpWorkspaceId(
 }
 
 /**
- * Resolves the currently selected workspace and revalidates access before a
- * workspace-bound route continues with business logic.
- */
-export async function requireAccessibleSelectedWorkspaceId(
-  requestContext: WorkspaceRequestContext,
-): Promise<string> {
-  return resolveAccessibleChatWorkspaceId(requestContext, undefined);
-}
-
-/**
  * AI dictation keeps its existing 403 contract when no workspace is selected,
  * but still revalidates the selected workspace before any downstream work.
  */
