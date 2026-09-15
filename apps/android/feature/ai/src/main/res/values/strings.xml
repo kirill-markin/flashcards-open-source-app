@@ -55,6 +55,13 @@
     <string name="ai_attempt_of_max">Attempt %1$d of %2$d</string>
     <string name="ai_tool_label">Tool: %1$s</string>
     <string name="ai_tool_sql">SQL</string>
+    <string name="ai_tool_sql_query">SQL query</string>
+    <string name="ai_tool_sql_execute">SQL write</string>
+    <string name="ai_tool_list_workspaces">List workspaces</string>
+    <string name="ai_tool_get_guide">Get guide</string>
+    <string name="ai_tool_next_review_card">Next review card</string>
+    <string name="ai_tool_reveal_answer">Reveal answer</string>
+    <string name="ai_tool_submit_review">Submit review</string>
     <string name="ai_tool_code_execution">Code execution</string>
     <string name="ai_tool_generated_card_image">Generate card image</string>
     <string name="ai_tool_web_search">Web search</string>

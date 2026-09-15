@@ -65,6 +65,13 @@ data class AiTextProvider(
     val filesSettingsTitle: String,
     val filesSettingsMessage: String,
     val toolSql: String,
+    val toolSqlQuery: String,
+    val toolSqlExecute: String,
+    val toolListWorkspaces: String,
+    val toolGetGuide: String,
+    val toolNextReviewCard: String,
+    val toolRevealAnswer: String,
+    val toolSubmitReview: String,
     val toolCodeExecution: String,
     val toolGeneratedCardImage: String,
     val toolWebSearch: String,
@@ -148,7 +155,17 @@ data class AiTextProvider(
 
     fun toolLabel(name: String): String {
         return when (name) {
+            // The server is still moving off "sql" toward split sql_query/sql_execute
+            // names, but this branch stays forever: stored chat transcripts replay
+            // historic tool calls under that name.
             "sql" -> toolSql
+            "sql_query" -> toolSqlQuery
+            "sql_execute" -> toolSqlExecute
+            "list_workspaces" -> toolListWorkspaces
+            "get_guide" -> toolGetGuide
+            "next_review_card" -> toolNextReviewCard
+            "reveal_answer" -> toolRevealAnswer
+            "submit_review" -> toolSubmitReview
             "code_execution", "code_interpreter" -> toolCodeExecution
             "add_generated_image_to_card" -> toolGeneratedCardImage
             "web_search" -> toolWebSearch
@@ -248,6 +265,13 @@ fun aiTextProvider(context: Context): AiTextProvider {
         filesSettingsTitle = context.getString(R.string.ai_alert_files_title),
         filesSettingsMessage = context.getString(R.string.ai_alert_files_message),
         toolSql = context.getString(R.string.ai_tool_sql),
+        toolSqlQuery = context.getString(R.string.ai_tool_sql_query),
+        toolSqlExecute = context.getString(R.string.ai_tool_sql_execute),
+        toolListWorkspaces = context.getString(R.string.ai_tool_list_workspaces),
+        toolGetGuide = context.getString(R.string.ai_tool_get_guide),
+        toolNextReviewCard = context.getString(R.string.ai_tool_next_review_card),
+        toolRevealAnswer = context.getString(R.string.ai_tool_reveal_answer),
+        toolSubmitReview = context.getString(R.string.ai_tool_submit_review),
         toolCodeExecution = context.getString(R.string.ai_tool_code_execution),
         toolGeneratedCardImage = context.getString(R.string.ai_tool_generated_card_image),
         toolWebSearch = context.getString(R.string.ai_tool_web_search),
@@ -317,6 +341,13 @@ fun testAiTextProvider(): AiTextProvider {
         filesSettingsTitle = "File access needed",
         filesSettingsMessage = "File access is turned off for Flashcards Open Source App. Open Settings to allow it.",
         toolSql = "SQL",
+        toolSqlQuery = "SQL query",
+        toolSqlExecute = "SQL write",
+        toolListWorkspaces = "List workspaces",
+        toolGetGuide = "Get guide",
+        toolNextReviewCard = "Next review card",
+        toolRevealAnswer = "Reveal answer",
+        toolSubmitReview = "Submit review",
         toolCodeExecution = "Code execution",
         toolGeneratedCardImage = "Generate card image",
         toolWebSearch = "Web search",
