@@ -18,10 +18,25 @@ type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
  */
 export function formatToolLabel(name: string, t: Translate): string {
   if (name === "sql") return t("chatMessageContent.toolLabels.sql");
+  if (name === "sql_query") return t("chatMessageContent.toolLabels.sqlQuery");
+  if (name === "sql_execute") return t("chatMessageContent.toolLabels.sqlExecute");
+  if (name === "list_workspaces") return t("chatMessageContent.toolLabels.listWorkspaces");
+  if (name === "get_guide") return t("chatMessageContent.toolLabels.getGuide");
+  if (name === "next_review_card") return t("chatMessageContent.toolLabels.nextReviewCard");
+  if (name === "reveal_answer") return t("chatMessageContent.toolLabels.revealAnswer");
+  if (name === "submit_review") return t("chatMessageContent.toolLabels.submitReview");
   if (name === "code_execution" || name === "code_interpreter") return t("chatMessageContent.toolLabels.codeExecution");
   if (name === "add_generated_image_to_card") return t("chatMessageContent.toolLabels.generatedCardImage");
   if (name === "web_search") return t("chatMessageContent.toolLabels.webSearch");
   return name;
+}
+
+/**
+ * The SQL tools all take their statement in the same JSON `sql` field, so the
+ * transcript previews the statement itself instead of the raw JSON envelope.
+ */
+function isSqlToolName(name: string): boolean {
+  return name === "sql" || name === "sql_query" || name === "sql_execute";
 }
 
 /**
@@ -38,7 +53,7 @@ function extractToolCallPreview(name: string, input: string | null): string | nu
     return null;
   }
 
-  if (name !== "sql") {
+  if (isSqlToolName(name) === false) {
     return input;
   }
 
