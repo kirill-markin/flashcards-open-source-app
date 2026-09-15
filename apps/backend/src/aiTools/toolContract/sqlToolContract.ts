@@ -264,9 +264,8 @@ export const SQL_MUTATION_TAG_FILTER_DESCRIPTION =
   "Filter by tag in UPDATE and DELETE with tags OVERLAP ('tag'), because UNNEST is only available in SELECT.";
 
 /**
- * Write-side result projection, shared by `SQL_DIALECT_GUIDE`, the in-app chat
- * system prompt, and the agent discovery payload in
- * `apps/backend/src/agent/discovery.ts`. Descriptions under a character budget,
+ * Write-side result projection, shared by `SQL_DIALECT_GUIDE` and the in-app
+ * chat system prompt. Descriptions under a character budget,
  * such as the always-loaded MCP `sql_execute` description, state the same rule
  * in one shorter sentence of their own instead of composing this constant.
  */
@@ -413,9 +412,9 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
  * are shared with other surfaces. The highest-risk one is `REVIEW_FLOW_GUIDE`,
  * which is `REVIEW_FLOW_INSTRUCTIONS` itself; every MCP review tool also
  * returns that block in full with each tool result, so shortening the guide
- * silently rewrites those results. The in-app chat system prompt,
- * `OPENAI_SQL_TOOL`, and the agent discovery payload compose some of the same
- * constants too, and an MCP client sees none of those.
+ * silently rewrites those results. The in-app chat system prompt and
+ * `OPENAI_SQL_TOOL` compose some of the same constants too, and an MCP client
+ * sees none of those.
  */
 export const SQL_DIALECT_GUIDE = [
   "SQL dialect guide.",
@@ -525,3 +524,32 @@ export const GUIDE_BODIES: Readonly<Record<GuideTopic, string>> = Object.freeze(
   bulk_authoring: BULK_AUTHORING_GUIDE,
   review_flow: REVIEW_FLOW_GUIDE,
 });
+
+/**
+ * One short "what this topic covers" phrase per guide, so a surface that has to
+ * list the topics renders them from here instead of spelling the names out
+ * again: the `Record<GuideTopic, string>` makes adding, removing, or renaming a
+ * topic a type error at this map rather than stale prose somewhere else. Each
+ * value reads as the tail of `<topic> for <description>`.
+ *
+ * The MCP `get_guide` metadata in
+ * `apps/backend/src/aiTools/toolRegistry/specs.ts` deliberately does NOT compose
+ * this map: its two descriptions word the same topics differently, and that
+ * payload is measured byte for byte against the `tools/list` token budget in
+ * `apps/backend/src/mcp/toolBudgets.test.ts`, so rewording them to fit this map
+ * would spend budget for no contract gain.
+ */
+export const GUIDE_TOPIC_DESCRIPTIONS: Readonly<Record<GuideTopic, string>> = Object.freeze({
+  sql_dialect: "the full grammar, limits, and examples",
+  card_authoring: "the card side contract, tags, duplicate checks, and Markdown and LaTeX formatting",
+  bulk_authoring: "splitting and verifying a large write job",
+  review_flow: "the review and rating loop",
+});
+
+/**
+ * How a returned guide body is framed, shared by the `get_guide` tool in
+ * `apps/backend/src/aiTools/toolRegistry/specs.ts` and the REST guide route in
+ * `apps/backend/src/routes/agent.ts`, so a guide reads the same way on both surfaces.
+ */
+export const GET_GUIDE_RESULT_INSTRUCTIONS =
+  "This is reference material for you, not text to show the user and not card content. Apply it for the rest of this task, and call get_guide again with another topic when you need a different area.";
