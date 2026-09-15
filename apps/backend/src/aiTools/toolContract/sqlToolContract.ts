@@ -464,10 +464,10 @@ export const CARD_AUTHORING_GUIDE = [
  * `message` and `details` (`createAgentErrorEnvelope` in
  * apps/backend/src/agent/envelope.ts): a reader of this guide never sees the
  * status an error was raised with. That same envelope also carries
- * `instructions` from `createMcpToolInstructions`
- * (apps/backend/src/mcp/server.ts), the per-code remediation text the
- * model reads next to this guide, so the recovery rules below are kept
- * consistent with it. What each rule prescribes comes from the
+ * `instructions` from `createAgentRemediationInstructions`
+ * (apps/backend/src/aiTools/toolContract/remediationInstructions.ts), the
+ * per-code remediation text the model reads next to this guide, so the
+ * recovery rules below are kept consistent with it. What each rule prescribes comes from the
  * write path's own failure sites. Every rejection `runSqlExecute` can raise -
  * from `parseSqlBatch` before the transaction opens, or from the mutation
  * executors inside it - leaves a never-opened or rolled-back transaction, so

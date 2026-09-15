@@ -3,6 +3,7 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/
 import { nextReviewCard, revealAnswer, submitAgentReview } from "../agent/reviews";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
+import { createAgentRemediationInstructions } from "../aiTools/toolContract/remediationInstructions";
 import {
   SQL_EXECUTE_TOOL_NAME,
   SQL_QUERY_TOOL_NAME,
@@ -214,50 +215,6 @@ function buildToolResult(payload: unknown): CallToolResult {
   };
 }
 
-/**
- * MCP-surface remediation instructions. Unlike the HTTP agent surface
- * (`createAgentInstructions` in apps/backend/src/server/app.ts), an MCP client
- * authenticates via an OAuth Bearer token and invokes tools rather than HTTP agent routes: it cannot set an `ApiKey`
- * Authorization header or call any `/v1/agent/*` route. So this phrases every
- * remediation in terms the MCP client can act on (re-call the same tool, or
- * re-authorize the connector) instead of pointing at HTTP endpoints and ApiKey
- * auth it has no way to use. `toolName` names the failing tool so the model
- * retries the correct one.
- */
-function createMcpToolInstructions(code: string | null, statusCode: number, toolName: string): string {
-  switch (code) {
-    case "QUERY_INVALID_SQL":
-    case "QUERY_UNSUPPORTED_SYNTAX":
-      // Name get_guide here as well as in its own description: this is the
-      // moment the model needs the dialect, and the tool description it would
-      // have to recall that from was loaded long before the failing call.
-      return `Fix the sql string using error.message and any error.details.validationIssues, then call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`;
-    case "WORKSPACE_SELECTION_REQUIRED":
-      return `This connection has no selected workspace. Call the list_workspaces tool to see the workspaces you can access (also embedded under error.details.workspaces when available), then call the ${toolName} tool again with the workspaceId argument set to the one you want.`;
-    case "REVIEW_STALE":
-      return "The card's stored review time is at or after the current server time, so the scheduler cannot move forward from it. Reloading the card does not clear that; explain the conflict and review another card instead of submitting a rating for this one.";
-    case "REVIEW_EVENT_CONFLICT":
-      return "This review was already recorded, so nothing was stored again. Read the card's current schedule from error.details.reviewSchedule and move on; use a new reviewId only for a new learner review.";
-    case "DATABASE_COMMIT_OUTCOME_UNKNOWN":
-      if (toolName === "submit_review") {
-        return "Retry submit_review with the identical workspaceId, reviewId, rating, and cardId. Do not advance until the result is confirmed.";
-      }
-      return `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call sql_query with a SELECT to check whether the change already applied, and only call the ${toolName} tool again if the change is confirmed absent.`;
-    case "SERVICE_UNAVAILABLE":
-      return `The service is temporarily unavailable. Retry the same ${toolName} tool call after a short delay without changing the request.`;
-  }
-
-  if (statusCode >= 500) {
-    return `Retry the ${toolName} tool once; if it fails again treat it as a server-side error and stop changing the request.`;
-  }
-
-  if (statusCode >= 400) {
-    return `Fix the request using error.message and any error.details.validationIssues, then call the ${toolName} tool again.`;
-  }
-
-  return `Fix the request using error.message and any error.details.validationIssues, then call the ${toolName} tool again.`;
-}
-
 // Loads the caller's accessible workspaces (with stats) to embed under
 // `error.details.workspaces` on WORKSPACE_SELECTION_REQUIRED.
 async function buildWorkspaceSelectionDetails(
@@ -342,7 +299,7 @@ async function buildToolErrorResult(
       resourceUrl,
       code,
       error.message,
-      createMcpToolInstructions(error.code, error.statusCode, toolName),
+      createAgentRemediationInstructions(error.code, error.statusCode, { surface: "mcp", toolName }),
       undefined,
       createPublicHttpErrorDetails(error.details) ?? undefined,
     );
@@ -450,7 +407,7 @@ async function buildToolErrorResult(
         resourceUrl,
         "INTERNAL_ERROR",
         "Internal error executing tool",
-        createMcpToolInstructions("INTERNAL_ERROR", 500, toolName),
+        createAgentRemediationInstructions("INTERNAL_ERROR", 500, { surface: "mcp", toolName }),
       ),
     ).content,
   };
