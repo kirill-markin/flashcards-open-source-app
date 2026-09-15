@@ -39,7 +39,6 @@ export type GeneratedCardImageResult = Readonly<{
 }>;
 
 export type GeneratedCardImageOperationMetadata = Readonly<{
-  identityKind: "chat_run" | "request_content";
   operationId: string;
   mediaAssetId: string;
   mediaLastOperationId: string;
