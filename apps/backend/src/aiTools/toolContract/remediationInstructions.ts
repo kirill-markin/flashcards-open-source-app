@@ -133,11 +133,11 @@ const CHAT_FIX_REQUEST_PREFIX = "Fix the arguments using error.message and any d
 const MEANING_WORDING: Readonly<Record<RemediationMeaning, MeaningWording>> = {
   sql_rejected: {
     rest: () => `${FIX_SQL_PREFIX}retry the same endpoint: POST /v1/agent/sql/query for reads or POST /v1/agent/sql/execute for writes. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.`,
-    // Name get_guide here as well as in its own description: this is the moment the model needs
-    // the dialect, and the tool description it would have to recall that from was loaded long
-    // before the failing call. The chat has no get_guide tool to send it to.
+    // Name get_guide on both tool surfaces as well as in its own description: this is the moment
+    // the model needs the dialect, and the tool description it would have to recall that from was
+    // loaded long before the failing call.
     mcp: ({ toolName }) => `${FIX_SQL_PREFIX}call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`,
-    chat: ({ toolName }) => `${CHAT_FIX_SQL_PREFIX}call the ${toolName} tool again.`,
+    chat: ({ toolName }) => `${CHAT_FIX_SQL_PREFIX}call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`,
   },
   // The chat runs against the workspace its session is bound to and has no workspace tool, so it
   // never reaches this meaning and words nothing for it.
