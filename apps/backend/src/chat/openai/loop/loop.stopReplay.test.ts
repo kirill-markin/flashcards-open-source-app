@@ -198,13 +198,17 @@ test("generated-image boundary failures stop the loop without advancing the ordi
     new TransientDatabaseHttpError(
       new Error("Database connection was unavailable."),
     ),
-    new GeneratedCardImageProviderOutcomeUnknownError(
-      "11111111-1111-4111-8111-111111111111",
-      "generated-image:1",
-    ),
+    new GeneratedCardImageProviderOutcomeUnknownError({
+      identityKind: "chat_run",
+      runId: "11111111-1111-4111-8111-111111111111",
+      operationKey: "generated-image:1",
+    }),
     new GeneratedCardImageStagingOutcomeUnknownError(
-      "11111111-1111-4111-8111-111111111111",
-      "generated-image:1",
+      {
+        identityKind: "chat_run",
+        runId: "11111111-1111-4111-8111-111111111111",
+        operationKey: "generated-image:1",
+      },
       new GeneratedMediaPromotionStorageTransientError(503),
     ),
     new OpenAIImageGenerationResponseError(
