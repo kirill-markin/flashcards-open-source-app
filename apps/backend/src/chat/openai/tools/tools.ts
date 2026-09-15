@@ -29,6 +29,7 @@ import {
 } from "../../../aiTools/agentSql/shared";
 import { createAgentRemediationInstructions } from "../../../aiTools/toolContract/remediationInstructions";
 import {
+  GUIDE_TOPICS,
   OPENAI_SQL_TOOL,
   SQL_TOOL_ARGUMENT_VALIDATOR,
   SQL_TOOL_NAME,
@@ -37,7 +38,9 @@ import { unboundAgentToolAction } from "../../../aiTools/toolRegistry/actions";
 import {
   findAgentToolSpecForSurface,
   listAgentToolSpecsForSurface,
+  GET_GUIDE_TOOL_SPEC,
   SQL_CHAT_TOOL_SPEC,
+  type AgentGuidePayload,
 } from "../../../aiTools/toolRegistry/specs";
 import type { AgentToolContext, AgentToolSpec } from "../../../aiTools/toolRegistry/types";
 import { generateCardImage, type GeneratedCardImageObservationContext } from "../../cardImages";
@@ -106,6 +109,14 @@ export type ExecutedChatToolCall = Readonly<{
   stopReason: "deadline_reached" | "run_inactive" | null;
   generatedImageTelemetry: GeneratedImageToolTelemetry | null;
   sqlTelemetry: SqlToolTelemetry | null;
+  /**
+   * The error class of a failed call whose tool reports no SQL telemetry, so such a failure still
+   * names its cause in the exported metadata and still marks its observation. The SQL tool reports
+   * its class inside `sqlTelemetry` and leaves this null; the generated-image tool leaves it null
+   * on purpose, because it returns expected product outcomes such as `limit_reached` through the
+   * same error envelope and exports those as its own status instead.
+   */
+  toolErrorClass: string | null;
 }>;
 
 export type OpenAIToolDependencies = Readonly<{
@@ -141,7 +152,8 @@ type ToolErrorPayload = Readonly<{
   }>;
   /** What to do about the failure, from the shared per-code remediation module. */
   instructions: string;
-  sql: string | null;
+  /** The statement the failed call was asked to run; absent on a tool that runs none. */
+  sql?: string | null;
   code?: string;
   details?: unknown;
 }>;
@@ -396,11 +408,11 @@ function createToolSuccessResult(payload: SqlToolSuccessPayload): string {
   return capSerializedEnvelope(envelope, "data");
 }
 
-function createToolErrorResult(payload: ToolErrorPayload): string {
+function createToolErrorResult(toolName: string, payload: ToolErrorPayload): string {
   return capSerializedEnvelope(
     {
       ok: false,
-      tool: SQL_TOOL_NAME,
+      tool: toolName,
       ...payload,
     },
     "details",
@@ -487,19 +499,115 @@ function getSqlDialectReason(error: unknown): string | null {
 }
 
 /**
+ * The topic enum is spelled from `GUIDE_TOPICS`, so a topic added to the registry reaches this
+ * surface with it. The parameter carries no description on purpose: the tool description already
+ * names what each topic covers, and every character of both is re-sent on every model call of a
+ * turn, which is the cost this tool exists to remove.
+ */
+const OPENAI_GET_GUIDE_TOOL: OpenAI.Responses.FunctionTool = {
+  type: "function",
+  name: GET_GUIDE_TOOL_SPEC.name,
+  description: GET_GUIDE_TOOL_SPEC.description,
+  strict: false,
+  parameters: {
+    type: "object",
+    properties: {
+      topic: {
+        type: "string",
+        enum: [...GUIDE_TOPICS],
+      },
+    },
+    required: ["topic"],
+    additionalProperties: false,
+  },
+};
+
+/**
  * How each registry tool is advertised to OpenAI. The JSON Schema stays hand-written rather than
  * derived from the spec's zod schema so the payload the provider receives is exactly what it is;
  * the name and description come from the spec, which is the single inventory both surfaces read.
+ * Hand-written is not unchecked: `requireChatFunctionTool` compares the two at module load.
  */
 const CHAT_FUNCTION_TOOLS: Readonly<Record<string, OpenAI.Responses.FunctionTool | undefined>> = {
   [SQL_CHAT_TOOL_SPEC.name]: OPENAI_SQL_TOOL,
+  [GET_GUIDE_TOOL_SPEC.name]: OPENAI_GET_GUIDE_TOOL,
 };
 
-function requireChatFunctionTool(toolName: string): OpenAI.Responses.FunctionTool {
-  const functionTool = CHAT_FUNCTION_TOOLS[toolName];
+/**
+ * The argument names and the required list of one hand-written schema, read the way the provider
+ * reads them.
+ */
+function readAdvertisedSchemaKeys(
+  parameters: OpenAI.Responses.FunctionTool["parameters"],
+): Readonly<{ properties: ReadonlyArray<string>; required: ReadonlyArray<string> }> {
+  const properties = parameters?.properties;
+  const required = parameters?.required;
+  return {
+    properties: typeof properties === "object" && properties !== null ? Object.keys(properties) : [],
+    required: Array.isArray(required)
+      ? required.filter((entry): entry is string => typeof entry === "string")
+      : [],
+  };
+}
+
+/**
+ * The same two facts read off the spec's own schema. Requiredness comes from what that schema does
+ * with `{}` - one issue per argument a call cannot omit - rather than from a zod internal, so it
+ * stays whatever the tool actually rejects.
+ */
+function readSpecSchemaKeys(
+  spec: AgentToolSpec,
+): Readonly<{ properties: ReadonlyArray<string>; required: ReadonlyArray<string> }> {
+  const inputSchema = spec.inputSchema;
+  if (!(inputSchema instanceof z.ZodObject)) {
+    throw new Error(
+      `Tool ${spec.name} is listed for the chat surface but does not declare an object input schema.`,
+    );
+  }
+
+  const parsedEmptyObject = inputSchema.safeParse({});
+  return {
+    properties: Object.keys(inputSchema.shape),
+    required: parsedEmptyObject.success
+      ? []
+      : Array.from(new Set(
+        parsedEmptyObject.error.issues
+          .map((issue) => issue.path[0])
+          .filter((key): key is string => typeof key === "string"),
+      )),
+  };
+}
+
+function toComparableKeyList(keys: ReadonlyArray<string>): string {
+  return [...keys].sort().join(", ");
+}
+
+/**
+ * Resolves the hand-written metadata of one chat tool and fails at module load when it disagrees
+ * with the spec about the argument set or about which arguments are required.
+ *
+ * The specs are co-owned with MCP, so an argument added there - the MCP SQL specs already grew an
+ * optional `workspaceId` - would otherwise reach the chat model as something else: an added
+ * optional argument would be invisible to it, and an added required one would fail every call
+ * inside the spec's own parse against a schema the model was never shown. Property types stay
+ * unguarded; the one enum that could drift is spread from `GUIDE_TOPICS`.
+ */
+function requireChatFunctionTool(spec: AgentToolSpec): OpenAI.Responses.FunctionTool {
+  const functionTool = CHAT_FUNCTION_TOOLS[spec.name];
   if (functionTool === undefined) {
     throw new Error(
-      `Tool ${toolName} is listed for the chat surface but carries no OpenAI function-tool metadata.`,
+      `Tool ${spec.name} is listed for the chat surface but carries no OpenAI function-tool metadata.`,
+    );
+  }
+
+  const advertised = readAdvertisedSchemaKeys(functionTool.parameters);
+  const declared = readSpecSchemaKeys(spec);
+  if (
+    toComparableKeyList(advertised.properties) !== toComparableKeyList(declared.properties)
+    || toComparableKeyList(advertised.required) !== toComparableKeyList(declared.required)
+  ) {
+    throw new Error(
+      `Tool ${spec.name} is advertised to OpenAI with arguments (${toComparableKeyList(advertised.properties)}) of which (${toComparableKeyList(advertised.required)}) are required, while its registry spec declares arguments (${toComparableKeyList(declared.properties)}) of which (${toComparableKeyList(declared.required)}) are required.`,
     );
   }
 
@@ -507,7 +615,7 @@ function requireChatFunctionTool(toolName: string): OpenAI.Responses.FunctionToo
 }
 
 export const OPENAI_CHAT_TOOLS: ReadonlyArray<OpenAI.Responses.FunctionTool> =
-  listAgentToolSpecsForSurface("chat").map((spec) => requireChatFunctionTool(spec.name));
+  listAgentToolSpecsForSurface("chat").map((spec) => requireChatFunctionTool(spec));
 
 const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
   executeAgentSql,
@@ -528,7 +636,10 @@ export function buildOpenAIChatTools(
 }
 
 type GeneratedImageExecutionState =
-  Omit<ExecutedChatToolCall, "output" | "generatedImageTelemetry" | "sqlTelemetry"> & Readonly<{
+  Omit<
+    ExecutedChatToolCall,
+    "output" | "generatedImageTelemetry" | "sqlTelemetry" | "toolErrorClass"
+  > & Readonly<{
     attempt: number | null;
     status: string;
   }>;
@@ -543,6 +654,7 @@ function createGeneratedImageResult(
     ...executionResult,
     generatedImageTelemetry: { attempt, status },
     sqlTelemetry: null,
+    toolErrorClass: null,
   };
 }
 
@@ -803,8 +915,9 @@ function buildChatAgentToolContext(
     sqlSurface: "chat-tool",
     resolveWorkspaceId: async () => context.workspaceId,
     actions: {
-      // The chat's single SQL tool is the only registry tool it registers, so every other action is
-      // named as unbound: giving the chat one of those tools has to inject its action here first.
+      // The chat's SQL tool is the only registry tool it registers that reaches an action, since a
+      // guide is static text, so every other action is named as unbound: giving the chat one of
+      // those tools has to inject its action here first.
       runSqlQuery: unboundAgentToolAction("runSqlQuery", "chat"),
       runSqlExecute: unboundAgentToolAction("runSqlExecute", "chat"),
       executeAgentSql: async (sqlContext, sql) => dependencies.executeAgentSql(
@@ -859,6 +972,7 @@ async function executeSqlChatToolCall(
       shouldInvalidateMainContent: isMutating,
       stopReason: null,
       generatedImageTelemetry: null,
+      toolErrorClass: null,
       sqlTelemetry: {
         succeeded: true,
         errorCode: null,
@@ -891,12 +1005,13 @@ async function executeSqlChatToolCall(
       };
 
     return {
-      output: createToolErrorResult(payload),
+      output: createToolErrorResult(spec.name, payload),
       isMutating,
       succeeded: false,
       shouldInvalidateMainContent: false,
       stopReason: null,
       generatedImageTelemetry: null,
+      toolErrorClass: null,
       sqlTelemetry: {
         succeeded: false,
         errorCode: error instanceof HttpError ? error.code : null,
@@ -907,6 +1022,66 @@ async function executeSqlChatToolCall(
         rowOrAffectedCount: null,
         durationMs: Date.now() - startedAt,
       },
+    };
+  }
+}
+
+/**
+ * Turns one registry `get_guide` call into a chat tool-call result, in the same
+ * `{ ok, tool, data, instructions }` envelope the SQL tool returns. A guide is static reference
+ * text, so the call reads no workspace data, writes nothing, and carries no SQL telemetry.
+ *
+ * A topic the schema rejects comes back as the same `{ ok: false }` envelope a failed SQL call
+ * returns rather than as a throw, because a thrown tool call ends the run: the model repairs its
+ * arguments and continues on its own remediation instructions instead.
+ */
+async function executeGetGuideChatToolCall(
+  spec: AgentToolSpec<AgentGuidePayload>,
+  rawArguments: string,
+  context: OpenAIToolContext,
+  dependencies: OpenAIToolDependencies,
+): Promise<ExecutedChatToolCall> {
+  try {
+    const result = await spec.execute(
+      buildChatAgentToolContext(context, dependencies),
+      JSON.parse(rawArguments),
+    );
+
+    return {
+      output: capSerializedEnvelope(
+        {
+          ok: true,
+          tool: spec.name,
+          data: result.data,
+          instructions: result.instructions,
+        },
+        "data",
+      ),
+      isMutating: false,
+      succeeded: true,
+      shouldInvalidateMainContent: false,
+      stopReason: null,
+      generatedImageTelemetry: null,
+      sqlTelemetry: null,
+      toolErrorClass: null,
+    };
+  } catch (error) {
+    return {
+      output: createToolErrorResult(spec.name, {
+        error: serializeToolError(error),
+        instructions: createAgentRemediationInstructions(
+          error instanceof HttpError ? error.code : null,
+          getChatToolFailureStatusCode(error),
+          { surface: "chat", toolName: spec.name },
+        ),
+      }),
+      isMutating: false,
+      succeeded: false,
+      shouldInvalidateMainContent: false,
+      stopReason: null,
+      generatedImageTelemetry: null,
+      sqlTelemetry: null,
+      toolErrorClass: serializeToolError(error).name,
     };
   }
 }
@@ -925,6 +1100,8 @@ type ChatToolRunner = (
 const CHAT_TOOL_RUNNERS: Readonly<Record<string, ChatToolRunner | undefined>> = {
   [SQL_CHAT_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
     executeSqlChatToolCall(SQL_CHAT_TOOL_SPEC, rawArguments, context, dependencies),
+  [GET_GUIDE_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
+    executeGetGuideChatToolCall(GET_GUIDE_TOOL_SPEC, rawArguments, context, dependencies),
 };
 
 function requireChatToolRunner(toolName: string): ChatToolRunner {
