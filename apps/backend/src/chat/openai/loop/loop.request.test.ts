@@ -63,7 +63,7 @@ test("startOpenAILoopWithDeps sends a hashed safety identifier on the initial mo
   assert.deepEqual((requests[0]?.tools ?? []).flatMap(
     (tool) => tool.type === "function" ? [tool.name] : [],
   ), [
-    "sql", "get_guide", "add_generated_image_to_card",
+    "sql", "list_workspaces", "get_guide", "add_generated_image_to_card",
   ]);
   assert.equal(requests[0].parallel_tool_calls, false);
   assert.equal(Object.hasOwn(requests[0], "user"), false);
@@ -100,7 +100,7 @@ test("startOpenAILoopWithDeps uses the persisted runtime model and reasoning eff
   assert.equal(requests[0].reasoning?.effort, "high");
   assert.deepEqual((requests[0]?.tools ?? []).flatMap(
     (tool) => tool.type === "function" ? [tool.name] : [],
-  ), ["sql", "get_guide"]);
+  ), ["sql", "list_workspaces", "get_guide"]);
   assert.equal(Object.hasOwn(requests[0], "parallel_tool_calls"), false);
   assert.doesNotMatch(getSystemInstructions(requests[0]), /Generated-image policy:/u);
   assert.match(

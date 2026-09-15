@@ -147,6 +147,12 @@ test("generated-image dependency races surface cancellation to the runtime termi
                 throw new Error("SQL was not expected.");
               },
               createToolDependencies: () => DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
+              resolveAccessibleChatWorkspaceId: async () => {
+                throw new Error("Workspace resolution was not expected.");
+              },
+              listUserWorkspacesWithStatsForSelectedWorkspace: async () => {
+                throw new Error("Workspace listing was not expected.");
+              },
               reserveGeneratedCardImageAttempt: async () => ({
                 status: "reserved",
                 attempt: 1,
