@@ -16,6 +16,12 @@ import {
   loadAgentWorkspaceReplicaIdForSetup,
 } from "../agent/setup";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
+import {
+  GET_GUIDE_RESULT_INSTRUCTIONS,
+  GUIDE_BODIES,
+  GUIDE_TOPICS,
+  type GuideTopic,
+} from "../aiTools/toolContract/sqlToolContract";
 import { createSourceDiscoveryResponse } from "../shared/sourceDiscovery";
 import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../shared/pagination";
 import {
@@ -96,6 +102,20 @@ function parseSqlBody(value: unknown): Readonly<{
   };
 }
 
+/** The supported topics are static, so an unknown one is a correctable request rather than a
+ * missing resource: answer 400 and name the whole list so the caller can retry immediately. */
+function parseGuideTopicParam(value: string | undefined): GuideTopic {
+  const topic = GUIDE_TOPICS.find((guideTopic) => guideTopic === value);
+  if (topic === undefined) {
+    throw new HttpError(
+      400,
+      `Unsupported guide topic: ${value ?? "(missing)"}. Supported topics: ${GUIDE_TOPICS.join(", ")}`,
+    );
+  }
+
+  return topic;
+}
+
 async function loadAgentRequest(
   request: Request,
   allowedOrigins: ReadonlyArray<string>,
@@ -165,6 +185,16 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
     const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
     const workspace = await selectWorkspaceForApiKeyConnection(requestContext.userId, connectionId, workspaceId);
     return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace));
+  });
+
+  app.get("/agent/guide/:topic", async (context) => {
+    await loadAgentRequest(context.req.raw, options.allowedOrigins);
+    const topic = parseGuideTopicParam(context.req.param("topic"));
+    return context.json(createAgentEnvelope(
+      context.req.url,
+      { topic, guide: GUIDE_BODIES[topic] },
+      GET_GUIDE_RESULT_INSTRUCTIONS,
+    ));
   });
 
   app.post("/agent/sql/query", async (context) => {

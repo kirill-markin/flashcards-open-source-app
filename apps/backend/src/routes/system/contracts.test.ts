@@ -468,13 +468,24 @@ test("API Gateway proxy forwards /me/progress/leaderboards/profiles/{publicProfi
 });
 
 
-test("agent discovery advertises the dedicated conversational review surface", () => {
+test("agent discovery advertises the conversational review surface and the guide route that carries its contract", () => {
   const discovery = createAgentDiscoveryEnvelope(testAgentRequestUrl);
   const base = "https://api.flashcards-open-source-app.com/v1/agent/reviews";
   assert.equal(discovery.data.surface.nextReviewCardUrl, `${base}/next`);
   assert.equal(discovery.data.surface.revealAnswerUrl, `${base}/reveal`);
   assert.equal(discovery.data.surface.submitReviewUrl, `${base}/submit`);
-  assert.match(discovery.instructions, /reviewId/);
-  assert.match(discovery.instructions, /perfectly remembered/);
+  // The review contract itself no longer sits in the discovery paragraph: discovery routes to the
+  // guide route instead, so the route and that routing are what stays pinned here. The topic names
+  // are rendered from GUIDE_TOPIC_DESCRIPTIONS, so a rename is a type error at that map and needs no
+  // assertion; the last match only pins that the rendered clause reaches the paragraph at all.
+  assert.equal(
+    discovery.data.surface.guideUrlTemplate,
+    "https://api.flashcards-open-source-app.com/v1/agent/guide/{topic}",
+  );
+  assert.match(
+    discovery.instructions,
+    /GET https:\/\/api\.flashcards-open-source-app\.com\/v1\/agent\/guide\/\{topic\}/,
+  );
+  assert.match(discovery.instructions, /\breview_flow for /);
   assert.match(discovery.data.mcp.description, /submit_review/);
 });
