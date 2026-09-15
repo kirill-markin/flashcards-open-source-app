@@ -88,6 +88,13 @@
 "ai.tool.label.codeExecution" = "تنفيذ التعليمات البرمجية";
 "ai.tool.label.generatedCardImage" = "إنشاء صورة للبطاقة";
 "ai.tool.label.webSearch" = "بحث الويب";
+"ai.tool.label.sqlQuery" = "استعلام SQL";
+"ai.tool.label.sqlExecute" = "كتابة SQL";
+"ai.tool.label.listWorkspaces" = "عرض مساحات العمل";
+"ai.tool.label.getGuide" = "عرض الدليل";
+"ai.tool.label.nextReviewCard" = "بطاقة المراجعة التالية";
+"ai.tool.label.revealAnswer" = "إظهار الإجابة";
+"ai.tool.label.submitReview" = "إرسال المراجعة";
 "ai.tool.section.request" = "التطبيق";
 "ai.tool.section.response" = "الإجابة";
 "ai.tool.copy.request" = "طلب نسخ";
