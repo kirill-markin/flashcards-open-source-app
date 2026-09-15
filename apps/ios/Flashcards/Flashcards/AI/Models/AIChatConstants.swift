@@ -35,6 +35,13 @@ let aiChatSupportedFileExtensions: Set<String> = [
 ]
 let aiChatToolNames: Set<String> = [
     "sql",
+    "sql_query",
+    "sql_execute",
+    "list_workspaces",
+    "get_guide",
+    "next_review_card",
+    "reveal_answer",
+    "submit_review",
 ]
 let aiChatExternalProviderDisclosureItems: [String] = [
     "Typed prompts and card-derived context needed for your request can be sent to the hosted AI service.",

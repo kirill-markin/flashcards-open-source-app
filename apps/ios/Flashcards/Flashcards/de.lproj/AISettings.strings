@@ -88,6 +88,13 @@
 "ai.tool.label.codeExecution" = "Codeausführung";
 "ai.tool.label.generatedCardImage" = "Kartenbild erstellen";
 "ai.tool.label.webSearch" = "Websuche";
+"ai.tool.label.sqlQuery" = "SQL-Abfrage";
+"ai.tool.label.sqlExecute" = "SQL-Schreiben";
+"ai.tool.label.listWorkspaces" = "Arbeitsbereiche auflisten";
+"ai.tool.label.getGuide" = "Anleitung abrufen";
+"ai.tool.label.nextReviewCard" = "Nächste Wiederholungskarte";
+"ai.tool.label.revealAnswer" = "Antwort anzeigen";
+"ai.tool.label.submitReview" = "Wiederholung senden";
 "ai.tool.section.request" = "Anwendung";
 "ai.tool.section.response" = "Antwort";
 "ai.tool.copy.request" = "Kopieranforderung";

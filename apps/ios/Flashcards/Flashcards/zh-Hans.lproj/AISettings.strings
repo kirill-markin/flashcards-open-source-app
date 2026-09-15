@@ -88,6 +88,13 @@
 "ai.tool.label.codeExecution" = "代码执行";
 "ai.tool.label.generatedCardImage" = "生成卡片图片";
 "ai.tool.label.webSearch" = "网页搜索";
+"ai.tool.label.sqlQuery" = "SQL 查询";
+"ai.tool.label.sqlExecute" = "SQL 写入";
+"ai.tool.label.listWorkspaces" = "列出工作空间";
+"ai.tool.label.getGuide" = "获取指南";
+"ai.tool.label.nextReviewCard" = "下一张复习卡片";
+"ai.tool.label.revealAnswer" = "显示答案";
+"ai.tool.label.submitReview" = "提交复习";
 "ai.tool.section.request" = "应用";
 "ai.tool.section.response" = "答案";
 "ai.tool.copy.request" = "复制请求";
