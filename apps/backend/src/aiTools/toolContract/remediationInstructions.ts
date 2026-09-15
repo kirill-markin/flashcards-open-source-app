@@ -94,6 +94,7 @@ type ToolWording = (context: ToolRemediationContext) => string;
 type RemediationMeaning =
   | "sql_rejected"
   | "workspace_selection_required"
+  | "workspace_not_found"
   | "review_schedule_stale"
   | "review_already_recorded"
   | "commit_outcome_unknown"
@@ -103,6 +104,7 @@ const MEANING_BY_CODE: Readonly<Record<string, RemediationMeaning | undefined>> 
   QUERY_INVALID_SQL: "sql_rejected",
   QUERY_UNSUPPORTED_SYNTAX: "sql_rejected",
   WORKSPACE_SELECTION_REQUIRED: "workspace_selection_required",
+  WORKSPACE_NOT_FOUND: "workspace_not_found",
   REVIEW_STALE: "review_schedule_stale",
   REVIEW_EVENT_CONFLICT: "review_already_recorded",
   DATABASE_COMMIT_OUTCOME_UNKNOWN: "commit_outcome_unknown",
@@ -139,11 +141,16 @@ const MEANING_WORDING: Readonly<Record<RemediationMeaning, MeaningWording>> = {
     mcp: ({ toolName }) => `${FIX_SQL_PREFIX}call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`,
     chat: ({ toolName }) => `${CHAT_FIX_SQL_PREFIX}call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`,
   },
-  // The chat runs against the workspace its session is bound to and has no workspace tool, so it
-  // never reaches this meaning and words nothing for it.
+  // The chat resolves an omitted workspaceId to the workspace its session is bound to, which is
+  // never missing, so it never reaches this meaning and words nothing for it.
   workspace_selection_required: {
     rest: () => "Call GET /v1/agent/me, then GET /v1/agent/workspaces?limit=100. A first workspace is auto-provisioned for new users. If data.nextCursor is not null, continue with the same limit and cursor=data.nextCursor. If multiple workspaces exist, select one with POST /v1/agent/workspaces/{workspaceId}/select before calling POST /v1/agent/sql/query or POST /v1/agent/sql/execute.",
     mcp: ({ toolName }) => `This connection has no selected workspace. Call the list_workspaces tool to see the workspaces you can access (also embedded under error.details.workspaces when available), then call the ${toolName} tool again with the workspaceId argument set to the one you want.`,
+  },
+  // Only the chat words this: its generic 404 wording sends the model to look the id up with a
+  // SELECT in the open workspace, which cannot find a workspace.
+  workspace_not_found: {
+    chat: ({ toolName }) => `That workspace does not exist or this account cannot access it. Call list_workspaces, then call the ${toolName} tool again with a workspaceId it returned, or without workspaceId to use the workspace the user has open.`,
   },
   review_schedule_stale: {
     shared: "The card's stored review time is at or after the current server time, so the scheduler cannot move forward from it. Reloading the card does not clear that; explain the conflict and review another card instead of submitting a rating for this one.",

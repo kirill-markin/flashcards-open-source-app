@@ -1,5 +1,4 @@
 import type { FunctionTool } from "openai/resources/responses/responses";
-import { z } from "zod";
 import { REVIEW_FLOW_INSTRUCTIONS } from "../../agent/reviewContract";
 import { MAX_SQL_BATCH_STATEMENT_COUNT, MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
 
@@ -68,10 +67,6 @@ export const CARD_STYLE_ALIGNMENT_RULE_LINES = Object.freeze([
   "- Preserve patterns such as one-word fronts, topic-specific examples on backs, punctuation choices, sentence length, Markdown density, and tag style.",
   "- If similar cards conflict, prefer the pattern from the closest topic or deck and keep the proposed change simple.",
 ]);
-
-export const SQL_TOOL_ARGUMENT_VALIDATOR = z.object({
-  sql: z.string().trim().min(1),
-}).strict();
 
 /**
  * The read examples pulled out for descriptions under a character budget: one
@@ -395,6 +390,9 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
     type: "object",
     properties: {
       sql: {
+        type: "string",
+      },
+      workspaceId: {
         type: "string",
       },
     },

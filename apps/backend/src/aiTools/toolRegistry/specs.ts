@@ -20,7 +20,6 @@ import {
   SQL_EXECUTE_TOOL_NAME,
   SQL_QUERY_TOOL_DESCRIPTION,
   SQL_QUERY_TOOL_NAME,
-  SQL_TOOL_ARGUMENT_VALIDATOR,
   SQL_TOOL_DESCRIPTION,
   SQL_TOOL_NAME,
 } from "../toolContract/sqlToolContract";
@@ -170,16 +169,25 @@ const SQL_EXECUTE_TOOL_SPEC = defineAgentTool({
 });
 
 /**
- * The in-app chat's combined read+write SQL tool. It takes no workspaceId: a chat run is already
- * bound to one workspace, which its surface resolves for every tool it registers.
+ * Exported because the chat parses with it too: its result envelope echoes the trimmed statement,
+ * and whether a write invalidates the open workspace depends on the workspaceId it targeted.
+ */
+export const SQL_CHAT_TOOL_INPUT_SCHEMA = z.strictObject({
+  sql: z.string().trim().min(1),
+  workspaceId: optionalWorkspaceIdArgument,
+});
+
+/**
+ * The in-app chat's combined read+write SQL tool. An omitted workspaceId resolves to the workspace
+ * the chat session is bound to.
  */
 export const SQL_CHAT_TOOL_SPEC = defineAgentTool({
   name: SQL_TOOL_NAME,
   surfaces: ["chat"],
   description: SQL_TOOL_DESCRIPTION,
-  inputSchema: SQL_TOOL_ARGUMENT_VALIDATOR,
+  inputSchema: SQL_CHAT_TOOL_INPUT_SCHEMA,
   execute: async (context, input): Promise<AgentToolResult<AgentSqlPayload>> => {
-    const workspaceId = await context.resolveWorkspaceId(undefined);
+    const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
     const result = await context.actions.executeAgentSql(
       buildAgentSqlContext(context, workspaceId),
       input.sql,
@@ -189,9 +197,25 @@ export const SQL_CHAT_TOOL_SPEC = defineAgentTool({
 });
 
 /**
+ * `isSelected` marks the surface's selected default workspace, which on the chat is the workspace
+ * its session is bound to.
+ */
+export const LIST_WORKSPACES_TOOL_SPEC = defineAgentTool({
+  name: LIST_WORKSPACES_TOOL_NAME,
+  surfaces: ["mcp", "chat"],
+  description: LIST_WORKSPACES_TOOL_DESCRIPTION,
+  inputSchema: z.strictObject({}),
+  execute: async (context): Promise<AgentToolResult> => {
+    const workspaces = await context.actions.listUserWorkspacesWithStatsForSelectedWorkspace(
+      context.userId,
+      context.selectedWorkspaceId,
+    );
+    return { data: { workspaces }, instructions: LIST_WORKSPACES_RESULT_INSTRUCTIONS };
+  },
+});
+
+/**
  * The guide payload, typed so the surface that renders its fields keeps them through the registry.
- * MCP forwards it into its own envelope as an opaque payload; the in-app chat reads `topic` and
- * `guide` to build its `{ ok, tool, ... }` result.
  */
 export type AgentGuidePayload = Readonly<{
   topic: GuideTopic;
@@ -227,19 +251,7 @@ export const AGENT_TOOL_SPECS: ReadonlyArray<AgentToolSpec> = Object.freeze([
   SQL_QUERY_TOOL_SPEC,
   SQL_EXECUTE_TOOL_SPEC,
   SQL_CHAT_TOOL_SPEC,
-  defineAgentTool({
-    name: LIST_WORKSPACES_TOOL_NAME,
-    surfaces: ["mcp"],
-    description: LIST_WORKSPACES_TOOL_DESCRIPTION,
-    inputSchema: z.strictObject({}),
-    execute: async (context): Promise<AgentToolResult> => {
-      const workspaces = await context.actions.listUserWorkspacesWithStatsForSelectedWorkspace(
-        context.userId,
-        context.selectedWorkspaceId,
-      );
-      return { data: { workspaces }, instructions: LIST_WORKSPACES_RESULT_INSTRUCTIONS };
-    },
-  }),
+  LIST_WORKSPACES_TOOL_SPEC,
   GET_GUIDE_TOOL_SPEC,
   defineAgentTool({
     name: NEXT_REVIEW_CARD_TOOL_NAME,
