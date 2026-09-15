@@ -28,11 +28,11 @@ import {
   parseWorkspaceIdParam,
   requireAgentConnectionId,
   resolveAccessibleMcpWorkspaceId,
-  requireAccessibleSelectedWorkspaceId,
 } from "../server/requestContext";
 import {
   expectNonEmptyString,
   expectRecord,
+  expectWorkspaceIdString,
   parseJsonBody,
 } from "../server/requestParsing";
 import { HttpError } from "../shared/errors";
@@ -68,10 +68,31 @@ async function parseOptionalJsonBody(request: Request): Promise<unknown> {
   }
 }
 
-function parseSqlBody(value: unknown): Readonly<{ sql: string }> {
+const SQL_BODY_FIELD_NAMES: ReadonlyArray<string> = ["sql", "workspaceId"];
+
+/** `workspaceId` mirrors the sql_query and sql_execute MCP tool argument. Released API clients omit
+ * it and stay on the workspace they selected with POST /agent/workspaces/{workspaceId}/select.
+ * Unknown fields are rejected like the review routes' strict schema, so a misnamed workspace field
+ * fails instead of silently running the statement against the selected workspace. */
+function parseSqlBody(value: unknown): Readonly<{
+  sql: string;
+  workspaceId: string | undefined;
+}> {
   const body = expectRecord(value);
+  for (const key of Object.keys(body)) {
+    if (!SQL_BODY_FIELD_NAMES.includes(key)) {
+      throw new HttpError(
+        400,
+        `Request body contains unsupported field: ${key}. Supported fields: ${SQL_BODY_FIELD_NAMES.join(", ")}`,
+      );
+    }
+  }
+
   return {
     sql: expectNonEmptyString(body.sql, "sql"),
+    workspaceId: body.workspaceId === undefined
+      ? undefined
+      : expectWorkspaceIdString(body.workspaceId, "workspaceId"),
   };
 }
 
@@ -148,8 +169,8 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
 
   app.post("/agent/sql/query", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
-    const workspaceId = await requireAccessibleSelectedWorkspaceId(requestContext);
     const body = parseSqlBody(await parseJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, body.workspaceId);
     const result = await runSqlQuery({
       userId: requestContext.userId,
       workspaceId,
@@ -163,8 +184,8 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
 
   app.post("/agent/sql/execute", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
-    const workspaceId = await requireAccessibleSelectedWorkspaceId(requestContext);
     const body = parseSqlBody(await parseJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, body.workspaceId);
     const result = await runSqlExecute({
       userId: requestContext.userId,
       workspaceId,
