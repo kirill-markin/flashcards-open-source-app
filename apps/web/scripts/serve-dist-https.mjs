@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { createServer } from "node:https";
 import { extname, join, normalize } from "node:path";
 
+const plainTextContentType = "text/plain; charset=utf-8";
+
 const args = parseArgs(process.argv.slice(2));
 const host = requireArgument(args, "host");
 const port = Number.parseInt(requireArgument(args, "port"), 10);
@@ -33,13 +35,15 @@ const server = createServer(
     key: await readFile(keyPath),
   },
   async (request, response) => {
+    const method = request.method ?? "UNKNOWN";
     const requestUrl = request.url ?? "/";
     const pathname = sanitizePathname(requestUrl);
     const candidatePath = join(directory, pathname);
     const filePath = normalize(candidatePath);
 
     if (filePath.startsWith(normalize(directory)) === false) {
-      response.writeHead(400, { "content-type": "text/plain; charset=utf-8" });
+      logRequest(method, pathname, 400, false, plainTextContentType);
+      response.writeHead(400, { "content-type": plainTextContentType });
       response.end("Invalid path");
       return;
     }
@@ -48,13 +52,16 @@ const server = createServer(
     const fallbackToIndex = existsSync(filePath) === false;
 
     if (existsSync(resolvedFilePath) === false) {
-      response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+      logRequest(method, pathname, 404, fallbackToIndex, plainTextContentType);
+      response.writeHead(404, { "content-type": plainTextContentType });
       response.end("File not found");
       return;
     }
 
+    const contentType = contentTypeFor(extname(resolvedFilePath));
+    logRequest(method, pathname, 200, fallbackToIndex, contentType);
     response.writeHead(200, {
-      "content-type": contentTypeFor(extname(resolvedFilePath)),
+      "content-type": contentType,
       "cache-control": fallbackToIndex ? "no-store" : "public, max-age=60",
     });
     createReadStream(resolvedFilePath).pipe(response);
@@ -76,6 +83,18 @@ process.on("SIGINT", () => {
     process.exit(0);
   });
 });
+
+/**
+ * The live smoke uploads this log when it fails, so every request needs a line
+ * that separates a real asset from the SPA `index.html` fallback, which also
+ * answers `200`. Only the sanitized pathname is logged, never the query string,
+ * so the log cannot carry a credential into a public artifact.
+ */
+function logRequest(method, pathname, status, fallbackToIndex, contentType) {
+  console.log(
+    `${new Date().toISOString()} ${method} /${pathname} status=${String(status)} fallbackToIndex=${String(fallbackToIndex)} contentType=${contentType}`,
+  );
+}
 
 function parseArgs(rawArgs) {
   const parsed = {};
