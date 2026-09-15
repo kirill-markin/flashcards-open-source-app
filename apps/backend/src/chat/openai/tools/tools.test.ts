@@ -112,6 +112,12 @@ const dependencies: OpenAIToolDependencies = {
     throw new Error("SQL was not expected.");
   },
   createToolDependencies: () => DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
+  resolveAccessibleChatWorkspaceId: async () => {
+    throw new Error("Workspace resolution was not expected.");
+  },
+  listUserWorkspacesWithStatsForSelectedWorkspace: async () => {
+    throw new Error("Workspace listing was not expected.");
+  },
   reserveGeneratedCardImageAttempt: async () => ({
     status: "reserved",
     attempt: 1,
@@ -201,10 +207,13 @@ test("generated image tool schema is strict and signed-in-only", () => {
     ...validArgumentObject,
     altText: "😀".repeat(maximumGeneratedImageAltTextCodePoints + 1),
   }).success, false);
-  assert.deepEqual(buildOpenAIChatTools(false).map((tool) => tool.name), ["sql", "get_guide"]);
+  assert.deepEqual(
+    buildOpenAIChatTools(false).map((tool) => tool.name),
+    ["sql", "list_workspaces", "get_guide"],
+  );
   assert.deepEqual(
     buildOpenAIChatTools(true).map((tool) => tool.name),
-    ["sql", "get_guide", "add_generated_image_to_card"],
+    ["sql", "list_workspaces", "get_guide", "add_generated_image_to_card"],
   );
 });
 
@@ -334,6 +343,8 @@ test("guest execution rejects before every generated-image dependency", async ()
     {
       executeAgentSql: async () => failDependency("sql"),
       createToolDependencies: () => failDependency("tool_dependencies"),
+      resolveAccessibleChatWorkspaceId: async () => failDependency("workspace_resolution"),
+      listUserWorkspacesWithStatsForSelectedWorkspace: async () => failDependency("workspace_list"),
       reserveGeneratedCardImageAttempt: async () => failDependency("reserve"),
       bindGeneratedCardImageAttemptPayload: async () => failDependency("bind"),
       hasCognitoIdentityMappingForUser: async () => failDependency("identity"),
