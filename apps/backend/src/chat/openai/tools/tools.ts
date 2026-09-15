@@ -45,6 +45,7 @@ import { generateCardImage, type GeneratedCardImageObservationContext } from "..
 import { isOpenAIImageGenerationProviderError } from "../../cardImages/provider/openaiAdapter";
 import {
   GeneratedCardImageDeadlineExceededError,
+  GeneratedCardImageGenerationLimitReachedError,
   GeneratedCardImageProviderOutcomeUnknownError,
   GeneratedCardImageStagingOutcomeUnknownError,
 } from "../../cardImages/providerTypes";
@@ -896,6 +897,29 @@ async function executeGeneratedImageToolCall(
         attempt,
         false,
         "deadline_reached",
+      );
+    }
+    if (error instanceof GeneratedCardImageGenerationLimitReachedError) {
+      const code = error.ceiling === "daily"
+        ? "daily_generation_limit_reached"
+        : "monthly_generation_limit_reached";
+      return createGeneratedImageResult(
+        {
+          ok: false,
+          code,
+          retryable: false,
+          ...(attempt === null ? {} : { attempt }),
+          limit: error.limit,
+          resetsAt: error.resetsAt,
+        },
+        {
+          attempt,
+          status: code,
+          succeeded: false,
+          isMutating: false,
+          shouldInvalidateMainContent: false,
+          stopReason: null,
+        },
       );
     }
     const safeErrorCode = getGeneratedImageToolSafeErrorCode(error);

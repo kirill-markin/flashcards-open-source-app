@@ -63,3 +63,25 @@ export class GeneratedCardImageRequestConflictError extends Error {
     this.name = "GeneratedCardImageRequestConflictError";
   }
 }
+
+export type GeneratedCardImageGenerationCeiling = "daily" | "monthly";
+
+export class GeneratedCardImageGenerationLimitReachedError extends Error {
+  readonly code = "GENERATED_CARD_IMAGE_GENERATION_LIMIT_REACHED";
+  readonly ceiling: GeneratedCardImageGenerationCeiling;
+  readonly limit: number;
+  /** ISO-8601 UTC instant at which the exhausted window ends. */
+  readonly resetsAt: string;
+
+  constructor(ceiling: GeneratedCardImageGenerationCeiling, limit: number, resetsAt: string) {
+    super(
+      ceiling === "daily"
+        ? `The daily limit of ${limit} generated card images per workspace sync replica is used up for the current UTC day, so this replica cannot generate a new image until the limit resets at ${resetsAt}.`
+        : `The monthly limit of ${limit} generated card images per workspace is used up for the current UTC calendar month, so this workspace cannot generate a new image until the limit resets at ${resetsAt}.`,
+    );
+    this.name = "GeneratedCardImageGenerationLimitReachedError";
+    this.ceiling = ceiling;
+    this.limit = limit;
+    this.resetsAt = resetsAt;
+  }
+}

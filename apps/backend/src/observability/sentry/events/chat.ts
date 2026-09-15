@@ -170,6 +170,14 @@ export type GeneratedCardImageProviderDetails = Readonly<{
   errorClass: string | null;
 }>;
 
+export type GeneratedCardImageProviderOutcomeUnknownDetails = Readonly<{
+  identityKind: "chat_run" | "request_content";
+  runId: string | null;
+  operationKey: string | null;
+  operationId: string;
+  mediaAssetId: string;
+}>;
+
 export type McpWorkspaceSelectionEnrichmentFailureDetails = Readonly<{
   code: "WORKSPACE_SELECTION_REQUIRED";
   enrichmentPath: "mcp_workspace_selection_details";
@@ -262,6 +270,10 @@ export type ChatWarningEvent =
   | (EventByAction<
     "generated_card_image_provider_failed",
     GeneratedCardImageProviderDetails
+  > & Readonly<{ message: string }>)
+  | (EventByAction<
+    "generated_card_image_provider_outcome_unknown",
+    GeneratedCardImageProviderOutcomeUnknownDetails
   > & Readonly<{ message: string }>)
   | (EventByAction<
     "mcp_workspace_selection_enrichment_failed",

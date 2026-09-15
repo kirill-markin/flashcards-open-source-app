@@ -16,6 +16,7 @@ import {
   buildMediaUploadStagingStorageKey,
 } from "../../mediaAssets/storageKeys";
 import { assertReplicaBelongsToWorkspaceInExecutor } from "../../mediaAssets/workspaceReplicas";
+import { captureBackendWarning } from "../../observability/sentry";
 import {
   expectNonEmptyString,
   expectUuidString,
@@ -33,6 +34,7 @@ import {
   type MarkGeneratedCardImageProviderStartedParams,
   type MarkGeneratedCardImageProviderStartedResult,
 } from "../openai/tools/generatedImageAttemptBudget";
+import { assertGeneratedCardImageGenerationBudgetAvailable } from "./generationBudget";
 import {
   deriveGeneratedCardImageOperationMetadata,
   deriveRequestContentGeneratedCardImageOperationMetadata,
@@ -88,6 +90,7 @@ export type GeneratedCardImageOperationDependencies = Readonly<{
 }>;
 
 export type GeneratedCardImageExternalDependencies = Readonly<{
+  assertGenerationBudgetAvailableFn: typeof assertGeneratedCardImageGenerationBudgetAvailable;
   markProviderStartedFn: (
     params: MarkGeneratedCardImageProviderStartedParams,
   ) => Promise<MarkGeneratedCardImageProviderStartedResult>;
@@ -273,6 +276,10 @@ async function prepareStagedGeneratedCardImage(
   };
   const existing = await dependencies.loadGeneratedMediaStagingObjectFn(stagingInput);
   if (existing !== null) return { ...existing, reused: true };
+  // Checked before the provider-start fence: a refusal after it would leave previously_started
+  // behind, so every identical retry would fail as outcome-unknown instead of as this refusal. An
+  // exhausted budget therefore also refuses a replay whose provider start is already recorded.
+  await dependencies.assertGenerationBudgetAvailableFn(input);
   // The chat flag is set in the same transaction that asserts the run claim; a request-content
   // operation has no run, so its create-if-absent storage marker fences the paid call instead.
   const providerStart = isChatRunGeneratedCardImageInput(input)
@@ -288,6 +295,21 @@ async function prepareStagedGeneratedCardImage(
     : await dependencies.markGeneratedMediaProviderStartedObjectFn(stagingInput);
   const operation = toGeneratedCardImageOperationReference(input, operationMetadata);
   if (providerStart.status === "previously_started") {
+    // A paid generation that never reached staging cannot be told apart here from a lost reply on
+    // the chat flag commit or on the run-less marker PUT: each leaves previously_started and no
+    // staging object, and neither fence records whether the provider was ever called.
+    captureBackendWarning({
+      action: "generated_card_image_provider_outcome_unknown",
+      message: "Generated card image provider start was already recorded without staged bytes, so a paid generation may never have landed.",
+      scope: input.observationContext.scope,
+      details: {
+        identityKind: operation.identityKind,
+        runId: operation.identityKind === "chat_run" ? operation.runId : null,
+        operationKey: operation.identityKind === "chat_run" ? operation.operationKey : null,
+        operationId: operationMetadata.operationId,
+        mediaAssetId: operationMetadata.mediaAssetId,
+      },
+    });
     throw new GeneratedCardImageProviderOutcomeUnknownError(operation);
   }
   if (providerStart.status !== "first_started") {
@@ -495,6 +517,7 @@ export async function generateRunlessCardImageWithDependencies(
 }
 
 const defaultExternalDependencies: GeneratedCardImageExternalDependencies = {
+  assertGenerationBudgetAvailableFn: assertGeneratedCardImageGenerationBudgetAvailable,
   markProviderStartedFn: markGeneratedCardImageProviderStarted,
   markGeneratedMediaProviderStartedObjectFn: markGeneratedMediaProviderStartedObject,
   generateProviderImageFn: async (input) => createOpenAIGeneratedCardImageProvider().generate(input),
