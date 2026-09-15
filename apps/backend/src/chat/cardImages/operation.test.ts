@@ -167,6 +167,9 @@ test("provider-start commit-unknown never crosses the provider boundary", async 
     markProviderStartedFn: async () => {
       throw commitUnknownError;
     },
+    markGeneratedMediaProviderStartedObjectFn: async () => {
+      throw new Error("Chat operations must not write the storage provider-started marker.");
+    },
     generateProviderImageFn: async () => {
       providerCallCount += 1;
       throw new Error("Provider must not run after an ambiguous start fence.");
@@ -202,6 +205,9 @@ test("previously-started provider state without staging is authoritative", async
   let providerCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
     markProviderStartedFn: async () => ({ status: "previously_started" }),
+    markGeneratedMediaProviderStartedObjectFn: async () => {
+      throw new Error("Chat operations must not write the storage provider-started marker.");
+    },
     generateProviderImageFn: async () => {
       providerCallCount += 1;
       throw new Error("Provider must not replay a previously-started operation.");
@@ -243,6 +249,9 @@ test("pre-provider staging lookup failure remains safely retryable", async () =>
     markProviderStartedFn: async () => {
       providerStartCallCount += 1;
       return { status: "first_started" };
+    },
+    markGeneratedMediaProviderStartedObjectFn: async () => {
+      throw new Error("Chat operations must not write the storage provider-started marker.");
     },
     generateProviderImageFn: async () => {
       providerCallCount += 1;
@@ -294,6 +303,9 @@ test("post-provider staging failure is authoritative and preserves its cause", a
     markProviderStartedFn: async () => {
       providerStartCallCount += 1;
       return { status: "first_started" };
+    },
+    markGeneratedMediaProviderStartedObjectFn: async () => {
+      throw new Error("Chat operations must not write the storage provider-started marker.");
     },
     generateProviderImageFn: async () => {
       providerCallCount += 1;
