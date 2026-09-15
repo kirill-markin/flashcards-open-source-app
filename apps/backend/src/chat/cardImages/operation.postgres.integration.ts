@@ -249,6 +249,9 @@ test("generated image operation reconciles ambiguous enqueue without early card 
         markGeneratedMediaProviderStartedObjectFn: async () => {
           throw new Error("Chat operations must not write the storage provider-started marker.");
         },
+        enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
+          throw new Error("Chat operations must not enqueue a run-less promotion job.");
+        },
         generateProviderImageFn: async () => {
           providerCalls += 1;
           providerStarted.resolve();
@@ -448,6 +451,9 @@ test("persisted provider start blocks replay without staging and permits staged 
         },
         markGeneratedMediaProviderStartedObjectFn: async () => {
           throw new Error("Chat operations must not write the storage provider-started marker.");
+        },
+        enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
+          throw new Error("Chat operations must not enqueue a run-less promotion job.");
         },
         generateProviderImageFn: async () => {
           providerCalls += 1;
