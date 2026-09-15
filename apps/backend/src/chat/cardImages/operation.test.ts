@@ -164,6 +164,7 @@ test("provider-start commit-unknown never crosses the provider boundary", async 
   );
   let providerCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
+    assertGenerationBudgetAvailableFn: async () => undefined,
     markProviderStartedFn: async () => {
       throw commitUnknownError;
     },
@@ -207,6 +208,7 @@ test("provider-start commit-unknown never crosses the provider boundary", async 
 test("previously-started provider state without staging is authoritative", async () => {
   let providerCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
+    assertGenerationBudgetAvailableFn: async () => undefined,
     markProviderStartedFn: async () => ({ status: "previously_started" }),
     markGeneratedMediaProviderStartedObjectFn: async () => {
       throw new Error("Chat operations must not write the storage provider-started marker.");
@@ -252,6 +254,7 @@ test("pre-provider staging lookup failure remains safely retryable", async () =>
   let providerCallCount = 0;
   let storeCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
+    assertGenerationBudgetAvailableFn: async () => undefined,
     markProviderStartedFn: async () => {
       providerStartCallCount += 1;
       return { status: "first_started" };
@@ -309,6 +312,7 @@ test("post-provider staging failure is authoritative and preserves its cause", a
   let providerCallCount = 0;
   let storeCallCount = 0;
   const createdDependencies = createGeneratedCardImageOperationDependencies({
+    assertGenerationBudgetAvailableFn: async () => undefined,
     markProviderStartedFn: async () => {
       providerStartCallCount += 1;
       return { status: "first_started" };
