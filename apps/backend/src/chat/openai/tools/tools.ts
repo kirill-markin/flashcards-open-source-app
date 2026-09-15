@@ -22,6 +22,7 @@ import {
 import { parseSqlStatement, splitSqlStatements } from "../../../aiTools/sqlDialect";
 import {
   isSqlMutationStatement,
+  previewSqlStatement,
   type AgentSqlPayload,
   type AgentSqlReadPayload,
 } from "../../../aiTools/agentSql/shared";
@@ -156,6 +157,50 @@ function createToolDependencies(context: OpenAIToolContext): AgentToolOperationD
 }
 
 /**
+ * Rebuilds the envelope around a preview slice of `envelope[fieldKey]` that fits
+ * `MAX_TOOL_OUTPUT_CHARS`, measuring every candidate instead of predicting its size.
+ *
+ * The marker overhead only seeds the first preview length. The slice is JSON-escaped into a
+ * string field, and `omittedChars` gains decimal digits as the preview shrinks, so no single
+ * arithmetic pass lands on the budget. Every overflowing pass cuts the preview by the overflow it
+ * just measured, which is at least one character, so the loop reaches either a fitting result or a
+ * preview of nothing.
+ *
+ * It shrinks; it does not search. A pass subtracts measured output characters from a preview
+ * length whose characters can each cost more than one output character once escaped, so the slice
+ * it stops on fits but can be shorter than the longest one that would have. Unlike
+ * `capReadEnvelopeByRows`, nothing here finds a maximum.
+ *
+ * A preview of nothing is not a fit. It is what the returned string carries when everything that
+ * survives an empty preview - the other fields, the markers, and the JSON scaffolding - is over
+ * budget together, and shrinking that rest is the caller's problem, not this loop's.
+ */
+function capEnvelopeFieldToBudget(
+  envelope: Readonly<Record<string, unknown>>,
+  fieldKey: string,
+): string {
+  const serializedField = JSON.stringify(envelope[fieldKey] ?? null);
+  const { [fieldKey]: _omitted, ...rest } = envelope;
+  const previewKey = `${fieldKey}Preview`;
+  const buildCapped = (previewLength: number): string =>
+    JSON.stringify({
+      ...rest,
+      [previewKey]: serializedField.slice(0, previewLength),
+      truncated: true,
+      omittedChars: serializedField.length - Math.min(previewLength, serializedField.length),
+    });
+
+  let previewLength = Math.max(0, MAX_TOOL_OUTPUT_CHARS - buildCapped(0).length);
+  let capped = buildCapped(previewLength);
+  while (capped.length > MAX_TOOL_OUTPUT_CHARS && previewLength > 0) {
+    previewLength = Math.max(0, previewLength - (capped.length - MAX_TOOL_OUTPUT_CHARS));
+    capped = buildCapped(previewLength);
+  }
+
+  return capped;
+}
+
+/**
  * Caps a single oversized envelope field by replacing it with a truncated preview string.
  * Returns the serialized envelope when it already fits, otherwise rebuilds it with the heavy
  * field swapped for a `<fieldKey>Preview` slice plus `truncated`/`omittedChars` markers so the
@@ -168,12 +213,26 @@ function createToolDependencies(context: OpenAIToolContext): AgentToolOperationD
  * `SELECT` drops whole rows instead (see `capReadEnvelopeByRows`) and only falls back here when
  * not even one row fits.
  *
- * Only `envelope[fieldKey]` is replaced. Everything else is carried through untouched - the
- * top-level `sql` echo above all - so a payload whose non-`data` parts alone exceed
- * `MAX_TOOL_OUTPUT_CHARS` is returned over budget. What brings an oversized `SELECT` here is a
- * separate question with more than one answer: a single row too large to fit does it, and so does
- * a statement echo that fills the budget by itself, which is the pair of causes the rejection
- * message in `apps/backend/src/aiTools/agentSql/resultBudget.ts` hedges between.
+ * When the preview alone cannot bring the envelope under budget, the top-level `sql` echo is
+ * replaced with `previewSqlStatement` and the envelope rebuilt: the echo is text the caller
+ * submitted and still holds, which is why the write paths in
+ * `apps/backend/src/aiTools/agentSql/resultBudget.ts` reach for the same lever first. It runs only
+ * once the preview has failed, so an ordinary capped result keeps its full echo, and it is a no-op
+ * where the envelope carries no string `sql`, which is what a failure that never parsed a
+ * statement passes.
+ *
+ * Only `envelope[fieldKey]` and that echo shrink. Every other field is carried through untouched,
+ * so the returned string fits `MAX_TOOL_OUTPUT_CHARS` unless what it carries regardless of the
+ * preview - those remaining fields as serialized, the shortened echo, the empty preview key, the
+ * `truncated`/`omittedChars` markers, and the JSON scaffolding around them - exceeds the budget
+ * together. A failure carrying a long database error message is the reachable case of that: the
+ * message need not fill the budget on its own to push the rest of the envelope past it, and the
+ * result comes back over budget with the preview already driven to nothing.
+ *
+ * What brings an oversized `SELECT` here is a separate question with more than one answer: a
+ * single row too large to fit does it, and so does a statement echo that fills the budget by
+ * itself, which is the pair of causes the rejection message in
+ * `apps/backend/src/aiTools/agentSql/resultBudget.ts` hedges between.
  */
 function capSerializedEnvelope(
   envelope: Readonly<Record<string, unknown>>,
@@ -184,30 +243,22 @@ function capSerializedEnvelope(
     return serialized;
   }
 
-  const serializedField = JSON.stringify(envelope[fieldKey] ?? null);
-  const { [fieldKey]: _omitted, ...rest } = envelope;
-  const previewKey = `${fieldKey}Preview`;
-  const buildCapped = (previewLength: number): string =>
-    JSON.stringify({
-      ...rest,
-      [previewKey]: serializedField.slice(0, previewLength),
-      truncated: true,
-      omittedChars: serializedField.length - Math.min(previewLength, serializedField.length),
-    });
-
-  // Reserve headroom for the marker fields, then trim once more for JSON escaping of the
-  // preview slice. Neither pass is a hard bound: `omittedChars` is recomputed on every
-  // `buildCapped` call and grows as the preview shrinks, so it can gain decimal digits between
-  // passes that neither the reserved headroom nor the overflow correction accounts for, leaving
-  // the returned string a few characters over MAX_TOOL_OUTPUT_CHARS.
-  const reservedLength = buildCapped(0).length;
-  const firstPass = buildCapped(Math.max(0, MAX_TOOL_OUTPUT_CHARS - reservedLength));
-  if (firstPass.length <= MAX_TOOL_OUTPUT_CHARS) {
-    return firstPass;
+  const capped = capEnvelopeFieldToBudget(envelope, fieldKey);
+  if (capped.length <= MAX_TOOL_OUTPUT_CHARS) {
+    return capped;
   }
 
-  const overflow = firstPass.length - MAX_TOOL_OUTPUT_CHARS;
-  return buildCapped(Math.max(0, MAX_TOOL_OUTPUT_CHARS - reservedLength - overflow));
+  const sqlEcho = envelope.sql;
+  if (typeof sqlEcho !== "string") {
+    return capped;
+  }
+
+  const shortenedSqlEcho = previewSqlStatement(sqlEcho);
+  if (shortenedSqlEcho === sqlEcho) {
+    return capped;
+  }
+
+  return capEnvelopeFieldToBudget({ ...envelope, sql: shortenedSqlEcho }, fieldKey);
 }
 
 type SqlToolSuccessPayload = Readonly<{
