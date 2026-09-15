@@ -52,6 +52,8 @@ export {
   GeneratedMediaPromotionStorageTransientError,
   loadGeneratedMediaStagingObject,
   loadGeneratedMediaStagingObjectWithDependencies,
+  markGeneratedMediaProviderStartedObject,
+  markGeneratedMediaProviderStartedObjectWithDependencies,
   promoteGeneratedMediaObject,
   promoteGeneratedMediaObjectWithDependencies,
   storeGeneratedMediaStagingObject,
@@ -59,6 +61,7 @@ export {
 } from "./promotion/generatedPromotion";
 export type {
   GeneratedMediaObjectPromotionInput,
+  GeneratedMediaProviderStartedMarkerResult,
   GeneratedMediaStagingObject,
   GeneratedMediaStagingObjectInput,
   StoreGeneratedMediaStagingObjectInput,

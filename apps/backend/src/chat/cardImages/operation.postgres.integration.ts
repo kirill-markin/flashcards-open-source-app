@@ -246,6 +246,9 @@ test("generated image operation reconciles ambiguous enqueue without early card 
       let stagedObject: GeneratedMediaStagingObject | null = null;
       const dependencies = createGeneratedCardImageOperationDependencies({
         markProviderStartedFn: markGeneratedCardImageProviderStarted,
+        markGeneratedMediaProviderStartedObjectFn: async () => {
+          throw new Error("Chat operations must not write the storage provider-started marker.");
+        },
         generateProviderImageFn: async () => {
           providerCalls += 1;
           providerStarted.resolve();
@@ -442,6 +445,9 @@ test("persisted provider start blocks replay without staging and permits staged 
         markProviderStartedFn: async (params) => {
           providerStartCalls += 1;
           return markGeneratedCardImageProviderStarted(params);
+        },
+        markGeneratedMediaProviderStartedObjectFn: async () => {
+          throw new Error("Chat operations must not write the storage provider-started marker.");
         },
         generateProviderImageFn: async () => {
           providerCalls += 1;

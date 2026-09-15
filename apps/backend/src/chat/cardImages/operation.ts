@@ -7,6 +7,7 @@ import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
 import { normalizeImageBytesForCard } from "../../mediaAssets/ingestion/imageNormalization";
 import {
   loadGeneratedMediaStagingObject,
+  markGeneratedMediaProviderStartedObject,
   storeGeneratedMediaStagingObject,
   type GeneratedMediaStagingObject,
 } from "../../mediaAssets/storage";
@@ -76,6 +77,7 @@ export type GeneratedCardImageExternalDependencies = Readonly<{
   markProviderStartedFn: (
     params: MarkGeneratedCardImageProviderStartedParams,
   ) => Promise<MarkGeneratedCardImageProviderStartedResult>;
+  markGeneratedMediaProviderStartedObjectFn: typeof markGeneratedMediaProviderStartedObject;
   generateProviderImageFn: (input: OpenAIImageGenerationInput) => Promise<GeneratedProviderImage>;
   normalizeImageBytesForCardFn: typeof normalizeImageBytesForCard;
   loadGeneratedMediaStagingObjectFn: typeof loadGeneratedMediaStagingObject;
@@ -213,15 +215,19 @@ async function prepareStagedGeneratedCardImage(
   };
   const existing = await dependencies.loadGeneratedMediaStagingObjectFn(stagingInput);
   if (existing !== null) return { ...existing, reused: true };
-  const providerStart = await dependencies.markProviderStartedFn({
-    userId: input.userId,
-    workspaceId: input.workspaceId,
-    runId: input.runId,
-    sessionId: input.sessionId,
-    claimToken: input.claimToken,
-    operationKey: input.operationKey,
-    databaseDeadlineAtMs: input.operationDeadlineMs,
-  });
+  // The chat flag is set in the same transaction that asserts the run claim; a request-content
+  // operation has no run, so its create-if-absent storage marker fences the paid call instead.
+  const providerStart = operationMetadata.identityKind === "chat_run"
+    ? await dependencies.markProviderStartedFn({
+      userId: input.userId,
+      workspaceId: input.workspaceId,
+      runId: input.runId,
+      sessionId: input.sessionId,
+      claimToken: input.claimToken,
+      operationKey: input.operationKey,
+      databaseDeadlineAtMs: input.operationDeadlineMs,
+    })
+    : await dependencies.markGeneratedMediaProviderStartedObjectFn(stagingInput);
   if (providerStart.status === "previously_started") {
     throw new GeneratedCardImageProviderOutcomeUnknownError(
       input.runId,
@@ -396,6 +402,7 @@ export async function generateCardImageWithDependencies(
 
 const defaultExternalDependencies: GeneratedCardImageExternalDependencies = {
   markProviderStartedFn: markGeneratedCardImageProviderStarted,
+  markGeneratedMediaProviderStartedObjectFn: markGeneratedMediaProviderStartedObject,
   generateProviderImageFn: async (input) => createOpenAIGeneratedCardImageProvider().generate(input),
   normalizeImageBytesForCardFn: normalizeImageBytesForCard,
   loadGeneratedMediaStagingObjectFn: loadGeneratedMediaStagingObject,
