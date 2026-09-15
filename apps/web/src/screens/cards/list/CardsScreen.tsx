@@ -867,7 +867,7 @@ export function CardsScreen(): ReactElement {
                   data-card-front-text={card.frontText}
                 >
                   <td className="txn-cell cards-col-front cards-cell-multiline">
-                    <Link className="cards-row-link" to={`/cards/${card.cardId}`}>
+                    <Link className="cards-row-link" to={`/cards/${card.cardId}`} data-testid="cards-row-link">
                       <span className="cards-cell-multiline-display">{card.frontText}</span>
                     </Link>
                   </td>
