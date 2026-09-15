@@ -6,8 +6,8 @@ SQL dialect is measurable. Every authenticated `/mcp` request emits one more
 record, so the MCP traffic that runs no SQL is measurable too.
 
 The record is emitted by `withAgentSqlTelemetry` in
-`apps/backend/src/aiTools/agentSql.ts`, which wraps `executeAgentSql`,
-`runSqlQuery`, and `runSqlExecute`. It sits below the MCP tool handlers' own
+`apps/backend/src/aiTools/agentSql.ts`, which wraps `runSqlQuery`,
+`runSqlExecute`, `runChatSqlQuery`, and `runChatSqlExecute`. It sits below the MCP tool handlers' own
 `catch`, which answers with a `CallToolResult` and therefore never reaches
 `app.onError`: without this record an MCP dialect rejection produces no record
 that identifies the failure, no Sentry event, and no Langfuse trace. The

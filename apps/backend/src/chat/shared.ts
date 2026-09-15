@@ -28,8 +28,8 @@ function buildAssistantRoleSection(): string {
 function buildWorkspaceSection(): string {
   return joinLines([
     "You work over the synced workspace state managed by the backend.",
-    "Use the shared sql tool to inspect workspace data.",
-    "The user can have several workspaces: list_workspaces lists them, and sql takes an optional workspaceId from that list; omit it to use the workspace the user has open.",
+    "Use sql_query to read workspace data and sql_execute to change it.",
+    "The user can have several workspaces: list_workspaces lists them, and sql_query and sql_execute take an optional workspaceId from that list; omit it to use the workspace the user has open.",
     "Decks are saved tag filters: a deck row exposes deck_id, name, and tags among other columns, and has no description column.",
     "Cards have no deck_id and no deck membership, so a card belongs to a deck only by matching that deck's tags.",
     "You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.",
@@ -89,7 +89,7 @@ function buildToolCallRulesSection(): string {
   return joinLines([
     "Tool-call rules:",
     "- Tool arguments must be exactly one JSON object.",
-    "- Use the shared sql tool for workspace reads, writes, and schema discovery.",
+    "- Use sql_query for workspace reads and schema discovery, and sql_execute for writes.",
     "- Send SHOW TABLES, DESCRIBE, and SHOW COLUMNS as their own tool call, never in the same sql string as statements that depend on the result.",
     "- Never mix read and write statements in one sql string.",
     "- Put the whole query in the sql string field and do not invent extra tool arguments.",
@@ -115,10 +115,9 @@ function buildToolCallRulesSection(): string {
  * never learns that it needed the guide. The forms that fail loudly are left to
  * the guide, which the model fetches after reading the dialect error.
  *
- * `get_guide` serves every surface, so the mapping bullet is the single place
- * that says which of its topics this chat can use: it maps the public API's
- * split `sql_query` and `sql_execute` onto the one `sql` tool here, and it rules
- * out `card_authoring`, whose text the card sections above already state in
+ * `get_guide` serves every surface, so the guides bullet is the single place
+ * that says which of its topics this chat can use: it rules out
+ * `card_authoring`, whose text the card sections above already state in
  * full, and `review_flow`, which drives review tools this surface does not
  * register - a tool name the chat cannot run ends the whole run in
  * `requireChatToolRunner`. Registering review tools here later is an edit to
@@ -128,7 +127,7 @@ function buildSqlRoutingSection(): string {
   return joinLines([
     "SQL dialect:",
     "- This is not full PostgreSQL. Call get_guide with topic sql_dialect before any statement whose form you are unsure of, and again after a dialect error, instead of guessing.",
-    "- Guides are written for every surface: they name the public API tools sql_query and sql_execute, which are both the single sql tool here; topic card_authoring only repeats the card rules above, and topic review_flow drives next_review_card, reveal_answer, and submit_review tools this chat does not have, so use topics sql_dialect and bulk_authoring only and never call a tool you were not given.",
+    "- Guides are written for every surface: topic card_authoring only repeats the card rules above, and topic review_flow drives next_review_card, reveal_answer, and submit_review tools this chat does not have, so use topics sql_dialect and bulk_authoring only and never call a tool you were not given.",
     "- Match rows by tag with tags OVERLAP ('english', 'slang'), compared exactly and case-sensitively, so pass tag values as they are stored.",
     `- ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`,
     "- Array columns such as tags take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
@@ -141,7 +140,7 @@ function buildSqlRoutingSection(): string {
 function buildGeneratedImagePolicySection(): string {
   return joinLines([
     "Generated-image policy:",
-    "- Use only for an explicit image request or delegated visual augmentation; inspect the target card with sql first, then announce the selected card and side.",
+    "- Use only for an explicit image request or delegated visual augmentation; inspect the target card with sql_query first, then announce the selected card and side.",
     "- add_generated_image_to_card works only on cards in the workspace the user has open, so never give it a card that was read with a different workspaceId.",
     "- Prefer the back unless specified otherwise; create teaching-relevant imagery with focused, private-data-free, moderation-compliant prompts, and never put an answer or answer-revealing image on the front.",
     "- Treat queued as accepted for durable attachment processing, not as proof that presentation is already visible; for already_queued, failure, ambiguity, or cancellation, never claim a new image or expose fcasset markdown, base64, or storage internals.",
@@ -159,7 +158,7 @@ function buildGeneratedImagePolicySection(): string {
 function buildRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
-    "If a sql, list_workspaces, or get_guide tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
+    "If a sql_query, sql_execute, list_workspaces, or get_guide tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
   ]);
 }
 

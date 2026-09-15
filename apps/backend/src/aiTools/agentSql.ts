@@ -25,7 +25,9 @@ import {
   isSqlReadStatement,
   type AgentSqlContext,
   type AgentSqlExecutionResult,
+  type AgentSqlMutationStatement,
   type AgentSqlPayload,
+  type AgentSqlReadStatement,
   type AgentSqlSinglePayload,
 } from "./agentSql/shared";
 import { executeSqlMutationStatement } from "./agentSql/singleMutation";
@@ -176,7 +178,7 @@ function getAgentSqlErrorClass(error: unknown): string {
  * per surface and per caller instead of being invisible.
  *
  * It must stay wrapped around the executor bodies below, i.e. *inside*
- * `executeAgentSql` / `runSqlQuery` / `runSqlExecute`. The MCP tool handlers in
+ * `runSqlQuery` / `runSqlExecute` / `runChatSqlQuery` / `runChatSqlExecute`. The MCP tool handlers in
  * `apps/backend/src/mcp/server.ts` catch their own errors and answer with a
  * `CallToolResult`, so nothing above them ever reaches `app.onError`; anything
  * recorded higher up would leave every MCP dialect rejection unobserved, which
@@ -259,47 +261,71 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
   }
 }
 
-async function executeAgentSqlStatements(
-  dependencies: AgentToolOperationDependencies,
-  context: AgentSqlContext,
-  sql: string,
-): Promise<AgentSqlExecutionResult> {
+function parseSqlQueryBatch(sql: string): ReadonlyArray<AgentSqlReadStatement> {
   const statements = parseSqlBatch(sql);
-  const statementSqls = toStatementSqls(sql, statements);
-
   if (statements.every(isSqlReadStatement)) {
-    if (statements.length === 1) {
-      return executeSqlReadStatement(dependencies, context, sql, statements[0]);
-    }
-
-    return executeSqlReadBatch(dependencies, context, sql, statements, statementSqls);
+    return statements;
   }
 
+  throw buildInvalidSqlError(
+    "sql_query is read-only and accepts only SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT statements. Use sql_execute for INSERT, UPDATE, and DELETE.",
+  );
+}
+
+function parseSqlExecuteBatch(sql: string): ReadonlyArray<AgentSqlMutationStatement> {
+  const statements = parseSqlBatch(sql);
   if (statements.every(isSqlMutationStatement)) {
-    if (statements.length === 1) {
-      return executeSqlMutationStatement(dependencies, context, sql, statements[0]);
-    }
-
-    return executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls);
+    return statements;
   }
 
-  throw buildInvalidSqlError("SQL batch must contain only read statements or only mutation statements");
+  throw buildInvalidSqlError(
+    "sql_execute is write-only and accepts only INSERT, UPDATE, and DELETE statements. Use sql_query for SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT.",
+  );
 }
 
 /**
- * Combined entrypoint for the in-app chat `sql` tool. It builds no agent
- * envelope and has no result-size budget of its own (the chat surface truncates
- * the tool output separately), so it reports no emitted size.
+ * Read entrypoint for the in-app chat `sql_query` tool: the direction rule of
+ * `runSqlQuery` without its result-size budget, because the chat caps its own
+ * tool output in `apps/backend/src/chat/openai/tools/tools.ts`, so it builds no
+ * agent envelope and reports no emitted size.
  */
-export async function executeAgentSql(
+export async function runChatSqlQuery(
   context: AgentSqlContext,
   sql: string,
-  dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
+  dependencies: AgentToolOperationDependencies,
 ) {
-  return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => ({
-    result: await executeAgentSqlStatements(dependencies, context, sql),
-    resultChars: null,
-  }));
+  return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => {
+    const statements = parseSqlQueryBatch(sql);
+
+    return {
+      result: statements.length === 1
+        ? await executeSqlReadStatement(dependencies, context, sql, statements[0])
+        : await executeSqlReadBatch(dependencies, context, sql, statements, toStatementSqls(sql, statements)),
+      resultChars: null,
+    };
+  });
+}
+
+/**
+ * Write entrypoint for the in-app chat `sql_execute` tool: the direction rule
+ * of `runSqlExecute` without its result-size budget, for the same reason as
+ * `runChatSqlQuery`.
+ */
+export async function runChatSqlExecute(
+  context: AgentSqlContext,
+  sql: string,
+  dependencies: AgentToolOperationDependencies,
+) {
+  return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => {
+    const statements = parseSqlExecuteBatch(sql);
+
+    return {
+      result: statements.length === 1
+        ? await executeSqlMutationStatement(dependencies, context, sql, statements[0])
+        : await executeSqlMutationBatch(dependencies, context, sql, statements, toStatementSqls(sql, statements)),
+      resultChars: null,
+    };
+  });
 }
 
 /**
@@ -311,7 +337,7 @@ export async function executeAgentSql(
  * `requestUrl` is the URL the calling surface builds its agent envelope from,
  * needed here so the result-size budget measures the emitted envelope.
  *
- * The statement-direction parser guard below (`isSqlReadStatement`) rejects
+ * The statement-direction parser guard (`parseSqlQueryBatch`) rejects
  * caller-authored writes. The repository read helpers reached from SELECT
  * statements also open repeatable-read `READ ONLY` transactions, so the
  * `readOnlyHint: true` annotation has a database-level guard as defense in
@@ -324,25 +350,19 @@ export async function runSqlQuery(
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
   return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => {
-    const statements = parseSqlBatch(sql);
+    const statements = parseSqlQueryBatch(sql);
     const statementSqls = toStatementSqls(sql, statements);
 
-    if (statements.every(isSqlReadStatement)) {
-      if (statements.length === 1) {
-        return truncateReadResultToSizeBudget(
-          await executeSqlReadStatement(dependencies, context, sql, statements[0]),
-          requestUrl,
-        );
-      }
-
-      return assertSqlResultWithinSizeBudget(
-        await executeSqlReadBatch(dependencies, context, sql, statements, statementSqls),
+    if (statements.length === 1) {
+      return truncateReadResultToSizeBudget(
+        await executeSqlReadStatement(dependencies, context, sql, statements[0]),
         requestUrl,
       );
     }
 
-    throw buildInvalidSqlError(
-      "sql_query is read-only and accepts only SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT statements. Use sql_execute for INSERT, UPDATE, and DELETE.",
+    return assertSqlResultWithinSizeBudget(
+      await executeSqlReadBatch(dependencies, context, sql, statements, statementSqls),
+      requestUrl,
     );
   });
 }
@@ -363,25 +383,19 @@ export async function runSqlExecute(
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
   return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => {
-    const statements = parseSqlBatch(sql);
+    const statements = parseSqlExecuteBatch(sql);
     const statementSqls = toStatementSqls(sql, statements);
 
-    if (statements.every(isSqlMutationStatement)) {
-      if (statements.length === 1) {
-        return reduceMutationResultToSizeBudget(
-          await executeSqlMutationStatement(dependencies, context, sql, statements[0]),
-          requestUrl,
-        );
-      }
-
-      return reduceBatchMutationResultToSizeBudget(
-        await executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls),
+    if (statements.length === 1) {
+      return reduceMutationResultToSizeBudget(
+        await executeSqlMutationStatement(dependencies, context, sql, statements[0]),
         requestUrl,
       );
     }
 
-    throw buildInvalidSqlError(
-      "sql_execute is write-only and accepts only INSERT, UPDATE, and DELETE statements. Use sql_query for SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT.",
+    return reduceBatchMutationResultToSizeBudget(
+      await executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls),
+      requestUrl,
     );
   });
 }
