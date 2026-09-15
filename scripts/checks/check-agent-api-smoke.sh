@@ -387,6 +387,42 @@ assert workspace["name"] == workspace_name
 assert workspace["isSelected"] is True
 PY
 
+request_json "GET" "${API_BASE_URL%/}/agent/guide/sql_dialect" "" "authorization: ApiKey ${AGENT_API_KEY}"
+assert_status "200" "GET /v1/agent/guide/sql_dialect"
+python3 - <<'PY' "${LAST_BODY_FILE}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+guide = payload["data"]["guide"]
+
+assert payload["ok"] is True
+assert payload["data"]["topic"] == "sql_dialect"
+assert isinstance(guide, str) and guide.strip() != ""
+# data.topic only echoes the path parameter, so pin the first line of SQL_DIALECT_GUIDE: it proves
+# the route picked the right GUIDE_BODIES entry, and the guide head does not move when a shared
+# constant further down the body is re-flowed for another surface.
+assert guide.startswith("SQL dialect guide.")
+assert isinstance(payload["instructions"], str) and payload["instructions"] != ""
+PY
+
+request_json "GET" "${API_BASE_URL%/}/agent/guide/not_a_topic" "" "authorization: ApiKey ${AGENT_API_KEY}"
+assert_status "400" "GET /v1/agent/guide/{topic} unknown topic"
+python3 - <<'PY' "${LAST_BODY_FILE}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+message = payload["error"]["message"]
+
+assert payload["ok"] is False
+assert payload["data"] == {}
+assert "Unsupported guide topic: not_a_topic" in message
+for topic in ("sql_dialect", "card_authoring", "bulk_authoring", "review_flow"):
+    assert topic in message
+assert isinstance(payload["requestId"], str) and payload["requestId"] != ""
+PY
+
 request_json "POST" "${API_BASE_URL%/}/agent/sql/query" "{\"sql\":\"SHOW TABLES\"}" "authorization: ApiKey ${AGENT_API_KEY}"
 assert_status "200" "POST /v1/agent/sql/query SHOW TABLES"
 python3 - <<'PY' "${LAST_BODY_FILE}"
