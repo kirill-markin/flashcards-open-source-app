@@ -88,6 +88,13 @@
 "ai.tool.label.codeExecution" = "Ejecucion de codigo";
 "ai.tool.label.generatedCardImage" = "Generar imagen de tarjeta";
 "ai.tool.label.webSearch" = "Busqueda web";
+"ai.tool.label.sqlQuery" = "Consulta SQL";
+"ai.tool.label.sqlExecute" = "Escritura SQL";
+"ai.tool.label.listWorkspaces" = "Listar espacios de trabajo";
+"ai.tool.label.getGuide" = "Obtener guía";
+"ai.tool.label.nextReviewCard" = "Siguiente tarjeta de repaso";
+"ai.tool.label.revealAnswer" = "Mostrar respuesta";
+"ai.tool.label.submitReview" = "Enviar repaso";
 "ai.tool.section.request" = "Solicitud";
 "ai.tool.section.response" = "Respuesta";
 "ai.tool.copy.request" = "Copiar solicitud";

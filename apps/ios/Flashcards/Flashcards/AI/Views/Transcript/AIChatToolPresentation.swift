@@ -11,9 +11,10 @@ struct AIChatToolSection: Hashable, Sendable, Identifiable {
 
 /**
  Mirrors:
- - `apps/web/src/chat/chatMessageContent.tsx::formatToolLabel`
- - `apps/web/src/chat/chatMessageContent.tsx::extractToolCallPreview`
- - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt`
+ - `apps/web/src/chat/history/chatMessageContent.tsx::formatToolLabel`
+ - `apps/web/src/chat/history/chatMessageContent.tsx::extractToolCallPreview`
+ - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt::formatAiToolLabel`
+ - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/toolcall/AiToolCallPresentation.kt::formatAiToolCallPreview`
 
  Keep user-facing tool labels aligned across web, iOS, and Android chat UIs.
  */
@@ -21,6 +22,20 @@ func aiChatToolLabel(name: String) -> String {
     switch name {
     case "sql":
         return "SQL"
+    case "sql_query":
+        return aiSettingsLocalized("ai.tool.label.sqlQuery", "SQL query")
+    case "sql_execute":
+        return aiSettingsLocalized("ai.tool.label.sqlExecute", "SQL write")
+    case "list_workspaces":
+        return aiSettingsLocalized("ai.tool.label.listWorkspaces", "List workspaces")
+    case "get_guide":
+        return aiSettingsLocalized("ai.tool.label.getGuide", "Get guide")
+    case "next_review_card":
+        return aiSettingsLocalized("ai.tool.label.nextReviewCard", "Next review card")
+    case "reveal_answer":
+        return aiSettingsLocalized("ai.tool.label.revealAnswer", "Reveal answer")
+    case "submit_review":
+        return aiSettingsLocalized("ai.tool.label.submitReview", "Submit review")
     case "code_execution", "code_interpreter":
         return aiSettingsLocalized("ai.tool.label.codeExecution", "Code execution")
     case "add_generated_image_to_card":
@@ -32,6 +47,13 @@ func aiChatToolLabel(name: String) -> String {
     }
 }
 
+/// Tools whose input is a JSON object carrying the statement under `sql`.
+private let aiChatSqlToolNames: Set<String> = [
+    "sql",
+    "sql_query",
+    "sql_execute",
+]
+
 func aiChatToolPreview(name: String, input: String?) -> String? {
     if name == "add_generated_image_to_card" {
         return nil
@@ -41,7 +63,7 @@ func aiChatToolPreview(name: String, input: String?) -> String? {
         return nil
     }
 
-    if name != "sql" {
+    if aiChatSqlToolNames.contains(name) == false {
         return input
     }
 

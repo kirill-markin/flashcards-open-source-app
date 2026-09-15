@@ -88,6 +88,13 @@
 "ai.tool.label.codeExecution" = "コードの実行";
 "ai.tool.label.generatedCardImage" = "カード画像を生成";
 "ai.tool.label.webSearch" = "ウェブ検索";
+"ai.tool.label.sqlQuery" = "SQLクエリ";
+"ai.tool.label.sqlExecute" = "SQL書き込み";
+"ai.tool.label.listWorkspaces" = "ワークスペース一覧";
+"ai.tool.label.getGuide" = "ガイドを取得";
+"ai.tool.label.nextReviewCard" = "次の復習カード";
+"ai.tool.label.revealAnswer" = "答えを表示";
+"ai.tool.label.submitReview" = "復習を送信";
 "ai.tool.section.request" = "アプリケーション";
 "ai.tool.section.response" = "答え";
 "ai.tool.copy.request" = "コピーリクエスト";

@@ -88,6 +88,13 @@
 "ai.tool.label.codeExecution" = "Выполнение кода";
 "ai.tool.label.generatedCardImage" = "Создать изображение карточки";
 "ai.tool.label.webSearch" = "Веб-поиск";
+"ai.tool.label.sqlQuery" = "SQL-запрос";
+"ai.tool.label.sqlExecute" = "SQL-запись";
+"ai.tool.label.listWorkspaces" = "Список рабочих областей";
+"ai.tool.label.getGuide" = "Получить руководство";
+"ai.tool.label.nextReviewCard" = "Следующая карточка повторения";
+"ai.tool.label.revealAnswer" = "Показать ответ";
+"ai.tool.label.submitReview" = "Отправить повторение";
 "ai.tool.section.request" = "Приложение";
 "ai.tool.section.response" = "Ответ";
 "ai.tool.copy.request" = "Копировать запрос";
