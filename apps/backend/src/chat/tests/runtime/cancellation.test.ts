@@ -143,7 +143,10 @@ test("generated-image dependency races surface cancellation to the runtime termi
             params: StartOpenAILoopParams,
           ): Promise<OpenAILoopCompletion> => {
             const toolDependencies: OpenAIToolDependencies = {
-              executeAgentSql: async () => {
+              runChatSqlQuery: async () => {
+                throw new Error("SQL was not expected.");
+              },
+              runChatSqlExecute: async () => {
                 throw new Error("SQL was not expected.");
               },
               createToolDependencies: () => DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,

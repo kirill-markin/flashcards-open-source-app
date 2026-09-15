@@ -32,7 +32,6 @@ export type AgentSqlAction = (
 export type AgentToolActions = Readonly<{
   runSqlQuery: AgentSqlAction;
   runSqlExecute: AgentSqlAction;
-  executeAgentSql: AgentSqlAction;
   listUserWorkspacesWithStatsForSelectedWorkspace: (
     userId: string,
     selectedWorkspaceId: string | null,

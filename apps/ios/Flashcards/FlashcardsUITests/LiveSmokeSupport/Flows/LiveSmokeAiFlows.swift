@@ -944,7 +944,7 @@ extension LiveSmokeTestCase {
             label.isEmpty == false
         }
         let completedSqlSummaries = summaryTexts.filter { summaryText in
-            summaryText.contains("SQL:")
+            summaryText.contains("SQL query:") || summaryText.contains("SQL write:")
         }
         let summaryMatch = completedSqlSummaries.contains { summaryText in
             summaryText.contains("INSERT INTO cards")

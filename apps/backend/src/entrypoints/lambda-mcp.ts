@@ -2,8 +2,8 @@
  * Lambda entry point for the dedicated MCP API Gateway on mcp.<domain>.
  *
  * Serves the OAuth Protected Resource Metadata (PRM) document, a Bearer 401
- * challenge, and the Streamable HTTP `/mcp` transport that exposes the single
- * `sql` tool. Every `/mcp` request must carry an OAuth Bearer access token,
+ * challenge, and the Streamable HTTP `/mcp` transport that exposes the tool
+ * registry's MCP tools. Every `/mcp` request must carry an OAuth Bearer access token,
  * which resolves to a connection (user + selected workspace) before the MCP
  * server runs.
  *
