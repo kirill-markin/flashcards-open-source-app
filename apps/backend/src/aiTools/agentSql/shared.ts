@@ -53,7 +53,7 @@ export type AgentSqlReadStatementPayload = Readonly<{
   /**
    * Structural record that the rows this payload carries are the leading prefix
    * that fit the result-size budget rather than the whole page, set by the
-   * single-select reducer in `apps/backend/src/aiTools/agentSql.ts`, and on the
+   * single-select reducer in `apps/backend/src/aiTools/agentSql/resultBudget.ts`, and on the
    * chat surface by `capReadEnvelopeByRows` in
    * `apps/backend/src/chat/openai/tools/tools.ts`, which marks a payload no
    * agent-side reducer ran on, because `executeAgentSql` applies no size budget
@@ -104,7 +104,7 @@ type AgentSqlSubmittedSql = Readonly<{
 /**
  * Structural record that the returned rows were dropped to fit the result-size
  * budget, carried by the whole result rather than by one statement: the batch
- * reducer in `apps/backend/src/aiTools/agentSql.ts` clears the rows of every
+ * reducer in `apps/backend/src/aiTools/agentSql/resultBudget.ts` clears the rows of every
  * statement at once, so a batch either keeps all of its rows or none of them.
  *
  * Counts are never reduced, which is what separates a payload whose rows were
@@ -125,7 +125,7 @@ type AgentSqlRowsOmitted = Readonly<{
  * was shortened to a `previewSqlStatement` preview to fit the result-size
  * budget, carried by the whole result for the same reason `rowsOmitted` is.
  *
- * It is the first lever the reducers in `apps/backend/src/aiTools/agentSql.ts`
+ * It is the first lever the reducers in `apps/backend/src/aiTools/agentSql/resultBudget.ts`
  * reach for, so it is set whenever shortening an over-budget write's echo made
  * the emitted payload measurably smaller, whether or not the rows had to go as
  * well. `true` means the echo was shortened wherever it exceeded the preview
@@ -553,7 +553,7 @@ export function buildDeckUpdateInput(
  * here, next to the fields it names.
  *
  * `rowsTruncated` is passed rather than read off the payload because the
- * single-select reducer in `apps/backend/src/aiTools/agentSql.ts` decides on
+ * single-select reducer in `apps/backend/src/aiTools/agentSql/resultBudget.ts` decides on
  * truncation only after the payload was built, and rebuilds these instructions
  * with it.
  */
