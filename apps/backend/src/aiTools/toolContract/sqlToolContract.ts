@@ -1,8 +1,6 @@
-import type { FunctionTool } from "openai/resources/responses/responses";
 import { REVIEW_FLOW_INSTRUCTIONS } from "../../agent/reviewContract";
 import { MAX_SQL_BATCH_STATEMENT_COUNT, MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
 
-export const SQL_TOOL_NAME = "sql";
 export const SQL_QUERY_TOOL_NAME = "sql_query";
 export const SQL_EXECUTE_TOOL_NAME = "sql_execute";
 
@@ -137,32 +135,6 @@ export const SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
 ]);
 
 /**
- * Rewrites a split-surface example line onto the combined in-app `sql` tool
- * name, so every surface stays on one DSL and no example is restated by hand.
- */
-function toInAppSqlExampleLine(line: string): string {
-  return line.replace(/^- sql_query => /, "- sql => ").replace(/^- sql_execute => /, "- sql => ");
-}
-
-/**
- * Combined read+write example lines for the internal in-app chat `sql` tool,
- * which intentionally stays a single tool. Built from the split read/write
- * lines (with the `sql` tool prefix) so all surfaces stay on one DSL.
- *
- * It currently has no consumer: the in-app chat system prompt stopped composing
- * it when the full example list moved into `SQL_DIALECT_GUIDE`, which
- * `get_guide` now serves to that surface too. It is kept rather than deleted
- * because the in-app chat is still the one surface with a combined `sql` tool,
- * so this stays the single ready-made rendering of the full example list under
- * that name: a surface that needs it back reads it from here instead of
- * rewriting the lines by hand and drifting from the split ones above.
- */
-export const SQL_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
-  ...SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES,
-  ...SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES,
-].map(toInAppSqlExampleLine));
-
-/**
  * Shared dialect description fragment. `SQL_DIALECT_GUIDE` is its only
  * consumer: no SQL tool description composes it, because every tool description
  * is metadata under a character budget and restates only the few facts a call
@@ -285,10 +257,9 @@ const SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION =
 
 /**
  * Batch atomicity, shared by `SQL_DIALECT_GUIDE` and `BULK_AUTHORING_GUIDE`.
- * Descriptions under a character budget - the always-loaded MCP `sql_execute`
- * description and the in-app `sql` tool description - make the same
- * all-or-nothing promise in their own condensed words, so a change here does
- * not reach them.
+ * The always-loaded `sql_execute` description, under a character budget, makes
+ * the same all-or-nothing promise in its own condensed words, so a change here
+ * does not reach it.
  */
 export const SQL_BATCH_ATOMICITY_DESCRIPTION =
   "Mutation batches are applied atomically: all statements succeed or the whole batch fails.";
@@ -307,8 +278,8 @@ export const SQL_BATCH_ATOMICITY_DESCRIPTION =
  * `sql_execute` shrinks the already committed write instead, shortening the
  * echoed statement text first and only when that makes the emitted payload
  * smaller, then dropping the returned rows if the payload is still over budget;
- * and the in-app `sql` tool truncates its own serialized result in
- * `capSerializedEnvelope`, `apps/backend/src/chat/openai/tools/tools.ts`), so
+ * and the in-app chat caps its own serialized SQL tool results in
+ * `createToolSuccessResult`, `apps/backend/src/chat/openai/tools/tools.ts`), so
  * they are not stated here.
  */
 export const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
@@ -360,48 +331,6 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
 ].join(" ");
 
 /**
- * Combined read+write tool for the in-app chat, which intentionally stays a
- * single tool.
- *
- * OpenAI caps a function description at 1024 characters, so this one carries
- * only the routing facts a call cannot guess plus one read and one write
- * example. The grammar, the text-column rules, RETURNING, the batch-sizing
- * arithmetic, and the full example list stay in `SQL_DIALECT_GUIDE`, which
- * `get_guide` serves on demand and which this description points at by name, so
- * none of it is re-sent on every model call of a chat turn.
- */
-export const SQL_TOOL_DESCRIPTION = [
-  "Query and mutate the flashcards workspace with the published SQL dialect.",
-  "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
-  "Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags.",
-  `Each statement reads or affects at most ${MAX_SQL_RECORD_LIMIT} rows; up to ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated statements in one sql string form one batch, and a batch is applied atomically.`,
-  "Examples (tool-call JSON):",
-  toInAppSqlExampleLine(SQL_QUERY_PAGED_READ_EXAMPLE_LINE),
-  toInAppSqlExampleLine(SQL_EXECUTE_CREATE_CARD_EXAMPLE_LINE),
-  "Call get_guide with topic sql_dialect for the full grammar and examples.",
-].join(" ");
-
-export const OPENAI_SQL_TOOL: FunctionTool = {
-  type: "function",
-  name: SQL_TOOL_NAME,
-  description: SQL_TOOL_DESCRIPTION,
-  strict: false,
-  parameters: {
-    type: "object",
-    properties: {
-      sql: {
-        type: "string",
-      },
-      workspaceId: {
-        type: "string",
-      },
-    },
-    required: ["sql"],
-    additionalProperties: false,
-  },
-};
-
-/**
  * On-demand guide bodies for the MCP `get_guide` tool.
  *
  * Every guide is composed from the constants above (and from
@@ -415,9 +344,8 @@ export const OPENAI_SQL_TOOL: FunctionTool = {
  * are shared with other surfaces. The highest-risk one is `REVIEW_FLOW_GUIDE`,
  * which is `REVIEW_FLOW_INSTRUCTIONS` itself; every MCP review tool also
  * returns that block in full with each tool result, so shortening the guide
- * silently rewrites those results. The in-app chat system prompt and
- * `OPENAI_SQL_TOOL` compose some of the same constants too, and an MCP client
- * sees none of those.
+ * silently rewrites those results. The in-app chat system prompt composes some
+ * of the same constants too, and an MCP client never sees it.
  */
 export const SQL_DIALECT_GUIDE = [
   "SQL dialect guide.",

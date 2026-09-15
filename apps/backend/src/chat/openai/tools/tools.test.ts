@@ -108,7 +108,10 @@ const invalidRawAltTexts = [
 ] as const;
 
 const dependencies: OpenAIToolDependencies = {
-  executeAgentSql: async () => {
+  runChatSqlQuery: async () => {
+    throw new Error("SQL was not expected.");
+  },
+  runChatSqlExecute: async () => {
     throw new Error("SQL was not expected.");
   },
   createToolDependencies: () => DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
@@ -209,11 +212,11 @@ test("generated image tool schema is strict and signed-in-only", () => {
   }).success, false);
   assert.deepEqual(
     buildOpenAIChatTools(false).map((tool) => tool.name),
-    ["sql", "list_workspaces", "get_guide"],
+    ["sql_query", "sql_execute", "list_workspaces", "get_guide"],
   );
   assert.deepEqual(
     buildOpenAIChatTools(true).map((tool) => tool.name),
-    ["sql", "list_workspaces", "get_guide", "add_generated_image_to_card"],
+    ["sql_query", "sql_execute", "list_workspaces", "get_guide", "add_generated_image_to_card"],
   );
 });
 
@@ -341,7 +344,8 @@ test("guest execution rejects before every generated-image dependency", async ()
     "{invalid",
     { ...context, generatedImageEligible: false },
     {
-      executeAgentSql: async () => failDependency("sql"),
+      runChatSqlQuery: async () => failDependency("sql_query"),
+      runChatSqlExecute: async () => failDependency("sql_execute"),
       createToolDependencies: () => failDependency("tool_dependencies"),
       resolveAccessibleChatWorkspaceId: async () => failDependency("workspace_resolution"),
       listUserWorkspacesWithStatsForSelectedWorkspace: async () => failDependency("workspace_list"),

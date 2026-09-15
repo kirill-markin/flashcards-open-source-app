@@ -17,32 +17,28 @@ import {
   ensureAIChatSyncReplicaWithDeadline,
 } from "../../../sync/identity/aiChatIdentity";
 import { listUserWorkspacesWithStatsForSelectedWorkspace } from "../../../workspaces";
-import { executeAgentSql } from "../../../aiTools/agentSql";
+import { runChatSqlExecute, runChatSqlQuery } from "../../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
 } from "../../../aiTools/agentSql/operations";
-import { parseSqlStatement, splitSqlStatements } from "../../../aiTools/sqlDialect";
 import {
-  isSqlMutationStatement,
   previewSqlStatement,
   type AgentSqlPayload,
   type AgentSqlReadPayload,
 } from "../../../aiTools/agentSql/shared";
 import { createAgentRemediationInstructions } from "../../../aiTools/toolContract/remediationInstructions";
-import {
-  GUIDE_TOPICS,
-  OPENAI_SQL_TOOL,
-  SQL_TOOL_NAME,
-} from "../../../aiTools/toolContract/sqlToolContract";
+import { GUIDE_TOPICS } from "../../../aiTools/toolContract/sqlToolContract";
 import { unboundAgentToolAction } from "../../../aiTools/toolRegistry/actions";
 import {
   findAgentToolSpecForSurface,
   listAgentToolSpecsForSurface,
   GET_GUIDE_TOOL_SPEC,
   LIST_WORKSPACES_TOOL_SPEC,
-  SQL_CHAT_TOOL_INPUT_SCHEMA,
-  SQL_CHAT_TOOL_SPEC,
+  SQL_EXECUTE_TOOL_INPUT_SCHEMA,
+  SQL_EXECUTE_TOOL_SPEC,
+  SQL_QUERY_TOOL_INPUT_SCHEMA,
+  SQL_QUERY_TOOL_SPEC,
 } from "../../../aiTools/toolRegistry/specs";
 import type { AgentToolContext, AgentToolSpec } from "../../../aiTools/toolRegistry/types";
 import { generateCardImage, type GeneratedCardImageObservationContext } from "../../cardImages";
@@ -113,8 +109,8 @@ export type ExecutedChatToolCall = Readonly<{
   sqlTelemetry: SqlToolTelemetry | null;
   /**
    * The error class of a failed call whose tool reports no SQL telemetry, so such a failure still
-   * names its cause in the exported metadata and still marks its observation. The SQL tool reports
-   * its class inside `sqlTelemetry` and leaves this null; the generated-image tool leaves it null
+   * names its cause in the exported metadata and still marks its observation. The SQL tools report
+   * their class inside `sqlTelemetry` and leave this null; the generated-image tool leaves it null
    * on purpose, because it returns expected product outcomes such as `limit_reached` through the
    * same error envelope and exports those as its own status instead.
    */
@@ -122,7 +118,8 @@ export type ExecutedChatToolCall = Readonly<{
 }>;
 
 export type OpenAIToolDependencies = Readonly<{
-  executeAgentSql: typeof executeAgentSql;
+  runChatSqlQuery: typeof runChatSqlQuery;
+  runChatSqlExecute: typeof runChatSqlExecute;
   createToolDependencies: (context: OpenAIToolContext) => AgentToolOperationDependencies;
   resolveAccessibleChatWorkspaceId: typeof resolveAccessibleChatWorkspaceId;
   listUserWorkspacesWithStatsForSelectedWorkspace: typeof listUserWorkspacesWithStatsForSelectedWorkspace;
@@ -295,11 +292,12 @@ type SqlToolSuccessPayload = Readonly<{
 }>;
 
 function buildSqlToolEnvelope(
+  toolName: string,
   payload: SqlToolSuccessPayload,
 ): Readonly<Record<string, unknown>> {
   return {
     ok: true,
-    tool: SQL_TOOL_NAME,
+    tool: toolName,
     ...payload,
   };
 }
@@ -316,9 +314,7 @@ function buildSqlToolEnvelope(
  * hint, and pointers to envelope fields the chat does not emit - the chat system prompt already
  * states for this surface.
  *
- * It names `data.limit` only to keep a model from paginating straight past the dropped rows, and
- * gives no resume recipe on purpose: the chat exposes one combined `sql` tool, so a model that
- * needs the rest simply asks again.
+ * It names `data.limit` only to keep a model from paginating straight past the dropped rows.
  */
 const TRUNCATED_READ_ROWS_INSTRUCTION =
   "This answer is partial: data.rows carries only the leading rows of the result, because the whole result did not fit the size limit of a single tool result, and data.rowsTruncated is true because the rest were dropped here rather than by your query. data.rowCount counts the rows you received and data.totalRowCount how many rows the statement produced, so compare the two before you answer and tell the user the answer is partial whenever the rows you are missing could change it. data.limit is still the limit you asked for rather than the number of rows delivered, so continuing from data.offset + data.limit would skip the rows dropped here. Nothing was written, so when those rows matter, ask again for less at a time: select fewer or narrower columns, add WHERE filters, or aggregate instead of listing rows.";
@@ -348,11 +344,12 @@ const TRUNCATED_READ_ROWS_INSTRUCTION =
  * chat emits this `{ ok, tool, ... }` shape under a smaller limit of its own.
  */
 function capReadEnvelopeByRows(
+  toolName: string,
   payload: SqlToolSuccessPayload,
   data: AgentSqlReadPayload,
 ): string | null {
   const serializeRowPrefix = (rowCount: number): string =>
-    JSON.stringify(buildSqlToolEnvelope({
+    JSON.stringify(buildSqlToolEnvelope(toolName, {
       ...payload,
       data: {
         ...data,
@@ -394,8 +391,8 @@ function capReadEnvelopeByRows(
  * `SELECT` for which `capReadEnvelopeByRows` finds no fitting prefix of rows, whatever put the
  * envelope over budget.
  */
-function createToolSuccessResult(payload: SqlToolSuccessPayload): string {
-  const envelope = buildSqlToolEnvelope(payload);
+function createToolSuccessResult(toolName: string, payload: SqlToolSuccessPayload): string {
+  const envelope = buildSqlToolEnvelope(toolName, payload);
   const serialized = JSON.stringify(envelope);
   if (serialized.length <= MAX_TOOL_OUTPUT_CHARS) {
     return serialized;
@@ -403,7 +400,7 @@ function createToolSuccessResult(payload: SqlToolSuccessPayload): string {
 
   const data = payload.data;
   if (data.statementType === "select" && data.rows.length > 0) {
-    const rowCapped = capReadEnvelopeByRows(payload, data);
+    const rowCapped = capReadEnvelopeByRows(toolName, payload, data);
     if (rowCapped !== null) {
       return rowCapped;
     }
@@ -462,19 +459,6 @@ function getSqlFromRawArguments(rawArguments: string): string | null {
   }
 }
 
-function getIsMutatingSql(sql: string | null): boolean {
-  if (sql === null) {
-    return false;
-  }
-
-  try {
-    const statements = splitSqlStatements(sql).map((statementSql) => parseSqlStatement(statementSql));
-    return statements.length > 0 && statements.every(isSqlMutationStatement);
-  } catch {
-    return false;
-  }
-}
-
 function getSqlStatementCount(payload: AgentSqlPayload): number {
   return payload.statementType === "batch" ? payload.statementCount : 1;
 }
@@ -501,6 +485,36 @@ function getSqlDialectReason(error: unknown): string | null {
     ? error.details?.validationIssues?.[0]?.code ?? null
     : null;
 }
+
+const OPENAI_SQL_TOOL_PARAMETERS: OpenAI.Responses.FunctionTool["parameters"] = {
+  type: "object",
+  properties: {
+    sql: {
+      type: "string",
+    },
+    workspaceId: {
+      type: "string",
+    },
+  },
+  required: ["sql"],
+  additionalProperties: false,
+};
+
+const OPENAI_SQL_QUERY_TOOL: OpenAI.Responses.FunctionTool = {
+  type: "function",
+  name: SQL_QUERY_TOOL_SPEC.name,
+  description: SQL_QUERY_TOOL_SPEC.description,
+  strict: false,
+  parameters: OPENAI_SQL_TOOL_PARAMETERS,
+};
+
+const OPENAI_SQL_EXECUTE_TOOL: OpenAI.Responses.FunctionTool = {
+  type: "function",
+  name: SQL_EXECUTE_TOOL_SPEC.name,
+  description: SQL_EXECUTE_TOOL_SPEC.description,
+  strict: false,
+  parameters: OPENAI_SQL_TOOL_PARAMETERS,
+};
 
 /**
  * The topic enum is spelled from `GUIDE_TOPICS`, so a topic added to the registry reaches this
@@ -546,7 +560,8 @@ const OPENAI_LIST_WORKSPACES_TOOL: OpenAI.Responses.FunctionTool = {
  * Hand-written is not unchecked: `requireChatFunctionTool` compares the two at module load.
  */
 const CHAT_FUNCTION_TOOLS: Readonly<Record<string, OpenAI.Responses.FunctionTool | undefined>> = {
-  [SQL_CHAT_TOOL_SPEC.name]: OPENAI_SQL_TOOL,
+  [SQL_QUERY_TOOL_SPEC.name]: OPENAI_SQL_QUERY_TOOL,
+  [SQL_EXECUTE_TOOL_SPEC.name]: OPENAI_SQL_EXECUTE_TOOL,
   [LIST_WORKSPACES_TOOL_SPEC.name]: OPENAI_LIST_WORKSPACES_TOOL,
   [GET_GUIDE_TOOL_SPEC.name]: OPENAI_GET_GUIDE_TOOL,
 };
@@ -636,7 +651,8 @@ export const OPENAI_CHAT_TOOLS: ReadonlyArray<OpenAI.Responses.FunctionTool> =
   listAgentToolSpecsForSurface("chat").map((spec) => requireChatFunctionTool(spec));
 
 const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
-  executeAgentSql,
+  runChatSqlQuery,
+  runChatSqlExecute,
   createToolDependencies,
   resolveAccessibleChatWorkspaceId,
   listUserWorkspacesWithStatsForSelectedWorkspace,
@@ -944,12 +960,15 @@ function buildChatAgentToolContext(
       explicitWorkspaceId,
     ),
     actions: {
-      // The chat registers the combined SQL tool, list_workspaces, and the static guide, so every
+      // The chat registers sql_query, sql_execute, list_workspaces, and the static guide, so every
       // action none of them reaches is named as unbound: giving the chat a tool that reaches one
       // has to inject its action here first.
-      runSqlQuery: unboundAgentToolAction("runSqlQuery", "chat"),
-      runSqlExecute: unboundAgentToolAction("runSqlExecute", "chat"),
-      executeAgentSql: async (sqlContext, sql) => dependencies.executeAgentSql(
+      runSqlQuery: async (sqlContext, sql) => dependencies.runChatSqlQuery(
+        sqlContext,
+        sql,
+        dependencies.createToolDependencies(context),
+      ),
+      runSqlExecute: async (sqlContext, sql) => dependencies.runChatSqlExecute(
         sqlContext,
         sql,
         dependencies.createToolDependencies(context),
@@ -962,6 +981,8 @@ function buildChatAgentToolContext(
     },
   };
 }
+
+type SqlToolInputSchema = typeof SQL_QUERY_TOOL_INPUT_SCHEMA | typeof SQL_EXECUTE_TOOL_INPUT_SCHEMA;
 
 /**
  * Turns one registry SQL tool call into a chat tool-call result: the `{ ok, tool, sql, ... }`
@@ -978,23 +999,24 @@ function buildChatAgentToolContext(
  */
 async function executeSqlChatToolCall(
   spec: AgentToolSpec<AgentSqlPayload>,
+  inputSchema: SqlToolInputSchema,
   rawArguments: string,
   context: OpenAIToolContext,
   dependencies: OpenAIToolDependencies,
 ): Promise<ExecutedChatToolCall> {
   const sql = getSqlFromRawArguments(rawArguments);
-  const isMutating = getIsMutatingSql(sql);
+  const isMutating = spec.name === SQL_EXECUTE_TOOL_SPEC.name;
   const startedAt = Date.now();
 
   try {
-    const parsed = SQL_CHAT_TOOL_INPUT_SCHEMA.parse(JSON.parse(rawArguments));
+    const parsed = inputSchema.parse(JSON.parse(rawArguments));
     const result = await spec.execute(
       buildChatAgentToolContext(context, dependencies),
       parsed,
     );
 
     return {
-      output: createToolSuccessResult({
+      output: createToolSuccessResult(spec.name, {
         sql: parsed.sql,
         data: result.data,
         instructions: result.instructions,
@@ -1061,8 +1083,8 @@ async function executeSqlChatToolCall(
 
 /**
  * Turns one call of a registry tool that writes nothing - `get_guide` or `list_workspaces` - into a
- * chat tool-call result, in the same `{ ok, tool, data, instructions }` envelope the SQL tool
- * returns, carrying no SQL telemetry.
+ * chat tool-call result, in the same `{ ok, tool, data, instructions }` envelope the SQL tools
+ * return, carrying no SQL telemetry.
  *
  * A failure, including arguments the schema rejects, comes back as the same `{ ok: false }`
  * envelope a failed SQL call returns rather than as a throw, because a thrown tool call ends the
@@ -1131,8 +1153,20 @@ type ChatToolRunner = (
  * concern and differs per tool.
  */
 const CHAT_TOOL_RUNNERS: Readonly<Record<string, ChatToolRunner | undefined>> = {
-  [SQL_CHAT_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
-    executeSqlChatToolCall(SQL_CHAT_TOOL_SPEC, rawArguments, context, dependencies),
+  [SQL_QUERY_TOOL_SPEC.name]: (rawArguments, context, dependencies) => executeSqlChatToolCall(
+    SQL_QUERY_TOOL_SPEC,
+    SQL_QUERY_TOOL_INPUT_SCHEMA,
+    rawArguments,
+    context,
+    dependencies,
+  ),
+  [SQL_EXECUTE_TOOL_SPEC.name]: (rawArguments, context, dependencies) => executeSqlChatToolCall(
+    SQL_EXECUTE_TOOL_SPEC,
+    SQL_EXECUTE_TOOL_INPUT_SCHEMA,
+    rawArguments,
+    context,
+    dependencies,
+  ),
   [LIST_WORKSPACES_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
     executeReadOnlyChatToolCall(LIST_WORKSPACES_TOOL_SPEC, rawArguments, context, dependencies),
   [GET_GUIDE_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
