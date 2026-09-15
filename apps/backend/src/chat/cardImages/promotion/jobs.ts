@@ -64,8 +64,10 @@ export type GeneratedMediaPromotionJobPayload = Readonly<{
   mimeType: string;
   sizeBytes: number;
 }>;
+export type EnqueueRunlessGeneratedMediaPromotionJobInput =
+  GeneratedMediaPromotionJobPayload & Readonly<{ deadlineAtMs: number }>;
 export type EnqueueGeneratedMediaPromotionJobInput = ChatRunClaimFenceParams
-  & GeneratedMediaPromotionJobPayload & Readonly<{ deadlineAtMs: number }>;
+  & EnqueueRunlessGeneratedMediaPromotionJobInput;
 export type EnqueueGeneratedMediaPromotionJobResult =
   Readonly<{
     outcome: "created" | "existing";
@@ -540,8 +542,9 @@ const storedPayloadColumns = `
   media_asset_id, replica_id, staging_storage_key, blob_storage_key,
   sha256, mime_type, size_bytes
 `;
-export async function enqueueGeneratedMediaPromotionJob(
-  input: EnqueueGeneratedMediaPromotionJobInput,
+async function enqueueGeneratedMediaPromotionJobWithFence(
+  input: EnqueueRunlessGeneratedMediaPromotionJobInput,
+  assertFenceInExecutorFn: (executor: DatabaseExecutor) => Promise<void>,
 ): Promise<EnqueueGeneratedMediaPromotionJobResult> {
   requirePayload(input);
   try {
@@ -549,7 +552,7 @@ export async function enqueueGeneratedMediaPromotionJob(
       { userId: input.userId, workspaceId: input.workspaceId },
       input.deadlineAtMs,
       async (executor) => {
-        await assertActiveChatRunClaimWithExecutor(executor, input);
+        await assertFenceInExecutorFn(executor);
         await assertReplicaBelongsToWorkspaceInExecutor(executor, input.workspaceId, input.replicaId);
         await assertGeneratedMediaPromotionLifecycleProtocolActiveInExecutor(executor);
         const inserted = await executor.query<InsertedRow>(
@@ -638,6 +641,23 @@ export async function enqueueGeneratedMediaPromotionJob(
     }
     throw error;
   }
+}
+export async function enqueueGeneratedMediaPromotionJob(
+  input: EnqueueGeneratedMediaPromotionJobInput,
+): Promise<EnqueueGeneratedMediaPromotionJobResult> {
+  return enqueueGeneratedMediaPromotionJobWithFence(
+    input,
+    async (executor) => assertActiveChatRunClaimWithExecutor(executor, input),
+  );
+}
+/**
+ * For a caller without a chat run. The run-claim fence only proves a chat run is still alive;
+ * duplicate enqueues of one operation are still resolved by the job_id and operation_id unique keys.
+ */
+export async function enqueueRunlessGeneratedMediaPromotionJob(
+  input: EnqueueRunlessGeneratedMediaPromotionJobInput,
+): Promise<EnqueueGeneratedMediaPromotionJobResult> {
+  return enqueueGeneratedMediaPromotionJobWithFence(input, async () => undefined);
 }
 export async function claimGeneratedMediaPromotionJobs(
   input: ClaimGeneratedMediaPromotionJobsInput,
