@@ -10,11 +10,7 @@ import {
   CARD_DUPLICATE_CHECK_RULE_LINES,
   CARD_STYLE_ALIGNMENT_RULE_LINES,
   CARD_TAGGING_RULE_LINES,
-  SQL_BULK_WRITE_SPLIT_DESCRIPTION,
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
-  SQL_RETURNING_DESCRIPTION,
-  SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
-  SQL_TOOL_PROMPT_EXAMPLE_LINES,
 } from "../aiTools/toolContract/sqlToolContract";
 
 function joinLines(lines: ReadonlyArray<string>): string {
@@ -94,6 +90,7 @@ function buildToolCallRulesSection(): string {
     "- Tool arguments must be exactly one JSON object.",
     "- Use the shared sql tool for workspace reads, writes, and schema discovery.",
     "- Send SHOW TABLES, DESCRIBE, and SHOW COLUMNS as their own tool call, never in the same sql string as statements that depend on the result.",
+    "- Never mix read and write statements in one sql string.",
     "- Put the whole query in the sql string field and do not invent extra tool arguments.",
     "- SQL pagination uses LIMIT and OFFSET inside the SQL string.",
     "- SELECT returns at most 100 rows per statement.",
@@ -103,32 +100,40 @@ function buildToolCallRulesSection(): string {
 }
 
 /**
- * The dialect grammar the in-app `sql` tool description has no room for: OpenAI
- * caps a function description at 1024 characters, these instructions are not
- * capped, and the in-app chat has no `get_guide` tool to fetch a guide with.
- * Every constant here is one `SQL_DIALECT_GUIDE` composes too, directly or
- * through `SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION`, so the in-app chat
- * and MCP stay on one dialect. That includes the filterable/sortable rule,
- * which `SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION` carries for every surface:
- * restating it here as a literal would state it twice in one prompt.
+ * Where the rest of the dialect lives, modelled on `SERVER_INSTRUCTIONS` in
+ * `apps/backend/src/mcp/server.ts`. The grammar, the text-column rules,
+ * RETURNING, the batch arithmetic, and the full example list are served by
+ * `get_guide` topic `sql_dialect` on demand, instead of being re-sent on every
+ * one of a turn's model calls.
+ *
+ * What stays inline is what a first call gets wrong with nothing to read
+ * afterwards, because the chat pays a wrong first guess out of its own model-call
+ * budget: tags are spelled like nothing in standard SQL and every new card
+ * carries one, and the tag forms that miss return zero rows rather than an
+ * error, so a model that reaches for one of them reports "no cards found" and
+ * never learns that it needed the guide. The forms that fail loudly are left to
+ * the guide, which the model fetches after reading the dialect error.
+ *
+ * `get_guide` serves every surface, so the mapping bullet is the single place
+ * that says which of its topics this chat can use: it maps the public API's
+ * split `sql_query` and `sql_execute` onto the one `sql` tool here, and it rules
+ * out `card_authoring`, whose text the card sections above already state in
+ * full, and `review_flow`, which drives review tools this surface does not
+ * register - a tool name the chat cannot run ends the whole run in
+ * `requireChatToolRunner`. Registering review tools here later is an edit to
+ * that one bullet.
  */
-function buildSqlDialectSection(): string {
+function buildSqlRoutingSection(): string {
   return joinLines([
     "SQL dialect:",
-    SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
-    "UPDATE and DELETE WHERE clauses support the same forms as SELECT WHERE clauses.",
-    SQL_MUTATION_TAG_FILTER_DESCRIPTION,
-    "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
-    SQL_RETURNING_DESCRIPTION,
-    SQL_BULK_WRITE_SPLIT_DESCRIPTION,
-  ]);
-}
-
-/** The full example list; the tool description carries only one read and one write example. */
-function buildSqlExampleSection(): string {
-  return joinLines([
-    "Examples (tool-call JSON):",
-    ...SQL_TOOL_PROMPT_EXAMPLE_LINES,
+    "- This is not full PostgreSQL. Call get_guide with topic sql_dialect before any statement whose form you are unsure of, and again after a dialect error, instead of guessing.",
+    "- Guides are written for every surface: they name the public API tools sql_query and sql_execute, which are both the single sql tool here; topic card_authoring only repeats the card rules above, and topic review_flow drives next_review_card, reveal_answer, and submit_review tools this chat does not have, so use topics sql_dialect and bulk_authoring only and never call a tool you were not given.",
+    "- Match rows by tag with tags OVERLAP ('english', 'slang'), compared exactly and case-sensitively, so pass tag values as they are stored.",
+    `- ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`,
+    "- Array columns such as tags take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
+    "- Prefer OVERLAP over the tag forms that fail silently: tags = ('english', 'slang') is exact set equality, so a card carrying any extra tag does not match, and tags IN (...), LOWER(tags) IN (...), and LOWER(tags) NOT IN (...) are accepted but match no rows.",
+    "- LIKE, NOT LIKE, ILIKE, and the LOWER(column) LIKE and LOWER(column) = forms apply to text columns only and are rejected on an array column such as tags.",
+    "- Before a large write job, call get_guide with topic bulk_authoring and split the work as it says.",
   ]);
 }
 
@@ -141,10 +146,18 @@ function buildGeneratedImagePolicySection(): string {
   ]);
 }
 
+/**
+ * The second sentence names the tools whose failure envelopes the shared remediation module fills
+ * (`createAgentRemediationInstructions` in
+ * `apps/backend/src/aiTools/toolContract/remediationInstructions.ts`), because those are the only
+ * ones carrying an `instructions` field and an `error.message`. The generated-image tool fails with
+ * `{ ok: false, code, retryable }` and is steered by its own policy section above, so widening this
+ * to every tool would point the model at fields that envelope does not have.
+ */
 function buildRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
-    "If a sql tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
+    "If a sql or get_guide tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
   ]);
 }
 
@@ -182,8 +195,7 @@ export function buildSystemInstructions(
     buildPlainTextChatFormattingSection(),
     buildWritePolicySection(),
     buildToolCallRulesSection(),
-    buildSqlDialectSection(),
-    buildSqlExampleSection(),
+    buildSqlRoutingSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),
     "Be concise, direct, and operational.",

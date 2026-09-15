@@ -201,10 +201,10 @@ test("generated image tool schema is strict and signed-in-only", () => {
     ...validArgumentObject,
     altText: "😀".repeat(maximumGeneratedImageAltTextCodePoints + 1),
   }).success, false);
-  assert.deepEqual(buildOpenAIChatTools(false).map((tool) => tool.name), ["sql"]);
+  assert.deepEqual(buildOpenAIChatTools(false).map((tool) => tool.name), ["sql", "get_guide"]);
   assert.deepEqual(
     buildOpenAIChatTools(true).map((tool) => tool.name),
-    ["sql", "add_generated_image_to_card"],
+    ["sql", "get_guide", "add_generated_image_to_card"],
   );
 });
 

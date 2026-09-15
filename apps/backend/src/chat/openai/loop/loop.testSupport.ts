@@ -14,6 +14,7 @@ type TestToolCallResult = Readonly<{
   stopReason?: "deadline_reached" | "run_inactive" | null;
   generatedImageTelemetry?: null;
   sqlTelemetry?: null;
+  toolErrorClass?: string | null;
 }>;
 export type OpenAIResponseStream = AsyncIterable<OpenAI.Responses.ResponseStreamEvent> & Readonly<{
   finalResponse?: () => Promise<OpenAI.Responses.Response>;
@@ -353,6 +354,7 @@ export function createDependencies(
         stopReason: result.stopReason ?? null,
         generatedImageTelemetry: result.generatedImageTelemetry ?? null,
         sqlTelemetry: result.sqlTelemetry ?? null,
+        toolErrorClass: result.toolErrorClass ?? null,
       };
     },
   };

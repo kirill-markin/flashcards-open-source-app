@@ -15,6 +15,7 @@ import {
   GET_GUIDE_RESULT_INSTRUCTIONS,
   GUIDE_BODIES,
   GUIDE_TOPICS,
+  type GuideTopic,
   SQL_EXECUTE_TOOL_DESCRIPTION,
   SQL_EXECUTE_TOOL_NAME,
   SQL_QUERY_TOOL_DESCRIPTION,
@@ -188,6 +189,33 @@ export const SQL_CHAT_TOOL_SPEC = defineAgentTool({
 });
 
 /**
+ * The guide payload, typed so the surface that renders its fields keeps them through the registry.
+ * MCP forwards it into its own envelope as an opaque payload; the in-app chat reads `topic` and
+ * `guide` to build its `{ ok, tool, ... }` result.
+ */
+export type AgentGuidePayload = Readonly<{
+  topic: GuideTopic;
+  guide: string;
+}>;
+
+/**
+ * Served on both surfaces from one definition, so a topic added here reaches the in-app chat and
+ * MCP together. It reaches no action: a guide is static text composed at module load.
+ */
+export const GET_GUIDE_TOOL_SPEC = defineAgentTool({
+  name: GET_GUIDE_TOOL_NAME,
+  surfaces: ["mcp", "chat"],
+  description: GET_GUIDE_TOOL_DESCRIPTION,
+  inputSchema: z.strictObject({
+    topic: z.enum(GUIDE_TOPICS).describe(GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION),
+  }),
+  execute: async (_context, input): Promise<AgentToolResult<AgentGuidePayload>> => ({
+    data: { topic: input.topic, guide: GUIDE_BODIES[input.topic] },
+    instructions: GET_GUIDE_RESULT_INSTRUCTIONS,
+  }),
+});
+
+/**
  * Every agent tool this backend exposes, on every surface.
  *
  * A spec carries what both surfaces need to expose and run a tool. What differs per surface stays
@@ -212,18 +240,7 @@ export const AGENT_TOOL_SPECS: ReadonlyArray<AgentToolSpec> = Object.freeze([
       return { data: { workspaces }, instructions: LIST_WORKSPACES_RESULT_INSTRUCTIONS };
     },
   }),
-  defineAgentTool({
-    name: GET_GUIDE_TOOL_NAME,
-    surfaces: ["mcp"],
-    description: GET_GUIDE_TOOL_DESCRIPTION,
-    inputSchema: z.strictObject({
-      topic: z.enum(GUIDE_TOPICS).describe(GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION),
-    }),
-    execute: async (_context, input): Promise<AgentToolResult> => ({
-      data: { topic: input.topic, guide: GUIDE_BODIES[input.topic] },
-      instructions: GET_GUIDE_RESULT_INSTRUCTIONS,
-    }),
-  }),
+  GET_GUIDE_TOOL_SPEC,
   defineAgentTool({
     name: NEXT_REVIEW_CARD_TOOL_NAME,
     surfaces: ["mcp"],

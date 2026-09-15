@@ -116,18 +116,18 @@ function buildToolStatusMessage(metadata: ToolTelemetryMetadata): string {
  * Marks a failed tool observation with Langfuse own error semantics so operators can filter
  * failed tool calls in the UI instead of parsing full generations.
  *
- * A tool call that threw always qualifies. A tool call that returned an error envelope only
- * qualifies when it carries SQL telemetry, because a SQL envelope always reports a real failure,
- * while the generated-image tool reports expected product outcomes such as `limit_reached` the
- * same way and its genuine provider failures already own the provider observation. Both keep
- * exporting `outcome` as metadata either way.
+ * A tool call that threw always qualifies. A tool call that returned an error envelope qualifies
+ * once it named an error class, which every real failure does: the SQL tool reports one through
+ * `sqlTelemetry` and every other registry tool through `toolErrorClass`, while the generated-image
+ * tool reports expected product outcomes such as `limit_reached` through the same envelope without
+ * one, and its genuine provider failures already own the provider observation. Both keep exporting
+ * `outcome` as metadata either way.
  */
 function buildFailureObservationAttributes(
   metadata: ToolTelemetryMetadata,
-  result: ExecutedChatToolCall | null,
 ): Readonly<{ level?: ObservationLevel; statusMessage?: string }> {
   const failed = metadata.outcome === "thrown"
-    || (metadata.outcome === "tool_error" && (result?.sqlTelemetry ?? null) !== null);
+    || (metadata.outcome === "tool_error" && metadata.errorClass !== null);
   return failed
     ? { level: "ERROR", statusMessage: buildToolStatusMessage(metadata) }
     : {};
@@ -210,7 +210,7 @@ export async function runOneToolCall(
       durationMs: Date.now() - startedAt,
       outputLength: result.output.length,
       outcome,
-      errorClass: result.sqlTelemetry?.errorClass ?? null,
+      errorClass: result.sqlTelemetry?.errorClass ?? result.toolErrorClass,
       errorMessage: null,
       result,
     });
@@ -220,7 +220,7 @@ export async function runOneToolCall(
         outputLength: result.output.length,
       },
       metadata,
-      ...buildFailureObservationAttributes(metadata, result),
+      ...buildFailureObservationAttributes(metadata),
     });
     toolObservation?.end();
     return result;
@@ -241,7 +241,7 @@ export async function runOneToolCall(
         outcome: "thrown",
       },
       metadata,
-      ...buildFailureObservationAttributes(metadata, null),
+      ...buildFailureObservationAttributes(metadata),
     });
     toolObservation?.end();
     throw error;
