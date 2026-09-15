@@ -439,12 +439,10 @@ test("generated image tool propagates database and inactive-claim boundaries unc
     ),
     new InactiveChatRunClaimError(runId),
     new GeneratedCardImageProviderOutcomeUnknownError(
-      runId,
-      context.operationKey,
+      { identityKind: "chat_run", runId, operationKey: context.operationKey },
     ),
     new GeneratedCardImageStagingOutcomeUnknownError(
-      runId,
-      context.operationKey,
+      { identityKind: "chat_run", runId, operationKey: context.operationKey },
       new GeneratedMediaPromotionStorageTransientError(503),
     ),
   ];
@@ -464,8 +462,7 @@ test("generated image tool propagates database and inactive-claim boundaries unc
 test("authoritative generated-image boundaries win when cancellation races", async () => {
   const stagingCause = new GeneratedMediaPromotionStorageTransientError(503);
   const stagingOutcomeError = new GeneratedCardImageStagingOutcomeUnknownError(
-    runId,
-    context.operationKey,
+    { identityKind: "chat_run", runId, operationKey: context.operationKey },
     stagingCause,
   );
   assert.equal(stagingOutcomeError.cause, stagingCause);
@@ -481,8 +478,7 @@ test("authoritative generated-image boundaries win when cancellation races", asy
     ),
     new InactiveChatRunClaimError(runId),
     new GeneratedCardImageProviderOutcomeUnknownError(
-      runId,
-      context.operationKey,
+      { identityKind: "chat_run", runId, operationKey: context.operationKey },
     ),
     stagingOutcomeError,
   ]) {

@@ -33,23 +33,37 @@ import {
   type MarkGeneratedCardImageProviderStartedParams,
   type MarkGeneratedCardImageProviderStartedResult,
 } from "../openai/tools/generatedImageAttemptBudget";
-import { deriveGeneratedCardImageOperationMetadata } from "./metadata";
+import {
+  deriveGeneratedCardImageOperationMetadata,
+  deriveRequestContentGeneratedCardImageOperationMetadata,
+} from "./metadata";
 import { createOpenAIGeneratedCardImageProvider } from "./provider/openaiAdapter";
 import { withGeneratedCardImageOperationLock } from "./operationLock";
-import { enqueueGeneratedMediaPromotionJob, type EnqueueGeneratedMediaPromotionJobResult } from "./promotion/jobs";
+import {
+  enqueueGeneratedMediaPromotionJob,
+  enqueueRunlessGeneratedMediaPromotionJob,
+  GeneratedMediaPromotionJobConflictError,
+  type EnqueueGeneratedMediaPromotionJobResult,
+  type EnqueueRunlessGeneratedMediaPromotionJobInput,
+} from "./promotion/jobs";
 import {
   type GeneratedProviderImage,
   type OpenAIImageGenerationInput,
 } from "./provider/providerTypes";
 import {
+  formatGeneratedCardImageOperationReference,
   GeneratedCardImageDeadlineExceededError,
   GeneratedCardImageProviderOutcomeUnknownError,
+  GeneratedCardImageRequestConflictError,
   GeneratedCardImageStagingOutcomeUnknownError,
+  type GeneratedCardImageOperationReference,
 } from "./providerTypes";
 import type {
   GeneratedCardImageInput,
+  GeneratedCardImageOperationInput,
   GeneratedCardImageOperationMetadata,
   GeneratedCardImageResult,
+  RunlessGeneratedCardImageInput,
 } from "./types";
 import {
   countUnicodeCodePoints,
@@ -63,12 +77,12 @@ const maximumTimerDelayMs = 2_147_483_647;
 export type PreparedGeneratedCardImage = GeneratedMediaStagingObject & Readonly<{ reused: boolean }>;
 
 export type GeneratedCardImageOperationDependencies = Readonly<{
-  assertPreconditionsFn: (input: GeneratedCardImageInput) => Promise<void>;
+  assertPreconditionsFn: (input: GeneratedCardImageOperationInput) => Promise<void>;
   withOperationLockFn: typeof withGeneratedCardImageOperationLock;
-  prepareStagedImageFn: (input: GeneratedCardImageInput,
+  prepareStagedImageFn: (input: GeneratedCardImageOperationInput,
     operationMetadata: GeneratedCardImageOperationMetadata) => Promise<PreparedGeneratedCardImage>;
   enqueuePromotionJobFn: (
-    input: GeneratedCardImageInput, operationMetadata: GeneratedCardImageOperationMetadata,
+    input: GeneratedCardImageOperationInput, operationMetadata: GeneratedCardImageOperationMetadata,
     preparedImage: PreparedGeneratedCardImage,
   ) => Promise<EnqueueGeneratedMediaPromotionJobResult>;
 }>;
@@ -83,6 +97,7 @@ export type GeneratedCardImageExternalDependencies = Readonly<{
   loadGeneratedMediaStagingObjectFn: typeof loadGeneratedMediaStagingObject;
   storeGeneratedMediaStagingObjectFn: typeof storeGeneratedMediaStagingObject;
   enqueueGeneratedMediaPromotionJobFn: typeof enqueueGeneratedMediaPromotionJob;
+  enqueueRunlessGeneratedMediaPromotionJobFn: typeof enqueueRunlessGeneratedMediaPromotionJob;
 }>;
 
 function normalizeTargetSide(targetSide: CardTextSide): CardTextSide {
@@ -114,6 +129,15 @@ function normalizeGeneratedCardImageWorkspaceId(value: unknown): string {
   return workspaceId;
 }
 
+function normalizeGeneratedCardImagePrompt(value: unknown): string {
+  const imagePrompt = expectNonEmptyString(value, "imagePrompt");
+  if (countUnicodeCodePoints(imagePrompt) > maximumGeneratedImagePromptCodePoints) {
+    throw new HttpError(400,
+      `imagePrompt must be at most ${maximumGeneratedImagePromptCodePoints} characters`);
+  }
+  return imagePrompt;
+}
+
 function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): GeneratedCardImageInput {
   const operationKey = expectNonEmptyString(input.operationKey, "operationKey");
   if (!isGeneratedImageOperationKey(operationKey)) {
@@ -122,11 +146,7 @@ function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): Gener
       "operationKey must identify a positive run-scoped generated-image ordinal",
     );
   }
-  const imagePrompt = expectNonEmptyString(input.imagePrompt, "imagePrompt");
-  if (countUnicodeCodePoints(imagePrompt) > maximumGeneratedImagePromptCodePoints) {
-    throw new HttpError(400,
-      `imagePrompt must be at most ${maximumGeneratedImagePromptCodePoints} characters`);
-  }
+  const imagePrompt = normalizeGeneratedCardImagePrompt(input.imagePrompt);
   const altText = normalizeGeneratedCardImageAltText(input.altText);
   return {
     runId: expectUuidString(input.runId, "runId"),
@@ -146,7 +166,41 @@ function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): Gener
   };
 }
 
-function assertGeneratedCardImageOperationActive(input: GeneratedCardImageInput): void {
+function normalizeRunlessGeneratedCardImageInput(
+  input: RunlessGeneratedCardImageInput,
+): RunlessGeneratedCardImageInput {
+  const imagePrompt = normalizeGeneratedCardImagePrompt(input.imagePrompt);
+  const altText = normalizeGeneratedCardImageAltText(input.altText);
+  return {
+    userId: expectNonEmptyString(input.userId, "userId"),
+    workspaceId: normalizeGeneratedCardImageWorkspaceId(input.workspaceId),
+    cardId: expectUuidString(input.cardId, "cardId"),
+    targetSide: normalizeTargetSide(input.targetSide),
+    imagePrompt,
+    altText,
+    replicaId: expectUuidString(input.replicaId, "replicaId"),
+    observationContext: input.observationContext,
+    signal: input.signal,
+    operationDeadlineMs: input.operationDeadlineMs,
+  };
+}
+
+function isChatRunGeneratedCardImageInput(
+  input: GeneratedCardImageOperationInput,
+): input is GeneratedCardImageInput {
+  return "runId" in input;
+}
+
+function toGeneratedCardImageOperationReference(
+  input: GeneratedCardImageOperationInput,
+  operationMetadata: GeneratedCardImageOperationMetadata,
+): GeneratedCardImageOperationReference {
+  return isChatRunGeneratedCardImageInput(input)
+    ? { identityKind: "chat_run", runId: input.runId, operationKey: input.operationKey }
+    : { identityKind: "request_content", operationId: operationMetadata.operationId };
+}
+
+function assertGeneratedCardImageOperationActive(input: GeneratedCardImageOperationInput): void {
   input.signal.throwIfAborted();
   if (!Number.isSafeInteger(input.operationDeadlineMs) || input.operationDeadlineMs < 1) {
     throw new RangeError(
@@ -159,8 +213,8 @@ function assertGeneratedCardImageOperationActive(input: GeneratedCardImageInput)
 }
 
 async function withGeneratedCardImageDeadline<Result>(
-  input: GeneratedCardImageInput,
-  run: (deadlineInput: GeneratedCardImageInput) => Promise<Result>,
+  input: GeneratedCardImageOperationInput,
+  run: (deadlineInput: GeneratedCardImageOperationInput) => Promise<Result>,
 ): Promise<Result> {
   assertGeneratedCardImageOperationActive(input);
   const deadlineController = new AbortController();
@@ -179,12 +233,16 @@ async function withGeneratedCardImageDeadline<Result>(
   }
 }
 
-async function assertGeneratedCardImagePreconditions(input: GeneratedCardImageInput): Promise<void> {
+async function assertGeneratedCardImagePreconditions(
+  input: GeneratedCardImageOperationInput,
+): Promise<void> {
   await transactionWithWorkspaceScopeDeadline(
     { userId: input.userId, workspaceId: input.workspaceId },
     input.operationDeadlineMs,
     async (executor) => {
-      await assertActiveChatRunClaimWithExecutor(executor, input);
+      if (isChatRunGeneratedCardImageInput(input)) {
+        await assertActiveChatRunClaimWithExecutor(executor, input);
+      }
       const cardResult = await executor.query<{ card_id: string }>(
         `SELECT card_id FROM content.cards
          WHERE workspace_id = $1 AND card_id = $2 AND deleted_at IS NULL
@@ -202,7 +260,7 @@ async function assertGeneratedCardImagePreconditions(input: GeneratedCardImageIn
 }
 
 async function prepareStagedGeneratedCardImage(
-  input: GeneratedCardImageInput,
+  input: GeneratedCardImageOperationInput,
   operationMetadata: GeneratedCardImageOperationMetadata,
   dependencies: GeneratedCardImageExternalDependencies,
 ): Promise<PreparedGeneratedCardImage> {
@@ -217,7 +275,7 @@ async function prepareStagedGeneratedCardImage(
   if (existing !== null) return { ...existing, reused: true };
   // The chat flag is set in the same transaction that asserts the run claim; a request-content
   // operation has no run, so its create-if-absent storage marker fences the paid call instead.
-  const providerStart = operationMetadata.identityKind === "chat_run"
+  const providerStart = isChatRunGeneratedCardImageInput(input)
     ? await dependencies.markProviderStartedFn({
       userId: input.userId,
       workspaceId: input.workspaceId,
@@ -228,15 +286,13 @@ async function prepareStagedGeneratedCardImage(
       databaseDeadlineAtMs: input.operationDeadlineMs,
     })
     : await dependencies.markGeneratedMediaProviderStartedObjectFn(stagingInput);
+  const operation = toGeneratedCardImageOperationReference(input, operationMetadata);
   if (providerStart.status === "previously_started") {
-    throw new GeneratedCardImageProviderOutcomeUnknownError(
-      input.runId,
-      input.operationKey,
-    );
+    throw new GeneratedCardImageProviderOutcomeUnknownError(operation);
   }
   if (providerStart.status !== "first_started") {
     throw new Error(
-      `Generated card image provider start returned an invalid result. runId=${input.runId}; operationKey=${input.operationKey}`,
+      `Generated card image provider start returned an invalid result. ${formatGeneratedCardImageOperationReference(operation)}`,
     );
   }
   input.signal.throwIfAborted();
@@ -261,26 +317,21 @@ async function prepareStagedGeneratedCardImage(
     if (input.signal.aborted && error === input.signal.reason) {
       throw error;
     }
-    throw new GeneratedCardImageStagingOutcomeUnknownError(
-      input.runId,
-      input.operationKey,
-      error,
-    );
+    throw new GeneratedCardImageStagingOutcomeUnknownError(operation, error);
   }
   input.signal.throwIfAborted();
   return { ...staged, reused: false };
 }
 
 async function enqueueGeneratedCardImagePromotion(
-  input: GeneratedCardImageInput,
+  input: GeneratedCardImageOperationInput,
   operationMetadata: GeneratedCardImageOperationMetadata,
   preparedImage: PreparedGeneratedCardImage,
   dependencies: GeneratedCardImageExternalDependencies,
 ): Promise<EnqueueGeneratedMediaPromotionJobResult> {
   input.signal.throwIfAborted();
-  return dependencies.enqueueGeneratedMediaPromotionJobFn({
+  const job: EnqueueRunlessGeneratedMediaPromotionJobInput = {
     userId: input.userId, workspaceId: input.workspaceId,
-    sessionId: input.sessionId, runId: input.runId, claimToken: input.claimToken,
     deadlineAtMs: input.operationDeadlineMs,
     jobId: operationMetadata.operationId, operationId: operationMetadata.operationId,
     cardId: input.cardId, targetSide: input.targetSide, altText: input.altText,
@@ -289,7 +340,12 @@ async function enqueueGeneratedCardImagePromotion(
     blobStorageKey: buildMediaBlobStorageKey(preparedImage.sha256),
     sha256: preparedImage.sha256, mimeType: preparedImage.mimeType,
     sizeBytes: preparedImage.sizeBytes,
-  });
+  };
+  return isChatRunGeneratedCardImageInput(input)
+    ? dependencies.enqueueGeneratedMediaPromotionJobFn({
+      ...job, sessionId: input.sessionId, runId: input.runId, claimToken: input.claimToken,
+    })
+    : dependencies.enqueueRunlessGeneratedMediaPromotionJobFn(job);
 }
 
 function isConfirmedPromotionEnqueueResult(
@@ -307,7 +363,7 @@ function isConfirmedPromotionEnqueueResult(
 }
 
 async function enqueueGeneratedCardImagePromotionWithCommitReconciliation(
-  input: GeneratedCardImageInput,
+  input: GeneratedCardImageOperationInput,
   operationMetadata: GeneratedCardImageOperationMetadata,
   preparedImage: PreparedGeneratedCardImage,
   enqueuePromotionJobFn: GeneratedCardImageOperationDependencies["enqueuePromotionJobFn"],
@@ -357,15 +413,11 @@ export function createGeneratedCardImageOperationDependencies(
   };
 }
 
-export async function generateCardImageWithDependencies(
-  input: GeneratedCardImageInput,
+async function runGeneratedCardImageOperation(
+  normalizedInput: GeneratedCardImageOperationInput,
+  operationMetadata: GeneratedCardImageOperationMetadata,
   dependencies: GeneratedCardImageOperationDependencies,
 ): Promise<GeneratedCardImageResult> {
-  const normalizedInput = normalizeGeneratedCardImageInput(input);
-  assertGeneratedCardImageOperationActive(normalizedInput);
-  const operationMetadata = deriveGeneratedCardImageOperationMetadata(
-    normalizedInput.runId, normalizedInput.operationKey,
-  );
   await dependencies.assertPreconditionsFn(normalizedInput);
   assertGeneratedCardImageOperationActive(normalizedInput);
   return withGeneratedCardImageDeadline(
@@ -400,6 +452,48 @@ export async function generateCardImageWithDependencies(
   );
 }
 
+export async function generateCardImageWithDependencies(
+  input: GeneratedCardImageInput,
+  dependencies: GeneratedCardImageOperationDependencies,
+): Promise<GeneratedCardImageResult> {
+  const normalizedInput = normalizeGeneratedCardImageInput(input);
+  assertGeneratedCardImageOperationActive(normalizedInput);
+  const operationMetadata = deriveGeneratedCardImageOperationMetadata(
+    normalizedInput.runId, normalizedInput.operationKey,
+  );
+  return runGeneratedCardImageOperation(normalizedInput, operationMetadata, dependencies);
+}
+
+/**
+ * Entry for a surface without a chat run. Its identity comes from the normalized content and the
+ * server clock at receipt and excludes the user and replica, so a different user or replica sending
+ * the same request within that hour fails with GeneratedCardImageRequestConflictError.
+ */
+export async function generateRunlessCardImageWithDependencies(
+  input: RunlessGeneratedCardImageInput,
+  dependencies: GeneratedCardImageOperationDependencies,
+): Promise<GeneratedCardImageResult> {
+  const requestedAtMs = Date.now();
+  const normalizedInput = normalizeRunlessGeneratedCardImageInput(input);
+  assertGeneratedCardImageOperationActive(normalizedInput);
+  const operationMetadata = deriveRequestContentGeneratedCardImageOperationMetadata({
+    workspaceId: normalizedInput.workspaceId,
+    cardId: normalizedInput.cardId,
+    targetSide: normalizedInput.targetSide,
+    imagePrompt: normalizedInput.imagePrompt,
+    altText: normalizedInput.altText,
+    requestedAtMs,
+  });
+  try {
+    return await runGeneratedCardImageOperation(normalizedInput, operationMetadata, dependencies);
+  } catch (error) {
+    if (error instanceof GeneratedMediaPromotionJobConflictError) {
+      throw new GeneratedCardImageRequestConflictError(operationMetadata.operationId, error);
+    }
+    throw error;
+  }
+}
+
 const defaultExternalDependencies: GeneratedCardImageExternalDependencies = {
   markProviderStartedFn: markGeneratedCardImageProviderStarted,
   markGeneratedMediaProviderStartedObjectFn: markGeneratedMediaProviderStartedObject,
@@ -408,10 +502,20 @@ const defaultExternalDependencies: GeneratedCardImageExternalDependencies = {
   loadGeneratedMediaStagingObjectFn: loadGeneratedMediaStagingObject,
   storeGeneratedMediaStagingObjectFn: storeGeneratedMediaStagingObject,
   enqueueGeneratedMediaPromotionJobFn: enqueueGeneratedMediaPromotionJob,
+  enqueueRunlessGeneratedMediaPromotionJobFn: enqueueRunlessGeneratedMediaPromotionJob,
 };
 
 export async function generateCardImage(input: GeneratedCardImageInput): Promise<GeneratedCardImageResult> {
   return generateCardImageWithDependencies(
+    input,
+    createGeneratedCardImageOperationDependencies(defaultExternalDependencies),
+  );
+}
+
+export async function generateRunlessCardImage(
+  input: RunlessGeneratedCardImageInput,
+): Promise<GeneratedCardImageResult> {
+  return generateRunlessCardImageWithDependencies(
     input,
     createGeneratedCardImageOperationDependencies(defaultExternalDependencies),
   );
