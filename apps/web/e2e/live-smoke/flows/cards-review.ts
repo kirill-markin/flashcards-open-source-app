@@ -46,7 +46,11 @@ async function assertSeededCardVisibleInCards(session: LiveSmokeSession): Promis
     seededCardRow,
     localUiTimeoutMs,
   );
-  await trackedClick(diagnostics, "open the seeded card by clicking its row", seededCardRow);
+  await trackedClick(
+    diagnostics,
+    "open the seeded card by clicking its row link",
+    seededCardRow.getByTestId("cards-row-link"),
+  );
   await diagnostics.runAction("confirm the row opens the matching card form", async () => {
     await expect(page.getByTestId("card-form-front-text")).toHaveValue(scenario.seededFrontText);
   });
