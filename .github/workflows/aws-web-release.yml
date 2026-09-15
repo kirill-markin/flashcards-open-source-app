@@ -436,6 +436,12 @@ jobs:
             echo "Manual admin smoke remains required for \`https://admin.<domain>\`."
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  # Scope note: this job never loads the deployed web assets. It builds `dist`
+  # from the merge commit, points `app.flashcards-open-source-app.com` at
+  # 127.0.0.1 through `/etc/hosts`, and serves that fresh build over a
+  # self-signed certificate. Only `auth.` and `api.` reach real deployed
+  # infrastructure, so a green run means the merge commit's web client works
+  # against the deployed backend, not that the hosted web deployment is healthy.
   web_smoke:
     name: Web post-deploy smoke
     needs:
@@ -541,6 +547,43 @@ jobs:
           if-no-files-found: ignore
           path: apps/web/test-results
 
+      # The smoke already records console, page-error and network evidence, but it
+      # only reaches the run when it is collected into an artifact of its own.
+      - name: Collect live smoke failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          diagnostics_dir="web-live-smoke-failure-diagnostics"
+          server_log_path="${RUNNER_TEMP}/web-live-e2e-server.log"
+          mkdir -p "${diagnostics_dir}"
+
+          if [[ -f "${server_log_path}" ]]; then
+            cp "${server_log_path}" "${diagnostics_dir}/static-server.log"
+            echo "::group::Static web server log"
+            cat "${server_log_path}"
+            echo "::endgroup::"
+          else
+            echo "No static web server log at ${server_log_path}."
+          fi
+
+          if [[ -d apps/web/test-results ]]; then
+            find apps/web/test-results -type f \
+              \( -name 'failure-diagnostics.json' -o -name 'failure-summary.txt' \) \
+              -exec cp --parents {} "${diagnostics_dir}/" \;
+          fi
+
+          find "${diagnostics_dir}" -type f
+
+      - name: Upload live smoke failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-live-smoke-failure-diagnostics
+          if-no-files-found: warn
+          path: web-live-smoke-failure-diagnostics
+
       - name: Summarize smoke result
         if: always()
         run: |
@@ -549,7 +592,7 @@ jobs:
             echo ""
             echo "- Deployed SHA: \`${GITHUB_SHA}\`"
             echo "- Result: \`${{ steps.live_smoke.outcome }}\`"
-            echo "- Artifacts: \`web-playwright-report\`, \`web-playwright-test-results\`"
+            echo "- Artifacts: \`web-playwright-report\`, \`web-playwright-test-results\`, \`web-live-smoke-failure-diagnostics\` (uploaded on failure)"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   agent_api_smoke:

@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+
 import {
   type ConsoleMessage,
   type Page,
@@ -9,6 +11,70 @@ import {
 import { classifyAiTransportGetRequest } from "./support/aiTransport";
 
 const failureSummaryTailSize = 25;
+const redactedValuePlaceholder = "[redacted]";
+
+/**
+ * Failure diagnostics are uploaded as CI artifacts of a public repository, so
+ * headers are captured through allowlists. Header names are kept because the
+ * presence of a header is diagnostic, while values such as `Authorization`,
+ * `X-CSRF-Token` or `Set-Cookie` are live credentials of the review account.
+ * Both allowlists fail closed: an unlisted header keeps its name and loses its
+ * value.
+ */
+const diagnosticRequestHeaderAllowlist: ReadonlySet<string> = new Set([
+  "accept",
+  "accept-encoding",
+  "accept-language",
+  "cache-control",
+  "content-length",
+  "content-type",
+  "if-modified-since",
+  "if-none-match",
+  "pragma",
+  "purpose",
+  "range",
+  "sec-fetch-dest",
+  "sec-fetch-mode",
+  "sec-fetch-site",
+  "upgrade-insecure-requests",
+  "x-chat-live-client-id",
+  "x-chat-resume-attempt-id",
+  "x-client-platform",
+  "x-client-version",
+]);
+
+const diagnosticResponseHeaderAllowlist: ReadonlySet<string> = new Set([
+  "cache-control",
+  "content-encoding",
+  "content-length",
+  "content-type",
+  "etag",
+  "x-amzn-requestid",
+  "x-request-id",
+]);
+
+/**
+ * Masks query values that carry a credential, such as the signature of a
+ * presigned media URL, while keeping the URL itself readable.
+ */
+const sensitiveUrlParameterPattern = /token|signature|credential|secret|password|otp|code|key|sig|auth/i;
+
+/**
+ * Console messages and stacks embed URLs inside free text, and Chromium
+ * forwards failed subresource loads as console messages carrying the full
+ * request URL. Every embedded URL goes through the same query redaction.
+ * The flags match `absoluteUrlPattern` in `apps/web/src/observability/instrument.ts`,
+ * so a mixed-case scheme such as `HTTPS://` is redacted too.
+ */
+const embeddedUrlPattern = /https?:\/\/[^\s"'`<>\\]+/giu;
+
+/**
+ * An embedded URL usually ends a sentence or closes a bracket, and the greedy
+ * match swallows that punctuation into the URL. It is split off before parsing
+ * and restored afterwards, the way `splitTrailingUrlPunctuation` does in
+ * `apps/web/src/observability/instrument.ts`, so stacks stay readable.
+ */
+const trailingUrlPunctuationPattern = /[),.;:!?]+$/u;
 
 type DiagnosticTimelineEvent = "step_started" | "step_completed" | "action_started" | "action_completed";
 
@@ -60,6 +126,7 @@ type NetworkDiagnosticEvent = Readonly<{
   method: string;
   resourceType: string;
   requestHeaders: Readonly<Record<string, string | undefined>>;
+  responseHeaders: Readonly<Record<string, string | undefined>> | null;
   isNavigationRequest: boolean;
   status: number | null;
   statusText: string | null;
@@ -172,7 +239,7 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       action: snapshot.currentAction,
       pageUrl: snapshot.currentUrl,
       messageType: message.type(),
-      text: message.text(),
+      text: redactUrlsInText(message.text()),
       location: formatConsoleLocation(message),
     });
   });
@@ -184,8 +251,8 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       step: snapshot.currentStep,
       action: snapshot.currentAction,
       pageUrl: snapshot.currentUrl,
-      message: error.message,
-      stack: error.stack ?? null,
+      message: redactUrlsInText(error.message),
+      stack: error.stack === undefined ? null : redactUrlsInText(error.stack),
     });
   });
 
@@ -197,10 +264,11 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       step: snapshot.currentStep,
       action: snapshot.currentAction,
       pageUrl: snapshot.currentUrl,
-      requestUrl: request.url(),
+      requestUrl: redactUrl(request.url()),
       method: request.method(),
       resourceType: request.resourceType(),
-      requestHeaders: request.headers(),
+      requestHeaders: redactRequestHeaders(request.headers()),
+      responseHeaders: null,
       isNavigationRequest: request.isNavigationRequest(),
       status: null,
       statusText: null,
@@ -218,10 +286,11 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       step: snapshot.currentStep,
       action: snapshot.currentAction,
       pageUrl: snapshot.currentUrl,
-      requestUrl: response.url(),
+      requestUrl: redactUrl(response.url()),
       method: request.method(),
       resourceType: request.resourceType(),
-      requestHeaders: request.headers(),
+      requestHeaders: redactRequestHeaders(request.headers()),
+      responseHeaders: redactResponseHeaders(response.headers()),
       isNavigationRequest: request.isNavigationRequest(),
       status: response.status(),
       statusText: response.statusText(),
@@ -238,10 +307,11 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       step: snapshot.currentStep,
       action: snapshot.currentAction,
       pageUrl: snapshot.currentUrl,
-      requestUrl: request.url(),
+      requestUrl: redactUrl(request.url()),
       method: request.method(),
       resourceType: request.resourceType(),
-      requestHeaders: request.headers(),
+      requestHeaders: redactRequestHeaders(request.headers()),
+      responseHeaders: null,
       isNavigationRequest: request.isNavigationRequest(),
       status: null,
       statusText: null,
@@ -287,8 +357,8 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
     hasPrintedInlineRawScreenState = true;
     const failureRecord: FailureDiagnosticRecord = {
       currentTest: snapshot.currentTest,
-      primaryErrorMessage: error.message,
-      primaryErrorStack: error.stack ?? null,
+      primaryErrorMessage: redactUrlsInText(error.message),
+      primaryErrorStack: error.stack === undefined ? null : redactUrlsInText(error.stack),
       currentStep: snapshot.currentStep,
       currentStepStartedAt: snapshot.currentStepStartedAt,
       currentAction: snapshot.currentAction,
@@ -302,13 +372,20 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       networkEvents,
     };
 
+    // Playwright keeps `body` attachments in memory, so they only ever reach the
+    // HTML report as hashed blobs. Writing them into the test output directory
+    // is what makes them land in the uploaded CI artifacts under their own name.
+    const diagnosticsPath = testInfo.outputPath("failure-diagnostics.json");
+    await writeFile(diagnosticsPath, JSON.stringify(failureRecord, null, 2), "utf8");
     await testInfo.attach("failure-diagnostics.json", {
-      body: JSON.stringify(failureRecord, null, 2),
+      path: diagnosticsPath,
       contentType: "application/json",
     });
 
+    const summaryPath = testInfo.outputPath("failure-summary.txt");
+    await writeFile(summaryPath, buildFailureSummary(failureRecord), "utf8");
     await testInfo.attach("failure-summary.txt", {
-      body: buildFailureSummary(failureRecord),
+      path: summaryPath,
       contentType: "text/plain",
     });
   }
@@ -382,6 +459,72 @@ export async function attachPageSnapshot(
   }
 }
 
+function redactRequestHeaders(
+  headers: Readonly<Record<string, string | undefined>>,
+): Readonly<Record<string, string | undefined>> {
+  return redactHeaders(headers, diagnosticRequestHeaderAllowlist);
+}
+
+function redactResponseHeaders(
+  headers: Readonly<Record<string, string | undefined>>,
+): Readonly<Record<string, string | undefined>> {
+  return redactHeaders(headers, diagnosticResponseHeaderAllowlist);
+}
+
+function redactHeaders(
+  headers: Readonly<Record<string, string | undefined>>,
+  allowlist: ReadonlySet<string>,
+): Readonly<Record<string, string | undefined>> {
+  const redactedHeaders: Record<string, string | undefined> = {};
+
+  for (const [name, value] of Object.entries(headers)) {
+    redactedHeaders[name] = allowlist.has(name.toLowerCase())
+      ? value
+      : redactedValuePlaceholder;
+  }
+
+  return redactedHeaders;
+}
+
+function redactUrlsInText(text: string): string {
+  return text.replace(embeddedUrlPattern, (embeddedUrl) => {
+    const trailingMatch = embeddedUrl.match(trailingUrlPunctuationPattern);
+    if (trailingMatch === null || trailingMatch.index === undefined) {
+      return redactUrl(embeddedUrl);
+    }
+
+    return `${redactUrl(embeddedUrl.slice(0, trailingMatch.index))}${trailingMatch[0]}`;
+  });
+}
+
+function redactUrl(rawUrl: string): string {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch {
+    return rawUrl;
+  }
+
+  // The query is masked by parameter name rather than cleared wholesale because
+  // the record is read through its query strings: `classifyAiTransportGetRequest`
+  // and parameters such as `sessionId`, `runId` and `afterCursor` are the
+  // evidence this artifact exists to carry. The fragment and the `user:password@`
+  // user info have no such reader and can carry a credential, and `toString()`
+  // would preserve both, so all three are dropped entirely. The host, path and
+  // port are kept, because they are what the artifact is read for.
+  for (const parameterName of [...parsedUrl.searchParams.keys()]) {
+    if (sensitiveUrlParameterPattern.test(parameterName)) {
+      parsedUrl.searchParams.set(parameterName, redactedValuePlaceholder);
+    }
+  }
+
+  parsedUrl.username = "";
+  parsedUrl.password = "";
+  parsedUrl.hash = "";
+
+  return parsedUrl.toString();
+}
+
 export function normalizeError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
@@ -392,7 +535,7 @@ function readPageUrl(page: Page, lastKnownUrl: string): string {
   }
 
   const currentUrl = page.url();
-  return currentUrl === "" ? lastKnownUrl : currentUrl;
+  return currentUrl === "" ? lastKnownUrl : redactUrl(currentUrl);
 }
 
 function createTrackedActionError(stepName: string | null, actionName: string, error: unknown): Error {
@@ -514,10 +657,16 @@ function formatNetworkEvents(events: ReadonlyArray<NetworkDiagnosticEvent>): str
   }
 
   return events.map((event) => {
+    // `contentType` and `cacheControl` separate a real asset from the static
+    // server's `index.html` fallback, which also answers `200`.
+    const contentType = event.responseHeaders?.["content-type"] ?? null;
+    const cacheControl = event.responseHeaders?.["cache-control"] ?? null;
     const responseBits = [
       event.status === null ? null : `status=${String(event.status)}`,
       event.statusText === null ? null : `statusText=${event.statusText}`,
       event.ok === null ? null : `ok=${String(event.ok)}`,
+      contentType === null ? null : `contentType=${contentType}`,
+      cacheControl === null ? null : `cacheControl=${cacheControl}`,
       event.failureText === null ? null : `failure=${event.failureText}`,
     ].filter((value): value is string => value !== null);
 
@@ -641,7 +790,7 @@ function formatConsoleLocation(message: ConsoleMessage): string | null {
     return null;
   }
 
-  return `${location.url}:${location.lineNumber + 1}:${location.columnNumber + 1}`;
+  return `${redactUrl(location.url)}:${location.lineNumber + 1}:${location.columnNumber + 1}`;
 }
 
 function getErrorMessage(error: unknown): string {
