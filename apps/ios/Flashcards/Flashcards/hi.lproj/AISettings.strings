@@ -88,6 +88,13 @@
 "ai.tool.label.codeExecution" = "कोड निष्पादन";
 "ai.tool.label.generatedCardImage" = "कार्ड की छवि बनाएँ";
 "ai.tool.label.webSearch" = "वेब खोज";
+"ai.tool.label.sqlQuery" = "SQL क्वेरी";
+"ai.tool.label.sqlExecute" = "SQL लेखन";
+"ai.tool.label.listWorkspaces" = "कार्यस्थानों की सूची";
+"ai.tool.label.getGuide" = "मार्गदर्शिका प्राप्त करें";
+"ai.tool.label.nextReviewCard" = "अगला पुनरावलोकन कार्ड";
+"ai.tool.label.revealAnswer" = "उत्तर दिखाएं";
+"ai.tool.label.submitReview" = "पुनरावलोकन भेजें";
 "ai.tool.section.request" = "एप्लीकेशन";
 "ai.tool.section.response" = "उत्तर";
 "ai.tool.copy.request" = "प्रतिलिपि अनुरोध";
