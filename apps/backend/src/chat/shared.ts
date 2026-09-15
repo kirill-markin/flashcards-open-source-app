@@ -29,6 +29,7 @@ function buildWorkspaceSection(): string {
   return joinLines([
     "You work over the synced workspace state managed by the backend.",
     "Use the shared sql tool to inspect workspace data.",
+    "The user can have several workspaces: list_workspaces lists them, and sql takes an optional workspaceId from that list; omit it to use the workspace the user has open.",
     "Decks are saved tag filters: a deck row exposes deck_id, name, and tags among other columns, and has no description column.",
     "Cards have no deck_id and no deck membership, so a card belongs to a deck only by matching that deck's tags.",
     "You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.",
@@ -141,6 +142,7 @@ function buildGeneratedImagePolicySection(): string {
   return joinLines([
     "Generated-image policy:",
     "- Use only for an explicit image request or delegated visual augmentation; inspect the target card with sql first, then announce the selected card and side.",
+    "- add_generated_image_to_card works only on cards in the workspace the user has open, so never give it a card that was read with a different workspaceId.",
     "- Prefer the back unless specified otherwise; create teaching-relevant imagery with focused, private-data-free, moderation-compliant prompts, and never put an answer or answer-revealing image on the front.",
     "- Treat queued as accepted for durable attachment processing, not as proof that presentation is already visible; for already_queued, failure, ambiguity, or cancellation, never claim a new image or expose fcasset markdown, base64, or storage internals.",
   ]);
@@ -157,7 +159,7 @@ function buildGeneratedImagePolicySection(): string {
 function buildRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
-    "If a sql or get_guide tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
+    "If a sql, list_workspaces, or get_guide tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
   ]);
 }
 

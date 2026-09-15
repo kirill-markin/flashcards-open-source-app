@@ -10,11 +10,13 @@ import {
   TransientDatabaseHttpError,
 } from "../../../database/transient";
 import { GeneratedMediaPromotionStorageTransientError } from "../../../mediaAssets/storage";
+import { resolveAccessibleChatWorkspaceId } from "../../../server/requestContext";
 import { HttpError } from "../../../shared/errors";
 import {
   ensureAIChatSyncReplica,
   ensureAIChatSyncReplicaWithDeadline,
 } from "../../../sync/identity/aiChatIdentity";
+import { listUserWorkspacesWithStatsForSelectedWorkspace } from "../../../workspaces";
 import { executeAgentSql } from "../../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
@@ -31,7 +33,6 @@ import { createAgentRemediationInstructions } from "../../../aiTools/toolContrac
 import {
   GUIDE_TOPICS,
   OPENAI_SQL_TOOL,
-  SQL_TOOL_ARGUMENT_VALIDATOR,
   SQL_TOOL_NAME,
 } from "../../../aiTools/toolContract/sqlToolContract";
 import { unboundAgentToolAction } from "../../../aiTools/toolRegistry/actions";
@@ -39,8 +40,9 @@ import {
   findAgentToolSpecForSurface,
   listAgentToolSpecsForSurface,
   GET_GUIDE_TOOL_SPEC,
+  LIST_WORKSPACES_TOOL_SPEC,
+  SQL_CHAT_TOOL_INPUT_SCHEMA,
   SQL_CHAT_TOOL_SPEC,
-  type AgentGuidePayload,
 } from "../../../aiTools/toolRegistry/specs";
 import type { AgentToolContext, AgentToolSpec } from "../../../aiTools/toolRegistry/types";
 import { generateCardImage, type GeneratedCardImageObservationContext } from "../../cardImages";
@@ -122,6 +124,8 @@ export type ExecutedChatToolCall = Readonly<{
 export type OpenAIToolDependencies = Readonly<{
   executeAgentSql: typeof executeAgentSql;
   createToolDependencies: (context: OpenAIToolContext) => AgentToolOperationDependencies;
+  resolveAccessibleChatWorkspaceId: typeof resolveAccessibleChatWorkspaceId;
+  listUserWorkspacesWithStatsForSelectedWorkspace: typeof listUserWorkspacesWithStatsForSelectedWorkspace;
   reserveGeneratedCardImageAttempt: (
     params: GeneratedCardImageAttemptReservationParams,
   ) => Promise<GeneratedCardImageAttemptReservation>;
@@ -522,6 +526,19 @@ const OPENAI_GET_GUIDE_TOOL: OpenAI.Responses.FunctionTool = {
   },
 };
 
+const OPENAI_LIST_WORKSPACES_TOOL: OpenAI.Responses.FunctionTool = {
+  type: "function",
+  name: LIST_WORKSPACES_TOOL_SPEC.name,
+  description: LIST_WORKSPACES_TOOL_SPEC.description,
+  strict: false,
+  parameters: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  },
+};
+
 /**
  * How each registry tool is advertised to OpenAI. The JSON Schema stays hand-written rather than
  * derived from the spec's zod schema so the payload the provider receives is exactly what it is;
@@ -530,6 +547,7 @@ const OPENAI_GET_GUIDE_TOOL: OpenAI.Responses.FunctionTool = {
  */
 const CHAT_FUNCTION_TOOLS: Readonly<Record<string, OpenAI.Responses.FunctionTool | undefined>> = {
   [SQL_CHAT_TOOL_SPEC.name]: OPENAI_SQL_TOOL,
+  [LIST_WORKSPACES_TOOL_SPEC.name]: OPENAI_LIST_WORKSPACES_TOOL,
   [GET_GUIDE_TOOL_SPEC.name]: OPENAI_GET_GUIDE_TOOL,
 };
 
@@ -620,6 +638,8 @@ export const OPENAI_CHAT_TOOLS: ReadonlyArray<OpenAI.Responses.FunctionTool> =
 const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
   executeAgentSql,
   createToolDependencies,
+  resolveAccessibleChatWorkspaceId,
+  listUserWorkspacesWithStatsForSelectedWorkspace,
   reserveGeneratedCardImageAttempt,
   bindGeneratedCardImageAttemptPayload,
   hasCognitoIdentityMappingForUser,
@@ -900,8 +920,14 @@ async function executeGeneratedImageToolCall(
 }
 
 /**
- * The chat's half of a registry tool context: one workspace for the whole run, so nothing routes
- * away from it, and the chat's own SQL executor with its per-run operation dependencies.
+ * The chat's half of a registry tool context, with the chat's own SQL executor and its per-run
+ * operation dependencies.
+ *
+ * The session's workspace is the selected default, so an omitted workspaceId stays on the workspace
+ * the user has open, and it stays `selectedWorkspaceId` so `isSelected` keeps pointing at the open
+ * workspace whichever workspace a call targets, while agent_sql records carry the targeted
+ * `workspaceId`. An explicit workspaceId goes through the same resolver that admitted the session's
+ * workspace at the chat HTTP layer, which admits only a workspace the user is a member of.
  */
 function buildChatAgentToolContext(
   context: OpenAIToolContext,
@@ -913,11 +939,14 @@ function buildChatAgentToolContext(
     connectionId: "chat-v2",
     caller: null,
     sqlSurface: "chat-tool",
-    resolveWorkspaceId: async () => context.workspaceId,
+    resolveWorkspaceId: async (explicitWorkspaceId) => dependencies.resolveAccessibleChatWorkspaceId(
+      { userId: context.userId, selectedWorkspaceId: context.workspaceId },
+      explicitWorkspaceId,
+    ),
     actions: {
-      // The chat's SQL tool is the only registry tool it registers that reaches an action, since a
-      // guide is static text, so every other action is named as unbound: giving the chat one of
-      // those tools has to inject its action here first.
+      // The chat registers the combined SQL tool, list_workspaces, and the static guide, so every
+      // action none of them reaches is named as unbound: giving the chat a tool that reaches one
+      // has to inject its action here first.
       runSqlQuery: unboundAgentToolAction("runSqlQuery", "chat"),
       runSqlExecute: unboundAgentToolAction("runSqlExecute", "chat"),
       executeAgentSql: async (sqlContext, sql) => dependencies.executeAgentSql(
@@ -925,10 +954,8 @@ function buildChatAgentToolContext(
         sql,
         dependencies.createToolDependencies(context),
       ),
-      listUserWorkspacesWithStatsForSelectedWorkspace: unboundAgentToolAction(
-        "listUserWorkspacesWithStatsForSelectedWorkspace",
-        "chat",
-      ),
+      listUserWorkspacesWithStatsForSelectedWorkspace:
+        dependencies.listUserWorkspacesWithStatsForSelectedWorkspace,
       nextReviewCard: unboundAgentToolAction("nextReviewCard", "chat"),
       revealAnswer: unboundAgentToolAction("revealAnswer", "chat"),
       submitAgentReview: unboundAgentToolAction("submitAgentReview", "chat"),
@@ -943,6 +970,11 @@ function buildChatAgentToolContext(
  *
  * The arguments are parsed here as well as inside the spec because this envelope echoes the
  * statement that ran, and the echo has to be the trimmed string the executor received.
+ *
+ * A write invalidates main content only when it landed in the session's workspace, because clients
+ * refresh only the workspace they have open; a write into another workspace reaches it through
+ * ordinary sync once the user switches there. Both ids compare as lowercase: the schema lowercases
+ * the argument, and the chat HTTP layer lowercases the session's id before the run is created.
  */
 async function executeSqlChatToolCall(
   spec: AgentToolSpec<AgentSqlPayload>,
@@ -955,7 +987,7 @@ async function executeSqlChatToolCall(
   const startedAt = Date.now();
 
   try {
-    const parsed = SQL_TOOL_ARGUMENT_VALIDATOR.parse(JSON.parse(rawArguments));
+    const parsed = SQL_CHAT_TOOL_INPUT_SCHEMA.parse(JSON.parse(rawArguments));
     const result = await spec.execute(
       buildChatAgentToolContext(context, dependencies),
       parsed,
@@ -969,7 +1001,8 @@ async function executeSqlChatToolCall(
       }),
       isMutating,
       succeeded: true,
-      shouldInvalidateMainContent: isMutating,
+      shouldInvalidateMainContent: isMutating
+        && (parsed.workspaceId === undefined || parsed.workspaceId === context.workspaceId),
       stopReason: null,
       generatedImageTelemetry: null,
       toolErrorClass: null,
@@ -1027,16 +1060,16 @@ async function executeSqlChatToolCall(
 }
 
 /**
- * Turns one registry `get_guide` call into a chat tool-call result, in the same
- * `{ ok, tool, data, instructions }` envelope the SQL tool returns. A guide is static reference
- * text, so the call reads no workspace data, writes nothing, and carries no SQL telemetry.
+ * Turns one call of a registry tool that writes nothing - `get_guide` or `list_workspaces` - into a
+ * chat tool-call result, in the same `{ ok, tool, data, instructions }` envelope the SQL tool
+ * returns, carrying no SQL telemetry.
  *
- * A topic the schema rejects comes back as the same `{ ok: false }` envelope a failed SQL call
- * returns rather than as a throw, because a thrown tool call ends the run: the model repairs its
- * arguments and continues on its own remediation instructions instead.
+ * A failure, including arguments the schema rejects, comes back as the same `{ ok: false }`
+ * envelope a failed SQL call returns rather than as a throw, because a thrown tool call ends the
+ * run: the model repairs its call and continues on its own remediation instructions instead.
  */
-async function executeGetGuideChatToolCall(
-  spec: AgentToolSpec<AgentGuidePayload>,
+async function executeReadOnlyChatToolCall<Data>(
+  spec: AgentToolSpec<Data>,
   rawArguments: string,
   context: OpenAIToolContext,
   dependencies: OpenAIToolDependencies,
@@ -1100,8 +1133,10 @@ type ChatToolRunner = (
 const CHAT_TOOL_RUNNERS: Readonly<Record<string, ChatToolRunner | undefined>> = {
   [SQL_CHAT_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
     executeSqlChatToolCall(SQL_CHAT_TOOL_SPEC, rawArguments, context, dependencies),
+  [LIST_WORKSPACES_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
+    executeReadOnlyChatToolCall(LIST_WORKSPACES_TOOL_SPEC, rawArguments, context, dependencies),
   [GET_GUIDE_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
-    executeGetGuideChatToolCall(GET_GUIDE_TOOL_SPEC, rawArguments, context, dependencies),
+    executeReadOnlyChatToolCall(GET_GUIDE_TOOL_SPEC, rawArguments, context, dependencies),
 };
 
 function requireChatToolRunner(toolName: string): ChatToolRunner {
