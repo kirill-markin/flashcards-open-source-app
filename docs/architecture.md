@@ -267,6 +267,7 @@ The machine-facing API is intentionally narrower than the human app API:
 - workspace selection at `POST /v1/agent/workspaces/{workspaceId}/select`
 - conversational review at `POST /v1/agent/reviews/next`, `/reveal`, and `/submit`, mirrored by MCP `next_review_card`, `reveal_answer`, and `submit_review`; see [the review contract](conversational-reviews.md)
 - SQL reads at `POST /v1/agent/sql/query` (read-only) and SQL writes at `POST /v1/agent/sql/execute`
+- one reference guide at a time at `GET /v1/agent/guide/{topic}`, serving the same bodies as the MCP `get_guide` tool
 - conventional document probes at `GET /v1/openapi.json`, `GET /v1/swagger.json`, `GET /v1/agent/openapi.json`, and `GET /v1/agent/swagger.json`; all four return the same concise source-discovery JSON linking to the open-source repository and the relevant backend and auth route source files, not an OpenAPI document
 
 The SQL dialect is not full PostgreSQL. It is a constrained contract implemented in `apps/backend/src/aiTools`.

@@ -12,6 +12,7 @@ import {
 import type { AgentReviewContext } from "../../agent/reviews";
 import type { AgentSqlContext, AgentSqlPayload } from "../agentSql/shared";
 import {
+  GET_GUIDE_RESULT_INSTRUCTIONS,
   GUIDE_BODIES,
   GUIDE_TOPICS,
   SQL_EXECUTE_TOOL_DESCRIPTION,
@@ -59,8 +60,6 @@ const GET_GUIDE_TOOL_DESCRIPTION =
   "Returns one reference guide for working with this server, as plain text. Topics: sql_dialect (the full SELECT and WHERE grammar, text-column rules, UNNEST and OVERLAP, RETURNING, row and batch limits, pagination, and worked examples), card_authoring (the front/back contract, tag and duplicate rules, matching the user's existing card style, and Markdown/LaTeX formatting), bulk_authoring (sizing a batch against the database time budget, splitting a large authoring job into atomic batches, recovering an interrupted or unconfirmed run, and verifying it), and review_flow (the one-question-at-a-time review and rating loop). Reads no workspace data and changes nothing. Call it before your first authoring write, and again after a SQL syntax error, instead of guessing at the dialect.";
 const GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION =
   "Which guide to return: sql_dialect for the SELECT and WHERE grammar, limits, and examples; card_authoring for the front/back contract, tags, duplicate checks, and card formatting; bulk_authoring for splitting and verifying a large write job; review_flow for the review and rating loop.";
-const GET_GUIDE_RESULT_INSTRUCTIONS =
-  "This is reference material for you, not text to show the user and not card content. Apply it for the rest of this task, and call get_guide again with another topic when you need a different area.";
 
 /**
  * Pins the registry's strictness policy where a spec is declared. A plain `z.object` strips an
