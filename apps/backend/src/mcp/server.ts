@@ -9,7 +9,6 @@ import {
   SQL_QUERY_TOOL_NAME,
 } from "../aiTools/toolContract/sqlToolContract";
 import { MAX_SQL_RESULT_CHARS } from "../aiTools/toolContract/sqlToolLimits";
-import { unboundAgentToolAction } from "../aiTools/toolRegistry/actions";
 import {
   listAgentToolSpecsForSurface,
   GET_GUIDE_TOOL_NAME,
@@ -232,7 +231,7 @@ async function buildWorkspaceSelectionDetails(
  * Mirrors the HTTP agent error contract (apps/backend/src/server/app.ts
  * `app.onError`) on the MCP surface: known `HttpError`s pass through their
  * code/message/details with MCP-appropriate remediation instructions so the
- * model can self-correct over the `sql` tool, while any unexpected error
+ * model can self-correct its next tool call, while any unexpected error
  * returns a generic envelope (no driver/stack internals leak) and is captured
  * server-side. The generic-error branch reuses `app.onError`'s
  * `hasReportedBackendException` dedup guard so an Error a downstream layer
@@ -240,7 +239,7 @@ async function buildWorkspaceSelectionDetails(
  *
  * When the error is `WORKSPACE_SELECTION_REQUIRED`, the caller's accessible
  * workspaces (with stats) are embedded under `error.details.workspaces` so the
- * model can pick a `workspaceId` and retry the sql tool without a separate
+ * model can pick a `workspaceId` and retry the failed tool without a separate
  * list_workspaces round-trip.
  */
 async function buildToolErrorResult(
@@ -489,7 +488,6 @@ export function createMcpServerWithDependencies(
         dependencies.runSqlQuery(sqlContext, sql, resourceUrl),
       runSqlExecute: async (sqlContext, sql) =>
         dependencies.runSqlExecute(sqlContext, sql, resourceUrl),
-      executeAgentSql: unboundAgentToolAction("executeAgentSql", "mcp"),
       listUserWorkspacesWithStatsForSelectedWorkspace:
         dependencies.listUserWorkspacesWithStatsForSelectedWorkspace,
       nextReviewCard: dependencies.nextReviewCard,

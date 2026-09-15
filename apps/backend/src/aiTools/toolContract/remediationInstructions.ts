@@ -137,9 +137,13 @@ const MEANING_WORDING: Readonly<Record<RemediationMeaning, MeaningWording>> = {
     rest: () => `${FIX_SQL_PREFIX}retry the same endpoint: POST /v1/agent/sql/query for reads or POST /v1/agent/sql/execute for writes. Use docs.discoveryUrl for runtime routes and docs.source.agentRoutesUrl for implementation details.`,
     // Name get_guide on both tool surfaces as well as in its own description: this is the moment
     // the model needs the dialect, and the tool description it would have to recall that from was
-    // loaded long before the failing call.
-    mcp: ({ toolName }) => `${FIX_SQL_PREFIX}call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`,
-    chat: ({ toolName }) => `${CHAT_FIX_SQL_PREFIX}call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`,
+    // loaded long before the failing call. `parseSqlQueryBatch` and `parseSqlExecuteBatch` in
+    // `apps/backend/src/aiTools/agentSql.ts` reject a batch sent to the wrong SQL tool with this code
+    // and a message naming the other tool, so the retry defers to that name - except for a batch
+    // mixing reads and writes, which both reject and which following the name alone would bounce
+    // between them, so it is split first.
+    mcp: ({ toolName }) => `${FIX_SQL_PREFIX}if the sql string mixes reads and writes, split it into separate calls with reads to sql_query and writes to sql_execute; otherwise call the tool error.message says to use instead if it names one, or else call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`,
+    chat: ({ toolName }) => `${CHAT_FIX_SQL_PREFIX}if the sql string mixes reads and writes, split it into separate calls with reads to sql_query and writes to sql_execute; otherwise call the tool error.message says to use instead if it names one, or else call the ${toolName} tool again. If the dialect itself is unclear, call get_guide with topic sql_dialect first instead of guessing.`,
   },
   // The chat resolves an omitted workspaceId to the workspace its session is bound to, which is
   // never missing, so it never reaches this meaning and words nothing for it.
@@ -148,7 +152,7 @@ const MEANING_WORDING: Readonly<Record<RemediationMeaning, MeaningWording>> = {
     mcp: ({ toolName }) => `This connection has no selected workspace. Call the list_workspaces tool to see the workspaces you can access (also embedded under error.details.workspaces when available), then call the ${toolName} tool again with the workspaceId argument set to the one you want.`,
   },
   // Only the chat words this: its generic 404 wording sends the model to look the id up with a
-  // SELECT in the open workspace, which cannot find a workspace.
+  // SELECT, which cannot find a workspace.
   workspace_not_found: {
     chat: ({ toolName }) => `That workspace does not exist or this account cannot access it. Call list_workspaces, then call the ${toolName} tool again with a workspaceId it returned, or without workspaceId to use the workspace the user has open.`,
   },
@@ -177,7 +181,7 @@ const MEANING_WORDING: Readonly<Record<RemediationMeaning, MeaningWording>> = {
     mcp: ({ toolName, operation }) => (operation === "review_submission"
       ? "Retry submit_review with the identical workspaceId, reviewId, rating, and cardId. Do not advance until the result is confirmed."
       : `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call sql_query with a SELECT to check whether the change already applied, and only call the ${toolName} tool again if the change is confirmed absent.`),
-    chat: ({ toolName }) => `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call the ${toolName} tool with a SELECT to check whether the change already applied, and only run the write again if the change is confirmed absent.`,
+    chat: ({ toolName }) => `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call sql_query with a SELECT to check whether the change already applied, and only call the ${toolName} tool again if the change is confirmed absent.`,
   },
   service_temporarily_unavailable: {
     rest: ({ operation }) => {
@@ -427,7 +431,7 @@ function renderChatInstructions(
   }
 
   if (context.statusCode === 404) {
-    return `Verify that the referenced id exists in this workspace with a SELECT, then call the ${context.toolName} tool again only after correcting it.`;
+    return `Call sql_query with a SELECT, passing the same workspaceId the failing call used if it passed one, to verify that the referenced id exists in the workspace that call targeted, then call the ${context.toolName} tool again only after correcting it.`;
   }
 
   if (context.statusCode === 403) {

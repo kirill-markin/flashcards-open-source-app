@@ -40,7 +40,7 @@ export const OPENAI_GENERATED_IMAGE_TOOL: FunctionTool = {
   name: GENERATED_IMAGE_TOOL_NAME,
   description: [
     "Generate one teaching-relevant image and attach it to an existing flashcard.",
-    "Inspect the exact card with the sql tool first.",
+    "Inspect the exact card with sql_query first.",
     "Prefer the back unless the user requested the front.",
     "A front image and alt text must remain a recall cue and never reveal the answer.",
     "Use only for an explicit image request or delegated visual augmentation.",

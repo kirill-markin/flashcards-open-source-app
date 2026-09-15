@@ -82,7 +82,7 @@ function toTimestampMs(value: Date | string): number {
  * failure returns the same opaque 401 so callers cannot probe token state.
  *
  * Scope is intentionally not enforced here: by current contract every issued MCP
- * access token is full-access (the single `sql` tool is read + write), and scope
+ * access token is full-access (`sql_execute` writes as well as `sql_query` reads), and scope
  * issuance is owned by the OAuth authorization/consent items (03/06). The
  * `auth.oauth_access_tokens.scope` column is therefore not read yet. When a
  * future item issues narrower-scoped tokens (e.g. read-only), this resolver must
@@ -151,7 +151,7 @@ export async function authenticateMcpAccessToken(
  *
  * - `fca_` (agent API key) → `authenticateAgentApiKey`. This is a long-lived
  *   full-access PAT and is intentionally NOT audience-bound: the same key
- *   already grants identical `executeAgentSql` access on the REST `/agent`
+ *   already grants identical `runSqlQuery`/`runSqlExecute` access on the REST `/agent`
  *   surface, so accepting it on MCP is no new privilege. `expectedResource` is
  *   therefore not consulted for this branch.
  * - everything else (the OAuth `fco_` access token) → `authenticateMcpAccessToken`,

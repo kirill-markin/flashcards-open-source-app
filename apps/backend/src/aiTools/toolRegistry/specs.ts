@@ -20,8 +20,6 @@ import {
   SQL_EXECUTE_TOOL_NAME,
   SQL_QUERY_TOOL_DESCRIPTION,
   SQL_QUERY_TOOL_NAME,
-  SQL_TOOL_DESCRIPTION,
-  SQL_TOOL_NAME,
 } from "../toolContract/sqlToolContract";
 import type {
   AgentToolContext,
@@ -120,20 +118,27 @@ function buildReviewActor(context: AgentToolContext, workspaceId: string): Agent
   return { userId: context.userId, workspaceId, connectionId: context.connectionId };
 }
 
-const SQL_QUERY_TOOL_SPEC = defineAgentTool({
+/**
+ * Both SQL input schemas are exported because the chat parses with them too: its result envelope
+ * echoes the trimmed statement, and whether a write invalidates the open workspace depends on the
+ * workspaceId it targeted.
+ */
+export const SQL_QUERY_TOOL_INPUT_SCHEMA = z.strictObject({
+  sql: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      "One or more read statements in the published Flashcards SQL dialect (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT).",
+    ),
+  workspaceId: optionalWorkspaceIdArgument,
+});
+
+export const SQL_QUERY_TOOL_SPEC = defineAgentTool({
   name: SQL_QUERY_TOOL_NAME,
-  surfaces: ["mcp"],
+  surfaces: ["mcp", "chat"],
   description: SQL_QUERY_TOOL_DESCRIPTION,
-  inputSchema: z.strictObject({
-    sql: z
-      .string()
-      .trim()
-      .min(1)
-      .describe(
-        "One or more read statements in the published Flashcards SQL dialect (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT).",
-      ),
-    workspaceId: optionalWorkspaceIdArgument,
-  }),
+  inputSchema: SQL_QUERY_TOOL_INPUT_SCHEMA,
   execute: async (context, input): Promise<AgentToolResult<AgentSqlPayload>> => {
     const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
     const result = await context.actions.runSqlQuery(
@@ -144,51 +149,25 @@ const SQL_QUERY_TOOL_SPEC = defineAgentTool({
   },
 });
 
-const SQL_EXECUTE_TOOL_SPEC = defineAgentTool({
-  name: SQL_EXECUTE_TOOL_NAME,
-  surfaces: ["mcp"],
-  description: SQL_EXECUTE_TOOL_DESCRIPTION,
-  inputSchema: z.strictObject({
-    sql: z
-      .string()
-      .trim()
-      .min(1)
-      .describe(
-        "One or more write statements in the published Flashcards SQL dialect (INSERT, UPDATE, DELETE).",
-      ),
-    workspaceId: optionalWorkspaceIdArgument,
-  }),
-  execute: async (context, input): Promise<AgentToolResult<AgentSqlPayload>> => {
-    const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
-    const result = await context.actions.runSqlExecute(
-      buildAgentSqlContext(context, workspaceId),
-      input.sql,
-    );
-    return { data: result.data, instructions: result.instructions };
-  },
-});
-
-/**
- * Exported because the chat parses with it too: its result envelope echoes the trimmed statement,
- * and whether a write invalidates the open workspace depends on the workspaceId it targeted.
- */
-export const SQL_CHAT_TOOL_INPUT_SCHEMA = z.strictObject({
-  sql: z.string().trim().min(1),
+export const SQL_EXECUTE_TOOL_INPUT_SCHEMA = z.strictObject({
+  sql: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      "One or more write statements in the published Flashcards SQL dialect (INSERT, UPDATE, DELETE).",
+    ),
   workspaceId: optionalWorkspaceIdArgument,
 });
 
-/**
- * The in-app chat's combined read+write SQL tool. An omitted workspaceId resolves to the workspace
- * the chat session is bound to.
- */
-export const SQL_CHAT_TOOL_SPEC = defineAgentTool({
-  name: SQL_TOOL_NAME,
-  surfaces: ["chat"],
-  description: SQL_TOOL_DESCRIPTION,
-  inputSchema: SQL_CHAT_TOOL_INPUT_SCHEMA,
+export const SQL_EXECUTE_TOOL_SPEC = defineAgentTool({
+  name: SQL_EXECUTE_TOOL_NAME,
+  surfaces: ["mcp", "chat"],
+  description: SQL_EXECUTE_TOOL_DESCRIPTION,
+  inputSchema: SQL_EXECUTE_TOOL_INPUT_SCHEMA,
   execute: async (context, input): Promise<AgentToolResult<AgentSqlPayload>> => {
     const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
-    const result = await context.actions.executeAgentSql(
+    const result = await context.actions.runSqlExecute(
       buildAgentSqlContext(context, workspaceId),
       input.sql,
     );
@@ -250,7 +229,6 @@ export const GET_GUIDE_TOOL_SPEC = defineAgentTool({
 export const AGENT_TOOL_SPECS: ReadonlyArray<AgentToolSpec> = Object.freeze([
   SQL_QUERY_TOOL_SPEC,
   SQL_EXECUTE_TOOL_SPEC,
-  SQL_CHAT_TOOL_SPEC,
   LIST_WORKSPACES_TOOL_SPEC,
   GET_GUIDE_TOOL_SPEC,
   defineAgentTool({

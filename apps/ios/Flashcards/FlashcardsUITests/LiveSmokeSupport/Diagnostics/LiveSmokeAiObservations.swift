@@ -32,7 +32,7 @@ extension LiveSmokeTestCase {
             label.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         .filter { label in
-            label.contains("SQL:")
+            label.contains("SQL query:") || label.contains("SQL write:")
         }
         .reduce(into: [String]()) { partialResult, label in
             if partialResult.contains(label) == false {

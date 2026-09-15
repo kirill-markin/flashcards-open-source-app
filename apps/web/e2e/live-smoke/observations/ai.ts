@@ -340,7 +340,7 @@ export async function findCompletedCardInsertToolCall(
 
 export async function readCompletedSqlToolCalls(page: Page): Promise<ReadonlyArray<CompletedSqlToolCall>> {
   return page
-    .locator('[data-testid="chat-tool-call"][data-tool-call-kind="tool"][data-tool-call-name="sql"][data-tool-call-status="completed"]')
+    .locator('[data-testid="chat-tool-call"][data-tool-call-kind="tool"]:is([data-tool-call-name="sql_query"], [data-tool-call-name="sql_execute"])[data-tool-call-status="completed"]')
     .evaluateAll((toolCallElements) => {
       function readRequiredAttribute(element: Element, attributeName: string): string {
         const attributeValue = element.getAttribute(attributeName);

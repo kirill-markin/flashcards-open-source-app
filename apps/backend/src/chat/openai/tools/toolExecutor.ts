@@ -117,7 +117,7 @@ function buildToolStatusMessage(metadata: ToolTelemetryMetadata): string {
  * failed tool calls in the UI instead of parsing full generations.
  *
  * A tool call that threw always qualifies. A tool call that returned an error envelope qualifies
- * once it named an error class, which every real failure does: the SQL tool reports one through
+ * once it named an error class, which every real failure does: the SQL tools report one through
  * `sqlTelemetry` and every other registry tool through `toolErrorClass`, while the generated-image
  * tool reports expected product outcomes such as `limit_reached` through the same envelope without
  * one, and its genuine provider failures already own the provider observation. Both keep exporting
