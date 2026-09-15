@@ -55,7 +55,7 @@ const UNREACHED_DEPENDENCIES: McpServerDependencies = {
   submitAgentReview: async () => {
     throw new Error("Unexpected dependency call during a metadata-only listing");
   },
-  resolveAccessibleMcpWorkspaceId: async () => {
+  resolveAccessibleAgentWorkspaceId: async () => {
     throw new Error("Unexpected dependency call during a metadata-only listing");
   },
   runSqlQuery: async () => {
