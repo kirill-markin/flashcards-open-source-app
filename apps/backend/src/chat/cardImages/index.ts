@@ -1,4 +1,4 @@
-export { generateCardImage } from "./operation";
+export { generateCardImage, generateRunlessCardImage } from "./operation";
 export {
   generatedCardImageModel, generatedCardImageOutputFormat,
   generatedCardImageQuality, generatedCardImageSize,

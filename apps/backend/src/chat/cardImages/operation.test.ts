@@ -170,6 +170,9 @@ test("provider-start commit-unknown never crosses the provider boundary", async 
     markGeneratedMediaProviderStartedObjectFn: async () => {
       throw new Error("Chat operations must not write the storage provider-started marker.");
     },
+    enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
+      throw new Error("Chat operations must not enqueue a run-less promotion job.");
+    },
     generateProviderImageFn: async () => {
       providerCallCount += 1;
       throw new Error("Provider must not run after an ambiguous start fence.");
@@ -207,6 +210,9 @@ test("previously-started provider state without staging is authoritative", async
     markProviderStartedFn: async () => ({ status: "previously_started" }),
     markGeneratedMediaProviderStartedObjectFn: async () => {
       throw new Error("Chat operations must not write the storage provider-started marker.");
+    },
+    enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
+      throw new Error("Chat operations must not enqueue a run-less promotion job.");
     },
     generateProviderImageFn: async () => {
       providerCallCount += 1;
@@ -252,6 +258,9 @@ test("pre-provider staging lookup failure remains safely retryable", async () =>
     },
     markGeneratedMediaProviderStartedObjectFn: async () => {
       throw new Error("Chat operations must not write the storage provider-started marker.");
+    },
+    enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
+      throw new Error("Chat operations must not enqueue a run-less promotion job.");
     },
     generateProviderImageFn: async () => {
       providerCallCount += 1;
@@ -306,6 +315,9 @@ test("post-provider staging failure is authoritative and preserves its cause", a
     },
     markGeneratedMediaProviderStartedObjectFn: async () => {
       throw new Error("Chat operations must not write the storage provider-started marker.");
+    },
+    enqueueRunlessGeneratedMediaPromotionJobFn: async () => {
+      throw new Error("Chat operations must not enqueue a run-less promotion job.");
     },
     generateProviderImageFn: async () => {
       providerCallCount += 1;

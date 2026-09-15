@@ -19,6 +19,13 @@ export type GeneratedCardImageInput = Readonly<{
   operationDeadlineMs: number;
 }>;
 
+/** Input for a surface without a chat run; its operation identity is derived from the request content. */
+export type RunlessGeneratedCardImageInput = Omit<
+  GeneratedCardImageInput, "runId" | "operationKey" | "sessionId" | "claimToken"
+>;
+
+export type GeneratedCardImageOperationInput = GeneratedCardImageInput | RunlessGeneratedCardImageInput;
+
 export type GeneratedCardImageResult = Readonly<{
   status: "queued" | "already_queued";
   cardId: string;
