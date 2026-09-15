@@ -38,12 +38,10 @@ function deterministicUuidFromOperationIdentity(
 }
 
 function deriveOperationMetadataFromIdentity(
-  identityKind: GeneratedCardImageOperationMetadata["identityKind"],
   identity: ReadonlyArray<string | number>,
 ): GeneratedCardImageOperationMetadata {
   const operationId = deterministicUuidFromOperationIdentity("operation", identity);
   return {
-    identityKind,
     operationId,
     mediaAssetId: deterministicUuidFromOperationIdentity("media-asset", identity),
     mediaLastOperationId: `generated-card-image:${operationId}:media`,
@@ -55,7 +53,7 @@ export function deriveGeneratedCardImageOperationMetadata(
   runId: string,
   operationKey: string,
 ): GeneratedCardImageOperationMetadata {
-  return deriveOperationMetadataFromIdentity("chat_run", [runId.toLowerCase(), operationKey]);
+  return deriveOperationMetadataFromIdentity([runId.toLowerCase(), operationKey]);
 }
 
 /**
@@ -74,7 +72,7 @@ export function deriveRequestContentGeneratedCardImageOperationMetadata(
   const contentSha256 = createHash("sha256")
     .update(JSON.stringify([request.imagePrompt, request.altText]))
     .digest("hex");
-  return deriveOperationMetadataFromIdentity("request_content", [
+  return deriveOperationMetadataFromIdentity([
     "request-content",
     request.workspaceId.toLowerCase(),
     request.cardId.toLowerCase(),
