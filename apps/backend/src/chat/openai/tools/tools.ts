@@ -3,6 +3,7 @@
  * The runtime always routes provider tool calls through this module so SQL validation and output envelopes stay consistent.
  */
 import type OpenAI from "openai";
+import { z } from "zod";
 import { hasCognitoIdentityMappingForUser } from "../../../auth/userIdentities";
 import {
   DatabaseCommitOutcomeUnknownError,
@@ -26,6 +27,7 @@ import {
   type AgentSqlPayload,
   type AgentSqlReadPayload,
 } from "../../../aiTools/agentSql/shared";
+import { createAgentRemediationInstructions } from "../../../aiTools/toolContract/remediationInstructions";
 import {
   OPENAI_SQL_TOOL,
   SQL_TOOL_ARGUMENT_VALIDATOR,
@@ -137,6 +139,8 @@ type ToolErrorPayload = Readonly<{
     name: string;
     message: string;
   }>;
+  /** What to do about the failure, from the shared per-code remediation module. */
+  instructions: string;
   sql: string | null;
   code?: string;
   details?: unknown;
@@ -401,6 +405,19 @@ function createToolErrorResult(payload: ToolErrorPayload): string {
     },
     "details",
   );
+}
+
+/**
+ * The status the chat remediates a failed tool call as. A call whose arguments never parsed -
+ * malformed JSON, or arguments the tool schema rejects - is the model's to fix rather than ours,
+ * so it is remediated as a rejected request instead of as a server-side failure.
+ */
+function getChatToolFailureStatusCode(error: unknown): number {
+  if (error instanceof HttpError) {
+    return error.statusCode;
+  }
+
+  return error instanceof z.ZodError || error instanceof SyntaxError ? 400 : 500;
 }
 
 function serializeToolError(error: unknown): Readonly<{
@@ -854,16 +871,23 @@ async function executeSqlChatToolCall(
       },
     };
   } catch (error) {
+    const instructions = createAgentRemediationInstructions(
+      error instanceof HttpError ? error.code : null,
+      getChatToolFailureStatusCode(error),
+      { surface: "chat", toolName: spec.name },
+    );
     const payload: ToolErrorPayload = error instanceof HttpError
       ? {
         sql,
         error: serializeToolError(error),
+        instructions,
         code: error.code ?? undefined,
         details: error.details ?? undefined,
       }
       : {
         sql,
         error: serializeToolError(error),
+        instructions,
       };
 
     return {

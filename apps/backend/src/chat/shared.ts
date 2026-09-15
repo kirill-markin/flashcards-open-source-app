@@ -144,7 +144,7 @@ function buildGeneratedImagePolicySection(): string {
 function buildRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
-    "If a tool output returns structured error JSON with ok=false, use error.message to correct the next tool call and continue.",
+    "If a sql tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
   ]);
 }
 

@@ -8,9 +8,9 @@ import {
 } from "../auth";
 import {
   createAgentApiKeyErrorEnvelope,
-  createAgentErrorInstructions,
   isAgentApiKeyAuthorizationHeader,
 } from "../agent/envelope";
+import { createAgentRemediationInstructions } from "../aiTools/toolContract/remediationInstructions";
 import { getAuthConfig } from "../auth/config";
 import {
   createPublicHttpErrorDetails,
@@ -126,7 +126,7 @@ export function createAgentInstructions(
   statusCode: number,
   requestUrl: string,
 ): string {
-  return createAgentErrorInstructions(code, statusCode, requestUrl);
+  return createAgentRemediationInstructions(code, statusCode, { surface: "rest", requestUrl });
 }
 
 function applyHttpErrorResponseHeaders(
@@ -344,6 +344,13 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
           code: "AUTH_UNAUTHORIZED",
         });
       }
+      // Keep `apiKeyRequest` ahead of `agentConnectionManagementRequest`, here and in the two
+      // error paths below. An `ApiKey` caller on /v1/agent-api-keys is answered by
+      // createAgentApiKeyErrorEnvelope; testing the path first would answer it with
+      // createAgentConnectionManagementErrorEnvelope's shape instead, dropping `data`, `docs` and
+      // `error.details` from what released `ApiKey` clients already receive. Why the split is by
+      // caller rather than by route:
+      // apps/backend/src/aiTools/toolContract/remediationInstructions.ts
       if (apiKeyRequest) {
         return context.json(
           createAgentApiKeyErrorEnvelope(
@@ -380,6 +387,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       if (publicCatalogRequest) {
         return context.json(createPublicHttpErrorBody(error, requestId));
       }
+      // Ordering constraint as in the AuthError path above: `apiKeyRequest` first.
       if (apiKeyRequest) {
         return context.json(
           createAgentApiKeyErrorEnvelope(
@@ -413,6 +421,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
         code: "INTERNAL_ERROR",
       });
     }
+    // Ordering constraint as in the AuthError path above: `apiKeyRequest` first.
     if (apiKeyRequest) {
       return context.json(
         createAgentApiKeyErrorEnvelope(
