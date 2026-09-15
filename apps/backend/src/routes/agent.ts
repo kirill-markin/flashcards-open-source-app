@@ -27,7 +27,7 @@ import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
   requireAgentConnectionId,
-  resolveAccessibleMcpWorkspaceId,
+  resolveAccessibleAgentWorkspaceId,
 } from "../server/requestContext";
 import {
   expectNonEmptyString,
@@ -170,7 +170,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/sql/query", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const body = parseSqlBody(await parseJsonBody(context.req.raw));
-    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, body.workspaceId);
+    const workspaceId = await resolveAccessibleAgentWorkspaceId(requestContext, body.workspaceId);
     const result = await runSqlQuery({
       userId: requestContext.userId,
       workspaceId,
@@ -185,7 +185,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/sql/execute", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const body = parseSqlBody(await parseJsonBody(context.req.raw));
-    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, body.workspaceId);
+    const workspaceId = await resolveAccessibleAgentWorkspaceId(requestContext, body.workspaceId);
     const result = await runSqlExecute({
       userId: requestContext.userId,
       workspaceId,
@@ -200,7 +200,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/reviews/next", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const input = parseReviewRequest(nextReviewCardSchema, await parseOptionalJsonBody(context.req.raw));
-    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const workspaceId = await resolveAccessibleAgentWorkspaceId(requestContext, input.workspaceId);
     const actor = { userId: requestContext.userId, workspaceId, connectionId };
     const result = await nextReviewCard(actor, makeAgentReviewCardFilter(input));
     return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
@@ -209,7 +209,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/reviews/reveal", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const input = parseReviewRequest(revealAnswerSchema, await parseOptionalJsonBody(context.req.raw));
-    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const workspaceId = await resolveAccessibleAgentWorkspaceId(requestContext, input.workspaceId);
     const actor = { userId: requestContext.userId, workspaceId, connectionId };
     const result = await revealAnswer(actor, input.cardId);
     return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
@@ -218,7 +218,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
   app.post("/agent/reviews/submit", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
     const input = parseReviewRequest(submitReviewSchema, await parseOptionalJsonBody(context.req.raw));
-    const workspaceId = await resolveAccessibleMcpWorkspaceId(requestContext, input.workspaceId);
+    const workspaceId = await resolveAccessibleAgentWorkspaceId(requestContext, input.workspaceId);
     const actor = { userId: requestContext.userId, workspaceId, connectionId };
     const result = await submitAgentReview(actor, input);
     return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
