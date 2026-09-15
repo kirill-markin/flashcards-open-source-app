@@ -30,6 +30,9 @@ export type GeneratedMediaStagingObjectInput = GeneratedMediaStorageRequestInput
 export type GeneratedMediaStagingObject = Readonly<{
   stagingStorageKey: string; mimeType: typeof imageJpegCardMediaBlobMimeType; sizeBytes: number; sha256: string;
 }>;
+export type GeneratedMediaProviderStartedMarkerResult =
+  | Readonly<{ status: "first_started" }>
+  | Readonly<{ status: "previously_started" }>;
 export type StoreGeneratedMediaStagingObjectInput = GeneratedMediaStagingObjectInput & Readonly<{
   bytes: Buffer; mimeType: typeof imageJpegCardMediaBlobMimeType; sizeBytes: number; sha256: string;
 }>;
@@ -350,6 +353,39 @@ export async function loadGeneratedMediaStagingObjectWithDependencies(
   );
   return metadata === null ? null : readStagingObject(input, metadata);
 }
+/**
+ * Create-if-absent zero-byte sibling of the staging key, written once before a paid provider call.
+ * The suffix keeps it off every staging key, whose leaf is a bare SHA-256 hex digest. A lost PUT
+ * response retried here answers 412 and reads as previously_started, which refuses a second payment.
+ */
+export async function markGeneratedMediaProviderStartedObjectWithDependencies(
+  input: GeneratedMediaStagingObjectInput,
+  dependencies: MediaAssetStorageDependencies,
+): Promise<GeneratedMediaProviderStartedMarkerResult> {
+  validateStagingIdentity(input);
+  const markerStorageKey = `${buildMediaUploadStagingStorageKey(
+    input.workspaceId, input.mediaAssetId, input.operationId,
+  )}.provider-started`;
+  try {
+    await runS3(input, "put_object", async () => dependencies.s3Client.send(
+      new PutObjectCommand({
+        Bucket: dependencies.getMediaAssetsStorageConfigFn().bucketName,
+        Key: markerStorageKey,
+        Body: Buffer.alloc(0),
+        IfNoneMatch: "*",
+      }),
+      { abortSignal: input.signal },
+    ));
+    return { status: "first_started" };
+  } catch (error) {
+    input.signal.throwIfAborted();
+    const statusCode = getS3ErrorStatusCode(error);
+    if (statusCode === 412) return { status: "previously_started" };
+    if (error instanceof GeneratedMediaPromotionStorageTransientError) throw error;
+    if (statusCode === null) throw error;
+    terminal("S3_REQUEST_REJECTED", "Object storage rejected the provider-started marker request.", statusCode);
+  }
+}
 export async function storeGeneratedMediaStagingObjectWithDependencies(
   input: StoreGeneratedMediaStagingObjectInput,
   dependencies: MediaAssetStorageDependencies,
@@ -435,6 +471,14 @@ export async function loadGeneratedMediaStagingObject(
   input: GeneratedMediaStagingObjectInput,
 ): Promise<GeneratedMediaStagingObject | null> {
   return loadGeneratedMediaStagingObjectWithDependencies(input, {
+    s3Client: getMediaAssetsS3Client(),
+    getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
+  });
+}
+export async function markGeneratedMediaProviderStartedObject(
+  input: GeneratedMediaStagingObjectInput,
+): Promise<GeneratedMediaProviderStartedMarkerResult> {
+  return markGeneratedMediaProviderStartedObjectWithDependencies(input, {
     s3Client: getMediaAssetsS3Client(),
     getMediaAssetsStorageConfigFn: getMediaAssetsStorageConfig,
   });
