@@ -149,7 +149,7 @@ export async function loadSelectRows(
  * Every payload leaves here whole, so `rowsTruncated` is `false` on all of
  * them. It is set later, by whoever measures the envelope this payload is
  * emitted in: the single-select reducer in
- * `apps/backend/src/aiTools/agentSql.ts` on the MCP and REST surfaces, and
+ * `apps/backend/src/aiTools/agentSql/resultBudget.ts` on the MCP and REST surfaces, and
  * `capReadEnvelopeByRows` in `apps/backend/src/chat/openai/tools/tools.ts` on
  * the chat surface.
  */

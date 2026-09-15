@@ -173,7 +173,7 @@ function createToolDependencies(context: OpenAIToolContext): AgentToolOperationD
  * `MAX_TOOL_OUTPUT_CHARS` is returned over budget. What brings an oversized `SELECT` here is a
  * separate question with more than one answer: a single row too large to fit does it, and so does
  * a statement echo that fills the budget by itself, which is the pair of causes the rejection
- * message in `apps/backend/src/aiTools/agentSql.ts` hedges between.
+ * message in `apps/backend/src/aiTools/agentSql/resultBudget.ts` hedges between.
  */
 function capSerializedEnvelope(
   envelope: Readonly<Record<string, unknown>>,
@@ -265,7 +265,7 @@ const TRUNCATED_READ_ROWS_INSTRUCTION =
  * shape, and the chat has no rejection path here, so something bounded still has to go back.
  *
  * This is the chat's own loop rather than the read budget of
- * `apps/backend/src/aiTools/agentSql.ts` because neither half of that budget transfers: it
+ * `apps/backend/src/aiTools/agentSql/resultBudget.ts` because neither half of that budget transfers: it
  * measures a built agent envelope, and it measures it against `MAX_SQL_RESULT_CHARS`, while the
  * chat emits this `{ ok, tool, ... }` shape under a smaller limit of its own.
  */
