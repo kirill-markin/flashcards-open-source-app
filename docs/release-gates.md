@@ -10,6 +10,27 @@ Pushes to `main` use independent release and check streams:
 - Android production draft upload is manual-only through `.github/workflows/android-release.yml`; that workflow also requires Firebase Test Lab submission before the Play draft upload starts
 - for an iOS release, a human manually starts and monitors the Xcode Cloud test and build workflows for the selected SHA
 
+The `Web post-deploy smoke` job never loads the deployed web assets: it serves a
+`dist` built from the merge commit on `app.flashcards-open-source-app.com`
+through `/etc/hosts`, so only `auth.` and `api.` reach deployed infrastructure.
+Read it as a check of the merge commit's web client against the deployed
+backend, not of the hosted web deployment. A failed run uploads
+`web-live-smoke-failure-diagnostics` with the Playwright failure diagnostics and
+the static server log, which records one line per request with the resolved
+content type and whether the SPA `index.html` fallback was served. Those
+artifacts are public, and the two halves stay credential-free for different
+reasons. `apps/web/e2e/live-smoke.diagnostics.ts` redacts the Playwright
+diagnostics before it writes them: header values outside its request and
+response allowlists are dropped fail-closed, URL user info and fragments are
+dropped, and a URL query value is masked when its parameter name looks
+sensitive. The same treatment covers URLs embedded in console text, error
+messages and stack traces. Query parameter names and non-sensitive values stay
+readable on purpose, because the diagnostics are read through them. The static
+server log carries no credential because
+`apps/web/scripts/serve-dist-https.mjs` records only the sanitized pathname and
+never the query string; nothing redacts that log afterwards, so anything added
+to it must be safe to publish as written.
+
 The MCP endpoint smoke in `AWS/Web Release` verifies the deployed MCP HTTP
 contract. MCP Registry validation is a separate automatic check for
 `server.json` changes, and registry publication is a separate manual workflow.

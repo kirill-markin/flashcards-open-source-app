@@ -64,7 +64,7 @@ Playwright builds and serves the local web preview automatically, but it does no
 This split is deliberate:
 
 - local smoke validates the current branch without relying on production auth redirect allowlists
-- CI/CD post-deploy smoke still validates the deployed production path after release
+- CI/CD post-deploy smoke exercises the merge commit's web client against the deployed backend and auth, on the production host name and production auth redirect allowlists; it does not load the deployed web assets. [docs/release-gates.md](./release-gates.md) is the canonical description of what each gate covers.
 
 ## Non-CDK/self-hosted backend runtime
 
@@ -274,7 +274,7 @@ For AWS-backed changes, the main-branch order is:
 
 Manual `workflow_dispatch` runs use the same embedded pre-deploy checks before the release starts.
 
-This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signals are the real Playwright web smoke and the real agent API smoke that run against the deployed environment closest to production, and any additional non-smoke tests should stay targeted to important module boundaries or contracts.
+This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signals are the real Playwright web smoke, which drives the merge commit's web client against the deployed backend and auth, and the real agent API smoke, which calls the deployed API directly; see [docs/release-gates.md](./release-gates.md) for the exact scope of each. Any additional non-smoke tests should stay targeted to important module boundaries or contracts.
 
 Cross-client live smoke references:
 
