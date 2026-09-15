@@ -95,7 +95,7 @@ const aiDictationWorkspaceRequiredError: WorkspaceSelectionErrorConfig = {
   code: "AI_WORKSPACE_REQUIRED",
 };
 
-const mcpWorkspaceSelectionRequiredError: WorkspaceSelectionErrorConfig = {
+const agentWorkspaceSelectionRequiredError: WorkspaceSelectionErrorConfig = {
   statusCode: 409,
   message: "Select a workspace before using the sql tool, or pass the workspaceId argument.",
   code: "WORKSPACE_SELECTION_REQUIRED",
@@ -364,14 +364,19 @@ export async function resolveAccessibleAiDictationWorkspaceId(
   );
 }
 
-export async function resolveAccessibleMcpWorkspaceId(
+/**
+ * Workspace resolution shared by every external agent entrypoint: the MCP tools and the
+ * `/agent/sql/*` and `/agent/reviews/*` routes, which take the same optional workspaceId argument
+ * and answer the same way when none is selected.
+ */
+export async function resolveAccessibleAgentWorkspaceId(
   requestContext: WorkspaceRequestContext,
   explicitWorkspaceId: string | undefined,
 ): Promise<string> {
   return resolveAccessibleWorkspaceIdWithLegacySelectedWorkspaceFallback(
     requestContext,
     explicitWorkspaceId,
-    mcpWorkspaceSelectionRequiredError,
+    agentWorkspaceSelectionRequiredError,
   );
 }
 

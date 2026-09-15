@@ -31,6 +31,13 @@ import {
   SQL_TOOL_ARGUMENT_VALIDATOR,
   SQL_TOOL_NAME,
 } from "../../../aiTools/toolContract/sqlToolContract";
+import { unboundAgentToolAction } from "../../../aiTools/toolRegistry/actions";
+import {
+  findAgentToolSpecForSurface,
+  listAgentToolSpecsForSurface,
+  SQL_CHAT_TOOL_SPEC,
+} from "../../../aiTools/toolRegistry/specs";
+import type { AgentToolContext, AgentToolSpec } from "../../../aiTools/toolRegistry/types";
 import { generateCardImage, type GeneratedCardImageObservationContext } from "../../cardImages";
 import { isOpenAIImageGenerationProviderError } from "../../cardImages/provider/openaiAdapter";
 import {
@@ -462,7 +469,28 @@ function getSqlDialectReason(error: unknown): string | null {
     : null;
 }
 
-export const OPENAI_CHAT_TOOLS: ReadonlyArray<OpenAI.Responses.FunctionTool> = [OPENAI_SQL_TOOL];
+/**
+ * How each registry tool is advertised to OpenAI. The JSON Schema stays hand-written rather than
+ * derived from the spec's zod schema so the payload the provider receives is exactly what it is;
+ * the name and description come from the spec, which is the single inventory both surfaces read.
+ */
+const CHAT_FUNCTION_TOOLS: Readonly<Record<string, OpenAI.Responses.FunctionTool | undefined>> = {
+  [SQL_CHAT_TOOL_SPEC.name]: OPENAI_SQL_TOOL,
+};
+
+function requireChatFunctionTool(toolName: string): OpenAI.Responses.FunctionTool {
+  const functionTool = CHAT_FUNCTION_TOOLS[toolName];
+  if (functionTool === undefined) {
+    throw new Error(
+      `Tool ${toolName} is listed for the chat surface but carries no OpenAI function-tool metadata.`,
+    );
+  }
+
+  return functionTool;
+}
+
+export const OPENAI_CHAT_TOOLS: ReadonlyArray<OpenAI.Responses.FunctionTool> =
+  listAgentToolSpecsForSurface("chat").map((spec) => requireChatFunctionTool(spec.name));
 
 const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
   executeAgentSql,
@@ -478,7 +506,7 @@ export function buildOpenAIChatTools(
   generatedImageEligible: boolean,
 ): ReadonlyArray<OpenAI.Responses.FunctionTool> {
   return generatedImageEligible
-    ? [OPENAI_SQL_TOOL, OPENAI_GENERATED_IMAGE_TOOL]
+    ? [...OPENAI_CHAT_TOOLS, OPENAI_GENERATED_IMAGE_TOOL]
     : OPENAI_CHAT_TOOLS;
 }
 
@@ -743,37 +771,64 @@ async function executeGeneratedImageToolCall(
 }
 
 /**
- * Executes one provider tool call with injectable dependencies for tests and loop orchestration.
+ * The chat's half of a registry tool context: one workspace for the whole run, so nothing routes
+ * away from it, and the chat's own SQL executor with its per-run operation dependencies.
  */
-export async function executeChatToolCallWithDependencies(
-  toolName: string,
+function buildChatAgentToolContext(
+  context: OpenAIToolContext,
+  dependencies: OpenAIToolDependencies,
+): AgentToolContext {
+  return {
+    userId: context.userId,
+    selectedWorkspaceId: context.workspaceId,
+    connectionId: "chat-v2",
+    caller: null,
+    sqlSurface: "chat-tool",
+    resolveWorkspaceId: async () => context.workspaceId,
+    actions: {
+      // The chat's single SQL tool is the only registry tool it registers, so every other action is
+      // named as unbound: giving the chat one of those tools has to inject its action here first.
+      runSqlQuery: unboundAgentToolAction("runSqlQuery", "chat"),
+      runSqlExecute: unboundAgentToolAction("runSqlExecute", "chat"),
+      executeAgentSql: async (sqlContext, sql) => dependencies.executeAgentSql(
+        sqlContext,
+        sql,
+        dependencies.createToolDependencies(context),
+      ),
+      listUserWorkspacesWithStatsForSelectedWorkspace: unboundAgentToolAction(
+        "listUserWorkspacesWithStatsForSelectedWorkspace",
+        "chat",
+      ),
+      nextReviewCard: unboundAgentToolAction("nextReviewCard", "chat"),
+      revealAnswer: unboundAgentToolAction("revealAnswer", "chat"),
+      submitAgentReview: unboundAgentToolAction("submitAgentReview", "chat"),
+    },
+  };
+}
+
+/**
+ * Turns one registry SQL tool call into a chat tool-call result: the `{ ok, tool, sql, ... }`
+ * envelope, its `MAX_TOOL_OUTPUT_CHARS` budget, and the Langfuse telemetry are the chat's own and
+ * have no counterpart on the external surfaces.
+ *
+ * The arguments are parsed here as well as inside the spec because this envelope echoes the
+ * statement that ran, and the echo has to be the trimmed string the executor received.
+ */
+async function executeSqlChatToolCall(
+  spec: AgentToolSpec<AgentSqlPayload>,
   rawArguments: string,
   context: OpenAIToolContext,
   dependencies: OpenAIToolDependencies,
 ): Promise<ExecutedChatToolCall> {
-  if (toolName === GENERATED_IMAGE_TOOL_NAME) {
-    return executeGeneratedImageToolCall(rawArguments, context, dependencies);
-  }
-  if (toolName !== SQL_TOOL_NAME) {
-    throw new Error(`Unsupported OpenAI tool call: ${toolName}`);
-  }
-
   const sql = getSqlFromRawArguments(rawArguments);
   const isMutating = getIsMutatingSql(sql);
   const startedAt = Date.now();
 
   try {
     const parsed = SQL_TOOL_ARGUMENT_VALIDATOR.parse(JSON.parse(rawArguments));
-    const result = await dependencies.executeAgentSql(
-      {
-        userId: context.userId,
-        workspaceId: context.workspaceId,
-        selectedWorkspaceId: context.workspaceId,
-        connectionId: "chat-v2",
-        surface: "chat-tool",
-      },
-      parsed.sql,
-      dependencies.createToolDependencies(context),
+    const result = await spec.execute(
+      buildChatAgentToolContext(context, dependencies),
+      parsed,
     );
 
     return {
@@ -830,6 +885,52 @@ export async function executeChatToolCallWithDependencies(
       },
     };
   }
+}
+
+type ChatToolRunner = (
+  rawArguments: string,
+  context: OpenAIToolContext,
+  dependencies: OpenAIToolDependencies,
+) => Promise<ExecutedChatToolCall>;
+
+/**
+ * How each registry tool the chat exposes turns into a chat tool-call result. The registry decides
+ * which tools exist; this decides how one is rendered for this surface, which is the chat's own
+ * concern and differs per tool.
+ */
+const CHAT_TOOL_RUNNERS: Readonly<Record<string, ChatToolRunner | undefined>> = {
+  [SQL_CHAT_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
+    executeSqlChatToolCall(SQL_CHAT_TOOL_SPEC, rawArguments, context, dependencies),
+};
+
+function requireChatToolRunner(toolName: string): ChatToolRunner {
+  const spec = findAgentToolSpecForSurface("chat", toolName);
+  if (spec === null) {
+    throw new Error(`Unsupported OpenAI tool call: ${toolName}`);
+  }
+
+  const runner = CHAT_TOOL_RUNNERS[spec.name];
+  if (runner === undefined) {
+    throw new Error(`Tool ${spec.name} is listed for the chat surface but carries no chat runner.`);
+  }
+
+  return runner;
+}
+
+/**
+ * Executes one provider tool call with injectable dependencies for tests and loop orchestration.
+ */
+export async function executeChatToolCallWithDependencies(
+  toolName: string,
+  rawArguments: string,
+  context: OpenAIToolContext,
+  dependencies: OpenAIToolDependencies,
+): Promise<ExecutedChatToolCall> {
+  if (toolName === GENERATED_IMAGE_TOOL_NAME) {
+    return executeGeneratedImageToolCall(rawArguments, context, dependencies);
+  }
+
+  return requireChatToolRunner(toolName)(rawArguments, context, dependencies);
 }
 
 /**
