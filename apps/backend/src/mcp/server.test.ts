@@ -39,7 +39,7 @@ type ListWorkspacesCall = Readonly<{
 }>;
 
 type FakeDependencyCalls = {
-  resolveAccessibleMcpWorkspaceIds: ResolveWorkspaceCall[];
+  resolveAccessibleAgentWorkspaceIds: ResolveWorkspaceCall[];
   sqlQueries: SqlToolCall[];
   sqlExecutes: SqlToolCall[];
   listWorkspaces: ListWorkspacesCall[];
@@ -167,7 +167,7 @@ function createTelemetryChannel(invokedToolNames: Array<string>): McpRequestTele
 
 function createFakeDependencyCalls(): FakeDependencyCalls {
   return {
-    resolveAccessibleMcpWorkspaceIds: [],
+    resolveAccessibleAgentWorkspaceIds: [],
     sqlQueries: [],
     sqlExecutes: [],
     listWorkspaces: [],
@@ -182,11 +182,11 @@ function createFakeDependencies(
     nextReviewCard: async () => { throw new Error("Unexpected review read"); },
     revealAnswer: async () => { throw new Error("Unexpected answer read"); },
     submitAgentReview: async () => { throw new Error("Unexpected review write"); },
-    resolveAccessibleMcpWorkspaceId: async (
+    resolveAccessibleAgentWorkspaceId: async (
       requestContext: WorkspaceRequestContext,
       explicitWorkspaceId: string | undefined,
     ): Promise<string> => {
-      calls.resolveAccessibleMcpWorkspaceIds.push({ requestContext, explicitWorkspaceId });
+      calls.resolveAccessibleAgentWorkspaceIds.push({ requestContext, explicitWorkspaceId });
 
       if (explicitWorkspaceId !== undefined) {
         return explicitWorkspaceId;
@@ -379,7 +379,7 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
       userId: connection.userId,
       selectedWorkspaceId: connection.selectedWorkspaceId,
     }]);
-    assert.deepEqual(calls.resolveAccessibleMcpWorkspaceIds, [
+    assert.deepEqual(calls.resolveAccessibleAgentWorkspaceIds, [
       {
         requestContext: {
           userId: connection.userId,
@@ -428,7 +428,7 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
   }
 });
 
-test("MCP SQL tools reject malformed workspace IDs before access resolution", async () => {
+test("MCP SQL tools reject misdirected workspace arguments before access resolution", async () => {
   const selectedWorkspaceId = "11111111-1111-4111-8111-111111111111";
   const connection: AuthenticatedMcpAccessToken = {
     userId: "user-mcp-smoke",
@@ -461,14 +461,25 @@ test("MCP SQL tools reject malformed workspace IDs before access resolution", as
         sql: "DELETE FROM cards WHERE card_id = 'card-1'",
       },
     ]) {
-      const result = await client.callTool({
-        name: toolCall.name,
-        arguments: { sql: toolCall.sql, workspaceId: "not-a-uuid" },
-      });
-      assert.equal(result.isError, true, toolCall.name);
+      // The misspelled key carries a valid UUID: a schema that strips an unknown argument instead
+      // of rejecting it would run this statement against the selected workspace and report success.
+      for (const workspaceArgument of [
+        { workspaceId: "not-a-uuid" },
+        { workspace_id: LEGACY_POSTGRES_WORKSPACE_ID },
+      ]) {
+        const result = await client.callTool({
+          name: toolCall.name,
+          arguments: { sql: toolCall.sql, ...workspaceArgument },
+        });
+        assert.equal(
+          result.isError,
+          true,
+          `${toolCall.name} ${JSON.stringify(workspaceArgument)}`,
+        );
+      }
     }
 
-    assert.deepEqual(calls.resolveAccessibleMcpWorkspaceIds, []);
+    assert.deepEqual(calls.resolveAccessibleAgentWorkspaceIds, []);
     assert.deepEqual(calls.sqlQueries, []);
     assert.deepEqual(calls.sqlExecutes, []);
   } finally {

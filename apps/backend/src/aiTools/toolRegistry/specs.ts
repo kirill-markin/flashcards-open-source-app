@@ -1,0 +1,285 @@
+import { z } from "zod";
+import {
+  makeAgentReviewCardFilter,
+  nextReviewCardSchema,
+  revealAnswerSchema,
+  submitReviewSchema,
+  NEXT_REVIEW_DESCRIPTION,
+  REVEAL_ANSWER_DESCRIPTION,
+  REVIEW_FLOW_INSTRUCTIONS,
+  SUBMIT_REVIEW_DESCRIPTION,
+} from "../../agent/reviewContract";
+import type { AgentReviewContext } from "../../agent/reviews";
+import type { AgentSqlContext, AgentSqlPayload } from "../agentSql/shared";
+import {
+  GUIDE_BODIES,
+  GUIDE_TOPICS,
+  SQL_EXECUTE_TOOL_DESCRIPTION,
+  SQL_EXECUTE_TOOL_NAME,
+  SQL_QUERY_TOOL_DESCRIPTION,
+  SQL_QUERY_TOOL_NAME,
+  SQL_TOOL_ARGUMENT_VALIDATOR,
+  SQL_TOOL_DESCRIPTION,
+  SQL_TOOL_NAME,
+} from "../toolContract/sqlToolContract";
+import type {
+  AgentToolContext,
+  AgentToolResult,
+  AgentToolSpec,
+  AgentToolSurface,
+} from "./types";
+
+export const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
+export const GET_GUIDE_TOOL_NAME = "get_guide";
+export const NEXT_REVIEW_CARD_TOOL_NAME = "next_review_card";
+export const REVEAL_ANSWER_TOOL_NAME = "reveal_answer";
+export const SUBMIT_REVIEW_TOOL_NAME = "submit_review";
+
+const workspaceIdStringSchema = z.string().trim().check(z.guid()).toLowerCase();
+
+const optionalWorkspaceIdArgument = workspaceIdStringSchema
+  .optional()
+  .describe(
+    "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",
+  );
+
+const LIST_WORKSPACES_TOOL_DESCRIPTION =
+  "Lists the workspaces you can access, each with its workspaceId, name, active card count, last activity timestamp, and an isSelected flag marking your current default workspace. Use the returned workspaceId values for any workspace-scoped tool workspaceId argument; pick the isSelected one to stay on the default.";
+
+const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
+  "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To target a specific one, pass its workspaceId to any workspace-scoped tool; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
+
+/**
+ * `get_guide` is the on-demand home for instructions a client only needs at one
+ * moment, so none of this text has to sit in the always-loaded tool metadata.
+ * The bodies live next to the contracts they are composed from, in
+ * `apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
+ */
+const GET_GUIDE_TOOL_DESCRIPTION =
+  "Returns one reference guide for working with this server, as plain text. Topics: sql_dialect (the full SELECT and WHERE grammar, text-column rules, UNNEST and OVERLAP, RETURNING, row and batch limits, pagination, and worked examples), card_authoring (the front/back contract, tag and duplicate rules, matching the user's existing card style, and Markdown/LaTeX formatting), bulk_authoring (sizing a batch against the database time budget, splitting a large authoring job into atomic batches, recovering an interrupted or unconfirmed run, and verifying it), and review_flow (the one-question-at-a-time review and rating loop). Reads no workspace data and changes nothing. Call it before your first authoring write, and again after a SQL syntax error, instead of guessing at the dialect.";
+const GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION =
+  "Which guide to return: sql_dialect for the SELECT and WHERE grammar, limits, and examples; card_authoring for the front/back contract, tags, duplicate checks, and card formatting; bulk_authoring for splitting and verifying a large write job; review_flow for the review and rating loop.";
+const GET_GUIDE_RESULT_INSTRUCTIONS =
+  "This is reference material for you, not text to show the user and not card content. Apply it for the rest of this task, and call get_guide again with another topic when you need a different area.";
+
+/**
+ * Pins the registry's strictness policy where a spec is declared. A plain `z.object` strips an
+ * unknown argument instead of rejecting it, which would let a misspelled `workspaceId` run a
+ * statement against the selected workspace, so a spec that declares one fails at module load rather
+ * than at the first misdirected write. Zod carries the rule as the object's catchall: `never` for a
+ * strict object, absent for a stripping one, `unknown` for a loose one.
+ */
+function requireStrictObjectInputSchema(toolName: string, inputSchema: z.ZodType): void {
+  const catchall = inputSchema instanceof z.ZodObject ? inputSchema._zod.def.catchall : undefined;
+  if (catchall === undefined || catchall._zod.def.type !== "never") {
+    throw new Error(
+      `Tool ${toolName} must declare its input schema as a strict object so an unknown argument is rejected instead of silently dropped.`,
+    );
+  }
+}
+
+/**
+ * Binds a spec's typed handler to the erased `execute` the registry array carries, and parses the
+ * raw arguments with the spec's own schema on the way in. Both surfaces also parse before they
+ * reach a spec, MCP inside the SDK's input validation and the chat to echo back the trimmed
+ * statement its result envelope carries, so this parse is the shared floor under them rather than
+ * the only one.
+ */
+function defineAgentTool<Schema extends z.ZodType, Data>(
+  definition: Readonly<{
+    name: string;
+    surfaces: ReadonlyArray<AgentToolSurface>;
+    description: string;
+    inputSchema: Schema;
+    execute: (context: AgentToolContext, input: z.output<Schema>) => Promise<AgentToolResult<Data>>;
+  }>,
+): AgentToolSpec<Data> {
+  requireStrictObjectInputSchema(definition.name, definition.inputSchema);
+
+  return {
+    name: definition.name,
+    surfaces: definition.surfaces,
+    description: definition.description,
+    inputSchema: definition.inputSchema,
+    execute: async (context, rawInput) =>
+      definition.execute(context, definition.inputSchema.parse(rawInput)),
+  };
+}
+
+function buildAgentSqlContext(context: AgentToolContext, workspaceId: string): AgentSqlContext {
+  return {
+    userId: context.userId,
+    workspaceId,
+    selectedWorkspaceId: context.selectedWorkspaceId,
+    connectionId: context.connectionId,
+    surface: context.sqlSurface,
+    caller: context.caller,
+  };
+}
+
+function buildReviewActor(context: AgentToolContext, workspaceId: string): AgentReviewContext {
+  return { userId: context.userId, workspaceId, connectionId: context.connectionId };
+}
+
+const SQL_QUERY_TOOL_SPEC = defineAgentTool({
+  name: SQL_QUERY_TOOL_NAME,
+  surfaces: ["mcp"],
+  description: SQL_QUERY_TOOL_DESCRIPTION,
+  inputSchema: z.strictObject({
+    sql: z
+      .string()
+      .trim()
+      .min(1)
+      .describe(
+        "One or more read statements in the published Flashcards SQL dialect (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT).",
+      ),
+    workspaceId: optionalWorkspaceIdArgument,
+  }),
+  execute: async (context, input): Promise<AgentToolResult<AgentSqlPayload>> => {
+    const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
+    const result = await context.actions.runSqlQuery(
+      buildAgentSqlContext(context, workspaceId),
+      input.sql,
+    );
+    return { data: result.data, instructions: result.instructions };
+  },
+});
+
+const SQL_EXECUTE_TOOL_SPEC = defineAgentTool({
+  name: SQL_EXECUTE_TOOL_NAME,
+  surfaces: ["mcp"],
+  description: SQL_EXECUTE_TOOL_DESCRIPTION,
+  inputSchema: z.strictObject({
+    sql: z
+      .string()
+      .trim()
+      .min(1)
+      .describe(
+        "One or more write statements in the published Flashcards SQL dialect (INSERT, UPDATE, DELETE).",
+      ),
+    workspaceId: optionalWorkspaceIdArgument,
+  }),
+  execute: async (context, input): Promise<AgentToolResult<AgentSqlPayload>> => {
+    const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
+    const result = await context.actions.runSqlExecute(
+      buildAgentSqlContext(context, workspaceId),
+      input.sql,
+    );
+    return { data: result.data, instructions: result.instructions };
+  },
+});
+
+/**
+ * The in-app chat's combined read+write SQL tool. It takes no workspaceId: a chat run is already
+ * bound to one workspace, which its surface resolves for every tool it registers.
+ */
+export const SQL_CHAT_TOOL_SPEC = defineAgentTool({
+  name: SQL_TOOL_NAME,
+  surfaces: ["chat"],
+  description: SQL_TOOL_DESCRIPTION,
+  inputSchema: SQL_TOOL_ARGUMENT_VALIDATOR,
+  execute: async (context, input): Promise<AgentToolResult<AgentSqlPayload>> => {
+    const workspaceId = await context.resolveWorkspaceId(undefined);
+    const result = await context.actions.executeAgentSql(
+      buildAgentSqlContext(context, workspaceId),
+      input.sql,
+    );
+    return { data: result.data, instructions: result.instructions };
+  },
+});
+
+/**
+ * Every agent tool this backend exposes, on every surface.
+ *
+ * A spec carries what both surfaces need to expose and run a tool. What differs per surface stays
+ * in the adapters: MCP titles, annotations and `_meta` hints in `apps/backend/src/mcp/server.ts`,
+ * the OpenAI function-tool JSON and the tool-output budget in
+ * `apps/backend/src/chat/openai/tools/tools.ts`.
+ */
+export const AGENT_TOOL_SPECS: ReadonlyArray<AgentToolSpec> = Object.freeze([
+  SQL_QUERY_TOOL_SPEC,
+  SQL_EXECUTE_TOOL_SPEC,
+  SQL_CHAT_TOOL_SPEC,
+  defineAgentTool({
+    name: LIST_WORKSPACES_TOOL_NAME,
+    surfaces: ["mcp"],
+    description: LIST_WORKSPACES_TOOL_DESCRIPTION,
+    inputSchema: z.strictObject({}),
+    execute: async (context): Promise<AgentToolResult> => {
+      const workspaces = await context.actions.listUserWorkspacesWithStatsForSelectedWorkspace(
+        context.userId,
+        context.selectedWorkspaceId,
+      );
+      return { data: { workspaces }, instructions: LIST_WORKSPACES_RESULT_INSTRUCTIONS };
+    },
+  }),
+  defineAgentTool({
+    name: GET_GUIDE_TOOL_NAME,
+    surfaces: ["mcp"],
+    description: GET_GUIDE_TOOL_DESCRIPTION,
+    inputSchema: z.strictObject({
+      topic: z.enum(GUIDE_TOPICS).describe(GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION),
+    }),
+    execute: async (_context, input): Promise<AgentToolResult> => ({
+      data: { topic: input.topic, guide: GUIDE_BODIES[input.topic] },
+      instructions: GET_GUIDE_RESULT_INSTRUCTIONS,
+    }),
+  }),
+  defineAgentTool({
+    name: NEXT_REVIEW_CARD_TOOL_NAME,
+    surfaces: ["mcp"],
+    description: NEXT_REVIEW_DESCRIPTION,
+    inputSchema: nextReviewCardSchema,
+    execute: async (context, input): Promise<AgentToolResult> => {
+      const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
+      const result = await context.actions.nextReviewCard(
+        buildReviewActor(context, workspaceId),
+        makeAgentReviewCardFilter(input),
+      );
+      return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+    },
+  }),
+  defineAgentTool({
+    name: REVEAL_ANSWER_TOOL_NAME,
+    surfaces: ["mcp"],
+    description: REVEAL_ANSWER_DESCRIPTION,
+    inputSchema: revealAnswerSchema,
+    execute: async (context, input): Promise<AgentToolResult> => {
+      const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
+      const result = await context.actions.revealAnswer(
+        buildReviewActor(context, workspaceId),
+        input.cardId,
+      );
+      return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+    },
+  }),
+  defineAgentTool({
+    name: SUBMIT_REVIEW_TOOL_NAME,
+    surfaces: ["mcp"],
+    description: SUBMIT_REVIEW_DESCRIPTION,
+    inputSchema: submitReviewSchema,
+    execute: async (context, input): Promise<AgentToolResult> => {
+      const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
+      const result = await context.actions.submitAgentReview(
+        buildReviewActor(context, workspaceId),
+        input,
+      );
+      return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+    },
+  }),
+]);
+
+export function listAgentToolSpecsForSurface(
+  surface: AgentToolSurface,
+): ReadonlyArray<AgentToolSpec> {
+  return AGENT_TOOL_SPECS.filter((spec) => spec.surfaces.includes(surface));
+}
+
+export function findAgentToolSpecForSurface(
+  surface: AgentToolSurface,
+  toolName: string,
+): AgentToolSpec | null {
+  return AGENT_TOOL_SPECS.find(
+    (spec) => spec.name === toolName && spec.surfaces.includes(surface),
+  ) ?? null;
+}

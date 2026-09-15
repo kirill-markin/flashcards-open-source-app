@@ -371,19 +371,21 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
  * (`buildSystemInstructions` in `apps/backend/src/chat/shared.ts`), which has no
  * such cap; the in-app chat has no `get_guide` tool to reach a guide with.
  */
+export const SQL_TOOL_DESCRIPTION = [
+  "Query and mutate the flashcards workspace with the published SQL dialect.",
+  "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
+  "Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags.",
+  `Each statement reads or affects at most ${MAX_SQL_RECORD_LIMIT} rows; up to ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated statements in one sql string form one batch, and a batch is applied atomically.`,
+  "Examples (tool-call JSON):",
+  toInAppSqlExampleLine(SQL_QUERY_PAGED_READ_EXAMPLE_LINE),
+  toInAppSqlExampleLine(SQL_EXECUTE_CREATE_CARD_EXAMPLE_LINE),
+  "The full grammar and the authoring contract are in the system instructions.",
+].join(" ");
+
 export const OPENAI_SQL_TOOL: FunctionTool = {
   type: "function",
   name: SQL_TOOL_NAME,
-  description: [
-    "Query and mutate the flashcards workspace with the published SQL dialect.",
-    "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, SELECT, INSERT, UPDATE, DELETE.",
-    "Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags.",
-    `Each statement reads or affects at most ${MAX_SQL_RECORD_LIMIT} rows; up to ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated statements in one sql string form one batch, and a batch is applied atomically.`,
-    "Examples (tool-call JSON):",
-    toInAppSqlExampleLine(SQL_QUERY_PAGED_READ_EXAMPLE_LINE),
-    toInAppSqlExampleLine(SQL_EXECUTE_CREATE_CARD_EXAMPLE_LINE),
-    "The full grammar and the authoring contract are in the system instructions.",
-  ].join(" "),
+  description: SQL_TOOL_DESCRIPTION,
   strict: false,
   parameters: {
     type: "object",

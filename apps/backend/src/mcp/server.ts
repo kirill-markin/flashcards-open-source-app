@@ -1,30 +1,25 @@
-import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { nextReviewCard, revealAnswer, submitAgentReview } from "../agent/reviews";
-import {
-  makeAgentReviewCardFilter,
-  nextReviewCardSchema,
-  revealAnswerSchema,
-  submitReviewSchema,
-  REVIEW_FLOW_INSTRUCTIONS,
-  NEXT_REVIEW_DESCRIPTION,
-  REVEAL_ANSWER_DESCRIPTION,
-  SUBMIT_REVIEW_DESCRIPTION,
-} from "../agent/reviewContract";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
 import {
-  GUIDE_BODIES,
-  GUIDE_TOPICS,
-  SQL_EXECUTE_TOOL_DESCRIPTION,
   SQL_EXECUTE_TOOL_NAME,
-  SQL_QUERY_TOOL_DESCRIPTION,
   SQL_QUERY_TOOL_NAME,
 } from "../aiTools/toolContract/sqlToolContract";
 import { MAX_SQL_RESULT_CHARS } from "../aiTools/toolContract/sqlToolLimits";
+import { unboundAgentToolAction } from "../aiTools/toolRegistry/actions";
 import {
-  resolveAccessibleMcpWorkspaceId,
+  listAgentToolSpecsForSurface,
+  GET_GUIDE_TOOL_NAME,
+  LIST_WORKSPACES_TOOL_NAME,
+  NEXT_REVIEW_CARD_TOOL_NAME,
+  REVEAL_ANSWER_TOOL_NAME,
+  SUBMIT_REVIEW_TOOL_NAME,
+} from "../aiTools/toolRegistry/specs";
+import type { AgentToolContext } from "../aiTools/toolRegistry/types";
+import {
+  resolveAccessibleAgentWorkspaceId,
   type WorkspaceRequestContext,
 } from "../server/requestContext";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
@@ -46,8 +41,6 @@ import type { AuthenticatedMcpAccessToken } from "../auth/mcpTokens";
 const SERVER_NAME = "flashcards-open-source-app";
 const SERVER_VERSION = "v1";
 
-const workspaceIdStringSchema = z.string().trim().check(z.guid()).toLowerCase();
-
 /**
  * Server instructions are always loaded, and a client that truncates them keeps
  * the head, so the routing path and the rules a call must not get wrong come
@@ -65,29 +58,89 @@ const SERVER_INSTRUCTIONS = [
   "The dialect is not full PostgreSQL. Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags. get_guide topics: sql_dialect for the grammar, limits, and examples; card_authoring for the card contract and formatting; bulk_authoring for splitting and verifying a large write job; review_flow for the review loop.",
 ].join(" ");
 
-const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
-const LIST_WORKSPACES_TOOL_DESCRIPTION =
-  "Lists the workspaces you can access, each with its workspaceId, name, active card count, last activity timestamp, and an isSelected flag marking your current default workspace. Use the returned workspaceId values for any workspace-scoped tool workspaceId argument; pick the isSelected one to stay on the default.";
-
-const GET_GUIDE_TOOL_NAME = "get_guide";
 /**
- * `get_guide` is the on-demand home for instructions a client only needs at one
- * moment, so none of this text has to sit in the always-loaded tool metadata.
- * The bodies live next to the contracts they are composed from, in
- * `apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
+ * MCP-only presentation metadata for a shared tool spec: the display title, the behavioural hints
+ * an MCP client renders, and the result-size hint below. Everything a tool is - its name,
+ * description, input schema and handler - lives in `apps/backend/src/aiTools/toolRegistry`.
+ *
+ * `maxResultSizeChars` is our own emitted-result budget rather than a client preference: a result
+ * that size is one we already bounded, so a client must keep it inline in the conversation instead
+ * of offloading it to a file the model then has to read back. Tools without one set it to null.
  */
-const GET_GUIDE_TOOL_DESCRIPTION =
-  "Returns one reference guide for working with this server, as plain text. Topics: sql_dialect (the full SELECT and WHERE grammar, text-column rules, UNNEST and OVERLAP, RETURNING, row and batch limits, pagination, and worked examples), card_authoring (the front/back contract, tag and duplicate rules, matching the user's existing card style, and Markdown/LaTeX formatting), bulk_authoring (sizing a batch against the database time budget, splitting a large authoring job into atomic batches, recovering an interrupted or unconfirmed run, and verifying it), and review_flow (the one-question-at-a-time review and rating loop). Reads no workspace data and changes nothing. Call it before your first authoring write, and again after a SQL syntax error, instead of guessing at the dialect.";
-const GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION =
-  "Which guide to return: sql_dialect for the SELECT and WHERE grammar, limits, and examples; card_authoring for the front/back contract, tags, duplicate checks, and card formatting; bulk_authoring for splitting and verifying a large write job; review_flow for the review and rating loop.";
-const GET_GUIDE_RESULT_INSTRUCTIONS =
-  "This is reference material for you, not text to show the user and not card content. Apply it for the rest of this task, and call get_guide again with another topic when you need a different area.";
+type McpToolPresentation = Readonly<{
+  title: string;
+  annotations: ToolAnnotations;
+  maxResultSizeChars: number | null;
+}>;
+
+const MCP_TOOL_PRESENTATION: Readonly<Record<string, McpToolPresentation | undefined>> = {
+  // sql_query rejects mutations before execution, and SELECT-backed reads run through read-only
+  // scoped database transactions. openWorldHint is false because it acts only within our own closed
+  // database domain; idempotentHint is true because repeating the same read has no additional
+  // effect.
+  [SQL_QUERY_TOOL_NAME]: {
+    title: "Flashcards SQL query (read-only)",
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    maxResultSizeChars: MAX_SQL_RESULT_CHARS,
+  },
+  // sql_execute mutates our own database. Spell out the (MCP-default) non-read-only + destructive
+  // hints explicitly; openWorldHint is false because it acts only within our own closed database
+  // domain. Same result budget as sql_query, and for the same reason: this is the size we already
+  // shrink a committed write's result down to.
+  [SQL_EXECUTE_TOOL_NAME]: {
+    title: "Flashcards SQL execute (write)",
+    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+    maxResultSizeChars: MAX_SQL_RESULT_CHARS,
+  },
+  [LIST_WORKSPACES_TOOL_NAME]: {
+    title: "List flashcards workspaces",
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    maxResultSizeChars: null,
+  },
+  // get_guide returns static contract text: no workspace is read, nothing is written, and the same
+  // topic always returns the same body.
+  [GET_GUIDE_TOOL_NAME]: {
+    title: "Get flashcards usage guide",
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    maxResultSizeChars: null,
+  },
+  [NEXT_REVIEW_CARD_TOOL_NAME]: {
+    title: "Next flashcard question",
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    maxResultSizeChars: null,
+  },
+  [REVEAL_ANSWER_TOOL_NAME]: {
+    title: "Reveal flashcard answer",
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
+    maxResultSizeChars: null,
+  },
+  // submit_review's destructiveHint is true because the write overwrites due_at, reps, lapses and
+  // the fsrs_* columns; only additive-only writes may claim false.
+  [SUBMIT_REVIEW_TOOL_NAME]: {
+    title: "Submit flashcard review",
+    annotations: {
+      readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: true,
+    },
+    maxResultSizeChars: null,
+  },
+};
+
+function requireMcpToolPresentation(toolName: string): McpToolPresentation {
+  const presentation = MCP_TOOL_PRESENTATION[toolName];
+  if (presentation === undefined) {
+    throw new Error(
+      `Tool ${toolName} is listed for the MCP surface but carries no MCP presentation metadata.`,
+    );
+  }
+
+  return presentation;
+}
 
 export type McpServerDependencies = Readonly<{
   nextReviewCard: typeof nextReviewCard;
   revealAnswer: typeof revealAnswer;
   submitAgentReview: typeof submitAgentReview;
-  resolveAccessibleMcpWorkspaceId: (
+  resolveAccessibleAgentWorkspaceId: (
     requestContext: WorkspaceRequestContext,
     explicitWorkspaceId: string | undefined,
   ) => Promise<string>;
@@ -111,7 +164,7 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
   nextReviewCard,
   revealAnswer,
   submitAgentReview,
-  resolveAccessibleMcpWorkspaceId,
+  resolveAccessibleAgentWorkspaceId,
   runSqlQuery,
   runSqlExecute,
   listUserWorkspacesWithStatsForSelectedWorkspace,
@@ -403,17 +456,10 @@ async function buildToolErrorResult(
   };
 }
 
-const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
-  "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To target a specific one, pass its workspaceId to any workspace-scoped tool; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
-
 /**
- * Builds a stateless MCP server exposing a read-only `sql_query` tool and a
- * write `sql_execute` tool, each forwarding the SQL string to the shared
- * backend `runSqlQuery` / `runSqlExecute` execution functions, plus a
- * `list_workspaces` tool that returns the caller's accessible workspaces with
- * stats, a `get_guide` tool that serves the on-demand instruction guides, and
- * dedicated question, answer, and idempotent review tools. All are scoped to
- * the connection resolved from the OAuth or API-key Bearer token.
+ * Builds a stateless MCP server exposing every tool the shared registry
+ * (`apps/backend/src/aiTools/toolRegistry`) lists for the `mcp` surface, each
+ * scoped to the connection resolved from the OAuth or API-key Bearer token.
  *
  * The connection is captured per request (the Lambda creates one server per
  * call) so the tools never read ambient request state. `resourceUrl` is the
@@ -465,252 +511,62 @@ export function createMcpServerWithDependencies(
     },
   );
 
-  async function resolveWorkspaceId(requestedWorkspaceId: string | undefined): Promise<string> {
-    return dependencies.resolveAccessibleMcpWorkspaceId(
+  const toolContext: AgentToolContext = {
+    userId: connection.userId,
+    selectedWorkspaceId: connection.selectedWorkspaceId,
+    connectionId: connection.connectionId,
+    caller,
+    sqlSurface: "mcp",
+    resolveWorkspaceId: async (requestedWorkspaceId) =>
+      dependencies.resolveAccessibleAgentWorkspaceId(
+        {
+          userId: connection.userId,
+          selectedWorkspaceId: connection.selectedWorkspaceId,
+        },
+        requestedWorkspaceId,
+      ),
+    actions: {
+      // Both SQL executors size their emitted agent envelope against this server's resource URL,
+      // which is why the registry leaves them to the surface that owns it.
+      runSqlQuery: async (sqlContext, sql) =>
+        dependencies.runSqlQuery(sqlContext, sql, resourceUrl),
+      runSqlExecute: async (sqlContext, sql) =>
+        dependencies.runSqlExecute(sqlContext, sql, resourceUrl),
+      executeAgentSql: unboundAgentToolAction("executeAgentSql", "mcp"),
+      listUserWorkspacesWithStatsForSelectedWorkspace:
+        dependencies.listUserWorkspacesWithStatsForSelectedWorkspace,
+      nextReviewCard: dependencies.nextReviewCard,
+      revealAnswer: dependencies.revealAnswer,
+      submitAgentReview: dependencies.submitAgentReview,
+    },
+  };
+
+  for (const spec of listAgentToolSpecsForSurface("mcp")) {
+    const presentation = requireMcpToolPresentation(spec.name);
+    server.registerTool(
+      spec.name,
       {
-        userId: connection.userId,
-        selectedWorkspaceId: connection.selectedWorkspaceId,
+        title: presentation.title,
+        description: spec.description,
+        _meta: presentation.maxResultSizeChars === null
+          ? undefined
+          : { "anthropic/maxResultSizeChars": presentation.maxResultSizeChars },
+        inputSchema: spec.inputSchema,
+        annotations: presentation.annotations,
       },
-      requestedWorkspaceId,
+      async (rawInput: unknown): Promise<CallToolResult> => {
+        telemetry.recordInvokedTool(spec.name);
+        try {
+          const result = await spec.execute(toolContext, rawInput);
+          return buildToolResult(
+            createAgentEnvelope(resourceUrl, result.data, result.instructions),
+          );
+        } catch (error) {
+          return buildToolErrorResult(error, resourceUrl, connection, spec.name, dependencies);
+        }
+      },
     );
   }
-
-  server.registerTool(
-    SQL_QUERY_TOOL_NAME,
-    {
-      title: "Flashcards SQL query (read-only)",
-      description: SQL_QUERY_TOOL_DESCRIPTION,
-      // Our own emitted-result budget, not a client preference: a result this
-      // size is one we already bounded, so a client must keep it inline in the
-      // conversation instead of offloading it to a file the model then has to
-      // read back.
-      _meta: { "anthropic/maxResultSizeChars": MAX_SQL_RESULT_CHARS },
-      inputSchema: {
-        sql: z
-          .string()
-          .trim()
-          .min(1)
-          .describe(
-            "One or more read statements in the published Flashcards SQL dialect (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT).",
-          ),
-        workspaceId: workspaceIdStringSchema
-          .optional()
-          .describe(
-            "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",
-          ),
-      },
-      // sql_query rejects mutations before execution, and SELECT-backed reads
-      // run through read-only scoped database transactions. openWorldHint is
-      // false because it acts only within our own closed database domain;
-      // idempotentHint is true because repeating the same read has no
-      // additional effect.
-      annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
-    },
-    async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {
-      telemetry.recordInvokedTool(SQL_QUERY_TOOL_NAME);
-      try {
-        const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
-        const result = await dependencies.runSqlQuery({
-          userId: connection.userId,
-          workspaceId,
-          selectedWorkspaceId: connection.selectedWorkspaceId,
-          connectionId: connection.connectionId,
-          surface: "mcp",
-          caller,
-        }, sql, resourceUrl);
-
-        return buildToolResult(
-          createAgentEnvelope(resourceUrl, result.data, result.instructions),
-        );
-      } catch (error) {
-        return buildToolErrorResult(
-          error,
-          resourceUrl,
-          connection,
-          SQL_QUERY_TOOL_NAME,
-          dependencies,
-        );
-      }
-    },
-  );
-
-  server.registerTool(
-    SQL_EXECUTE_TOOL_NAME,
-    {
-      title: "Flashcards SQL execute (write)",
-      description: SQL_EXECUTE_TOOL_DESCRIPTION,
-      // Same budget as sql_query, and for the same reason: this is the size we
-      // already shrink a committed write's result down to, so the client should
-      // keep it inline rather than offload it to a file.
-      _meta: { "anthropic/maxResultSizeChars": MAX_SQL_RESULT_CHARS },
-      inputSchema: {
-        sql: z
-          .string()
-          .trim()
-          .min(1)
-          .describe(
-            "One or more write statements in the published Flashcards SQL dialect (INSERT, UPDATE, DELETE).",
-          ),
-        workspaceId: workspaceIdStringSchema
-          .optional()
-          .describe(
-            "Optional workspace UUID from the list_workspaces tool; omit to use your currently selected default workspace.",
-          ),
-      },
-      // sql_execute mutates our own database. Spell out the (MCP-default)
-      // non-read-only + destructive hints explicitly; openWorldHint is false
-      // because it acts only within our own closed database domain.
-      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
-    },
-    async ({ sql, workspaceId: requestedWorkspaceId }): Promise<CallToolResult> => {
-      telemetry.recordInvokedTool(SQL_EXECUTE_TOOL_NAME);
-      try {
-        const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
-        const result = await dependencies.runSqlExecute({
-          userId: connection.userId,
-          workspaceId,
-          selectedWorkspaceId: connection.selectedWorkspaceId,
-          connectionId: connection.connectionId,
-          surface: "mcp",
-          caller,
-        }, sql, resourceUrl);
-
-        return buildToolResult(
-          createAgentEnvelope(resourceUrl, result.data, result.instructions),
-        );
-      } catch (error) {
-        return buildToolErrorResult(
-          error,
-          resourceUrl,
-          connection,
-          SQL_EXECUTE_TOOL_NAME,
-          dependencies,
-        );
-      }
-    },
-  );
-
-  server.registerTool(
-    LIST_WORKSPACES_TOOL_NAME,
-    {
-      title: "List flashcards workspaces",
-      description: LIST_WORKSPACES_TOOL_DESCRIPTION,
-      inputSchema: {},
-      annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
-    },
-    async (): Promise<CallToolResult> => {
-      telemetry.recordInvokedTool(LIST_WORKSPACES_TOOL_NAME);
-      try {
-        const workspaces = await dependencies.listUserWorkspacesWithStatsForSelectedWorkspace(
-          connection.userId,
-          connection.selectedWorkspaceId,
-        );
-
-        return buildToolResult(
-          createAgentEnvelope(
-            resourceUrl,
-            { workspaces },
-            LIST_WORKSPACES_RESULT_INSTRUCTIONS,
-          ),
-        );
-      } catch (error) {
-        return buildToolErrorResult(
-          error,
-          resourceUrl,
-          connection,
-          LIST_WORKSPACES_TOOL_NAME,
-          dependencies,
-        );
-      }
-    },
-  );
-
-  server.registerTool(
-    GET_GUIDE_TOOL_NAME,
-    {
-      title: "Get flashcards usage guide",
-      description: GET_GUIDE_TOOL_DESCRIPTION,
-      inputSchema: {
-        topic: z.enum(GUIDE_TOPICS).describe(GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION),
-      },
-      // Returns static contract text: no workspace is read, nothing is written,
-      // and the same topic always returns the same body.
-      annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
-    },
-    async ({ topic }): Promise<CallToolResult> => {
-      telemetry.recordInvokedTool(GET_GUIDE_TOOL_NAME);
-      try {
-        return buildToolResult(
-          createAgentEnvelope(
-            resourceUrl,
-            { topic, guide: GUIDE_BODIES[topic] },
-            GET_GUIDE_RESULT_INSTRUCTIONS,
-          ),
-        );
-      } catch (error) {
-        return await buildToolErrorResult(
-          error,
-          resourceUrl,
-          connection,
-          GET_GUIDE_TOOL_NAME,
-          dependencies,
-        );
-      }
-    },
-  );
-
-  server.registerTool("next_review_card", {
-    title: "Next flashcard question",
-    description: NEXT_REVIEW_DESCRIPTION,
-    inputSchema: nextReviewCardSchema,
-    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
-  }, async (input) => {
-    telemetry.recordInvokedTool("next_review_card");
-    try {
-      const workspaceId = await resolveWorkspaceId(input.workspaceId);
-      const actor = { userId: connection.userId, workspaceId, connectionId: connection.connectionId };
-      const result = await dependencies.nextReviewCard(actor, makeAgentReviewCardFilter(input));
-      return buildToolResult(createAgentEnvelope(resourceUrl, result, REVIEW_FLOW_INSTRUCTIONS));
-    } catch (error) {
-      return buildToolErrorResult(error, resourceUrl, connection, "next_review_card", dependencies);
-    }
-  });
-
-  server.registerTool("reveal_answer", {
-    title: "Reveal flashcard answer",
-    description: REVEAL_ANSWER_DESCRIPTION,
-    inputSchema: revealAnswerSchema,
-    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
-  }, async ({ workspaceId: requestedWorkspaceId, cardId }) => {
-    telemetry.recordInvokedTool("reveal_answer");
-    try {
-      const workspaceId = await resolveWorkspaceId(requestedWorkspaceId);
-      const actor = { userId: connection.userId, workspaceId, connectionId: connection.connectionId };
-      const result = await dependencies.revealAnswer(actor, cardId);
-      return buildToolResult(createAgentEnvelope(resourceUrl, result, REVIEW_FLOW_INSTRUCTIONS));
-    } catch (error) {
-      return buildToolErrorResult(error, resourceUrl, connection, "reveal_answer", dependencies);
-    }
-  });
-
-  server.registerTool("submit_review", {
-    title: "Submit flashcard review",
-    description: SUBMIT_REVIEW_DESCRIPTION,
-    inputSchema: submitReviewSchema,
-    // destructiveHint is true because the write overwrites due_at, reps, lapses and the fsrs_*
-    // columns; only additive-only writes may claim false.
-    annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false, idempotentHint: true },
-  }, async (input) => {
-    telemetry.recordInvokedTool("submit_review");
-    try {
-      const workspaceId = await resolveWorkspaceId(input.workspaceId);
-      const actor = { userId: connection.userId, workspaceId, connectionId: connection.connectionId };
-      const result = await dependencies.submitAgentReview(actor, input);
-      return buildToolResult(createAgentEnvelope(resourceUrl, result, REVIEW_FLOW_INSTRUCTIONS));
-    } catch (error) {
-      return buildToolErrorResult(error, resourceUrl, connection, "submit_review", dependencies);
-    }
-  });
 
   return server;
 }
