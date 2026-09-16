@@ -51,8 +51,6 @@ export type ChatItemPayload = Readonly<{
   content: ReadonlyArray<ContentPart>;
   openaiItems?: ReadonlyArray<StoredOpenAIReplayItem>;
   /** Internal durable state; normal chat-item mappers intentionally omit it. */
-  generatedCardImageAttemptCount?: 0 | 1 | 2 | 3;
-  /** Internal durable state; normal chat-item mappers intentionally omit it. */
   generatedCardImageOperations?: ReadonlyArray<Readonly<{
     operationKey: string;
     attempt: 1 | 2 | 3;
@@ -257,18 +255,8 @@ const UPDATE_CHAT_ITEM_SQL = `
   WITH updated_item AS (
     UPDATE ai.chat_items
     SET payload = (
-          $2::jsonb - ARRAY[
-            'generatedCardImageAttemptCount',
-            'generatedCardImageOperations'
-          ]::text[]
-        ) || jsonb_strip_nulls(jsonb_build_object(
-          'generatedCardImageAttemptCount',
-          CASE
-            WHEN payload ? 'generatedCardImageAttemptCount'
-            THEN payload->'generatedCardImageAttemptCount'
-            ELSE NULL
-          END
-        )) || CASE
+          $2::jsonb - ARRAY['generatedCardImageOperations']::text[]
+        ) || CASE
           WHEN payload ? 'generatedCardImageOperations'
           THEN jsonb_build_object(
             'generatedCardImageOperations',
@@ -387,18 +375,8 @@ const UPDATE_CHAT_ITEM_AND_INVALIDATE_MAIN_CONTENT_SQL = `
   WITH updated_item AS (
     UPDATE ai.chat_items
     SET payload = (
-          $2::jsonb - ARRAY[
-            'generatedCardImageAttemptCount',
-            'generatedCardImageOperations'
-          ]::text[]
-        ) || jsonb_strip_nulls(jsonb_build_object(
-          'generatedCardImageAttemptCount',
-          CASE
-            WHEN payload ? 'generatedCardImageAttemptCount'
-            THEN payload->'generatedCardImageAttemptCount'
-            ELSE NULL
-          END
-        )) || CASE
+          $2::jsonb - ARRAY['generatedCardImageOperations']::text[]
+        ) || CASE
           WHEN payload ? 'generatedCardImageOperations'
           THEN jsonb_build_object(
             'generatedCardImageOperations',
