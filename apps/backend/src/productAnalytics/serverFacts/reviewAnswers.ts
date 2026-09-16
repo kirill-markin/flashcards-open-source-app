@@ -14,7 +14,8 @@ import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
 } from "../../observability/runtime";
-import type { ProductAnalyticsPlatform } from "../catalog";
+import type { WorkspaceReplicaActorKind } from "../../sync/identity/replica";
+import type { ProductAnalyticsPlatform, productAnalyticsEventCatalog } from "../catalog";
 import { productAnalyticsMaxEventAgeMs } from "../validation";
 import type { PostCommitAnalyticsBudget } from "./postCommitBudget";
 import {
@@ -41,6 +42,34 @@ import {
 // because the rating collected below is read back out of that column by the insert's RETURNING
 // clause and never taken from a request body.
 const reviewAnsweredRatingNames = ["again", "hard", "good", "easy"] as const;
+
+type ReviewAnsweredSource =
+  (typeof productAnalyticsEventCatalog)["review_answered"]["properties"]["source"]["values"][number];
+
+// The channel a review came through, read from the replica's actor kind and never from its platform
+// column. workspace_seed and workspace_reset are no channel a person reviews through, so they map to
+// null and the row omits `source`, as it does for an actor kind this table does not know: a guess
+// could never be corrected on an append-only table. Keyed by every WorkspaceReplicaActorKind, so a
+// new actor kind does not compile until it is answered here.
+const reviewAnsweredSourceByActorKind = {
+  client_installation: "app",
+  ai_chat: "ai_chat",
+  agent_connection: "agent",
+  workspace_seed: null,
+  workspace_reset: null,
+} as const satisfies Readonly<Record<WorkspaceReplicaActorKind, ReviewAnsweredSource | null>>;
+
+function toReviewAnsweredSource(actorKind: string): ReviewAnsweredSource | null {
+  return Object.hasOwn(reviewAnsweredSourceByActorKind, actorKind)
+    ? reviewAnsweredSourceByActorKind[actorKind as WorkspaceReplicaActorKind]
+    : null;
+}
+
+// What one drain resolved from a single replica row. A replica it did not resolve has no entry.
+type ReviewAnswerReplicaAttribution = Readonly<{
+  platform: ProductAnalyticsPlatform | null;
+  source: ReviewAnsweredSource | null;
+}>;
 
 /**
  * Where the reviewed_at_server stored with this review came from, named by the caller because only
@@ -87,7 +116,7 @@ export type ReviewAnswer = Readonly<{
   // content.review_events.replica_id as stored, which is the one thing on the row that can name the
   // device the answer was given on. It is carried as the id rather than as a platform because the
   // replica row lives in another table: resolving it is one lookup for a whole drain instead of one
-  // per answer on the review write. See resolveReviewAnswerPlatforms.
+  // per answer on the review write. See resolveReviewAnswerReplicas.
   replicaId: string;
   // security.current_user_id(), which is the identity every statement of the review write already
   // runs as.
@@ -210,7 +239,8 @@ function resolveReviewAnsweredOccurredAt(reviewedAtClient: string, serverAnchor:
 const reviewAnswerPlatformResolutionTimeoutMs = 2_000;
 
 /**
- * Resolves the replicas of one drain to the platform each of their reviews was answered on.
+ * Resolves the replicas of one drain to the platform and the source each of their reviews was
+ * answered through.
  *
  * One query for the whole drain, after the product transaction committed. That is what makes the
  * derivation affordable at all: the answers were collected per transaction, so the review write
@@ -231,17 +261,17 @@ const reviewAnswerPlatformResolutionTimeoutMs = 2_000;
  * per-platform breakdown, rather than guessing at a platform the append-only table could never be
  * corrected of.
  */
-async function resolveReviewAnswerPlatforms(
+async function resolveReviewAnswerReplicas(
   answers: ReadonlyArray<ReviewAnswer>,
   budget: PostCommitAnalyticsBudget,
-): Promise<ReadonlyMap<string, ProductAnalyticsPlatform>> {
-  const platformByReplicaId = new Map<string, ProductAnalyticsPlatform>();
+): Promise<ReadonlyMap<string, ReviewAnswerReplicaAttribution>> {
+  const attributionByReplicaId = new Map<string, ReviewAnswerReplicaAttribution>();
   const scopingAnswer = answers[0];
   // The budget is checked here for the same reason a chunk checks it: this runs after COMMIT on the
   // request's own clock. A drain that finds it spent resolves nothing and the loop below then stops
   // on the same check, so the request pays for neither.
   if (scopingAnswer === undefined || !budget.hasTimeForAnotherOperation()) {
-    return platformByReplicaId;
+    return attributionByReplicaId;
   }
 
   const replicaIds = [...new Set(answers.map((answer) => answer.replicaId))];
@@ -308,10 +338,10 @@ async function resolveReviewAnswerPlatforms(
       });
     }
     for (const replica of replicas) {
-      const platform = toWorkspaceReplicaRowPlatform(replica);
-      if (platform !== null) {
-        platformByReplicaId.set(replica.replica_id, platform);
-      }
+      attributionByReplicaId.set(replica.replica_id, {
+        platform: toWorkspaceReplicaRowPlatform(replica),
+        source: toReviewAnsweredSource(replica.actor_kind),
+      });
     }
   } catch (error) {
     // Reported rather than swallowed. The events themselves are unaffected and still worth storing,
@@ -331,13 +361,14 @@ async function resolveReviewAnswerPlatforms(
     });
   }
 
-  return platformByReplicaId;
+  return attributionByReplicaId;
 }
 
 function toReviewAnsweredEvent(
   answer: ReviewAnswer,
   recordedAt: Date,
   platform: ProductAnalyticsPlatform | null,
+  source: ReviewAnsweredSource | null,
 ): ServerDerivedProductAnalyticsEvent {
   const serverAnchor = resolveReviewAnsweredServerAnchor(answer, recordedAt);
   return {
@@ -376,7 +407,7 @@ function toReviewAnsweredEvent(
     guestSessionId: null,
     workspaceId: answer.workspaceId,
     // Derived from sync.workspace_replicas for the replica that recorded the review and resolved
-    // once for the whole drain by resolveReviewAnswerPlatforms.
+    // once for the whole drain by resolveReviewAnswerReplicas.
     //
     // The column may never be read without actor_kind on the same row. That is what the resolution
     // keeps rather than what it works around - it selects both columns on one row and reads
@@ -395,7 +426,10 @@ function toReviewAnsweredEvent(
     // the review under a platform it never had, permanently, on an append-only table, while null
     // only leaves it out of a per-platform breakdown.
     platform,
-    properties: { rating: reviewAnsweredRatingNames[answer.rating] },
+    properties: {
+      rating: reviewAnsweredRatingNames[answer.rating],
+      ...(source === null ? {} : { source }),
+    },
     // Provenance about how a row was produced belongs to the backfill that reconstructs history. An
     // answer observed as it happens has none.
     details: null,
@@ -475,15 +509,19 @@ async function emitCollectedReviewAnswers(
   // One read of the product database for the whole drain, before the first chunk and after the
   // commit that released this transaction's connection. Answers whose replica it does not resolve
   // keep the null platform they always had; nothing here can fail the drain.
-  const platformByReplicaId = await resolveReviewAnswerPlatforms(collected, budget);
+  const attributionByReplicaId = await resolveReviewAnswerReplicas(collected, budget);
   const outcome = await emitPostCommitFactEvents(
     collected,
     budget,
-    (answer) => toReviewAnsweredEvent(
-      answer,
-      recordedAt,
-      platformByReplicaId.get(answer.replicaId) ?? null,
-    ),
+    (answer) => {
+      const attribution = attributionByReplicaId.get(answer.replicaId);
+      return toReviewAnsweredEvent(
+        answer,
+        recordedAt,
+        attribution?.platform ?? null,
+        attribution?.source ?? null,
+      );
+    },
   );
   if (outcome.status === "aborted") {
     const firstUnstored = collected[outcome.storedEventCount];

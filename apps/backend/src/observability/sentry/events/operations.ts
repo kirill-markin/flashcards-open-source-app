@@ -530,10 +530,11 @@ export type ProductAnalyticsDrainAbortedDetails = Readonly<{
 }>;
 
 // Raised when a drain could not read the replicas its reviews were recorded against, so it could not
-// resolve the platform each review was answered on. Nothing was dropped: the review_answered rows
-// are still emitted and still stored, they just carry a null platform, and an append-only table
-// cannot be corrected of that afterwards. This and the incomplete read below are the only signals
-// that a per-platform breakdown is quietly going blank while the rows themselves keep arriving.
+// resolve the platform or the source of each review. Nothing was dropped: the review_answered rows
+// are still emitted and still stored, they just carry a null platform and no source, and an
+// append-only table cannot be corrected of that afterwards. This and the incomplete read below are
+// the only signals that a per-platform or per-source breakdown is quietly going blank while the rows
+// themselves keep arriving.
 //
 // Deliberately not the write failure above: no event was refused here, so no event count describes
 // what happened. The two numbers that do are the shape of the one lookup that failed -
