@@ -5,6 +5,7 @@ import { submitReviewInExecutor } from "../cards/review/reviews";
 import {
   queryWithWorkspaceScopeReadOnly,
   transactionWithWorkspaceScope,
+  type DatabaseExecutor,
 } from "../database";
 import { getDeck } from "../decks";
 import { createPostCommitAnalyticsBudget } from "../productAnalytics/serverFacts/postCommitBudget";
@@ -26,6 +27,21 @@ export type AgentReviewContext = Readonly<{
   workspaceId: string;
   connectionId: string;
 }>;
+
+/**
+ * Which sync replica a review event is stored against. The review write does not choose it, because
+ * it names the calling surface's own sync actor: an agent connection on MCP and the agent REST API,
+ * the workspace's AI-chat replica in the in-app chat, which has no connection to attribute to.
+ */
+export type AgentReviewReplicaResolver = (
+  context: AgentReviewContext,
+) => Promise<string>;
+
+/** The review write with its replica resolver already supplied, which is what a tool surface reaches. */
+export type BoundAgentReviewSubmit = (
+  context: AgentReviewContext,
+  request: AgentReviewInput,
+) => Promise<AgentReviewResult>;
 
 export type AgentReviewResult = Readonly<{
   workspaceId: string;
@@ -294,12 +310,58 @@ function createReviewEventConflictError(
   );
 }
 
+/** The refusal a reviewId reused on a second card earns. Without it the reuse answers the
+ * duplicate-retry contract above, which reports the requested card's untouched schedule and tells
+ * the caller the review was already recorded, so the learner's rating is dropped in silence. */
+function createReviewIdCardMismatchError(
+  requestedCardId: string,
+  storedCardId: string,
+  cause: unknown,
+): HttpError {
+  return new HttpError(
+    409,
+    `This reviewId already identifies the recorded review of card ${storedCardId}, so no review was recorded for card ${requestedCardId}. Generate a new reviewId for this review; reuse a reviewId only to retry the same card's submission.`,
+    "REVIEW_ID_CARD_MISMATCH",
+    undefined,
+    cause,
+  );
+}
+
+/** The card whose review already occupies this reviewId's dedup key, or null while the key is free. */
+async function findReviewEventCardIdInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  replicaId: string,
+  clientEventId: string,
+): Promise<string | null> {
+  const result = await executor.query<{ card_id: string }>(
+    "SELECT card_id FROM content.review_events WHERE workspace_id = $1 AND replica_id = $2 AND client_event_id = $3",
+    [workspaceId, replicaId, clientEventId],
+  );
+  return result.rows[0]?.card_id ?? null;
+}
+
+/** The replica an agent connection's writes carry, for the surfaces that authenticate as one. */
+export async function resolveAgentConnectionReviewReplica(
+  context: AgentReviewContext,
+): Promise<string> {
+  return ensureAgentSyncReplica(
+    context.workspaceId,
+    context.userId,
+    context.connectionId,
+  );
+}
+
 /** The review event, schedule, progress facts, and hot change commit together.
  * Retry safety is the UNIQUE (workspace_id, replica_id, client_event_id) constraint on
- * content.review_events: a repeated reviewId dedupes there and never advances the schedule. */
+ * content.review_events: a repeated reviewId dedupes there and never advances the schedule, and
+ * a reviewId the caller reused on another card is refused outright rather than read as that retry.
+ * The replica half of that key comes from resolveReplicaId, so each surface dedupes within its own
+ * sync actor. */
 export async function submitAgentReview(
   context: AgentReviewContext,
   request: AgentReviewInput,
+  resolveReplicaId: AgentReviewReplicaResolver,
 ): Promise<AgentReviewResult> {
   const input = parseReviewRequest(submitReviewSchema, request);
   if (
@@ -312,11 +374,7 @@ export async function submitAgentReview(
       "REVIEW_INPUT_INVALID",
     );
   }
-  const replicaId = await ensureAgentSyncReplica(
-    context.workspaceId,
-    context.userId,
-    context.connectionId,
-  );
+  const replicaId = await resolveReplicaId(context);
   const clientEventId = `agent-review:${input.reviewId}`;
   return runTransactionReportingReviewAnswers(
     createPostCommitAnalyticsBudget(),
@@ -348,12 +406,17 @@ export async function submitAgentReview(
         // A stored instant at or after this stamp comes from a client-stamped review of the same
         // card, which can have landed after this reviewId's own review did. A landed duplicate
         // owes the caller its schedule instead of this skew report.
-        const duplicate = await executor.query<{ review_event_id: string }>(
-          "SELECT review_event_id FROM content.review_events WHERE workspace_id = $1 AND replica_id = $2 AND client_event_id = $3",
-          [context.workspaceId, replicaId, clientEventId],
+        const storedCardId = await findReviewEventCardIdInExecutor(
+          executor,
+          context.workspaceId,
+          replicaId,
+          clientEventId,
         );
-        if (duplicate.rows[0] !== undefined) {
+        if (storedCardId === input.cardId) {
           throw createReviewEventConflictError(input.cardId, current, undefined);
+        }
+        if (storedCardId !== null) {
+          throw createReviewIdCardMismatchError(input.cardId, storedCardId, undefined);
         }
 
         throw new HttpError(
@@ -386,6 +449,15 @@ export async function submitAgentReview(
         );
       } catch (error) {
         if (error instanceof HttpError && error.code === "REVIEW_EVENT_CONFLICT") {
+          const storedCardId = await findReviewEventCardIdInExecutor(
+            executor,
+            context.workspaceId,
+            replicaId,
+            clientEventId,
+          );
+          if (storedCardId !== null && storedCardId !== input.cardId) {
+            throw createReviewIdCardMismatchError(input.cardId, storedCardId, error);
+          }
           throw createReviewEventConflictError(input.cardId, current, error);
         }
         throw error;

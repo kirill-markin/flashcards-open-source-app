@@ -97,6 +97,7 @@ type RemediationMeaning =
   | "workspace_not_found"
   | "review_schedule_stale"
   | "review_already_recorded"
+  | "review_id_reused_on_another_card"
   | "commit_outcome_unknown"
   | "service_temporarily_unavailable";
 
@@ -107,6 +108,7 @@ const MEANING_BY_CODE: Readonly<Record<string, RemediationMeaning | undefined>> 
   WORKSPACE_NOT_FOUND: "workspace_not_found",
   REVIEW_STALE: "review_schedule_stale",
   REVIEW_EVENT_CONFLICT: "review_already_recorded",
+  REVIEW_ID_CARD_MISMATCH: "review_id_reused_on_another_card",
   DATABASE_COMMIT_OUTCOME_UNKNOWN: "commit_outcome_unknown",
   SERVICE_UNAVAILABLE: "service_temporarily_unavailable",
 };
@@ -161,6 +163,14 @@ const MEANING_WORDING: Readonly<Record<RemediationMeaning, MeaningWording>> = {
   },
   review_already_recorded: {
     shared: "This review was already recorded, so nothing was stored again. Read the card's current schedule from error.details.reviewSchedule and move on; use a new reviewId only for a new learner review.",
+    // Only the field path differs: the chat tool envelope carries `details` at the top level, beside
+    // `error.message`, rather than nested under `error` the way REST and MCP carry it.
+    chat: () => "This review was already recorded, so nothing was stored again. Read the card's current schedule from details.reviewSchedule and move on; use a new reviewId only for a new learner review.",
+  },
+  // A reviewId is the dedup key, so one already spent on another card can never record this review.
+  // Nothing about the recovery is transport-specific: generate a new id and submit again.
+  review_id_reused_on_another_card: {
+    shared: "This reviewId already identifies a recorded review of a different card, so nothing was stored for the card you submitted and no schedule advanced. Generate a new reviewId for this review and submit it again; reuse a reviewId only to retry the same card's submission.",
   },
   commit_outcome_unknown: {
     rest: ({ operation }) => {
@@ -181,7 +191,9 @@ const MEANING_WORDING: Readonly<Record<RemediationMeaning, MeaningWording>> = {
     mcp: ({ toolName, operation }) => (operation === "review_submission"
       ? "Retry submit_review with the identical workspaceId, reviewId, rating, and cardId. Do not advance until the result is confirmed."
       : `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call sql_query with a SELECT to check whether the change already applied, and only call the ${toolName} tool again if the change is confirmed absent.`),
-    chat: ({ toolName }) => `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call sql_query with a SELECT to check whether the change already applied, and only call the ${toolName} tool again if the change is confirmed absent.`,
+    chat: ({ toolName, operation }) => (operation === "review_submission"
+      ? "Retry submit_review with the identical workspaceId, reviewId, rating, and cardId. Do not advance until the result is confirmed."
+      : `The previous mutation's outcome could not be confirmed. Do not blindly re-run it: first call sql_query with a SELECT to check whether the change already applied, and only call the ${toolName} tool again if the change is confirmed absent.`),
   },
   service_temporarily_unavailable: {
     rest: ({ operation }) => {
@@ -205,10 +217,15 @@ const RELOAD_REST_UPLOAD_STATE_AFTER_MISMATCH = "Reload the upload session and m
 const REST_API_KEY_AUTHORIZATION = "Use a valid non-revoked API key in the Authorization header as: ApiKey $FLASHCARDS_OPEN_SOURCE_API_KEY after exporting it once. If needed, restart from GET /v1/agent.";
 
 /**
- * Codes only the REST agent API can raise or act on: multipart upload sessions, ApiKey
- * authorization, workspace ids carried in a request URL, and the transient media-write fences.
- * No tool surface has an operation that reaches them, so they are worded once, here, and fall
- * through to the generic wording everywhere else.
+ * Codes worded for the REST agent API alone: multipart upload sessions, ApiKey authorization,
+ * workspace ids carried in a request URL, and the transient media-write fences. They are worded
+ * once, here, and fall through to the generic wording on every other surface.
+ *
+ * That is wording, not reachability: a tool surface can put one of these codes in front of the
+ * model as a bare result code with no remediation text at all. The chat's generated-image tool
+ * reports MEDIA_ASSET_STORAGE_UNAVAILABLE in its own `{ ok: false, code, retryable }` envelope
+ * (`getGeneratedImageToolSafeErrorCode` in `apps/backend/src/chat/openai/tools/tools.ts`), which
+ * carries no `instructions` field and never reaches this module.
  */
 const REST_CODE_INSTRUCTIONS: Readonly<Record<string, RestWording | undefined>> = {
   AUTH_VERIFICATION_TEMPORARILY_UNAVAILABLE: () => "Retry the same authenticated request after the Retry-After delay without changing the token. If it keeps failing, sign in again and use requestId when debugging.",

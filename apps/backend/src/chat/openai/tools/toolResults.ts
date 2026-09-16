@@ -193,14 +193,15 @@ export function createToolErrorResult(toolName: string, payload: ToolErrorPayloa
   );
 }
 
-type ReadOnlyToolSuccessPayload<Data> = Readonly<{
+type ToolSuccessPayload<Data> = Readonly<{
   data: Data;
   instructions: string;
 }>;
 
-export function createReadOnlyToolSuccessResult<Data>(
+/** The success envelope of every tool that echoes no statement: the payload and its instructions. */
+export function createToolSuccessResult<Data>(
   toolName: string,
-  payload: ReadOnlyToolSuccessPayload<Data>,
+  payload: ToolSuccessPayload<Data>,
 ): string {
   return capSerializedEnvelope(
     {

@@ -219,6 +219,58 @@ export const GET_GUIDE_TOOL_SPEC = defineAgentTool({
 });
 
 /**
+ * What a surface reads out of a review payload: which workspace the call resolved. The chat needs it
+ * to decide whether a submitted review landed in the workspace the user has open; nothing else
+ * inside these payloads is read through the registry.
+ */
+export type AgentReviewPayload = Readonly<{ workspaceId: string }>;
+
+export const NEXT_REVIEW_CARD_TOOL_SPEC = defineAgentTool({
+  name: NEXT_REVIEW_CARD_TOOL_NAME,
+  surfaces: ["mcp", "chat"],
+  description: NEXT_REVIEW_DESCRIPTION,
+  inputSchema: nextReviewCardSchema,
+  execute: async (context, input): Promise<AgentToolResult<AgentReviewPayload>> => {
+    const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
+    const result = await context.actions.nextReviewCard(
+      buildReviewActor(context, workspaceId),
+      makeAgentReviewCardFilter(input),
+    );
+    return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+  },
+});
+
+export const REVEAL_ANSWER_TOOL_SPEC = defineAgentTool({
+  name: REVEAL_ANSWER_TOOL_NAME,
+  surfaces: ["mcp", "chat"],
+  description: REVEAL_ANSWER_DESCRIPTION,
+  inputSchema: revealAnswerSchema,
+  execute: async (context, input): Promise<AgentToolResult<AgentReviewPayload>> => {
+    const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
+    const result = await context.actions.revealAnswer(
+      buildReviewActor(context, workspaceId),
+      input.cardId,
+    );
+    return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+  },
+});
+
+export const SUBMIT_REVIEW_TOOL_SPEC = defineAgentTool({
+  name: SUBMIT_REVIEW_TOOL_NAME,
+  surfaces: ["mcp", "chat"],
+  description: SUBMIT_REVIEW_DESCRIPTION,
+  inputSchema: submitReviewSchema,
+  execute: async (context, input): Promise<AgentToolResult<AgentReviewPayload>> => {
+    const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
+    const result = await context.actions.submitAgentReview(
+      buildReviewActor(context, workspaceId),
+      input,
+    );
+    return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+  },
+});
+
+/**
  * Every agent tool this backend exposes, on every surface.
  *
  * A spec carries what both surfaces need to expose and run a tool. What differs per surface stays
@@ -231,48 +283,9 @@ export const AGENT_TOOL_SPECS: ReadonlyArray<AgentToolSpec> = Object.freeze([
   SQL_EXECUTE_TOOL_SPEC,
   LIST_WORKSPACES_TOOL_SPEC,
   GET_GUIDE_TOOL_SPEC,
-  defineAgentTool({
-    name: NEXT_REVIEW_CARD_TOOL_NAME,
-    surfaces: ["mcp"],
-    description: NEXT_REVIEW_DESCRIPTION,
-    inputSchema: nextReviewCardSchema,
-    execute: async (context, input): Promise<AgentToolResult> => {
-      const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
-      const result = await context.actions.nextReviewCard(
-        buildReviewActor(context, workspaceId),
-        makeAgentReviewCardFilter(input),
-      );
-      return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
-    },
-  }),
-  defineAgentTool({
-    name: REVEAL_ANSWER_TOOL_NAME,
-    surfaces: ["mcp"],
-    description: REVEAL_ANSWER_DESCRIPTION,
-    inputSchema: revealAnswerSchema,
-    execute: async (context, input): Promise<AgentToolResult> => {
-      const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
-      const result = await context.actions.revealAnswer(
-        buildReviewActor(context, workspaceId),
-        input.cardId,
-      );
-      return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
-    },
-  }),
-  defineAgentTool({
-    name: SUBMIT_REVIEW_TOOL_NAME,
-    surfaces: ["mcp"],
-    description: SUBMIT_REVIEW_DESCRIPTION,
-    inputSchema: submitReviewSchema,
-    execute: async (context, input): Promise<AgentToolResult> => {
-      const workspaceId = await context.resolveWorkspaceId(input.workspaceId);
-      const result = await context.actions.submitAgentReview(
-        buildReviewActor(context, workspaceId),
-        input,
-      );
-      return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
-    },
-  }),
+  NEXT_REVIEW_CARD_TOOL_SPEC,
+  REVEAL_ANSWER_TOOL_SPEC,
+  SUBMIT_REVIEW_TOOL_SPEC,
 ]);
 
 export function listAgentToolSpecsForSurface(

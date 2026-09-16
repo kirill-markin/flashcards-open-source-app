@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { nextReviewCard, revealAnswer, submitAgentReview } from "../../agent/reviews";
+import type { BoundAgentReviewSubmit, nextReviewCard, revealAnswer } from "../../agent/reviews";
 import type { WorkspaceSummaryWithStats } from "../../workspaces";
 import type {
   AgentSqlContext,
@@ -38,7 +38,8 @@ export type AgentToolActions = Readonly<{
   ) => Promise<ReadonlyArray<WorkspaceSummaryWithStats>>;
   nextReviewCard: typeof nextReviewCard;
   revealAnswer: typeof revealAnswer;
-  submitAgentReview: typeof submitAgentReview;
+  /** Already bound to the surface's own sync replica, which the review write does not choose itself. */
+  submitAgentReview: BoundAgentReviewSubmit;
 }>;
 
 /**

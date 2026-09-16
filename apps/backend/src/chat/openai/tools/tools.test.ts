@@ -128,6 +128,7 @@ const dependencies: OpenAIToolDependencies = {
   }),
   bindGeneratedCardImageAttemptPayload: async (params) => params.payload,
   hasCognitoIdentityMappingForUser: async () => true,
+  ensureAIChatSyncReplica: async () => replicaId,
   ensureAIChatSyncReplicaWithDeadline: async () => replicaId,
   generateCardImage: async (input) => ({
     status: "queued",
@@ -140,6 +141,15 @@ const dependencies: OpenAIToolDependencies = {
     reused: false,
     sourceUrl: null,
   }),
+  nextReviewCard: async () => {
+    throw new Error("A review read was not expected.");
+  },
+  revealAnswer: async () => {
+    throw new Error("A review read was not expected.");
+  },
+  submitAgentReview: async () => {
+    throw new Error("A review write was not expected.");
+  },
 };
 
 function executeImage(
@@ -212,11 +222,17 @@ test("generated image tool schema is strict and signed-in-only", () => {
   }).success, false);
   assert.deepEqual(
     buildOpenAIChatTools(false).map((tool) => tool.name),
-    ["sql_query", "sql_execute", "list_workspaces", "get_guide"],
+    [
+      "sql_query", "sql_execute", "list_workspaces", "get_guide",
+      "next_review_card", "reveal_answer", "submit_review",
+    ],
   );
   assert.deepEqual(
     buildOpenAIChatTools(true).map((tool) => tool.name),
-    ["sql_query", "sql_execute", "list_workspaces", "get_guide", "add_generated_image_to_card"],
+    [
+      "sql_query", "sql_execute", "list_workspaces", "get_guide",
+      "next_review_card", "reveal_answer", "submit_review", "add_generated_image_to_card",
+    ],
   );
 });
 
@@ -352,8 +368,12 @@ test("guest execution rejects before every generated-image dependency", async ()
       reserveGeneratedCardImageAttempt: async () => failDependency("reserve"),
       bindGeneratedCardImageAttemptPayload: async () => failDependency("bind"),
       hasCognitoIdentityMappingForUser: async () => failDependency("identity"),
+      ensureAIChatSyncReplica: async () => failDependency("chat_replica"),
       ensureAIChatSyncReplicaWithDeadline: async () => failDependency("replica"),
       generateCardImage: async () => failDependency("generate"),
+      nextReviewCard: async () => failDependency("next_review_card"),
+      revealAnswer: async () => failDependency("reveal_answer"),
+      submitAgentReview: async () => failDependency("submit_review"),
     },
   );
 
