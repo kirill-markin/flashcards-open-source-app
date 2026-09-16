@@ -264,6 +264,7 @@ export async function completeGuestUpgrade(
   // cost as the chunk it would avoid - and it would still race the emission it is checking for.
   const completion = await runTransactionReportingReviewAnswers<GuestUpgradeCompletion>(
     analyticsBudget,
+    null,
     (runInTransaction) => unsafeTransactionReportingContentCreations(
       runInTransaction,
       // The merge re-creates the guest's cards and decks inside the target workspace, under the

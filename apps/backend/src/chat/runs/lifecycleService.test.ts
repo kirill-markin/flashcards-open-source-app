@@ -58,6 +58,7 @@ function createRunRow(
     good_review_days_last_7d: 0,
     timezone: "Europe/Madrid",
     ui_locale: "es",
+    client_platform: null,
     turn_input: [],
     worker_claimed_at: firstClaimToken,
     worker_heartbeat_at: null,

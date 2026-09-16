@@ -12,6 +12,7 @@ import {
 } from "../config";
 import type { ChatCostPolicyMode } from "../costPolicy";
 import type { ChatComposerSuggestionsLocale } from "../composerSuggestions";
+import type { ProductAnalyticsClientReportablePlatform } from "../../productAnalytics/catalog";
 import type { ChatSessionRunState } from "../store";
 import type { ChatSessionRow } from "../store/repository";
 import type { ContentPart } from "../types";
@@ -30,6 +31,7 @@ export type ChatRunRow = Readonly<{
   good_review_days_last_7d: number;
   timezone: string;
   ui_locale: ChatComposerSuggestionsLocale | null;
+  client_platform: ProductAnalyticsClientReportablePlatform | null;
   turn_input: ReadonlyArray<ContentPart>;
   worker_claimed_at: string | null;
   worker_heartbeat_at: string | null;
@@ -65,6 +67,7 @@ export type InsertChatRunParams = Readonly<{
   uiLocale: ChatComposerSuggestionsLocale | null;
   turnInput: ReadonlyArray<ContentPart>;
   initiatingAuthIsSignedIn: boolean;
+  clientPlatform: ProductAnalyticsClientReportablePlatform | null;
 }>;
 
 export type UpdateChatRunPolicySnapshotParams = Readonly<{
@@ -108,6 +111,7 @@ const CHAT_RUN_COLUMNS_SQL = `
     good_review_days_last_7d,
     timezone,
     ui_locale,
+    client_platform,
     turn_input,
     worker_claimed_at::text AS worker_claimed_at,
     worker_heartbeat_at,
@@ -159,9 +163,10 @@ const INSERT_CHAT_RUN_SQL = `
     ui_locale,
     turn_input,
     initiating_auth_is_signed_in,
+    client_platform,
     updated_at
   )
-  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, now())
+  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, now())
   RETURNING
 ${CHAT_RUN_COLUMNS_SQL}
 `;
@@ -438,6 +443,7 @@ export async function insertChatRunWithExecutor(
       params.uiLocale,
       JSON.stringify(params.turnInput),
       params.initiatingAuthIsSignedIn,
+      params.clientPlatform,
     ]);
     return requireRunRow(rows[0], "insert");
   });

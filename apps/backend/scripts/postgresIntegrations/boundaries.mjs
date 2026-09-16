@@ -71,6 +71,14 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0136_ai_chat_run_client_platform.sql",
+    expectedMigrationCount: 138,
+    testFiles: Object.freeze([
+      "src/chat/cardImages/operation.postgres.integration.ts",
+      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0135_generated_media_promotion_job_created_at_select.sql",
     expectedMigrationCount: 137,
     testFiles: Object.freeze([
@@ -125,14 +133,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/catalog/authoring/versions/publishedVersionAlignment.postgres.integration.ts",
       "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0127_ai_chat_run_live_attach_ownership.sql",
-    expectedMigrationCount: 129,
-    testFiles: Object.freeze([
-      "src/chat/cardImages/operation.postgres.integration.ts",
-      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

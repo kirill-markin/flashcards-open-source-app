@@ -498,7 +498,7 @@ test("generated image provider starts are durable, claim-fenced, and concurrency
   });
 });
 
-test("chat run deduplication preserves the initiating guest classification after sign-in", async () => {
+test("chat run deduplication preserves the initiating guest classification and client platform after sign-in", async () => {
   await withPostgresIntegrationFixture(async (fixture) => {
     const requestId = randomUUID();
     const content = [{ type: "text" as const, text: "Generate an image." }];
@@ -511,6 +511,7 @@ test("chat run deduplication preserves the initiating guest classification after
       "Europe/Madrid",
       null,
       false,
+      "ios",
     );
     assert.equal(guestRun.initiatingAuthIsSignedIn, false);
 
@@ -523,6 +524,7 @@ test("chat run deduplication preserves the initiating guest classification after
       "Europe/Madrid",
       null,
       true,
+      "web",
     );
     assert.equal(signedInReplay.deduplicated, true);
     assert.equal(signedInReplay.initiatingAuthIsSignedIn, false);
@@ -534,5 +536,6 @@ test("chat run deduplication preserves the initiating guest classification after
     );
     assert.ok(claimed);
     assert.equal(claimed.initiatingAuthIsSignedIn, false);
+    assert.equal(claimed.clientPlatform, "ios");
   });
 });

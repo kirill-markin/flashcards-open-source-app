@@ -16,6 +16,7 @@ import {
   type ChatRuntimeReasoningEffort,
 } from "../../config";
 import type { ChatRunClaimToken } from "../../runs";
+import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
 import { createGeneratedImageOperationKey } from "../../generatedImageOperationIdentity";
 import { GENERATED_IMAGE_TOOL_NAME } from "../tools/generatedImageToolContract";
 import {
@@ -77,6 +78,7 @@ export type RunOneToolCall = (params: Readonly<{
   workspaceId: string;
   signal: AbortSignal | null;
   generatedImageOperationDeadlineMs: number;
+  clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   rootObservation: LangfuseObservation | null;
 }>) => Promise<ExecutedChatToolCall>;
 
@@ -93,6 +95,7 @@ type ExecuteToolCallsParams = Readonly<{
   workspaceId: string;
   signal: AbortSignal | undefined;
   generatedImageOperationDeadlineMs: number;
+  clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   rootObservation: LangfuseObservation | null;
   onExecutionPhaseChanged: ((phase: "idle" | "model" | "tool") => void) | undefined;
   shouldStopBeforeNextStep: (() => boolean) | undefined;
@@ -282,6 +285,7 @@ export async function executeToolCalls(
         workspaceId: params.workspaceId,
         signal: params.signal ?? null,
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
+        clientPlatform: params.clientPlatform,
         rootObservation: params.rootObservation,
       });
       if (output.stopReason !== null) {

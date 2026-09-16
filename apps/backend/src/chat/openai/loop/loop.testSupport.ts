@@ -32,6 +32,7 @@ export function createParams(
     sessionId: "session-1",
     generatedImageEligible: false,
     generatedImageOperationDeadlineMs: Date.now() + 600_000,
+    clientPlatform: null,
     modelId: "gpt-5.6-terra",
     reasoningEffort: "xhigh",
     timezone: "Europe/Madrid",

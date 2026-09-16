@@ -92,6 +92,7 @@ export function createParams(): StartPersistedChatRunParams {
     localMessages: [],
     turnInput: [{ type: "text", text: "hello" }],
     generatedImageEligible: false,
+    clientPlatform: null,
     diagnostics: {
       requestId: "chat-request-1",
       userId: "user-1",

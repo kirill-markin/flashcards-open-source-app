@@ -11,6 +11,7 @@ import {
   getBackendTraceCarrier,
   startBackendSpan,
 } from "../../observability/sentry";
+import { readProductAnalyticsClientPlatform } from "../../productAnalytics/catalog";
 import { parseOptionalWorkspaceIdParam } from "../../server/requestContext";
 import {
   parseJsonBody,
@@ -178,6 +179,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         // version is greater than 1.5.0.
         body.uiLocale ?? null,
         requestContext.transport === "bearer" || requestContext.transport === "session",
+        readProductAnalyticsClientPlatform(context.get("clientPlatform") ?? null),
       ));
     } catch (error) {
       return mapStoreError(error);
