@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 const val aiChatLiveStreamEndedBeforeTerminalCode: String = "ai_live_stream_ended_before_terminal"
 const val aiChatLiveStreamReadFailedCode: String = "ai_live_stream_read_failed"
 
-private const val aiChatLiveClientPlatform: String = "android"
+internal const val aiChatClientPlatform: String = "android"
 
 private const val aiChatLiveAttachThrottleStatusCode: Int = 429
 
@@ -227,7 +227,7 @@ class AiChatLiveRemoteService private constructor(
             .cacheControl(CacheControl.FORCE_NETWORK)
             .header("Accept", "text/event-stream")
             .header("Authorization", authorization)
-            .header("X-Client-Platform", aiChatLiveClientPlatform)
+            .header("X-Client-Platform", aiChatClientPlatform)
             .header("X-Chat-Live-Client-Id", aiChatLiveClientId)
         val clientVersion = observationVersions.clientVersion
         if (clientVersion != null) {

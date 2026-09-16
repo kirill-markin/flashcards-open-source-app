@@ -388,7 +388,7 @@ class AiChatRemoteService private constructor(
                 method = "POST",
                 authorizationHeader = authorizationHeader,
                 requestBody = requestJson.toRequestBody(aiJsonMediaType),
-                extraHeaders = emptyMap()
+                extraHeaders = mapOf("X-Client-Platform" to aiChatClientPlatform)
             )
         )
         return@withContext decodeAiChatStartRunResponse(responseBody)
