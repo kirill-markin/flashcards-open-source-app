@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import io.sentry.Breadcrumb
 import io.sentry.IScope
 import io.sentry.Sentry
@@ -935,14 +936,26 @@ internal fun exceptionIssueFingerprint(event: AndroidExceptionIssueEvent): List<
             sanitizeSentryTagValue(fieldName = "promptAction", value = event.promptAction.tagValue)
                 ?: "no_prompt_action"
         )
+        // Feature-screen dialogs all report source "unknown", so the default exception grouping and the
+        // server error code are what keep unrelated failures in separate issues.
         is AndroidExceptionIssueEvent.AppTechnicalErrorDialogException -> listOf(
+            "{{ default }}",
             "android",
             event.feature.tagValue,
             event.action.tagValue,
-            sanitizeSentryTagValue(fieldName = "source", value = event.source) ?: "no_source"
+            sanitizeSentryTagValue(fieldName = "source", value = event.source) ?: "no_source",
+            sanitizeSentryTagValue(fieldName = "code", value = cloudRemoteErrorCode(throwable = event.throwable))
+                ?: "no_code"
         )
         else -> null
     }
+}
+
+private fun cloudRemoteErrorCode(throwable: Throwable): String? {
+    return generateSequence(seed = throwable) { error: Throwable -> error.cause }
+        .filterIsInstance<CloudRemoteException>()
+        .firstOrNull()
+        ?.errorCode
 }
 
 private fun warningIssueGroupKey(event: AndroidWarningIssueEvent): String? {
