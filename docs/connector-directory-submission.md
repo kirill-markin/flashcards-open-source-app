@@ -114,9 +114,9 @@ parser-enforced DSL, not arbitrary database access:
 - **Bounded caps.** At most 100 rows per statement, at most 50 statements per
   batch, and a ~12k-token result-size cap; mutation batches are atomic.
 - **Contractual read/write split.** The split is encoded in the tool
-  annotations: `sql_query` and `list_workspaces` are `readOnlyHint`, while
-  `sql_execute` is `destructiveHint`, so a single tool never mixes safe and
-  destructive operations.
+  annotations: `sql_query`, `list_workspaces`, and `get_guide` are
+  `readOnlyHint`, while `sql_execute` is `destructiveHint`, so a single tool
+  never mixes safe and destructive operations.
 
 Enforcement lives in `apps/backend/src/aiTools/agentSql.ts`,
 `apps/backend/src/aiTools/agentSql/shared.ts`, and

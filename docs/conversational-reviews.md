@@ -14,9 +14,10 @@ microphone, speech recognition, speech synthesis, or a ChatGPT Voice integration
 
 ## Tools and HTTP actions
 
-MCP retains `list_workspaces`, `sql_query`, and `sql_execute`, adds `get_guide`
-(whose `review_flow` topic returns this review contract), and adds the review
-tools:
+The three review tools are the only ones MCP serves alone; `list_workspaces`,
+`sql_query`, `sql_execute`, and `get_guide` are shared with the in-app chat,
+which has no review tools ([agent tool surfaces](agent-tool-surfaces.md)).
+`get_guide` topic `review_flow` returns this review contract.
 
 | MCP tool | Agent API action | Result in `data` | Effect |
 | --- | --- | --- | --- |
@@ -24,12 +25,14 @@ tools:
 | `reveal_answer` | `POST /v1/agent/reviews/reveal` | `workspaceId`, `cardId`, `backText` | Read only |
 | `submit_review` | `POST /v1/agent/reviews/submit` | The recorded review and its resulting schedule | Write |
 
-All three accept an optional `workspaceId`; omission uses the connection's selected
-workspace, and an HTTP request with no body at all is a valid call. `reveal_answer`
-requires `cardId`. HTTP actions use `Authorization: ApiKey <fca_...>` and the same
-JSON arguments as the MCP tools. MCP continues to accept OAuth authorization or an
-API key as a Bearer token. Authentication and current workspace membership are
-checked on each request. IDs are UUIDs. Unknown arguments fail.
+The optional `workspaceId` argument and the rejection of unknown arguments are
+shared agent-tool rules, described once in
+[agent tool surfaces](agent-tool-surfaces.md). An HTTP request with no body at
+all is a valid call. `reveal_answer` requires `cardId`. HTTP actions use
+`Authorization: ApiKey <fca_...>` and the same JSON arguments as the MCP tools.
+MCP continues to accept OAuth authorization or an API key as a Bearer token.
+Authentication and current workspace membership are checked on each request. IDs
+are UUIDs.
 
 ## Choosing the next card
 
@@ -107,30 +110,20 @@ required and is the only clock-related value the caller owns; it decides which
 local day the review counts toward for streaks and progress, and without it a user
 who has never opened a first-party app would have no timezone to attribute it to.
 
-| Canonical rating string | Stored rating | Agent assessment of the original attempt |
-| --- | --- | --- |
-| `Again` | 0 | No recall, an incorrect or missing essential answer, or the answer had to be supplied |
-| `Hard` | 1 | Recalled the essentials successfully, with evident difficulty or self-correction before reveal |
-| `Good` | 2 | Correct essential recall; also the default when effort is unclear |
-| `Easy` | 3 | Complete, clearly effortless recall |
+| Canonical rating string | Stored rating |
+| --- | --- |
+| `Again` | 0 |
+| `Hard` | 1 |
+| `Good` | 2 |
+| `Easy` | 3 |
 
-Judge meaning rather than exact wording. Accept equivalent answers and do not
-penalize omitted optional examples or extra detail that the question did not ask
-for. Grade the original attempt, not a corrected answer after feedback. Do not
-infer recall effort from transcription or network delays. If the transcript or
-reference answer is ambiguous, ask a short clarification before grading; silence,
-interruptions, and requests to skip do not count as failed attempts.
-
-Automatic grading is the default. Honor a learner's explicit rating before
-submission, and switch to manual ratings when requested. Once a submission has
-started, keep its request unchanged on retry; do not grade it again. These tools
-cannot edit an already saved rating, so never create a second review to disguise
-a correction.
-
-“Perfectly remembered” is a possible spoken alias for **Easy**, not a fifth
-rating, not Good, and not a value accepted by the API. Agree on aliases with the
-learner; ask for clarification when ambiguous. The dedicated API accepts the
-four exact strings; existing native/sync rating values remain 0–3.
+The dedicated API accepts the four exact strings; existing native/sync rating
+values remain 0–3. What each rating means, how to judge an equivalent or
+ambiguous answer, when to honor a learner's explicit rating, and that “perfectly
+remembered” is only a spoken alias for `Easy`, are all one constant:
+`REVIEW_FLOW_INSTRUCTIONS` in `apps/backend/src/agent/reviewContract.ts`, which
+every review tool returns in full with each result and `get_guide` topic
+`review_flow` serves on demand.
 
 ## Result, retries, and offline behavior
 
@@ -146,16 +139,16 @@ writable through this contract.
   the authenticated connection and workspace. Keep the same connection when
   recovering an uncertain request. Reconnecting with a different connection or
   changing the ID is a new review, not a retry.
-- Retry a timeout, lost response, or unknown database commit outcome with the
-  original workspace, review ID, card, rating, and timezone. The retry is
-  deduplicated by the `UNIQUE (workspace_id, replica_id, client_event_id)`
-  constraint on `content.review_events`, so it can never record a second review or
-  advance the schedule again.
-- A retry whose review already landed returns `409 REVIEW_EVENT_CONFLICT` with the
-  card's current schedule in `error.details.reviewSchedule` (`cardId`, `dueAt`,
-  `intervalSeconds`, `scheduledDays`, `state`, `reps`, `lapses`). Report that
-  schedule to the learner; do not submit again. The same code answers an unrelated
-  pre-existing event identity, which likewise cannot advance scheduling.
+- A repeated submission is deduplicated by the
+  `UNIQUE (workspace_id, replica_id, client_event_id)` constraint on
+  `content.review_events`, so it can never record a second review or advance the
+  schedule again. A retry whose review already landed answers
+  `409 REVIEW_EVENT_CONFLICT` with the card's current schedule in
+  `error.details.reviewSchedule` (`cardId`, `dueAt`, `intervalSeconds`,
+  `scheduledDays`, `state`, `reps`, `lapses`). The same code answers an
+  unrelated pre-existing event identity, which likewise cannot advance
+  scheduling. What the calling agent should do about it is in
+  `REVIEW_FLOW_INSTRUCTIONS`.
 - `409 REVIEW_STALE` means the card's stored `fsrs_last_reviewed_at` is at or after
   the current server time, so the scheduler cannot move forward from it. Only server
   time passing that instant clears it: reloading the card and retrying do not, so

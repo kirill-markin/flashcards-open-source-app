@@ -100,6 +100,11 @@ the shared observation scope on every record, and so does the record's own
 `requestId`: the MCP surface publishes one per transport request, so `agent_sql`
 records emitted there carry it and the REST and chat surfaces record null.
 
+`workspaceId` is the workspace the call targeted, not the workspace the caller
+has selected. On `chat-tool` those differ whenever the model passes an explicit
+`workspaceId`, so grouping chat SQL by workspace can surface workspaces the chat
+session did not have open.
+
 Raw SQL text is never logged. `sqlFingerprint` plus `errorCode` and
 `dialectReason` are what make repeated failures groupable, the same choice the
 admin reporting query records already make.
@@ -159,9 +164,9 @@ session-bearing transport.
 ## The MCP request record
 
 `agent_sql` only sees SQL, so MCP requests that run none were invisible:
-`initialize`, `tools/list`, and the `list_workspaces` tool produced no record at
-all. Each authenticated `/mcp` request therefore emits exactly one
-`action = "mcp_request"` record into the MCP Lambda log group
+`initialize`, `tools/list`, and the `list_workspaces` and `get_guide` tools
+produced no record at all. Each authenticated `/mcp` request therefore emits
+exactly one `action = "mcp_request"` record into the MCP Lambda log group
 (`service = "backend-api"`), from the `/mcp` route in
 `apps/backend/src/entrypoints/lambda-mcp.ts`. Every branch that answers an
 authenticated client emits it once: the transport response, a transport fault,

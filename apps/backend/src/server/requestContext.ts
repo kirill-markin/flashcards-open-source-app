@@ -97,7 +97,7 @@ const aiDictationWorkspaceRequiredError: WorkspaceSelectionErrorConfig = {
 
 const agentWorkspaceSelectionRequiredError: WorkspaceSelectionErrorConfig = {
   statusCode: 409,
-  message: "Select a workspace before using the sql tool, or pass the workspaceId argument.",
+  message: "Select a workspace for this connection, or pass the workspaceId argument.",
   code: "WORKSPACE_SELECTION_REQUIRED",
 };
 
