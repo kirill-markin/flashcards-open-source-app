@@ -112,6 +112,7 @@ export async function handleChatWorkerEvent(
       event,
       claimedRun.initiatingAuthIsSignedIn,
     ),
+    clientPlatform: claimedRun.clientPlatform,
     diagnostics: claimedRun.diagnostics,
     getRemainingTimeInMillis: executionContext.getRemainingTimeInMillis,
   });

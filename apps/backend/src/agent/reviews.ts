@@ -8,6 +8,7 @@ import {
   type DatabaseExecutor,
 } from "../database";
 import { getDeck } from "../decks";
+import type { ProductAnalyticsClientReportablePlatform } from "../productAnalytics/catalog";
 import { createPostCommitAnalyticsBudget } from "../productAnalytics/serverFacts/postCommitBudget";
 import { runTransactionReportingReviewAnswers } from "../productAnalytics/serverFacts/reviewAnswers";
 import type { FsrsCardState, ReviewRating } from "../scheduling";
@@ -357,11 +358,13 @@ export async function resolveAgentConnectionReviewReplica(
  * content.review_events: a repeated reviewId dedupes there and never advances the schedule, and
  * a reviewId the caller reused on another card is refused outright rather than read as that retry.
  * The replica half of that key comes from resolveReplicaId, so each surface dedupes within its own
- * sync actor. */
+ * sync actor. aiChatClientPlatform is the device the in-app chat run submitting this review was
+ * started from; the surfaces that write through an agent connection pass null. */
 export async function submitAgentReview(
   context: AgentReviewContext,
   request: AgentReviewInput,
   resolveReplicaId: AgentReviewReplicaResolver,
+  aiChatClientPlatform: ProductAnalyticsClientReportablePlatform | null,
 ): Promise<AgentReviewResult> {
   const input = parseReviewRequest(submitReviewSchema, request);
   if (
@@ -378,6 +381,7 @@ export async function submitAgentReview(
   const clientEventId = `agent-review:${input.reviewId}`;
   return runTransactionReportingReviewAnswers(
     createPostCommitAnalyticsBudget(),
+    aiChatClientPlatform,
     (runInTransaction) =>
       transactionWithWorkspaceScope(context, runInTransaction),
     async (executor) => {

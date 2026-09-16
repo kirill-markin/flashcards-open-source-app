@@ -61,6 +61,7 @@ const context: OpenAIToolContext = {
   generatedImageEligible: true,
   signal: new AbortController().signal,
   generatedImageOperationDeadlineMs: Date.now() + 120_000,
+  clientPlatform: null,
   generatedImageObservationContext: {
     scope: createBackendObservationScope(
       "chat-worker",

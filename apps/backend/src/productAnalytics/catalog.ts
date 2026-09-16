@@ -172,6 +172,23 @@ export const productAnalyticsClientReportablePlatforms: ReadonlyArray<ProductAna
       productAnalyticsClientReportablePlatformFlags[platform],
   );
 
+// x-client-platform is a claim the request makes about itself, so it is matched against the
+// client-reportable list rather than the stored platform domain. Matching it against the domain
+// would let any request claim `agent`, which no client-origin value can honestly carry. A header
+// outside the list is recorded as absent.
+export function readProductAnalyticsClientPlatform(
+  clientPlatform: string | null,
+): ProductAnalyticsClientReportablePlatform | null {
+  if (clientPlatform === null) {
+    return null;
+  }
+
+  const platform = clientPlatform.trim().toLowerCase();
+  return productAnalyticsClientReportablePlatforms.find(
+    (knownPlatform) => knownPlatform === platform,
+  ) ?? null;
+}
+
 export type ProductAnalyticsPropertyValue = string | number;
 export type ProductAnalyticsEventProperties = Readonly<Record<string, ProductAnalyticsPropertyValue>>;
 export type ProductAnalyticsExperimentAssignments = Readonly<Record<string, string>>;

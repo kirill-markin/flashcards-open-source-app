@@ -24,7 +24,10 @@ export type WorkspaceReplicaPlatformRow = Readonly<{
  * Shared by the server-derived producers that resolve a replica - ./reviewAnswers.ts and
  * ./contentCreations.ts - so that one replica cannot be read two ways, and by the writers that
  * already hold the facts they ensured the replica with, so that a platform named up front and one
- * read back later cannot disagree.
+ * read back later cannot disagree. The one reader that bypasses it is ./reviewAnswers.ts for an
+ * ai_chat replica: a chat review takes its platform from its chat run rather than from the replica,
+ * so the same ai_chat replica can give a device on review_answered and still gives null on
+ * card_created and deck_created.
  *
  * Only a client_installation replica is a device a person used. The other actor kinds
  * (db/migrations/0035_sync_installations_and_workspace_replicas.sql) each store something in
