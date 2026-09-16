@@ -283,7 +283,7 @@ export const SQL_BATCH_ATOMICITY_DESCRIPTION =
  * echoed statement text first and only when that makes the emitted payload
  * smaller, then dropping the returned rows if the payload is still over budget;
  * and the in-app chat caps its own serialized SQL tool results in
- * `createToolSuccessResult`, `apps/backend/src/chat/openai/tools/tools.ts`), so
+ * `createSqlToolSuccessResult`, `apps/backend/src/chat/openai/tools/toolResults.ts`), so
  * they are not stated here.
  */
 export const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
