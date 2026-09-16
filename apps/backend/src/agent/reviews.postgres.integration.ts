@@ -528,6 +528,55 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
     );
 
     await t.test(
+      "a reviewId already spent on another card is refused by its own code, and that card is untouched",
+      async () => {
+        const spent = await makeCard([], "2026-04-04T00:00:00.000Z");
+        const spentInput: AgentReviewInput = {
+          cardId: spent.cardId,
+          reviewId: randomUUID(),
+          rating: "Good",
+          reviewedTimeZone,
+        };
+        await submit(spentInput);
+        // Both reads of the dedup key have to tell this reuse apart from this reviewId's own retry:
+        // the staleness pre-check, which a card whose stored review instant is not in the past
+        // reaches first, and the append's own conflict. Answering the duplicate contract on either
+        // would report the untouched card's schedule and drop the learner's rating in silence.
+        for (const [pathName, injectFutureReviewInstant] of [
+          ["the append conflict", false],
+          ["the staleness pre-check", true],
+        ] as const) {
+          const other = await makeCard([], "2026-04-05T00:00:00.000Z");
+          const landed = await submit({
+            cardId: other.cardId,
+            reviewId: randomUUID(),
+            rating: "Good",
+            reviewedTimeZone,
+          });
+          if (injectFutureReviewInstant) {
+            await owner.query(
+              "UPDATE content.cards SET fsrs_last_reviewed_at = now() + interval '1 hour' WHERE card_id = $1",
+              [other.cardId],
+            );
+          }
+          const reused = await post("submit", {
+            ...spentInput,
+            cardId: other.cardId,
+          });
+          assert.equal(reused.status, 409, pathName);
+          assert.equal(
+            await readCode(reused),
+            "REVIEW_ID_CARD_MISMATCH",
+            pathName,
+          );
+          const persisted = await getCard(userId, workspaceId, other.cardId);
+          assert.equal(persisted.reps, landed.reps, pathName);
+          assert.equal(persisted.dueAt, landed.dueAt, pathName);
+        }
+      },
+    );
+
+    await t.test(
       "the contract owns the clock, requires a timezone, and accepts a body-less read",
       async () => {
         for (const patch of [

@@ -163,7 +163,17 @@ test("generated-image dependency races surface cancellation to the runtime termi
               }),
               bindGeneratedCardImageAttemptPayload: async (binding) => binding.payload,
               hasCognitoIdentityMappingForUser: async () => true,
+              ensureAIChatSyncReplica: async () => replicaId,
               ensureAIChatSyncReplicaWithDeadline: async () => replicaId,
+              nextReviewCard: async () => {
+                throw new Error("A review read was not expected.");
+              },
+              revealAnswer: async () => {
+                throw new Error("A review read was not expected.");
+              },
+              submitAgentReview: async () => {
+                throw new Error("A review write was not expected.");
+              },
               generateCardImage: async () =>
                 new Promise((resolve, reject) => {
                   params.signal?.addEventListener("abort", () => {

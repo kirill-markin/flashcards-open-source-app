@@ -20,9 +20,9 @@ registers the specs that list its own surface
 | `sql_execute` | MCP, chat |
 | `list_workspaces` | MCP, chat |
 | `get_guide` | MCP, chat |
-| `next_review_card` | MCP |
-| `reveal_answer` | MCP |
-| `submit_review` | MCP |
+| `next_review_card` | MCP, chat |
+| `reveal_answer` | MCP, chat |
+| `submit_review` | MCP, chat |
 | `add_generated_image_to_card` | chat only, not a registry spec |
 
 Every workspace-scoped registry spec takes the same optional `workspaceId`
@@ -46,13 +46,16 @@ the MCP gateway's 29-second integration timeout
 (`infra/aws/lib/gateways/mcp-gateway.ts`). That is one dated sample rather than a
 standing contract; re-measure before deciding.
 
-The chat deliberately has no review tools. A review needs one durable `reviewId`
-per learner review, scoped to the authenticated connection, and the chat's
-connection id is the constant `"chat-v2"`
-(`apps/backend/src/chat/openai/tools/tools.ts`), which cannot scope one the way
-an API key connection does. Until that identity is decided, the chat calls the
-SQL, workspace, and guide tools only. The review contract itself is
-[conversational reviews](conversational-reviews.md).
+The chat serves all seven registry tools, review included. The model supplies
+the `reviewId` there exactly as it does on MCP, and a `reviewId` reused on a
+different card is refused on every surface with its own code instead of passing
+as a retry (`submitAgentReview` in `apps/backend/src/agent/reviews.ts`). What
+the surfaces do not share is the sync replica that forms half of that dedup key:
+the chat authenticates as no agent connection, so a review is stored against the
+workspace's shared AI-chat replica (`buildChatAgentToolContext` in
+`apps/backend/src/chat/openai/tools/tools.ts`), which makes one `reviewId`
+namespace cover every member and every session of that workspace. The review
+contract itself is [conversational reviews](conversational-reviews.md).
 
 ## REST is not a registry surface
 
@@ -82,7 +85,16 @@ result envelope, and output budget, and each of those stays in its own adapter:
   failing it (`apps/backend/src/chat/openai/tools/toolResults.ts`). Its envelope is
   `{ ok, tool, data, instructions }` with no `docs` block, and a failure comes
   back as `{ ok: false }` rather than as a throw, because a thrown tool call
-  ends the run.
+  ends the run. That failure carries an `HttpError`'s `code` and `details` at
+  the envelope's top level, beside an `error` of just `name` and `message`
+  (`createToolErrorResult`, same module), where MCP and REST nest both under the
+  agent envelope's `error` (`createAgentErrorEnvelope` in
+  `apps/backend/src/agent/envelope.ts`). Only `code` and `details` move with
+  that, and `details` moves unchanged, because all three surfaces build it with
+  `createPublicHttpErrorDetails` (`apps/backend/src/shared/errors.ts`); `ok`,
+  `instructions`, and `error.message` are read at the same path on either shape,
+  which is why a remediation meaning can be reworded for the chat over the path
+  alone.
 - REST: the same agent envelope as MCP, built per route against the request URL
   (`apps/backend/src/routes/agent.ts`).
 
@@ -94,7 +106,8 @@ Two invariants are load-bearing and invisible unless you look for them:
   workspace.
 - Every action a surface's tools do not reach is bound to
   `unboundAgentToolAction` (`apps/backend/src/aiTools/toolRegistry/actions.ts`).
-  Each adapter names all of them, so omitting one is a type error and a tool
+  Both adapters bind every action for real today, so nothing reaches it, but each
+  adapter still names all of them, so omitting one is a type error and a tool
   added to a surface later cannot quietly reach production code around that
   surface's dependencies and its tests' fakes.
 
@@ -134,11 +147,11 @@ The per-code map and the full remediation text live in the remediation module,
 which is keyed by HTTP error code. Four facts are surface-specific enough to
 record here:
 
-- `WORKSPACE_NOT_FOUND` (404) is reachable from the chat's SQL tools when the
-  model passes a `workspaceId` the account cannot access: the chat's workspace
-  resolution reaches `assertUserHasWorkspaceAccess`
-  (`apps/backend/src/workspaces/selection.ts`) before any SQL runs. It is the
-  only meaning the chat alone words.
+- `WORKSPACE_NOT_FOUND` (404) is reachable from every workspace-scoped chat tool
+  when the model passes a `workspaceId` the account cannot access: the chat's
+  workspace resolution reaches `assertUserHasWorkspaceAccess`
+  (`apps/backend/src/workspaces/selection.ts`) before the tool's own work runs.
+  It is the only meaning the chat alone words.
 - `WORKSPACE_SELECTION_REQUIRED` (409) is reachable on REST and MCP but never on
   the chat, whose tool context always passes the session workspace as the
   selected default, so its resolver never sees none (`buildChatAgentToolContext`

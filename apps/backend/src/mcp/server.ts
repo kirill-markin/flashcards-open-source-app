@@ -1,6 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import { nextReviewCard, revealAnswer, submitAgentReview } from "../agent/reviews";
+import {
+  nextReviewCard,
+  resolveAgentConnectionReviewReplica,
+  revealAnswer,
+  submitAgentReview,
+} from "../agent/reviews";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
 import { createAgentRemediationInstructions } from "../aiTools/toolContract/remediationInstructions";
@@ -492,7 +497,13 @@ export function createMcpServerWithDependencies(
         dependencies.listUserWorkspacesWithStatsForSelectedWorkspace,
       nextReviewCard: dependencies.nextReviewCard,
       revealAnswer: dependencies.revealAnswer,
-      submitAgentReview: dependencies.submitAgentReview,
+      // This surface authenticates as an agent connection, so the review event is stored against
+      // that connection's own replica, the same actor its SQL writes carry.
+      submitAgentReview: async (reviewContext, request) => dependencies.submitAgentReview(
+        reviewContext,
+        request,
+        resolveAgentConnectionReviewReplica,
+      ),
     },
   };
 

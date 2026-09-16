@@ -19,12 +19,16 @@ HUMAN_ID_TOKEN=""
 AGENT_API_KEY=""
 AGENT_CONNECTION_ID=""
 WORKSPACE_ID=""
+CARD_ID=""
 
 WORKSPACE_NAME="${WORKSPACE_PREFIX}${RUN_ID}"
 CONNECTION_LABEL="${CONNECTION_LABEL_PREFIX}${RUN_ID}"
 CARD_FRONT_TEXT="MCP smoke question ${RUN_ID}"
 CARD_BACK_TEXT="MCP smoke answer ${RUN_ID}"
 CARD_FRONT_TEXT_LOWER="$(printf '%s' "${CARD_FRONT_TEXT}" | tr '[:upper:]' '[:lower:]')"
+CARD_TAG="mcp-smoke"
+REVIEW_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
+REVIEW_TIME_ZONE="Europe/Sofia"
 MCP_RESOURCE_URL="${MCP_BASE_URL%/}/mcp"
 MCP_RESOURCE_METADATA_URL="${MCP_BASE_URL%/}/.well-known/oauth-protected-resource/mcp"
 
@@ -496,7 +500,7 @@ assert "Fix the sql string" in agent_payload["instructions"]
 assert "server-side error" not in agent_payload["instructions"]
 PY
 
-request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_execute\",\"arguments\":{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('${CARD_FRONT_TEXT}', '${CARD_BACK_TEXT}', ('mcp-smoke'), 'medium')\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_execute\",\"arguments\":{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('${CARD_FRONT_TEXT}', '${CARD_BACK_TEXT}', ('${CARD_TAG}'), 'medium')\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
 assert_status "200" "MCP tools/call sql_execute INSERT"
 python3 - <<'PY' "${LAST_BODY_FILE}"
 import json
@@ -518,7 +522,8 @@ PY
 
 request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_query\",\"arguments\":{\"sql\":\"SELECT card_id, front_text, back_text FROM cards WHERE LOWER(front_text) = '${CARD_FRONT_TEXT_LOWER}' ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
 assert_status "200" "MCP tools/call sql_query SELECT"
-python3 - <<'PY' "${LAST_BODY_FILE}" "${CARD_FRONT_TEXT}" "${CARD_BACK_TEXT}"
+SELECT_CARD_BODY="${LAST_BODY_FILE}"
+python3 - <<'PY' "${SELECT_CARD_BODY}" "${CARD_FRONT_TEXT}" "${CARD_BACK_TEXT}"
 import json
 import sys
 
@@ -541,6 +546,122 @@ first_row = rows[0]
 assert first_row["front_text"] == front_text
 assert first_row["back_text"] == back_text
 assert isinstance(first_row["card_id"], str) and first_row["card_id"] != ""
+PY
+CARD_ID="$(
+  python3 - <<'PY' "${SELECT_CARD_BODY}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+agent_payload = json.loads(payload["result"]["content"][0]["text"])
+rows = agent_payload["data"]["rows"]
+card_id = rows[0].get("card_id") if rows else None
+if not isinstance(card_id, str) or card_id == "":
+    raise SystemExit("card select did not return card_id")
+print(card_id)
+PY
+)"
+
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/call\",\"params\":{\"name\":\"next_review_card\",\"arguments\":{\"workspaceId\":\"${WORKSPACE_ID}\",\"tags\":[\"${CARD_TAG}\"]}}}"
+assert_status "200" "MCP tools/call next_review_card"
+python3 - <<'PY' "${LAST_BODY_FILE}" "${CARD_ID}" "${CARD_FRONT_TEXT}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+card_id = sys.argv[2]
+front_text = sys.argv[3]
+assert payload["jsonrpc"] == "2.0"
+assert payload["id"] == 8
+assert "error" not in payload
+result = payload["result"]
+assert result.get("isError", False) is False, result
+content = result["content"]
+assert isinstance(content, list) and len(content) >= 1
+assert content[0]["type"] == "text"
+agent_payload = json.loads(content[0]["text"])
+assert agent_payload["ok"] is True, agent_payload
+card = agent_payload["data"]["card"]
+assert card["cardId"] == card_id, card
+assert card["frontText"] == front_text, card
+assert "backText" not in card, card
+instructions = agent_payload["instructions"]
+for tool_name in ("next_review_card", "reveal_answer", "submit_review"):
+    assert tool_name in instructions, instructions
+PY
+
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\",\"params\":{\"name\":\"reveal_answer\",\"arguments\":{\"workspaceId\":\"${WORKSPACE_ID}\",\"cardId\":\"${CARD_ID}\"}}}"
+assert_status "200" "MCP tools/call reveal_answer"
+python3 - <<'PY' "${LAST_BODY_FILE}" "${CARD_ID}" "${CARD_BACK_TEXT}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+card_id = sys.argv[2]
+back_text = sys.argv[3]
+assert payload["jsonrpc"] == "2.0"
+assert payload["id"] == 9
+assert "error" not in payload
+result = payload["result"]
+assert result.get("isError", False) is False, result
+agent_payload = json.loads(result["content"][0]["text"])
+assert agent_payload["ok"] is True, agent_payload
+assert agent_payload["data"]["cardId"] == card_id, agent_payload["data"]
+assert agent_payload["data"]["backText"] == back_text, agent_payload["data"]
+PY
+
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":10,\"method\":\"tools/call\",\"params\":{\"name\":\"submit_review\",\"arguments\":{\"workspaceId\":\"${WORKSPACE_ID}\",\"cardId\":\"${CARD_ID}\",\"reviewId\":\"${REVIEW_ID}\",\"rating\":\"Good\",\"reviewedTimeZone\":\"${REVIEW_TIME_ZONE}\"}}}"
+assert_status "200" "MCP tools/call submit_review"
+SUBMIT_REVIEW_BODY="${LAST_BODY_FILE}"
+python3 - <<'PY' "${SUBMIT_REVIEW_BODY}" "${CARD_ID}" "${REVIEW_ID}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+card_id = sys.argv[2]
+review_id = sys.argv[3]
+assert payload["jsonrpc"] == "2.0"
+assert payload["id"] == 10
+assert "error" not in payload
+result = payload["result"]
+assert result.get("isError", False) is False, result
+agent_payload = json.loads(result["content"][0]["text"])
+assert agent_payload["ok"] is True, agent_payload
+data = agent_payload["data"]
+assert data["cardId"] == card_id, data
+assert data["reviewId"] == review_id, data
+assert data["rating"] == "Good", data
+assert data["reps"] == 1, data
+assert data["lapses"] == 0, data
+assert isinstance(data["dueAt"], str) and data["dueAt"] != "", data
+assert "backText" not in data, data
+PY
+
+request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":11,\"method\":\"tools/call\",\"params\":{\"name\":\"submit_review\",\"arguments\":{\"workspaceId\":\"${WORKSPACE_ID}\",\"cardId\":\"${CARD_ID}\",\"reviewId\":\"${REVIEW_ID}\",\"rating\":\"Good\",\"reviewedTimeZone\":\"${REVIEW_TIME_ZONE}\"}}}"
+assert_status "200" "MCP tools/call submit_review retry"
+python3 - <<'PY' "${LAST_BODY_FILE}" "${SUBMIT_REVIEW_BODY}" "${CARD_ID}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+submitted = json.load(open(sys.argv[2], encoding="utf-8"))
+original = json.loads(submitted["result"]["content"][0]["text"])["data"]
+card_id = sys.argv[3]
+assert payload["jsonrpc"] == "2.0"
+assert payload["id"] == 11
+assert "error" not in payload
+result = payload["result"]
+assert result["isError"] is True, result
+agent_payload = json.loads(result["content"][0]["text"])
+assert agent_payload["ok"] is False, agent_payload
+assert agent_payload["error"]["code"] == "REVIEW_EVENT_CONFLICT", agent_payload["error"]
+schedule = agent_payload["error"]["details"]["reviewSchedule"]
+assert schedule["cardId"] == card_id, schedule
+assert schedule["reps"] == original["reps"], schedule
+assert schedule["lapses"] == original["lapses"], schedule
+assert schedule["dueAt"] == original["dueAt"], schedule
+assert schedule["state"] == original["state"], schedule
+assert "already recorded" in agent_payload["instructions"], agent_payload["instructions"]
 PY
 
 echo "MCP smoke passed for ${DEMO_EMAIL} run=${RUN_ID}"

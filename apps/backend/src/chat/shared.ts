@@ -117,23 +117,35 @@ function buildToolCallRulesSection(): string {
  *
  * `get_guide` serves every surface, so the guides bullet is the single place
  * that says which of its topics this chat can use: it rules out
- * `card_authoring`, whose text the card sections above already state in
- * full, and `review_flow`, which drives review tools this surface does not
- * register - a tool name the chat cannot run ends the whole run in
- * `requireChatToolRunner`. Registering review tools here later is an edit to
- * that one bullet.
+ * `card_authoring` alone, whose text the card sections above already state in
+ * full.
  */
 function buildSqlRoutingSection(): string {
   return joinLines([
     "SQL dialect:",
     "- This is not full PostgreSQL. Call get_guide with topic sql_dialect before any statement whose form you are unsure of, and again after a dialect error, instead of guessing.",
-    "- Guides are written for every surface: topic card_authoring only repeats the card rules above, and topic review_flow drives next_review_card, reveal_answer, and submit_review tools this chat does not have, so use topics sql_dialect and bulk_authoring only and never call a tool you were not given.",
+    "- Guides are written for every surface: topic card_authoring only repeats the card rules above, so use topics sql_dialect, bulk_authoring, and review_flow, and never call a tool you were not given.",
     "- Match rows by tag with tags OVERLAP ('english', 'slang'), compared exactly and case-sensitively, so pass tag values as they are stored.",
     `- ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`,
     "- Array columns such as tags take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
     "- Prefer OVERLAP over the tag forms that fail silently: tags = ('english', 'slang') is exact set equality, so a card carrying any extra tag does not match, and tags IN (...), LOWER(tags) IN (...), and LOWER(tags) NOT IN (...) are accepted but match no rows.",
     "- LIKE, NOT LIKE, ILIKE, and the LOWER(column) LIKE and LOWER(column) = forms apply to text columns only and are rejected on an array column such as tags.",
     "- Before a large write job, call get_guide with topic bulk_authoring and split the work as it says.",
+  ]);
+}
+
+/**
+ * The review loop itself is served by `get_guide` topic `review_flow` and by the review tools' own
+ * descriptions, so this states only what neither can: where this surface's two caller-owned values
+ * come from. The timezone is printed verbatim by `buildDatetimeSection`, and the reviewId is the
+ * dedup key, so a model reusing one is refused rather than recording a second review.
+ */
+function buildReviewLoopSection(): string {
+  return joinLines([
+    "Review loop:",
+    "- To review the user one question at a time, call next_review_card, then reveal_answer for that cardId, then submit_review; call get_guide with topic review_flow for the grading and rating rules.",
+    "- Pass the User local timezone printed in the datetime line below as submit_review's reviewedTimeZone, spelled exactly as it appears there.",
+    "- Generate one fresh random UUID as submit_review's reviewId per learner review, and reuse it only to retry that same card's submission.",
   ]);
 }
 
@@ -158,7 +170,7 @@ function buildGeneratedImagePolicySection(): string {
 function buildRepairSection(): string {
   return joinLines([
     "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
-    "If a sql_query, sql_execute, list_workspaces, or get_guide tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
+    "If a sql_query, sql_execute, list_workspaces, get_guide, next_review_card, reveal_answer, or submit_review tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
   ]);
 }
 
@@ -197,6 +209,7 @@ export function buildSystemInstructions(
     buildWritePolicySection(),
     buildToolCallRulesSection(),
     buildSqlRoutingSection(),
+    buildReviewLoopSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),
     "Be concise, direct, and operational.",

@@ -405,9 +405,9 @@ Any scheduler change must update:
 ## Dedicated agent review adapter
 
 The [conversational review contract](conversational-reviews.md) exposes the existing
-scheduler through MCP `submit_review` and HTTP `POST /v1/agent/reviews/submit`, and
-selects its next card with the queue order above. It maps exact
-`Again`/`Hard`/`Good`/`Easy` strings to 0–3, stamps the review instant on the server
-because the surface is online only, and returns the due time, interval, state, reps,
-and lapses. It does not change the scheduler algorithm or released first-party sync
-contracts.
+scheduler through the MCP and in-app chat `submit_review` tools and HTTP
+`POST /v1/agent/reviews/submit`, and selects its next card with the queue order above.
+It maps exact `Again`/`Hard`/`Good`/`Easy` strings to 0–3, stamps the review instant
+on the server because the surface is online only, and returns the due time, interval,
+state, reps, and lapses. It does not change the scheduler algorithm or released
+first-party sync contracts.
