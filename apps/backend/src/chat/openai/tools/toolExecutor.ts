@@ -9,6 +9,7 @@ import {
   type ExecutedChatToolCall,
 } from "./tools";
 import type { ChatRunClaimToken } from "../../runs";
+import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
 
 /**
  * A tool that returned an error envelope to the model and a tool that threw are different
@@ -149,6 +150,7 @@ export async function runOneToolCall(
     workspaceId: string;
     signal: AbortSignal | null;
     generatedImageOperationDeadlineMs: number;
+    clientPlatform: ProductAnalyticsClientReportablePlatform | null;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -192,6 +194,7 @@ export async function runOneToolCall(
         claimToken: params.claimToken,
         signal: params.signal,
         generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
+        clientPlatform: params.clientPlatform,
         generatedImageObservationContext: {
           scope: createBackendObservationScope(
             "chat-worker", null, null, null, params.userId, params.workspaceId,

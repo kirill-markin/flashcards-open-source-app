@@ -503,6 +503,7 @@ export function createMcpServerWithDependencies(
         reviewContext,
         request,
         resolveAgentConnectionReviewReplica,
+        null,
       ),
     },
   };

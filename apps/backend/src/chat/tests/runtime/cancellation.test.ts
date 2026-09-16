@@ -201,6 +201,7 @@ test("generated-image dependency races surface cancellation to the runtime termi
                 signal: params.signal ?? null,
                 generatedImageOperationDeadlineMs:
                   params.generatedImageOperationDeadlineMs,
+                clientPlatform: params.clientPlatform,
                 generatedImageObservationContext: {
                   scope: createBackendObservationScope(
                     "chat-worker",

@@ -26,6 +26,7 @@ import {
   type ChatRuntimeReasoningEffort,
 } from "../../config";
 import type { ChatRunClaimToken } from "../../runs";
+import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
 import {
   buildOpenAIResponsesRequest,
   buildPromptCacheKey,
@@ -87,6 +88,7 @@ export type StartOpenAILoopParams = Readonly<{
   sessionId: string;
   generatedImageEligible: boolean;
   generatedImageOperationDeadlineMs: number;
+  clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   modelId: ChatRuntimeModelId;
   reasoningEffort: ChatRuntimeReasoningEffort;
   timezone: string;
@@ -111,6 +113,7 @@ async function runOneToolCall(
     workspaceId: string;
     signal: AbortSignal | null;
     generatedImageOperationDeadlineMs: number;
+    clientPlatform: ProductAnalyticsClientReportablePlatform | null;
     rootObservation: LangfuseObservation | null;
   }>,
 ): Promise<ExecutedChatToolCall> {
@@ -340,6 +343,7 @@ async function runLoopWithDeps(
       workspaceId: params.workspaceId,
       signal: params.signal,
       generatedImageOperationDeadlineMs: params.generatedImageOperationDeadlineMs,
+      clientPlatform: params.clientPlatform,
       rootObservation: params.rootObservation,
       onExecutionPhaseChanged: params.onExecutionPhaseChanged,
       shouldStopBeforeNextStep: params.shouldStopBeforeNextStep,

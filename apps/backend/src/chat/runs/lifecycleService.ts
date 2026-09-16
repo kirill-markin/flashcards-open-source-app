@@ -38,6 +38,7 @@ import {
 import { finalizePendingToolCallContent } from "../history";
 import { FAILED_TOOL_CALL_OUTPUT } from "../store";
 import type { ContentPart } from "../types";
+import type { ProductAnalyticsClientReportablePlatform } from "../../productAnalytics/catalog";
 import { isChatRunHeartbeatStale } from "../worker/lease";
 import { getChatRunClaimStateWithExecutor } from "./claimFence";
 import {
@@ -84,6 +85,7 @@ export async function prepareChatRun(
   timezone: string,
   uiLocale: ChatComposerSuggestionsLocale | null,
   initiatingAuthIsSignedIn: boolean,
+  clientPlatform: ProductAnalyticsClientReportablePlatform | null,
 ): Promise<PreparedChatRun> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -141,6 +143,7 @@ export async function prepareChatRun(
       uiLocale,
       turnInput: content,
       initiatingAuthIsSignedIn,
+      clientPlatform,
     });
     const costPolicy = await decideChatCostPolicyWithExecutor(executor, scope, timezone);
     const run = await updateChatRunPolicySnapshotWithExecutor(executor, scope, {
@@ -256,6 +259,7 @@ export async function claimChatRun(
       localMessages: messages,
       turnInput: claimedRun.turn_input,
       initiatingAuthIsSignedIn: claimedRun.initiating_auth_is_signed_in,
+      clientPlatform: claimedRun.client_platform,
       diagnostics: createDiagnostics(scope, claimedRun, messages, {
         model: runtimeConfig.modelId,
         aiCostMode: claimedRun.ai_cost_mode,

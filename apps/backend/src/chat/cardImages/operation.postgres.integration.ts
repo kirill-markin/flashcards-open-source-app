@@ -103,7 +103,7 @@ async function createClaimedImageRun(fixture: PostgresIntegrationFixture): Promi
   const prepared = await prepareChatRun(
     fixture.userId, fixture.workspaceId, undefined,
     [{ type: "text", text: "Generate an image for this card." }],
-    randomUUID(), "Europe/Madrid", null, true,
+    randomUUID(), "Europe/Madrid", null, true, null,
   );
   const claimed = await claimChatRun(fixture.userId, fixture.workspaceId, prepared.runId);
   if (claimed === null) {

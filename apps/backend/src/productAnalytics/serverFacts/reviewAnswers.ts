@@ -15,7 +15,11 @@ import {
   createBackendObservationScope,
 } from "../../observability/runtime";
 import type { WorkspaceReplicaActorKind } from "../../sync/identity/replica";
-import type { ProductAnalyticsPlatform, productAnalyticsEventCatalog } from "../catalog";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsPlatform,
+  productAnalyticsEventCatalog,
+} from "../catalog";
 import { productAnalyticsMaxEventAgeMs } from "../validation";
 import type { PostCommitAnalyticsBudget } from "./postCommitBudget";
 import {
@@ -242,6 +246,10 @@ const reviewAnswerPlatformResolutionTimeoutMs = 2_000;
  * Resolves the replicas of one drain to the platform and the source each of their reviews was
  * answered through.
  *
+ * An ai_chat replica's platform column describes no device, so its reviews take
+ * aiChatClientPlatform instead, which only the opener of the transaction can name: the device an
+ * in-app chat run was started from when that run's review write opened it, and null otherwise.
+ *
  * One query for the whole drain, after the product transaction committed. That is what makes the
  * derivation affordable at all: the answers were collected per transaction, so the review write
  * itself pays nothing for this, and a batch of any size - a sync push, a whole-history import, a
@@ -264,6 +272,7 @@ const reviewAnswerPlatformResolutionTimeoutMs = 2_000;
 async function resolveReviewAnswerReplicas(
   answers: ReadonlyArray<ReviewAnswer>,
   budget: PostCommitAnalyticsBudget,
+  aiChatClientPlatform: ProductAnalyticsClientReportablePlatform | null,
 ): Promise<ReadonlyMap<string, ReviewAnswerReplicaAttribution>> {
   const attributionByReplicaId = new Map<string, ReviewAnswerReplicaAttribution>();
   const scopingAnswer = answers[0];
@@ -339,7 +348,9 @@ async function resolveReviewAnswerReplicas(
     }
     for (const replica of replicas) {
       attributionByReplicaId.set(replica.replica_id, {
-        platform: toWorkspaceReplicaRowPlatform(replica),
+        platform: replica.actor_kind === "ai_chat"
+          ? aiChatClientPlatform
+          : toWorkspaceReplicaRowPlatform(replica),
         source: toReviewAnsweredSource(replica.actor_kind),
       });
     }
@@ -411,10 +422,11 @@ function toReviewAnsweredEvent(
     //
     // The column may never be read without actor_kind on the same row. That is what the resolution
     // keeps rather than what it works around - it selects both columns on one row and reads
-    // platform only for a client_installation on ios, android or web, so the ai_chat replica
-    // storing a hardcoded 'web' that describes no device and the workspace_seed and workspace_reset
-    // replicas storing 'system' arrive here as null, while an agent_connection replica resolves to
-    // agent from its actor kind instead of from that column.
+    // platform only for a client_installation on ios, android or web, so the workspace_seed and
+    // workspace_reset replicas storing 'system' arrive here as null, an agent_connection replica
+    // resolves to agent from its actor kind instead of from that column, and the ai_chat replica
+    // storing a hardcoded 'web' that describes no device arrives as the device its chat run was
+    // started from, or as null where the transaction's opener named none.
     //
     // One query per review on the product's hottest write path is not affordable, but that is what
     // reading the replica inline would have cost, and this producer does not emit inline: answers
@@ -496,6 +508,7 @@ function reportAbandonedReviewAnswers(
 async function emitCollectedReviewAnswers(
   executor: DatabaseExecutor,
   budget: PostCommitAnalyticsBudget,
+  aiChatClientPlatform: ProductAnalyticsClientReportablePlatform | null,
 ): Promise<void> {
   const collected = takePostCommitFacts(collectedReviewAnswers, executor);
   if (collected === undefined) {
@@ -509,7 +522,11 @@ async function emitCollectedReviewAnswers(
   // One read of the product database for the whole drain, before the first chunk and after the
   // commit that released this transaction's connection. Answers whose replica it does not resolve
   // keep the null platform they always had; nothing here can fail the drain.
-  const attributionByReplicaId = await resolveReviewAnswerReplicas(collected, budget);
+  const attributionByReplicaId = await resolveReviewAnswerReplicas(
+    collected,
+    budget,
+    aiChatClientPlatform,
+  );
   const outcome = await emitPostCommitFactEvents(
     collected,
     budget,
@@ -564,9 +581,13 @@ export type CommittedReviewTransaction<Result> = Readonly<{
  * because two of the four review write paths already run other post-commit stages, and there are
  * only four call sites: making each one name the request's own clock is cheaper than leaving a
  * default that a fifth path could quietly inherit and re-break the bound with.
+ *
+ * aiChatClientPlatform is the device platform stored on the in-app chat run whose review write
+ * opens this transaction, and null from every other opener.
  */
 export async function runTransactionReportingReviewAnswers<Result>(
   budget: PostCommitAnalyticsBudget,
+  aiChatClientPlatform: ProductAnalyticsClientReportablePlatform | null,
   openTransaction: (
     body: (executor: DatabaseExecutor) => Promise<CommittedReviewTransaction<Result>>,
   ) => Promise<CommittedReviewTransaction<Result>>,
@@ -575,6 +596,10 @@ export async function runTransactionReportingReviewAnswers<Result>(
   return runTransactionWithPostCommitDrain(
     openTransaction,
     body,
-    async (committed) => emitCollectedReviewAnswers(committed.executor, budget),
+    async (committed) => emitCollectedReviewAnswers(
+      committed.executor,
+      budget,
+      aiChatClientPlatform,
+    ),
   );
 }

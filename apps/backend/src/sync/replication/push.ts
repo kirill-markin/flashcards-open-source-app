@@ -343,6 +343,7 @@ export async function processSyncPush(
   const analyticsBudget = createPostCommitAnalyticsBudget();
   const operationResults = await runTransactionReportingReviewAnswers<ReadonlyArray<SyncPushOperationResult>>(
     analyticsBudget,
+    null,
     (runInTransaction) => transactionWithWorkspaceScopeReportingContentCreations(
       { userId, workspaceId },
       runInTransaction,
