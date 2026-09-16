@@ -1,5 +1,7 @@
 import type OpenAI from "openai";
 import { z } from "zod";
+import { REVIEW_RATINGS } from "../../../agent/reviewContract";
+import { nextReviewCard, revealAnswer, submitAgentReview } from "../../../agent/reviews";
 import { hasCognitoIdentityMappingForUser } from "../../../auth/userIdentities";
 import {
   DatabaseCommitOutcomeUnknownError,
@@ -21,16 +23,19 @@ import {
 import type { AgentSqlPayload } from "../../../aiTools/agentSql/shared";
 import { createAgentRemediationInstructions } from "../../../aiTools/toolContract/remediationInstructions";
 import { GUIDE_TOPICS } from "../../../aiTools/toolContract/sqlToolContract";
-import { unboundAgentToolAction } from "../../../aiTools/toolRegistry/actions";
 import {
   findAgentToolSpecForSurface,
   listAgentToolSpecsForSurface,
   GET_GUIDE_TOOL_SPEC,
   LIST_WORKSPACES_TOOL_SPEC,
+  NEXT_REVIEW_CARD_TOOL_SPEC,
+  REVEAL_ANSWER_TOOL_SPEC,
   SQL_EXECUTE_TOOL_INPUT_SCHEMA,
   SQL_EXECUTE_TOOL_SPEC,
   SQL_QUERY_TOOL_INPUT_SCHEMA,
   SQL_QUERY_TOOL_SPEC,
+  SUBMIT_REVIEW_TOOL_SPEC,
+  type AgentReviewPayload,
 } from "../../../aiTools/toolRegistry/specs";
 import type { AgentToolContext, AgentToolSpec } from "../../../aiTools/toolRegistry/types";
 import { generateCardImage, type GeneratedCardImageObservationContext } from "../../cardImages";
@@ -57,9 +62,9 @@ import {
   OPENAI_GENERATED_IMAGE_TOOL,
 } from "./generatedImageToolContract";
 import {
-  createReadOnlyToolSuccessResult,
   createSqlToolSuccessResult,
   createToolErrorResult,
+  createToolSuccessResult,
   type ToolErrorPayload,
 } from "./toolResults";
 
@@ -129,8 +134,12 @@ export type OpenAIToolDependencies = Readonly<{
     params: BindGeneratedCardImageAttemptPayloadParams,
   ) => Promise<GeneratedCardImageImmutablePayload>;
   hasCognitoIdentityMappingForUser: typeof hasCognitoIdentityMappingForUser;
+  ensureAIChatSyncReplica: typeof ensureAIChatSyncReplica;
   ensureAIChatSyncReplicaWithDeadline: typeof ensureAIChatSyncReplicaWithDeadline;
   generateCardImage: typeof generateCardImage;
+  nextReviewCard: typeof nextReviewCard;
+  revealAnswer: typeof revealAnswer;
+  submitAgentReview: typeof submitAgentReview;
 }>;
 
 type GeneratedImageToolSafeErrorCode = "MEDIA_ASSET_STORAGE_UNAVAILABLE";
@@ -291,6 +300,89 @@ const OPENAI_LIST_WORKSPACES_TOOL: OpenAI.Responses.FunctionTool = {
   },
 };
 
+const OPENAI_NEXT_REVIEW_CARD_TOOL: OpenAI.Responses.FunctionTool = {
+  type: "function",
+  name: NEXT_REVIEW_CARD_TOOL_SPEC.name,
+  description: NEXT_REVIEW_CARD_TOOL_SPEC.description,
+  strict: false,
+  parameters: {
+    type: "object",
+    properties: {
+      workspaceId: {
+        type: "string",
+      },
+      tags: {
+        type: "array",
+        items: {
+          type: "string",
+        },
+      },
+      deckId: {
+        type: "string",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  },
+};
+
+const OPENAI_REVEAL_ANSWER_TOOL: OpenAI.Responses.FunctionTool = {
+  type: "function",
+  name: REVEAL_ANSWER_TOOL_SPEC.name,
+  description: REVEAL_ANSWER_TOOL_SPEC.description,
+  strict: false,
+  parameters: {
+    type: "object",
+    properties: {
+      workspaceId: {
+        type: "string",
+      },
+      cardId: {
+        type: "string",
+      },
+    },
+    required: ["cardId"],
+    additionalProperties: false,
+  },
+};
+
+/**
+ * The rating enum is spelled from `REVIEW_RATINGS`, so a rating added to the shared contract reaches
+ * this surface with it, the way the guide topics are spread above. `reviewedTimeZone` and `reviewId`
+ * are model-supplied like every other argument: the schema is shared with MCP and
+ * `requireChatFunctionTool` forbids advertising a subset of it, so where this surface's timezone
+ * comes from is stated in the chat system prompt instead of in the shared tool description.
+ */
+const OPENAI_SUBMIT_REVIEW_TOOL: OpenAI.Responses.FunctionTool = {
+  type: "function",
+  name: SUBMIT_REVIEW_TOOL_SPEC.name,
+  description: SUBMIT_REVIEW_TOOL_SPEC.description,
+  strict: false,
+  parameters: {
+    type: "object",
+    properties: {
+      workspaceId: {
+        type: "string",
+      },
+      cardId: {
+        type: "string",
+      },
+      reviewId: {
+        type: "string",
+      },
+      rating: {
+        type: "string",
+        enum: [...REVIEW_RATINGS],
+      },
+      reviewedTimeZone: {
+        type: "string",
+      },
+    },
+    required: ["cardId", "reviewId", "rating", "reviewedTimeZone"],
+    additionalProperties: false,
+  },
+};
+
 /**
  * How each registry tool is advertised to OpenAI. The JSON Schema stays hand-written rather than
  * derived from the spec's zod schema so the payload the provider receives is exactly what it is;
@@ -302,6 +394,9 @@ const CHAT_FUNCTION_TOOLS: Readonly<Record<string, OpenAI.Responses.FunctionTool
   [SQL_EXECUTE_TOOL_SPEC.name]: OPENAI_SQL_EXECUTE_TOOL,
   [LIST_WORKSPACES_TOOL_SPEC.name]: OPENAI_LIST_WORKSPACES_TOOL,
   [GET_GUIDE_TOOL_SPEC.name]: OPENAI_GET_GUIDE_TOOL,
+  [NEXT_REVIEW_CARD_TOOL_SPEC.name]: OPENAI_NEXT_REVIEW_CARD_TOOL,
+  [REVEAL_ANSWER_TOOL_SPEC.name]: OPENAI_REVEAL_ANSWER_TOOL,
+  [SUBMIT_REVIEW_TOOL_SPEC.name]: OPENAI_SUBMIT_REVIEW_TOOL,
 };
 
 function readAdvertisedSchemaKeys(
@@ -393,8 +488,12 @@ const DEFAULT_OPENAI_TOOL_DEPENDENCIES: OpenAIToolDependencies = {
   reserveGeneratedCardImageAttempt,
   bindGeneratedCardImageAttemptPayload,
   hasCognitoIdentityMappingForUser,
+  ensureAIChatSyncReplica,
   ensureAIChatSyncReplicaWithDeadline,
   generateCardImage,
+  nextReviewCard,
+  revealAnswer,
+  submitAgentReview,
 };
 
 export function buildOpenAIChatTools(
@@ -731,9 +830,6 @@ function buildChatAgentToolContext(
       explicitWorkspaceId,
     ),
     actions: {
-      // The chat registers sql_query, sql_execute, list_workspaces, and the static guide, so every
-      // action none of them reaches is named as unbound: giving the chat a tool that reaches one
-      // has to inject its action here first.
       runSqlQuery: async (sqlContext, sql) => dependencies.runChatSqlQuery(
         sqlContext,
         sql,
@@ -746,9 +842,22 @@ function buildChatAgentToolContext(
       ),
       listUserWorkspacesWithStatsForSelectedWorkspace:
         dependencies.listUserWorkspacesWithStatsForSelectedWorkspace,
-      nextReviewCard: unboundAgentToolAction("nextReviewCard", "chat"),
-      revealAnswer: unboundAgentToolAction("revealAnswer", "chat"),
-      submitAgentReview: unboundAgentToolAction("submitAgentReview", "chat"),
+      nextReviewCard: dependencies.nextReviewCard,
+      revealAnswer: dependencies.revealAnswer,
+      // There is no agent connection behind this surface, so the review event is stored against the
+      // workspace's AI-chat replica, the same sync actor the chat's SQL writes carry. Binding the
+      // review write without one would attribute every chat review to the placeholder connection id
+      // above, which names no connection at all.
+      submitAgentReview: async (reviewContext, request) => dependencies.submitAgentReview(
+        reviewContext,
+        request,
+        async (replicaContext) => dependencies.ensureAIChatSyncReplica(
+          replicaContext.workspaceId,
+          replicaContext.userId,
+          "web",
+          context.signal,
+        ),
+      ),
     },
   };
 }
@@ -866,7 +975,7 @@ async function executeReadOnlyChatToolCall<Data>(
     );
 
     return {
-      output: createReadOnlyToolSuccessResult(spec.name, {
+      output: createToolSuccessResult(spec.name, {
         data: result.data,
         instructions: result.instructions,
       }),
@@ -889,6 +998,88 @@ async function executeReadOnlyChatToolCall<Data>(
         ),
       }),
       isMutating: false,
+      succeeded: false,
+      shouldInvalidateMainContent: false,
+      stopReason: null,
+      generatedImageTelemetry: null,
+      sqlTelemetry: null,
+      toolErrorClass: serializeToolError(error).name,
+    };
+  }
+}
+
+/**
+ * The review loop itself is served by `get_guide` topic `review_flow`, so a review result points at
+ * it instead of carrying the shared `REVIEW_FLOW_INSTRUCTIONS`: a graded card runs three review
+ * calls, and those ~2,000 characters would be re-sent on every later model call of the turn and
+ * replayed in every later turn of the session.
+ */
+const CHAT_REVIEW_RESULT_INSTRUCTIONS =
+  "Review one card at a time: speak only frontText, wait for the learner's attempt, call reveal_answer for that cardId, grade the attempt yourself, then call submit_review with a fresh reviewId. Call get_guide with topic review_flow for the rating scale and the full grading rules before your first grading in this conversation. A null card means nothing is due now, so stop rather than calling again.";
+
+/**
+ * One review call, rendered for this surface.
+ *
+ * `submit_review` is the only mutating review tool, and it invalidates main content only when the
+ * review landed in the session's workspace, because clients refresh only the workspace they have
+ * open - the rule `executeSqlChatToolCall` applies to a write.
+ *
+ * A failure carries its `code` and `details` the way a failed SQL call does, because the review
+ * codes are answered from those fields: `REVIEW_EVENT_CONFLICT` reports the card's stored schedule
+ * in `details.reviewSchedule` instead of submitting again.
+ *
+ * Card text long enough to exceed the tool-output budget comes back as a JSON preview, so the model
+ * would grade against a truncated answer. Accepted: nothing bounds card text server-side, and the
+ * envelope that is capped still carries its instructions.
+ */
+async function executeReviewChatToolCall(
+  spec: AgentToolSpec<AgentReviewPayload>,
+  rawArguments: string,
+  context: OpenAIToolContext,
+  dependencies: OpenAIToolDependencies,
+): Promise<ExecutedChatToolCall> {
+  const isMutating = spec.name === SUBMIT_REVIEW_TOOL_SPEC.name;
+
+  try {
+    const result = await spec.execute(
+      buildChatAgentToolContext(context, dependencies),
+      JSON.parse(rawArguments),
+    );
+
+    return {
+      output: createToolSuccessResult(spec.name, {
+        data: result.data,
+        instructions: CHAT_REVIEW_RESULT_INSTRUCTIONS,
+      }),
+      isMutating,
+      succeeded: true,
+      shouldInvalidateMainContent: isMutating && result.data.workspaceId === context.workspaceId,
+      stopReason: null,
+      generatedImageTelemetry: null,
+      sqlTelemetry: null,
+      toolErrorClass: null,
+    };
+  } catch (error) {
+    const instructions = createAgentRemediationInstructions(
+      error instanceof HttpError ? error.code : null,
+      getChatToolFailureStatusCode(error),
+      { surface: "chat", toolName: spec.name },
+    );
+    const payload: ToolErrorPayload = error instanceof HttpError
+      ? {
+        error: serializeToolError(error),
+        instructions,
+        code: error.code ?? undefined,
+        details: error.details ?? undefined,
+      }
+      : {
+        error: serializeToolError(error),
+        instructions,
+      };
+
+    return {
+      output: createToolErrorResult(spec.name, payload),
+      isMutating,
       succeeded: false,
       shouldInvalidateMainContent: false,
       stopReason: null,
@@ -929,6 +1120,12 @@ const CHAT_TOOL_RUNNERS: Readonly<Record<string, ChatToolRunner | undefined>> = 
     executeReadOnlyChatToolCall(LIST_WORKSPACES_TOOL_SPEC, rawArguments, context, dependencies),
   [GET_GUIDE_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
     executeReadOnlyChatToolCall(GET_GUIDE_TOOL_SPEC, rawArguments, context, dependencies),
+  [NEXT_REVIEW_CARD_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
+    executeReviewChatToolCall(NEXT_REVIEW_CARD_TOOL_SPEC, rawArguments, context, dependencies),
+  [REVEAL_ANSWER_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
+    executeReviewChatToolCall(REVEAL_ANSWER_TOOL_SPEC, rawArguments, context, dependencies),
+  [SUBMIT_REVIEW_TOOL_SPEC.name]: (rawArguments, context, dependencies) =>
+    executeReviewChatToolCall(SUBMIT_REVIEW_TOOL_SPEC, rawArguments, context, dependencies),
 };
 
 function requireChatToolRunner(toolName: string): ChatToolRunner {
