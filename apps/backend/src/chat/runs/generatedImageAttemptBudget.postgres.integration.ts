@@ -32,11 +32,16 @@ type ChatRunFixture = Readonly<{
 }>;
 
 type ClaimTokenRow = Readonly<{ claim_token: string }>;
+type StoredGeneratedCardImageOperation = Readonly<{
+  operationKey: string;
+  attempt: number;
+  payload: unknown;
+  providerStarted?: boolean;
+}>;
 type AssistantPayloadRow = Readonly<{
   payload: Readonly<{
     content?: unknown;
-    generatedCardImageAttemptCount?: unknown;
-    generatedCardImageOperations?: unknown;
+    generatedCardImageOperations?: ReadonlyArray<StoredGeneratedCardImageOperation>;
     reservationSentinel?: unknown;
   }>;
 }>;
@@ -147,6 +152,17 @@ async function reserveThenRunSentinel(
   return reservation;
 }
 
+/** The per-run ceiling is the number of stored entries, so the entries are what pins it. */
+function reservedAttempts(
+  payload: AssistantPayloadRow["payload"],
+): ReadonlyArray<number> {
+  const operations = payload.generatedCardImageOperations;
+  if (operations === undefined) {
+    throw new Error("Assistant payload has no generated card image operations.");
+  }
+  return operations.map((operation) => operation.attempt);
+}
+
 function hasErrorCode(error: unknown, expectedCode: string): boolean {
   return typeof error === "object"
     && error !== null
@@ -183,7 +199,8 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       fixture,
       sequentialRun.assistantItemId,
     );
-    assert.equal(sequentialPayload.generatedCardImageAttemptCount, 3);
+    assert.deepEqual(reservedAttempts(sequentialPayload), [1, 2, 3]);
+    assert.equal("generatedCardImageAttemptCount" in sequentialPayload, false);
     assert.deepEqual(sequentialPayload.reservationSentinel, { preserved: true });
 
     const concurrentRun = await createChatRunFixture(fixture);
@@ -207,10 +224,11 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       concurrentResults.filter((result) => result.status === "limit_reached").length,
       1,
     );
-    assert.equal(
-      (await loadAssistantPayload(fixture, concurrentRun.assistantItemId))
-        .generatedCardImageAttemptCount,
-      3,
+    assert.deepEqual(
+      reservedAttempts(
+        await loadAssistantPayload(fixture, concurrentRun.assistantItemId),
+      ),
+      [1, 2, 3],
     );
 
     const inactiveRun = await createChatRunFixture(fixture);
@@ -249,10 +267,11 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
     );
     assert.equal(await reconcileInactiveClaimedChatRun(
       fixture.userId, fixture.workspaceId, inactiveParams), "ownership_lost");
-    assert.equal(
-      (await loadAssistantPayload(fixture, inactiveRun.assistantItemId))
-        .generatedCardImageAttemptCount,
-      1,
+    assert.deepEqual(
+      reservedAttempts(
+        await loadAssistantPayload(fixture, inactiveRun.assistantItemId),
+      ),
+      [1],
     );
 
     const reclaimedRun = await createChatRunFixture(fixture);
@@ -318,10 +337,11 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       }),
       originalPayload,
     );
-    assert.equal(
-      (await loadAssistantPayload(fixture, reclaimedRun.assistantItemId))
-        .generatedCardImageAttemptCount,
-      1,
+    assert.deepEqual(
+      reservedAttempts(
+        await loadAssistantPayload(fixture, reclaimedRun.assistantItemId),
+      ),
+      [1],
     );
 
     const rewriteRun = await createChatRunFixture(fixture);
@@ -344,11 +364,12 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
         state: "in_progress",
       },
     );
-    assert.equal("generatedCardImageAttemptCount" in updatedItem, false);
-    assert.equal(
-      (await loadAssistantPayload(fixture, rewriteRun.assistantItemId))
-        .generatedCardImageAttemptCount,
-      1,
+    assert.equal("generatedCardImageOperations" in updatedItem, false);
+    assert.deepEqual(
+      reservedAttempts(
+        await loadAssistantPayload(fixture, rewriteRun.assistantItemId),
+      ),
+      [1],
     );
     await updateAssistantMessageItemAndInvalidateMainContent(
       fixture.userId,
@@ -363,7 +384,7 @@ test("generated image attempt reservations are durable, fenced, and concurrency-
       fixture,
       rewriteRun.assistantItemId,
     );
-    assert.equal(rewrittenPayload.generatedCardImageAttemptCount, 1);
+    assert.equal("generatedCardImageAttemptCount" in rewrittenPayload, false);
     assert.deepEqual(rewrittenPayload.generatedCardImageOperations, [{
       operationKey: "generated-image:1",
       attempt: 1,
