@@ -370,7 +370,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             path: "/chat",
             method: "POST",
             bodyData: encodedBody,
-            clientRequestId: clientRequestId
+            clientRequestId: clientRequestId,
+            additionalHeaders: ["X-Client-Platform": aiChatClientPlatform]
         )
         let data = try await self.execute(
             session: session,
@@ -606,14 +607,15 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         path: String,
         method: String,
         bodyData: Data,
-        clientRequestId: String
+        clientRequestId: String,
+        additionalHeaders: [String: String]
     ) throws -> URLRequest {
         var request = try self.makeRequest(
             session: session,
             path: path,
             method: method,
             clientRequestId: clientRequestId,
-            additionalHeaders: [:]
+            additionalHeaders: additionalHeaders
         )
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = bodyData

@@ -68,6 +68,9 @@ export async function getChatSnapshotWithResumeDiagnostics(
 export async function startChatRun(body: StartChatRunRequestBody): Promise<StartChatRunResponse> {
   return parseContractResponse(await requestJson("/chat", {
     method: "POST",
+    headers: {
+      "X-Client-Platform": "web",
+    },
     body: JSON.stringify(body),
   }, allowAuthRecoveryWithTransientNetworkRetry), "POST /chat", parseStartChatRunResponse);
 }
