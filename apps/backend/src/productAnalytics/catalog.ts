@@ -319,11 +319,16 @@ export const productAnalyticsEventCatalog = {
   // reported by the client, so a review answered offline is counted once it syncs and is never
   // counted twice. The rating names the four buttons; the stored column holds them as 0..3 and the
   // producer maps them here, because a stored integer is unreadable in a query five months later.
+  // `source` is the channel that produced the answer, which `platform` does not carry: the app's own
+  // review flow, the in-app AI chat, or an external agent. It is optional because the producer omits
+  // it wherever it cannot resolve the channel, and rows stored before it existed carry none; the
+  // mapping lives beside that producer in serverFacts/reviewAnswers.ts.
   review_answered: {
     serverOnly: true,
     requiresScreen: false,
     properties: {
       rating: { kind: "enum", values: ["again", "hard", "good", "easy"] },
+      source: { kind: "enum", values: ["app", "ai_chat", "agent"], optional: true },
     },
   },
   review_answer_failed: {
