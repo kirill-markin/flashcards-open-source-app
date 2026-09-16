@@ -150,7 +150,7 @@ export async function loadSelectRows(
  * them. It is set later, by whoever measures the envelope this payload is
  * emitted in: the single-select reducer in
  * `apps/backend/src/aiTools/agentSql/resultBudget.ts` on the MCP and REST surfaces, and
- * `capReadEnvelopeByRows` in `apps/backend/src/chat/openai/tools/tools.ts` on
+ * `capReadEnvelopeByRows` in `apps/backend/src/chat/openai/tools/toolResults.ts` on
  * the chat surface.
  */
 async function executeReadStatementPayload(

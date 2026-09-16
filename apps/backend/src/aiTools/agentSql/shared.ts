@@ -55,7 +55,7 @@ export type AgentSqlReadStatementPayload = Readonly<{
    * that fit the result-size budget rather than the whole page, set by the
    * single-select reducer in `apps/backend/src/aiTools/agentSql/resultBudget.ts`, and on the
    * chat surface by `capReadEnvelopeByRows` in
-   * `apps/backend/src/chat/openai/tools/tools.ts`, which marks a payload no
+   * `apps/backend/src/chat/openai/tools/toolResults.ts`, which marks a payload no
    * agent-side reducer ran on, because `runChatSqlQuery` applies no size budget
    * of its own, so that cap is the first size gate that payload meets.
    *

@@ -1,7 +1,3 @@
-/**
- * Tool execution bridge for backend-owned OpenAI chat.
- * The runtime always routes provider tool calls through this module so SQL validation and output envelopes stay consistent.
- */
 import type OpenAI from "openai";
 import { z } from "zod";
 import { hasCognitoIdentityMappingForUser } from "../../../auth/userIdentities";
@@ -22,11 +18,7 @@ import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
 } from "../../../aiTools/agentSql/operations";
-import {
-  previewSqlStatement,
-  type AgentSqlPayload,
-  type AgentSqlReadPayload,
-} from "../../../aiTools/agentSql/shared";
+import type { AgentSqlPayload } from "../../../aiTools/agentSql/shared";
 import { createAgentRemediationInstructions } from "../../../aiTools/toolContract/remediationInstructions";
 import { GUIDE_TOPICS } from "../../../aiTools/toolContract/sqlToolContract";
 import { unboundAgentToolAction } from "../../../aiTools/toolRegistry/actions";
@@ -64,6 +56,12 @@ import {
   GENERATED_IMAGE_TOOL_NAME,
   OPENAI_GENERATED_IMAGE_TOOL,
 } from "./generatedImageToolContract";
+import {
+  createReadOnlyToolSuccessResult,
+  createSqlToolSuccessResult,
+  createToolErrorResult,
+  type ToolErrorPayload,
+} from "./toolResults";
 
 export type OpenAIToolContext = Readonly<{
   runId: string;
@@ -147,27 +145,6 @@ function getGeneratedImageToolSafeErrorCode(
     : null;
 }
 
-type ToolErrorPayload = Readonly<{
-  error: Readonly<{
-    name: string;
-    message: string;
-  }>;
-  /** What to do about the failure, from the shared per-code remediation module. */
-  instructions: string;
-  /** The statement the failed call was asked to run; absent on a tool that runs none. */
-  sql?: string | null;
-  code?: string;
-  details?: unknown;
-}>;
-
-/**
- * Upper bound for a single serialized tool-call output.
- * Each tool result is appended to the loop continuation and re-sent on every later model
- * call in the turn, so one large SQL result set inflates every subsequent request and can
- * trigger context_length_exceeded. ~24K chars leaves roughly 6K tokens of headroom per result.
- */
-const MAX_TOOL_OUTPUT_CHARS = 24_000 as const;
-
 function createToolDependencies(context: OpenAIToolContext): AgentToolOperationDependencies {
   return {
     ...DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
@@ -179,246 +156,6 @@ function createToolDependencies(context: OpenAIToolContext): AgentToolOperationD
         context.signal,
       ),
   };
-}
-
-/**
- * Rebuilds the envelope around a preview slice of `envelope[fieldKey]` that fits
- * `MAX_TOOL_OUTPUT_CHARS`, measuring every candidate instead of predicting its size.
- *
- * The marker overhead only seeds the first preview length. The slice is JSON-escaped into a
- * string field, and `omittedChars` gains decimal digits as the preview shrinks, so no single
- * arithmetic pass lands on the budget. Every overflowing pass cuts the preview by the overflow it
- * just measured, which is at least one character, so the loop reaches either a fitting result or a
- * preview of nothing.
- *
- * It shrinks; it does not search. A pass subtracts measured output characters from a preview
- * length whose characters can each cost more than one output character once escaped, so the slice
- * it stops on fits but can be shorter than the longest one that would have. Unlike
- * `capReadEnvelopeByRows`, nothing here finds a maximum.
- *
- * A preview of nothing is not a fit. It is what the returned string carries when everything that
- * survives an empty preview - the other fields, the markers, and the JSON scaffolding - is over
- * budget together, and shrinking that rest is the caller's problem, not this loop's.
- */
-function capEnvelopeFieldToBudget(
-  envelope: Readonly<Record<string, unknown>>,
-  fieldKey: string,
-): string {
-  const serializedField = JSON.stringify(envelope[fieldKey] ?? null);
-  const { [fieldKey]: _omitted, ...rest } = envelope;
-  const previewKey = `${fieldKey}Preview`;
-  const buildCapped = (previewLength: number): string =>
-    JSON.stringify({
-      ...rest,
-      [previewKey]: serializedField.slice(0, previewLength),
-      truncated: true,
-      omittedChars: serializedField.length - Math.min(previewLength, serializedField.length),
-    });
-
-  let previewLength = Math.max(0, MAX_TOOL_OUTPUT_CHARS - buildCapped(0).length);
-  let capped = buildCapped(previewLength);
-  while (capped.length > MAX_TOOL_OUTPUT_CHARS && previewLength > 0) {
-    previewLength = Math.max(0, previewLength - (capped.length - MAX_TOOL_OUTPUT_CHARS));
-    capped = buildCapped(previewLength);
-  }
-
-  return capped;
-}
-
-/**
- * Caps a single oversized envelope field by replacing it with a truncated preview string.
- * Returns the serialized envelope when it already fits, otherwise rebuilds it with the heavy
- * field swapped for a `<fieldKey>Preview` slice plus `truncated`/`omittedChars` markers so the
- * model still receives valid JSON and can tell the result was capped and re-query more narrowly.
- *
- * The slice cuts at a character offset, so the preview itself is a JSON fragment the model can
- * read only as text. That is the right trade wherever nothing better exists, and this is where
- * every shape that cannot lose part of itself and still make sense ends up: a failure's
- * `details`, a write echoing a long statement, a read batch, `SHOW TABLES`, `DESCRIBE`. A single
- * `SELECT` drops whole rows instead (see `capReadEnvelopeByRows`) and only falls back here when
- * not even one row fits.
- *
- * When the preview alone cannot bring the envelope under budget, the top-level `sql` echo is
- * replaced with `previewSqlStatement` and the envelope rebuilt: the echo is text the caller
- * submitted and still holds, which is why the write paths in
- * `apps/backend/src/aiTools/agentSql/resultBudget.ts` reach for the same lever first. It runs only
- * once the preview has failed, so an ordinary capped result keeps its full echo, and it is a no-op
- * where the envelope carries no string `sql`, which is what a failure that never parsed a
- * statement passes.
- *
- * Only `envelope[fieldKey]` and that echo shrink. Every other field is carried through untouched,
- * so the returned string fits `MAX_TOOL_OUTPUT_CHARS` unless what it carries regardless of the
- * preview - those remaining fields as serialized, the shortened echo, the empty preview key, the
- * `truncated`/`omittedChars` markers, and the JSON scaffolding around them - exceeds the budget
- * together. A failure carrying a long database error message is the reachable case of that: the
- * message need not fill the budget on its own to push the rest of the envelope past it, and the
- * result comes back over budget with the preview already driven to nothing.
- *
- * What brings an oversized `SELECT` here is a separate question with more than one answer: a
- * single row too large to fit does it, and so does a statement echo that fills the budget by
- * itself, which is the pair of causes the rejection message in
- * `apps/backend/src/aiTools/agentSql/resultBudget.ts` hedges between.
- */
-function capSerializedEnvelope(
-  envelope: Readonly<Record<string, unknown>>,
-  fieldKey: string,
-): string {
-  const serialized = JSON.stringify(envelope);
-  if (serialized.length <= MAX_TOOL_OUTPUT_CHARS) {
-    return serialized;
-  }
-
-  const capped = capEnvelopeFieldToBudget(envelope, fieldKey);
-  if (capped.length <= MAX_TOOL_OUTPUT_CHARS) {
-    return capped;
-  }
-
-  const sqlEcho = envelope.sql;
-  if (typeof sqlEcho !== "string") {
-    return capped;
-  }
-
-  const shortenedSqlEcho = previewSqlStatement(sqlEcho);
-  if (shortenedSqlEcho === sqlEcho) {
-    return capped;
-  }
-
-  return capEnvelopeFieldToBudget({ ...envelope, sql: shortenedSqlEcho }, fieldKey);
-}
-
-type SqlToolSuccessPayload = Readonly<{
-  sql: string;
-  data: AgentSqlPayload;
-  instructions: string;
-}>;
-
-function buildSqlToolEnvelope(
-  toolName: string,
-  payload: SqlToolSuccessPayload,
-): Readonly<Record<string, unknown>> {
-  return {
-    ok: true,
-    tool: toolName,
-    ...payload,
-  };
-}
-
-/**
- * The instructions a read carries once rows have been dropped, so the model reports what it
- * received as the partial answer it is instead of as the whole result set.
- *
- * It replaces the arriving instructions rather than extending them, for the same reason the
- * external surfaces rebuild theirs: an untruncated read is handed out saying `data.rowsTruncated`
- * is false and no row was dropped, which a truncated payload contradicts outright, so keeping
- * that sentence alongside this one would send the model two opposite readings of the same field.
- * What the rest of the arriving string carries - the dialect note, the row cap, the pagination
- * hint, and pointers to envelope fields the chat does not emit - the chat system prompt already
- * states for this surface.
- *
- * It names `data.limit` only to keep a model from paginating straight past the dropped rows.
- */
-const TRUNCATED_READ_ROWS_INSTRUCTION =
-  "This answer is partial: data.rows carries only the leading rows of the result, because the whole result did not fit the size limit of a single tool result, and data.rowsTruncated is true because the rest were dropped here rather than by your query. data.rowCount counts the rows you received and data.totalRowCount how many rows the statement produced, so compare the two before you answer and tell the user the answer is partial whenever the rows you are missing could change it. data.limit is still the limit you asked for rather than the number of rows delivered, so continuing from data.offset + data.limit would skip the rows dropped here. Nothing was written, so when those rows matter, ask again for less at a time: select fewer or narrower columns, add WHERE filters, or aggregate instead of listing rows.";
-
-/**
- * Shrinks an oversized single `SELECT` to the largest leading run of rows whose serialized
- * envelope fits `MAX_TOOL_OUTPUT_CHARS`, marked as the partial answer it is.
- *
- * Only the rows shrink. `data.totalRowCount` is left exactly as it arrived, so the model still
- * sees how many rows the statement produced while `data.rowCount` counts the rows it actually
- * received, `data.hasMore` becomes true because dropping rows always leaves rows behind, and the
- * instructions are replaced with the truncated wording rather than appended to.
- *
- * The prefix is found by binary search over the row count rather than by predicting where to
- * cut: serialized size grows with the prefix length, so the search finds the exact largest
- * fitting prefix, and a handful of measurement passes on a payload that is already an outlier
- * is cheaper than being clever about it. The search stops one row short of the whole page,
- * because a payload that kept every row is not a truncated one and must not be marked as such.
- *
- * Returns null when not even one row fits, which is the caller's signal to fall back to the
- * preview slice: a partial answer carrying no row shows the model neither the data nor its
- * shape, and the chat has no rejection path here, so something bounded still has to go back.
- *
- * This is the chat's own loop rather than the read budget of
- * `apps/backend/src/aiTools/agentSql/resultBudget.ts` because neither half of that budget transfers: it
- * measures a built agent envelope, and it measures it against `MAX_SQL_RESULT_CHARS`, while the
- * chat emits this `{ ok, tool, ... }` shape under a smaller limit of its own.
- */
-function capReadEnvelopeByRows(
-  toolName: string,
-  payload: SqlToolSuccessPayload,
-  data: AgentSqlReadPayload,
-): string | null {
-  const serializeRowPrefix = (rowCount: number): string =>
-    JSON.stringify(buildSqlToolEnvelope(toolName, {
-      ...payload,
-      data: {
-        ...data,
-        rows: data.rows.slice(0, rowCount),
-        rowCount,
-        rowsTruncated: true,
-        hasMore: true,
-      },
-      instructions: TRUNCATED_READ_ROWS_INSTRUCTION,
-    }));
-
-  let lowestRowCount = 1;
-  let highestRowCount = data.rows.length - 1;
-  let largestFitting: string | null = null;
-
-  while (lowestRowCount <= highestRowCount) {
-    const candidateRowCount = Math.floor((lowestRowCount + highestRowCount) / 2);
-    const candidate = serializeRowPrefix(candidateRowCount);
-    if (candidate.length <= MAX_TOOL_OUTPUT_CHARS) {
-      largestFitting = candidate;
-      lowestRowCount = candidateRowCount + 1;
-    } else {
-      highestRowCount = candidateRowCount - 1;
-    }
-  }
-
-  return largestFitting;
-}
-
-/**
- * Serializes one successful SQL tool call, shrunk toward `MAX_TOOL_OUTPUT_CHARS` when the whole
- * envelope does not fit.
- *
- * An oversized single `SELECT` loses rows from the end rather than the tail of its serialized
- * `data`, so the model keeps whole rows it can read as data and learns from `data.rowsTruncated`
- * and `data.totalRowCount` exactly what it is missing. A row-capped result is measured whole, so
- * it does fit. Everything else falls back to the preview slice and to the softer bound documented
- * on `capSerializedEnvelope`: every shape that is not a single `SELECT` carrying rows, and every
- * `SELECT` for which `capReadEnvelopeByRows` finds no fitting prefix of rows, whatever put the
- * envelope over budget.
- */
-function createToolSuccessResult(toolName: string, payload: SqlToolSuccessPayload): string {
-  const envelope = buildSqlToolEnvelope(toolName, payload);
-  const serialized = JSON.stringify(envelope);
-  if (serialized.length <= MAX_TOOL_OUTPUT_CHARS) {
-    return serialized;
-  }
-
-  const data = payload.data;
-  if (data.statementType === "select" && data.rows.length > 0) {
-    const rowCapped = capReadEnvelopeByRows(toolName, payload, data);
-    if (rowCapped !== null) {
-      return rowCapped;
-    }
-  }
-
-  return capSerializedEnvelope(envelope, "data");
-}
-
-function createToolErrorResult(toolName: string, payload: ToolErrorPayload): string {
-  return capSerializedEnvelope(
-    {
-      ok: false,
-      tool: toolName,
-      ...payload,
-    },
-    "details",
-  );
 }
 
 /**
@@ -567,10 +304,6 @@ const CHAT_FUNCTION_TOOLS: Readonly<Record<string, OpenAI.Responses.FunctionTool
   [GET_GUIDE_TOOL_SPEC.name]: OPENAI_GET_GUIDE_TOOL,
 };
 
-/**
- * The argument names and the required list of one hand-written schema, read the way the provider
- * reads them.
- */
 function readAdvertisedSchemaKeys(
   parameters: OpenAI.Responses.FunctionTool["parameters"],
 ): Readonly<{ properties: ReadonlyArray<string>; required: ReadonlyArray<string> }> {
@@ -1023,10 +756,6 @@ function buildChatAgentToolContext(
 type SqlToolInputSchema = typeof SQL_QUERY_TOOL_INPUT_SCHEMA | typeof SQL_EXECUTE_TOOL_INPUT_SCHEMA;
 
 /**
- * Turns one registry SQL tool call into a chat tool-call result: the `{ ok, tool, sql, ... }`
- * envelope, its `MAX_TOOL_OUTPUT_CHARS` budget, and the Langfuse telemetry are the chat's own and
- * have no counterpart on the external surfaces.
- *
  * The arguments are parsed here as well as inside the spec because this envelope echoes the
  * statement that ran, and the echo has to be the trimmed string the executor received.
  *
@@ -1054,7 +783,7 @@ async function executeSqlChatToolCall(
     );
 
     return {
-      output: createToolSuccessResult(spec.name, {
+      output: createSqlToolSuccessResult(spec.name, {
         sql: parsed.sql,
         data: result.data,
         instructions: result.instructions,
@@ -1120,10 +849,6 @@ async function executeSqlChatToolCall(
 }
 
 /**
- * Turns one call of a registry tool that writes nothing - `get_guide` or `list_workspaces` - into a
- * chat tool-call result, in the same `{ ok, tool, data, instructions }` envelope the SQL tools
- * return, carrying no SQL telemetry.
- *
  * A failure, including arguments the schema rejects, comes back as the same `{ ok: false }`
  * envelope a failed SQL call returns rather than as a throw, because a thrown tool call ends the
  * run: the model repairs its call and continues on its own remediation instructions instead.
@@ -1141,15 +866,10 @@ async function executeReadOnlyChatToolCall<Data>(
     );
 
     return {
-      output: capSerializedEnvelope(
-        {
-          ok: true,
-          tool: spec.name,
-          data: result.data,
-          instructions: result.instructions,
-        },
-        "data",
-      ),
+      output: createReadOnlyToolSuccessResult(spec.name, {
+        data: result.data,
+        instructions: result.instructions,
+      }),
       isMutating: false,
       succeeded: true,
       shouldInvalidateMainContent: false,
@@ -1225,9 +945,6 @@ function requireChatToolRunner(toolName: string): ChatToolRunner {
   return runner;
 }
 
-/**
- * Executes one provider tool call with injectable dependencies for tests and loop orchestration.
- */
 export async function executeChatToolCallWithDependencies(
   toolName: string,
   rawArguments: string,
@@ -1241,9 +958,6 @@ export async function executeChatToolCallWithDependencies(
   return requireChatToolRunner(toolName)(rawArguments, context, dependencies);
 }
 
-/**
- * Executes one provider tool call with the production dependency set.
- */
 export async function executeChatToolCall(
   toolName: string,
   rawArguments: string,
