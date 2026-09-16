@@ -540,6 +540,13 @@ export async function generateCardImage(input: GeneratedCardImageInput): Promise
   );
 }
 
+/**
+ * TODO(external-image-surface): The planned external image surface (MCP and the Agent REST API).
+ * Nothing calls it today, by decision: image generation stays chat-only until the open choice
+ * between a synchronous call that accepts a timeout tail inside the MCP gateway's 29-second
+ * integration timeout and an asynchronous worker is settled, on the measured provider latency
+ * recorded in `docs/agent-tool-surfaces.md`.
+ */
 export async function generateRunlessCardImage(
   input: RunlessGeneratedCardImageInput,
 ): Promise<GeneratedCardImageResult> {

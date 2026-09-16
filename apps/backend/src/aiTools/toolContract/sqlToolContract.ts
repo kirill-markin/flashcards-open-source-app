@@ -140,11 +140,15 @@ export const SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES = Object.freeze([
  * is metadata under a character budget and restates only the few facts a call
  * cannot get right by guessing.
  *
- * On MCP the rest is reachable through `get_guide` topic `sql_dialect`.
- * `sql_query` names that topic in its own description; `sql_execute` has no
- * room to, and relies on `GET_GUIDE_TOOL_DESCRIPTION`, `SERVER_INSTRUCTIONS`,
- * and the `QUERY_INVALID_SQL` instruction in `apps/backend/src/mcp/server.ts`
- * naming it instead.
+ * The rest is reachable through `get_guide` topic `sql_dialect` on MCP and the
+ * chat, and through the REST guide route. `sql_query` names that topic in its
+ * own description; `sql_execute` has no room to, and relies on
+ * `GET_GUIDE_TOOL_DESCRIPTION`, the surface's own standing text
+ * (`SERVER_INSTRUCTIONS` on MCP, the SQL routing section of the chat system
+ * prompt in `apps/backend/src/chat/shared.ts` on the chat), and the
+ * `QUERY_INVALID_SQL` instruction in
+ * `apps/backend/src/aiTools/toolContract/remediationInstructions.ts` naming it
+ * instead.
  */
 const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
   "This is not full PostgreSQL.",
@@ -331,7 +335,8 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
 ].join(" ");
 
 /**
- * On-demand guide bodies for the MCP `get_guide` tool.
+ * On-demand guide bodies, served by the `get_guide` tool on MCP and the chat
+ * and by the REST guide route.
  *
  * Every guide is composed from the constants above (and from
  * `REVIEW_FLOW_INSTRUCTIONS`) rather than restating them, so a rule that
