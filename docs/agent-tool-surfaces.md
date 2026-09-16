@@ -90,7 +90,8 @@ result envelope, and output budget, and each of those stays in its own adapter:
   (`createToolErrorResult`, same module), where MCP and REST nest both under the
   agent envelope's `error` (`createAgentErrorEnvelope` in
   `apps/backend/src/agent/envelope.ts`). Only `code` and `details` move with
-  that, and `details` moves unchanged, because all three surfaces build it with
+  that, and both move unchanged: all three surfaces report an `HttpError`
+  without a code as `REQUEST_FAILED` and build `details` with
   `createPublicHttpErrorDetails` (`apps/backend/src/shared/errors.ts`); `ok`,
   `instructions`, and `error.message` are read at the same path on either shape,
   which is why a remediation meaning can be reworded for the chat over the path
