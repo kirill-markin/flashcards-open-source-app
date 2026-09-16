@@ -732,7 +732,8 @@ export type AnalyticsDeliveryWarningDetails = Readonly<{
     | "analytics_queue_discarded_on_reset"
     | "analytics_batch_invalid"
     | "analytics_delivery_unavailable"
-    | "analytics_guest_identity_link_failed";
+    | "analytics_guest_identity_link_failed"
+    | "analytics_queue_read_unavailable";
   count: number | null;
   statusCode: number | null;
 }>;
