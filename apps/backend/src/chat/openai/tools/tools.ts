@@ -926,7 +926,7 @@ async function executeSqlChatToolCall(
         sql,
         error: serializeToolError(error),
         instructions,
-        code: error.code ?? undefined,
+        code: error.code ?? "REQUEST_FAILED",
         details: createPublicHttpErrorDetails(error.details) ?? undefined,
       }
       : {
@@ -998,7 +998,7 @@ async function executeReadOnlyChatToolCall<Data>(
       ? {
         error: serializeToolError(error),
         instructions,
-        code: error.code ?? undefined,
+        code: error.code ?? "REQUEST_FAILED",
         details: createPublicHttpErrorDetails(error.details) ?? undefined,
       }
       : {
@@ -1080,7 +1080,7 @@ async function executeReviewChatToolCall(
       ? {
         error: serializeToolError(error),
         instructions,
-        code: error.code ?? undefined,
+        code: error.code ?? "REQUEST_FAILED",
         details: createPublicHttpErrorDetails(error.details) ?? undefined,
       }
       : {
