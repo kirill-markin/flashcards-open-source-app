@@ -88,7 +88,7 @@ After this change is merged and deployed, make the next permitted real image req
   with the generated operation metadata. The media asset registration and
   query-free card marker must become durable in the same promotion
   transaction.
-- Do not make additional real image requests for cap, retry, replay,
+- Do not make additional real image requests for ceiling, retry, replay,
   cancellation, claim-loss, guest, or terminal-failure checks. Use the
   deployed automated Postgres integration result and structured promotion-job
   logs to confirm that retries retain `?state=pending`, terminal failures
@@ -100,3 +100,32 @@ After this change is merged and deployed, make the next permitted real image req
   the corresponding card hot-change record and failed marker; do not inject a
   production failure or replay a provider request.
 - Record only model/status/request ID/duration and card/media IDs, never prompts, alt text, image bytes/base64, signed URLs, storage keys, or tool output.
+
+### Generation ceilings
+
+Three independent ceilings apply to one generated-image request. The per-run
+ceiling is checked first, and between the two windows the monthly one is checked
+and reported first, because its reset is never earlier:
+
+- Per run: attempts inside one assistant turn, reserved one at a time and
+  derived from the operations already stored on that run's assistant item
+  (`apps/backend/src/chat/runs/generatedImageAttemptRepository.ts`), so a failed
+  attempt counts. Exhaustion answers the model with `limit_reached`.
+- Per workspace sync replica, per UTC day.
+- Per workspace, per UTC calendar month.
+
+The two window ceilings and their numbers live in
+`apps/backend/src/chat/cardImages/generationBudget.ts`. Exhausting either raises
+`GENERATED_CARD_IMAGE_GENERATION_LIMIT_REACHED`, carrying which ceiling was hit,
+its limit, and when the window resets. Both windows are UTC wall-clock and do
+not depend on the session TimeZone. They count promotion jobs, which exist only
+once a generation has been staged, so a paid generation that never reached
+staging is uncounted and concurrent operations in one scope can end past a
+limit. The grant that lets the runtime read those timestamps is
+`db/migrations/0135_generated_media_promotion_job_created_at_select.sql`, whose
+header explains why no index accompanies it.
+
+A card that was deleted between the model reading it and the request reaching
+the backend comes back as the `card_not_found` tool result instead of failing
+the turn; the identical 404 raised after the provider was paid still fails the
+run. See [agent tool surfaces](agent-tool-surfaces.md#error-codes-a-caller-can-receive).
