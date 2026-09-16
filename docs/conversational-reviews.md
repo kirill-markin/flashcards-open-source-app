@@ -1,10 +1,11 @@
-# Conversational reviews over MCP and the Agent API
+# Conversational reviews over MCP, the in-app chat, and the Agent API
 
-An MCP-capable voice client can review one question at a time, assess the learner's
-answer, explain any gaps, choose a rating, and persist the next FSRS schedule
-without asking the learner to rate every card. The calling agent performs the
-assessment; the backend accepts its rating and schedules the review. No SQL writes
-to review history or hidden scheduler columns are allowed.
+An MCP-capable voice client, the in-app chat, or an Agent API caller can review
+one question at a time, assess the learner's answer, explain any gaps, choose a
+rating, and persist the next FSRS schedule without asking the learner to rate
+every card. The calling agent performs the assessment; the backend accepts its
+rating and schedules the review. No SQL writes to review history or hidden
+scheduler columns are allowed.
 
 **External limitation:** ChatGPT Voice currently does not invoke apps/MCP. These
 server tools do not remove that OpenAI product limitation. They support clients
@@ -14,12 +15,11 @@ microphone, speech recognition, speech synthesis, or a ChatGPT Voice integration
 
 ## Tools and HTTP actions
 
-The three review tools are the only ones MCP serves alone; `list_workspaces`,
-`sql_query`, `sql_execute`, and `get_guide` are shared with the in-app chat,
-which has no review tools ([agent tool surfaces](agent-tool-surfaces.md)).
-`get_guide` topic `review_flow` returns this review contract.
+MCP and the in-app chat serve the same registry tools, the three review tools
+included ([agent tool surfaces](agent-tool-surfaces.md)). `get_guide` topic
+`review_flow` returns this review contract.
 
-| MCP tool | Agent API action | Result in `data` | Effect |
+| Tool | Agent API action | Result in `data` | Effect |
 | --- | --- | --- | --- |
 | `next_review_card` | `POST /v1/agent/reviews/next` | `workspaceId`, `card: {cardId, frontText}` or `card: null` | Read only |
 | `reveal_answer` | `POST /v1/agent/reviews/reveal` | `workspaceId`, `cardId`, `backText` | Read only |
@@ -29,10 +29,13 @@ The optional `workspaceId` argument and the rejection of unknown arguments are
 shared agent-tool rules, described once in
 [agent tool surfaces](agent-tool-surfaces.md). An HTTP request with no body at
 all is a valid call. `reveal_answer` requires `cardId`. HTTP actions use
-`Authorization: ApiKey <fca_...>` and the same JSON arguments as the MCP tools.
-MCP continues to accept OAuth authorization or an API key as a Bearer token.
-Authentication and current workspace membership are checked on each request. IDs
-are UUIDs.
+`Authorization: ApiKey <fca_...>` and the same JSON arguments the tools take.
+MCP continues to accept OAuth authorization or an API key as a Bearer token. The
+chat has no API key of its own: it runs under the chat session's transport,
+including a native guest session (`assertSupportedTransport` in
+`apps/backend/src/chat/http/dependencies.ts`), and nothing on the review path
+gates on being signed in. Authentication and current workspace membership are
+checked on each request. IDs are UUIDs.
 
 ## Choosing the next card
 
@@ -122,8 +125,10 @@ values remain 0–3. What each rating means, how to judge an equivalent or
 ambiguous answer, when to honor a learner's explicit rating, and that “perfectly
 remembered” is only a spoken alias for `Easy`, are all one constant:
 `REVIEW_FLOW_INSTRUCTIONS` in `apps/backend/src/agent/reviewContract.ts`, which
-every review tool returns in full with each result and `get_guide` topic
-`review_flow` serves on demand.
+MCP and the HTTP actions return in full with each result and `get_guide` topic
+`review_flow` serves on demand. A chat review result points the model at that
+topic instead of carrying the constant (`CHAT_REVIEW_RESULT_INSTRUCTIONS` in
+`apps/backend/src/chat/openai/tools/tools.ts`).
 
 ## Result, retries, and offline behavior
 
@@ -136,18 +141,27 @@ day interval and can be zero for a minutes-long learning step. `state` is
 writable through this contract.
 
 - Generate and durably retain one `reviewId` UUID per learner review, scoped to
-  the authenticated connection and workspace. Keep the same connection when
-  recovering an uncertain request. Reconnecting with a different connection or
-  changing the ID is a new review, not a retry.
+  the workspace and to the calling surface's own sync replica
+  ([agent tool surfaces](agent-tool-surfaces.md)): on MCP and the HTTP actions
+  that replica is the agent connection, so keep the same connection when
+  recovering an uncertain request and treat a different one as a new review; on
+  the chat it is shared, so a `reviewId` must be unique across the whole
+  workspace. Changing the ID is a new review, not a retry.
 - A repeated submission is deduplicated by the
   `UNIQUE (workspace_id, replica_id, client_event_id)` constraint on
   `content.review_events`, so it can never record a second review or advance the
-  schedule again. A retry whose review already landed answers
-  `409 REVIEW_EVENT_CONFLICT` with the card's current schedule in
-  `error.details.reviewSchedule` (`cardId`, `dueAt`, `intervalSeconds`,
-  `scheduledDays`, `state`, `reps`, `lapses`). The same code answers an
-  unrelated pre-existing event identity, which likewise cannot advance
-  scheduling. What the calling agent should do about it is in
+  schedule again. Retrying the same card answers `409 REVIEW_EVENT_CONFLICT`
+  with that card's current schedule in the failure's `reviewSchedule` details
+  (`cardId`, `dueAt`, `intervalSeconds`, `scheduledDays`, `state`, `reps`,
+  `lapses`), wherever that surface's envelope carries a failure's `details`
+  ([agent tool surfaces](agent-tool-surfaces.md)); on the chat, whose replica is
+  shared, two members or two sessions of one workspace that chose the same
+  `reviewId` for that card reach the same code without either retrying. Retrying
+  that card is still the only supported reuse of a `reviewId`.
+- `409 REVIEW_ID_CARD_MISMATCH` means the `reviewId` already identifies a
+  recorded review of a different card, so nothing was stored for the card just
+  submitted and no schedule advanced. Generate a new `reviewId` for it and
+  submit again. What the calling agent should do about either code is in
   `REVIEW_FLOW_INSTRUCTIONS`.
 - `409 REVIEW_STALE` means the card's stored `fsrs_last_reviewed_at` is at or after
   the current server time, so the scheduler cannot move forward from it. Only server
@@ -162,9 +176,10 @@ writable through this contract.
 
 ## Implementation and verification
 
-`apps/backend/src/agent/reviewContract.ts` shares strict schemas across MCP and
-HTTP. `apps/backend/src/agent/reviews.ts` uses the existing agent replica identity
-and delegates to `cards/review/reviews.ts::submitReviewInExecutor`. The scheduler
+`apps/backend/src/agent/reviewContract.ts` shares strict schemas across MCP, the
+chat, and HTTP. `apps/backend/src/agent/reviews.ts` takes the sync replica from
+its caller rather than choosing one, and delegates to
+`cards/review/reviews.ts::submitReviewInExecutor`. The scheduler
 algorithm is unchanged. One workspace-locked transaction inserts the review,
 updates FSRS state, and records progress/activity facts and hot sync metadata;
 review history continues through its append-only sequence, and post-commit
@@ -173,8 +188,11 @@ permission was added, and this work adds no table of its own.
 
 Run backend `npm test`, `npm run lint`, `npm run test:mcp`, and
 `npm run test:postgres-integration` with an isolated PostgreSQL 18 administrative
-URL in `POSTGRES_INTEGRATION_ADMIN_URL`. The deployment smoke script also checks
-the tool inventory.
+URL in `POSTGRES_INTEGRATION_ADMIN_URL`. The deployment smoke script
+`scripts/checks/check-mcp-smoke.sh` checks the tool inventory and then runs one
+real review over MCP with no model in the loop: next, reveal, submit, and a
+repeat of that submission, which must answer `REVIEW_EVENT_CONFLICT` with the
+stored schedule.
 
 For a manual voice smoke check after deployment, follow the session above with
 one disposable card for each rating. Verify that the agent explains gaps,

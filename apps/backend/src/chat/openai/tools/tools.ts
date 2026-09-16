@@ -9,7 +9,7 @@ import {
 } from "../../../database/transient";
 import { GeneratedMediaPromotionStorageTransientError } from "../../../mediaAssets/storage";
 import { resolveAccessibleChatWorkspaceId } from "../../../server/requestContext";
-import { HttpError } from "../../../shared/errors";
+import { createPublicHttpErrorDetails, HttpError } from "../../../shared/errors";
 import {
   ensureAIChatSyncReplica,
   ensureAIChatSyncReplicaWithDeadline,
@@ -452,7 +452,7 @@ function toComparableKeyList(keys: ReadonlyArray<string>): string {
  * optional `workspaceId` - would otherwise reach the chat model as something else: an added
  * optional argument would be invisible to it, and an added required one would fail every call
  * inside the spec's own parse against a schema the model was never shown. Property types stay
- * unguarded; the one enum that could drift is spread from `GUIDE_TOPICS`.
+ * unguarded; the two enums that could drift are spread from `GUIDE_TOPICS` and `REVIEW_RATINGS`.
  */
 function requireChatFunctionTool(spec: AgentToolSpec): OpenAI.Responses.FunctionTool {
   const functionTool = CHAT_FUNCTION_TOOLS[spec.name];
@@ -927,7 +927,7 @@ async function executeSqlChatToolCall(
         error: serializeToolError(error),
         instructions,
         code: error.code ?? undefined,
-        details: error.details ?? undefined,
+        details: createPublicHttpErrorDetails(error.details) ?? undefined,
       }
       : {
         sql,
@@ -959,8 +959,9 @@ async function executeSqlChatToolCall(
 
 /**
  * A failure, including arguments the schema rejects, comes back as the same `{ ok: false }`
- * envelope a failed SQL call returns rather than as a throw, because a thrown tool call ends the
- * run: the model repairs its call and continues on its own remediation instructions instead.
+ * envelope a failed SQL call returns, carrying an `HttpError`'s `code` and `details`, rather than
+ * as a throw, because a thrown tool call ends the run: the model repairs its call and continues on
+ * its own remediation instructions instead.
  */
 async function executeReadOnlyChatToolCall<Data>(
   spec: AgentToolSpec<Data>,
@@ -988,15 +989,25 @@ async function executeReadOnlyChatToolCall<Data>(
       toolErrorClass: null,
     };
   } catch (error) {
-    return {
-      output: createToolErrorResult(spec.name, {
+    const instructions = createAgentRemediationInstructions(
+      error instanceof HttpError ? error.code : null,
+      getChatToolFailureStatusCode(error),
+      { surface: "chat", toolName: spec.name },
+    );
+    const payload: ToolErrorPayload = error instanceof HttpError
+      ? {
         error: serializeToolError(error),
-        instructions: createAgentRemediationInstructions(
-          error instanceof HttpError ? error.code : null,
-          getChatToolFailureStatusCode(error),
-          { surface: "chat", toolName: spec.name },
-        ),
-      }),
+        instructions,
+        code: error.code ?? undefined,
+        details: createPublicHttpErrorDetails(error.details) ?? undefined,
+      }
+      : {
+        error: serializeToolError(error),
+        instructions,
+      };
+
+    return {
+      output: createToolErrorResult(spec.name, payload),
       isMutating: false,
       succeeded: false,
       shouldInvalidateMainContent: false,
@@ -1070,7 +1081,7 @@ async function executeReviewChatToolCall(
         error: serializeToolError(error),
         instructions,
         code: error.code ?? undefined,
-        details: error.details ?? undefined,
+        details: createPublicHttpErrorDetails(error.details) ?? undefined,
       }
       : {
         error: serializeToolError(error),
