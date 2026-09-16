@@ -27,8 +27,6 @@ The development focus is Android 14, 15, 16, and 17. We do not spend effort vali
 
 AndroidX and other dependency versions in `gradle/libs.versions.toml` must stay at the highest stable versions compatible with `compileSdk = 37`, our current stable baseline. Automated dependency-drift updates must not adopt dependencies that require a preview SDK beyond API 37, because Gradle is not run during their validation and cannot catch that break locally.
 
-One deliberate exception to that rule: the `benchmark` version, which pins both `androidx.benchmark:benchmark-macro-junit4` and the `androidx.baselineprofile` Gradle plugin used by [Baseline and Startup Profiles](#baseline-and-startup-profiles). It stays at the pre-stable `1.5.0-rc02` because AGP 9 forces it: the current stable `1.4.1` plugin declares `MAX_AGP_VERSION_RECOMMENDED_EXCLUSIVE = 9.0.0-alpha01`, so on AGP `9.4.0` it registers no AGP handler and hard-fails configuration with ``Module `` is not a supported android module``. Do not "fix" it to a stable version during a drift pass; both entries move together, and they return to the stable rule only once `1.5.0` stable is released.
-
 ## Design Rule
 
 Use Google-provided Android components and Android interaction patterns whenever they fit the problem.
@@ -121,8 +119,7 @@ drives the real app through UiAutomator using the production Compose test tags, 
 `nonMinifiedRelease` build type, which must stay unminified so the recorded class names match a
 release build.
 
-The generator module and `:app` both depend on the `benchmark` version, which is a deliberate
-pre-stable pin; see [Dependency Version Pin](#dependency-version-pin) before changing it.
+The generator module and `:app` share the `benchmark` version in `gradle/libs.versions.toml`.
 
 ## Android Docs
 
