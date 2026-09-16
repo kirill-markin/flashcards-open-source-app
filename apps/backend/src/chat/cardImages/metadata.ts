@@ -60,6 +60,10 @@ export function deriveGeneratedCardImageOperationMetadata(
  * Identity for surfaces without a chat run. `requestedAtMs` is the backend clock at request
  * receipt, bucketed into epoch-aligned UTC hours: a literal repeat inside the hour is the same
  * operation, while a retry that lands in the next hour is a new, separately paid operation.
+ *
+ * TODO(external-image-surface): The only paths here are `generateRunlessCardImageWithDependencies`
+ * and its default-dependency wrapper `generateRunlessCardImage` (`operation.ts`), which nothing
+ * calls yet; the wrapper carries the deferral and the open design choice.
  */
 export function deriveRequestContentGeneratedCardImageOperationMetadata(
   request: GeneratedCardImageRequestContent,
