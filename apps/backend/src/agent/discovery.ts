@@ -237,7 +237,7 @@ export function createAgentDiscoveryEnvelope(requestUrl: string): AgentDiscovery
       mcp: {
         url: `${mcpBaseUrl}/mcp`,
         description:
-          "Remote MCP server for AI clients that connect through custom connectors (for example Claude.ai or ChatGPT). Add the url as a custom connector and authorize through OAuth, then use sql_query for reads, sql_execute for card/deck authoring, and next_review_card, reveal_answer, submit_review for conversational reviews. Headless or CLI clients may instead send Authorization: Bearer fca_… using the agent API key from email_otp_then_api_key login (the same key as the REST agent surface), with no OAuth or browser needed.",
+          "Remote MCP server for AI clients that connect through custom connectors (for example Claude.ai or ChatGPT). Add the url as a custom connector and authorize through OAuth, then use list_workspaces to pick a workspace, sql_query for reads, sql_execute for card/deck authoring, get_guide for detail, and next_review_card, reveal_answer, submit_review for conversational reviews. Headless or CLI clients may instead send Authorization: Bearer fca_… using the agent API key from email_otp_then_api_key login (the same key as the REST agent surface), with no OAuth or browser needed.",
         authorization: {
           type: "oauth2",
           authorizationServer: authBaseUrl,

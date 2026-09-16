@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 import { createAgentDiscoveryEnvelope } from "../../agent/discovery";
+import { listAgentToolSpecsForSurface } from "../../aiTools/toolRegistry/specs";
 import {
   createAgentAccountEnvelope,
   createAgentWorkspaceReadyEnvelope,
@@ -487,5 +488,7 @@ test("agent discovery advertises the conversational review surface and the guide
     /GET https:\/\/api\.flashcards-open-source-app\.com\/v1\/agent\/guide\/\{topic\}/,
   );
   assert.match(discovery.instructions, /\breview_flow for /);
-  assert.match(discovery.data.mcp.description, /submit_review/);
+  for (const spec of listAgentToolSpecsForSurface("mcp")) {
+    assert.match(discovery.data.mcp.description, new RegExp(`\\b${spec.name}\\b`));
+  }
 });
