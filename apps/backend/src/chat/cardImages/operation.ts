@@ -253,7 +253,9 @@ async function assertGeneratedCardImagePreconditions(
         [input.workspaceId, input.cardId],
       );
       if (cardResult.rows[0] === undefined) {
-        throw new HttpError(404, "Card not found");
+        // Coded so the chat tool can single this pre-generation 404 out: the identical 404 raised
+        // after the provider was paid carries no code and must keep failing the run.
+        throw new HttpError(404, "Card not found", "GENERATED_CARD_IMAGE_CARD_NOT_FOUND");
       }
       await assertReplicaBelongsToWorkspaceInExecutor(
         executor, input.workspaceId, input.replicaId,
@@ -280,6 +282,9 @@ async function prepareStagedGeneratedCardImage(
   // behind, so every identical retry would fail as outcome-unknown instead of as this refusal. An
   // exhausted budget therefore also refuses a replay whose provider start is already recorded.
   await dependencies.assertGenerationBudgetAvailableFn(input);
+  // A fence written after the caller gave up makes every identical retry read previously_started
+  // and fail as outcome-unknown, although nothing was ever paid.
+  input.signal.throwIfAborted();
   // The chat flag is set in the same transaction that asserts the run claim; a request-content
   // operation has no run, so its create-if-absent storage marker fences the paid call instead.
   const providerStart = isChatRunGeneratedCardImageInput(input)

@@ -922,6 +922,20 @@ async function executeGeneratedImageToolCall(
         },
       );
     }
+    // Only the code is matched: the same 404 status and wording are also raised after the provider
+    // was paid, and that one must keep failing the run instead of becoming a tool result.
+    if (
+      error instanceof HttpError
+      && error.code === "GENERATED_CARD_IMAGE_CARD_NOT_FOUND"
+    ) {
+      return createGeneratedImageErrorResult(
+        "card_not_found",
+        attempt !== null && attempt < maximumGeneratedCardImageAttemptsPerRun,
+        attempt,
+        false,
+        null,
+      );
+    }
     const safeErrorCode = getGeneratedImageToolSafeErrorCode(error);
     if (safeErrorCode !== null) {
       const retryable = attempt !== null
