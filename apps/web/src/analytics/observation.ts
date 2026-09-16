@@ -119,6 +119,19 @@ export function reportAnalyticsQueueFailure(error: unknown): void {
     return;
   }
 
+  // A read that WebKit aborts because it dropped its own storage-process connection, surfaced as
+  // `UnknownError` (WebKit bug 273827). No client action prevents it, and the failed read loses
+  // nothing: the records stay queued under the TTL until the periodic flush reads them again. This
+  // says nothing about the other operations, which stay errors whatever their cause.
+  if (error.operation === "read" && error.indexedDbErrorName === "UnknownError") {
+    captureWebWarning({
+      action: "analytics_delivery_degraded",
+      scope: buildAnalyticsObservationScope(null),
+      details: { eventName: "analytics_queue_read_unavailable", count: null, statusCode: null },
+    });
+    return;
+  }
+
   captureWebException({
     action: "analytics_queue_failed",
     error: normalizeCaughtError(error),
