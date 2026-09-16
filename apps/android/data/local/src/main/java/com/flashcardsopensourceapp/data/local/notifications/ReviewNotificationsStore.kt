@@ -558,8 +558,8 @@ fun computeInactivityReminderTimestampMillis(
         zoneId
     )
 
-    require(windowStart < windowEnd) {
-        "Inactivity reminder window must stay within the same day."
+    if (windowStart >= windowEnd) {
+        return null
     }
 
     return when {
