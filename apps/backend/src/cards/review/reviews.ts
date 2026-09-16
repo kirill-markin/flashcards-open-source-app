@@ -272,6 +272,7 @@ export async function submitReview(
   // and microseconds in practice.
   return runTransactionReportingReviewAnswers<ReviewResult>(
     createPostCommitAnalyticsBudget(),
+    null,
     (runInTransaction) => transactionWithWorkspaceScope({ userId, workspaceId }, runInTransaction),
     async (executor) => {
       const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);

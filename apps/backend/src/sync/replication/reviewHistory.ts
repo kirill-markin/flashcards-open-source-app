@@ -175,6 +175,7 @@ export async function processSyncReviewHistoryImport(
   // analytics stage, so it has the whole budget to itself.
   return runTransactionReportingReviewAnswers<SyncReviewHistoryImportResult>(
     createPostCommitAnalyticsBudget(),
+    null,
     (runInTransaction) => transactionWithWorkspaceScope({ userId, workspaceId }, runInTransaction),
     async (executor) => {
       const replicaId = await ensureWorkspaceReplicaInExecutor(executor, {

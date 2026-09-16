@@ -517,19 +517,22 @@ export function buildReviewEventsByDateAvailableRangeSql(): string {
 // Keeping the anonymized history is intended - the reviews really happened - and `identity_state` on
 // `analytics.product_events_resolved` is the handle if they ever need filtering out.
 //
-// PLATFORM IS READ OFF THE ROW AND NEVER DERIVED. The producer derives it once per drain from the
-// replica that recorded the review (`apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts`), and
-// migration `0122` filled the same value on the history `0120` reconstructed, `0123` on the live
-// rows the producer wrote before it could resolve one. That derivation reads
+// PLATFORM IS READ OFF THE ROW AND NEVER DERIVED. The producer derives it once per drain
+// (`apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts`), from the replica that recorded
+// the review for every review except an AI-chat one, and migrations `0122` and `0123` filled the
+// same replica-derived value on the history `0120` reconstructed and on the live rows the producer
+// wrote before it could resolve one. That derivation reads
 // `sync.workspace_replicas.platform` only together with `actor_kind` on the same row, so a value
 // read off that column appears only for a `client_installation` replica on 'ios', 'android' or
 // 'web': an `agent_connection` replica stores 'web' for the machine API, an `ai_chat` replica
 // stores a hard-coded 'web' that describes no device, and seed/reset replicas store 'system'. An
 // `agent_connection` replica resolves to `agent` from its actor kind instead of from that column.
-// An `ai_chat` or seed/reset replica, and a review whose replica row is gone or whose resolution
-// failed, stays NULL and lands in the `unattributed` bucket, which means no resolved device fact -
-// either the actor behind the row is not a device or no device could be resolved for it - rather
-// than either case alone.
+// An AI-chat review takes the device platform stored on its chat run instead, so a device value
+// also appears for an AI-chat review whose run was started by a request that named its device, and
+// any other AI-chat review stays NULL. A seed/reset replica, and a review whose replica row is gone
+// or whose resolution failed, stays NULL too. Every NULL lands in the `unattributed` bucket, which
+// means no resolved device fact - either the actor behind the row is not a device or no device
+// could be resolved for it - rather than either case alone.
 export function buildReviewEventsByDateSql(from: string, to: string): string {
   assertValidDateRange({ from, to }, "Review events report");
 

@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import {
   isProductAnalyticsEventIdVersionValid,
-  productAnalyticsClientReportablePlatforms,
   productAnalyticsSchemaVersion,
+  readProductAnalyticsClientPlatform,
   type ProductAnalyticsClientReportablePlatform,
 } from "../productAnalytics/catalog";
 import {
@@ -139,24 +139,6 @@ function toFailureTrustLevel(requestContext: RequestContext | null): string {
   }
 
   return toTrustLevel(requestContext);
-}
-
-// x-client-platform is a claim the request makes about itself, so it is matched against the
-// client-reportable list rather than the stored platform domain. Matching it against the domain
-// would let any request claim `agent`, which no client-origin row can honestly carry, on a route
-// that is public and human-authenticated and writes to an append-only table. A header outside the
-// list is recorded as absent, exactly as an unparseable app version is.
-function readClientPlatform(
-  clientPlatform: string | null,
-): ProductAnalyticsClientReportablePlatform | null {
-  if (clientPlatform === null) {
-    return null;
-  }
-
-  const platform = clientPlatform.trim().toLowerCase();
-  return productAnalyticsClientReportablePlatforms.find(
-    (knownPlatform) => knownPlatform === platform,
-  ) ?? null;
 }
 
 // app_version is retained for the lifetime of the row, so it is bound to a version shape instead of
@@ -335,7 +317,7 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
 
     const requestId = context.get("requestId");
     const facts: ProductAnalyticsRequestFacts = {
-      platform: readClientPlatform(context.get("clientPlatform")),
+      platform: readProductAnalyticsClientPlatform(context.get("clientPlatform")),
       appVersion: readClientAppVersion(context.get("clientAppVersion")),
     };
     let requestContext: RequestContext | null = null;

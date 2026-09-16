@@ -255,7 +255,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
     const input = parseReviewRequest(submitReviewSchema, await parseOptionalJsonBody(context.req.raw));
     const workspaceId = await resolveAccessibleAgentWorkspaceId(requestContext, input.workspaceId);
     const actor = { userId: requestContext.userId, workspaceId, connectionId };
-    const result = await submitAgentReview(actor, input, resolveAgentConnectionReviewReplica);
+    const result = await submitAgentReview(actor, input, resolveAgentConnectionReviewReplica, null);
     return context.json(createAgentEnvelope(context.req.url, result, REVIEW_FLOW_INSTRUCTIONS));
   });
 

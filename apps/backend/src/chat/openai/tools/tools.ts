@@ -8,6 +8,7 @@ import {
   TransientDatabaseHttpError,
 } from "../../../database/transient";
 import { GeneratedMediaPromotionStorageTransientError } from "../../../mediaAssets/storage";
+import type { ProductAnalyticsClientReportablePlatform } from "../../../productAnalytics/catalog";
 import { resolveAccessibleChatWorkspaceId } from "../../../server/requestContext";
 import { createPublicHttpErrorDetails, HttpError } from "../../../shared/errors";
 import {
@@ -78,6 +79,7 @@ export type OpenAIToolContext = Readonly<{
   generatedImageEligible: boolean;
   signal: AbortSignal | null;
   generatedImageOperationDeadlineMs: number;
+  clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   generatedImageObservationContext: GeneratedCardImageObservationContext;
 }>;
 
@@ -847,7 +849,8 @@ function buildChatAgentToolContext(
       // There is no agent connection behind this surface, so the review event is stored against the
       // workspace's AI-chat replica, the same sync actor the chat's SQL writes carry. Binding the
       // review write without one would attribute every chat review to the placeholder connection id
-      // above, which names no connection at all.
+      // above, which names no connection at all. That replica names no device, so the review's
+      // analytics platform is the device this run was started from.
       submitAgentReview: async (reviewContext, request) => dependencies.submitAgentReview(
         reviewContext,
         request,
@@ -857,6 +860,7 @@ function buildChatAgentToolContext(
           "web",
           context.signal,
         ),
+        context.clientPlatform,
       ),
     },
   };
