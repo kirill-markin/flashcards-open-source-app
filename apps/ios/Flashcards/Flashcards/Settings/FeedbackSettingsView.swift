@@ -9,7 +9,7 @@ struct FeedbackSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "feedback.settings.description",
-                        "Share an idea, report a rough edge, or tell us what would make Flashcards better."
+                        "Share an idea, report a rough edge, or tell us what would make Nibomo better."
                     )
                 )
                     .foregroundStyle(.secondary)

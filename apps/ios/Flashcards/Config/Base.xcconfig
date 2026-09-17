@@ -1,4 +1,4 @@
-APP_DISPLAY_NAME = Flashcards
+APP_DISPLAY_NAME = Nibomo
 APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app
 APP_MARKETING_VERSION = 1.25.0
 // Keep the repository default build number stable. Signed archives should

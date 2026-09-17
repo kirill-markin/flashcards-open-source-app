@@ -6,17 +6,19 @@ Related competitor references: [Android competitors](competitor-store-metadata.m
 
 ### App Name
 
-Flashcards Open Source App
+Nibomo: AI Flashcards
 
 ### Short Description
 
-AI flashcards for exams, languages, med school, and serious daily study.
+Turn notes and photos into flashcards and remember them with spaced repetition
 
 ### Full Description
 
 Study with an AI-powered flashcards app built for people who actually need to remember what they learn.
 
-Flashcards Open Source App helps you prepare for exams, learn vocabulary, memorize medical and technical material, improve cards with AI, and keep a serious daily study habit.
+Nibomo was previously called Flashcards Open Source App.
+
+Nibomo helps you prepare for exams, learn vocabulary, memorize medical and technical material, improve cards with AI, and keep a serious daily study habit.
 
 Use it for:
 - Exam prep and coursework
@@ -55,17 +57,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-بطاقات تعليم مفتوحة المصدر
+Nibomo: بطاقات ذكاء اصطناعي
 
 ### Short Description
 
-بطاقات مراجعة بالذكاء الاصطناعي للاختبارات واللغات والدراسة الجادة.
+حوّل ملاحظاتك وصورك إلى بطاقات وتذكرها بالتكرار المتباعد
 
 ### Full Description
 
 ذاكر بتطبيق بطاقات مراجعة مدعوم بالذكاء الاصطناعي ومصمم لمن يحتاج فعلا إلى تذكر ما يتعلمه.
 
-بطاقات تعليم مفتوحة المصدر يساعدك على التحضير للاختبارات، وتعلم المفردات، وحفظ المواد الطبية والتقنية، وتحسين بطاقاتك بالذكاء الاصطناعي، وبناء عادة مذاكرة يومية جادة.
+كان اسم Nibomo سابقا بطاقات تعليم مفتوحة المصدر.
+
+Nibomo يساعدك على التحضير للاختبارات، وتعلم المفردات، وحفظ المواد الطبية والتقنية، وتحسين بطاقاتك بالذكاء الاصطناعي، وبناء عادة مذاكرة يومية جادة.
 
 استخدمه من أجل:
 - التحضير للاختبارات والدراسة الجامعية
@@ -104,17 +108,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-开源闪卡
+Nibomo: AI 闪卡
 
 ### Short Description
 
-面向考试、语言学习、医学复习与高强度日常学习的 AI 闪卡应用。
+把笔记和照片变成闪卡，并用间隔重复记住它们
 
 ### Full Description
 
-如果你学的东西必须记住，开源闪卡就是为你准备的 AI 闪卡应用。
+如果你学的东西必须记住，Nibomo 就是为你准备的 AI 闪卡应用。
 
-开源闪卡帮助你备考、积累词汇、记忆医学和技术内容、用 AI 改进卡片，并建立稳定而认真的日常学习习惯。
+Nibomo 以前叫开源闪卡。
+
+Nibomo 帮助你备考、积累词汇、记忆医学和技术内容、用 AI 改进卡片，并建立稳定而认真的日常学习习惯。
 
 适合用来：
 - 备考和课程复习
@@ -153,17 +159,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-Open-Source-Karteikarten
+Nibomo: KI-Karteikarten
 
 ### Short Description
 
-KI-Karteikarten für Prüfungen, Sprachen, Medizin und ernsthaftes Lernen.
+Aus Notizen und Fotos Karteikarten machen und mit Spaced Repetition lernen
 
 ### Full Description
 
 Lerne mit einer KI-gestützten Karteikarten-App, wenn du das Gelernte wirklich behalten willst.
 
-Open-Source-Karteikarten hilft dir bei der Prüfungsvorbereitung, beim Vokabellernen, beim Einprägen medizinischer und technischer Inhalte, beim Verbessern deiner Karten mit KI und beim Aufbau einer ernsthaften täglichen Lernroutine.
+Nibomo hieß früher Open-Source-Karteikarten.
+
+Nibomo hilft dir bei der Prüfungsvorbereitung, beim Vokabellernen, beim Einprägen medizinischer und technischer Inhalte, beim Verbessern deiner Karten mit KI und beim Aufbau einer ernsthaften täglichen Lernroutine.
 
 Nutze sie für:
 - Prüfungsvorbereitung und Studium
@@ -202,17 +210,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-ओपन सोर्स फ्लैशकार्ड
+Nibomo: AI फ्लैशकार्ड
 
 ### Short Description
 
-परीक्षा, भाषाओं, मेडिकल पढ़ाई और गंभीर रिव्यू के लिए AI फ्लैशकार्ड।
+नोट्स और फोटो से फ्लैशकार्ड बनाएं और स्पेस्ड रिपिटीशन से याद रखें
 
 ### Full Description
 
 अगर आपको सच में याद रखना है कि आप क्या पढ़ रहे हैं, तो यह AI-संचालित फ्लैशकार्ड ऐप आपके लिए है।
 
-ओपन सोर्स फ्लैशकार्ड परीक्षा की तैयारी, शब्दावली सीखने, मेडिकल और तकनीकी सामग्री याद रखने, AI की मदद से कार्ड सुधारने और रोज़ की गंभीर पढ़ाई की आदत बनाने में मदद करता है।
+Nibomo को पहले ओपन सोर्स फ्लैशकार्ड कहा जाता था।
+
+Nibomo परीक्षा की तैयारी, शब्दावली सीखने, मेडिकल और तकनीकी सामग्री याद रखने, AI की मदद से कार्ड सुधारने और रोज़ की गंभीर पढ़ाई की आदत बनाने में मदद करता है।
 
 इसे इन कामों के लिए इस्तेमाल करें:
 - परीक्षा की तैयारी और कोर्सवर्क
@@ -251,17 +261,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-オープンソース暗記カード
+Nibomo: AI暗記カード
 
 ### Short Description
 
-試験、語学、医療学習、本気の復習に使える AI フラッシュカード。
+ノートや写真から暗記カードを作り、間隔反復で覚えられます
 
 ### Full Description
 
 学んだことを本当に定着させたい人のための、AI 搭載フラッシュカードアプリです。
 
-オープンソース暗記カードは、試験対策、語彙学習、医療や技術分野の暗記、AI によるカード改善、そして毎日の学習習慣づくりを支えます。
+Nibomo は以前「オープンソース暗記カード」という名前でした。
+
+Nibomo は、試験対策、語彙学習、医療や技術分野の暗記、AI によるカード改善、そして毎日の学習習慣づくりを支えます。
 
 こんな用途に向いています:
 - 試験対策や授業の復習
@@ -300,17 +312,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-Флешкарты с открытым кодом
+Nibomo: ИИ-флешкарты
 
 ### Short Description
 
-ИИ-флешкарты для экзаменов, языков, медицины и серьезной учебы.
+Превращайте заметки и фото в карточки и учите их интервальными повторениями
 
 ### Full Description
 
 Если вам важно действительно запоминать то, что вы учите, это приложение для флешкарт с ИИ создано для вас.
 
-Флешкарты с открытым кодом помогают готовиться к экзаменам, учить слова, запоминать медицинский и технический материал, улучшать карточки с помощью ИИ и выстраивать серьезную ежедневную учебную практику.
+Раньше Nibomo назывался «Флешкарты с открытым кодом».
+
+Nibomo помогает готовиться к экзаменам, учить слова, запоминать медицинский и технический материал, улучшать карточки с помощью ИИ и выстраивать серьезную ежедневную учебную практику.
 
 Подходит для:
 - подготовки к экзаменам и учебным курсам
@@ -349,17 +363,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-Flashcards de código abierto
+Nibomo: Flashcards con IA
 
 ### Short Description
 
-Flashcards con IA para exámenes, idiomas, medicina y estudio en serio.
+Convierte notas y fotos en flashcards y recuérdalas con repetición espaciada
 
 ### Full Description
 
 Si de verdad necesitas recordar lo que estudias, esta app de flashcards con IA está hecha para ti.
 
-Flashcards de código abierto te ayuda a preparar exámenes, aprender vocabulario, memorizar contenido médico y técnico, mejorar tus tarjetas con IA y sostener un hábito de estudio diario y serio.
+Nibomo se llamaba antes Flashcards de código abierto.
+
+Nibomo te ayuda a preparar exámenes, aprender vocabulario, memorizar contenido médico y técnico, mejorar tus tarjetas con IA y sostener un hábito de estudio diario y serio.
 
 Úsala para:
 - preparar exámenes y materias
@@ -398,17 +414,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-Flashcards de código abierto
+Nibomo: Flashcards con IA
 
 ### Short Description
 
-Flashcards con IA para exámenes, idiomas, medicina y estudio de verdad.
+Convierte notas y fotos en flashcards y recuérdalas con repetición espaciada
 
 ### Full Description
 
 Si de verdad quieres recordar lo que estudias, esta app de flashcards con IA está hecha para ti.
 
-Flashcards de código abierto te ayuda a preparar exámenes, aprender vocabulario, memorizar contenido médico y técnico, mejorar tus tarjetas con IA y mantener una rutina diaria de estudio seria.
+Nibomo se llamaba antes Flashcards de código abierto.
+
+Nibomo te ayuda a preparar exámenes, aprender vocabulario, memorizar contenido médico y técnico, mejorar tus tarjetas con IA y mantener una rutina diaria de estudio seria.
 
 Úsala para:
 - preparar exámenes y asignaturas
@@ -447,17 +465,19 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### App Name
 
-Flashcards de código abierto
+Nibomo: Flashcards con IA
 
 ### Short Description
 
-Flashcards con IA para exámenes, idiomas, medicina y estudio en serio.
+Convierte notas y fotos en flashcards y recuérdalas con repetición espaciada
 
 ### Full Description
 
 Si de verdad quieres recordar lo que estudias, esta app de flashcards con IA está hecha para ti.
 
-Flashcards de código abierto te ayuda a preparar exámenes, aprender vocabulario, memorizar contenido médico y técnico, mejorar tus tarjetas con IA y mantener una rutina diaria de estudio seria.
+Nibomo se llamaba antes Flashcards de código abierto.
+
+Nibomo te ayuda a preparar exámenes, aprender vocabulario, memorizar contenido médico y técnico, mejorar tus tarjetas con IA y mantener una rutina diaria de estudio seria.
 
 Úsala para:
 - preparar exámenes y materias

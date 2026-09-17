@@ -64,7 +64,7 @@
 "ai.run.error.activeRunInProgress" = "Eine Antwort ist bereits in Bearbeitung. Warten Sie, bis der Vorgang abgeschlossen ist, oder stoppen Sie ihn, bevor Sie eine weitere Nachricht senden.";
 "ai.dictation.error.microphoneUnavailable" = "Das Mikrofon ist auf diesem Gerät nicht verfügbar.";
 "ai.dictation.error.microphoneDenied" = "Der Zugriff auf das Mikrofon wurde nicht gewährt.";
-"ai.dictation.error.microphoneBlocked" = "Der Mikrofonzugriff ist für die Flashcards Open Source App deaktiviert. Aktivieren Sie es unter Einstellungen > Datenschutz und Sicherheit > Mikrofon.";
+"ai.dictation.error.microphoneBlocked" = "Der Mikrofonzugriff ist für Nibomo deaktiviert. Aktivieren Sie es unter Einstellungen > Datenschutz und Sicherheit > Mikrofon.";
 "ai.dictation.error.invalidRecording" = "Die Audioaufnahme konnte nicht vorbereitet werden.";
 "ai.dictation.error.recordingStartFailed" = "Die Mikrofonaufnahme konnte nicht gestartet werden.";
 "ai.dictation.error.emptyRecording" = "Es wurde keine Stimme aufgezeichnet.";
@@ -138,7 +138,7 @@
 "settings.title" = "Einstellungen";
 "settings.inviteFriend.button" = "Freund hinzufügen";
 "settings.section.share" = "Teilen";
-"settings.row.shareApp" = "Flashcards teilen";
+"settings.row.shareApp" = "Nibomo teilen";
 "settings.section.feedback" = "Feedback";
 "settings.row.reviewInAppStore" = "Im App Store bewerten";
 "settings.row.sharePrivateFeedback" = "Privates Feedback teilen";
@@ -194,8 +194,8 @@
 "settings.leaderboardParticipation.description" = "Wenn diese Einstellung aus ist, erscheint deine anonyme Aktivität nicht in der Bestenliste.";
 "settings.leaderboardParticipation.signInRequired" = "Verbinde die Cloud-Synchronisierung, um die Bestenlisten-Teilnahme zu verwalten.";
 "settings.language.title" = "Sprache";
-"settings.language.systemDescription" = "iOS steuert die App-Sprache. Öffne in den iOS-Einstellungen Flashcards und verwende Bevorzugte Sprache. Wenn Bevorzugte Sprache nicht angezeigt wird, füge zuerst unter Einstellungen > Allgemein > Sprache & Region eine weitere Sprache hinzu.";
-"settings.language.action.openAppSettings" = "Einstellungen für Flashcards öffnen";
+"settings.language.systemDescription" = "iOS steuert die App-Sprache. Öffne in den iOS-Einstellungen Nibomo und verwende Bevorzugte Sprache. Wenn Bevorzugte Sprache nicht angezeigt wird, füge zuerst unter Einstellungen > Allgemein > Sprache & Region eine weitere Sprache hinzu.";
+"settings.language.action.openAppSettings" = "Einstellungen für Nibomo öffnen";
 "settings.language.section.supportedLanguages" = "Unterstützte Sprachen";
 "settings.language.supported.english" = "Englisch";
 "settings.language.supported.arabic" = "Arabisch";
@@ -206,7 +206,7 @@
 "settings.language.supported.russian" = "Russisch";
 "settings.language.supported.spanishMexico" = "Spanisch Mexiko";
 "settings.language.supported.spanishSpain" = "Spanisch Spanien";
-"feedback.settings.description" = "Teilen Sie eine Idee, melden Sie eine raue Stelle oder sagen Sie uns, was Flashcards besser machen würde.";
+"feedback.settings.description" = "Teilen Sie eine Idee, melden Sie eine raue Stelle oder sagen Sie uns, was Nibomo besser machen würde.";
 "settings.sync.success" = "Erfolgreich synchronisiert";
 "settings.sync.guestAiActive" = "Gast-KI ist aktiv";
 "settings.sync.notSyncing" = "Keine Synchronisierung";
@@ -371,7 +371,7 @@
 "settings.access.section.permissions" = "Berechtigungen";
 "settings.access.notifications" = "Benachrichtigungen";
 "settings.access.thisDevice" = "Dieses Gerät";
-"settings.access.footer" = "Die Flashcards Open Source App fordert nur den Zugriff an, der für Anhänge und Diktate im Chat erforderlich ist.";
+"settings.access.footer" = "Nibomo fordert nur den Zugriff an, der für Anhänge und Diktate im Chat erforderlich ist.";
 "settings.access.detail.status" = "Status";
 "settings.access.kind.photos" = "Fotos";
 "settings.access.kind.camera" = "Kamera";
@@ -386,10 +386,10 @@
 "settings.access.status.unavailable" = "Nicht verfügbar";
 "settings.access.action.request" = "Zugriff anfordern";
 "settings.access.action.openSettings" = "Öffnen Sie Einstellungen";
-"settings.access.guidance.photos.limited" = "Es sind nur Fotos verfügbar, die Sie bereits mit der Flashcards Open Source App geteilt haben. Öffnen Sie die Einstellungen, um umfassenderen Zugriff auf Fotos zu gewähren.";
-"settings.access.guidance.photos.blocked" = "Der Zugriff auf Fotos ist für die Flashcards Open Source App deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Fotos, um es zu ändern.";
-"settings.access.guidance.camera.blocked" = "Der Kamerazugriff ist für die Flashcards Open Source App deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Kamera, um sie zu ändern.";
-"settings.access.guidance.microphone.blocked" = "Der Mikrofonzugriff ist für die Flashcards Open Source App deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Mikrofon, um es zu ändern.";
+"settings.access.guidance.photos.limited" = "Es sind nur Fotos verfügbar, die Sie bereits mit Nibomo geteilt haben. Öffnen Sie die Einstellungen, um umfassenderen Zugriff auf Fotos zu gewähren.";
+"settings.access.guidance.photos.blocked" = "Der Zugriff auf Fotos ist für Nibomo deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Fotos, um es zu ändern.";
+"settings.access.guidance.camera.blocked" = "Der Kamerazugriff ist für Nibomo deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Kamera, um sie zu ändern.";
+"settings.access.guidance.microphone.blocked" = "Der Mikrofonzugriff ist für Nibomo deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Mikrofon, um es zu ändern.";
 "settings.access.guidance.askEveryTime" = "Fordern Sie jetzt den Zugriff an oder öffnen Sie später die Einstellungen, wenn Sie ihn manuell verwalten möchten.";
 "settings.access.guidance.allowed" = "Öffnen Sie die Einstellungen, wenn Sie diesen Zugriff deaktivieren möchten.";
 "settings.access.guidance.limited" = "Öffnen Sie „Einstellungen“, um diesen Zugriff zu überprüfen oder zu erweitern.";
@@ -641,7 +641,7 @@
 "settings.notifications.section.appIconBadge" = "App-Symbol-Badge";
 "settings.notifications.section.strictReminders" = "Serien-Erinnerungen";
 "settings.notifications.enableStrictReminders" = "Serien-Erinnerungen aktivieren";
-"settings.notifications.strictReminders.description" = "Wenn du heute im aktuellen Arbeitsbereich noch nicht wiederholt hast, erinnert dich Flashcards 4, 3 und 2 Stunden vor Mitternacht, damit deine Serie bleibt.";
+"settings.notifications.strictReminders.description" = "Wenn du heute im aktuellen Arbeitsbereich noch nicht wiederholt hast, erinnert dich Nibomo 4, 3 und 2 Stunden vor Mitternacht, damit deine Serie bleibt.";
 "settings.notifications.section.dailyReminder" = "Einmal täglich";
 "settings.notifications.permission.allowed" = "Zulässig";
 "settings.notifications.permission.notRequested" = "Noch nicht angefragt";
@@ -695,7 +695,7 @@
 "settings.row.import.value" = "ZIP";
 "settings.workspace.import.title" = "Import";
 "settings.workspace.import.cloudRequired" = "Medien-ZIP-Import erfordert in dieser Version ein Cloud-Konto.";
-"settings.workspace.import.invalidFile" = "Wähle ein Flashcards-ZIP-Paket aus.";
+"settings.workspace.import.invalidFile" = "Wähle ein Nibomo-ZIP-Paket aus.";
 "settings.workspace.import.fileTooLarge" = "Wähle ein ZIP-Paket bis zu %d MB aus.";
 "settings.workspace.import.missingImportTag" = "Gib vor dem Importieren einen Import-Tag ein.";
 "settings.workspace.import.warningWithPath" = "%@: %@";
@@ -773,7 +773,7 @@
 
 "settings.row.sendFeedback" = "Feedback senden";
 "settings.row.sendFeedback.value" = "Idee teilen";
-"feedback.sheet.title" = "Haben Sie eine Idee für Flashcards?";
+"feedback.sheet.title" = "Haben Sie eine Idee für Nibomo?";
 "feedback.sheet.body" = "Teilen Sie mit, was die App besser machen würde. Der Entwickler liest jede Nachricht persönlich.";
 "feedback.sheet.placeholder" = "Schreiben Sie hier Ihre Idee";
 "feedback.sheet.send" = "Senden";
@@ -789,7 +789,7 @@
 "settings.account.server.validation.invalidStatusCode" = "Die Statusprüfung von %@ hat Status %d für %@ zurückgegeben";
 "settings.account.server.validation.redirectedToDifferentOrigin" = "Die Statusprüfung von %@ für %@ wurde an einen anderen Server weitergeleitet: %@. Konfigurieren Sie sie so, dass sie auf demselben Server antwortet, und versuchen Sie es erneut.";
 "settings.account.server.validation.invalidApiHealthResponse" = "Der API-Status unter %@ gibt keinen gültigen Dienst und Cloud-Vertrag an. Aktualisieren Sie den benutzerdefinierten Server, stellen Sie ihn erneut bereit und versuchen Sie es dann erneut.";
-"settings.account.server.validation.unexpectedApiService" = "Der API-Status unter %@ identifiziert %@ statt eines kompatiblen Flashcards-Backends. Aktualisieren Sie den benutzerdefinierten Server, stellen Sie ihn erneut bereit und versuchen Sie es dann erneut.";
+"settings.account.server.validation.unexpectedApiService" = "Der API-Status unter %@ identifiziert %@ statt eines kompatiblen Nibomo-Backends. Aktualisieren Sie den benutzerdefinierten Server, stellen Sie ihn erneut bereit und versuchen Sie es dann erneut.";
 "settings.account.server.validation.unsupportedCloudContractVersion" = "Der API-Status unter %@ gibt die nicht unterstützte Cloud-Vertragsversion %d an. Diese App benötigt Version 1. Aktualisieren Sie den benutzerdefinierten Server, stellen Sie ihn erneut bereit und versuchen Sie es dann erneut.";
 "settings.sync.customGuestWorkspacePaused.message" = "Dieser benutzerdefinierte Server kann nicht auf diesen Gast-Arbeitsbereich zugreifen. Der Server ist möglicherweise inkompatibel oder falsch konfiguriert. Die Synchronisierung ist pausiert; Ihre lokalen Karten und ausstehenden Änderungen sind auf diesem Gerät sicher.";
 "settings.account.status.customGuestPause.title" = "Gast-Cloud-Arbeitsbereich nicht verfügbar";
