@@ -71,6 +71,15 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0137_audience_context.sql",
+    expectedMigrationCount: 139,
+    testFiles: Object.freeze([
+      "src/agent/reviews.postgres.integration.ts",
+      "src/catalog/distribution/install/install.postgres.integration.ts",
+      "src/productAnalytics/writer.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0136_ai_chat_run_client_platform.sql",
     expectedMigrationCount: 138,
     testFiles: Object.freeze([
@@ -121,7 +130,6 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0129_correct_legacy_catalog_language_tag.sql",
     expectedMigrationCount: 131,
     testFiles: Object.freeze([
-      "src/agent/reviews.postgres.integration.ts",
       "src/catalog/authoring/versions/legacyLanguageTagCorrection.postgres.integration.ts",
     ]),
   }),
@@ -139,9 +147,7 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0123_backfill_live_review_answered_platform.sql",
     expectedMigrationCount: 125,
     testFiles: Object.freeze([
-      "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/serverFacts/serverEvents.postgres.integration.ts",
-      "src/productAnalytics/writer.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
