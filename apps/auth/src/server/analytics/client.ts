@@ -260,6 +260,7 @@ export async function postAnalyticsEvents(
         "Content-Type": "application/json",
         Authorization: `Guest ${guestToken}`,
         "x-client-platform": "web",
+        "x-analytics-relay": "auth",
       },
       body: JSON.stringify(batch),
       signal: AbortSignal.timeout(call.timeoutMs),

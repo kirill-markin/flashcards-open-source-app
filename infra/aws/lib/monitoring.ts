@@ -27,6 +27,7 @@ import { communityLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/comm
 import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
 import { webGuestReaperScheduleHours } from "./scheduled-jobs/web-guest-reaper";
+import { countryRetentionScheduleHours } from "./scheduled-jobs/country-retention";
 import { addProductAnalyticsMonitoring } from "./product-analytics-monitoring";
 
 const restApiNoTrafficEvaluationPeriods = 4;
@@ -62,6 +63,7 @@ export interface MonitoringProps {
   // Concrete `lambda.Function` for the same reason as the two above: the saturation metric filter
   // reads `.logGroup`.
   webGuestReaperFn: lambda.Function;
+  countryRetentionFn: lambda.IFunction;
   generatedMediaPromotionFn: lambda.IFunction;
   multipartCompletionReconciliationFn: lambda.Function;
   catalogDumpFn: lambda.IFunction;
@@ -685,6 +687,24 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       "Web guest reaper finished a run with candidates still waiting, " +
       "so never-converted web guest identities are being minted faster than the schedule reaps them",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "CountryRetentionLambdaErrorAlarm", {
+    metric: props.countryRetentionFn.metricErrors({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Country retention failed or left expired periods behind; inspect capacity and database contention",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "CountryRetentionStaleAlarm", {
+    metric: props.countryRetentionFn.metricInvocations({ period: cdk.Duration.hours(countryRetentionScheduleHours), statistic: "Sum" }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription: "Country retention has not run for two consecutive days",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 
   notifyAlertTopic(new cloudwatch.Alarm(scope, "GeneratedMediaPromotionLambdaErrorAlarm", {

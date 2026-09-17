@@ -1,4 +1,5 @@
 import type { Context } from "aws-lambda";
+import { runWithApiGatewayCountry } from "../geolocation/requestCountry";
 import type { APIGatewayProxyResult, LambdaEvent } from "hono/aws-lambda";
 import {
   captureBackendException,
@@ -171,7 +172,8 @@ const backendApiBootstrapHandler: BackendApiHandler = async (event, context) => 
     let runtime: BackendApiRuntime | null = null;
     try {
       runtime = await getBackendApiRuntime();
-      return await runtime.handleRequest(event, context);
+      const activeRuntime = runtime;
+      return await runWithApiGatewayCountry(event, () => activeRuntime.handleRequest(event, context));
     } catch (error) {
       if (runtime === null) {
         const normalizedError = normalizeCaughtError(error);

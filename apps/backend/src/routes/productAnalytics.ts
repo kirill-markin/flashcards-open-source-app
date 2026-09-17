@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { getDirectRequestCountryLookup } from "../geolocation/requestCountry";
 import { Hono } from "hono";
 import {
   isProductAnalyticsEventIdVersionValid,
@@ -413,6 +414,10 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
             appVersion: facts.appVersion,
             context: batch.context,
             observedAt: serverReceivedAt,
+            // Old auth relays send no device context, including during a mixed-version rollout.
+            countryLookup: Object.values(batch.context).some((value) => value !== null && value !== "")
+              ? getDirectRequestCountryLookup()
+              : null,
           };
       const stored = await insertProductAnalyticsClientBatchFn(rows, identityLink, installation);
       if (identityLink !== null) {
