@@ -62,7 +62,7 @@ function normalizeLanguageTag(languageTag: string): string | null {
   }
 }
 
-function normalizeSupportedLoginPageLocale(languageTag: string): LoginPageLocale | null {
+export function normalizeSupportedLoginPageLocale(languageTag: string): LoginPageLocale | null {
   const normalizedLanguageTag = normalizeLanguageTag(languageTag);
   if (normalizedLanguageTag === null) {
     return null;
