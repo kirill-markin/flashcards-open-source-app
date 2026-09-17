@@ -65,7 +65,7 @@ function getResendEmailConfig(): ResendEmailConfig {
   return {
     apiKey: getRequiredEnvironmentValue("RESEND_API_KEY"),
     fromEmail: getRequiredEnvironmentValue("RESEND_FROM_EMAIL"),
-    fromName: "Flashcards Open Source App",
+    fromName: "Nibomo",
   };
 }
 
@@ -104,7 +104,7 @@ function buildFeedbackNotificationHtml(input: FeedbackNotificationEmailInput): s
   ].join("");
 
   return [
-    "<h1>Flashcards feedback</h1>",
+    "<h1>Nibomo feedback</h1>",
     "<h2>Message</h2>",
     `<p>${escapeHtml(input.message).replaceAll("\n", "<br>")}</p>`,
     "<h2>Context</h2>",
@@ -113,7 +113,7 @@ function buildFeedbackNotificationHtml(input: FeedbackNotificationEmailInput): s
 }
 
 function buildFeedbackNotificationSubject(input: FeedbackNotificationEmailInput): string {
-  return `Flashcards feedback (${input.trigger}, ${input.platform})`;
+  return `Nibomo feedback (${input.trigger}, ${input.platform})`;
 }
 
 async function sendResendFeedbackEmail(request: ResendEmailRequest, fetchFn: FetchFunction): Promise<void> {

@@ -672,7 +672,7 @@ describe("WorkspaceImportScreen package import", () => {
     ));
 
     expect(requireElement("[data-testid='workspace-import-error']", HTMLParagraphElement).textContent).toContain(
-      "This file is not a valid flashcards.zip. Choose a package exported from Flashcards Open Source App.",
+      "This file is not a valid flashcards.zip. Choose a package exported from Nibomo.",
     );
     expect(getContainer().querySelector("[data-testid='workspace-package-import-preview']")).toBeNull();
     expect(document.body.querySelector("[data-testid='app-error-dialog']")).toBeNull();
