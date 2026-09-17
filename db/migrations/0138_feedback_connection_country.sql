@@ -1,4 +1,4 @@
--- Schemas touched: support.
+-- Schemas touched/read explicitly: support.
 ALTER TABLE support.feedback_submissions ADD COLUMN country TEXT
   CHECK (country ~ '^[A-Z]{2}$');
 
