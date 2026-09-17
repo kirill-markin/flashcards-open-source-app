@@ -8,6 +8,7 @@ import { storeFeedbackSubmissionForUser } from "../feedback/store";
 import {
   insertProductAnalyticsClientBatch,
   insertProductAnalyticsIdentityLink,
+  type ProductAnalyticsClientBatchResult,
 } from "./writer";
 import type { ProductAnalyticsEventRow, ProductAnalyticsInstallationObservation } from "./types";
 
@@ -578,10 +579,40 @@ test("country periods dedupe concurrent days, retain first known country, and ex
       observedAt: new Date(startedAt.getTime() + 2_000),
       countryLookup: async (): Promise<string> => { lookups += 1; return "ES"; },
     };
-    await Promise.all([
-      insertProductAnalyticsClientBatch([event], null, concurrentSample),
-      insertProductAnalyticsClientBatch([event], null, concurrentSample),
-    ]);
+    let competingResult: Promise<Array<PromiseSettledResult<ProductAnalyticsClientBatchResult>>> = Promise.resolve([]);
+    try {
+      await insertProductAnalyticsClientBatch([event], null, {
+        ...concurrentSample,
+        countryLookup: async (): Promise<string> => {
+          lookups += 1;
+          // Start after the first checkout: pg briefly queues idle-client acquisition, which
+          // the production writer deliberately refuses rather than admitting another request.
+          competingResult = Promise.allSettled([
+            insertProductAnalyticsClientBatch([event], null, concurrentSample),
+          ]);
+          for (let attempt = 0; attempt < 80; attempt += 1) {
+            const blocked = await ownerPool.query<{ blocked: boolean }>(
+              `SELECT EXISTS (
+                 SELECT 1 FROM pg_stat_activity AS waiter
+                 JOIN pg_stat_activity AS blocker ON blocker.pid = ANY(pg_blocking_pids(waiter.pid))
+                 WHERE waiter.datname = current_database() AND blocker.datname = current_database()
+                   AND blocker.state = 'idle in transaction'
+                   AND blocker.query LIKE 'SELECT country_sampled_at FROM analytics.installation_profiles%'
+               ) AS blocked`,
+            );
+            if (blocked.rows[0]?.blocked === true) return "ES";
+            await new Promise<void>((resolve) => setTimeout(resolve, 25));
+          }
+          throw new Error("The competing country sample did not wait for the first writer transaction.");
+        },
+      });
+    } finally {
+      // Drain the admitted writer before fixture cleanup, including when contention is absent.
+      await competingResult;
+    }
+    const [competingOutcome] = await competingResult;
+    assert.ok(competingOutcome);
+    if (competingOutcome.status === "rejected") throw competingOutcome.reason;
     assert.equal(lookups, 1);
     await writeSample(3_000, "FR");
     assert.deepEqual((await loadPeriods()).map((row) => row.country), [null, "ES"]);
