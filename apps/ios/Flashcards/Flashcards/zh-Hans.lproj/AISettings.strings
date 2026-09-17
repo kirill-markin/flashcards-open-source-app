@@ -64,7 +64,7 @@
 "ai.run.error.activeRunInProgress" = "已经有回应正在进行中。等待它完成或停止它，然后再发送另一条消息。";
 "ai.dictation.error.microphoneUnavailable" = "麦克风在此设备上不可用。";
 "ai.dictation.error.microphoneDenied" = "未授予麦克风访问权限。";
-"ai.dictation.error.microphoneBlocked" = "抽认卡开源应用程序禁用麦克风访问。在“设置”>“隐私和安全”>“麦克风”中激活它。";
+"ai.dictation.error.microphoneBlocked" = "Nibomo 禁用麦克风访问。在“设置”>“隐私和安全”>“麦克风”中激活它。";
 "ai.dictation.error.invalidRecording" = "无法准备录制的音频。";
 "ai.dictation.error.recordingStartFailed" = "无法开始麦克风录音。";
 "ai.dictation.error.emptyRecording" = "没有录制声音。";
@@ -138,7 +138,7 @@
 "settings.title" = "设置";
 "settings.inviteFriend.button" = "添加好友";
 "settings.section.share" = "分享";
-"settings.row.shareApp" = "分享 Flashcards";
+"settings.row.shareApp" = "分享 Nibomo";
 "settings.section.feedback" = "反馈";
 "settings.row.reviewInAppStore" = "在 App Store 中评价";
 "settings.row.sharePrivateFeedback" = "私下分享反馈";
@@ -194,8 +194,8 @@
 "settings.leaderboardParticipation.description" = "关闭后，你的匿名活动不会显示在排行榜中。";
 "settings.leaderboardParticipation.signInRequired" = "连接云同步后即可管理排行榜参与。";
 "settings.language.title" = "语言";
-"settings.language.systemDescription" = "iOS 控制 App 语言。在 iOS 设置中打开 Flashcards，并使用“首选语言”。如果没有显示“首选语言”，请先在“设置”>“通用”>“语言与地区”中添加另一种语言。";
-"settings.language.action.openAppSettings" = "打开 Flashcards 设置";
+"settings.language.systemDescription" = "iOS 控制 App 语言。在 iOS 设置中打开 Nibomo，并使用“首选语言”。如果没有显示“首选语言”，请先在“设置”>“通用”>“语言与地区”中添加另一种语言。";
+"settings.language.action.openAppSettings" = "打开 Nibomo 设置";
 "settings.language.section.supportedLanguages" = "支持的语言";
 "settings.language.supported.english" = "英语";
 "settings.language.supported.arabic" = "阿拉伯语";
@@ -206,7 +206,7 @@
 "settings.language.supported.russian" = "俄语";
 "settings.language.supported.spanishMexico" = "西班牙语（墨西哥）";
 "settings.language.supported.spanishSpain" = "西班牙语（西班牙）";
-"feedback.settings.description" = "分享想法、报告体验问题，或告诉我们怎样能让 Flashcards 变得更好。";
+"feedback.settings.description" = "分享想法、报告体验问题，或告诉我们怎样能让 Nibomo 变得更好。";
 "settings.sync.success" = "同步成功";
 "settings.sync.guestAiActive" = "访客AI已激活";
 "settings.sync.notSyncing" = "不同步";
@@ -371,7 +371,7 @@
 "settings.access.section.permissions" = "权限";
 "settings.access.notifications" = "通知";
 "settings.access.thisDevice" = "此设备";
-"settings.access.footer" = "抽认卡开源应用程序仅请求聊天中附件和听写所需的访问权限。";
+"settings.access.footer" = "Nibomo 仅请求聊天中附件和听写所需的访问权限。";
 "settings.access.detail.status" = "状态";
 "settings.access.kind.photos" = "照片";
 "settings.access.kind.camera" = "相机";
@@ -386,10 +386,10 @@
 "settings.access.status.unavailable" = "不可用";
 "settings.access.action.request" = "请求访问";
 "settings.access.action.openSettings" = "打开设置";
-"settings.access.guidance.photos.limited" = "仅可使用您已与抽认卡开源应用程序共享的照片。打开“设置”以授予对照片更广泛的访问权限。";
-"settings.access.guidance.photos.blocked" = "抽认卡开源应用程序禁用对照片的访问。打开“设置”>“隐私和安全”>“照片”进行更改。";
-"settings.access.guidance.camera.blocked" = "抽认卡开源应用程序禁用相机访问。打开“设置”>“隐私和安全”>“相机”进行更改。";
-"settings.access.guidance.microphone.blocked" = "抽认卡开源应用程序禁用麦克风访问。打开“设置”>“隐私和安全”>“麦克风”进行更改。";
+"settings.access.guidance.photos.limited" = "仅可使用您已与 Nibomo 共享的照片。打开“设置”以授予对照片更广泛的访问权限。";
+"settings.access.guidance.photos.blocked" = "Nibomo 禁用对照片的访问。打开“设置”>“隐私和安全”>“照片”进行更改。";
+"settings.access.guidance.camera.blocked" = "Nibomo 禁用相机访问。打开“设置”>“隐私和安全”>“相机”进行更改。";
+"settings.access.guidance.microphone.blocked" = "Nibomo 禁用麦克风访问。打开“设置”>“隐私和安全”>“麦克风”进行更改。";
 "settings.access.guidance.askEveryTime" = "立即请求访问权限，如果您想手动管理，请稍后打开“设置”。";
 "settings.access.guidance.allowed" = "如果您想禁用此访问，请打开“设置”。";
 "settings.access.guidance.limited" = "打开“设置”以查看或扩展此访问权限。";
@@ -641,7 +641,7 @@
 "settings.notifications.section.appIconBadge" = "应用图标徽章";
 "settings.notifications.section.strictReminders" = "连续记录提醒";
 "settings.notifications.enableStrictReminders" = "启用连续记录提醒";
-"settings.notifications.strictReminders.description" = "如果你今天还未在当前工作区复习，Flashcards 会在午夜前 4、3、2 小时提醒你，帮助你保持连续记录。";
+"settings.notifications.strictReminders.description" = "如果你今天还未在当前工作区复习，Nibomo 会在午夜前 4、3、2 小时提醒你，帮助你保持连续记录。";
 "settings.notifications.section.dailyReminder" = "每天一次";
 "settings.notifications.permission.allowed" = "允许";
 "settings.notifications.permission.notRequested" = "尚未请求";
@@ -695,7 +695,7 @@
 "settings.row.import.value" = "ZIP";
 "settings.workspace.import.title" = "导入";
 "settings.workspace.import.cloudRequired" = "此版本导入媒体 ZIP 需要云账户。";
-"settings.workspace.import.invalidFile" = "请选择 Flashcards ZIP 包。";
+"settings.workspace.import.invalidFile" = "请选择 Nibomo ZIP 包。";
 "settings.workspace.import.fileTooLarge" = "请选择不超过 %d MB 的 ZIP 包。";
 "settings.workspace.import.missingImportTag" = "导入前请输入导入标签。";
 "settings.workspace.import.warningWithPath" = "%@: %@";
@@ -773,7 +773,7 @@
 
 "settings.row.sendFeedback" = "发送反馈";
 "settings.row.sendFeedback.value" = "分享想法";
-"feedback.sheet.title" = "对 Flashcards 有想法吗？";
+"feedback.sheet.title" = "对 Nibomo 有想法吗？";
 "feedback.sheet.body" = "告诉我们怎样能让应用变得更好。创建者会亲自阅读每一条消息。";
 "feedback.sheet.placeholder" = "在这里写下你的想法";
 "feedback.sheet.send" = "发送";
@@ -789,7 +789,7 @@
 "settings.account.server.validation.invalidStatusCode" = "%@ 的健康检查返回状态 %d（%@）";
 "settings.account.server.validation.redirectedToDifferentOrigin" = "%@ 对 %@ 的健康检查被重定向到另一台服务器：%@。请将其配置为由同一服务器响应，然后重试。";
 "settings.account.server.validation.invalidApiHealthResponse" = "%@ 的 API 健康信息未声明有效的服务和云协议。请更新并重新部署自定义服务器，然后重试。";
-"settings.account.server.validation.unexpectedApiService" = "%@ 的 API 健康信息标识为 %@，而不是兼容的 Flashcards 后端。请更新并重新部署自定义服务器，然后重试。";
+"settings.account.server.validation.unexpectedApiService" = "%@ 的 API 健康信息标识为 %@，而不是兼容的 Nibomo 后端。请更新并重新部署自定义服务器，然后重试。";
 "settings.account.server.validation.unsupportedCloudContractVersion" = "%@ 的 API 健康信息声明了不受支持的云协议版本 %d。此应用需要版本 1。请更新并重新部署自定义服务器，然后重试。";
 "settings.sync.customGuestWorkspacePaused.message" = "此自定义服务器无法访问这个访客工作区。服务器可能不兼容或配置有误。同步已暂停，你的本地卡片和待处理更改仍安全保存在此设备上。";
 "settings.account.status.customGuestPause.title" = "访客云工作区不可用";

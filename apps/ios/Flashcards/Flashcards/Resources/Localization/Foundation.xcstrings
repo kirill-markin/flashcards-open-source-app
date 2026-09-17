@@ -125,55 +125,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Flashcards Open Source App. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+            "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Kamerazugriff für Flashcards Open Source App ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Kamera, um das zu ändern."
+            "value" : "Der Kamerazugriff für Nibomo ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Kamera, um das zu ändern."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Camera access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Camera to change it."
+            "value" : "Camera access is turned off for Nibomo. Open Settings > Privacy & Security > Camera to change it."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Cámara para cambiarlo."
+            "value" : "El acceso a la cámara está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Cámara para cambiarlo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Cámara para cambiarlo."
+            "value" : "El acceso a la cámara está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Cámara para cambiarlo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App के लिए कैमरा एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > कैमरा खोलें।"
+            "value" : "Nibomo के लिए कैमरा एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > कैमरा खोलें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App のカメラへのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「カメラ」を開いてください。"
+            "value" : "Nibomo のカメラへのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「カメラ」を開いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ к камере для Flashcards Open Source App отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Камера»."
+            "value" : "Доступ к камере для Nibomo отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Камера»."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App 的相机访问权限已关闭。打开“设置”>“隐私与安全性”>“相机”进行更改。"
+            "value" : "Nibomo 的相机访问权限已关闭。打开“设置”>“隐私与安全性”>“相机”进行更改。"
           }
         }
       }
@@ -243,55 +243,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Flashcards Open Source App. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+            "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Mikrofonzugriff für Flashcards Open Source App ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Mikrofon, um das zu ändern."
+            "value" : "Der Mikrofonzugriff für Nibomo ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Mikrofon, um das zu ändern."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Microphone access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Microphone to change it."
+            "value" : "Microphone access is turned off for Nibomo. Open Settings > Privacy & Security > Microphone to change it."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Micrófono para cambiarlo."
+            "value" : "El acceso al micrófono está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Micrófono para cambiarlo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Micrófono para cambiarlo."
+            "value" : "El acceso al micrófono está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Micrófono para cambiarlo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App के लिए माइक्रोफ़ोन एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।"
+            "value" : "Nibomo के लिए माइक्रोफ़ोन एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App のマイクへのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「マイク」を開いてください。"
+            "value" : "Nibomo のマイクへのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「マイク」を開いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ к микрофону для Flashcards Open Source App отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Микрофон»."
+            "value" : "Доступ к микрофону для Nibomo отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Микрофон»."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App 的麦克风访问权限已关闭。打开“设置”>“隐私与安全性”>“麦克风”进行更改。"
+            "value" : "Nibomo 的麦克风访问权限已关闭。打开“设置”>“隐私与安全性”>“麦克风”进行更改。"
           }
         }
       }
@@ -302,55 +302,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم إيقاف الوصول إلى الصور لتطبيق Flashcards Open Source App. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
+            "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Zugriff auf Fotos für Flashcards Open Source App ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Fotos, um das zu ändern."
+            "value" : "Der Zugriff auf Fotos für Nibomo ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Fotos, um das zu ändern."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Photo access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Photos to change it."
+            "value" : "Photo access is turned off for Nibomo. Open Settings > Privacy & Security > Photos to change it."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Fotos para cambiarlo."
+            "value" : "El acceso a Fotos está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Fotos para cambiarlo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Fotos para cambiarlo."
+            "value" : "El acceso a Fotos está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Fotos para cambiarlo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App के लिए फ़ोटो एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > फ़ोटो खोलें।"
+            "value" : "Nibomo के लिए फ़ोटो एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > फ़ोटो खोलें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App の写真へのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「写真」を開いてください。"
+            "value" : "Nibomo の写真へのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「写真」を開いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ к фото для Flashcards Open Source App отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Фото»."
+            "value" : "Доступ к фото для Nibomo отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Фото»."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App 的照片访问权限已关闭。打开“设置”>“隐私与安全性”>“照片”进行更改。"
+            "value" : "Nibomo 的照片访问权限已关闭。打开“设置”>“隐私与安全性”>“照片”进行更改。"
           }
         }
       }
@@ -361,55 +361,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Flashcards Open Source App. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+            "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Es sind nur die Fotos verfügbar, die du bereits mit Flashcards Open Source App geteilt hast. Öffne die Einstellungen, um umfassenderen Fotozugriff zu gewähren."
+            "value" : "Es sind nur die Fotos verfügbar, die du bereits mit Nibomo geteilt hast. Öffne die Einstellungen, um umfassenderen Fotozugriff zu gewähren."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only the photos you already shared with Flashcards Open Source App are available. Open Settings to grant broader photo access."
+            "value" : "Only the photos you already shared with Nibomo are available. Open Settings to grant broader photo access."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo están disponibles las fotos que ya compartiste con Flashcards Open Source App. Abre Ajustes para conceder un acceso más amplio a Fotos."
+            "value" : "Solo están disponibles las fotos que ya compartiste con Nibomo. Abre Ajustes para conceder un acceso más amplio a Fotos."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solo están disponibles las fotos que ya compartiste con Flashcards Open Source App. Abre Ajustes para conceder un acceso más amplio a Fotos."
+            "value" : "Solo están disponibles las fotos que ya compartiste con Nibomo. Abre Ajustes para conceder un acceso más amplio a Fotos."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "केवल वही फ़ोटो उपलब्ध हैं जिन्हें आपने पहले से Flashcards Open Source App के साथ साझा किया है। फ़ोटो का व्यापक एक्सेस देने के लिए सेटिंग्स खोलें।"
+            "value" : "केवल वही फ़ोटो उपलब्ध हैं जिन्हें आपने पहले से Nibomo के साथ साझा किया है। फ़ोटो का व्यापक एक्सेस देने के लिए सेटिंग्स खोलें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App とすでに共有した写真のみ利用できます。より広い写真アクセスを許可するには、「設定」を開いてください。"
+            "value" : "Nibomo とすでに共有した写真のみ利用できます。より広い写真アクセスを許可するには、「設定」を開いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступны только те фотографии, которыми вы уже поделились с Flashcards Open Source App. Откройте «Настройки», чтобы предоставить более широкий доступ к фото."
+            "value" : "Доступны только те фотографии, которыми вы уже поделились с Nibomo. Откройте «Настройки», чтобы предоставить более широкий доступ к фото."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "目前只可使用你已与 Flashcards Open Source App 共享的照片。打开“设置”以授予更广泛的照片访问权限。"
+            "value" : "目前只可使用你已与 Nibomo 共享的照片。打开“设置”以授予更广泛的照片访问权限。"
           }
         }
       }
@@ -1128,55 +1128,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Flashcards Open Source App. افتح الإعدادات للسماح به."
+            "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Mikrofonzugriff für Flashcards Open Source App ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
+            "value" : "Der Mikrofonzugriff für Nibomo ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Microphone access is turned off for Flashcards Open Source App. Open Settings to allow it."
+            "value" : "Microphone access is turned off for Nibomo. Open Settings to allow it."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+            "value" : "El acceso al micrófono está desactivado para Nibomo. Abre Ajustes para permitirlo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+            "value" : "El acceso al micrófono está desactivado para Nibomo. Abre Ajustes para permitirlo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App के लिए माइक्रोफ़ोन एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
+            "value" : "Nibomo के लिए माइक्रोफ़ोन एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App のマイクへのアクセスはオフです。許可するには「設定」を開いてください。"
+            "value" : "Nibomo のマイクへのアクセスはオフです。許可するには「設定」を開いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ к микрофону для Flashcards Open Source App отключен. Откройте «Настройки», чтобы разрешить его."
+            "value" : "Доступ к микрофону для Nibomo отключен. Откройте «Настройки», чтобы разрешить его."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App 的麦克风访问权限已关闭。打开“设置”以允许访问。"
+            "value" : "Nibomo 的麦克风访问权限已关闭。打开“设置”以允许访问。"
           }
         }
       }
@@ -1246,55 +1246,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Flashcards Open Source App. افتح الإعدادات للسماح به."
+            "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Kamerazugriff für Flashcards Open Source App ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
+            "value" : "Der Kamerazugriff für Nibomo ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Camera access is turned off for Flashcards Open Source App. Open Settings to allow it."
+            "value" : "Camera access is turned off for Nibomo. Open Settings to allow it."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+            "value" : "El acceso a la cámara está desactivado para Nibomo. Abre Ajustes para permitirlo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+            "value" : "El acceso a la cámara está desactivado para Nibomo. Abre Ajustes para permitirlo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App के लिए कैमरा एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
+            "value" : "Nibomo के लिए कैमरा एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App のカメラへのアクセスはオフです。許可するには「設定」を開いてください。"
+            "value" : "Nibomo のカメラへのアクセスはオフです。許可するには「設定」を開いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ к камере для Flashcards Open Source App отключен. Откройте «Настройки», чтобы разрешить его."
+            "value" : "Доступ к камере для Nibomo отключен. Откройте «Настройки», чтобы разрешить его."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App 的相机访问权限已关闭。打开“设置”以允许访问。"
+            "value" : "Nibomo 的相机访问权限已关闭。打开“设置”以允许访问。"
           }
         }
       }
@@ -1364,55 +1364,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Flashcards Open Source App. افتح الإعدادات للسماح به."
+            "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Dateizugriff für Flashcards Open Source App ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
+            "value" : "Der Dateizugriff für Nibomo ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "File access is turned off for Flashcards Open Source App. Open Settings to allow it."
+            "value" : "File access is turned off for Nibomo. Open Settings to allow it."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a Archivos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+            "value" : "El acceso a Archivos está desactivado para Nibomo. Abre Ajustes para permitirlo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a Archivos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+            "value" : "El acceso a Archivos está desactivado para Nibomo. Abre Ajustes para permitirlo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App के लिए फ़ाइल एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
+            "value" : "Nibomo के लिए फ़ाइल एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App のファイルへのアクセスはオフです。許可するには「設定」を開いてください。"
+            "value" : "Nibomo のファイルへのアクセスはオフです。許可するには「設定」を開いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ к файлам для Flashcards Open Source App отключен. Откройте «Настройки», чтобы разрешить его."
+            "value" : "Доступ к файлам для Nibomo отключен. Откройте «Настройки», чтобы разрешить его."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App 的文件访问权限已关闭。打开“设置”以允许访问。"
+            "value" : "Nibomo 的文件访问权限已关闭。打开“设置”以允许访问。"
           }
         }
       }
@@ -1482,55 +1482,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تم إيقاف الوصول إلى الصور لتطبيق Flashcards Open Source App. افتح الإعدادات للسماح به."
+            "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Zugriff auf Fotos für Flashcards Open Source App ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
+            "value" : "Der Zugriff auf Fotos für Nibomo ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Photo access is turned off for Flashcards Open Source App. Open Settings to allow it."
+            "value" : "Photo access is turned off for Nibomo. Open Settings to allow it."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+            "value" : "El acceso a Fotos está desactivado para Nibomo. Abre Ajustes para permitirlo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+            "value" : "El acceso a Fotos está desactivado para Nibomo. Abre Ajustes para permitirlo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App के लिए फ़ोटो एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
+            "value" : "Nibomo के लिए फ़ोटो एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App の写真へのアクセスはオフです。許可するには「設定」を開いてください。"
+            "value" : "Nibomo の写真へのアクセスはオフです。許可するには「設定」を開いてください。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ к фото для Flashcards Open Source App отключен. Откройте «Настройки», чтобы разрешить его."
+            "value" : "Доступ к фото для Nibomo отключен. Откройте «Настройки», чтобы разрешить его."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Open Source App 的照片访问权限已关闭。打开“设置”以允许访问。"
+            "value" : "Nibomo 的照片访问权限已关闭。打开“设置”以允许访问。"
           }
         }
       }
@@ -3783,55 +3783,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "افتح دعوة Flashcards هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+            "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Öffne diese Flashcards-Einladung, melde dich an oder registriere dich, und wir sehen uns in der App."
+            "value" : "Öffne diese Nibomo-Einladung, melde dich an oder registriere dich, und wir sehen uns in der App."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open this Flashcards invite, sign in or sign up, and we will see each other in the app."
+            "value" : "Open this Nibomo invite, sign in or sign up, and we will see each other in the app."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abre esta invitación de Flashcards, inicia sesión o regístrate, y nos veremos en la app."
+            "value" : "Abre esta invitación de Nibomo, inicia sesión o regístrate, y nos veremos en la app."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abre esta invitación de Flashcards, inicia sesión o regístrate, y nos veremos en la app."
+            "value" : "Abre esta invitación de Nibomo, inicia sesión o regístrate, y nos veremos en la app."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "इस Flashcards आमंत्रण को खोलें, साइन इन या साइन अप करें, और हम ऐप में एक-दूसरे को देखेंगे।"
+            "value" : "इस Nibomo आमंत्रण को खोलें, साइन इन या साइन अप करें, और हम ऐप में एक-दूसरे को देखेंगे।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この Flashcards 招待を開き、サインインまたは登録してください。アプリ内でお互いを確認できます。"
+            "value" : "この Nibomo 招待を開き、サインインまたは登録してください。アプリ内でお互いを確認できます。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Открой эту ссылку-приглашение в Flashcards, войди или зарегистрируйся, и мы увидим друг друга в приложении."
+            "value" : "Открой эту ссылку-приглашение в Nibomo, войди или зарегистрируйся, и мы увидим друг друга в приложении."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开这个 Flashcards 邀请，登录或注册，然后我们就能在应用中看到彼此。"
+            "value" : "打开这个 Nibomo 邀请，登录或注册，然后我们就能在应用中看到彼此。"
           }
         }
       }
@@ -3842,55 +3842,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "دعوة صديق إلى Flashcards"
+            "value" : "دعوة صديق إلى Nibomo"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards Freundes-Einladung"
+            "value" : "Nibomo Freundes-Einladung"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards friend invite"
+            "value" : "Nibomo friend invite"
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitación de amigo de Flashcards"
+            "value" : "Invitación de amigo de Nibomo"
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invitación de amigo de Flashcards"
+            "value" : "Invitación de amigo de Nibomo"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards दोस्त आमंत्रण"
+            "value" : "Nibomo दोस्त आमंत्रण"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards 友だち招待"
+            "value" : "Nibomo 友だち招待"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Приглашение в Flashcards"
+            "value" : "Приглашение в Nibomo"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards 好友邀请"
+            "value" : "Nibomo 好友邀请"
           }
         }
       }
@@ -9624,55 +9624,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "واصل جلسة الدراسة في Flashcards."
+            "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Setze deine Lernsitzung in Flashcards fort."
+            "value" : "Setze deine Lernsitzung in Nibomo fort."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continue your study session in Flashcards."
+            "value" : "Continue your study session in Nibomo."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continúa tu sesión de estudio en Flashcards."
+            "value" : "Continúa tu sesión de estudio en Nibomo."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continúa tu sesión de estudio en Flashcards."
+            "value" : "Continúa tu sesión de estudio en Nibomo."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards में अपना अध्ययन सत्र जारी रखें।"
+            "value" : "Nibomo में अपना अध्ययन सत्र जारी रखें।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flashcards で学習セッションを続けましょう。"
+            "value" : "Nibomo で学習セッションを続けましょう。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Продолжите занятие в Flashcards."
+            "value" : "Продолжите занятие в Nibomo."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 Flashcards 中继续你的学习。"
+            "value" : "在 Nibomo 中继续你的学习。"
           }
         }
       }
