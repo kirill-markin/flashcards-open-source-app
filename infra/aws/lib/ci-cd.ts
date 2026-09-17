@@ -4,9 +4,11 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import { Construct } from "constructs";
+import { geoLiteCountryObjectKey } from "./geolite-country";
 
 export interface CiCdProps {
   stackId: string;
+  geoLiteCountryBucket: s3.IBucket;
   githubRepo: string;
   githubOidcProviderArn: string | undefined;
   authFn: lambda.IFunction;
@@ -60,7 +62,29 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       props.githubOidcProviderArn,
     );
 
+  const geoLiteStatements = [
+    new iam.PolicyStatement({
+      actions: ["s3:PutObject"],
+      resources: [props.geoLiteCountryBucket.arnForObjects(geoLiteCountryObjectKey)],
+    }),
+    new iam.PolicyStatement({
+      actions: ["cloudformation:DescribeStacks"],
+      resources: [props.stackId],
+    }),
+  ];
+  new iam.Role(scope, "GeoLiteRefreshRole", {
+    roleName: "flashcards-open-source-app-geolite-refresh",
+    assumedBy: new iam.WebIdentityPrincipal(oidcProvider.openIdConnectProviderArn, {
+      StringEquals: {
+        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+        "token.actions.githubusercontent.com:sub": `repo:${props.githubRepo}:ref:refs/heads/main`,
+      },
+    }),
+    inlinePolicies: { RefreshCountryDatabase: new iam.PolicyDocument({ statements: geoLiteStatements }) },
+  });
+
   const cdkDeployStatements: iam.PolicyStatement[] = [
+    ...geoLiteStatements,
     new iam.PolicyStatement({
       sid: "AssumeCdkRoles",
       actions: ["sts:AssumeRole"],
