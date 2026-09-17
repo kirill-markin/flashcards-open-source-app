@@ -21,7 +21,6 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCl
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.androidClientPlatform
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import java.time.ZoneId
-import java.util.Locale
 import java.util.UUID
 
 private data class AuthorizedFeedbackSession(
@@ -37,7 +36,8 @@ class LocalFeedbackRepository(
     private val remoteService: CloudRemoteGateway,
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
     private val syncRepository: SyncRepository,
-    private val appVersion: String
+    private val appVersion: String,
+    private val currentUiLocaleTag: () -> String
 ) : FeedbackRepository {
     override suspend fun loadFeedbackStateForExistingCloudSession(): CloudFeedbackState? {
         val session = authorizedSession(createGuestSessionIfMissing = false) ?: return null
@@ -48,6 +48,7 @@ class LocalFeedbackRepository(
     }
 
     override suspend fun recordAutomaticPromptShownForExistingCloudSession(): CloudFeedbackState? {
+        val uiLocale: String = currentUiLocaleTag()
         val session = authorizedSession(createGuestSessionIfMissing = false) ?: return null
         return remoteService.recordFeedbackPromptEvent(
             apiBaseUrl = session.apiBaseUrl,
@@ -58,7 +59,7 @@ class LocalFeedbackRepository(
                 installationId = session.installationId,
                 platform = androidClientPlatform,
                 appVersion = appVersion,
-                locale = currentLocaleTag(),
+                locale = uiLocale,
                 timezone = currentTimeZoneId(),
                 eventType = CloudFeedbackPromptEventType.AUTOMATIC_PROMPT_SHOWN,
                 createdAtClient = formatIsoTimestamp(timestampMillis = System.currentTimeMillis())
@@ -78,6 +79,7 @@ class LocalFeedbackRepository(
             "Feedback message must be $cloudFeedbackMessageMaximumLength characters or fewer."
         }
 
+        val uiLocale: String = currentUiLocaleTag()
         val session = requireNotNull(authorizedSession(createGuestSessionIfMissing = true)) {
             "Feedback submission requires a cloud session."
         }
@@ -90,7 +92,7 @@ class LocalFeedbackRepository(
                 installationId = session.installationId,
                 platform = androidClientPlatform,
                 appVersion = appVersion,
-                locale = currentLocaleTag(),
+                locale = uiLocale,
                 timezone = currentTimeZoneId(),
                 trigger = trigger,
                 message = trimmedMessage,
@@ -173,10 +175,6 @@ class LocalFeedbackRepository(
 
 private fun makeFeedbackClientId(): String {
     return UUID.randomUUID().toString()
-}
-
-private fun currentLocaleTag(): String {
-    return Locale.getDefault().toLanguageTag()
 }
 
 private fun currentTimeZoneId(): String {
