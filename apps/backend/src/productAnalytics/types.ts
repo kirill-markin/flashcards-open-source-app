@@ -1,4 +1,5 @@
 import type {
+  ProductAnalyticsClientReportablePlatform,
   ProductAnalyticsEventName,
   ProductAnalyticsEventProperties,
   ProductAnalyticsExperimentAssignments,
@@ -44,6 +45,17 @@ export type ProductAnalyticsClientContext = Readonly<{
   timezone: string | null;
 }>;
 
+// Current request metadata, never reconstructed from an offline event's timestamp.
+export type ProductAnalyticsInstallationObservation = Readonly<{
+  anonymousId: string;
+  platform: ProductAnalyticsClientReportablePlatform;
+  userId: string;
+  guestSessionId: string | null;
+  appVersion: string | null;
+  context: ProductAnalyticsClientContext;
+  observedAt: Date;
+}>;
+
 export type ProductAnalyticsRejectionReason =
   | "invalid_event"
   | "event_too_large"
@@ -70,6 +82,7 @@ export type ValidatedProductAnalyticsEvent = Readonly<{
   eventName: ProductAnalyticsEventName;
   clientOccurredAt: Date;
   occurredAt: Date;
+  uiLocale: string | null;
   networkState: ProductAnalyticsNetworkState | null;
   screen: ProductAnalyticsSurface | null;
   properties: ProductAnalyticsEventProperties;
@@ -103,6 +116,7 @@ export type ProductAnalyticsEventRow = Readonly<{
   deviceLocale: string | null;
   timezone: string | null;
   country: string | null;
+  uiLocale: string | null;
   networkState: ProductAnalyticsNetworkState | null;
   screen: ProductAnalyticsSurface | null;
   eventProperties: ProductAnalyticsEventProperties;

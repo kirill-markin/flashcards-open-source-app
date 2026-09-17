@@ -18,6 +18,7 @@ import { insertProductAnalyticsClientBatch } from "../productAnalytics/writer";
 import type {
   ProductAnalyticsEventRow,
   ProductAnalyticsIdentityLink,
+  ProductAnalyticsInstallationObservation,
   ProductAnalyticsRejectedEvent,
   ProductAnalyticsTrustLevel,
   ValidatedProductAnalyticsEvent,
@@ -262,13 +263,9 @@ function toProductAnalyticsEventRow(
     deviceModel: validation.context.deviceModel,
     deviceLocale: validation.context.deviceLocale,
     timezone: validation.context.timezone,
-    // country stays NULL until a verified edge fronts this API. The API custom domain is regional
-    // with nothing in front of it, so a viewer-country header on this request can only have been
-    // sent by the client, and 0114 documents the column as resolved by the edge. The table is
-    // append-only, so a forged value could never be repaired: a client-sent header must never be
-    // trusted for this column.
     country: null,
     networkState: event.networkState,
+    uiLocale: event.uiLocale,
     screen: event.screen,
     eventProperties: event.properties,
     experimentAssignments: event.experimentAssignments,
@@ -405,7 +402,19 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
         rows.length,
         loadedContext.requestContext,
       );
-      const stored = await insertProductAnalyticsClientBatchFn(rows, identityLink);
+      const installation: ProductAnalyticsInstallationObservation | null =
+        rows.length === 0 || batch.anonymousId === null || facts.platform === null
+          ? null
+          : {
+            anonymousId: batch.anonymousId,
+            platform: facts.platform,
+            userId: loadedContext.requestContext.userId,
+            guestSessionId: loadedContext.requestContext.guestSessionId,
+            appVersion: facts.appVersion,
+            context: batch.context,
+            observedAt: serverReceivedAt,
+          };
+      const stored = await insertProductAnalyticsClientBatchFn(rows, identityLink, installation);
       if (identityLink !== null) {
         rememberStoredIdentityLinkPair(
           toIdentityLinkPairKey(identityLink.anonymousId, identityLink.userId),

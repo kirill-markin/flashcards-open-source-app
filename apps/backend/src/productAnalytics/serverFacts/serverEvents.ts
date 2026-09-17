@@ -156,6 +156,7 @@ function createServerDerivedProductAnalyticsRow(
     deviceLocale: null,
     timezone: null,
     country: null,
+    uiLocale: null,
     networkState: null,
     // server_received_at anchors the skew correction of a client batch. A server-derived row has no
     // client clock to correct, so here it records when the backend learned of the fact instead, and
