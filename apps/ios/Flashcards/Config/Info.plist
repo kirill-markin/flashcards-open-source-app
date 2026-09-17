@@ -52,6 +52,8 @@
 	<string>$(TERMS_OF_SERVICE_URL)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>kMDItemKeywords</key>
+	<string>flashcards,flash cards</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.education</string>
 	<key>LSRequiresIPhoneOS</key>
