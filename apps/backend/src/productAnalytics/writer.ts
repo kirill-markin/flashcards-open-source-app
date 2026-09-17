@@ -1,5 +1,5 @@
 import pg from "pg";
-import type { DatabaseExecutor } from "../database";
+import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../database";
 import { getDatabaseUrl } from "../database/config";
 import {
   getDatabaseErrorFields,
@@ -14,7 +14,11 @@ import {
   parseProductAnalyticsExperimentAssignments,
   productAnalyticsSchemaVersion,
 } from "./catalog";
-import type { ProductAnalyticsEventRow, ProductAnalyticsIdentityLink } from "./types";
+import type {
+  ProductAnalyticsEventRow,
+  ProductAnalyticsIdentityLink,
+  ProductAnalyticsInstallationObservation,
+} from "./types";
 
 // The analytics writer owns its own small pool so an analytics spike can never starve product
 // requests of database connections. Events are written on the request that carried them: a Lambda
@@ -66,6 +70,7 @@ const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn>
   { columnName: "device_locale", columnType: "text", readValue: (row) => row.deviceLocale },
   { columnName: "timezone", columnType: "text", readValue: (row) => row.timezone },
   { columnName: "country", columnType: "text", readValue: (row) => row.country },
+  { columnName: "ui_locale", columnType: "text", readValue: (row) => row.uiLocale },
   { columnName: "network_state", columnType: "text", readValue: (row) => row.networkState },
   { columnName: "screen", columnType: "text", readValue: (row) => row.screen },
   { columnName: "event_properties", columnType: "jsonb", readValue: (row) => JSON.stringify(row.eventProperties) },
@@ -119,6 +124,31 @@ const insertProductAnalyticsIdentityLinkSql = [
   " WHERE identity_links.source <> 'server_derived'",
   " AND EXCLUDED.source = 'server_derived'",
 ].join("");
+
+const upsertInstallationProfileSql = `
+  INSERT INTO analytics.installation_profiles (
+    anonymous_id, platform, user_id, app_version, os_version, device_locale, timezone,
+    first_seen, last_seen
+  ) VALUES ($1::uuid, $2::text, $3::uuid, $4::text, $5::text, $6::text, $7::text,
+    $8::timestamptz, $8::timestamptz)
+  ON CONFLICT (anonymous_id, platform) DO UPDATE SET
+    user_id = EXCLUDED.user_id,
+    app_version = EXCLUDED.app_version,
+    os_version = EXCLUDED.os_version,
+    device_locale = EXCLUDED.device_locale,
+    timezone = EXCLUDED.timezone,
+    last_seen = EXCLUDED.last_seen
+  WHERE EXCLUDED.last_seen >= installation_profiles.last_seen
+    AND (
+      installation_profiles.last_seen <= EXCLUDED.last_seen - INTERVAL '1 hour'
+      OR (installation_profiles.user_id, installation_profiles.app_version,
+          installation_profiles.os_version, installation_profiles.device_locale,
+          installation_profiles.timezone)
+        IS DISTINCT FROM
+         (EXCLUDED.user_id, EXCLUDED.app_version, EXCLUDED.os_version,
+          EXCLUDED.device_locale, EXCLUDED.timezone)
+    )
+`;
 
 let analyticsPool: pg.Pool | undefined;
 
@@ -337,6 +367,50 @@ function assertProductAnalyticsRowMatchesCatalog(row: ProductAnalyticsEventRow):
   }
 }
 
+// Match the guest lifecycle's user-settings -> session lock order. A linked guest keeps its
+// user_settings row after account deletion, so its revoked session must also be checked here.
+async function lockInstallationOwnerInTransaction(
+  client: pg.PoolClient,
+  installation: Pick<ProductAnalyticsInstallationObservation, "userId" | "guestSessionId">,
+): Promise<void> {
+  await applyUserDatabaseScopeInExecutor(client, { userId: installation.userId });
+  const owner = await client.query(
+    "SELECT user_id FROM org.user_settings WHERE user_id = $1 FOR KEY SHARE",
+    [installation.userId],
+  );
+  if (owner.rowCount !== 1) {
+    throw new HttpError(403, "The analytics installation owner no longer exists.", "ANALYTICS_OWNER_DELETED");
+  }
+
+  if (installation.guestSessionId !== null) {
+    const session = await client.query(
+      `SELECT session_id FROM auth.guest_sessions
+       WHERE session_id = $1::uuid AND user_id = $2 AND revoked_at IS NULL
+       FOR SHARE`,
+      [installation.guestSessionId, installation.userId],
+    );
+    if (session.rowCount !== 1) {
+      throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+    }
+  }
+}
+
+async function upsertInstallationProfileInTransaction(
+  client: pg.PoolClient,
+  installation: ProductAnalyticsInstallationObservation,
+): Promise<void> {
+  await client.query(upsertInstallationProfileSql, [
+    installation.anonymousId,
+    installation.platform,
+    installation.userId,
+    installation.appVersion,
+    installation.context.osVersion,
+    installation.context.deviceLocale,
+    installation.context.timezone,
+    installation.observedAt,
+  ]);
+}
+
 // Returns the number of rows actually stored. A redelivered batch conflicts on event_id and stores
 // nothing, so a smaller number than the input length means the events were already ingested.
 export async function insertProductAnalyticsEvents(
@@ -369,8 +443,9 @@ export type ProductAnalyticsClientBatchResult = Readonly<{
 export async function insertProductAnalyticsClientBatch(
   rows: ReadonlyArray<ProductAnalyticsEventRow>,
   identityLink: ProductAnalyticsIdentityLink | null,
+  installation: ProductAnalyticsInstallationObservation | null,
 ): Promise<ProductAnalyticsClientBatchResult> {
-  if (rows.length === 0 && identityLink === null) {
+  if (rows.length === 0 && identityLink === null && installation === null) {
     return { storedEventCount: 0, storedIdentityLinkCount: 0 };
   }
 
@@ -379,12 +454,30 @@ export async function insertProductAnalyticsClientBatch(
   }
 
   return runAnalyticsWrite(async (client) => {
+    if (installation !== null) {
+      await lockInstallationOwnerInTransaction(client, installation);
+    } else {
+      // Missing installation metadata must not let a revoked guest persist event locales.
+      const guestRow = rows.find((row) => row.authTransport === "guest");
+      if (guestRow !== undefined) {
+        if (guestRow.userId === null || guestRow.guestSessionId === null) {
+          throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+        }
+        await lockInstallationOwnerInTransaction(client, {
+          userId: guestRow.userId,
+          guestSessionId: guestRow.guestSessionId,
+        });
+      }
+    }
     const storedEventCount = rows.length === 0
       ? 0
       : await insertEventRowsInTransaction(client, rows);
     const storedIdentityLinkCount = identityLink === null
       ? 0
       : await insertIdentityLinkInTransaction(client, identityLink);
+    if (installation !== null) {
+      await upsertInstallationProfileInTransaction(client, installation);
+    }
     return { storedEventCount, storedIdentityLinkCount };
   });
 }
