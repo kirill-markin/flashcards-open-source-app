@@ -12,7 +12,7 @@ struct FeedbackSheet: View {
     @State private var errorMessage: String?
 
     private var title: String {
-        aiSettingsLocalized("feedback.sheet.title", "Have an idea for Flashcards?")
+        aiSettingsLocalized("feedback.sheet.title", "Have an idea for Nibomo?")
     }
 
     private var bodyText: String {

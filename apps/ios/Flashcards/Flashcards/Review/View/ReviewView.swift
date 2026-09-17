@@ -303,7 +303,7 @@ struct ReviewView: View {
                 store.continueReviewNotificationPrePrompt()
             }
         } message: {
-            Text(String(localized: "Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.", table: reviewCardsStringsTableName))
+            Text(String(localized: "Nibomo can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.", table: reviewCardsStringsTableName))
         }
         .alert(
             String(localized: "Hard is for difficult recall", table: reviewCardsStringsTableName),

@@ -109,7 +109,7 @@ struct ProgressFriendInviteSheet: View {
                             subject: Text(
                                 String(
                                     localized: "progress.friend_invite.share_subject",
-                                    defaultValue: "Flashcards friend invite",
+                                    defaultValue: "Nibomo friend invite",
                                     table: "Foundation",
                                     comment: "Subject for sharing a created friend invite link"
                                 )
@@ -117,7 +117,7 @@ struct ProgressFriendInviteSheet: View {
                             message: Text(
                                 String(
                                     localized: "progress.friend_invite.share_message",
-                                    defaultValue: "Open this Flashcards invite, sign in or sign up, and we will see each other in the app.",
+                                    defaultValue: "Open this Nibomo invite, sign in or sign up, and we will see each other in the app.",
                                     table: "Foundation",
                                     comment: "Message for sharing a created friend invite link"
                                 )

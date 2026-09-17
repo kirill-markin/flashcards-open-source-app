@@ -29,7 +29,7 @@ func readWorkspacePackageImportSelectedFile(url: URL) throws -> WorkspacePackage
         throw LocalStoreError.validation(
             aiSettingsLocalized(
                 "settings.workspace.import.invalidFile",
-                "Choose a Flashcards ZIP package."
+                "Choose a Nibomo ZIP package."
             )
         )
     }
@@ -64,7 +64,7 @@ private func workspacePackageImportFileSizeBytes(url: URL) throws -> Int64 {
         throw LocalStoreError.validation(
             aiSettingsLocalized(
                 "settings.workspace.import.invalidFile",
-                "Choose a Flashcards ZIP package."
+                "Choose a Nibomo ZIP package."
             )
         )
     }
