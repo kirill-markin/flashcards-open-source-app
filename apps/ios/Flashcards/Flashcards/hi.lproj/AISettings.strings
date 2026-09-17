@@ -64,7 +64,7 @@
 "ai.run.error.activeRunInProgress" = "वहाँ पहले से ही एक प्रतिक्रिया प्रगति पर है. दूसरा संदेश भेजने से पहले इसके समाप्त होने या बंद होने की प्रतीक्षा करें।";
 "ai.dictation.error.microphoneUnavailable" = "इस डिवाइस पर माइक्रोफ़ोन उपलब्ध नहीं है.";
 "ai.dictation.error.microphoneDenied" = "माइक्रोफ़ोन एक्सेस नहीं दिया गया.";
-"ai.dictation.error.microphoneBlocked" = "फ़्लैशकार्ड ओपन सोर्स ऐप के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन में सक्रिय करें।";
+"ai.dictation.error.microphoneBlocked" = "Nibomo के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन में सक्रिय करें।";
 "ai.dictation.error.invalidRecording" = "रिकॉर्ड किया गया ऑडियो तैयार नहीं किया जा सका.";
 "ai.dictation.error.recordingStartFailed" = "माइक्रोफ़ोन रिकॉर्डिंग प्रारंभ नहीं की जा सकी.";
 "ai.dictation.error.emptyRecording" = "कोई आवाज़ रिकॉर्ड नहीं की गई.";
@@ -138,7 +138,7 @@
 "settings.title" = "सेटिंग्स";
 "settings.inviteFriend.button" = "दोस्त जोड़ें";
 "settings.section.share" = "साझा करें";
-"settings.row.shareApp" = "Flashcards साझा करें";
+"settings.row.shareApp" = "Nibomo साझा करें";
 "settings.section.feedback" = "प्रतिक्रिया";
 "settings.row.reviewInAppStore" = "App Store पर समीक्षा करें";
 "settings.row.sharePrivateFeedback" = "निजी प्रतिक्रिया साझा करें";
@@ -194,8 +194,8 @@
 "settings.leaderboardParticipation.description" = "यह बंद होने पर आपकी गुमनाम गतिविधि लीडरबोर्ड पर नहीं दिखेगी.";
 "settings.leaderboardParticipation.signInRequired" = "लीडरबोर्ड भागीदारी प्रबंधित करने के लिए क्लाउड सिंक कनेक्ट करें.";
 "settings.language.title" = "भाषा";
-"settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Flashcards खोलें और पसंदीदा भाषा इस्तेमाल करें। अगर पसंदीदा भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में कोई दूसरी भाषा जोड़ें।";
-"settings.language.action.openAppSettings" = "Flashcards सेटिंग्स खोलें";
+"settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Nibomo खोलें और पसंदीदा भाषा इस्तेमाल करें। अगर पसंदीदा भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में कोई दूसरी भाषा जोड़ें।";
+"settings.language.action.openAppSettings" = "Nibomo सेटिंग्स खोलें";
 "settings.language.section.supportedLanguages" = "समर्थित भाषाएं";
 "settings.language.supported.english" = "अंग्रेज़ी";
 "settings.language.supported.arabic" = "अरबी";
@@ -206,7 +206,7 @@
 "settings.language.supported.russian" = "रूसी";
 "settings.language.supported.spanishMexico" = "स्पैनिश मेक्सिको";
 "settings.language.supported.spanishSpain" = "स्पैनिश स्पेन";
-"feedback.settings.description" = "कोई विचार साझा करें, कोई खुरदरा हिस्सा बताएं, या बताएं कि Flashcards को क्या बेहतर बनाएगा।";
+"feedback.settings.description" = "कोई विचार साझा करें, कोई खुरदरा हिस्सा बताएं, या बताएं कि Nibomo को क्या बेहतर बनाएगा।";
 "settings.sync.success" = "सफलतापूर्वक समन्वयित";
 "settings.sync.guestAiActive" = "अतिथि AI सक्रिय है";
 "settings.sync.notSyncing" = "कोई सिंक्रनाइज़ेशन नहीं";
@@ -371,7 +371,7 @@
 "settings.access.section.permissions" = "अनुमतियाँ";
 "settings.access.notifications" = "सूचनाएं";
 "settings.access.thisDevice" = "यह डिवाइस";
-"settings.access.footer" = "फ़्लैशकार्ड ओपन सोर्स ऐप केवल चैट में संलग्नक और श्रुतलेख के लिए आवश्यक पहुंच का अनुरोध करता है।";
+"settings.access.footer" = "Nibomo केवल चैट में संलग्नक और श्रुतलेख के लिए आवश्यक पहुंच का अनुरोध करता है।";
 "settings.access.detail.status" = "स्थिति";
 "settings.access.kind.photos" = "तस्वीरें";
 "settings.access.kind.camera" = "कैमरा";
@@ -386,10 +386,10 @@
 "settings.access.status.unavailable" = "उपलब्ध नहीं है";
 "settings.access.action.request" = "पहुंच का अनुरोध करें";
 "settings.access.action.openSettings" = "सेटिंग्स खोलें";
-"settings.access.guidance.photos.limited" = "केवल वे फ़ोटो ही उपलब्ध हैं जिन्हें आपने फ़्लैशकार्ड ओपन सोर्स ऐप के साथ पहले ही साझा कर लिया है। फ़ोटो तक व्यापक पहुंच प्रदान करने के लिए सेटिंग्स खोलें।";
-"settings.access.guidance.photos.blocked" = "फ़्लैशकार्ड ओपन सोर्स ऐप के लिए फ़ोटो तक पहुंच अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > फ़ोटो खोलें।";
-"settings.access.guidance.camera.blocked" = "फ़्लैशकार्ड ओपन सोर्स ऐप के लिए कैमरा एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > कैमरा खोलें।";
-"settings.access.guidance.microphone.blocked" = "फ़्लैशकार्ड ओपन सोर्स ऐप के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।";
+"settings.access.guidance.photos.limited" = "केवल वे फ़ोटो ही उपलब्ध हैं जिन्हें आपने Nibomo के साथ पहले ही साझा कर लिया है। फ़ोटो तक व्यापक पहुंच प्रदान करने के लिए सेटिंग्स खोलें।";
+"settings.access.guidance.photos.blocked" = "Nibomo के लिए फ़ोटो तक पहुंच अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > फ़ोटो खोलें।";
+"settings.access.guidance.camera.blocked" = "Nibomo के लिए कैमरा एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > कैमरा खोलें।";
+"settings.access.guidance.microphone.blocked" = "Nibomo के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।";
 "settings.access.guidance.askEveryTime" = "यदि आप इसे मैन्युअल रूप से प्रबंधित करना चाहते हैं तो अभी पहुंच का अनुरोध करें या बाद में सेटिंग्स खोलें।";
 "settings.access.guidance.allowed" = "यदि आप इस एक्सेस को अक्षम करना चाहते हैं तो सेटिंग्स खोलें।";
 "settings.access.guidance.limited" = "इस पहुंच की समीक्षा या विस्तार करने के लिए सेटिंग्स खोलें।";
@@ -641,7 +641,7 @@
 "settings.notifications.section.appIconBadge" = "ऐप आइकन बैज";
 "settings.notifications.section.strictReminders" = "स्ट्रीक रिमाइंडर";
 "settings.notifications.enableStrictReminders" = "स्ट्रीक रिमाइंडर चालू करें";
-"settings.notifications.strictReminders.description" = "अगर आपने आज मौजूदा वर्कस्पेस में रिव्यू नहीं किया है, तो Flashcards आधी रात से 4, 3 और 2 घंटे पहले याद दिलाता है ताकि आपकी स्ट्रीक बनी रहे।";
+"settings.notifications.strictReminders.description" = "अगर आपने आज मौजूदा वर्कस्पेस में रिव्यू नहीं किया है, तो Nibomo आधी रात से 4, 3 और 2 घंटे पहले याद दिलाता है ताकि आपकी स्ट्रीक बनी रहे।";
 "settings.notifications.section.dailyReminder" = "दिन में एक बार";
 "settings.notifications.permission.allowed" = "अनुमति है";
 "settings.notifications.permission.notRequested" = "अनुरोध नहीं किया गया";
@@ -695,7 +695,7 @@
 "settings.row.import.value" = "ZIP";
 "settings.workspace.import.title" = "आयात";
 "settings.workspace.import.cloudRequired" = "इस संस्करण में मीडिया ZIP आयात के लिए क्लाउड खाते की आवश्यकता है.";
-"settings.workspace.import.invalidFile" = "Flashcards ZIP पैकेज चुनें.";
+"settings.workspace.import.invalidFile" = "Nibomo ZIP पैकेज चुनें.";
 "settings.workspace.import.fileTooLarge" = "अधिकतम %d MB वाला ZIP पैकेज चुनें.";
 "settings.workspace.import.missingImportTag" = "आयात करने से पहले एक आयात टैग दर्ज करें.";
 "settings.workspace.import.warningWithPath" = "%@: %@";
@@ -773,7 +773,7 @@
 
 "settings.row.sendFeedback" = "प्रतिक्रिया भेजें";
 "settings.row.sendFeedback.value" = "एक विचार साझा करें";
-"feedback.sheet.title" = "Flashcards के लिए कोई विचार है?";
+"feedback.sheet.title" = "Nibomo के लिए कोई विचार है?";
 "feedback.sheet.body" = "बताएँ कि ऐप को बेहतर क्या बनाएगा। निर्माता हर संदेश खुद पढ़ते हैं।";
 "feedback.sheet.placeholder" = "अपना विचार यहाँ लिखें";
 "feedback.sheet.send" = "भेजें";
@@ -789,7 +789,7 @@
 "settings.account.server.validation.invalidStatusCode" = "%@ के हेल्थ चेक ने स्थिति %d लौटाई: %@";
 "settings.account.server.validation.redirectedToDifferentOrigin" = "%@ के %@ के लिए हेल्थ चेक को दूसरे सर्वर पर रीडायरेक्ट किया गया: %@। इसे उसी सर्वर पर जवाब देने के लिए कॉन्फ़िगर करें, फिर दोबारा कोशिश करें।";
 "settings.account.server.validation.invalidApiHealthResponse" = "%@ पर API हेल्थ मान्य सेवा और क्लाउड अनुबंध घोषित नहीं करता। कस्टम सर्वर को अपडेट करके फिर से डिप्लॉय करें, फिर दोबारा कोशिश करें।";
-"settings.account.server.validation.unexpectedApiService" = "%@ पर API हेल्थ संगत Flashcards बैकएंड के बजाय %@ की पहचान करता है। कस्टम सर्वर को अपडेट करके फिर से डिप्लॉय करें, फिर दोबारा कोशिश करें।";
+"settings.account.server.validation.unexpectedApiService" = "%@ पर API हेल्थ संगत Nibomo बैकएंड के बजाय %@ की पहचान करता है। कस्टम सर्वर को अपडेट करके फिर से डिप्लॉय करें, फिर दोबारा कोशिश करें।";
 "settings.account.server.validation.unsupportedCloudContractVersion" = "%@ पर API हेल्थ असमर्थित क्लाउड अनुबंध संस्करण %d घोषित करता है। इस ऐप को संस्करण 1 चाहिए। कस्टम सर्वर को अपडेट करके फिर से डिप्लॉय करें, फिर दोबारा कोशिश करें।";
 "settings.sync.customGuestWorkspacePaused.message" = "यह कस्टम सर्वर इस अतिथि कार्यस्थान तक नहीं पहुँच सकता। सर्वर असंगत या गलत तरीके से कॉन्फ़िगर हो सकता है। सिंक रुका हुआ है और आपके स्थानीय कार्ड व लंबित बदलाव इस डिवाइस पर सुरक्षित हैं।";
 "settings.account.status.customGuestPause.title" = "अतिथि क्लाउड कार्यस्थान अनुपलब्ध";
