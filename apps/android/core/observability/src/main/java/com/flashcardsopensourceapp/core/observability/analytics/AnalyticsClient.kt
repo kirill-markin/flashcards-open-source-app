@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.core.observability.analytics
 
+import android.app.LocaleManager
 import android.content.Context
 import android.os.Build
 import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
@@ -15,7 +16,6 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import java.util.concurrent.atomic.AtomicInteger
 import java.time.ZoneId
-import java.util.Locale
 import kotlin.random.Random
 
 /**
@@ -29,6 +29,7 @@ private sealed interface AnalyticsCommand {
         val event: AnalyticsEvent,
         val occurredAtMillis: Long,
         val networkState: AnalyticsNetworkState,
+        val uiLocale: String?,
         /**
          * The number of identity boundaries requested when this event was created. The worker
          * refuses any event whose generation is not both the one it has applied and the one
@@ -64,8 +65,9 @@ class AnalyticsClient internal constructor(
     private val appVersion: String?,
     private val versionCode: Int?,
     private val transport: AnalyticsTransport,
-    private val deviceContextProvider: () -> AnalyticsDeviceContext = ::currentAnalyticsDeviceContext,
-    private val currentTimeMillisProvider: () -> Long = System::currentTimeMillis
+    private val uiLocaleProvider: () -> String?,
+    private val deviceContextProvider: () -> AnalyticsDeviceContext,
+    private val currentTimeMillisProvider: () -> Long
 ) : Analytics {
     constructor(
         context: Context,
@@ -76,7 +78,8 @@ class AnalyticsClient internal constructor(
         networkStateProvider: AnalyticsNetworkStateProvider,
         observability: AppObservability,
         appVersion: String?,
-        versionCode: Int?
+        versionCode: Int?,
+        uiLocaleProvider: () -> String?
     ) : this(
         context = context,
         appScope = appScope,
@@ -86,7 +89,10 @@ class AnalyticsClient internal constructor(
         observability = observability,
         appVersion = appVersion,
         versionCode = versionCode,
-        transport = OkHttpAnalyticsTransport(okHttpClient = okHttpClient)
+        transport = OkHttpAnalyticsTransport(okHttpClient = okHttpClient),
+        uiLocaleProvider = uiLocaleProvider,
+        deviceContextProvider = { currentAnalyticsDeviceContext(context = context.applicationContext) },
+        currentTimeMillisProvider = System::currentTimeMillis
     )
 
     private val applicationContext: Context = context.applicationContext
@@ -141,15 +147,15 @@ class AnalyticsClient internal constructor(
         }
 
         val occurredAtMillis: Long = currentTimeMillisProvider()
-        // Both readings belong to the moment the event is created. The worker can be parked inside
-        // a flush for several batches of network I/O, so reading the network state there could
-        // relabel an event created offline as `wifi`, losing the one value the column exists for.
+        // The worker can be blocked on network I/O while connectivity or the UI language changes.
         val networkState: AnalyticsNetworkState = networkStateProvider.currentNetworkState()
+        val uiLocale: String? = uiLocaleProvider()
         val enqueued: Boolean = commands.trySend(
             AnalyticsCommand.Enqueue(
                 event = event,
                 occurredAtMillis = occurredAtMillis,
                 networkState = networkState,
+                uiLocale = uiLocale,
                 identityGeneration = requestedIdentityGeneration.get()
             )
         ).isSuccess
@@ -224,6 +230,7 @@ class AnalyticsClient internal constructor(
                             event = command.event,
                             occurredAtMillis = command.occurredAtMillis,
                             networkState = command.networkState,
+                            uiLocale = command.uiLocale,
                             identityGeneration = command.identityGeneration
                         )
 
@@ -260,6 +267,7 @@ class AnalyticsClient internal constructor(
         event: AnalyticsEvent,
         occurredAtMillis: Long,
         networkState: AnalyticsNetworkState,
+        uiLocale: String?,
         identityGeneration: Int
     ) {
         if (!enabled) {
@@ -293,7 +301,8 @@ class AnalyticsClient internal constructor(
             event = event,
             eventId = newAnalyticsEventId(epochMillis = occurredAtMillis),
             occurredAtMillis = occurredAtMillis,
-            networkState = networkState
+            networkState = networkState,
+            uiLocale = uiLocale
         )
 
         if (serializedEvent.byteSize > analyticsMaxEventBytes) {
@@ -689,7 +698,8 @@ class AnalyticsClient internal constructor(
                 event = AnalyticsEvent.AnalyticsEventsDropped(reason = reason, count = count),
                 eventId = newAnalyticsEventId(epochMillis = nowMillis),
                 occurredAtMillis = nowMillis,
-                networkState = networkStateProvider.currentNetworkState()
+                networkState = networkStateProvider.currentNetworkState(),
+                uiLocale = uiLocaleProvider()
             )
             dao.insert(
                 entity = AnalyticsQueuedEventEntity(
@@ -774,12 +784,12 @@ private fun takeBatchWithinBodyLimit(
 
 private const val analyticsBatchEnvelopeHeadroomBytes: Int = 2_048
 
-/** Describes the device at flush time; every field is capped at 200 characters server-side. */
-fun currentAnalyticsDeviceContext(): AnalyticsDeviceContext {
+fun currentAnalyticsDeviceContext(context: Context): AnalyticsDeviceContext {
     return AnalyticsDeviceContext(
         osVersion = Build.VERSION.RELEASE,
         deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
-        deviceLocale = Locale.getDefault().toLanguageTag(),
+        // The process default can include the per-app language override.
+        deviceLocale = context.getSystemService(LocaleManager::class.java)?.systemLocales?.get(0)?.toLanguageTag(),
         timezone = ZoneId.systemDefault().id
     )
 }
