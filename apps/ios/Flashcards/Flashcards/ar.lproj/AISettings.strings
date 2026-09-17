@@ -64,7 +64,7 @@
 "ai.run.error.activeRunInProgress" = "هناك بالفعل استجابة قيد التقدم. انتظر حتى تنتهي أو قم بإيقافها قبل إرسال رسالة أخرى.";
 "ai.dictation.error.microphoneUnavailable" = "الميكروفون غير متوفر على هذا الجهاز.";
 "ai.dictation.error.microphoneDenied" = "لم يتم منح الوصول إلى الميكروفون.";
-"ai.dictation.error.microphoneBlocked" = "تم تعطيل الوصول إلى الميكروفون لتطبيق Flashcards Open Source. قم بتنشيطه في الإعدادات > الخصوصية والأمان > الميكروفون.";
+"ai.dictation.error.microphoneBlocked" = "تم تعطيل الوصول إلى الميكروفون لتطبيق Nibomo. قم بتنشيطه في الإعدادات > الخصوصية والأمان > الميكروفون.";
 "ai.dictation.error.invalidRecording" = "تعذر تحضير الصوت المسجل.";
 "ai.dictation.error.recordingStartFailed" = "تعذر بدء تسجيل الميكروفون.";
 "ai.dictation.error.emptyRecording" = "لم يتم تسجيل أي صوت.";
@@ -138,7 +138,7 @@
 "settings.title" = "الإعدادات";
 "settings.inviteFriend.button" = "إضافة صديق";
 "settings.section.share" = "مشاركة";
-"settings.row.shareApp" = "مشاركة Flashcards";
+"settings.row.shareApp" = "مشاركة Nibomo";
 "settings.section.feedback" = "الملاحظات";
 "settings.row.reviewInAppStore" = "قيّم التطبيق في App Store";
 "settings.row.sharePrivateFeedback" = "شارك ملاحظاتك بشكل خاص";
@@ -194,8 +194,8 @@
 "settings.leaderboardParticipation.description" = "عند إيقاف هذا الخيار، لن يظهر نشاطك المجهول في لوحة الصدارة.";
 "settings.leaderboardParticipation.signInRequired" = "اتصل بالمزامنة السحابية لإدارة المشاركة في لوحة الصدارة.";
 "settings.language.title" = "اللغة";
-"settings.language.systemDescription" = "يتحكم iOS في لغة التطبيق. في إعدادات iOS، افتح Flashcards واستخدم اللغة المفضلة. إذا لم تظهر اللغة المفضلة، فأضف لغة أخرى أولاً من الإعدادات > عام > اللغة والمنطقة.";
-"settings.language.action.openAppSettings" = "افتح إعدادات Flashcards";
+"settings.language.systemDescription" = "يتحكم iOS في لغة التطبيق. في إعدادات iOS، افتح Nibomo واستخدم اللغة المفضلة. إذا لم تظهر اللغة المفضلة، فأضف لغة أخرى أولاً من الإعدادات > عام > اللغة والمنطقة.";
+"settings.language.action.openAppSettings" = "افتح إعدادات Nibomo";
 "settings.language.section.supportedLanguages" = "اللغات المدعومة";
 "settings.language.supported.english" = "الإنجليزية";
 "settings.language.supported.arabic" = "العربية";
@@ -206,7 +206,7 @@
 "settings.language.supported.russian" = "الروسية";
 "settings.language.supported.spanishMexico" = "الإسبانية المكسيك";
 "settings.language.supported.spanishSpain" = "الإسبانية إسبانيا";
-"feedback.settings.description" = "شارك فكرة، أو أبلغ عن نقطة تحتاج تحسينًا، أو أخبرنا ما الذي سيجعل Flashcards أفضل.";
+"feedback.settings.description" = "شارك فكرة، أو أبلغ عن نقطة تحتاج تحسينًا، أو أخبرنا ما الذي سيجعل Nibomo أفضل.";
 "settings.sync.success" = "تمت المزامنة بنجاح";
 "settings.sync.guestAiActive" = "الذكاء الاصطناعي الضيف نشط";
 "settings.sync.notSyncing" = "لا توجد مزامنة";
@@ -371,7 +371,7 @@
 "settings.access.section.permissions" = "الأذونات";
 "settings.access.notifications" = "الإخطارات";
 "settings.access.thisDevice" = "هذا الجهاز";
-"settings.access.footer" = "يطلب تطبيق Flashcards Open Source فقط الوصول الضروري للمرفقات والإملاء في الدردشة.";
+"settings.access.footer" = "يطلب تطبيق Nibomo فقط الوصول الضروري للمرفقات والإملاء في الدردشة.";
 "settings.access.detail.status" = "الحالة";
 "settings.access.kind.photos" = "صور";
 "settings.access.kind.camera" = "الكاميرا";
@@ -386,10 +386,10 @@
 "settings.access.status.unavailable" = "غير متاح";
 "settings.access.action.request" = "طلب الوصول";
 "settings.access.action.openSettings" = "افتح الإعدادات";
-"settings.access.guidance.photos.limited" = "تتوفر فقط الصور التي قمت بمشاركتها بالفعل مع تطبيق Flashcards Open Source. افتح الإعدادات لمنح وصولاً أوسع إلى الصور.";
-"settings.access.guidance.photos.blocked" = "تم تعطيل الوصول إلى الصور لتطبيق Flashcards Open Source. افتح الإعدادات > الخصوصية والأمان > الصور لتغييرها.";
-"settings.access.guidance.camera.blocked" = "تم تعطيل الوصول إلى الكاميرا لتطبيق Flashcards Open Source. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييرها.";
-"settings.access.guidance.microphone.blocked" = "تم تعطيل الوصول إلى الميكروفون لتطبيق Flashcards Open Source. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره.";
+"settings.access.guidance.photos.limited" = "تتوفر فقط الصور التي قمت بمشاركتها بالفعل مع تطبيق Nibomo. افتح الإعدادات لمنح وصولاً أوسع إلى الصور.";
+"settings.access.guidance.photos.blocked" = "تم تعطيل الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييرها.";
+"settings.access.guidance.camera.blocked" = "تم تعطيل الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييرها.";
+"settings.access.guidance.microphone.blocked" = "تم تعطيل الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره.";
 "settings.access.guidance.askEveryTime" = "اطلب الوصول الآن أو افتح الإعدادات لاحقًا إذا كنت تريد إدارتها يدويًا.";
 "settings.access.guidance.allowed" = "افتح \"الإعدادات\" إذا كنت تريد تعطيل هذا الوصول.";
 "settings.access.guidance.limited" = "افتح \"الإعدادات\" لمراجعة هذا الوصول أو توسيعه.";
@@ -641,7 +641,7 @@
 "settings.notifications.section.appIconBadge" = "شارة أيقونة التطبيق";
 "settings.notifications.section.strictReminders" = "تذكيرات السلسلة";
 "settings.notifications.enableStrictReminders" = "تفعيل تذكيرات السلسلة";
-"settings.notifications.strictReminders.description" = "إذا لم تراجع في مساحة العمل الحالية اليوم، يذكرك Flashcards قبل منتصف الليل بـ 4 و3 وساعتين كي تحافظ على سلسلتك.";
+"settings.notifications.strictReminders.description" = "إذا لم تراجع في مساحة العمل الحالية اليوم، يذكرك Nibomo قبل منتصف الليل بـ 4 و3 وساعتين كي تحافظ على سلسلتك.";
 "settings.notifications.section.dailyReminder" = "مرة يوميًا";
 "settings.notifications.permission.allowed" = "مسموح";
 "settings.notifications.permission.notRequested" = "لم يُطلب بعد";
@@ -695,7 +695,7 @@
 "settings.row.import.value" = "ZIP";
 "settings.workspace.import.title" = "استيراد";
 "settings.workspace.import.cloudRequired" = "يتطلب استيراد ملف ZIP للوسائط حسابًا سحابيًا في هذا الإصدار.";
-"settings.workspace.import.invalidFile" = "اختر حزمة Flashcards بصيغة ZIP.";
+"settings.workspace.import.invalidFile" = "اختر حزمة Nibomo بصيغة ZIP.";
 "settings.workspace.import.fileTooLarge" = "اختر حزمة ZIP بحجم لا يتجاوز %d ميغابايت.";
 "settings.workspace.import.missingImportTag" = "أدخل وسم استيراد قبل الاستيراد.";
 "settings.workspace.import.warningWithPath" = "%@: %@";
@@ -773,7 +773,7 @@
 
 "settings.row.sendFeedback" = "إرسال ملاحظات";
 "settings.row.sendFeedback.value" = "شارك فكرة";
-"feedback.sheet.title" = "هل لديك فكرة لبطاقات Flashcards؟";
+"feedback.sheet.title" = "هل لديك فكرة لـ Nibomo؟";
 "feedback.sheet.body" = "شارك ما يمكن أن يجعل التطبيق أفضل. يقرأ منشئ التطبيق كل رسالة بنفسه.";
 "feedback.sheet.placeholder" = "اكتب فكرتك هنا";
 "feedback.sheet.send" = "إرسال";
@@ -789,7 +789,7 @@
 "settings.account.server.validation.invalidStatusCode" = "أعاد فحص حالة %@ الرمز %d لـ %@";
 "settings.account.server.validation.redirectedToDifferentOrigin" = "تمت إعادة توجيه فحص حالة %@ لـ %@ إلى خادم آخر: %@. اضبطه ليستجيب على الخادم نفسه، ثم حاول مرة أخرى.";
 "settings.account.server.validation.invalidApiHealthResponse" = "لا تعلن حالة API على %@ عن خدمة وعقد سحابي صالحين. حدّث الخادم المخصص وأعد نشره، ثم حاول مرة أخرى.";
-"settings.account.server.validation.unexpectedApiService" = "تعرّف حالة API على %@ الخدمة %@ بدلاً من خلفية Flashcards متوافقة. حدّث الخادم المخصص وأعد نشره، ثم حاول مرة أخرى.";
+"settings.account.server.validation.unexpectedApiService" = "تعرّف حالة API على %@ الخدمة %@ بدلاً من خلفية Nibomo متوافقة. حدّث الخادم المخصص وأعد نشره، ثم حاول مرة أخرى.";
 "settings.account.server.validation.unsupportedCloudContractVersion" = "تعلن حالة API على %@ عن إصدار عقد سحابي غير مدعوم %d. يتطلب هذا التطبيق الإصدار 1. حدّث الخادم المخصص وأعد نشره، ثم حاول مرة أخرى.";
 "settings.sync.customGuestWorkspacePaused.message" = "لا يستطيع هذا الخادم المخصص الوصول إلى مساحة عمل الضيف هذه. قد يكون الخادم غير متوافق أو مهيأ بشكل غير صحيح. تمت إيقاف المزامنة مؤقتًا، وبطاقاتك المحلية وتغييراتك المعلقة آمنة على هذا الجهاز.";
 "settings.account.status.customGuestPause.title" = "مساحة عمل الضيف السحابية غير متاحة";
