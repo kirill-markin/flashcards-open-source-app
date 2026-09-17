@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactElement, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useState, type ReactElement, type ReactNode } from "react";
 import { type TranslationKey, type TranslationMessages, translationCatalogs } from "./catalog";
 import {
   formatCount,
@@ -37,7 +37,7 @@ export function I18nProvider(props: Props): ReactElement {
   const resolvedLocaleState = resolveLocaleState(localePreference);
   const messages = translationCatalogs[resolvedLocaleState.locale];
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.lang = resolvedLocaleState.locale;
     document.documentElement.dir = resolvedLocaleState.direction;
   }, [resolvedLocaleState.direction, resolvedLocaleState.locale]);
