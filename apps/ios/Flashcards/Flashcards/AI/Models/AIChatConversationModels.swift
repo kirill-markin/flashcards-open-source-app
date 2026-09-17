@@ -229,21 +229,11 @@ extension AIChatNewSessionRequestBody {
 }
 
 func currentAIChatUILocaleIdentifier() -> String? {
-    currentAIChatUILocaleIdentifier(
-        preferredLocalizations: Bundle.main.preferredLocalizations
-    )
+    currentAppUILocaleIdentifier()
 }
 
 func currentAIChatUILocaleIdentifier(
     preferredLocalizations: [String]
 ) -> String? {
-    let localeIdentifier = preferredLocalizations.first { candidate in
-        candidate.isEmpty == false && candidate != "Base"
-    }
-
-    guard let localeIdentifier else {
-        return nil
-    }
-
-    return localeIdentifier.replacingOccurrences(of: "_", with: "-")
+    currentAppUILocaleIdentifier(preferredLocalizations: preferredLocalizations)
 }

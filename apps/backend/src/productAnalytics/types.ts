@@ -1,3 +1,4 @@
+import type { RequestCountryLookup } from "../geolocation/requestCountry";
 import type {
   ProductAnalyticsClientReportablePlatform,
   ProductAnalyticsEventName,
@@ -54,6 +55,7 @@ export type ProductAnalyticsInstallationObservation = Readonly<{
   appVersion: string | null;
   context: ProductAnalyticsClientContext;
   observedAt: Date;
+  countryLookup: RequestCountryLookup | null;
 }>;
 
 export type ProductAnalyticsRejectionReason =

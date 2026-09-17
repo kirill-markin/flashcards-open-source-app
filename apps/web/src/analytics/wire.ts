@@ -1,3 +1,5 @@
+import { normalizeSupportedLocale } from "../i18n/locales";
+import type { Locale } from "../i18n/types";
 import {
   buildAnalyticsEventProperties,
   type AnalyticsEvent,
@@ -79,6 +81,11 @@ export function buildAnalyticsWireContext(): AnalyticsWireContext {
   };
 }
 
+export function readAnalyticsUiLocale(): Locale | null {
+  // I18nProvider publishes the committed translation locale before passive analytics effects.
+  return normalizeSupportedLocale(document.documentElement.lang);
+}
+
 export function toAnalyticsWireEvent(
   event: AnalyticsEvent,
   occurredAtMs: number,
@@ -88,6 +95,7 @@ export function toAnalyticsWireEvent(
     eventId: createAnalyticsUuidV7(),
     eventName: event.name,
     clientOccurredAt: toAnalyticsTimestamp(occurredAtMs),
+    uiLocale: readAnalyticsUiLocale(),
     networkState: readAnalyticsNetworkState(),
     // The two events the catalog marks `requiresScreen` carry a surface of their own; everything
     // else takes the surface the caller was on, if any.

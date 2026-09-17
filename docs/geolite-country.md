@@ -2,7 +2,7 @@
 
 This product includes GeoLite data created by MaxMind, available from <https://www.maxmind.com>.
 
-Implementation: [reader](../apps/backend/src/geolocation/country.ts), [freshness validation](../apps/backend/src/geolocation/database.ts), [private bucket](../infra/aws/lib/geolite-country.ts), [download script](../scripts/geolite/refresh-country.sh), [daily workflow](../.github/workflows/geolite-country-refresh.yml). Country ingestion is not enabled by these resources.
+Implementation: [reader](../apps/backend/src/geolocation/country.ts), [freshness validation](../apps/backend/src/geolocation/database.ts), [private bucket](../infra/aws/lib/geolite-country.ts), [download script](../scripts/geolite/refresh-country.sh), [daily workflow](../.github/workflows/geolite-country-refresh.yml), [country ingestion and retention](analytics-audience.md).
 
 ## Initial rollout
 

@@ -32,10 +32,35 @@ struct FeedbackPromptEventRequest: Encodable, Hashable, Sendable {
     let installationId: String?
     let platform: String
     let appVersion: String?
-    let locale: String
+    let locale: String?
     let timezone: String
     let eventType: String
     let createdAtClient: String
+
+    private enum CodingKeys: String, CodingKey {
+        case feedbackPromptEventId
+        case workspaceId
+        case installationId
+        case platform
+        case appVersion
+        case locale
+        case timezone
+        case eventType
+        case createdAtClient
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.feedbackPromptEventId, forKey: .feedbackPromptEventId)
+        try container.encode(self.workspaceId, forKey: .workspaceId)
+        try container.encode(self.installationId, forKey: .installationId)
+        try container.encode(self.platform, forKey: .platform)
+        try container.encode(self.appVersion, forKey: .appVersion)
+        try container.encode(self.locale, forKey: .locale)
+        try container.encode(self.timezone, forKey: .timezone)
+        try container.encode(self.eventType, forKey: .eventType)
+        try container.encode(self.createdAtClient, forKey: .createdAtClient)
+    }
 }
 
 struct FeedbackSubmissionRequest: Encodable, Hashable, Sendable {
@@ -44,11 +69,38 @@ struct FeedbackSubmissionRequest: Encodable, Hashable, Sendable {
     let installationId: String?
     let platform: String
     let appVersion: String?
-    let locale: String
+    let locale: String?
     let timezone: String
     let trigger: String
     let message: String
     let createdAtClient: String
+
+    private enum CodingKeys: String, CodingKey {
+        case feedbackSubmissionId
+        case workspaceId
+        case installationId
+        case platform
+        case appVersion
+        case locale
+        case timezone
+        case trigger
+        case message
+        case createdAtClient
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.feedbackSubmissionId, forKey: .feedbackSubmissionId)
+        try container.encode(self.workspaceId, forKey: .workspaceId)
+        try container.encode(self.installationId, forKey: .installationId)
+        try container.encode(self.platform, forKey: .platform)
+        try container.encode(self.appVersion, forKey: .appVersion)
+        try container.encode(self.locale, forKey: .locale)
+        try container.encode(self.timezone, forKey: .timezone)
+        try container.encode(self.trigger, forKey: .trigger)
+        try container.encode(self.message, forKey: .message)
+        try container.encode(self.createdAtClient, forKey: .createdAtClient)
+    }
 }
 
 struct FeedbackPresentation: Identifiable, Hashable, Sendable {
@@ -235,7 +287,7 @@ func makeFeedbackPromptEventRequest(
         installationId: installationId,
         platform: "ios",
         appVersion: appMarketingVersion(),
-        locale: Locale.current.identifier,
+        locale: currentAppUILocaleIdentifier(),
         timezone: TimeZone.current.identifier,
         eventType: eventType.rawValue,
         createdAtClient: formatIsoTimestamp(date: now)
@@ -255,7 +307,7 @@ func makeFeedbackSubmissionRequest(
         installationId: installationId,
         platform: "ios",
         appVersion: appMarketingVersion(),
-        locale: Locale.current.identifier,
+        locale: currentAppUILocaleIdentifier(),
         timezone: TimeZone.current.identifier,
         trigger: trigger.rawValue,
         message: trimmedFeedbackMessage(message),
