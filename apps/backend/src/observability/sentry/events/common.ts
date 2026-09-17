@@ -10,6 +10,7 @@ export type BackendService =
   | "streak-leaderboard-snapshot"
   | "progress-active-days-backfill"
   | "web-guest-reaper"
+  | "country-retention"
   | "generated-media-promotion"
   | "multipart-completion-reconciliation"
   | "migration";

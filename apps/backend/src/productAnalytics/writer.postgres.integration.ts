@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import { productAnalyticsSchemaVersion } from "./catalog";
+import { retainRecentCountryObservations } from "./countryRetention";
+import { storeFeedbackSubmissionForUser } from "../feedback/store";
 import {
   insertProductAnalyticsClientBatch,
   insertProductAnalyticsIdentityLink,
@@ -279,6 +281,7 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
       timezone: "Europe/Madrid",
     },
     observedAt: serverReceivedAt,
+    countryLookup: null,
   };
   const guestUserId = randomUUID();
   const guestInstallation: ProductAnalyticsInstallationObservation = {
@@ -530,6 +533,118 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
       [batchEventIds],
     );
     await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [[userId, guestUserId]]);
+    await ownerPool.end();
+  }
+});
+
+test("country periods dedupe concurrent days, retain first known country, and expire without changing queued events", async () => {
+  const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
+  const countryUserId = randomUUID();
+  const installationId = randomUUID();
+  const eventId = createEventId();
+  const feedbackId = randomUUID();
+  const day = 86_400_000;
+  const startedAt = new Date("2026-01-01T23:59:59.000Z");
+  const installation: ProductAnalyticsInstallationObservation = {
+    anonymousId: installationId, platform: "ios", userId: countryUserId, guestSessionId: null,
+    appVersion: "1.23.0",
+    context: { osVersion: "18.2", deviceModel: null, deviceLocale: "ru-RU", timezone: "Europe/Madrid" },
+    observedAt: startedAt, countryLookup: async () => null,
+  };
+  const event: ProductAnalyticsEventRow = {
+    ...minimalRow, eventId, userId: countryUserId, subjectUserId: countryUserId,
+    anonymousId: installationId, country: null, uiLocale: "ru",
+  };
+  const writeSample = async (offset: number, country: string | null): Promise<void> => {
+    await insertProductAnalyticsClientBatch([event], null, {
+      ...installation, observedAt: new Date(startedAt.getTime() + offset), countryLookup: async () => country,
+    });
+  };
+  const loadPeriods = async (): Promise<ReadonlyArray<Readonly<{
+    country: string | null; first_seen: Date; last_seen: Date; sampled_at: Date;
+  }>>> => (await ownerPool.query<Readonly<{
+    country: string | null; first_seen: Date; last_seen: Date; sampled_at: Date;
+  }>>(
+    `SELECT country, first_seen, last_seen, sampled_at FROM analytics.installation_country_observations
+     WHERE anonymous_id = $1::uuid ORDER BY first_seen`, [installationId],
+  )).rows;
+  try {
+    await ownerPool.query("INSERT INTO org.user_settings (user_id) VALUES ($1)", [countryUserId]);
+    await insertProductAnalyticsClientBatch([event], null, installation);
+    // UTC midnight is a new sample day even when the requests are two seconds apart.
+    let lookups = 0;
+    const concurrentSample = {
+      ...installation,
+      observedAt: new Date(startedAt.getTime() + 2_000),
+      countryLookup: async (): Promise<string> => { lookups += 1; return "ES"; },
+    };
+    await Promise.all([
+      insertProductAnalyticsClientBatch([event], null, concurrentSample),
+      insertProductAnalyticsClientBatch([event], null, concurrentSample),
+    ]);
+    assert.equal(lookups, 1);
+    await writeSample(3_000, "FR");
+    assert.deepEqual((await loadPeriods()).map((row) => row.country), [null, "ES"]);
+    await writeSample(2 * day, "ES");
+    const unchanged = await loadPeriods();
+    assert.equal(unchanged.length, 2);
+    assert.equal(unchanged[1]?.first_seen.toISOString(), concurrentSample.observedAt.toISOString());
+    assert.equal(unchanged[1]?.last_seen.getTime(), startedAt.getTime() + 2 * day);
+    await writeSample(3 * day, "FR");
+    await writeSample(4 * day, null);
+    assert.deepEqual((await loadPeriods()).map((row) => row.country), [null, "ES", "FR", null]);
+    await assert.rejects(insertProductAnalyticsClientBatch([event], null, {
+      ...installation, observedAt: new Date(startedAt.getTime() + 5 * day),
+      countryLookup: async () => { throw new Error("Country database unavailable"); },
+    }), /Country database unavailable/);
+    assert.equal((await loadPeriods()).length, 4);
+    const sampledProfile = await ownerPool.query<Readonly<{
+      first_country: string; first_country_sampled_at: Date; country_sampled_at: Date;
+    }>>(
+      `SELECT first_country, first_country_sampled_at, country_sampled_at
+       FROM analytics.installation_profiles WHERE anonymous_id = $1::uuid`, [installationId],
+    );
+    assert.deepEqual(sampledProfile.rows[0], {
+      first_country: "ES", first_country_sampled_at: concurrentSample.observedAt,
+      country_sampled_at: new Date(startedAt.getTime() + 4 * day),
+    });
+    // Resuming the same country after expiry starts a fresh period before cleanup has run.
+    await writeSample(95 * day, null);
+    assert.equal((await loadPeriods()).length, 5);
+    const retention = await retainRecentCountryObservations(new Date(startedAt.getTime() + 95 * day), Date.now() + 20_000);
+    assert.equal(retention.finished, true);
+    assert.equal((await loadPeriods()).length, 1);
+    assert.equal((await loadPeriods())[0]?.first_seen.getTime(), startedAt.getTime() + 95 * day);
+    const firstCountry = await ownerPool.query<{ first_country: string }>(
+      "SELECT first_country FROM analytics.installation_profiles WHERE anonymous_id = $1::uuid", [installationId],
+    );
+    assert.equal(firstCountry.rows[0]?.first_country, "ES");
+    const queuedEvent = await ownerPool.query<{ country: string | null; ui_locale: string }>(
+      "SELECT country, ui_locale FROM analytics.product_events WHERE event_id = $1::uuid", [eventId],
+    );
+    assert.deepEqual(queuedEvent.rows, [{ country: null, ui_locale: "ru" }]);
+
+    const feedback = {
+      feedbackSubmissionId: feedbackId, workspaceId: null, installationId: null, platform: "ios" as const,
+      appVersion: "1.23.0", locale: "ru", timezone: "Europe/Madrid", trigger: "settings" as const,
+      message: "Integration feedback", createdAtClient: startedAt.toISOString(),
+    };
+    await storeFeedbackSubmissionForUser(countryUserId, null, feedback);
+    await storeFeedbackSubmissionForUser(countryUserId, null, { ...feedback, locale: "fr" });
+    const storedFeedback = await ownerPool.query<{ locale: string; country: string | null }>(
+      "SELECT locale, country FROM support.feedback_submissions WHERE feedback_submission_id = $1::uuid", [feedbackId],
+    );
+    assert.deepEqual(storedFeedback.rows, [{ locale: "ru", country: null }]);
+    await ownerPool.query("DELETE FROM analytics.installation_profiles WHERE anonymous_id = $1::uuid", [installationId]);
+    assert.equal((await loadPeriods()).length, 0);
+    await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = $1", [countryUserId]);
+    assert.equal((await ownerPool.query(
+      "SELECT 1 FROM support.feedback_submissions WHERE feedback_submission_id = $1::uuid", [feedbackId],
+    )).rowCount, 0);
+  } finally {
+    await ownerPool.query("DELETE FROM analytics.installation_profiles WHERE anonymous_id = $1::uuid", [installationId]);
+    await ownerPool.query("DELETE FROM analytics.product_events WHERE event_id = $1::uuid", [eventId]);
+    await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = $1", [countryUserId]);
     await ownerPool.end();
   }
 });

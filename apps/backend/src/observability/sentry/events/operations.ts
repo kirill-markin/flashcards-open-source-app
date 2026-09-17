@@ -667,6 +667,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"streak_leaderboard_snapshot_generated", StreakLeaderboardSnapshotGeneratedDetails>
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"web_guest_reaper_completed", WebGuestReaperCompletedDetails>
+  | EventByAction<"country_retention_completed", Readonly<{ deleted: number; cutoff: string; finished: boolean }>>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
   | EventByAction<"media_blob_cleanup_retry", MediaBlobCleanupRetryDetails>
@@ -733,6 +734,7 @@ export type OperationsWarningEvent =
   > & Readonly<{ message: string }>);
 
 export type OperationsExceptionEvent =
+  | (EventByAction<"country_retention_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_failed", CatalogDumpFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_refresh_failed", CatalogDumpRefreshFailureDetails> & Readonly<{ error: Error }>)
