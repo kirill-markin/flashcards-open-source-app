@@ -84,7 +84,7 @@ const MCP_TOOL_PRESENTATION: Readonly<Record<string, McpToolPresentation | undef
   // database domain; idempotentHint is true because repeating the same read has no additional
   // effect.
   [SQL_QUERY_TOOL_NAME]: {
-    title: "Flashcards SQL query (read-only)",
+    title: "Nibomo SQL query (read-only)",
     annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true },
     maxResultSizeChars: MAX_SQL_RESULT_CHARS,
   },
@@ -93,7 +93,7 @@ const MCP_TOOL_PRESENTATION: Readonly<Record<string, McpToolPresentation | undef
   // domain. Same result budget as sql_query, and for the same reason: this is the size we already
   // shrink a committed write's result down to.
   [SQL_EXECUTE_TOOL_NAME]: {
-    title: "Flashcards SQL execute (write)",
+    title: "Nibomo SQL execute (write)",
     annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
     maxResultSizeChars: MAX_SQL_RESULT_CHARS,
   },
@@ -463,7 +463,7 @@ export function createMcpServerWithDependencies(
     {
       name: SERVER_NAME,
       version: SERVER_VERSION,
-      title: "Flashcards Open Source App",
+      title: "Nibomo",
       websiteUrl,
       icons: [{ src: iconUrl, mimeType: "image/svg+xml", sizes: ["any"] }],
     },
