@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.app.store.NoOpStoreReviewAnalyticsReporter
 import com.flashcardsopensourceapp.app.store.StoreReviewActivityProvider
 import com.flashcardsopensourceapp.app.store.StoreReviewRequestManager
 import com.flashcardsopensourceapp.app.analytics.AppAnalyticsCredentialProvider
+import com.flashcardsopensourceapp.app.analytics.currentAppUiLocaleTag
 import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
 import com.flashcardsopensourceapp.app.analytics.isProductAnalyticsDisabledForProcess
 import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
@@ -248,7 +249,8 @@ class AppGraph(
         networkStateProvider = analyticsNetworkMonitor,
         observability = observability,
         appVersion = appPackageInfo.versionName,
-        versionCode = appPackageInfo.longVersionCode.toInt()
+        versionCode = appPackageInfo.longVersionCode.toInt(),
+        uiLocaleProvider = { currentAppUiLocaleTag(context = context) }
     )
     val analytics: Analytics = analyticsClient
     val syncFailureAnalyticsReporter = AnalyticsSyncFailureReporter(analytics = analytics)
@@ -465,7 +467,8 @@ class AppGraph(
         remoteService = cloudRemoteService,
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
         syncRepository = syncRepository,
-        appVersion = appPackageInfo.versionName
+        appVersion = appPackageInfo.versionName,
+        currentUiLocaleTag = { currentAppUiLocaleTag(context = context) ?: "und" }
     )
     val guestSignInAfterReviewPromptController = GuestSignInAfterReviewPromptController(
         appScope = appScope,

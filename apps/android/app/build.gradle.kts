@@ -1,5 +1,6 @@
 import org.gradle.api.GradleException
 import java.util.Locale
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -70,6 +71,15 @@ val isReleaseTaskRequested: Boolean = requestedTaskNames.any { taskName ->
 }
 val isMarketingScreenshotTaskRequested: Boolean = requestedTaskNames.any { taskName ->
     taskName.contains("MarketingScreenshot", ignoreCase = true)
+}
+val baseAndroidLocale: String = Properties().apply {
+    layout.projectDirectory.file("src/main/res/resources.properties").asFile.inputStream().use { input ->
+        load(input)
+    }
+}.getProperty("unqualifiedResLocale")
+    ?: throw GradleException("resources.properties must declare unqualifiedResLocale.")
+if (Locale.forLanguageTag(baseAndroidLocale).language.isBlank()) {
+    throw GradleException("Invalid unqualifiedResLocale in resources.properties: $baseAndroidLocale")
 }
 val supportedAndroidLocales: List<String> = readSupportedAndroidLocales()
 val supportedAndroidLocaleFilters: List<String> = supportedAndroidLocales.map(::toAndroidLocaleFilter)
@@ -160,6 +170,7 @@ android {
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         buildConfigField("int", "ANDROID_MIN_SDK", androidMinSdk.toString())
+        buildConfigField("String", "BASE_RESOURCE_LOCALE", toBuildConfigString(baseAndroidLocale))
         buildConfigField("String", "ANDROID_SENTRY_DSN", toBuildConfigString(androidSentryDsn))
         buildConfigField(
             "String",
