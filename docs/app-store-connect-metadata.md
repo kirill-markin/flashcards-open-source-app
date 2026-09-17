@@ -6,15 +6,17 @@ Related competitor references: [iOS competitors](competitor-store-metadata.md#io
 
 ### Name
 
-Flashcards Open Source App
+Nibomo: AI Flashcards
 
 ### Subtitle
 
-AI Notes to Flashcards
+Turn notes into study cards
 
 ### Description
 
 Create AI flashcards from notes, then review them with spaced repetition for exams, languages, and serious daily study.
+
+Nibomo was previously called Flashcards Open Source App.
 
 Use it for:
 - exam prep and coursework
@@ -34,21 +36,27 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-spaced,repetition,study,cards,vocab,language,exam,prep,medical,review,memorize,fsrs,decks,tags
+open,source,spaced,repetition,vocab,language,exam,prep,medical,memorize,fsrs,decks,tags
+
+### What's New
+
+The app is now called Nibomo (formerly Flashcards Open Source App).
 
 ## Arabic
 
 ### Name
 
-بطاقات تعليم مفتوحة المصدر
+Nibomo: بطاقات ذكاء اصطناعي
 
 ### Subtitle
 
-بطاقات من ملاحظاتك
+من ملاحظاتك إلى كروت مذاكرة
 
 ### Description
 
 حوّل ملاحظاتك إلى بطاقات مراجعة بالذكاء الاصطناعي، ثم راجعها بالتكرار المتباعد للاختبارات واللغات والدراسة الجادة اليومية.
+
+كان اسم Nibomo سابقا بطاقات تعليم مفتوحة المصدر.
 
 استخدمه من أجل:
 - التحضير للاختبارات والدراسة الجامعية
@@ -68,21 +76,27 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-مذاكرة,تكرار,متباعد,ذكاء,اصطناعي,مفردات,لغات,اختبارات,طب,وسوم,ذاكرة
+مفتوح,المصدر,تكرار,متباعد,مفردات,لغات,اختبارات,طب,حفظ
+
+### What's New
+
+أصبح اسم التطبيق Nibomo (كان سابقا بطاقات تعليم مفتوحة المصدر).
 
 ## Chinese (Simplified)
 
 ### Name
 
-开源闪卡
+Nibomo: AI 闪卡
 
 ### Subtitle
 
-AI 笔记转闪卡
+把笔记变成学习卡片
 
 ### Description
 
 用 AI 把笔记生成闪卡，再用间隔重复复习，适合备考、语言学习和认真坚持的日常学习。
+
+Nibomo 以前叫开源闪卡。
 
 适合用来：
 - 备考和课程复习
@@ -102,21 +116,27 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-学习,间隔,重复,词汇,语言,考试,备考,医学,卡组,标签,记忆,复习
+开源,间隔,重复,词汇,语言,考试,备考,医学,卡组,标签,记忆,复习
+
+### What's New
+
+应用现已更名为 Nibomo（原名开源闪卡）。
 
 ## German
 
 ### Name
 
-Open-Source-Karteikarten
+Nibomo: KI-Karteikarten
 
 ### Subtitle
 
-KI-Notizen zu Karten
+Notizen zu Lernkarten
 
 ### Description
 
 Erstelle aus Notizen KI-Karten und lerne sie mit Spaced Repetition für Prüfungen, Sprachen und ernsthaftes tägliches Lernen.
+
+Nibomo hieß früher Open-Source-Karteikarten.
 
 Nutze sie für:
 - Prüfungsvorbereitung und Studium
@@ -136,21 +156,27 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-lernen,spaced,repetition,vokabeln,sprachen,prüfungen,medizin,wiederholen,merken,decks,tags,fsrs
+open,source,lernen,spaced,repetition,vokabeln,sprachen,prüfungen,medizin,merken,decks,tags
+
+### What's New
+
+Die App heißt jetzt Nibomo (früher Open-Source-Karteikarten).
 
 ## Hindi
 
 ### Name
 
-ओपन सोर्स फ्लैशकार्ड
+Nibomo: AI फ्लैशकार्ड
 
 ### Subtitle
 
-नोट्स से AI कार्ड
+नोट्स से स्टडी कार्ड बनाएं
 
 ### Description
 
 AI से नोट्स को फ्लैशकार्ड में बदलें, फिर परीक्षा, भाषा सीखने और गंभीर रोज़ाना पढ़ाई के लिए स्पेस्ड रिपिटीशन से रिव्यू करें।
+
+Nibomo को पहले ओपन सोर्स फ्लैशकार्ड कहा जाता था।
 
 इसे इन कामों के लिए इस्तेमाल करें:
 - परीक्षा की तैयारी और कोर्सवर्क
@@ -170,21 +196,27 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-पढ़ाई,स्पेस्ड,रिपिटीशन,शब्दावली,भाषा,परीक्षा,मेडिकल,रिव्यू,याददाश्त,डेक,टैग
+ओपन,सोर्स,परीक्षा,spaced,repetition,vocab,medical,fsrs,decks,tags
+
+### What's New
+
+ऐप का नाम अब Nibomo है (पहले ओपन सोर्स फ्लैशकार्ड)।
 
 ## Japanese
 
 ### Name
 
-オープンソース暗記カード
+Nibomo: AI暗記カード
 
 ### Subtitle
 
-AIでノートをカード化
+ノートから学習カードを作成
 
 ### Description
 
 AIでノートを暗記カードにし、試験対策、語学、本気の毎日の学習を間隔反復で復習できます。
+
+Nibomo は以前「オープンソース暗記カード」という名前でした。
 
 こんな用途に向いています:
 - 試験対策や授業の復習
@@ -204,21 +236,27 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-勉強,間隔,反復,単語,語学,試験,医学,復習,記憶,デッキ,タグ
+オープンソース,勉強,間隔,反復,単語,語学,試験,医学,記憶,デッキ,タグ
+
+### What's New
+
+アプリ名が Nibomo になりました（旧「オープンソース暗記カード」）。
 
 ## Russian
 
 ### Name
 
-Флешкарты с открытым кодом
+Nibomo: ИИ-флешкарты
 
 ### Subtitle
 
-ИИ: заметки в карточки
+Из заметок — учебные карточки
 
 ### Description
 
 Создавайте ИИ-флешкарты из заметок, а затем повторяйте их интервально для экзаменов, языков и ежедневной учебы.
+
+Раньше Nibomo назывался «Флешкарты с открытым кодом».
 
 Подходит для:
 - подготовки к экзаменам и учебным курсам
@@ -238,21 +276,27 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-учеба,интервалы,повторение,словарь,языки,экзамены,медицина,память,колоды,теги,fsrs
+открытый,код,повторение,языки,экзамены,медицина,fsrs
+
+### What's New
+
+Приложение теперь называется Nibomo (раньше «Флешкарты с открытым кодом»).
 
 ## Spanish (Mexico)
 
 ### Name
 
-Flashcards de código abierto
+Nibomo: Flashcards con IA
 
 ### Subtitle
 
-Notas con IA a fichas
+Convierte notas en tarjetas
 
 ### Description
 
 Convierte notas en flashcards con IA y repásalas con repetición espaciada para exámenes, idiomas y estudio diario serio.
+
+Nibomo se llamaba antes Flashcards de código abierto.
 
 Úsala para:
 - preparar exámenes y materias
@@ -272,21 +316,27 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-estudio,repetición,espaciada,vocabulario,idiomas,exámenes,medicina,repaso,memoria,mazos,etiquetas
+open,source,estudio,repetición,espaciada,vocabulario,idiomas,exámenes,medicina,mazos,etiquetas
+
+### What's New
+
+La app ahora se llama Nibomo (antes Flashcards de código abierto).
 
 ## Spanish (Spain)
 
 ### Name
 
-Flashcards de código abierto
+Nibomo: Flashcards con IA
 
 ### Subtitle
 
-Notas con IA a fichas
+Convierte notas en tarjetas
 
 ### Description
 
 Convierte notas en flashcards con IA y repásalas con repetición espaciada para exámenes, idiomas y estudio diario serio.
+
+Nibomo se llamaba antes Flashcards de código abierto.
 
 Úsala para:
 - preparar exámenes y asignaturas
@@ -306,4 +356,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### Keywords
 
-estudio,repetición,espaciada,vocabulario,idiomas,exámenes,medicina,repaso,memoria,mazos,etiquetas
+open,source,estudio,repetición,espaciada,vocabulario,idiomas,exámenes,medicina,mazos,etiquetas
+
+### What's New
+
+La app ahora se llama Nibomo (antes Flashcards de código abierto).

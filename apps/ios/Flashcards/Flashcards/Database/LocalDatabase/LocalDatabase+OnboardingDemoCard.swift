@@ -2,7 +2,7 @@ import Foundation
 
 private let reviewCardsStringsTableName: String = "ReviewCards"
 private let onboardingDemoCardTag: String = "demo"
-private let onboardingDemoCardProductName: String = "**Flashcards Open Source App**"
+private let onboardingDemoCardProductName: String = "**Nibomo**"
 
 extension LocalDatabase {
     /**

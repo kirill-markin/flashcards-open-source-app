@@ -104,7 +104,7 @@ describe("ShareAppScreen", () => {
     await renderShareRoute();
 
     const screen: HTMLElement = requireElement(container, "[data-testid='share-app-screen']");
-    expect(screen.textContent).toContain("Study with Flashcards");
+    expect(screen.textContent).toContain("Study with Nibomo");
     expect(screen.textContent).toContain("Choose where you want to use the app.");
 
     const linkTestIds: ReadonlyArray<string> = Array.from(
