@@ -67,7 +67,7 @@ enum AIChatVoiceRecorderError: LocalizedError, Equatable {
         case .microphoneBlocked:
             return aiSettingsLocalized(
                 "ai.dictation.error.microphoneBlocked",
-                "Microphone access is turned off for Flashcards Open Source App. Enable it in Settings > Privacy & Security > Microphone."
+                "Microphone access is turned off for Nibomo. Enable it in Settings > Privacy & Security > Microphone."
             )
         case .invalidRecording:
             return aiSettingsLocalized(

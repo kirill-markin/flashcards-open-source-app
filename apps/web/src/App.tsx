@@ -575,8 +575,8 @@ export function AppShell(): ReactElement {
             <div className="topbar-brand-block">
               <div className="topbar-brand-row">
                 <a className="topbar-brand" href={reviewRoute}>
-                  <span className="brand-full">Flashcards Open Source App</span>
-                  <span className="brand-short">Flashcards</span>
+                  <span className="brand-full">Nibomo</span>
+                  <span className="brand-short">Nibomo</span>
                 </a>
                 {isSyncing ? <span className="topbar-sync-status">{t("app.syncing")}</span> : null}
                 {!isSyncing && sessionRestoringMessage !== "" ? <span className="topbar-sync-status">{sessionRestoringMessage}</span> : null}

@@ -86,7 +86,7 @@ enum CloudServiceConfigurationValidationError: LocalizedError, Equatable {
         case .unexpectedAPIService(let url, let actualService):
             return aiSettingsLocalizedFormat(
                 "settings.account.server.validation.unexpectedApiService",
-                "API health at %@ identifies %@ instead of a compatible Flashcards backend. Update and redeploy the custom server, then try again.",
+                "API health at %@ identifies %@ instead of a compatible Nibomo backend. Update and redeploy the custom server, then try again.",
                 url,
                 actualService
             )
