@@ -9,13 +9,15 @@ Supported browser entrypoints:
 
 ## Scope
 
-The dashboard has two top-level analytics sections. `General` preserves these three report sections, in page order:
+The dashboard has three top-level analytics sections. `General` contains these three report sections, in page order:
 
 - `daily-active-users`
 - `catalog-deck-installs`
 - `review-events-by-date`
 
 `Funnels` is separate from General and currently carries `catalog-installation`. Each funnel owns its query, parser, controls, and display so later funnels can be added without changing General or introducing a generic reporting engine.
+
+`Audience` shows distinct active or reviewing users by observed connection country, actual event UI language, and platform, with upload country/language pairs and coverage. It shares General's date, user, platform and new/returning filters and adds a last-three-UTC-days shortcut. Its [query](../apps/admin/src/reports/audience/query.ts) and [display](../apps/admin/src/reports/audience/AudienceSection.tsx) define cohort and conservative sample matching; [Audience analytics](analytics-audience.md) defines collection and retention. Review counts use resolved review actors and include every grade. Sparse samples cannot reconstruct daily presence or historical offline event geography.
 
 The admin app is a separate React + TypeScript + Vite package. It does not reuse the web app runtime storage or sync code.
 
@@ -202,6 +204,13 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - unauthenticated access redirects to the login flow
 - a listed admin email loads the dashboard, where the shared hero and filter row sit above titled report sections, each separated by a divider
 - General opens by default and still contains every existing chart; Funnels opens separately with Catalog installation and its own date and acquisition controls
+- Audience opens as a sibling; the shared filters remain visible and the last-three-days shortcut selects today and the preceding two UTC calendar dates (clamped to available history)
+- switch Audience between Active users and Reviewed ≥1 card; compare distinct resolved actors from `app_opened` and `review_answered`, excluding active admins and example.com accounts, including Again reviews and merged guests only once
+- apply a user, platform, and new/returning filter in Audience; confirm the denominator and distributions reload, and General keeps its charts when switching back
+- for an identified retained sample batch, compare its exact installation/platform/server-received timestamp with the observation endpoint; confirm upload-country/UI-language pairs come from that same batch and no independently observed languages are cross-joined
+- select a range with no retained matching samples, an older-than-90-days range, and an empty cohort; confirm unknown country coverage, the unavailable-history notice, and zero/— states without invented historical country
+- confirm users with multiple countries or languages count once in the cohort but in multiple distribution buckets; known plus unknown coverage equals the denominator, while overlapping distribution buckets need not sum to it
+- select agent-only activity and confirm it stays separately labeled with unknown human geography; older clients without event UI locale must stay unknown, even when device locale exists
 - a signed-in non-admin sees the access denied page
 - network traces show `POST /v1/admin/reports/query` for dashboard data
 - the default date filter covers the last 30 days ending today, and widens back to the first app open, review, friend invite, or friendship day
