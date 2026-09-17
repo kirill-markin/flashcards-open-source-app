@@ -1,9 +1,8 @@
 # Security Policy
 
-Flashcards Open Source App is a monorepo for the hosted backend, web app,
-iOS app, Android app, MCP connector, Agent API, database migrations, and
-deployment code. Use this policy for vulnerabilities in any part of the product
-or repository.
+Nibomo is a monorepo for the hosted backend, web app, iOS app, Android app,
+MCP connector, Agent API, database migrations, and deployment code. Use this
+policy for vulnerabilities in any part of the product or repository.
 
 ## Reporting Vulnerabilities
 

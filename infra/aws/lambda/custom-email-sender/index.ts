@@ -222,8 +222,8 @@ export function buildMessage(triggerSource: string, code: string | null): Custom
     }
 
     return {
-      subject: "Your Flashcards sign-in code",
-      html: buildOtpHtml("Use this sign-in code to continue in Flashcards Open Source App:", code),
+      subject: "Your Nibomo sign-in code",
+      html: buildOtpHtml("Use this sign-in code to continue in Nibomo:", code),
       requiresCode: true,
     };
   }
@@ -234,8 +234,8 @@ export function buildMessage(triggerSource: string, code: string | null): Custom
     }
 
     return {
-      subject: "Your Flashcards password reset code",
-      html: buildOtpHtml("Use this password reset code for Flashcards Open Source App:", code),
+      subject: "Your Nibomo password reset code",
+      html: buildOtpHtml("Use this password reset code for Nibomo:", code),
       requiresCode: true,
     };
   }
@@ -251,8 +251,8 @@ export function buildMessage(triggerSource: string, code: string | null): Custom
     }
 
     return {
-      subject: "Your Flashcards verification code",
-      html: buildOtpHtml("Use this verification code for Flashcards Open Source App:", code),
+      subject: "Your Nibomo verification code",
+      html: buildOtpHtml("Use this verification code for Nibomo:", code),
       requiresCode: true,
     };
   }
@@ -263,17 +263,17 @@ export function buildMessage(triggerSource: string, code: string | null): Custom
     }
 
     return {
-      subject: "Your Flashcards temporary password",
-      html: buildPlainHtml(`Your temporary password for Flashcards Open Source App is: ${code}`),
+      subject: "Your Nibomo temporary password",
+      html: buildPlainHtml(`Your temporary password for Nibomo is: ${code}`),
       requiresCode: true,
     };
   }
 
   if (triggerSource === "CustomEmailSender_AccountTakeOverNotification") {
     return {
-      subject: "Flashcards security notice",
+      subject: "Nibomo security notice",
       html: buildPlainHtml(
-        "Flashcards Open Source App detected suspicious activity on your account. Review your recent sign-in attempts.",
+        "Nibomo detected suspicious activity on your account. Review your recent sign-in attempts.",
       ),
       requiresCode: false,
     };
