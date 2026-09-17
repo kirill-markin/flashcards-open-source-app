@@ -14,7 +14,7 @@ URLs appear.
 
 ## Listing metadata
 
-- **Name:** Flashcards Open Source App
+- **Name:** Nibomo
 - **Tagline (≤55 chars):** Read and write your flashcards over SQL
 - **Categories:** Productivity, Education
 - **Icon URLs:** https://flashcards-open-source-app.com/icon.svg,
@@ -31,10 +31,10 @@ URLs appear.
 
 ### Description (≤2000 chars)
 
-Flashcards Open Source App is an open-source, offline-first spaced-repetition
-study app for iOS, Android, web, and AI agents. This connector exposes your
-flashcard data to an AI client through a remote MCP server so the assistant can
-read and write your cards and decks on your behalf.
+Nibomo is an open-source, offline-first spaced-repetition study app for iOS,
+Android, web, and AI agents. This connector exposes your flashcard data to an
+AI client through a remote MCP server so the assistant can read and write your
+cards and decks on your behalf.
 
 After you authorize the connector, the assistant works against your own
 workspaces. It can list your workspaces, inspect the available tables, read
