@@ -1,17 +1,17 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name">Flashcards Open Source App</string>
+    <string name="app_name">Nibomo</string>
     <string name="top_level_review">Review</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_progress">Progress</string>
     <string name="top_level_cards">Cards</string>
     <string name="top_level_settings">Settings</string>
     <string name="startup_error_title">Startup failed</string>
-    <string name="startup_error_message">Flashcards could not finish starting. Retry startup, or open technical details if support asks for them.</string>
+    <string name="startup_error_message">Nibomo could not finish starting. Retry startup, or open technical details if support asks for them.</string>
     <string name="startup_error_retry">Retry startup</string>
     <string name="unsupported_android_runtime_title">Android version unsupported</string>
-    <string name="unsupported_android_runtime_message">Flashcards requires Android 14 or newer. Update Android on this device or install the app on a supported device.</string>
+    <string name="unsupported_android_runtime_message">Nibomo requires Android 14 or newer. Update Android on this device or install the app on a supported device.</string>
     <string name="technical_error_dialog_default_title">Something went wrong</string>
-    <string name="technical_error_dialog_default_message">The app hit a technical error. You can keep using Flashcards, and support may ask for the details below.</string>
+    <string name="technical_error_dialog_default_message">The app hit a technical error. You can keep using Nibomo, and support may ask for the details below.</string>
     <string name="technical_error_dialog_show_details">Show technical details</string>
     <string name="technical_error_dialog_hide_details">Hide technical details</string>
     <string name="technical_error_dialog_close">Close</string>
@@ -24,7 +24,7 @@
     <string name="guest_sign_in_after_review_prompt_body">Sign in with email so these cards and review progress are not lost.</string>
     <string name="guest_sign_in_after_review_prompt_sign_in">Sign in</string>
     <string name="guest_sign_in_after_review_prompt_later">Later</string>
-    <string name="feedback_prompt_title">Have an idea for Flashcards?</string>
+    <string name="feedback_prompt_title">Have an idea for Nibomo?</string>
     <string name="feedback_prompt_body">Share what would make the app better. The creator reads every message personally.</string>
     <string name="feedback_prompt_message_label">Write your idea here</string>
     <string name="feedback_prompt_send">Send</string>
@@ -37,7 +37,7 @@
     <!-- Question shown on the front of the onboarding demo flashcard seeded for a new install. -->
     <string name="demo_card_front">What is the best application for studying?</string>
     <!-- First paragraph on the back of the onboarding demo flashcard. The placeholder is the product name. -->
-    <string name="demo_card_back_1"><xliff:g id="app_name" example="Flashcards Open Source App">%1$s</xliff:g> — the app you are looking at right now. Everything here is a flashcard: a question on the front, the answer on the back.</string>
+    <string name="demo_card_back_1"><xliff:g id="app_name" example="Nibomo">%1$s</xliff:g> — the app you are looking at right now. Everything here is a flashcard: a question on the front, the answer on the back.</string>
     <!-- Second paragraph on the back of the onboarding demo flashcard. -->
     <string name="demo_card_back_2">Give the built-in AI chat a topic and it will create a set of cards for you.</string>
     <!-- Third paragraph on the back of the onboarding demo flashcard. The placeholder is the review rating button label. -->
