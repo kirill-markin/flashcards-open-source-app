@@ -1,5 +1,6 @@
 import { queryWithUserScope, transactionWithUserScope, type DatabaseExecutor } from "../database";
 import { HttpError } from "../shared/errors";
+import { getDirectRequestCountryLookup } from "../geolocation/requestCountry";
 import {
   feedbackAutomaticPromptCooldownDays,
   type FeedbackEmailNotificationStatus,
@@ -312,12 +313,14 @@ export async function storeFeedbackSubmissionForUser(
 
     await assertFeedbackReferencesInExecutor(executor, userId, input.workspaceId, input.installationId);
 
+    const countryLookup = getDirectRequestCountryLookup();
+    const country = countryLookup === null ? null : await countryLookup();
     const insertResult = await executor.query<StoredFeedbackSubmissionRow>(
       [
         "INSERT INTO support.feedback_submissions (",
         "feedback_submission_id, user_id, email, workspace_id, installation_id, platform,",
-        "app_version, locale, timezone, trigger, message, created_at_client",
-        ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+        "app_version, locale, timezone, trigger, message, created_at_client, country",
+        ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
         "ON CONFLICT (feedback_submission_id) DO NOTHING",
         "RETURNING feedback_submission_id, created_at_server",
       ].join(" "),
@@ -334,6 +337,7 @@ export async function storeFeedbackSubmissionForUser(
         input.trigger,
         input.message,
         input.createdAtClient,
+        country,
       ],
     );
 

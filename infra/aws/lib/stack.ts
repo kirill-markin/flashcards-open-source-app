@@ -23,6 +23,7 @@ import { globalMetrics } from "./scheduled-jobs/global-metrics";
 import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
+import { countryRetention } from "./scheduled-jobs/country-retention";
 import { webGuestReaper } from "./scheduled-jobs/web-guest-reaper";
 import { publicEndpointHeartbeat } from "./scheduled-jobs/public-endpoint-heartbeat";
 import {
@@ -246,6 +247,13 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
     });
+    const countryRetentionResult = countryRetention(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      ...sentryContext,
+    });
     publicEndpointHeartbeat(this, { baseDomain });
     const mediaAssetsResult = mediaAssets(this, {
       baseDomain,
@@ -363,6 +371,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     addDatabaseMigrationDependency(api.backendFn, migrationGate);
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
     addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
+    addDatabaseMigrationDependency(countryRetentionResult.retentionFunction, migrationGate);
     const web = webApp(this, {
       baseDomain,
       webCertificateArnUsEast1,
@@ -391,6 +400,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       communityLeaderboardSnapshotFn: communityLeaderboardResult.snapshotFunction,
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
+      countryRetentionFn: countryRetentionResult.retentionFunction,
       webGuestReaperFn: webGuestReaperResult.reaperFunction,
       generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,
       multipartCompletionReconciliationFn:

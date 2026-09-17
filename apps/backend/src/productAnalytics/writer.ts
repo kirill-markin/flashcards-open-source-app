@@ -1,4 +1,5 @@
 import pg from "pg";
+import { sampleInstallationCountryInTransaction } from "./installationCountry";
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../database";
 import { getDatabaseUrl } from "../database/config";
 import {
@@ -477,6 +478,7 @@ export async function insertProductAnalyticsClientBatch(
       : await insertIdentityLinkInTransaction(client, identityLink);
     if (installation !== null) {
       await upsertInstallationProfileInTransaction(client, installation);
+      await sampleInstallationCountryInTransaction(client, installation);
     }
     return { storedEventCount, storedIdentityLinkCount };
   });
