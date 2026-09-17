@@ -49,3 +49,7 @@ temp/
 # Claude Code local state (per-developer)
 .claude/settings.local.json
 .claude/worktrees/
+
+# Private MaxMind databases
+**/*.mmdb
+**/GeoLite2-*.tar.gz
