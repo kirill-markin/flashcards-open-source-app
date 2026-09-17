@@ -32,16 +32,13 @@ let analyticsMaximumDrainIterationsPerFlush: Int = 25
 /// Server-side per-event cap, measured as UTF-8 bytes of the event's own JSON.
 let analyticsMaximumEventByteCount: Int = 4 * 1_024
 
-/**
- * One event exactly as it goes on the wire. Every key is written explicitly, with `null` where there
- * is no value, so the three hand-written clients produce identical output and no key placement
- * depends on how a JSON encoder treats an absent optional.
- */
 struct AnalyticsEventPayload: Sendable, Equatable, Codable {
     let eventId: String
     let eventName: String
     let clientOccurredAt: String
     let networkState: String?
+    // Synthesized decoding leaves pre-existing queued events without this field unknown.
+    let uiLocale: String?
     let screen: String?
     let properties: [String: AnalyticsPropertyValue]?
     let experimentAssignments: [String: String]?
@@ -51,6 +48,7 @@ struct AnalyticsEventPayload: Sendable, Equatable, Codable {
         case eventName
         case clientOccurredAt
         case networkState
+        case uiLocale
         case screen
         case properties
         case experimentAssignments
@@ -64,6 +62,7 @@ struct AnalyticsEventPayload: Sendable, Equatable, Codable {
         // `encode` rather than `encodeIfPresent`: an absent key and an explicit null are not the same
         // wire output, and the contract asks for the explicit null.
         try container.encode(self.networkState, forKey: .networkState)
+        try container.encode(self.uiLocale, forKey: .uiLocale)
         try container.encode(self.screen, forKey: .screen)
         try container.encode(self.properties, forKey: .properties)
         try container.encode(self.experimentAssignments, forKey: .experimentAssignments)

@@ -9,6 +9,7 @@
  * but the difference between a slow sign-in and a broken one.
  */
 import type { Context } from "hono";
+import { normalizeSupportedLoginPageLocale, type LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
 import { type AuthAppEnv, getRequestId, getTraceId } from "../apiErrors.js";
 import { log, logWarning } from "../logger.js";
 import { getPublicApiBaseUrl } from "../publicUrls.js";
@@ -298,6 +299,7 @@ async function deliverAuthAnalyticsEvent(
   target: AuthAnalyticsTarget,
   startedAtMs: number,
   budgetMs: number,
+  uiLocale: LoginPageLocale | null,
 ): Promise<AuthAnalyticsVisitor> {
   const deadlineMs = startedAtMs + budgetMs;
   const identifiedVisitor = visitor.guestToken === null
@@ -325,7 +327,7 @@ async function deliverAuthAnalyticsEvent(
   const delivered = await postAnalyticsEvents(
     { ...target, timeoutMs: postBudgetMs },
     guestToken,
-    createBatch(emittedVisitor.anonymousId, emittedVisitor.sessionId, eventAtMs),
+    createBatch(emittedVisitor.anonymousId, emittedVisitor.sessionId, eventAtMs, uiLocale),
   );
   return delivered ? emittedVisitor : identifiedVisitor;
 }
@@ -357,6 +359,7 @@ async function reportSignInFunnelEvent(
       createReportTarget(c),
       Date.now(),
       analyticsReportBudgetMs,
+      normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? ""),
     );
     // One write, on the response that actually changed the visitor.
     if (storedVisitor !== visitor) {
@@ -430,17 +433,14 @@ async function linkVisitorGuest(
   await linkVisitorGuestToAccount({ ...target, timeoutMs: retryBudgetMs }, idToken, guestToken);
 }
 
-/** A signed-out visitor was shown the sign-in form. */
 export async function reportSignInScreenViewed(c: Context<AuthAppEnv>): Promise<void> {
   await reportSignInFunnelEvent(c, createSignInScreenViewedBatch);
 }
 
-/** An OTP was requested and the service accepted the request. */
 export async function reportSignInCodeRequested(c: Context<AuthAppEnv>): Promise<void> {
   await reportSignInFunnelEvent(c, createSignInCodeRequestedBatch);
 }
 
-/** A sign-in attempt the person made was refused, for the reason this branch already knows. */
 export async function reportSignInFailed(
   c: Context<AuthAppEnv>,
   reason: AuthSignInFailureReason,
@@ -516,6 +516,7 @@ export async function reportSignInSucceeded(c: Context<AuthAppEnv>, idToken: str
       target,
       startedAtMs,
       signInSucceededEventBudgetMs,
+      normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? ""),
     );
     const guestToken = deliveredVisitor.guestToken;
     if (guestToken === null) {

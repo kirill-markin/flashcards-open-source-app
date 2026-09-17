@@ -71,8 +71,8 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0137_audience_context.sql",
-    expectedMigrationCount: 139,
+    migrationFileName: "0138_feedback_connection_country.sql",
+    expectedMigrationCount: 140,
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/catalog/distribution/install/install.postgres.integration.ts",
