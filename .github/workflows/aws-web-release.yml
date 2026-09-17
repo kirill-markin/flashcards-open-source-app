@@ -22,6 +22,7 @@ on:
       - 'scripts/generate/generate-global-metrics-snapshot.sh'
       - 'scripts/deploy/migrate-aws.sh'
       - 'scripts/generate/write-ci-cdk-context.py'
+      - 'scripts/geolite/**'
       - '.github/workflows/aws-web-release.yml'
   workflow_dispatch:
 
@@ -64,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          aws_release_script_pattern='^scripts/(checks/(check-agent-api-smoke|check-api-health|check-demo-cognito-users|check-mcp-smoke|check-multipart-completion-reconciliation-schedule|check-public-endpoints)\.sh|deploy/(deploy-admin|deploy-web|migrate-aws)\.sh|generate/(generate-catalog-dump\.sh|generate-global-metrics-snapshot\.sh|write-ci-cdk-context\.py))$'
+          aws_release_script_pattern='^scripts/(geolite/[^/]+\.sh|checks/(check-agent-api-smoke|check-api-health|check-demo-cognito-users|check-mcp-smoke|check-multipart-completion-reconciliation-schedule|check-public-endpoints)\.sh|deploy/(deploy-admin|deploy-web|migrate-aws)\.sh|generate/(generate-catalog-dump\.sh|generate-global-metrics-snapshot\.sh|write-ci-cdk-context\.py))$'
 
           changed_files_path="${RUNNER_TEMP}/changed-files.txt"
           before_sha="${PUSH_BEFORE_SHA:-}"
@@ -401,6 +402,12 @@ jobs:
           bash scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }}
+
+      - name: Refresh private GeoLite Country database
+        env:
+          MAXMIND_ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
+          MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
+        run: bash scripts/geolite/refresh-country.sh
 
       - name: Check demo Cognito users
         run: bash scripts/checks/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}

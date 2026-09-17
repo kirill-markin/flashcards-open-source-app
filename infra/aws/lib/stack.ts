@@ -35,6 +35,7 @@ import {
 } from "./scheduled-jobs/multipart-completion-reconciliation";
 import { mediaAssets } from "./media-assets";
 import { catalogDump } from "./catalog-dump";
+import { geoLiteCountry } from "./geolite-country";
 import { parsePublicOrigin } from "./public-origin";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
@@ -358,6 +359,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       userPoolArn: authResult.userPool.userPoolArn,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
+    const geoLiteCountryBucket = geoLiteCountry(this, api.backendFn);
     addDatabaseMigrationDependency(api.backendFn, migrationGate);
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
     addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
@@ -402,6 +404,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
 
     ciCd(this, {
       stackId: this.stackId,
+      geoLiteCountryBucket,
       githubRepo,
       githubOidcProviderArn,
       authFn: authApi.authFn,
