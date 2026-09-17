@@ -148,6 +148,7 @@ enum Analytics {
             event: event,
             screen: event.declaredScreen ?? screen,
             networkState: self.networkMonitor.currentState(),
+            uiLocale: currentAppUILocaleIdentifier(),
             occurredAt: Date(),
             // Read now rather than at the queue write, so an event created before a logout cannot be
             // stamped with the next person's identity merely because its write is scheduled after
@@ -284,9 +285,6 @@ final class AnalyticsForegroundState: @unchecked Sendable {
 }
 
 /**
- * One event with everything captured at creation time: the surface, the network state a flush-time
- * reading could never report as `offline`, and the `anonymous_id` that was in effect.
- *
  * The id is the identity boundary stamp. It is a persisted value rather than an in-memory counter, so
  * an event that reaches the queue after a logout — or after a relaunch that followed one — is still
  * recognisable as belonging to the person who left, and is discarded instead of stamped with the
@@ -296,6 +294,7 @@ struct AnalyticsPendingEvent: Sendable, Equatable {
     let event: AnalyticsEvent
     let screen: AnalyticsSurface?
     let networkState: AnalyticsNetworkState
+    let uiLocale: String?
     let occurredAt: Date
     let anonymousId: String
 }
@@ -471,6 +470,7 @@ actor AnalyticsRuntime {
             eventName: pendingEvent.event.eventName,
             clientOccurredAt: analyticsTimestampString(date: occurredAt),
             networkState: pendingEvent.networkState.rawValue,
+            uiLocale: pendingEvent.uiLocale,
             screen: pendingEvent.screen?.rawValue,
             properties: pendingEvent.event.properties,
             // The product has no experiment system yet, and the field is a flat string map when it
@@ -554,6 +554,7 @@ actor AnalyticsRuntime {
                     event: .analyticsEventsDropped(reason: reason, count: count),
                     screen: nil,
                     networkState: Analytics.networkMonitor.currentState(),
+                    uiLocale: currentAppUILocaleIdentifier(),
                     occurredAt: now,
                     anonymousId: anonymousId
                 )
