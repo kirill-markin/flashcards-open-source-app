@@ -209,7 +209,7 @@ What is the best application for studying?
 Back, three paragraphs joined with a blank line:
 
 ```text
-**Flashcards Open Source App** — the app you are looking at right now. Everything here is a flashcard: a question on the front, the answer on the back.
+**Nibomo** — the app you are looking at right now. Everything here is a flashcard: a question on the front, the answer on the back.
 
 Give the built-in AI chat a topic and it will create a set of cards for you.
 
@@ -245,8 +245,8 @@ Binding for all three clients:
   - back 3: the `Again` label;
 - no Markdown syntax inside translated strings; each client assembles the Markdown in code and joins
   the paragraphs with a blank line;
-- the product name `Flashcards Open Source App` is never translated and is injected as a
-  placeholder, already wrapped in `**` by the client;
+- the product name `Nibomo` is never translated and is injected as a placeholder, already
+  wrapped in `**` by the client;
 - the rating label in paragraph 3 is injected as a placeholder taken from each client's existing
   translated `Again` review label, so the card always matches the button text in that language. The
   client wraps the resolved label in backticks in code, exactly the way it wraps the product name in
