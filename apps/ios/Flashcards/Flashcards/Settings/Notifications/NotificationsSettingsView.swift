@@ -175,7 +175,7 @@ struct NotificationsSettingsView: View {
                         Text(
                             aiSettingsLocalized(
                                 "settings.notifications.strictReminders.description",
-                                "If you have not reviewed in the current workspace today, Flashcards reminds you 4, 3, and 2 hours before midnight so you can keep your streak."
+                                "If you have not reviewed in the current workspace today, Nibomo reminds you 4, 3, and 2 hours before midnight so you can keep your streak."
                             )
                         )
                             .foregroundStyle(.secondary)

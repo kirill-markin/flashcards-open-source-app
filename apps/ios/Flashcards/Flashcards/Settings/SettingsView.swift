@@ -77,7 +77,7 @@ struct SettingsView: View {
 
                 ShareLink(item: flashcardsAppShareUrl) {
                     SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.row.shareApp", "Share Flashcards"),
+                        title: aiSettingsLocalized("settings.row.shareApp", "Share Nibomo"),
                         value: nil,
                         systemImage: "square.and.arrow.up",
                         attentionCount: nil
