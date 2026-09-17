@@ -17,7 +17,7 @@ const demoCardTag = "demo";
 
 // The product name is a brand and is never translated. The markdown emphasis lives here
 // so the catalogs stay free of markup.
-const demoCardAppName = "**Flashcards Open Source App**";
+const demoCardAppName = "**Nibomo**";
 
 function asInlineCode(label: string): string {
   return `\`${label}\``;
