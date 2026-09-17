@@ -64,7 +64,7 @@
 "ai.run.error.activeRunInProgress" = "すでに対応中です。完了するまで待つか、別のメッセージを送信する前に停止してください。";
 "ai.dictation.error.microphoneUnavailable" = "このデバイスではマイクを使用できません。";
 "ai.dictation.error.microphoneDenied" = "マイクへのアクセスが許可されませんでした。";
-"ai.dictation.error.microphoneBlocked" = "フラッシュカード オープンソース アプリではマイク アクセスが無効になっています。 [設定] > [プライバシーとセキュリティ] > [マイク] で有効にします。";
+"ai.dictation.error.microphoneBlocked" = "Nibomo ではマイク アクセスが無効になっています。 [設定] > [プライバシーとセキュリティ] > [マイク] で有効にします。";
 "ai.dictation.error.invalidRecording" = "録音された音声を準備できませんでした。";
 "ai.dictation.error.recordingStartFailed" = "マイク録音を開始できませんでした。";
 "ai.dictation.error.emptyRecording" = "音声は録音されていません。";
@@ -138,7 +138,7 @@
 "settings.title" = "設定";
 "settings.inviteFriend.button" = "友達を追加";
 "settings.section.share" = "共有";
-"settings.row.shareApp" = "Flashcardsを共有";
+"settings.row.shareApp" = "Nibomoを共有";
 "settings.section.feedback" = "フィードバック";
 "settings.row.reviewInAppStore" = "App Storeでレビューする";
 "settings.row.sharePrivateFeedback" = "非公開のフィードバックを共有";
@@ -194,8 +194,8 @@
 "settings.leaderboardParticipation.description" = "オフにすると、匿名のアクティビティはリーダーボードに表示されません。";
 "settings.leaderboardParticipation.signInRequired" = "リーダーボード参加を管理するにはクラウド同期に接続してください。";
 "settings.language.title" = "言語";
-"settings.language.systemDescription" = "iOS がアプリの言語を管理します。iOS の「設定」で Flashcards を開き、「優先する言語」を使用してください。「優先する言語」が表示されない場合は、先に「設定」>「一般」>「言語と地域」で別の言語を追加してください。";
-"settings.language.action.openAppSettings" = "Flashcards の設定を開く";
+"settings.language.systemDescription" = "iOS がアプリの言語を管理します。iOS の「設定」で Nibomo を開き、「優先する言語」を使用してください。「優先する言語」が表示されない場合は、先に「設定」>「一般」>「言語と地域」で別の言語を追加してください。";
+"settings.language.action.openAppSettings" = "Nibomo の設定を開く";
 "settings.language.section.supportedLanguages" = "対応言語";
 "settings.language.supported.english" = "英語";
 "settings.language.supported.arabic" = "アラビア語";
@@ -206,7 +206,7 @@
 "settings.language.supported.russian" = "ロシア語";
 "settings.language.supported.spanishMexico" = "スペイン語（メキシコ）";
 "settings.language.supported.spanishSpain" = "スペイン語（スペイン）";
-"feedback.settings.description" = "アイデア、不便な点、Flashcards をより良くするための提案を共有してください。";
+"feedback.settings.description" = "アイデア、不便な点、Nibomo をより良くするための提案を共有してください。";
 "settings.sync.success" = "正常に同期されました";
 "settings.sync.guestAiActive" = "ゲスト AI がアクティブです";
 "settings.sync.notSyncing" = "同期なし";
@@ -371,7 +371,7 @@
 "settings.access.section.permissions" = "権限";
 "settings.access.notifications" = "通知";
 "settings.access.thisDevice" = "このデバイス";
-"settings.access.footer" = "フラッシュカード オープン ソース アプリは、チャットでの添付と口述に必要なアクセスのみを要求します。";
+"settings.access.footer" = "Nibomo は、チャットでの添付と口述に必要なアクセスのみを要求します。";
 "settings.access.detail.status" = "ステータス";
 "settings.access.kind.photos" = "写真";
 "settings.access.kind.camera" = "カメラ";
@@ -386,10 +386,10 @@
 "settings.access.status.unavailable" = "利用できません";
 "settings.access.action.request" = "アクセスのリクエスト";
 "settings.access.action.openSettings" = "設定を開く";
-"settings.access.guidance.photos.limited" = "フラッシュカード オープンソース アプリで既に共有した写真のみが利用可能です。 [設定] を開いて、写真への幅広いアクセスを許可します。";
-"settings.access.guidance.photos.blocked" = "フラッシュカード オープンソース アプリでは、写真へのアクセスが無効になっています。変更するには、[設定] > [プライバシーとセキュリティ] > [写真] を開きます。";
-"settings.access.guidance.camera.blocked" = "Flashcards オープンソース アプリではカメラ アクセスが無効になっています。変更するには、[設定] > [プライバシーとセキュリティ] > [カメラ] を開いてください。";
-"settings.access.guidance.microphone.blocked" = "フラッシュカード オープンソース アプリではマイク アクセスが無効になっています。 [設定] > [プライバシーとセキュリティ] > [マイク] を開いて変更します。";
+"settings.access.guidance.photos.limited" = "Nibomo で既に共有した写真のみが利用可能です。 [設定] を開いて、写真への幅広いアクセスを許可します。";
+"settings.access.guidance.photos.blocked" = "Nibomo では、写真へのアクセスが無効になっています。変更するには、[設定] > [プライバシーとセキュリティ] > [写真] を開きます。";
+"settings.access.guidance.camera.blocked" = "Nibomo ではカメラ アクセスが無効になっています。変更するには、[設定] > [プライバシーとセキュリティ] > [カメラ] を開いてください。";
+"settings.access.guidance.microphone.blocked" = "Nibomo ではマイク アクセスが無効になっています。 [設定] > [プライバシーとセキュリティ] > [マイク] を開いて変更します。";
 "settings.access.guidance.askEveryTime" = "今すぐアクセスをリクエストするか、手動で管理する場合は後で設定を開いてください。";
 "settings.access.guidance.allowed" = "このアクセスを無効にする場合は、[設定] を開きます。";
 "settings.access.guidance.limited" = "このアクセスを確認または拡張するには、[設定] を開いてください。";
@@ -641,7 +641,7 @@
 "settings.notifications.section.appIconBadge" = "アプリアイコンバッジ";
 "settings.notifications.section.strictReminders" = "ストリークリマインダー";
 "settings.notifications.enableStrictReminders" = "ストリークリマインダーを有効にする";
-"settings.notifications.strictReminders.description" = "今日、現在のワークスペースでまだ復習していない場合、連続記録を保てるように、Flashcards が午前0時の4、3、2時間前に通知します。";
+"settings.notifications.strictReminders.description" = "今日、現在のワークスペースでまだ復習していない場合、連続記録を保てるように、Nibomo が午前0時の4、3、2時間前に通知します。";
 "settings.notifications.section.dailyReminder" = "1日1回";
 "settings.notifications.permission.allowed" = "許可";
 "settings.notifications.permission.notRequested" = "未要求";
@@ -695,7 +695,7 @@
 "settings.row.import.value" = "ZIP";
 "settings.workspace.import.title" = "インポート";
 "settings.workspace.import.cloudRequired" = "このバージョンでメディア ZIP をインポートするにはクラウドアカウントが必要です。";
-"settings.workspace.import.invalidFile" = "Flashcards の ZIP パッケージを選択してください。";
+"settings.workspace.import.invalidFile" = "Nibomo の ZIP パッケージを選択してください。";
 "settings.workspace.import.fileTooLarge" = "%d MB 以下の ZIP パッケージを選択してください。";
 "settings.workspace.import.missingImportTag" = "インポートする前にインポートタグを入力してください。";
 "settings.workspace.import.warningWithPath" = "%@: %@";
@@ -773,7 +773,7 @@
 
 "settings.row.sendFeedback" = "フィードバックを送信";
 "settings.row.sendFeedback.value" = "アイデアを共有";
-"feedback.sheet.title" = "Flashcards へのアイデアがありますか？";
+"feedback.sheet.title" = "Nibomo へのアイデアがありますか？";
 "feedback.sheet.body" = "アプリをより良くするための意見を共有してください。作成者がすべてのメッセージを直接読みます。";
 "feedback.sheet.placeholder" = "ここにアイデアを書く";
 "feedback.sheet.send" = "送信";
@@ -789,7 +789,7 @@
 "settings.account.server.validation.invalidStatusCode" = "%@ のヘルスチェックがステータス %d を返しました：%@";
 "settings.account.server.validation.redirectedToDifferentOrigin" = "%@ の %@ に対するヘルスチェックが別のサーバーにリダイレクトされました：%@。同じサーバーで応答するように設定してから、もう一度お試しください。";
 "settings.account.server.validation.invalidApiHealthResponse" = "%@ の API ヘルス情報に有効なサービスとクラウド契約がありません。カスタムサーバーを更新して再デプロイしてから、もう一度お試しください。";
-"settings.account.server.validation.unexpectedApiService" = "%@ の API ヘルス情報は、互換性のある Flashcards バックエンドではなく %@ を示しています。カスタムサーバーを更新して再デプロイしてから、もう一度お試しください。";
+"settings.account.server.validation.unexpectedApiService" = "%@ の API ヘルス情報は、互換性のある Nibomo バックエンドではなく %@ を示しています。カスタムサーバーを更新して再デプロイしてから、もう一度お試しください。";
 "settings.account.server.validation.unsupportedCloudContractVersion" = "%@ の API ヘルス情報は、サポートされていないクラウド契約バージョン %d を示しています。このアプリにはバージョン 1 が必要です。カスタムサーバーを更新して再デプロイしてから、もう一度お試しください。";
 "settings.sync.customGuestWorkspacePaused.message" = "このカスタムサーバーは、このゲストワークスペースにアクセスできません。サーバーに互換性がないか、設定に誤りがある可能性があります。同期は一時停止され、ローカルのカードと保留中の変更はこのデバイスに安全に保存されています。";
 "settings.account.status.customGuestPause.title" = "ゲストクラウドワークスペースを利用できません";
