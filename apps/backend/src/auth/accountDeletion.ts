@@ -80,44 +80,28 @@ function assertCognitoUsername(cognitoUsername: string | null): string {
   return cognitoUsername;
 }
 
-/**
- * Resolves every user id this person's analytics rows were written under.
- *
- * A destructive guest upgrade binds the person onto an account id that is
- * permanently different from the guest user id they browsed under, and the
- * events from that guest phase keep the guest id in both identity columns
- * forever. `auth.guest_upgrade_history` is the append-only record of those
- * merges and account deletion cannot remove it, so a reporting reader could
- * join those surviving rows straight back to the deleted account unless the
- * guest ids are anonymized together with the account id.
- *
- * The walk is recursive because merges chain. A guest session survives the
- * non-destructive upgrade that binds its guest id onto an account id, so that
- * same id can later be merged into a different account as a source, and the
- * history then reaches an older guest id only through the middle one. A
- * single-level lookup would stop at the middle id and leave the older one
- * carrying its real value, and anonymization runs once, so a missed ancestor
- * stays identified forever. `visited_user_ids` keeps the walk from revisiting
- * an id, so a cycle in the history terminates instead of looping.
- *
- * The history columns are `TEXT` while the analytics identity columns are
- * `UUID`, so the lookup compares as text here and the result is cast back to
- * `uuid` by the callers.
- */
+// Both guest upgrades and explicit guest-identity links can connect a person's older identities.
+// Walk both server-owned edges; client-chosen anonymous IDs must never enter this namespace.
 async function loadAnalyticsUserIdsForPersonInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
 ): Promise<Array<string>> {
   const result = await executor.query<AnalyticsPersonUserIdRow>(
     [
-      "WITH RECURSIVE person_user_ids AS (",
+      "WITH RECURSIVE identity_edges AS (",
+      "SELECT source_guest_user_id AS source_user_id, target_user_id",
+      "FROM auth.guest_upgrade_history",
+      "UNION",
+      "SELECT anonymous_id::text, user_id::text FROM analytics.identity_links",
+      "WHERE source = 'server_derived'",
+      "), person_user_ids AS (",
       "SELECT $1::text AS user_id, ARRAY[$1::text] AS visited_user_ids",
       "UNION ALL",
-      "SELECT history.source_guest_user_id,",
-      "person_user_ids.visited_user_ids || history.source_guest_user_id",
-      "FROM auth.guest_upgrade_history AS history",
-      "JOIN person_user_ids ON history.target_user_id = person_user_ids.user_id",
-      "WHERE NOT history.source_guest_user_id = ANY(person_user_ids.visited_user_ids)",
+      "SELECT edge.source_user_id,",
+      "person_user_ids.visited_user_ids || edge.source_user_id",
+      "FROM identity_edges AS edge",
+      "JOIN person_user_ids ON edge.target_user_id = person_user_ids.user_id",
+      "WHERE NOT edge.source_user_id = ANY(person_user_ids.visited_user_ids)",
       ")",
       "SELECT DISTINCT user_id FROM person_user_ids",
     ].join(" "),
@@ -152,28 +136,24 @@ async function anonymizeProductAnalyticsInExecutor(
   const anonymizedUserId = randomUUID();
   const personUserIds = await loadAnalyticsUserIdsForPersonInExecutor(executor, appUserId);
 
-  // One shared pseudonym per person keeps retention and cohort arithmetic working, because the
-  // rows still describe one distinct person. country, event_properties and experiment_assignments
-  // stay: they name a place, and catalog-allowlisted enum, numeric and fixed-format values, never
-  // free text.
-  //
-  // workspace_id is cleared even though it names a resource rather than a person.
-  // auth.guest_upgrade_history survives account deletion, carries source_guest_workspace_id and
-  // target_workspace_id next to the user ids, and is readable by reporting_readonly, so a retained
-  // workspace_id joins right back to the deleted person's real user id through the very table the
-  // widened id set above exists to defeat. Clearing it for every anonymized row, rather than only
-  // for the workspaces that appear in that history, is deliberate: anonymization runs once and can
-  // never be reapplied, so a predicate narrowed to today's surviving tables would rot silently the
-  // first time another one joined a workspace to a user. The cost is the departed person's share of
-  // workspace-level aggregates.
-  //
-  // Matching user_id alone is enough, and it keeps the predicate to one column so a single-column
-  // index can serve it. No producer can name this person in subject_user_id without naming one of
-  // the ids above in user_id: a row carrying a request context repeats user_id or the Cognito
-  // subject of the account itself, and the server-derived guest_upgrade_completed row pairs the
-  // account in user_id with the guest id in subject_user_id, which the recursive query above already
-  // collected. subject_user_id is still rewritten below, because the Cognito subject it carries
-  // identifies the person just as directly.
+  // Resolve installations before clearing event identities and links. Shared-device profiles are
+  // removed in full: their first country and sparse history may predate the latest owner.
+  await executor.query(
+    [
+      "DELETE FROM analytics.installation_profiles",
+      "WHERE user_id = ANY($1::uuid[])",
+      "OR (anonymous_id, platform) IN (",
+      "SELECT anonymous_id, platform FROM analytics.product_events",
+      "WHERE user_id = ANY($1::uuid[]) AND anonymous_id IS NOT NULL",
+      ")",
+      "OR anonymous_id IN (",
+      "SELECT anonymous_id FROM analytics.identity_links",
+      "WHERE user_id = ANY($1::uuid[]) AND source = 'authenticated_client'",
+      ")",
+    ].join(" "),
+    [personUserIds],
+  );
+
   await executor.query(
     [
       "UPDATE analytics.product_events SET",
@@ -188,6 +168,8 @@ async function anonymizeProductAnalyticsInExecutor(
       "os_version = NULL,",
       "timezone = NULL,",
       "device_locale = NULL,",
+      "ui_locale = NULL,",
+      "country = NULL,",
       "identity_state = 'anonymized'",
       "WHERE user_id = ANY($2::uuid[])",
     ].join(" "),

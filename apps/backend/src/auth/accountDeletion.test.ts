@@ -99,6 +99,7 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
         || text.includes("FROM auth.guest_upgrade_history")
         || text.includes("UPDATE analytics.product_events")
         || text.includes("DELETE FROM analytics.identity_links")
+        || text.includes("DELETE FROM analytics.installation_profiles")
       ) {
         return createQueryResult<Row>([]);
       }
@@ -184,6 +185,7 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
         || text.includes("FROM auth.guest_upgrade_history")
         || text.includes("UPDATE analytics.product_events")
         || text.includes("DELETE FROM analytics.identity_links")
+        || text.includes("DELETE FROM analytics.installation_profiles")
       ) {
         return createQueryResult<Row>([]);
       }
