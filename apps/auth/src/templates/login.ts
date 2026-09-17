@@ -513,6 +513,7 @@ export const renderLoginPage = (
     (function() {
       var redirectUri = ${JSON.stringify(redirectUri)};
       var copy = ${JSON.stringify(copy)};
+      var uiLocale = ${JSON.stringify(locale)};
       var catalogInstallAnalyticsContext = ${JSON.stringify(catalogInstallAnalyticsContext)};
 
       var csrfToken = "";
@@ -658,6 +659,7 @@ export const renderLoginPage = (
               eventId: createCatalogInstallEventId(),
               eventName: eventName,
               clientOccurredAt: clientOccurredAt,
+              uiLocale: uiLocale,
               clientSentAt: new Date().toISOString(),
               deviceLocale: readCatalogInstallDeviceLocale(),
               properties: properties,
@@ -726,7 +728,7 @@ export const renderLoginPage = (
       function tryRefreshSession() {
         // The screen marker tells the endpoint which of its callers this is; the audit of who may
         // send it is in server/analytics/signInFunnel.ts.
-        return fetch("api/refresh-session?screen=signin", {
+        return fetch("api/refresh-session?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
           credentials: "same-origin",
         }).then(function(res) {
@@ -764,7 +766,7 @@ export const renderLoginPage = (
 
         // Same marker, same reason: the OAuth consent page calls this endpoint too, and only this
         // page is a sign-in funnel entry.
-        fetch("api/send-code?screen=signin", {
+        fetch("api/send-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
@@ -815,7 +817,7 @@ export const renderLoginPage = (
         verifyBtn.disabled = true;
         verifyBtn.textContent = copy.verifying;
 
-        fetch("api/verify-code?screen=signin", {
+        fetch("api/verify-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",

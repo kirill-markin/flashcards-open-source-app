@@ -3,7 +3,7 @@
  * (`apps/backend/src/productAnalytics/catalog.ts`). The union is closed on `name`, so an event
  * whose name the server does not declare cannot be constructed, and `AnalyticsSurface` below
  * carries the catalog's whole surface list, so a well-typed event's `screen` is a value the server
- * accepts as well. `onboarding` is gone from both.
+ * accepts as well.
  *
  * Ten events are server-derived and deliberately absent, because a client batch that carries one is
  * rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
@@ -179,11 +179,12 @@ export type AnalyticsEvent =
 
 export type AnalyticsEventProperties = Readonly<Record<string, string | number>>;
 
-/** Wire shape of one event. Every key is sent explicitly, with `null` where there is no value. */
 export type AnalyticsWireEvent = Readonly<{
   eventId: string;
   eventName: AnalyticsEvent["name"];
   clientOccurredAt: string;
+  /** Absent on events already queued before locale capture was available. */
+  uiLocale?: string | null;
   networkState: AnalyticsNetworkState | null;
   screen: AnalyticsSurface | null;
   properties: AnalyticsEventProperties | null;
