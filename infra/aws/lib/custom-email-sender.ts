@@ -95,7 +95,7 @@ export function customEmailSender(
       KEY_ARN: kmsKey.keyArn,
       KEY_ID: kmsKey.keyId,
       RESEND_FROM_EMAIL: props.resendSenderEmail,
-      RESEND_FROM_NAME: "Flashcards Open Source App",
+      RESEND_FROM_NAME: "Nibomo",
     },
   });
 
