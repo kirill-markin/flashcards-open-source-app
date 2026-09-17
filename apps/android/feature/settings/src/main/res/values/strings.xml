@@ -90,8 +90,8 @@
     <string name="settings_share_app_summary">Send the iOS, Android, and web app link</string>
     <string name="settings_review_in_google_play_title">Review in Google Play</string>
     <string name="settings_share_private_feedback_title">Share private feedback</string>
-    <string name="settings_share_app_chooser_title">Share Flashcards</string>
-    <string name="settings_share_app_text">Study with Flashcards. Your cards stay available across iOS, Android, and the web.</string>
+    <string name="settings_share_app_chooser_title">Share Nibomo</string>
+    <string name="settings_share_app_text">Study with Nibomo. Your cards stay available across iOS, Android, and the web.</string>
     <string name="settings_root_test_title">Test</string>
     <string name="settings_root_test_summary">3 items</string>
     <string name="settings_review_reminders_title">Notifications</string>
@@ -116,7 +116,7 @@
     <string name="settings_account_preferences_refresh_failed">Could not refresh account preferences.</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_language_summary">Android system and per-app language settings</string>
-    <string name="settings_language_body">This opens Android\'s language setting for Flashcards. To change every app on this device, use Android Settings > System > Languages.</string>
+    <string name="settings_language_body">This opens Android\'s language setting for Nibomo. To change every app on this device, use Android Settings > System > Languages.</string>
     <string name="settings_language_supported_languages_title">Supported languages</string>
     <string name="settings_language_open_android_settings">Open app language settings</string>
     <string name="settings_decks_summary">Manage decks in this workspace</string>
@@ -126,7 +126,7 @@
     <string name="settings_device_diagnostics_title">Device</string>
     <string name="settings_reset_study_progress_title">Reset study progress</string>
     <string name="settings_delete_current_workspace_title">Delete current workspace</string>
-    <string name="settings_feedback_screen_body">Send an idea, bug report, or rough note about what would make Flashcards better.</string>
+    <string name="settings_feedback_screen_body">Send an idea, bug report, or rough note about what would make Nibomo better.</string>
     <string name="settings_feedback_open_form_button">Open feedback form</string>
     <string name="settings_labeled_value">%1$s: %2$s</string>
     <string name="settings_test_mode_enabled_message">Test version enabled.</string>
@@ -382,7 +382,7 @@
     <string name="settings_notifications_permission_guidance_request">Allow Android notifications to deliver study reminders.</string>
     <string name="settings_notifications_permission_guidance_blocked">Android is blocking study reminders. Open app settings to allow notifications again.</string>
     <string name="settings_notifications_strict_reminders_title">Streak reminders</string>
-    <string name="settings_notifications_strict_reminders_body">If you have not reviewed today, Flashcards reminds you 4, 3, and 2 hours before midnight so you can keep your streak.</string>
+    <string name="settings_notifications_strict_reminders_body">If you have not reviewed today, Nibomo reminds you 4, 3, and 2 hours before midnight so you can keep your streak.</string>
     <string name="settings_notifications_reminders_title">Enable notifications</string>
     <string name="settings_notifications_reminders_body">Turn all study notifications on or off.</string>
     <string name="settings_notifications_show_app_icon_badge_title">Show app icon badge</string>
@@ -508,7 +508,7 @@
     <string name="settings_scheduler_steps_invalid_positive">%1$s must contain positive integers.</string>
 
     <string name="settings_export_title">Export</string>
-    <string name="settings_export_package_summary">Export a Flashcards ZIP package</string>
+    <string name="settings_export_package_summary">Export a Nibomo ZIP package</string>
     <string name="settings_export_dismiss_error">Dismiss error</string>
     <string name="settings_export_package_section">flashcards.zip package</string>
     <string name="settings_export_package_body">Export active cards, included tags, and referenced media as a portable ZIP package.</string>
@@ -544,9 +544,9 @@
     <string name="settings_export_package_generated_import_tag_not_included">Generated import tags are not included in package exports.</string>
 
     <string name="settings_import_title">Import</string>
-    <string name="settings_import_zip_summary">Import a Flashcards ZIP package</string>
+    <string name="settings_import_zip_summary">Import a Nibomo ZIP package</string>
     <string name="settings_import_package_section">Package</string>
-    <string name="settings_import_package_body">Choose a portable Flashcards ZIP package to preview before importing.</string>
+    <string name="settings_import_package_body">Choose a portable Nibomo ZIP package to preview before importing.</string>
     <string name="settings_import_choose_package">Choose ZIP package</string>
     <string name="settings_import_previewing">Previewing...</string>
     <string name="settings_import_importing">Importing...</string>
@@ -555,7 +555,7 @@
     <string name="settings_import_selected_file">File: %1$s</string>
     <string name="settings_import_cloud_required">Media ZIP import requires a linked cloud workspace in this version.</string>
     <string name="settings_import_workspace_unavailable">Workspace is unavailable. Reload the current workspace and try again.</string>
-    <string name="settings_import_invalid_file">Choose a Flashcards ZIP package.</string>
+    <string name="settings_import_invalid_file">Choose a Nibomo ZIP package.</string>
     <string name="settings_import_file_too_large">Choose a ZIP package up to %1$d MB.</string>
     <string name="settings_import_file_empty">The selected ZIP package is empty.</string>
     <string name="settings_import_file_name_unavailable">The selected package file name is unavailable.</string>
@@ -677,7 +677,7 @@
 
     <string name="settings_legal_title">Legal</string>
     <string name="settings_legal_privacy_title">Privacy Policy</string>
-    <string name="settings_legal_privacy_summary">Read how Flashcards Open Source App handles data.</string>
+    <string name="settings_legal_privacy_summary">Read how Nibomo handles data.</string>
     <string name="settings_legal_terms_title">Terms of Service</string>
     <string name="settings_legal_terms_summary">Read the terms for the hosted service.</string>
     <string name="settings_support_title">Support</string>
