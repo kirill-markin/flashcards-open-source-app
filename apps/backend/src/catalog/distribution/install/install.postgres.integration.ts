@@ -37,10 +37,6 @@ test("catalog install atomically replays one request and rejects key or operatio
     application_name: "catalog-install-idempotency-integration-owner",
   });
   const suffix = randomUUID().replaceAll("-", "");
-  // A real UUID rather than a readable label: the install now writes a server-derived analytics row
-  // whose user_id and subject_user_id are uuid columns, and a non-UUID id would fail that cast and
-  // be swallowed by the non-fatal emission wrapper, leaving this test covering only the failure
-  // path of the code it is supposed to exercise.
   const userId = randomUUID();
   const workspaceId = randomUUID();
   const replicaId = randomUUID();
@@ -112,8 +108,8 @@ test("catalog install atomically replays one request and rejects key or operatio
       await setupClient.query(
         [
           "INSERT INTO catalog.packages",
-          "(package_id, author_id, slug, title, summary, description, language_tags, license, status, published_at)",
-          "VALUES ($1, $2, $3, 'Idempotency package', 'Summary', 'Description', ARRAY['en'], 'CC0-1.0', 'published', $4)",
+          "(package_id, author_id, slug, title, summary, description, language_tags, license, status, published_at, educational_subject)",
+          "VALUES ($1, $2, $3, 'Idempotency package', 'Summary', 'Description', ARRAY['en'], 'CC0-1.0', 'published', $4, 'Test')",
         ].join(" "),
         [packageId, authorId, packageSlug, installedAt],
       );
@@ -121,9 +117,9 @@ test("catalog install atomically replays one request and rejects key or operatio
         [
           "INSERT INTO catalog.package_versions",
           "(package_version_id, package_id, version_number, status, slug, title, summary, description,",
-          "language_tags, license, card_count, created_by_admin_email)",
+          "language_tags, license, card_count, created_by_admin_email, educational_subject)",
           "VALUES ($1, $2, 1, 'draft', $3, 'Idempotency package', 'Summary', 'Description',",
-          "ARRAY['en'], 'CC0-1.0', 1, $4)",
+          "ARRAY['en'], 'CC0-1.0', 1, $4, 'Test')",
         ].join(" "),
         [packageVersionId, packageId, `${packageSlug}-v1`, "catalog@example.test"],
       );
