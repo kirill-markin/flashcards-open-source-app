@@ -20,13 +20,11 @@ internal const val analyticsEventsPath: String = "/analytics/events"
 
 internal const val analyticsPlatformHeaderValue: String = "android"
 
-/** Server limits. */
 internal const val analyticsMaxEventsPerBatch: Int = 50
 internal const val analyticsMaxEventBytes: Int = 4096
 internal const val analyticsMaxRequestBodyBytes: Int = 262_144
 internal const val analyticsMaxContextFieldLength: Int = 200
 
-/** Shared behavioural constants. */
 internal const val analyticsFlushBatchThreshold: Int = 20
 internal const val analyticsMaxQueuedEvents: Int = 5_000
 internal const val analyticsMaxQueuedBytes: Long = 5L * 1024L * 1024L
@@ -96,7 +94,8 @@ internal fun serializeAnalyticsEvent(
     event: AnalyticsEvent,
     eventId: String,
     occurredAtMillis: Long,
-    networkState: AnalyticsNetworkState?
+    networkState: AnalyticsNetworkState?,
+    uiLocale: String?
 ): AnalyticsSerializedEvent {
     val properties = JSONObject()
     event.properties.forEach { (propertyName, propertyValue) ->
@@ -111,6 +110,7 @@ internal fun serializeAnalyticsEvent(
         .put("eventName", event.eventName)
         .put("clientOccurredAt", formatAnalyticsTimestamp(epochMillis = occurredAtMillis))
         .put("networkState", networkState?.wireValue ?: JSONObject.NULL)
+        .put("uiLocale", uiLocale ?: JSONObject.NULL)
         .put("screen", event.screen?.wireValue ?: JSONObject.NULL)
         // An event with no declared properties still sends an object: a strict object with no
         // members accepts `{}` unambiguously.
@@ -180,7 +180,6 @@ private fun clampAnalyticsContextField(value: String?): Any {
     return trimmedValue.take(analyticsMaxContextFieldLength)
 }
 
-/** What the client must do with the answer, per the response rules of the wire contract. */
 internal sealed interface AnalyticsBatchOutcome {
     /** `200`. The batch is finished: every event sent is purged, rejected or not. */
     data class Finished(val acceptedCount: Int, val rejectedCount: Int) : AnalyticsBatchOutcome
