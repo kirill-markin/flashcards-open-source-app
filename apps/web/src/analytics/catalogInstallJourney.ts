@@ -4,6 +4,7 @@ import { getAppConfig } from "../config";
 import { isAnalyticsEnabledForCurrentRuntime } from "./client";
 import { analyticsUuidPattern } from "./events";
 import { createAnalyticsUuidV7 } from "./identity";
+import { readAnalyticsUiLocale } from "./wire";
 
 export type CatalogInstallFailureStage =
   | "landing"
@@ -133,6 +134,7 @@ async function sendCatalogInstallJourneyEvent(
         eventId: createAnalyticsUuidV7(),
         eventName: event.eventName,
         clientOccurredAt,
+        uiLocale: readAnalyticsUiLocale(),
         clientSentAt: new Date().toISOString(),
         deviceLocale: readDeviceLocale(),
         properties: buildProperties(installJourneyId, packageVersionId, event),
