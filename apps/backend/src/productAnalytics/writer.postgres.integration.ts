@@ -7,14 +7,7 @@ import {
   insertProductAnalyticsClientBatch,
   insertProductAnalyticsIdentityLink,
 } from "./writer";
-import type { ProductAnalyticsEventRow } from "./types";
-
-// The writer builds one multi-row INSERT ... SELECT * FROM unnest($1::uuid[], ... $27::jsonb[], ...)
-// and relies on bare-unnest ROWS FROM expansion plus node-postgres array-literal serialization for
-// the jsonb[], smallint[] and timestamptz[] parameters. Nothing else in the repository executes SQL,
-// so this is the only place that proves the statement runs at all, that a redelivered batch conflicts
-// on event_id instead of duplicating, and that the identity link the ingest route writes in the same
-// transaction lands without outranking the link a guest upgrade writes for the same pair.
+import type { ProductAnalyticsEventRow, ProductAnalyticsInstallationObservation } from "./types";
 
 type StoredEventRow = Readonly<{
   event_id: string;
@@ -41,6 +34,7 @@ type StoredEventRow = Readonly<{
   device_locale: string | null;
   timezone: string | null;
   country: string | null;
+  ui_locale: string | null;
   network_state: string | null;
   screen: string | null;
   event_properties: Readonly<Record<string, unknown>>;
@@ -54,6 +48,28 @@ type StoredIdentityLinkRow = Readonly<{
   user_id: string;
   source: string;
 }>;
+
+type StoredInstallationRow = Readonly<{
+  user_id: string;
+  app_version: string | null;
+  os_version: string | null;
+  device_locale: string | null;
+  timezone: string | null;
+  first_seen: Date;
+  last_seen: Date;
+}>;
+
+async function loadStoredInstallation(
+  pool: pg.Pool,
+  installation: ProductAnalyticsInstallationObservation,
+): Promise<StoredInstallationRow | undefined> {
+  const result = await pool.query<StoredInstallationRow>(
+    `SELECT user_id::text, app_version, os_version, device_locale, timezone, first_seen, last_seen
+     FROM analytics.installation_profiles WHERE anonymous_id = $1::uuid AND platform = $2`,
+    [installation.anonymousId, installation.platform],
+  );
+  return result.rows[0];
+}
 
 const storedEventColumns = `
   event_id::text AS event_id,
@@ -80,6 +96,7 @@ const storedEventColumns = `
   device_locale,
   timezone,
   country,
+  ui_locale,
   network_state,
   screen,
   event_properties,
@@ -146,6 +163,7 @@ const fullyPopulatedRow: ProductAnalyticsEventRow = {
   deviceLocale: "ru-RU",
   timezone: "Europe/Madrid",
   country: null,
+  uiLocale: "ru-RU",
   networkState: "wifi",
   screen: "review",
   eventProperties: { reason: "queue_overflow", count: 12 },
@@ -184,6 +202,7 @@ const minimalRow: ProductAnalyticsEventRow = {
   deviceLocale: null,
   timezone: null,
   country: null,
+  uiLocale: null,
   networkState: null,
   // screen_viewed declares requiresScreen, so the surface is the one text column that must be present.
   screen: "catalog",
@@ -218,6 +237,7 @@ const slugPropertyRow: ProductAnalyticsEventRow = {
   deviceLocale: null,
   timezone: null,
   country: null,
+  uiLocale: null,
   networkState: "offline",
   screen: "catalog",
   eventProperties: { package_slug: "spanish-basics" },
@@ -246,10 +266,42 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
     slugPropertyEventId,
     redeliveredBatchEventId,
   ];
+  const installation: ProductAnalyticsInstallationObservation = {
+    anonymousId,
+    platform: "ios",
+    userId,
+    guestSessionId: null,
+    appVersion: "1.23.0",
+    context: {
+      osVersion: "18.2",
+      deviceModel: "iPhone15,2",
+      deviceLocale: "ru-RU",
+      timezone: "Europe/Madrid",
+    },
+    observedAt: serverReceivedAt,
+  };
+  const guestUserId = randomUUID();
+  const guestInstallation: ProductAnalyticsInstallationObservation = {
+    ...installation,
+    anonymousId: randomUUID(),
+    userId: guestUserId,
+    guestSessionId: randomUUID(),
+  };
+  const guestRow: ProductAnalyticsEventRow = {
+    ...fullyPopulatedRow,
+    eventId: createEventId(),
+    userId: guestUserId,
+    subjectUserId: guestUserId,
+    authTransport: "guest",
+    trustLevel: "guest_client",
+    guestSessionId: guestInstallation.guestSessionId,
+    anonymousId: guestInstallation.anonymousId,
+  };
+  const delayedGuestRow = { ...guestRow, eventId: createEventId() };
+  batchEventIds.push(guestRow.eventId, delayedGuestRow.eventId);
 
   try {
-    // The ingest route's own write: the batch and the link the same request carried, in one
-    // transaction.
+    await ownerPool.query("INSERT INTO org.user_settings (user_id) VALUES ($1), ($2)", [userId, guestUserId]);
     const storedBatch = await insertProductAnalyticsClientBatch(
       [fullyPopulatedRow, minimalRow, slugPropertyRow],
       {
@@ -258,9 +310,20 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
         userId,
         source: "authenticated_client",
       },
+      installation,
     );
     assert.equal(storedBatch.storedEventCount, 3);
     assert.equal(storedBatch.storedIdentityLinkCount, 1);
+    const createdInstallation = await loadStoredInstallation(ownerPool, installation);
+    assert.deepEqual(createdInstallation, {
+      user_id: userId,
+      app_version: "1.23.0",
+      os_version: "18.2",
+      device_locale: "ru-RU",
+      timezone: "Europe/Madrid",
+      first_seen: serverReceivedAt,
+      last_seen: serverReceivedAt,
+    });
 
     const stored = await ownerPool.query<StoredEventRow>(
       `SELECT ${storedEventColumns}
@@ -286,6 +349,7 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
     assert.equal(storedFullyPopulated?.network_state, "wifi");
     assert.equal(storedFullyPopulated?.screen, "review");
     assert.equal(storedFullyPopulated?.country, null);
+    assert.equal(storedFullyPopulated?.ui_locale, "ru-RU");
     assert.equal(storedFullyPopulated?.backfill_id, null);
     assert.equal(
       storedFullyPopulated?.occurred_at.getTime(),
@@ -333,6 +397,7 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
     assert.equal(storedMinimal?.device_model, null);
     assert.equal(storedMinimal?.device_locale, null);
     assert.equal(storedMinimal?.timezone, null);
+    assert.equal(storedMinimal?.ui_locale, null);
     assert.equal(storedMinimal?.network_state, null);
     assert.equal(storedMinimal?.request_id, null);
 
@@ -347,9 +412,36 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
         userId,
         source: "authenticated_client",
       },
+      { ...installation, observedAt: new Date(serverReceivedAt.getTime() + 60_000) },
     );
     assert.equal(redelivered.storedEventCount, 1);
     assert.equal(redelivered.storedIdentityLinkCount, 0);
+    assert.deepEqual(await loadStoredInstallation(ownerPool, installation), createdInstallation);
+
+    const changedInstallation: ProductAnalyticsInstallationObservation = {
+      ...installation,
+      appVersion: "1.24.0",
+      context: { ...installation.context, osVersion: "18.3", deviceLocale: "en-GB", timezone: null },
+      observedAt: new Date(serverReceivedAt.getTime() + 120_000),
+    };
+    await insertProductAnalyticsClientBatch([fullyPopulatedRow], null, changedInstallation);
+    assert.deepEqual(await loadStoredInstallation(ownerPool, installation), {
+      ...createdInstallation,
+      app_version: "1.24.0",
+      os_version: "18.3",
+      device_locale: "en-GB",
+      timezone: null,
+      last_seen: changedInstallation.observedAt,
+    });
+
+    const hourlyInstallation = {
+      ...changedInstallation,
+      observedAt: new Date(changedInstallation.observedAt.getTime() + 3_600_000),
+    };
+    await insertProductAnalyticsClientBatch([fullyPopulatedRow], null, hourlyInstallation);
+    const afterHour = await loadStoredInstallation(ownerPool, installation);
+    assert.equal(afterHour?.last_seen.getTime(), hourlyInstallation.observedAt.getTime());
+    assert.equal(afterHour?.first_seen.getTime(), serverReceivedAt.getTime());
 
     const afterRedelivery = await ownerPool.query<Readonly<{ count: number }>>(
       `SELECT count(*)::int AS count
@@ -392,7 +484,43 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
       user_id: userId,
       source: "server_derived",
     }]);
+
+    await ownerPool.query(
+      `INSERT INTO auth.guest_sessions (session_id, session_secret_hash, user_id, platform)
+       VALUES ($1::uuid, $2, $3, 'ios')`,
+      [guestInstallation.guestSessionId, randomUUID(), guestUserId],
+    );
+    await insertProductAnalyticsClientBatch([guestRow], null, guestInstallation);
+    assert.equal((await loadStoredInstallation(ownerPool, guestInstallation))?.user_id, guestUserId);
+
+    // State left by analytics linking and account cleanup: the guest still exists, but its
+    // credential is revoked and the profile has been removed. The delayed upload was already
+    // authenticated, so only the writer's transactional recheck can stop it recreating that data.
+    await ownerPool.query(
+      "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1::uuid",
+      [guestInstallation.guestSessionId],
+    );
+    await ownerPool.query(
+      "DELETE FROM analytics.installation_profiles WHERE anonymous_id = $1::uuid",
+      [guestInstallation.anonymousId],
+    );
+    for (const delayedInstallation of [guestInstallation, null]) {
+      await assert.rejects(
+        insertProductAnalyticsClientBatch([delayedGuestRow], null, delayedInstallation),
+        { code: "GUEST_AUTH_INVALID" },
+      );
+    }
+    assert.equal(await loadStoredInstallation(ownerPool, guestInstallation), undefined);
+    const rejectedEvent = await ownerPool.query(
+      "SELECT event_id FROM analytics.product_events WHERE event_id = $1::uuid",
+      [delayedGuestRow.eventId],
+    );
+    assert.equal(rejectedEvent.rowCount, 0);
   } finally {
+    await ownerPool.query(
+      "DELETE FROM analytics.installation_profiles WHERE anonymous_id = ANY($1::uuid[])",
+      [[anonymousId, guestInstallation.anonymousId]],
+    );
     await ownerPool.query(
       "DELETE FROM analytics.identity_links WHERE anonymous_id = $1::uuid",
       [anonymousId],
@@ -401,6 +529,7 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
       "DELETE FROM analytics.product_events WHERE event_id = ANY($1::uuid[])",
       [batchEventIds],
     );
+    await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [[userId, guestUserId]]);
     await ownerPool.end();
   }
 });

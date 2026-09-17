@@ -9,7 +9,7 @@ import {
   type ProductAnalyticsEventProperties,
 } from "./catalog";
 import type { ProductAnalyticsEventRow } from "./types";
-import { correctProductAnalyticsClockSkew } from "./validation";
+import { correctProductAnalyticsClockSkew, productAnalyticsUiLocaleSchema } from "./validation";
 
 export const catalogInstallJourneyClientEventNames = [
   "catalog_install_clicked",
@@ -34,6 +34,7 @@ const catalogInstallJourneyEventSchema = z.object({
   eventName: catalogInstallJourneyEventNameSchema,
   clientOccurredAt: z.string().datetime(),
   clientSentAt: z.string().datetime(),
+  uiLocale: productAnalyticsUiLocaleSchema.nullish(),
   deviceLocale: z.string().min(1).max(catalogInstallJourneyDeviceLocaleMaximumLength).nullish(),
   properties: z.unknown(),
 }).strict();
@@ -197,6 +198,7 @@ export function parseCatalogInstallJourneyEvent(
     deviceLocale: normalizeDeviceLocale(event.deviceLocale),
     timezone: null,
     country: null,
+    uiLocale: event.uiLocale ?? null,
     networkState: null,
     screen: null,
     eventProperties: properties,

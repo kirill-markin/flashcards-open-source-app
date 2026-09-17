@@ -31,6 +31,7 @@ const clientEventFields: ReadonlySet<string> = new Set([
   "eventName",
   "clientOccurredAt",
   "networkState",
+  "uiLocale",
   "screen",
   "properties",
   "experimentAssignments",
@@ -106,6 +107,25 @@ const batchEnvelopeSchema = z.object({
 
 type ParsedClientContext = z.infer<typeof clientContextSchema>;
 
+// Intl.Locale accepts structurally valid Unicode BCP47 language tags without accepting free text.
+// Preserve event-time meaning while canonicalizing casing and aliases; never infer a missing tag.
+export const productAnalyticsUiLocaleSchema = z.string().min(1).max(64)
+  .transform((value, context) => {
+    try {
+      const locale = new Intl.Locale(value).toString();
+      if (value.trim() === value && locale.length <= 64) {
+        return locale;
+      }
+    } catch (error) {
+      if (!(error instanceof RangeError)) {
+        throw error;
+      }
+    }
+
+    context.addIssue({ code: "custom", message: "uiLocale must be a BCP47 language tag of at most 64 characters." });
+    return z.NEVER;
+  });
+
 // networkState is a per-event field, not a batch field: a queued batch is flushed only once the
 // device is back online, so capturing connectivity once per batch would record the state of the
 // flush rather than the state of the event and could never report offline at all.
@@ -114,6 +134,7 @@ const clientEventSchema = z.object({
   eventName: z.string(),
   clientOccurredAt: z.string().datetime(),
   networkState: productAnalyticsNetworkStateSchema.nullish(),
+  uiLocale: productAnalyticsUiLocaleSchema.nullish(),
   screen: productAnalyticsSurfaceSchema.nullish(),
   properties: z.unknown(),
   experimentAssignments: z.unknown(),
@@ -303,6 +324,7 @@ function validateEvent(
       clientOccurredAt,
       occurredAt,
       networkState: event.networkState ?? null,
+      uiLocale: event.uiLocale ?? null,
       screen,
       properties,
       experimentAssignments,
