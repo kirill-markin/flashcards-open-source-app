@@ -10,6 +10,7 @@
  * rejected as `server_owned_field`.
  */
 import { randomBytes } from "node:crypto";
+import type { LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
 
 /**
  * The only surface this service reports. `signin` is the sign-in screen itself, whatever steps the
@@ -59,6 +60,7 @@ export type AuthAnalyticsWireEvent = Readonly<{
   eventId: string;
   eventName: AuthAnalyticsEventName;
   clientOccurredAt: string;
+  uiLocale: LoginPageLocale | null;
   // A server observes its own request, not the visitor's connectivity, so it reports none rather
   // than inventing `wifi` for a column that is retained indefinitely.
   networkState: null;
@@ -132,7 +134,6 @@ function toAuthAnalyticsTimestamp(atMs: number): string {
   return new Date(atMs).toISOString();
 }
 
-/** One event's own fields, as the caller states them; everything else about a batch is derived. */
 type AuthAnalyticsEventFacts = Readonly<{
   eventName: AuthAnalyticsEventName;
   screen: AuthAnalyticsSurface | null;
@@ -147,6 +148,7 @@ export type AuthAnalyticsBatchFactory = (
   anonymousId: string,
   sessionId: string,
   nowMs: number,
+  uiLocale: LoginPageLocale | null,
 ) => AuthAnalyticsBatch;
 
 /**
@@ -160,6 +162,7 @@ function createAuthAnalyticsBatch(
   anonymousId: string,
   sessionId: string,
   nowMs: number,
+  uiLocale: LoginPageLocale | null,
 ): AuthAnalyticsBatch {
   const timestamp = toAuthAnalyticsTimestamp(nowMs);
   return {
@@ -171,6 +174,7 @@ function createAuthAnalyticsBatch(
       eventId: createAuthAnalyticsUuidV7(nowMs),
       eventName: facts.eventName,
       clientOccurredAt: timestamp,
+      uiLocale,
       networkState: null,
       screen: facts.screen,
       properties: facts.properties,
@@ -179,31 +183,33 @@ function createAuthAnalyticsBatch(
   };
 }
 
-/** A signed-out visitor was shown the sign-in form. */
 export function createSignInScreenViewedBatch(
   anonymousId: string,
   sessionId: string,
   nowMs: number,
+  uiLocale: LoginPageLocale | null,
 ): AuthAnalyticsBatch {
   return createAuthAnalyticsBatch(
     { eventName: "screen_viewed", screen: "signin", properties: null },
     anonymousId,
     sessionId,
     nowMs,
+    uiLocale,
   );
 }
 
-/** A visitor asked for an OTP and the service accepted the request. */
 export function createSignInCodeRequestedBatch(
   anonymousId: string,
   sessionId: string,
   nowMs: number,
+  uiLocale: LoginPageLocale | null,
 ): AuthAnalyticsBatch {
   return createAuthAnalyticsBatch(
     { eventName: "signin_code_requested", screen: "signin", properties: null },
     anonymousId,
     sessionId,
     nowMs,
+    uiLocale,
   );
 }
 
@@ -220,21 +226,24 @@ export function createSignInSucceededBatch(
   anonymousId: string,
   sessionId: string,
   nowMs: number,
+  uiLocale: LoginPageLocale | null,
 ): AuthAnalyticsBatch {
   return createAuthAnalyticsBatch(
     { eventName: "signin_succeeded", screen: "signin", properties: null },
     anonymousId,
     sessionId,
     nowMs,
+    uiLocale,
   );
 }
 
 /** The reason is fixed when the branch that refused the sign-in is taken, not when the batch is sent. */
 export function createSignInFailedBatchFactory(reason: AuthSignInFailureReason): AuthAnalyticsBatchFactory {
-  return (anonymousId, sessionId, nowMs) => createAuthAnalyticsBatch(
+  return (anonymousId, sessionId, nowMs, uiLocale) => createAuthAnalyticsBatch(
     { eventName: "signin_failed", screen: null, properties: { reason } },
     anonymousId,
     sessionId,
     nowMs,
+    uiLocale,
   );
 }
