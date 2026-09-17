@@ -16,7 +16,7 @@ private const val demoCardParagraphSeparator: String = "\n\n"
  * instead of `R.string.app_name`, which Play may translate. Web and iOS carry
  * the same literal.
  */
-private const val demoCardProductName: String = "Flashcards Open Source App"
+private const val demoCardProductName: String = "Nibomo"
 
 /**
  * Builds the onboarding demo card from the current app locale. The three back
