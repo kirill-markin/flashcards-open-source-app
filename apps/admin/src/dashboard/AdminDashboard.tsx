@@ -14,6 +14,7 @@ import {
 import { getPackageColorScale } from "../charts/chartPrimitives";
 import { formatDateRangeLabel } from "../charts/formatting";
 import type { AdminAppConfig } from "../config";
+import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallFunnelSection } from "../reports/catalogInstallFunnel/CatalogInstallFunnelSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { filterCatalogInstallsReport } from "../reports/catalogInstalls/query";
@@ -34,13 +35,6 @@ import {
 } from "../reports/reviewEventsByDate/query";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
-/**
- * The people the shared user filter and the shared colour scale have to cover: everyone with review
- * events, everyone with community activity, everyone who opened the app, and everyone who installed
- * a catalog deck. A person present in more than one section appears once. A user with no review
- * events in range carries a zero review total, which is what the filter list already shows for a
- * community-only user.
- */
 function buildUserFilterOptionUsers(
   reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
   communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>,
@@ -136,7 +130,7 @@ export function AdminDashboard(
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
-  const [activeArea, setActiveArea] = useState<"general" | "funnels">("general");
+  const [activeArea, setActiveArea] = useState<"general" | "funnels" | "audience">("general");
   const [draftRange, setDraftRange] = useState<ReviewEventsByDateRange>({
     from: props.report.from,
     to: props.report.to,
@@ -174,6 +168,18 @@ export function AdminDashboard(
   function handleDateRangeReset(): void {
     setDraftRange(props.defaultRange);
     props.onDateRangeReset();
+  }
+
+  function handleLastThreeDays(): void {
+    const fromDate = new Date(`${props.availableRange.to}T00:00:00.000Z`);
+    fromDate.setUTCDate(fromDate.getUTCDate() - 2);
+    const requestedFrom = fromDate.toISOString().slice(0, 10);
+    const range = {
+      from: requestedFrom < props.availableRange.from ? props.availableRange.from : requestedFrom,
+      to: props.availableRange.to,
+    };
+    setDraftRange(range);
+    props.onDateRangeApply(range);
   }
 
   function handleUserFilterChange(userId: string, isChecked: boolean): void {
@@ -268,8 +274,6 @@ export function AdminDashboard(
       props.report.users,
     ],
   );
-  // Every selectable person, so an active-user chip selected from the daily active users chart still
-  // resolves to a label even when that person has no review events.
   const reportUserById = useMemo(
     () => buildUserById(userFilterOptionUsers),
     [userFilterOptionUsers],
@@ -343,9 +347,10 @@ export function AdminDashboard(
       <nav className="analytics-navigation" aria-label="Analytics sections">
         <button className={activeArea === "general" ? "active" : ""} type="button" aria-current={activeArea === "general" ? "page" : undefined} onClick={() => setActiveArea("general")}>General</button>
         <button className={activeArea === "funnels" ? "active" : ""} type="button" aria-current={activeArea === "funnels" ? "page" : undefined} onClick={() => setActiveArea("funnels")}>Funnels</button>
+        <button data-testid="analytics-audience-tab" className={activeArea === "audience" ? "active" : ""} type="button" aria-current={activeArea === "audience" ? "page" : undefined} onClick={() => setActiveArea("audience")}>Audience</button>
       </nav>
 
-      {activeArea === "general" ? <>
+      {activeArea !== "funnels" ? <>
         <ReviewEventsByDateFilters
         availableRange={props.availableRange}
         defaultRange={props.defaultRange}
@@ -382,6 +387,7 @@ export function AdminDashboard(
         onAllFiltersReset={handleAllFiltersReset}
       />
 
+        {activeArea === "general" ? <>
         <DailyActiveUsersSection
         filteredReport={filteredDailyActiveUsersReport}
         generatedAtUtc={props.dailyActiveUsersReport.generatedAtUtc}
@@ -404,6 +410,17 @@ export function AdminDashboard(
         userColorScale={userColorScale}
         onUserFilterApply={handleChartUserFilterApply}
         />
+        </> : <AudienceSection
+          config={props.config}
+          from={props.report.from}
+          to={props.report.to}
+          selectedUserIds={selectedUserIds}
+          selectedCohorts={selectedCohorts}
+          selectedPlatforms={selectedPlatforms}
+          isRangeLoading={props.isReportLoading}
+          onLastThreeDays={handleLastThreeDays}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />}
       </> : (
         <CatalogInstallFunnelSection
           config={props.config}

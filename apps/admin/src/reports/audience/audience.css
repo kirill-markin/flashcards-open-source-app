@@ -1,0 +1,21 @@
+.audience-bucket-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.audience-bucket-table th,
+.audience-bucket-table td {
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--panel-border);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.audience-bucket-table th:first-child {
+  text-align: left;
+}
+
+.audience-bucket-table thead {
+  color: var(--muted);
+}
