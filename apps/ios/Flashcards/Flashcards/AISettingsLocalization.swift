@@ -180,22 +180,22 @@ func localizedAccessPermissionGuidance(kind: AccessPermissionKind, status: Acces
     case (.photos, .limited):
         return aiSettingsLocalized(
             "settings.access.guidance.photos.limited",
-            "Only the photos you already shared with Flashcards Open Source App are available. Open Settings to grant broader photo access."
+            "Only the photos you already shared with Nibomo are available. Open Settings to grant broader photo access."
         )
     case (.photos, .blocked):
         return aiSettingsLocalized(
             "settings.access.guidance.photos.blocked",
-            "Photo access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Photos to change it."
+            "Photo access is turned off for Nibomo. Open Settings > Privacy & Security > Photos to change it."
         )
     case (.camera, .blocked):
         return aiSettingsLocalized(
             "settings.access.guidance.camera.blocked",
-            "Camera access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Camera to change it."
+            "Camera access is turned off for Nibomo. Open Settings > Privacy & Security > Camera to change it."
         )
     case (.microphone, .blocked):
         return aiSettingsLocalized(
             "settings.access.guidance.microphone.blocked",
-            "Microphone access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Microphone to change it."
+            "Microphone access is turned off for Nibomo. Open Settings > Privacy & Security > Microphone to change it."
         )
     case (_, .askEveryTime):
         return aiSettingsLocalized(
