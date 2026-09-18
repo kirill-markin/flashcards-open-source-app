@@ -11,7 +11,7 @@ Nibomo (formerly Flashcards Open Source App) is an open-source AI-powered flashc
 - [iOS](https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964)
 - [Android](https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share)
 - [Web](https://app.flashcards-open-source-app.com/review)
-- MCP server: https://mcp.flashcards-open-source-app.com/mcp
+- MCP server: https://mcp.nibomo.com/mcp
 - Agent API: https://api.flashcards-open-source-app.com/v1/
 
 ## Card scheduling
@@ -20,11 +20,13 @@ Card scheduling uses FSRS-based spaced repetition. Detailed scheduling rules liv
 
 ## MCP connector
 
-The hosted MCP server is available at `https://mcp.flashcards-open-source-app.com/mcp` and publishes to MCP registries under `com.nibomo/flashcards`. It exposes seven tools, most of them workspace-scoped: `list_workspaces`, `sql_query`, `sql_execute`, `get_guide`, `next_review_card`, `reveal_answer`, and `submit_review`.
+The hosted MCP server is available at `https://mcp.nibomo.com/mcp` and publishes to MCP registries under `com.nibomo/flashcards`. It exposes seven tools, most of them workspace-scoped: `list_workspaces`, `sql_query`, `sql_execute`, `get_guide`, `next_review_card`, `reveal_answer`, and `submit_review`.
 
 The dedicated review tools support one-question-at-a-time conversations and idempotent FSRS scheduling. See [conversational reviews](docs/conversational-reviews.md) for the contract shared by MCP, the in-app chat, and the Agent API, and for voice-session examples. ChatGPT Voice currently does not invoke apps/MCP; these tools do not remove that external limitation.
 
 Interactive clients authenticate with OAuth 2.1 authorization code + PKCE and Dynamic Client Registration. Headless clients can use an `fca_` Bearer token.
+
+The former address `https://mcp.flashcards-open-source-app.com/mcp` still serves the same server, so existing client configurations keep working.
 
 - [MCP connector docs](https://nibomo.com/docs/mcp-connector/)
 - [Agent API docs](https://nibomo.com/docs/api/)

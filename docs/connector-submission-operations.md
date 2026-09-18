@@ -35,18 +35,18 @@ Do not submit to any directory until all checks pass.
   OAuth challenge:
 
   ```bash
-  curl -isS https://mcp.flashcards-open-source-app.com/mcp
+  curl -isS https://mcp.nibomo.com/mcp
   ```
 
   Pass requires an unauthorized response with a `WWW-Authenticate` Bearer
   challenge that points clients to the protected-resource metadata.
 - Protected-resource metadata returns valid JSON for both the root well-known
   path and the `/mcp` path-aware variant, and the resource value is
-  `https://mcp.flashcards-open-source-app.com/mcp`:
+  `https://mcp.nibomo.com/mcp`:
 
   ```bash
-  curl -fsS https://mcp.flashcards-open-source-app.com/.well-known/oauth-protected-resource | jq .
-  curl -fsS https://mcp.flashcards-open-source-app.com/.well-known/oauth-protected-resource/mcp | jq .
+  curl -fsS https://mcp.nibomo.com/.well-known/oauth-protected-resource | jq .
+  curl -fsS https://mcp.nibomo.com/.well-known/oauth-protected-resource/mcp | jq .
   ```
 
 - Authorization-server metadata returns valid JSON with the expected OAuth and
@@ -180,20 +180,20 @@ curl -fsS https://auth.flashcards-open-source-app.com/.well-known/oauth-authoriz
 
 ### Protected-resource metadata (RFC 9728)
 
-`GET https://mcp.flashcards-open-source-app.com/.well-known/oauth-protected-resource`
+`GET https://mcp.nibomo.com/.well-known/oauth-protected-resource`
 and the `/mcp` path-aware variant both return `resource`
-(`https://mcp.flashcards-open-source-app.com/mcp`) and `authorization_servers`:
+(`https://mcp.nibomo.com/mcp`) and `authorization_servers`:
 
 ```bash
-curl -fsS https://mcp.flashcards-open-source-app.com/.well-known/oauth-protected-resource \
+curl -fsS https://mcp.nibomo.com/.well-known/oauth-protected-resource \
   | jq '.resource, .authorization_servers'
 ```
 
 ### End-to-end live connect
 
-Add the connector pointed at `https://mcp.flashcards-open-source-app.com/mcp` in
-both clients and confirm the full DCR → `/register` → `/authorize` → `/token` →
-tool-call flow completes using the demo account. Record the result inline:
+Add the connector pointed at `https://mcp.nibomo.com/mcp` in both clients and
+confirm the full DCR → `/register` → `/authorize` → `/token` → tool-call flow
+completes using the demo account. Record the result inline:
 
 - **Claude (custom connector):** _pass / fail — date, notes_
 - **ChatGPT (developer mode):** _pass / fail — date, notes_
@@ -204,8 +204,10 @@ Before submitting to the OpenAI Apps directory:
 
 - Complete identity/business verification in the OpenAI platform dashboard.
 - Ensure the OpenAI project is **not** set to EU data residency (global only).
-- Confirm demonstrable domain ownership of `nibomo.com` (the listing metadata
-  URLs) and of `flashcards-open-source-app.com` (the MCP server host).
+- Confirm demonstrable domain ownership of `nibomo.com`, which covers both the
+  listing metadata URLs and the MCP server host.
+- Keep domain ownership of `flashcards-open-source-app.com` available too: the
+  OAuth authorization server stays on `auth.flashcards-open-source-app.com`.
 
 CIMD (Client ID Metadata Documents) is optional: the implemented Dynamic Client
 Registration already satisfies the requirement, so add CIMD only if OpenAI
