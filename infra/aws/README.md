@@ -213,3 +213,5 @@ The MCP server is exposed on its own `mcp.<domain>` subdomain, backed by a dedic
 - `GET https://mcp.<domain>/health` returns `200`.
 
 Provision the certificate and DNS the same way as the other subdomains: `bash scripts/cloudflare/setup-mcp-domain.sh --domain <base-domain> --region <aws-region>` requests the ACM certificate (`first-deploy.sh` runs this when needed), and `bash scripts/cloudflare/setup-dns.sh` creates the `mcp.<domain>` Cloudflare CNAME from the `McpCustomDomainTarget` stack output.
+
+The same API can additionally answer on one host outside `<domain>`, set through the optional `CDK_MCP_ALTERNATE_DOMAIN_NAME` and `CDK_MCP_ALTERNATE_CERTIFICATE_ARN` repository variables, with a manual certificate and a manual CNAME from the `McpAlternateCustomDomainTarget` output. A third variable, `CDK_MCP_ALTERNATE_HOST_LIVE`, is flipped afterwards to put the host under the heartbeat and the post-deploy smoke. See the go-live order in [docs/backend-web-deployment.md](../../docs/backend-web-deployment.md#optional-second-mcp-host).

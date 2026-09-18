@@ -81,6 +81,13 @@ function toTimestampMs(value: Date | string): number {
  * resource than `expectedResource`, or backed by a revoked connection. Every
  * failure returns the same opaque 401 so callers cannot probe token state.
  *
+ * The resource check is what makes a token host-bound. The MCP entrypoint passes
+ * the resource identifier of the host the request arrived on
+ * (apps/backend/src/mcp/hosts.ts), so a token minted for `mcp.<domain>` keeps
+ * working there and is refused on the alternate MCP host, and the reverse. A
+ * user who moves their client to the other host authorizes once more; nothing
+ * migrates an already-issued token across hosts.
+ *
  * Scope is intentionally not enforced here: by current contract every issued MCP
  * access token is full-access (`sql_execute` writes as well as `sql_query` reads), and scope
  * issuance is owned by the OAuth authorization/consent items (03/06). The

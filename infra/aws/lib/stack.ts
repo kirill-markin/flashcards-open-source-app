@@ -18,6 +18,7 @@ import {
 } from "./migration-runner";
 import { authGateway } from "./gateways/auth-gateway";
 import { mcpGateway } from "./gateways/mcp-gateway";
+import { isMcpAlternateHostLive, resolveMcpAlternateHost } from "./mcp-alternate-host";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
 import { globalMetrics } from "./scheduled-jobs/global-metrics";
 import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
@@ -163,6 +164,30 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const apiCertificateArn = getOptionalContextValue(this, "apiCertificateArn");
     const authCertificateArn = getOptionalContextValue(this, "authCertificateArn");
     const mcpCertificateArn = getOptionalContextValue(this, "mcpCertificateArn");
+    // Optional second public MCP host served by the same API, for example a
+    // rebranded domain. Both values are required for it to be created; with
+    // either missing the deploy is unchanged.
+    const mcpAlternateDomainName = getOptionalContextValue(this, "mcpAlternateDomainName");
+    const mcpAlternateCertificateArn = getOptionalContextValue(this, "mcpAlternateCertificateArn");
+    // The one host string every consumer agrees on: the API Gateway custom
+    // domain, the host the MCP handler accepts, the resource the authorization
+    // server mints tokens for, and the heartbeat metric dimension. Undefined
+    // unless both values above are set; throws when it names the primary host.
+    const mcpAlternateHost = resolveMcpAlternateHost(
+      baseDomain,
+      mcpAlternateDomainName,
+      mcpAlternateCertificateArn,
+    );
+    // Policing that host is a separate, later switch. Its Cloudflare CNAME can
+    // only be created from the McpAlternateCustomDomainTarget output that the
+    // deploy above produces, so the deploy that creates the host would fail its
+    // own smoke and page on its own heartbeat if it also started watching. Flip
+    // this once the record exists; nothing else reads it.
+    const mcpAlternateHeartbeatHost = isMcpAlternateHostLive(
+      getOptionalContextValue(this, "mcpAlternateHostLive"),
+    )
+      ? mcpAlternateHost
+      : undefined;
     const webCertificateArnUsEast1 = getOptionalContextValue(this, "webCertificateArnUsEast1");
     const adminCertificateArnUsEast1 = getOptionalContextValue(this, "adminCertificateArnUsEast1");
     const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
@@ -254,7 +279,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       ...sentryContext,
     });
-    publicEndpointHeartbeat(this, { baseDomain });
+    publicEndpointHeartbeat(this, { baseDomain, mcpAlternateHeartbeatHost });
     const mediaAssetsResult = mediaAssets(this, {
       baseDomain,
     });
@@ -308,6 +333,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       authDbSecret: dbResult.authDbSecret,
       baseDomain,
       authCertificateArn,
+      mcpAlternateHost,
       demoEmailDostip,
       demoPasswordSecretArn,
       userPoolId: authResult.userPool.userPoolId,
@@ -322,6 +348,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       baseDomain,
       siteBaseUrl,
       mcpCertificateArn,
+      mcpAlternateDomainName,
+      mcpAlternateCertificateArn,
       ...sentryContext,
     });
     const migrationFn = migrationRunner(this, {
@@ -410,6 +438,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apiCertificateArn,
       authCertificateArn,
       mcpCertificateArn,
+      mcpAlternateHost,
+      mcpAlternateCertificateArn,
+      mcpAlternateHeartbeatHost,
     });
 
     ciCd(this, {
