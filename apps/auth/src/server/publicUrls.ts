@@ -61,6 +61,49 @@ export function getMcpResource(requestUrl: string): string {
   return `${stripTrailingSlash(`${url.protocol}//${url.host}`)}/mcp`;
 }
 
+/**
+ * Resolves the optional second MCP protected-resource identifier, set by the
+ * infrastructure only when the MCP API actually serves a second public host
+ * (`MCP_ALTERNATE_RESOURCE`, infra/aws/lib/mcp-alternate-host.ts). Unset
+ * everywhere else, which leaves the canonical resource above as the only one
+ * this authorization server will mint a token for.
+ */
+export function getMcpAlternateResource(): string | null {
+  const configuredValue = process.env.MCP_ALTERNATE_RESOURCE;
+  if (configuredValue === undefined || configuredValue.trim() === "") {
+    return null;
+  }
+
+  return stripTrailingSlash(configuredValue.trim());
+}
+
+/**
+ * Every MCP protected-resource identifier this authorization server issues
+ * tokens for, canonical first.
+ */
+export function getMcpResources(requestUrl: string): ReadonlyArray<string> {
+  const canonicalResource = getMcpResource(requestUrl);
+  const alternateResource = getMcpAlternateResource();
+  if (alternateResource === null || alternateResource === canonicalResource) {
+    return [canonicalResource];
+  }
+
+  return [canonicalResource, alternateResource];
+}
+
+/**
+ * Whether an RFC 8707 `resource` parameter names an MCP host this server serves.
+ *
+ * The match is exact, and the value the client sent is what the grant is bound
+ * to, so the minted token carries the identifier of the host that client will
+ * actually call. The MCP handler accepts a token only on the host named by its
+ * own resource (apps/backend/src/mcp/hosts.ts): tokens do not cross hosts, and a
+ * client that moves to the other host authorizes again.
+ */
+export function isSupportedMcpResource(resource: string, requestUrl: string): boolean {
+  return getMcpResources(requestUrl).includes(resource);
+}
+
 export type PublicSourceLinks = Readonly<{
   repositoryUrl: string;
   agentRoutesUrl: string;

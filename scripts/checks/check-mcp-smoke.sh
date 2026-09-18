@@ -6,6 +6,11 @@ set -euo pipefail
 AUTH_BASE_URL="${FLASHCARDS_MCP_SMOKE_AUTH_BASE_URL:-https://auth.flashcards-open-source-app.com}"
 API_BASE_URL="${FLASHCARDS_MCP_SMOKE_API_BASE_URL:-https://api.flashcards-open-source-app.com/v1}"
 MCP_BASE_URL="${FLASHCARDS_MCP_SMOKE_MCP_BASE_URL:-https://mcp.flashcards-open-source-app.com}"
+# The optional second public MCP host, checked only when the release workflow's MCP
+# smoke job resolves it: the alternate domain name and certificate ARN are both set
+# and CDK_MCP_ALTERNATE_HOST_LIVE reads "true", the same rule that creates and
+# polices the host in infra/aws/lib/mcp-alternate-host.ts.
+ALTERNATE_MCP_BASE_URL="${FLASHCARDS_MCP_SMOKE_ALTERNATE_MCP_BASE_URL:-}"
 DEMO_EMAIL="${FLASHCARDS_MCP_SMOKE_DEMO_EMAIL:-google-review@example.com}"
 WORKSPACE_PREFIX="${FLASHCARDS_MCP_SMOKE_WORKSPACE_PREFIX:-E2E mcp }"
 CONNECTION_LABEL_PREFIX="${FLASHCARDS_MCP_SMOKE_CONNECTION_LABEL_PREFIX:-E2E mcp }"
@@ -30,7 +35,6 @@ CARD_TAG="mcp-smoke"
 REVIEW_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 REVIEW_TIME_ZONE="Europe/Sofia"
 MCP_RESOURCE_URL="${MCP_BASE_URL%/}/mcp"
-MCP_RESOURCE_METADATA_URL="${MCP_BASE_URL%/}/.well-known/oauth-protected-resource/mcp"
 
 request_json() {
   local method="$1"
@@ -101,6 +105,103 @@ assert_status() {
     cat "${LAST_BODY_FILE}" >&2 || true
     exit 1
   fi
+}
+
+# The deploy normalizes the configured host before it becomes a custom domain
+# (infra/aws/lib/mcp-alternate-host.ts: trim, lower-case, drop a trailing root dot),
+# while this base URL arrives interpolated from the same repository variable raw.
+# Repeating that normalization here keeps a value such as ` mcp.Example.com. ` probing
+# the host that was actually deployed, instead of failing the release on formatting
+# alone. Scheme plus host only, which is all this base URL ever carries.
+normalize_mcp_base_url() {
+  local value scheme host
+
+  value="$(printf '%s' "${1}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+
+  scheme="https://"
+  host="${value}"
+  if [[ "${value}" == *"://"* ]]; then
+    scheme="${value%%://*}://"
+    host="${value#*://}"
+  fi
+  host="${host%/}"
+  host="${host%.}"
+
+  # No host left after normalization -- unset, whitespace only, or a bare scheme --
+  # means this host is not configured, exactly as an empty value does. Printing a
+  # hostless URL instead would send curl at a nonsense address and abort the run.
+  if [[ -z "${host}" ]]; then
+    return 0
+  fi
+
+  printf '%s%s' "${scheme}" "${host}"
+}
+
+# The public, unauthenticated contract of one MCP host: health, both
+# protected-resource metadata locations, and the Bearer challenge. Every
+# identifier in the answers names the host the request was sent to, so this runs
+# once per MCP host this environment serves.
+check_mcp_host_contract() {
+  local mcp_base_url="${1%/}"
+  local resource_url="${mcp_base_url}/mcp"
+  local resource_metadata_url="${mcp_base_url}/.well-known/oauth-protected-resource/mcp"
+  local root_metadata_body
+  local path_metadata_body
+
+  request_json "GET" "${mcp_base_url}/health" "" ""
+  assert_status "200" "GET ${mcp_base_url}/health"
+  python3 - <<'PY' "${LAST_BODY_FILE}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+assert payload == {"status": "ok"}
+PY
+
+  request_json "GET" "${mcp_base_url}/.well-known/oauth-protected-resource" "" ""
+  assert_status "200" "GET ${mcp_base_url}/.well-known/oauth-protected-resource"
+  root_metadata_body="${LAST_BODY_FILE}"
+  python3 - <<'PY' "${root_metadata_body}" "${resource_url}" "${AUTH_BASE_URL%/}"
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+mcp_resource_url = sys.argv[2]
+auth_base_url = sys.argv[3]
+assert payload["resource"] == mcp_resource_url
+assert payload["authorization_servers"] == [auth_base_url]
+PY
+
+  request_json "GET" "${resource_metadata_url}" "" ""
+  assert_status "200" "GET ${resource_metadata_url}"
+  path_metadata_body="${LAST_BODY_FILE}"
+  python3 - <<'PY' "${root_metadata_body}" "${path_metadata_body}" "${resource_url}" "${AUTH_BASE_URL%/}"
+import json
+import sys
+
+root_payload = json.load(open(sys.argv[1], encoding="utf-8"))
+path_payload = json.load(open(sys.argv[2], encoding="utf-8"))
+mcp_resource_url = sys.argv[3]
+auth_base_url = sys.argv[4]
+assert path_payload == root_payload
+assert path_payload["resource"] == mcp_resource_url
+assert path_payload["authorization_servers"] == [auth_base_url]
+PY
+
+  request_json "GET" "${resource_url}" "" ""
+  assert_status "401" "unauthenticated GET ${resource_url}"
+  python3 - <<'PY' "${LAST_HEADERS_FILE}" "${resource_metadata_url}"
+import sys
+
+headers = open(sys.argv[1], encoding="utf-8").read().splitlines()
+metadata_url = sys.argv[2]
+www_authenticate_headers = [
+    header for header in headers
+    if header.lower().startswith("www-authenticate:")
+]
+expected_fragment = f'resource_metadata="{metadata_url}"'
+assert any(expected_fragment in header for header in www_authenticate_headers), www_authenticate_headers
+PY
 }
 
 sign_in_demo_human() {
@@ -177,60 +278,7 @@ PY
 
 trap cleanup EXIT
 
-request_json "GET" "${MCP_BASE_URL%/}/health" "" ""
-assert_status "200" "GET /health"
-python3 - <<'PY' "${LAST_BODY_FILE}"
-import json
-import sys
-
-payload = json.load(open(sys.argv[1], encoding="utf-8"))
-assert payload == {"status": "ok"}
-PY
-
-request_json "GET" "${MCP_BASE_URL%/}/.well-known/oauth-protected-resource" "" ""
-assert_status "200" "GET /.well-known/oauth-protected-resource"
-ROOT_METADATA_BODY="${LAST_BODY_FILE}"
-python3 - <<'PY' "${ROOT_METADATA_BODY}" "${MCP_RESOURCE_URL}" "${AUTH_BASE_URL%/}"
-import json
-import sys
-
-payload = json.load(open(sys.argv[1], encoding="utf-8"))
-mcp_resource_url = sys.argv[2]
-auth_base_url = sys.argv[3]
-assert payload["resource"] == mcp_resource_url
-assert payload["authorization_servers"] == [auth_base_url]
-PY
-
-request_json "GET" "${MCP_RESOURCE_METADATA_URL}" "" ""
-assert_status "200" "GET /.well-known/oauth-protected-resource/mcp"
-PATH_METADATA_BODY="${LAST_BODY_FILE}"
-python3 - <<'PY' "${ROOT_METADATA_BODY}" "${PATH_METADATA_BODY}" "${MCP_RESOURCE_URL}" "${AUTH_BASE_URL%/}"
-import json
-import sys
-
-root_payload = json.load(open(sys.argv[1], encoding="utf-8"))
-path_payload = json.load(open(sys.argv[2], encoding="utf-8"))
-mcp_resource_url = sys.argv[3]
-auth_base_url = sys.argv[4]
-assert path_payload == root_payload
-assert path_payload["resource"] == mcp_resource_url
-assert path_payload["authorization_servers"] == [auth_base_url]
-PY
-
-request_json "GET" "${MCP_RESOURCE_URL}" "" ""
-assert_status "401" "unauthenticated GET /mcp"
-python3 - <<'PY' "${LAST_HEADERS_FILE}" "${MCP_RESOURCE_METADATA_URL}"
-import sys
-
-headers = open(sys.argv[1], encoding="utf-8").read().splitlines()
-metadata_url = sys.argv[2]
-www_authenticate_headers = [
-    header for header in headers
-    if header.lower().startswith("www-authenticate:")
-]
-expected_fragment = f'resource_metadata="{metadata_url}"'
-assert any(expected_fragment in header for header in www_authenticate_headers), www_authenticate_headers
-PY
+check_mcp_host_contract "${MCP_BASE_URL}"
 
 request_json "POST" "${AUTH_BASE_URL%/}/api/agent/send-code" "{\"email\":\"${DEMO_EMAIL}\"}" ""
 assert_status "200" "POST /api/agent/send-code"
@@ -663,5 +711,19 @@ assert schedule["dueAt"] == original["dueAt"], schedule
 assert schedule["state"] == original["state"], schedule
 assert "already recorded" in agent_payload["instructions"], agent_payload["instructions"]
 PY
+
+# The same public contract on the second MCP host, when this environment serves
+# one. It is a separate DNS record, a separate certificate and a separate API
+# Gateway custom domain, so it can stop serving on its own, and every identifier
+# it returns must name itself: an MCP client handed a resource on another origin
+# refuses to authorize.
+#
+# Deliberately last. The first failing assertion aborts the whole script, so a
+# second host that is merely misconfigured must not be able to hide the primary
+# host's authenticated sign-in and JSON-RPC coverage above.
+ALTERNATE_MCP_BASE_URL="$(normalize_mcp_base_url "${ALTERNATE_MCP_BASE_URL}")"
+if [[ -n "${ALTERNATE_MCP_BASE_URL}" ]]; then
+  check_mcp_host_contract "${ALTERNATE_MCP_BASE_URL}"
+fi
 
 echo "MCP smoke passed for ${DEMO_EMAIL} run=${RUN_ID}"

@@ -23,7 +23,7 @@ import { getCookie } from "hono/cookie";
 import type { Context } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
 import { getClient, approveAuthorizationRequest } from "../../server/oauth/oauthStore.js";
-import { getMcpResource, getPublicAuthBaseUrl } from "../../server/publicUrls.js";
+import { getPublicAuthBaseUrl, isSupportedMcpResource } from "../../server/publicUrls.js";
 import { validateSessionToken } from "../../server/browserSession.js";
 import { resolveLoginPageLocale } from "../browser/loginPageLocale.js";
 import { renderAuthorizePage, type AuthorizeRequestView } from "../../templates/authorize.js";
@@ -135,7 +135,6 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
       );
     }
 
-    const expectedResource = getMcpResource(c.req.url);
     if (resource === "") {
       return redirectWithError(
         c,
@@ -146,7 +145,10 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
       );
     }
 
-    if (resource !== expectedResource) {
+    // The grant is bound to the exact resource the client asked for, which is one
+    // of the MCP hosts this server serves. The resulting token is valid only on
+    // that host (server/publicUrls.ts).
+    if (!isSupportedMcpResource(resource, c.req.url)) {
       return redirectWithError(
         c,
         redirectUri,
@@ -210,7 +212,7 @@ export function createAuthorizeApp(now: () => number): Hono<AuthAppEnv> {
       return c.json({ error: "invalid_request", error_description: "Unknown client or redirect_uri." }, 400);
     }
 
-    if (resource !== getMcpResource(c.req.url)) {
+    if (!isSupportedMcpResource(resource, c.req.url)) {
       return c.json({ error: "invalid_request", error_description: "Unexpected resource." }, 400);
     }
 
