@@ -1,23 +1,23 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "com.flashcards-open-source-app/flashcards",
-  "title": "Flashcards Open Source App",
+  "name": "com.nibomo/flashcards",
+  "title": "Nibomo",
   "description": "Read, write, and conversationally review open-source flashcards through split read/write MCP tools.",
   "version": "1.26.0",
-  "websiteUrl": "https://flashcards-open-source-app.com",
+  "websiteUrl": "https://nibomo.com",
   "icons": [
     {
-      "src": "https://flashcards-open-source-app.com/icon.svg",
+      "src": "https://nibomo.com/icon.svg",
       "mimeType": "image/svg+xml",
       "sizes": ["any"]
     },
     {
-      "src": "https://flashcards-open-source-app.com/icon-preview.png",
+      "src": "https://nibomo.com/icon-preview.png",
       "mimeType": "image/png",
       "sizes": ["512x512"]
     },
     {
-      "src": "https://flashcards-open-source-app.com/logo-512.png",
+      "src": "https://nibomo.com/logo-512.png",
       "mimeType": "image/png",
       "sizes": ["512x512"]
     }
@@ -37,15 +37,15 @@
       "categories": ["Productivity", "Education"],
       "tags": ["flashcards", "spaced-repetition", "study", "education"],
       "mcpServerUrl": "https://mcp.flashcards-open-source-app.com/mcp",
-      "documentationUrl": "https://flashcards-open-source-app.com/docs/mcp-connector/",
-      "apiDocumentationUrl": "https://flashcards-open-source-app.com/docs/api/",
-      "privacyPolicyUrl": "https://flashcards-open-source-app.com/privacy/",
-      "termsOfServiceUrl": "https://flashcards-open-source-app.com/terms/",
-      "supportUrl": "https://flashcards-open-source-app.com/support/",
+      "documentationUrl": "https://nibomo.com/docs/mcp-connector/",
+      "apiDocumentationUrl": "https://nibomo.com/docs/api/",
+      "privacyPolicyUrl": "https://nibomo.com/privacy/",
+      "termsOfServiceUrl": "https://nibomo.com/terms/",
+      "supportUrl": "https://nibomo.com/support/",
       "iconUrls": {
-        "svg": "https://flashcards-open-source-app.com/icon.svg",
-        "previewPng": "https://flashcards-open-source-app.com/icon-preview.png",
-        "logo512Png": "https://flashcards-open-source-app.com/logo-512.png"
+        "svg": "https://nibomo.com/icon.svg",
+        "previewPng": "https://nibomo.com/icon-preview.png",
+        "logo512Png": "https://nibomo.com/logo-512.png"
       },
       "authentication": [
         "OAuth 2.1 authorization code with PKCE and Dynamic Client Registration",
