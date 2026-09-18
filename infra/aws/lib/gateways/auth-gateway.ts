@@ -13,6 +13,7 @@ import {
   databasePoolMaxConnectionsEnvValue,
 } from "../lambda-database-capacity";
 import { authNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { getMcpResourceUrl, getPrimaryMcpHost } from "../mcp-alternate-host";
 
 export interface AuthGatewayProps {
   vpc: ec2.Vpc;
@@ -21,6 +22,9 @@ export interface AuthGatewayProps {
   authDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   authCertificateArn: string | undefined;
+  // Second public MCP host, already resolved (../mcp-alternate-host.ts) and
+  // undefined unless both alternate context values are set.
+  mcpAlternateHost: string | undefined;
   demoEmailDostip: string | undefined;
   demoPasswordSecretArn: string | undefined;
   userPoolId: string;
@@ -181,8 +185,16 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       // Canonical MCP protected-resource identifier the /authorize endpoint binds
       // authorization codes to; must match the backend MCP handler's resource
-      // (apps/backend lambda-mcp.ts: https://mcp.<domain>/mcp).
-      MCP_RESOURCE: `https://mcp.${props.baseDomain}/mcp`,
+      // (apps/backend/src/mcp/hosts.ts). Built from the shared helper rather than
+      // spelled out, so the primary and the alternate identifier cannot drift
+      // apart and silently break the audience match.
+      MCP_RESOURCE: getMcpResourceUrl(getPrimaryMcpHost(props.baseDomain)),
+      // The second MCP host's identifier, so /authorize also mints tokens for a
+      // client that reached that host. A token stays valid only on the host its
+      // resource names. Absent unless the alternate host is deployed.
+      ...(props.mcpAlternateHost === undefined
+        ? {}
+        : { MCP_ALTERNATE_RESOURCE: getMcpResourceUrl(props.mcpAlternateHost) }),
     },
   });
 

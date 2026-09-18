@@ -19,6 +19,7 @@ import {
   databasePoolMaxConnectionsEnvValue,
   mcpHandlerReservedConcurrency,
 } from "../lambda-database-capacity";
+import { resolveMcpAlternateHost } from "../mcp-alternate-host";
 
 export interface McpGatewayProps {
   vpc: ec2.Vpc;
@@ -28,6 +29,10 @@ export interface McpGatewayProps {
   baseDomain: string;
   siteBaseUrl: string | undefined;
   mcpCertificateArn: string | undefined;
+  // Optional second public MCP host, served by the same API. Both values must be
+  // set together; with either one missing the stack stays exactly as it is today.
+  mcpAlternateDomainName: string | undefined;
+  mcpAlternateCertificateArn: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
@@ -42,29 +47,35 @@ export interface McpGatewayResult {
 }
 
 interface McpHttpApiMapping {
-  constructId: string;
+  constructIdSuffix: string;
   apiMappingKey: string;
 }
 
+// Each custom domain needs its own mapping construct ids. The primary prefix
+// reproduces the already deployed ids byte for byte, so adding a second host
+// never renames or replaces an existing mapping.
+export const primaryMcpHttpApiMappingConstructIdPrefix = "McpHttp";
+export const alternateMcpHttpApiMappingConstructIdPrefix = "McpAlternateHttp";
+
 const mcpHttpApiMappings: ReadonlyArray<McpHttpApiMapping> = [
   {
-    constructId: "McpHttpMcpApiMapping",
+    constructIdSuffix: "McpApiMapping",
     apiMappingKey: "mcp",
   },
   {
-    constructId: "McpHttpHealthApiMapping",
+    constructIdSuffix: "HealthApiMapping",
     apiMappingKey: "health",
   },
   {
-    constructId: "McpHttpRobotsApiMapping",
+    constructIdSuffix: "RobotsApiMapping",
     apiMappingKey: "robots.txt",
   },
   {
-    constructId: "McpHttpProtectedResourceApiMapping",
+    constructIdSuffix: "ProtectedResourceApiMapping",
     apiMappingKey: ".well-known/oauth-protected-resource",
   },
   {
-    constructId: "McpHttpProtectedResourceMcpApiMapping",
+    constructIdSuffix: "ProtectedResourceMcpApiMapping",
     apiMappingKey: ".well-known/oauth-protected-resource/mcp",
   },
 ];
@@ -125,8 +136,9 @@ function addHttpApiMapping(
   httpStage: apigwv2.HttpStage,
   mapping: McpHttpApiMapping,
   dependencies: ReadonlyArray<Construct>,
+  constructIdPrefix: string,
 ): void {
-  const apiMapping = new apigwv2.CfnApiMapping(scope, mapping.constructId, {
+  const apiMapping = new apigwv2.CfnApiMapping(scope, `${constructIdPrefix}${mapping.constructIdSuffix}`, {
     domainName,
     apiId: httpApi.httpApiId,
     stage: httpStage.stageName,
@@ -143,9 +155,10 @@ export function addMcpHttpApiMappings(
   httpApi: apigwv2.HttpApi,
   httpStage: apigwv2.HttpStage,
   dependencies: ReadonlyArray<Construct>,
+  constructIdPrefix: string,
 ): void {
   for (const mapping of mcpHttpApiMappings) {
-    addHttpApiMapping(scope, domainName, httpApi, httpStage, mapping, dependencies);
+    addHttpApiMapping(scope, domainName, httpApi, httpStage, mapping, dependencies, constructIdPrefix);
   }
 }
 
@@ -193,6 +206,16 @@ export function addMcpHttpApiRoutes(
 }
 
 export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGatewayResult {
+  // Resolved once here: the same host is the custom domain below, the host the
+  // handler accepts, and the host it names in its protected-resource metadata.
+  // Throws McpAlternateDomainConflictError at synth time when it names the
+  // primary MCP host.
+  const mcpAlternateHost = resolveMcpAlternateHost(
+    props.baseDomain,
+    props.mcpAlternateDomainName,
+    props.mcpAlternateCertificateArn,
+  );
+
   const mcpFn = new lambdaNodejs.NodejsFunction(scope, "McpHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-mcp.ts"),
     handler: "handler",
@@ -222,6 +245,10 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       // metadata (websiteUrl). Defaults to the apex domain; an optional CDK
       // `siteBaseUrl` context overrides it for self-host deployments.
       PUBLIC_SITE_BASE_URL: props.siteBaseUrl ?? `https://${props.baseDomain}`,
+      // Second public MCP host the handler may answer as. Absent unless both
+      // alternate context values are set, so the deployed environment of every
+      // other deployment is unchanged.
+      ...(mcpAlternateHost === undefined ? {} : { MCP_ALTERNATE_HOST: mcpAlternateHost }),
     },
   });
 
@@ -292,6 +319,23 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     });
   }
 
+  // Second public host for the same MCP API. It is additive: the primary
+  // mcp.<baseDomain> domain above is created and mapped regardless.
+  let alternateCustomDomain: apigw.DomainName | undefined;
+  if (mcpAlternateHost !== undefined && hasConfiguredValue(props.mcpAlternateCertificateArn)) {
+    const alternateCertificate = cdk.aws_certificatemanager.Certificate.fromCertificateArn(
+      scope,
+      "McpAlternateCertificate",
+      props.mcpAlternateCertificateArn,
+    );
+
+    alternateCustomDomain = restApi.addDomainName("McpAlternateCustomDomain", {
+      domainName: mcpAlternateHost,
+      certificate: alternateCertificate,
+      endpointType: apigw.EndpointType.REGIONAL,
+    });
+  }
+
   const httpStage = new apigwv2.HttpStage(scope, "McpHttpApiStage", {
     httpApi,
     stageName: "v1",
@@ -308,11 +352,20 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
   });
 
   if (customDomain !== undefined) {
-    addMcpHttpApiMappings(scope, customDomain.domainName, httpApi, httpStage, [customDomain, httpStage]);
+    addMcpHttpApiMappings(scope, customDomain.domainName, httpApi, httpStage, [customDomain, httpStage], primaryMcpHttpApiMappingConstructIdPrefix);
 
     new cdk.CfnOutput(scope, "McpCustomDomainTarget", {
       value: customDomain.domainNameAliasDomainName,
       description: "Create a Cloudflare CNAME for mcp.<domain> to this target",
+    });
+  }
+
+  if (alternateCustomDomain !== undefined) {
+    addMcpHttpApiMappings(scope, alternateCustomDomain.domainName, httpApi, httpStage, [alternateCustomDomain, httpStage], alternateMcpHttpApiMappingConstructIdPrefix);
+
+    new cdk.CfnOutput(scope, "McpAlternateCustomDomainTarget", {
+      value: alternateCustomDomain.domainNameAliasDomainName,
+      description: "Create a Cloudflare CNAME for the alternate MCP host to this target",
     });
   }
 

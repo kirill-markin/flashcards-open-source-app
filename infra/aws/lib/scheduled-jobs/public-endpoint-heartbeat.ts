@@ -9,6 +9,9 @@ import { infraAwsNodejsProjectPaths } from "../nodejs-project-paths";
 
 export interface PublicEndpointHeartbeatProps {
   baseDomain: string;
+  // Second public MCP host, already resolved (../mcp-alternate-host.ts) and
+  // undefined until it is both deployed and declared live.
+  mcpAlternateHeartbeatHost: string | undefined;
 }
 
 export interface PublicEndpointHeartbeatResult {
@@ -43,15 +46,31 @@ const heartbeatBundling: lambdaNodejs.BundlingOptions = {
 
 // Each probe URL is the unauthenticated GET the post-deploy checks already treat as proof that
 // the host is serving: `scripts/checks/check-public-endpoints.sh` for the api and auth hosts,
-// and `scripts/checks/check-mcp-smoke.sh` for the mcp host. All three answer HTTP 200.
+// and `scripts/checks/check-mcp-smoke.sh` for the mcp hosts. All answer HTTP 200.
+//
+// The alternate MCP host is appended only once it is declared live, because its CNAME can only
+// be created after the deploy that creates its custom domain. It needs its own probe rather than
+// riding on the primary one: it is a separate Cloudflare record, a separate certificate and a
+// separate API Gateway custom domain, so it can stop serving while `mcp.<domain>` is healthy.
 export function createPublicEndpointHeartbeatTargets(
   baseDomain: string,
+  mcpAlternateHeartbeatHost?: string | undefined,
 ): ReadonlyArray<PublicEndpointHeartbeatTarget> {
-  return [
+  const targets: Array<PublicEndpointHeartbeatTarget> = [
     { id: "Api", host: `api.${baseDomain}`, probeUrl: `https://api.${baseDomain}/v1/health` },
     { id: "Auth", host: `auth.${baseDomain}`, probeUrl: `https://auth.${baseDomain}/health` },
     { id: "Mcp", host: `mcp.${baseDomain}`, probeUrl: `https://mcp.${baseDomain}/health` },
   ];
+
+  if (mcpAlternateHeartbeatHost !== undefined) {
+    targets.push({
+      id: "McpAlternate",
+      host: mcpAlternateHeartbeatHost,
+      probeUrl: `https://${mcpAlternateHeartbeatHost}/health`,
+    });
+  }
+
+  return targets;
 }
 
 // Deliberately outside the VPC: the probes have to leave through the public internet and reach
@@ -61,7 +80,7 @@ export function publicEndpointHeartbeat(
   scope: Construct,
   props: PublicEndpointHeartbeatProps,
 ): PublicEndpointHeartbeatResult {
-  const targets = createPublicEndpointHeartbeatTargets(props.baseDomain);
+  const targets = createPublicEndpointHeartbeatTargets(props.baseDomain, props.mcpAlternateHeartbeatHost);
 
   const heartbeatFunction = new lambdaNodejs.NodejsFunction(scope, "PublicEndpointHeartbeatHandler", {
     entry: path.join(__dirname, "../../lambda/public-endpoint-heartbeat/index.ts"),

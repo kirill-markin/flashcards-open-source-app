@@ -256,6 +256,9 @@ jobs:
           CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 }}
           CDK_CONTEXT_AUTH_CERTIFICATE_ARN: ${{ vars.CDK_AUTH_CERTIFICATE_ARN }}
           CDK_CONTEXT_MCP_CERTIFICATE_ARN: ${{ vars.CDK_MCP_CERTIFICATE_ARN }}
+          CDK_CONTEXT_MCP_ALTERNATE_DOMAIN_NAME: ${{ vars.CDK_MCP_ALTERNATE_DOMAIN_NAME }}
+          CDK_CONTEXT_MCP_ALTERNATE_CERTIFICATE_ARN: ${{ vars.CDK_MCP_ALTERNATE_CERTIFICATE_ARN }}
+          CDK_CONTEXT_MCP_ALTERNATE_HOST_LIVE: ${{ vars.CDK_MCP_ALTERNATE_HOST_LIVE }}
           CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_ADMIN_CERTIFICATE_ARN_US_EAST_1 }}
           CDK_CONTEXT_ADMIN_EMAILS: ${{ vars.CDK_ADMIN_EMAILS }}
           CDK_CONTEXT_DEMO_EMAIL_DOSTIP: ${{ vars.CDK_DEMO_EMAIL_DOSTIP }}
@@ -346,6 +349,9 @@ jobs:
           CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 }}
           CDK_CONTEXT_AUTH_CERTIFICATE_ARN: ${{ vars.CDK_AUTH_CERTIFICATE_ARN }}
           CDK_CONTEXT_MCP_CERTIFICATE_ARN: ${{ vars.CDK_MCP_CERTIFICATE_ARN }}
+          CDK_CONTEXT_MCP_ALTERNATE_DOMAIN_NAME: ${{ vars.CDK_MCP_ALTERNATE_DOMAIN_NAME }}
+          CDK_CONTEXT_MCP_ALTERNATE_CERTIFICATE_ARN: ${{ vars.CDK_MCP_ALTERNATE_CERTIFICATE_ARN }}
+          CDK_CONTEXT_MCP_ALTERNATE_HOST_LIVE: ${{ vars.CDK_MCP_ALTERNATE_HOST_LIVE }}
           CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_ADMIN_CERTIFICATE_ARN_US_EAST_1 }}
           CDK_CONTEXT_ADMIN_EMAILS: ${{ vars.CDK_ADMIN_EMAILS }}
           CDK_CONTEXT_DEMO_EMAIL_DOSTIP: ${{ vars.CDK_DEMO_EMAIL_DOSTIP }}
@@ -655,7 +661,43 @@ jobs:
           FLASHCARDS_MCP_SMOKE_DEMO_EMAIL: google-review@example.com
           FLASHCARDS_MCP_SMOKE_WORKSPACE_PREFIX: "E2E mcp "
           FLASHCARDS_MCP_SMOKE_CONNECTION_LABEL_PREFIX: "E2E mcp "
-        run: bash scripts/checks/check-mcp-smoke.sh
+          # The same three repository variables the deploy jobs pass to CDK, raw: the
+          # gate below reads them with the stack's own rule instead of a second,
+          # weaker reading. The liveness switch is separate from the two that create
+          # the host because the Cloudflare CNAME can only be created from the
+          # McpAlternateCustomDomainTarget output of the deploy that creates the
+          # custom domain, so that deploy must not already probe the name.
+          MCP_ALTERNATE_DOMAIN_NAME: ${{ vars.CDK_MCP_ALTERNATE_DOMAIN_NAME }}
+          MCP_ALTERNATE_CERTIFICATE_ARN: ${{ vars.CDK_MCP_ALTERNATE_CERTIFICATE_ARN }}
+          MCP_ALTERNATE_HOST_LIVE: ${{ vars.CDK_MCP_ALTERNATE_HOST_LIVE }}
+        run: |
+          # One rule decides whether the alternate MCP host is policed, and it is the
+          # stack's rule, mirrored here: the domain name and the certificate ARN must
+          # both carry a value (resolveMcpAlternateHost, which is what creates the
+          # host at all) and the liveness switch must read "true" ignoring surrounding
+          # whitespace and letter case (isMcpAlternateHostLive), both in
+          # infra/aws/lib/mcp-alternate-host.ts. Trimming happens in the shell because
+          # a workflow expression has no trim, while scripts/generate/write-ci-cdk-context.py
+          # trims every value before CDK reads it. Reading fewer variables here would
+          # probe a host the stack deliberately keeps off and turn the release red.
+          trim_value() {
+            local value="${1}"
+            value="${value#"${value%%[![:space:]]*}"}"
+            printf '%s' "${value%"${value##*[![:space:]]}"}"
+          }
+
+          alternate_domain_name="$(trim_value "${MCP_ALTERNATE_DOMAIN_NAME}")"
+          alternate_certificate_arn="$(trim_value "${MCP_ALTERNATE_CERTIFICATE_ARN}")"
+          alternate_host_live="$(trim_value "${MCP_ALTERNATE_HOST_LIVE}")"
+
+          export FLASHCARDS_MCP_SMOKE_ALTERNATE_MCP_BASE_URL=""
+          if [[ -n "${alternate_domain_name}" \
+            && -n "${alternate_certificate_arn}" \
+            && "$(printf '%s' "${alternate_host_live}" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
+            export FLASHCARDS_MCP_SMOKE_ALTERNATE_MCP_BASE_URL="https://${alternate_domain_name}"
+          fi
+
+          bash scripts/checks/check-mcp-smoke.sh
 
       - name: Summarize smoke result
         if: always()

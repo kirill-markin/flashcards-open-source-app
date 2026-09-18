@@ -189,6 +189,31 @@ For the first admin-domain rollout, treat `bash scripts/cloudflare/setup-admin-d
 
 The MCP host on `mcp.<domain>` follows the same per-subdomain rollout: `bash scripts/cloudflare/setup-mcp-domain.sh --domain <domain> --region <region>` requests the ACM certificate, then `bash scripts/setup/setup-github.sh`, a deploy, and `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` to create the `mcp.<domain>` CNAME from the `McpCustomDomainTarget` output.
 
+### Optional second MCP host
+
+The same MCP API can answer on one extra hostname outside `<domain>`, for example a rebranded domain. It is off by default, it never replaces `mcp.<domain>`, and both repository variables are required before anything changes:
+
+- `CDK_MCP_ALTERNATE_DOMAIN_NAME`: the extra host, for example `mcp.nibomo.com`.
+- `CDK_MCP_ALTERNATE_CERTIFICATE_ARN`: an ACM certificate for that host, issued and validated in the stack region.
+
+Both hosts serve the same MCP API and authorize against the same server, `auth.<domain>`, but OAuth identifiers are per-host: the protected-resource metadata and the `WWW-Authenticate` challenge name the host the client actually used, and an access token is accepted only on the host whose resource identifier it carries (`apps/backend/src/mcp/hosts.ts`, `apps/auth/src/server/publicUrls.ts`). Tokens already issued for `mcp.<domain>` keep working there; a user who moves a client to the second host authorizes once more. Once the host is configured its certificate gets its own expiry alarm.
+
+With either variable unset the deploy is byte-for-byte what it is today. `scripts/setup/setup-github.sh` does not create these variables, because the host cannot be derived from `<domain>`; set them manually. Both the certificate and the DNS record are manual: `scripts/cloudflare/setup-dns.sh` only manages records under `<domain>`.
+
+#### Go-live order
+
+The three steps are separate deploys on purpose. The alternate host's CNAME can only be created from a stack output that does not exist until the custom domain has been deployed, so the deploy that creates the host must not be the deploy that starts policing it.
+
+1. Request and validate the ACM certificate for the extra host in the stack region, set `CDK_MCP_ALTERNATE_DOMAIN_NAME` and `CDK_MCP_ALTERNATE_CERTIFICATE_ARN`, and deploy. The stack creates the second custom domain, maps the same stage onto it, and emits the `McpAlternateCustomDomainTarget` output. Nothing probes the host yet.
+2. Create the CNAME for the extra host in its own DNS zone, pointing at that output, and confirm by hand that `GET https://<extra-host>/health` answers `200`.
+3. Set `CDK_MCP_ALTERNATE_HOST_LIVE` to `true` and deploy again. Only now does the host join the external liveness heartbeat, gain its heartbeat alarm, and get checked by the post-deploy MCP smoke.
+
+One rule decides whether the host is policed, and all three variables take part in it: `CDK_MCP_ALTERNATE_DOMAIN_NAME` and `CDK_MCP_ALTERNATE_CERTIFICATE_ARN` both carry a value, and `CDK_MCP_ALTERNATE_HOST_LIVE` reads `true` ignoring surrounding whitespace and letter case. Any other live value, and clearing either of the other two, leaves the host unpoliced. The stack applies that rule in `infra/aws/lib/mcp-alternate-host.ts` and the MCP smoke job in `.github/workflows/aws-web-release.yml` applies the same one, so the heartbeat, its alarm and the smoke are on together or off together, and the smoke never probes a host the stack did not create.
+
+To stop policing the host without removing it, set `CDK_MCP_ALTERNATE_HOST_LIVE` back to an empty value and deploy; the custom domain, the Lambda environments and the issued tokens are untouched, because the switch never reaches them.
+
+For a local context file, `MCP_ALTERNATE_DOMAIN_NAME`, the optional `MCP_ALTERNATE_CERTIFICATE_ARN` and `MCP_ALTERNATE_HOST_LIVE` in root `.env` feed the same CDK context values through `scripts/generate/generate-cdk-context.sh`.
+
 ## Later secret updates
 
 ```bash

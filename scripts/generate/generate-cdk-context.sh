@@ -56,6 +56,17 @@ PY
 API_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "api.${DOMAIN_NAME}" "api-domain")"
 AUTH_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "auth.${DOMAIN_NAME}" "auth-domain")"
 MCP_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "mcp.${DOMAIN_NAME}" "mcp-domain")"
+# Optional second MCP host on an unrelated domain, so it cannot be derived from
+# DOMAIN_NAME. Set MCP_ALTERNATE_DOMAIN_NAME in root .env to enable it; the
+# certificate is discovered in the stack region unless it is set explicitly.
+MCP_ALTERNATE_DOMAIN_NAME="${MCP_ALTERNATE_DOMAIN_NAME:-}"
+MCP_ALTERNATE_CERTIFICATE_ARN="${MCP_ALTERNATE_CERTIFICATE_ARN:-}"
+# Separate switch, flipped only once the alternate host's DNS record exists, so
+# the liveness heartbeat starts policing the host after it can answer.
+MCP_ALTERNATE_HOST_LIVE="${MCP_ALTERNATE_HOST_LIVE:-}"
+if [[ -n "${MCP_ALTERNATE_DOMAIN_NAME}" && -z "${MCP_ALTERNATE_CERTIFICATE_ARN}" ]]; then
+  MCP_ALTERNATE_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "${MCP_ALTERNATE_DOMAIN_NAME}" "mcp-alternate-domain")"
+fi
 WEB_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "app.${DOMAIN_NAME}" "web-domain")"
 ADMIN_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "admin.${DOMAIN_NAME}" "admin-domain")"
 APEX_REDIRECT_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "${DOMAIN_NAME}" "apex-redirect-domain")"
@@ -92,6 +103,9 @@ export GITHUB_REPO
 export API_CERTIFICATE_ARN
 export AUTH_CERTIFICATE_ARN
 export MCP_CERTIFICATE_ARN
+export MCP_ALTERNATE_DOMAIN_NAME
+export MCP_ALTERNATE_CERTIFICATE_ARN
+export MCP_ALTERNATE_HOST_LIVE
 export WEB_CERTIFICATE_ARN
 export ADMIN_CERTIFICATE_ARN
 export APEX_REDIRECT_CERTIFICATE_ARN
@@ -125,6 +139,9 @@ values = {
     "apiCertificateArn": os.environ.get("API_CERTIFICATE_ARN", ""),
     "authCertificateArn": os.environ.get("AUTH_CERTIFICATE_ARN", ""),
     "mcpCertificateArn": os.environ.get("MCP_CERTIFICATE_ARN", ""),
+    "mcpAlternateDomainName": os.environ.get("MCP_ALTERNATE_DOMAIN_NAME", ""),
+    "mcpAlternateCertificateArn": os.environ.get("MCP_ALTERNATE_CERTIFICATE_ARN", ""),
+    "mcpAlternateHostLive": os.environ.get("MCP_ALTERNATE_HOST_LIVE", ""),
     "webCertificateArnUsEast1": os.environ.get("WEB_CERTIFICATE_ARN", ""),
     "adminCertificateArnUsEast1": os.environ.get("ADMIN_CERTIFICATE_ARN", ""),
     "apexRedirectCertificateArnUsEast1": os.environ.get("APEX_REDIRECT_CERTIFICATE_ARN", ""),
