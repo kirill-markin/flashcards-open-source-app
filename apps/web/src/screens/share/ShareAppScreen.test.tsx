@@ -10,7 +10,7 @@ import { ShareAppScreen } from "./ShareAppScreen";
 const localePreferenceStorageKey: string = "flashcards-web-locale-preference";
 const shareAppIosHref: string = "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=share_app&mt=8";
 const shareAppAndroidHref: string = "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=share_app";
-const expectedMcpServerUrl: string = "https://mcp.flashcards-open-source-app.com/mcp";
+const expectedMcpServerUrl: string = "https://mcp.nibomo.com/mcp";
 
 function createStorageMock(): Storage {
   const state = new Map<string, string>();

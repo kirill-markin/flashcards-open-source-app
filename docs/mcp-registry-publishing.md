@@ -12,15 +12,20 @@ run the workflow below to publish the new version.
 ## What is published
 
 `server.json` describes the hosted remote MCP server (a `streamable-http` remote
-at `https://mcp.flashcards-open-source-app.com/mcp`). Remote manifests do not
-enumerate tools, so the registry entry is independent of the tool inventory; the
-tool list lives in
+at `https://mcp.nibomo.com/mcp`). Remote manifests do not enumerate tools, so
+the registry entry is independent of the tool inventory; the tool list lives in
 [connector-directory-submission.md](connector-directory-submission.md).
 
 The `name` uses the DNS-based namespace `com.nibomo/...`, which we can verify
-because we control `nibomo.com`. The hosted remote keeps its address on
-`mcp.flashcards-open-source-app.com`: the registry verifies the namespace
-against `name` only and never compares it with the remote URL.
+because we control `nibomo.com`. The registry verifies the namespace against
+`name` only and never compares it with the remote URL.
+
+`mcp.flashcards-open-source-app.com` keeps serving the same server on the same
+routes, so client configurations that already point at it keep working. The
+published `com.flashcards-open-source-app/flashcards` record keeps advertising
+that address rather than the new one, because the registry rejects a publish
+whose remote URL already belongs to another record and treats a `deprecated`
+record as still holding its URL.
 
 ## Prerequisites
 
