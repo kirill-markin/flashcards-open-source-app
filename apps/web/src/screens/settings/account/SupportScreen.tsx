@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { useI18n } from "../../../i18n";
 import { SettingsShell } from "../SettingsShared";
 
-const supportUrl: string = "https://flashcards-open-source-app.com/support/";
+const supportUrl: string = "https://nibomo.com/support/";
 const supportEmailAddress: string = "kirill+flashcards@kirill-markin.com";
 const supportEmailUrl: string = `mailto:${supportEmailAddress}`;
 

@@ -26,10 +26,10 @@ The dedicated review tools support one-question-at-a-time conversations and idem
 
 Interactive clients authenticate with OAuth 2.1 authorization code + PKCE and Dynamic Client Registration. Headless clients can use an `fca_` Bearer token.
 
-- [MCP connector docs](https://flashcards-open-source-app.com/docs/mcp-connector/)
-- [Agent API docs](https://flashcards-open-source-app.com/docs/api/)
-- [Privacy](https://flashcards-open-source-app.com/privacy/)
-- [Support](https://flashcards-open-source-app.com/support/)
+- [MCP connector docs](https://nibomo.com/docs/mcp-connector/)
+- [Agent API docs](https://nibomo.com/docs/api/)
+- [Privacy](https://nibomo.com/privacy/)
+- [Support](https://nibomo.com/support/)
 
 ## Docs
 

@@ -14,9 +14,9 @@
 APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app
 API_BASE_URL = https:/$()/api.flashcards-open-source-app.com/v1
 AUTH_BASE_URL = https:/$()/auth.flashcards-open-source-app.com
-PRIVACY_POLICY_URL = https:/$()/flashcards-open-source-app.com/privacy/
-TERMS_OF_SERVICE_URL = https:/$()/flashcards-open-source-app.com/terms/
-SUPPORT_URL = https:/$()/flashcards-open-source-app.com/support/
+PRIVACY_POLICY_URL = https:/$()/nibomo.com/privacy/
+TERMS_OF_SERVICE_URL = https:/$()/nibomo.com/terms/
+SUPPORT_URL = https:/$()/nibomo.com/support/
 SUPPORT_EMAIL_ADDRESS = kirill+flashcards@kirill-markin.com
 FLASHCARDS_SENTRY_DSN =
 FLASHCARDS_SENTRY_ENVIRONMENT = local
