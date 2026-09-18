@@ -295,7 +295,7 @@ asset ID.
        $indented_code$
    ````
 
-5. `[$link_label$](https://flashcards-open-source-app.com)` keeps the link-label
+5. `[$link_label$](https://nibomo.com)` keeps the link-label
    math literal.
 6. `**$strong$**` keeps the strong math literal.
 7. `- $list_item$` keeps the list math literal.
@@ -307,7 +307,7 @@ asset ID.
    ```markdown
    Reference side with $x$ and [documentation][docs].
 
-   [docs]: https://flashcards-open-source-app.com
+   [docs]: https://nibomo.com
    ```
 
 10. `Unbalanced $x` remains literal.
@@ -577,7 +577,7 @@ Paragraph with **strong**, *emphasis*, ~~strikethrough~~, and `inline code`.
 1. Ordered item
    1. Nested ordered item
 
-> Blockquote with an [ordinary HTTPS link](https://flashcards-open-source-app.com).
+> Blockquote with an [ordinary HTTPS link](https://nibomo.com).
 
 | Construct | Expected |
 | --- | --- |

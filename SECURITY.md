@@ -8,7 +8,7 @@ policy for vulnerabilities in any part of the product or repository.
 
 Report vulnerabilities privately by emailing `security@flashcards-open-source-app.com`.
 If email is unavailable, use the support page at
-https://flashcards-open-source-app.com/support/ and mark the message as a
+https://nibomo.com/support/ and mark the message as a
 security report.
 
 Please include:

@@ -17,16 +17,16 @@ URLs appear.
 - **Name:** Nibomo
 - **Tagline (≤55 chars):** Read and write your flashcards over SQL
 - **Categories:** Productivity, Education
-- **Icon URLs:** https://flashcards-open-source-app.com/icon.svg,
-  https://flashcards-open-source-app.com/icon-preview.png, and
-  https://flashcards-open-source-app.com/logo-512.png. Local sources live under
+- **Icon URLs:** https://nibomo.com/icon.svg,
+  https://nibomo.com/icon-preview.png, and
+  https://nibomo.com/logo-512.png. Local sources live under
   `apps/web/public/`; derive larger PNG exports from `icon.svg` if a directory
   requires them.
-- **Documentation URL:** https://flashcards-open-source-app.com/docs/mcp-connector/
-- **API documentation URL:** https://flashcards-open-source-app.com/docs/api/
-- **Privacy URL:** https://flashcards-open-source-app.com/privacy/
-- **Support URL:** https://flashcards-open-source-app.com/support/
-- **Terms URL:** https://flashcards-open-source-app.com/terms/
+- **Documentation URL:** https://nibomo.com/docs/mcp-connector/
+- **API documentation URL:** https://nibomo.com/docs/api/
+- **Privacy URL:** https://nibomo.com/privacy/
+- **Support URL:** https://nibomo.com/support/
+- **Terms URL:** https://nibomo.com/terms/
 - **MCP server URL:** https://mcp.flashcards-open-source-app.com/mcp
 
 ### Description (≤2000 chars)
@@ -233,7 +233,8 @@ requirements against each directory's own documentation at submission time.
       behavior).
 - [ ] Listing metadata, icon, and the privacy / terms / support / docs URLs
       above provided.
-- [ ] Domain ownership of `flashcards-open-source-app.com` demonstrable.
+- [ ] Domain ownership demonstrable for `nibomo.com` (the listing metadata
+      URLs) and for `flashcards-open-source-app.com` (the MCP server host).
 - [ ] Reviewer test account / walkthrough above shared with the reviewer.
 
 ### OpenAI Apps directory
@@ -246,7 +247,8 @@ requirements against each directory's own documentation at submission time.
 - [ ] EU data-residency note: review the EU-residency requirement and document
       where the reference deployment processes data (AWS); self-hosters control
       their own region.
-- [ ] Domain ownership of `flashcards-open-source-app.com` demonstrable.
+- [ ] Domain ownership demonstrable for `nibomo.com` (the listing metadata
+      URLs) and for `flashcards-open-source-app.com` (the MCP server host).
 
 ## Registry manifest
 

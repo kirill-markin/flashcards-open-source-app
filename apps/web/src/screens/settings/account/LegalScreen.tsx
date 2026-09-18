@@ -2,8 +2,8 @@ import type { ReactElement } from "react";
 import { useI18n } from "../../../i18n";
 import { SettingsShell } from "../SettingsShared";
 
-const privacyPolicyUrl: string = "https://flashcards-open-source-app.com/privacy/";
-const termsOfServiceUrl: string = "https://flashcards-open-source-app.com/terms/";
+const privacyPolicyUrl: string = "https://nibomo.com/privacy/";
+const termsOfServiceUrl: string = "https://nibomo.com/terms/";
 
 export function LegalScreen(): ReactElement {
   const { t } = useI18n();

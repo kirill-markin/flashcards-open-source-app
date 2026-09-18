@@ -8,8 +8,7 @@ env-driven through `PUBLIC_SITE_BASE_URL`, following the same pattern as
 ## Purpose
 
 `PUBLIC_SITE_BASE_URL` is the public origin of your marketing site (the apex
-domain), with no trailing slash, for example
-`https://flashcards-open-source-app.com`. It feeds:
+domain), with no trailing slash, for example `https://nibomo.com`. It feeds:
 
 - the discovery envelope `links` block (`GET /v1/` and `GET /v1/agent`), which
   surfaces the website, privacy, terms, support, and docs URLs to AI agents;
@@ -22,7 +21,7 @@ When `PUBLIC_SITE_BASE_URL` is unset, the value is derived automatically:
 - The backend discovery surface strips a leading `api.`/`auth.`/`mcp.`
   subdomain from the incoming request origin to reach the apex origin.
 - The MCP and backend Lambdas default to `https://<baseDomain>` (the deployment
-  apex domain), so the reference deployment works without setting anything.
+  apex domain), which is right only when the marketing site shares that apex.
 
 ## Derived legal links
 
@@ -43,5 +42,6 @@ In CDK, the value defaults to `https://<domainName>` for the backend and MCP
 Lambda environments. To override it (for example when the marketing site lives
 on a different host than the API apex), set the optional GitHub Actions
 repository variable `CDK_SITE_BASE_URL`; it flows through
-`CDK_CONTEXT_SITE_BASE_URL` into the `siteBaseUrl` CDK context. Production works
-without setting it because the value defaults from the domain.
+`CDK_CONTEXT_SITE_BASE_URL` into the `siteBaseUrl` CDK context. The reference
+deployment sets it to `https://nibomo.com`, because the marketing site no longer
+shares the API apex `flashcards-open-source-app.com`.

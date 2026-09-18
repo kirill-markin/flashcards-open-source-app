@@ -204,7 +204,8 @@ Before submitting to the OpenAI Apps directory:
 
 - Complete identity/business verification in the OpenAI platform dashboard.
 - Ensure the OpenAI project is **not** set to EU data residency (global only).
-- Confirm demonstrable domain ownership of `flashcards-open-source-app.com`.
+- Confirm demonstrable domain ownership of `nibomo.com` (the listing metadata
+  URLs) and of `flashcards-open-source-app.com` (the MCP server host).
 
 CIMD (Client ID Metadata Documents) is optional: the implemented Dynamic Client
 Registration already satisfies the requirement, so add CIMD only if OpenAI
