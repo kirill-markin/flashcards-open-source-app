@@ -27,7 +27,7 @@ URLs appear.
 - **Privacy URL:** https://nibomo.com/privacy/
 - **Support URL:** https://nibomo.com/support/
 - **Terms URL:** https://nibomo.com/terms/
-- **MCP server URL:** https://mcp.flashcards-open-source-app.com/mcp
+- **MCP server URL:** https://mcp.nibomo.com/mcp
 
 ### Description (≤2000 chars)
 
@@ -62,12 +62,12 @@ Source: https://github.com/kirill-markin/flashcards-open-source-app
 Two authorization paths reach the same per-user data surface.
 
 - **Interactive (directory clients): OAuth 2.1.** The remote MCP server at
-  `https://mcp.flashcards-open-source-app.com/mcp` implements the
-  authorization-code flow with PKCE and Dynamic Client Registration. Directory
+  `https://mcp.nibomo.com/mcp` implements the authorization-code flow with PKCE
+  and Dynamic Client Registration. Directory
   clients add the MCP URL as a custom connector and authorize in the browser; no
   client secret is pre-shared. Discovery is standard:
   - Protected-resource metadata:
-    `https://mcp.flashcards-open-source-app.com/.well-known/oauth-protected-resource`
+    `https://mcp.nibomo.com/.well-known/oauth-protected-resource`
   - Authorization-server metadata:
     `https://auth.flashcards-open-source-app.com/.well-known/oauth-authorization-server`
 - **Headless / agent (CLI, scripts): `fca_` API key Bearer token.** Obtain a
@@ -140,8 +140,8 @@ this repository.
    the returned `otpSessionToken`, the `code`, and a `label`. The response
    includes an `fca_…` API key.
 3. For an interactive directory client instead, add the MCP URL
-   (`https://mcp.flashcards-open-source-app.com/mcp`) as a custom connector and
-   complete the OAuth browser flow.
+   (`https://mcp.nibomo.com/mcp`) as a custom connector and complete the OAuth
+   browser flow.
 
 ### Demo workspace data to expect
 
@@ -233,8 +233,11 @@ requirements against each directory's own documentation at submission time.
       behavior).
 - [ ] Listing metadata, icon, and the privacy / terms / support / docs URLs
       above provided.
-- [ ] Domain ownership demonstrable for `nibomo.com` (the listing metadata
-      URLs) and for `flashcards-open-source-app.com` (the MCP server host).
+- [ ] Domain ownership demonstrable for `nibomo.com`, which covers both the
+      listing metadata URLs and the MCP server host.
+- [ ] Domain ownership for `flashcards-open-source-app.com` also available if
+      the directory asks: the OAuth authorization server stays on
+      `auth.flashcards-open-source-app.com`.
 - [ ] Reviewer test account / walkthrough above shared with the reviewer.
 
 ### OpenAI Apps directory
@@ -247,8 +250,11 @@ requirements against each directory's own documentation at submission time.
 - [ ] EU data-residency note: review the EU-residency requirement and document
       where the reference deployment processes data (AWS); self-hosters control
       their own region.
-- [ ] Domain ownership demonstrable for `nibomo.com` (the listing metadata
-      URLs) and for `flashcards-open-source-app.com` (the MCP server host).
+- [ ] Domain ownership demonstrable for `nibomo.com`, which covers both the
+      listing metadata URLs and the MCP server host.
+- [ ] Domain ownership for `flashcards-open-source-app.com` also available if
+      the directory asks: the OAuth authorization server stays on
+      `auth.flashcards-open-source-app.com`.
 
 ## Registry manifest
 
