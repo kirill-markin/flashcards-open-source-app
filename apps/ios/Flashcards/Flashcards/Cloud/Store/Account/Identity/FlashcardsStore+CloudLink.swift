@@ -34,7 +34,7 @@ extension FlashcardsStore {
             if isRequestCancellationError(error: error) {
                 throw error
             }
-            if isRetryableNetworkTransportFailure(error: error) == false {
+            if isSilentlyIgnorableNetworkTransportFailure(error: error) == false {
                 self.captureCloudAuthFailure(
                     error: error,
                     configuration: configuration,
@@ -68,7 +68,7 @@ extension FlashcardsStore {
             if isRequestCancellationError(error: error) {
                 throw error
             }
-            if isRetryableNetworkTransportFailure(error: error) == false {
+            if isSilentlyIgnorableNetworkTransportFailure(error: error) == false {
                 self.captureCloudAuthFailure(
                     error: error,
                     configuration: configuration,
