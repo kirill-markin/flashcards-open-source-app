@@ -166,7 +166,7 @@ android {
         minSdk = androidMinSdk
         targetSdk = 37
         versionCode = androidVersionCode ?: 1
-        versionName = "1.25.0"
+        versionName = "1.26.0"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         buildConfigField("int", "ANDROID_MIN_SDK", androidMinSdk.toString())
