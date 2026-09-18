@@ -51,7 +51,7 @@ The iOS client currently uses three localization buckets plus localized `InfoPli
 
 - [apps/ios/Flashcards/Flashcards/Resources/Localization/en.lproj/InfoPlist.strings](../apps/ios/Flashcards/Flashcards/Resources/Localization/en.lproj/InfoPlist.strings)
 - `apps/ios/Flashcards/Flashcards/Resources/Localization/<locale>.lproj/InfoPlist.strings`
-  Localized permission prompts and any future localized Info.plist-facing copy.
+  Localized permission prompts, localized Spotlight keywords, and any future localized Info.plist-facing copy.
 
 English remains the development language.
 For Spanish, supported app locales must use `es-MX.lproj` and `es-ES.lproj`; generic `es.lproj` is legacy migration material only and must not be treated as a supported app locale.
@@ -131,9 +131,16 @@ Do not add new generic `es.lproj` app resources. Spanish resource files must use
 
 At minimum, keep these aligned:
 
+- `kMDItemKeywords`
 - `NSCameraUsageDescription`
 - `NSMicrophoneUsageDescription`
 - `NSPhotoLibraryUsageDescription`
+
+`kMDItemKeywords` is a comma-separated Spotlight keyword list.
+The base value lives in [Info.plist](../apps/ios/Flashcards/Config/Info.plist), and every locale's `InfoPlist.strings`, `en.lproj` included, overrides it with terms for that language.
+The app is named Nibomo, so without it on-device search cannot find the app by the user's own word for flashcards.
+Keep `flashcards` as the first keyword in every locale and follow it with the natural terms in that language, including alternative spellings people actually type.
+The key is undocumented by Apple but recommended by Apple DTS, so do not drop it as unknown.
 
 If we later localize app display name or other Info.plist-facing copy, add those keys here too.
 
