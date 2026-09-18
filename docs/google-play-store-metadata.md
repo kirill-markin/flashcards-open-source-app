@@ -53,6 +53,10 @@ The project is open source, so you can inspect the stack, build on it, and host 
 All code for the app, backend, and infrastructure is open and available on GitHub:
 https://github.com/kirill-markin/flashcards-open-source-app
 
+### Release notes
+
+The app is now called Nibomo (formerly Flashcards Open Source App).
+
 ## Arabic - ar
 
 ### App Name
@@ -103,6 +107,10 @@ Nibomo يساعدك على التحضير للاختبارات، وتعلم ال
 
 جميع شيفرات التطبيق والخلفية والبنية التحتية متاحة بشكل مفتوح على GitHub:
 https://github.com/kirill-markin/flashcards-open-source-app
+
+### Release notes
+
+أصبح اسم التطبيق Nibomo (كان سابقا بطاقات تعليم مفتوحة المصدر).
 
 ## Chinese (Simplified) - zh-CN
 
@@ -155,6 +163,10 @@ Nibomo 帮助你备考、积累词汇、记忆医学和技术内容、用 AI 改
 应用、后端和基础设施的全部代码都已在 GitHub 开放：
 https://github.com/kirill-markin/flashcards-open-source-app
 
+### Release notes
+
+应用现已更名为 Nibomo（原名开源闪卡）。
+
 ## German - de-DE
 
 ### App Name
@@ -205,6 +217,10 @@ Das Projekt ist Open Source, sodass du den gesamten Stack einsehen, erweitern un
 
 Der gesamte Code für App, Backend und Infrastruktur ist offen auf GitHub verfügbar:
 https://github.com/kirill-markin/flashcards-open-source-app
+
+### Release notes
+
+Die App heißt jetzt Nibomo (früher Open-Source-Karteikarten).
 
 ## Hindi - hi-IN
 
@@ -257,6 +273,10 @@ Nibomo परीक्षा की तैयारी, शब्दावली
 ऐप, बैकएंड और इन्फ्रास्ट्रक्चर का पूरा कोड GitHub पर खुला उपलब्ध है:
 https://github.com/kirill-markin/flashcards-open-source-app
 
+### Release notes
+
+ऐप का नाम अब Nibomo है (पहले ओपन सोर्स फ्लैशकार्ड)।
+
 ## Japanese - ja-JP
 
 ### App Name
@@ -307,6 +327,10 @@ Nibomo は、試験対策、語彙学習、医療や技術分野の暗記、AI �
 
 アプリ、バックエンド、インフラのすべてのコードは GitHub で公開されています:
 https://github.com/kirill-markin/flashcards-open-source-app
+
+### Release notes
+
+アプリ名が Nibomo になりました（旧「オープンソース暗記カード」）。
 
 ## Russian - ru-RU
 
@@ -359,6 +383,10 @@ Nibomo помогает готовиться к экзаменам, учить �
 Весь код приложения, бэкенда и инфраструктуры открыт и доступен на GitHub:
 https://github.com/kirill-markin/flashcards-open-source-app
 
+### Release notes
+
+Приложение теперь называется Nibomo (раньше «Флешкарты с открытым кодом»).
+
 ## Spanish (Latin America) - es-419
 
 ### App Name
@@ -409,6 +437,10 @@ El proyecto es de código abierto, así que puedes revisar todo el stack, amplia
 
 Todo el código de la app, el backend y la infraestructura está abierto y disponible en GitHub:
 https://github.com/kirill-markin/flashcards-open-source-app
+
+### Release notes
+
+La app ahora se llama Nibomo (antes Flashcards de código abierto).
 
 ## Spanish (Spain) - es-ES
 
@@ -461,6 +493,10 @@ El proyecto es de código abierto, así que puedes revisar todo el stack, amplia
 Todo el código de la app, el backend y la infraestructura está abierto y disponible en GitHub:
 https://github.com/kirill-markin/flashcards-open-source-app
 
+### Release notes
+
+La app ahora se llama Nibomo (antes Flashcards de código abierto).
+
 ## Spanish (United States) - es-US
 
 ### App Name
@@ -511,3 +547,7 @@ El proyecto es de código abierto, así que puedes revisar todo el stack, amplia
 
 Todo el código de la app, el backend y la infraestructura está abierto y disponible en GitHub:
 https://github.com/kirill-markin/flashcards-open-source-app
+
+### Release notes
+
+La app ahora se llama Nibomo (antes Flashcards de código abierto).
