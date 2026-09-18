@@ -4,10 +4,10 @@ How to publish and refresh our entry in the official MCP Registry. The manifest
 lives in the repo root at [`server.json`](../server.json); this doc only covers
 the publish flow.
 
-The official registry entry for `com.flashcards-open-source-app/flashcards` is
-already live. Treat this as the maintenance flow for future metadata refreshes:
-validate the manifest, bump `server.json` `version` when publishing a changed
-registry entry, and manually run the workflow below to publish the new version.
+The registry entry publishes under `com.nibomo/flashcards`. Treat this as the
+maintenance flow for metadata refreshes: validate the manifest, bump
+`server.json` `version` when publishing a changed registry entry, and manually
+run the workflow below to publish the new version.
 
 ## What is published
 
@@ -17,19 +17,30 @@ enumerate tools, so the registry entry is independent of the tool inventory; the
 tool list lives in
 [connector-directory-submission.md](connector-directory-submission.md).
 
-The `name` uses the DNS-based namespace `com.flashcards-open-source-app/...`,
-which we can verify because we control `flashcards-open-source-app.com`.
+The `name` uses the DNS-based namespace `com.nibomo/...`, which we can verify
+because we control `nibomo.com`. The hosted remote keeps its address on
+`mcp.flashcards-open-source-app.com`: the registry verifies the namespace
+against `name` only and never compares it with the remote URL.
 
 ## Prerequisites
 
 - The `mcp-publisher` CLI (the official MCP Registry publisher tool).
-- Control of DNS for `flashcards-open-source-app.com` (for namespace
-  verification).
+- Control of DNS for `nibomo.com` (for namespace verification).
 - For GitHub Actions publishing, the Ed25519 namespace private key stored as
   the `MCP_PRIVATE_KEY` repository secret.
 - For one-time credential bootstrap, the local root `.env` must include
   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID`, and `GITHUB_REPO`, or pass the
-  repository explicitly to the setup script.
+  repository explicitly to the setup script. Both Cloudflare values must
+  resolve to the `nibomo.com` zone: the setup script uses `--domain` only as
+  the DNS record name and always reads and writes in the zone from `.env`.
+  Always pass `--domain nibomo.com` explicitly as well, because the script
+  otherwise falls back to `DOMAIN_NAME`, which is the old domain.
+- That zone repoint is temporary and applies to this one script only. The same
+  two variables are the shared Cloudflare config for every helper in
+  `scripts/cloudflare/` and for `scripts/setup/setup-resend-domain.sh`, all of
+  which operate on the `flashcards-open-source-app.com` zone. Restore the
+  `flashcards-open-source-app.com` zone id and API token in `.env` immediately
+  after the run, so the next DNS or infrastructure script reads the right zone.
 
 ## Validate the manifest
 
@@ -55,9 +66,15 @@ deletes the temporary local key file.
 
 ```sh
 bash scripts/setup/setup-mcp-registry-credential.sh \
-  --domain flashcards-open-source-app.com \
+  --domain nibomo.com \
   --repo kirill-markin/flashcards-open-source-app
 ```
+
+Point `CLOUDFLARE_ZONE_ID` and `CLOUDFLARE_API_TOKEN` at the `nibomo.com` zone
+before running it, and put the `flashcards-open-source-app.com` values back in
+`.env` as soon as it finishes. With the old zone still in `.env`, the script
+looks for the `nibomo.com` TXT record in the wrong zone and reports a false
+mismatch.
 
 The script is idempotent when both the MCP Registry TXT record and
 `MCP_PRIVATE_KEY` already exist. If only one side exists, it fails with an
@@ -73,13 +90,25 @@ explicit recovery message instead of silently rotating the namespace key.
    version endpoint before publishing and stops with an actionable error when
    the version already exists.
 
-3. Confirm the one-time credential setup is complete:
+3. Confirm the one-time credential setup is complete, with
+   `CLOUDFLARE_ZONE_ID` pointing at the `nibomo.com` zone:
 
    ```sh
    bash scripts/setup/setup-mcp-registry-credential.sh \
-     --domain flashcards-open-source-app.com \
+     --domain nibomo.com \
      --repo kirill-markin/flashcards-open-source-app
    ```
+
+   The `nibomo.com` credential is provisioned, so this must report that the
+   credential is already configured. An error saying `MCP_PRIVATE_KEY` exists
+   without a TXT record is raised whenever the lookup finds no TXT record while
+   the secret exists. The most likely cause is `CLOUDFLARE_ZONE_ID` still
+   pointing at another zone; it can also mean `--domain` was omitted and fell
+   back to `DOMAIN_NAME`, or that the TXT record was genuinely deleted. Check
+   those three, and do not remove the secret.
+
+   Restore the `flashcards-open-source-app.com` Cloudflare values in `.env`
+   once this check passes.
 
 4. Run the GitHub Actions publisher manually:
 
@@ -99,7 +128,7 @@ explicit recovery message instead of silently rotating the namespace key.
 
    ```sh
    server_version="$(jq -r '.version' server.json)"
-   curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/com.flashcards-open-source-app%2Fflashcards/versions/${server_version}"
+   curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/com.nibomo%2Fflashcards/versions/${server_version}"
    ```
 
    A `404 Server not found` response means that exact version is not published
@@ -113,7 +142,7 @@ authenticate with the private key already stored in `MCP_PRIVATE_KEY` and
 publish:
 
 ```sh
-mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "$MCP_PRIVATE_KEY"
+mcp-publisher login dns --domain nibomo.com --private-key "$MCP_PRIVATE_KEY"
 mcp-publisher publish
 ```
 
@@ -138,8 +167,8 @@ verifies the exact published version endpoint.
 ### Required GitHub secret
 
 The workflow authenticates with `mcp-publisher login dns --private-key`, which
-needs the Ed25519 private key for the `flashcards-open-source-app.com`
-namespace, stored as the `MCP_PRIVATE_KEY` repository secret.
+needs the Ed25519 private key for the `nibomo.com` namespace, stored as the
+`MCP_PRIVATE_KEY` repository secret.
 
 Prefer
 [`scripts/setup/setup-mcp-registry-credential.sh`](../scripts/setup/setup-mcp-registry-credential.sh)
@@ -155,9 +184,8 @@ Derive the public key for the TXT record:
 openssl pkey -in key.pem -pubout -outform DER | tail -c 32 | base64
 ```
 
-Add the `v=MCPv1; k=ed25519; p=<PUBLIC_KEY>` TXT record on
-`flashcards-open-source-app.com` to verify the namespace, then extract the
-64-character hex private key:
+Add the `v=MCPv1; k=ed25519; p=<PUBLIC_KEY>` TXT record on `nibomo.com` to
+verify the namespace, then extract the 64-character hex private key:
 
 ```sh
 openssl pkey -in key.pem -noout -text | grep -A3 "priv:" | tail -n +2 | tr -d ' :\n'
@@ -165,6 +193,30 @@ openssl pkey -in key.pem -noout -text | grep -A3 "priv:" | tail -n +2 | tr -d ' 
 
 The command prints the 64-character hex value to store as the `MCP_PRIVATE_KEY`
 secret. The workflow runs
-`mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "$MCP_PRIVATE_KEY"`
+`mcp-publisher login dns --domain nibomo.com --private-key "$MCP_PRIVATE_KEY"`
 to authenticate with that key. Provisioning that secret is a one-time
 operational step and is not committed to the repo.
+
+## Previous namespace
+
+`com.flashcards-open-source-app/flashcards` is a separate registry record with
+its own version history. Changing `name` creates a new record and never moves
+the old one, so the old entry is deprecated by hand with a message pointing at
+`com.nibomo/flashcards`.
+
+That deprecation authenticates against the old namespace, so it needs an
+Ed25519 key for `flashcards-open-source-app.com`, and it needs the opposite
+Cloudflare zone from the publish flow above: `CLOUDFLARE_ZONE_ID` and
+`CLOUDFLARE_API_TOKEN` in `.env` must point at the
+`flashcards-open-source-app.com` zone while this runs, which is also their
+normal resting value.
+
+`MCP_PRIVATE_KEY` now holds the `nibomo.com` key and GitHub secrets cannot be
+read back, so generate a fresh key on demand and replace the existing
+`v=MCPv1; k=ed25519; p=...` TXT record on the `flashcards-open-source-app.com`
+root with the new public key instead of adding a second one. Do not use
+`setup-mcp-registry-credential.sh` for this step: it never rotates an existing
+key and hard-fails when a domain carries more than one matching TXT record.
+Then authenticate with
+`mcp-publisher login dns --domain flashcards-open-source-app.com --private-key "$OLD_NAMESPACE_KEY"`
+and deprecate the old record.
