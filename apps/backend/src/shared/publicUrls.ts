@@ -224,7 +224,7 @@ export function getPublicAgentDocs(requestUrl: string): PublicAgentDocs {
 
 /**
  * Resolves the public marketing-site base URL (the apex origin, e.g.
- * `https://flashcards-open-source-app.com`). Self-hosters set their own domain,
+ * `https://nibomo.com`). Self-hosters set their own domain,
  * so this is env-driven via `PUBLIC_SITE_BASE_URL` first; when unset it derives
  * the apex origin from the request by stripping a leading `api.`/`auth.`/`mcp.`
  * subdomain. The returned value never carries a trailing slash; the conventional
