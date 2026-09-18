@@ -10,6 +10,11 @@
  * The canonical MCP resource is `https://mcp.<domain>/mcp` (no `/v1` stage
  * prefix), and the authorization server lives on `https://auth.<domain>`.
  *
+ * The same API optionally answers on one more public host, `MCP_ALTERNATE_HOST`.
+ * The OAuth identifiers are therefore per-host: which host serves a request, and
+ * what that means for the tokens it accepts, is `../mcp/hosts`. The authorization
+ * server, the website and the icon stay on the base domain for every host.
+ *
  * Routes are mounted at both `/` and `/v1`, mirroring the auth app
  * (apps/auth/src/app.ts): custom-domain traffic on `mcp.<domain>` arrives
  * without a stage prefix, while the raw execute-api invoke URL delivers the
@@ -26,6 +31,13 @@ import { HttpError } from "../shared/errors";
 import { logMcpRequestEvent } from "../server/logging";
 import { getHttpErrorResponseHeaders } from "../server/httpErrorResponseHeaders";
 import { parsePublicOrigin } from "../shared/publicUrls";
+import {
+  buildMcpProtectedResourceMetadata,
+  getAllowedMcpHosts,
+  getMcpProtectedResourceMetadataUrl,
+  getMcpResourceUrl,
+  resolveMcpHost,
+} from "../mcp/hosts";
 import {
   captureBackendException,
   createBackendObservationScope,
@@ -64,8 +76,29 @@ function getBaseDomain(): string {
   return baseDomain.trim();
 }
 
-function getResourceUrl(baseDomain: string): string {
-  return `https://mcp.${baseDomain}/mcp`;
+/**
+ * The optional second public MCP host this deployment also answers as, set by
+ * the MCP gateway only when both alternate context values are configured
+ * (infra/aws/lib/mcp-alternate-host.ts). Unset everywhere else, which leaves the
+ * primary host as the only accepted host.
+ */
+function getAlternateMcpHost(): string | null {
+  const alternateHost = process.env.MCP_ALTERNATE_HOST;
+  if (alternateHost === undefined || alternateHost.trim() === "") {
+    return null;
+  }
+
+  return alternateHost.trim();
+}
+
+/**
+ * The configured MCP host this request arrived on. Anything that is not the
+ * primary host or the configured alternate host -- including a missing header
+ * and the raw execute-api hostname -- resolves to the primary host, which is
+ * what this handler has always served.
+ */
+function getRequestMcpHost(c: Context, baseDomain: string): string {
+  return resolveMcpHost(c.req.header("host"), baseDomain, getAlternateMcpHost());
 }
 
 /**
@@ -98,33 +131,26 @@ function getAuthorizationServerUrl(baseDomain: string): string {
   return `https://auth.${baseDomain}`;
 }
 
-/**
- * RFC 9728 §3.1 path-aware Protected Resource Metadata URL. Because the
- * resource identifier carries a `/mcp` path, the well-known suffix is inserted
- * between the host and the path, so spec-current MCP clients that derive the
- * metadata URL from the resource find the document and the `resource` field
- * matches what they expect.
- */
-function getProtectedResourceMetadataUrl(baseDomain: string): string {
-  return `https://mcp.${baseDomain}/.well-known/oauth-protected-resource/mcp`;
-}
-
-function buildProtectedResourceMetadata(baseDomain: string): Record<string, unknown> {
-  return {
-    resource: getResourceUrl(baseDomain),
-    authorization_servers: [getAuthorizationServerUrl(baseDomain)],
-    bearer_methods_supported: ["header"],
-    scopes_supported: [...supportedScopes],
-  };
+function buildProtectedResourceMetadata(
+  mcpHost: string,
+  baseDomain: string,
+): Record<string, unknown> {
+  return buildMcpProtectedResourceMetadata(
+    mcpHost,
+    getAuthorizationServerUrl(baseDomain),
+    supportedScopes,
+  );
 }
 
 const BEARER_PREFIX_PATTERN = /^Bearer\s+(\S+)$/i;
 
 /**
  * Builds the shared Bearer 401 challenge so an unauthenticated or invalid-token
- * `/mcp` request points spec-current MCP clients at the PRM document.
+ * `/mcp` request points spec-current MCP clients at the PRM document. The
+ * challenge names the metadata URL of the host the client actually used, so a
+ * client on the alternate host is never sent across to the primary host.
  */
-function buildBearerChallenge(c: Context, baseDomain: string): Response {
+function buildBearerChallenge(c: Context, mcpHost: string): Response {
   return c.json(
     {
       error: "invalid_token",
@@ -132,7 +158,7 @@ function buildBearerChallenge(c: Context, baseDomain: string): Response {
     },
     401,
     {
-      "WWW-Authenticate": `Bearer resource_metadata="${getProtectedResourceMetadataUrl(baseDomain)}"`,
+      "WWW-Authenticate": `Bearer resource_metadata="${getMcpProtectedResourceMetadataUrl(mcpHost)}"`,
     },
   );
 }
@@ -265,12 +291,13 @@ async function emitMcpRequestRecord(input: McpRequestRecordInput): Promise<void>
  * Lambda integration returns a single JSON-RPC response instead of an SSE
  * stream. The transport is closed after the response is produced.
  *
- * DNS-rebinding protection is enabled with the canonical MCP host on the
- * allowlist (MCP spec recommendation for Streamable HTTP servers). Real client
- * traffic arrives on the custom domain `mcp.<domain>` (API Gateway forwards the
- * custom-domain Host to the Lambda); the non-canonical execute-api host is not
- * used by real clients because issued tokens bind to the custom-domain
- * `resource` and would 401 on any other host.
+ * DNS-rebinding protection is enabled with the configured MCP hosts on the
+ * allowlist (MCP spec recommendation for Streamable HTTP servers): the canonical
+ * `mcp.<domain>` and, when configured, the alternate host. Real client traffic
+ * arrives on one of those custom domains (API Gateway forwards the custom-domain
+ * Host to the Lambda); the non-canonical execute-api host is not used by real
+ * clients because issued tokens bind to a custom-domain `resource` and would 401
+ * on any other host.
  *
  * Exactly one `mcp_request` telemetry record is emitted per request through the
  * shared `emitMcpRequestRecord` above, on the response path and on the
@@ -286,6 +313,7 @@ async function emitMcpRequestRecord(input: McpRequestRecordInput): Promise<void>
 async function handleMcpTransportRequest(
   request: Request,
   connection: AuthenticatedMcpConnection,
+  mcpHost: string,
   baseDomain: string,
   requestId: string,
   startedAtMs: number,
@@ -297,7 +325,7 @@ async function handleMcpTransportRequest(
   const invokedToolNames: Array<string> = [];
   const server = createMcpServer(
     connection,
-    getResourceUrl(baseDomain),
+    getMcpResourceUrl(mcpHost),
     getWebsiteUrl(baseDomain),
     getIconUrl(baseDomain),
     {
@@ -311,7 +339,7 @@ async function handleMcpTransportRequest(
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
     enableDnsRebindingProtection: true,
-    allowedHosts: [`mcp.${baseDomain}`],
+    allowedHosts: [...getAllowedMcpHosts(baseDomain, getAlternateMcpHost())],
   });
   const emitRequestRecord = (statusCode: number, response: Response | null): Promise<void> =>
     emitMcpRequestRecord({
@@ -355,26 +383,34 @@ function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
 
   // Serve PRM at both the RFC 9728 path-aware location (`/mcp` suffix, used by
   // spec-current clients) and the legacy path-less location (older clients).
-  // Both return the same document with `resource` = https://mcp.<domain>/mcp.
-  const protectedResourceMetadata = (c: Context) =>
-    c.json(buildProtectedResourceMetadata(getBaseDomain()));
+  // Both return the same document, whose `resource` names the configured host
+  // the request arrived on: https://mcp.<domain>/mcp on the primary host, and
+  // the alternate host's own identifier there.
+  const protectedResourceMetadata = (c: Context) => {
+    const baseDomain = getBaseDomain();
+    return c.json(buildProtectedResourceMetadata(getRequestMcpHost(c, baseDomain), baseDomain));
+  };
 
   app.get("/.well-known/oauth-protected-resource/mcp", protectedResourceMetadata);
   app.get("/.well-known/oauth-protected-resource", protectedResourceMetadata);
 
   app.all("/mcp", async (c) => {
     const baseDomain = getBaseDomain();
+    // Both the challenge and the expected token audience are the host this
+    // request arrived on, so an OAuth token is accepted only on the host whose
+    // resource identifier it carries.
+    const mcpHost = getRequestMcpHost(c, baseDomain);
     const token = extractBearerToken(c.req.header("authorization"));
     if (token === null) {
-      return buildBearerChallenge(c, baseDomain);
+      return buildBearerChallenge(c, mcpHost);
     }
 
     let connection: AuthenticatedMcpConnection;
     try {
-      connection = await authenticateMcpBearerToken(token, getResourceUrl(baseDomain));
+      connection = await authenticateMcpBearerToken(token, getMcpResourceUrl(mcpHost));
     } catch (error) {
       if (error instanceof HttpError && error.statusCode === 401) {
-        return buildBearerChallenge(c, baseDomain);
+        return buildBearerChallenge(c, mcpHost);
       }
 
       throw error;
@@ -418,7 +454,14 @@ function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
       return response;
     }
 
-    return handleMcpTransportRequest(c.req.raw, connection, baseDomain, requestId, startedAtMs);
+    return handleMcpTransportRequest(
+      c.req.raw,
+      connection,
+      mcpHost,
+      baseDomain,
+      requestId,
+      startedAtMs,
+    );
   });
 
   return app;
