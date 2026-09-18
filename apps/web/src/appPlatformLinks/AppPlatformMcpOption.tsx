@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from "react";
 import { useI18n } from "../i18n";
 
-export const publicMcpServerUrl: string = "https://mcp.flashcards-open-source-app.com/mcp";
+export const publicMcpServerUrl: string = "https://mcp.nibomo.com/mcp";
 
 type AppPlatformMcpCopyStatus = "idle" | "copied" | "failed";
 

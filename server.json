@@ -29,14 +29,14 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://mcp.flashcards-open-source-app.com/mcp"
+      "url": "https://mcp.nibomo.com/mcp"
     }
   ],
   "_meta": {
     "io.modelcontextprotocol.registry/publisher-provided": {
       "categories": ["Productivity", "Education"],
       "tags": ["flashcards", "spaced-repetition", "study", "education"],
-      "mcpServerUrl": "https://mcp.flashcards-open-source-app.com/mcp",
+      "mcpServerUrl": "https://mcp.nibomo.com/mcp",
       "documentationUrl": "https://nibomo.com/docs/mcp-connector/",
       "apiDocumentationUrl": "https://nibomo.com/docs/api/",
       "privacyPolicyUrl": "https://nibomo.com/privacy/",
