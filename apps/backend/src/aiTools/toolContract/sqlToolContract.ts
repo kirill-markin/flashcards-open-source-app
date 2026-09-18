@@ -155,7 +155,7 @@ const SQL_DIALECT_DESCRIPTION_LINES = Object.freeze([
   CARD_AUTHORING_CONTRACT,
   "Cards, decks, review_events, and workspace are already scoped to the selected workspace.",
   "Use one JSON object: {\"sql\": \"...\"}.",
-  "Public docs: https://flashcards-open-source-app.com/docs/mcp-connector/ and https://flashcards-open-source-app.com/docs/api/.",
+  "Public docs: https://nibomo.com/docs/mcp-connector/ and https://nibomo.com/docs/api/.",
   "Published resources: workspace, cards, decks, review_events.",
   "Resource semantics: cards have no deck_id column and no deck membership.",
   "A deck is a saved tag filter whose tags column defines the filter, so the only association between a card and a deck is matching tags.",
