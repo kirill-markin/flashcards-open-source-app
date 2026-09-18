@@ -22,10 +22,10 @@ Do not submit to any directory until all checks pass.
 - The official registry lookup returns the published entry:
 
   ```bash
-  curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.flashcards-open-source-app%2Fflashcards/versions/latest'
+  curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.nibomo%2Fflashcards/versions/latest'
   ```
 
-  A JSON response for `com.flashcards-open-source-app/flashcards` is pass. A
+  A JSON response for `com.nibomo/flashcards` is pass. A
   `404 Server not found` response means the entry is not published yet, the
   server name is wrong, or the publish failed. Use the credential setup and
   publish flow in

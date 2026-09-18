@@ -184,26 +184,29 @@ Three representative prompts and their expected outcomes.
 
 ## Submission targets
 
-The official MCP Registry entry is already published. For future updates,
-verify that entry first, then submit or refresh the remaining directories in
-this order. PulseMCP builds on upstream registry entries and its
-ingestion/re-enrichment runs on daily/weekly cycles, so downstream discovery
+The official MCP Registry entry publishes under `com.nibomo/flashcards`, and
+the first publish under that namespace is still pending. Verify that entry
+first, then submit or refresh the remaining directories in this order.
+PulseMCP builds on upstream registry entries and its ingestion/re-enrichment
+runs on daily/weekly cycles, so downstream discovery
 works best after the official entry is live.
 
 Verify the official registry entry before submitting to the other directories:
 
 ```bash
-curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.flashcards-open-source-app%2Fflashcards/versions/latest'
+curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.nibomo%2Fflashcards/versions/latest'
 ```
 
 Success means the command returns a JSON entry for
-`com.flashcards-open-source-app/flashcards`. Failure means the submission is not
+`com.nibomo/flashcards`. Failure means the submission is not
 ready for downstream directories; a `404 Server not found` response means the
-entry is not published, the server name is wrong, or the registry publish failed.
+entry is not published yet, which is expected until the first `MCP Registry
+Publish` dispatch under the new name, or the server name is wrong, or the
+registry publish failed.
 
 | Order | Target | Required URL | Auth / review notes | What to paste |
 | --- | --- | --- | --- | --- |
-| Published | Official MCP Registry | https://registry.modelcontextprotocol.io/ | Already published. For future changes, bump `server.json` `version`, publish, and verify; no reviewer credentials. | `server.json` metadata: name, title, description/tagline, version, website, icons, repository, and MCP server URL. |
+| Pending | Official MCP Registry | https://registry.modelcontextprotocol.io/ | Pending the first publish under `com.nibomo/flashcards` through the manual `MCP Registry Publish` workflow. For later changes, bump `server.json` `version`, publish, and verify; no reviewer credentials. | `server.json` metadata: name, title, description/tagline, version, website, icons, repository, and MCP server URL. |
 | 1 | GitHub MCP Registry | https://github.com/mcp | High-priority manual nomination / visibility request; GitHub may curate separately from the official registry. | Reuse the official registry name, source URL, hosted MCP URL, docs, icons, and concise value proposition. |
 | 2 | punkpeye/awesome-mcp-servers | https://github.com/punkpeye/awesome-mcp-servers | Submit a pull request following the repository's contribution format. | Add the repository link and a one-sentence description under the relevant education/productivity category. |
 | 3 | Smithery | https://smithery.ai/new | Directory account / GitHub ownership as requested; no shared credentials unless review requires them. | Listing name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL from the metadata above. |
