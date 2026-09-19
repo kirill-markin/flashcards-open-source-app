@@ -72,6 +72,7 @@ The manual screenshot flows treat guest cloud sessions as short-lived per-run fi
 - before each marketing screenshot bootstrap, the wrapper runs a dedicated cleanup XCUITest entrypoint that relaunches the app, deletes any stored guest session remotely through `POST /guest-auth/session/delete`, and performs the existing local identity reset
 - after each manual screenshot test, XCTest still relaunches the app in the same dedicated cleanup scenario and waits for the UI-test readiness marker before finishing teardown
 - the wrapper also registers an exit trap that runs the dedicated cleanup XCUITest entrypoint after `xcodebuild` exits, including failure exits, before it removes the runtime configuration file
+- capture writes to a fresh staging directory under `tmp/`; the wrapper publishes the expected PNGs only after the full capture, output verification, final guest cleanup, and runtime configuration removal succeed, preserving the previous locale PNGs if any of those steps fail
 - the cleanup relaunch clears the final guest session remotely and then runs the same local reset path, so both cloud and local screenshot state are removed predictably
 
 This is why the screenshot wrappers must still run sequentially. The cleanup relaunch is part of the supported lifecycle, not an optional background best effort.
@@ -143,7 +144,7 @@ For the committed iPhone App Store assets, treat `iPhone 14 Plus` as the canonic
 
 ## Output paths and filenames
 
-Outputs are written directly into:
+Final outputs are published into:
 
 - `apps/ios/docs/media/app-store-screenshots/iphone/`
 - `apps/ios/docs/media/app-store-screenshots/ipad/`
@@ -320,6 +321,7 @@ bash scripts/ios/build-ios-marketing-materials.sh --all-locales
 - The scripts expect every declared screenshot index to resolve to exactly one PNG after the XCUITest finishes and fail if a generated PNG is missing or ambiguous.
 - Manual screenshot tests run only through the wrapper scripts because the wrapper writes the required runtime configuration file and also provides environment fallback values.
 - Locale-specific content is deterministic and comes from the fixture files listed above. Update those files if the screenshot copy or seeded cards need to change.
+- A fresh bilingual keyboard can show system onboarding during AI draft entry. The marketing test identifies that onboarding by both system Memoji accessibility IDs, requires its unique direct completion button, and waits for dismissal before using the app's Done button. An unexpected system layout fails the capture instead of publishing an obscured screenshot.
 - The derived marketing-material builder depends on the raw screenshot filename prefixes staying aligned with screenshots 1, 2, 3, 4, and 5.
 - The `visually-lossless` optimization mode is not mathematically lossless. It is a high-quality palette reduction step intended to reduce PNG size aggressively while keeping UI screenshots visually unchanged in normal review.
 - The `lossless` optimization mode keeps pixels unchanged but usually saves less space than `visually-lossless`.
@@ -331,7 +333,7 @@ Future marketing screenshot flows should keep the same shape:
 1. Add one dedicated manual XCUITest entrypoint for the new surface.
 2. Seed deterministic locale-aware data through the existing UI-test reset-state path.
 3. Drive the UI only as far as needed for the exact marketing surface.
-4. Save the PNG directly into `apps/ios/docs/media/app-store-screenshots/<family>/`.
+4. Save the PNG through `captureMarketingScreenshotAndAssertWritten` into the wrapper-provided staging directory; the wrapper publishes it into `apps/ios/docs/media/app-store-screenshots/<family>/` after capture and cleanup succeed.
 5. Add one small wrapper in `scripts/ios/` that calls `capture-ios-marketing-screenshot.sh` with the new test identifier and every expected screenshot index for that scenario.
 6. If the new raw screenshots should also produce a derived composition, update `scripts/ios/build-ios-marketing-materials.sh` and document the new output in this file.
 
