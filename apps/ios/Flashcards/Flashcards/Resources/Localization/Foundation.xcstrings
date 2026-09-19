@@ -52,6 +52,12 @@
             "value" : "このアクセスをオフにするには、「設定」を開いてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra os Ajustes se quiser desativar esse acesso."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -115,6 +121,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今すぐアクセスをリクエストするか、手動で管理したい場合は後で「設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicite o acesso agora ou abra os Ajustes depois, se quiser gerenciá-lo manualmente."
           }
         },
         "ru" : {
@@ -182,6 +194,12 @@
             "value" : "Nibomo のカメラへのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「カメラ」を開いてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso à câmera está desativado para o Nibomo. Abra Ajustes > Privacidade e Segurança > Câmera para alterar."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -245,6 +263,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このアクセスを確認または拡張するには、「設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra os Ajustes para revisar ou ampliar esse acesso."
           }
         },
         "ru" : {
@@ -312,6 +336,12 @@
             "value" : "Nibomo のマイクへのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「マイク」を開いてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso ao microfone está desativado para o Nibomo. Abra Ajustes > Privacidade e Segurança > Microfone para alterar."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -375,6 +405,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo の写真へのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「写真」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso às fotos está desativado para o Nibomo. Abra Ajustes > Privacidade e Segurança > Fotos para alterar."
           }
         },
         "ru" : {
@@ -442,6 +478,12 @@
             "value" : "Nibomo とすでに共有した写真のみ利用できます。より広い写真アクセスを許可するには、「設定」を開いてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Somente as fotos que você já compartilhou com o Nibomo estão disponíveis. Abra os Ajustes para conceder um acesso mais amplo às fotos."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -505,6 +547,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このアクセスは現在のデバイスでは利用できません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esse acesso não está disponível no dispositivo atual."
           }
         },
         "ru" : {
@@ -572,6 +620,12 @@
             "value" : "許可済み"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitido"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -635,6 +689,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "毎回確認"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perguntar sempre"
           }
         },
         "ru" : {
@@ -702,6 +762,12 @@
             "value" : "ブロック済み"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqueado"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -765,6 +831,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "制限あり"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitado"
           }
         },
         "ru" : {
@@ -832,6 +904,12 @@
             "value" : "利用不可"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indisponível"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -895,6 +973,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AIチャットから直接写真を撮影します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tire fotos direto do chat com IA."
           }
         },
         "ru" : {
@@ -962,6 +1046,12 @@
             "value" : "カメラ"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Câmera"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1025,6 +1115,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AIチャットにテキストを音声入力します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dite texto no chat com IA."
           }
         },
         "ru" : {
@@ -1092,6 +1188,12 @@
             "value" : "マイク"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfone"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1155,6 +1257,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AIチャットの添付用に写真を選択します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha fotos para anexar ao chat com IA."
           }
         },
         "ru" : {
@@ -1222,6 +1330,12 @@
             "value" : "写真"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1285,6 +1399,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo のマイクへのアクセスはオフです。許可するには「設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso ao microfone está desativado para o Nibomo. Abra os Ajustes para permitir."
           }
         },
         "ru" : {
@@ -1352,6 +1472,12 @@
             "value" : "マイクへのアクセスが必要です"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acesso ao microfone necessário"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1415,6 +1541,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo のカメラへのアクセスはオフです。許可するには「設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso à câmera está desativado para o Nibomo. Abra os Ajustes para permitir."
           }
         },
         "ru" : {
@@ -1482,6 +1614,12 @@
             "value" : "カメラへのアクセスが必要です"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acesso à câmera necessário"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1545,6 +1683,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo のファイルへのアクセスはオフです。許可するには「設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso a Arquivos está desativado para o Nibomo. Abra os Ajustes para permitir."
           }
         },
         "ru" : {
@@ -1612,6 +1756,12 @@
             "value" : "ファイルへのアクセスが必要です"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acesso a Arquivos necessário"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1675,6 +1825,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo の写真へのアクセスはオフです。許可するには「設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso às fotos está desativado para o Nibomo. Abra os Ajustes para permitir."
           }
         },
         "ru" : {
@@ -1742,6 +1898,12 @@
             "value" : "写真へのアクセスが必要です"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acesso às fotos necessário"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1805,6 +1967,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "すべてのカード"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos os cartões"
           }
         },
         "ru" : {
@@ -1872,6 +2040,12 @@
             "value" : "未接続"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconectado"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1935,6 +2109,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ゲスト"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convidado"
           }
         },
         "ru" : {
@@ -2002,6 +2182,12 @@
             "value" : "リンク済み"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vinculado"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2065,6 +2251,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連携の準備完了"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto para vincular"
           }
         },
         "ru" : {
@@ -2132,6 +2324,12 @@
             "value" : "クラウドサインインは利用できません。アプリの設定を確認してください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O login na nuvem não está disponível. Verifique a configuração do app."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2195,6 +2393,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "有効なメールアドレスを入力してください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digite um endereço de e-mail válido."
           }
         },
         "ru" : {
@@ -2262,6 +2466,12 @@
             "value" : "コードはすでに使用されています。新しいコードをリクエストしてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este código já foi usado. Solicite um novo."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2325,6 +2535,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コードが無効です。もう一度お試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código inválido. Tente novamente."
           }
         },
         "ru" : {
@@ -2392,6 +2608,12 @@
             "value" : "コードを送信できませんでした。もう一度お試しください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível enviar o código. Tente novamente."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2455,6 +2677,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コードの有効期限が切れています。新しいコードをリクエストしてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O código expirou. Solicite um novo."
           }
         },
         "ru" : {
@@ -2522,6 +2750,12 @@
             "value" : "試行回数が多すぎます。新しいコードをリクエストしてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentativas demais. Solicite um novo código."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2585,6 +2819,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コードを確認できませんでした。もう一度お試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível verificar o código. Tente novamente."
           }
         },
         "ru" : {
@@ -2652,6 +2892,12 @@
             "value" : "クラウドサインインに失敗しました。もう一度お試しください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível entrar na nuvem. Tente novamente."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2715,6 +2961,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コードの送信中に接続が中断されました。メールを確認し、必要に応じてもう一度お試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A conexão foi interrompida durante o envio do código. Verifique seu e-mail e, se precisar, tente novamente."
           }
         },
         "ru" : {
@@ -2782,6 +3034,12 @@
             "value" : "コードの確認中に接続が中断されました。もう一度お試しいただくか、必要に応じて新しいコードをリクエストしてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A conexão foi interrompida durante a verificação do código. Tente novamente ou solicite um novo código, se precisar."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2845,6 +3103,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "評価リーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível atualizar o ranking de avaliações. Puxe para tentar de novo."
           }
         },
         "ru" : {
@@ -2912,6 +3176,12 @@
             "value" : "復習スケジュールを更新できませんでした。もう一度試すには下に引いてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível atualizar a agenda de revisões. Puxe para tentar de novo."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2975,6 +3245,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "復習スケジュールを表示できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível mostrar a agenda de revisões. Puxe para tentar de novo."
           }
         },
         "ru" : {
@@ -3042,6 +3318,12 @@
             "value" : "進捗グラフを更新できませんでした。もう一度試すには下に引いてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível atualizar o gráfico de progresso. Puxe para tentar de novo."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3105,6 +3387,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連続記録のリーダーボードを更新できませんでした。もう一度試すには下に引いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível atualizar o ranking de sequências. Puxe para tentar de novo."
           }
         },
         "ru" : {
@@ -3172,6 +3460,12 @@
             "value" : "進捗サマリーを更新できませんでした。もう一度試すには下に引いてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível atualizar o resumo de progresso. Puxe para tentar de novo."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3235,6 +3529,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "進捗を利用できません。下に引いて更新し、もう一度お試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O progresso não está disponível. Puxe para atualizar e tente de novo."
           }
         },
         "ru" : {
@@ -3302,6 +3602,12 @@
             "value" : "フリーズ残数は%@/%@です。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reserva de congelamentos: %@ de %@ disponíveis."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3365,6 +3671,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ストリークフリーズの仕組みを表示します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra como funcionam os congelamentos de sequência."
           }
         },
         "ru" : {
@@ -3432,6 +3744,12 @@
             "value" : "利用可能: %@/%@。リチャージ: %@/%@。フリーズは逃した日を保護し、連続記録が続くと回復します。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponíveis: %@/%@. Recarga: %@/%@. Os congelamentos protegem os dias perdidos e recarregam conforme sua sequência continua."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3495,6 +3813,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ストリークフリーズ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Congelamentos de sequência"
           }
         },
         "ru" : {
@@ -3562,6 +3886,12 @@
             "value" : "リンクを作成"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Criar link"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3625,6 +3955,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "友だちはリンクを開いてサインインまたは登録でき、アプリ内でお互いを確認できます。招待リンクは2日で期限切れになります。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ele pode abrir o link, entrar ou criar uma conta, e depois vocês vão se ver no app. Os links de convite expiram em 2 dias."
           }
         },
         "ru" : {
@@ -3692,6 +4028,12 @@
             "value" : "このリンクを友だちに送ってください"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envie este link para o seu amigo"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3755,6 +4097,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "作成中..."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Criando..."
           }
         },
         "ru" : {
@@ -3822,6 +4170,12 @@
             "value" : "リーダーボード用の非公開の友だちリンクを作成します。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crie um link privado de amizade para o ranking."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3885,6 +4239,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "この名前はあなたのリーダーボードにだけ表示されます。友だちは承認時にあなたの呼び名を選びます。招待リンクは2日で期限切れになります。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Só você vê este nome no seu ranking. Seu amigo escolhe como chamar você ao aceitar. Os links de convite expiram em 2 dias."
           }
         },
         "ru" : {
@@ -3952,6 +4312,12 @@
             "value" : "自分のリーダーボードで表示する友だちの名前"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome do amigo no seu ranking"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4015,6 +4381,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "友だちの名前"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome do seu amigo"
           }
         },
         "ru" : {
@@ -4082,6 +4454,12 @@
             "value" : "完了"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concluído"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4145,6 +4523,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "招待リンクを送信"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar link de convite"
           }
         },
         "ru" : {
@@ -4212,6 +4596,12 @@
             "value" : "この Nibomo 招待を開き、サインインまたは登録してください。アプリ内でお互いを確認できます。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abra este convite do Nibomo, entre ou crie uma conta, e vamos nos ver no app."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4275,6 +4665,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo 友だち招待"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convite de amizade do Nibomo"
           }
         },
         "ru" : {
@@ -4342,6 +4738,12 @@
             "value" : "友達を追加"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar amigo"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4405,6 +4807,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "改行と制御文字は使用できません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não são permitidas quebras de linha nem caracteres de controle."
           }
         },
         "ru" : {
@@ -4472,6 +4880,12 @@
             "value" : "1〜30文字で入力してください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digite de 1 a 30 caracteres."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4535,6 +4949,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "レビューアクティビティ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atividade de revisões"
           }
         },
         "ru" : {
@@ -4602,6 +5022,12 @@
             "value" : "日付"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4665,6 +5091,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "レビュー"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisões"
           }
         },
         "ru" : {
@@ -4732,6 +5164,12 @@
             "value" : "直近30日。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Últimos 30 dias."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4795,6 +5233,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1件のレビュー"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 revisão"
           }
         },
         "ru" : {
@@ -4862,6 +5306,12 @@
             "value" : "%lld件のレビュー"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld revisões"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4925,6 +5375,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "レビューアクティビティ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atividade de revisões"
           }
         },
         "ru" : {
@@ -4992,6 +5448,12 @@
             "value" : "#%1$lld（%2$@）"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld em %2$@"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5055,6 +5517,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最高評価"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melhor avaliação"
           }
         },
         "ru" : {
@@ -5122,6 +5590,12 @@
             "value" : "まだ評価なし"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda sem avaliação"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5185,6 +5659,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1枚のカード"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 cartão"
           }
         },
         "ru" : {
@@ -5252,6 +5732,12 @@
             "value" : "%lld枚のカード"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cartões"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5315,6 +5801,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カード"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartões"
           }
         },
         "ru" : {
@@ -5382,6 +5874,12 @@
             "value" : "現在の連続日数"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sequência atual"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5445,6 +5943,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "完了"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concluído"
           }
         },
         "ru" : {
@@ -5512,6 +6016,12 @@
             "value" : "接続を確認してからもう一度お試しください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifique sua conexão e tente novamente."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5575,6 +6085,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "プロフィールを読み込めませんでした"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar o perfil"
           }
         },
         "ru" : {
@@ -5642,6 +6158,12 @@
             "value" : "友達"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amigo"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5705,6 +6227,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "参加日"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrou em"
           }
         },
         "ru" : {
@@ -5772,6 +6300,12 @@
             "value" : "プロフィールを読み込み中..."
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando perfil..."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5835,6 +6369,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "指標"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Métricas"
           }
         },
         "ru" : {
@@ -5902,6 +6442,12 @@
             "value" : "再試行"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar novamente"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5965,6 +6511,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "統計"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estatísticas"
           }
         },
         "ru" : {
@@ -6032,6 +6584,12 @@
             "value" : "ランキングプロフィールを表示するにはメールでサインインしてください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entre com e-mail para ver os perfis do ranking."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6095,6 +6653,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "サインインが必要です"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "É necessário entrar"
           }
         },
         "ru" : {
@@ -6162,6 +6726,12 @@
             "value" : "プロフィールは評価ランキングへの参加がオンの間だけ表示されます。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os perfis ficam visíveis apenas enquanto a participação no ranking de avaliações estiver ativada."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6225,6 +6795,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "参加がオフです"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A participação está desativada"
           }
         },
         "ru" : {
@@ -6292,6 +6868,12 @@
             "value" : "このランキングプロフィールは現在表示できません。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este perfil do ranking não pode ser exibido agora."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6355,6 +6937,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "プロフィールを利用できません"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfil indisponível"
           }
         },
         "ru" : {
@@ -6422,6 +7010,12 @@
             "value" : "評価リーダーボードについて"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre o ranking de avaliações"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6485,6 +7079,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「難しい」「良い」「簡単」はランクに加算されます。「もう一度」は加算されません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisões avaliadas como Difícil, Bom e Fácil contam para a sua posição. De novo não conta."
           }
         },
         "ru" : {
@@ -6552,6 +7152,12 @@
             "value" : "友達を追加"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar um amigo"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6615,6 +7221,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "友達を追加"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar amigo"
           }
         },
         "ru" : {
@@ -6682,6 +7294,12 @@
             "value" : "後でもう一度お試しください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tente de novo mais tarde."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6745,6 +7363,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "評価リーダーボードを読み込めませんでした"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar o ranking de avaliações"
           }
         },
         "ru" : {
@@ -6812,6 +7436,12 @@
             "value" : "評価リーダーボードを読み込むにはインターネットに接続してください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecte-se à internet para carregar o ranking de avaliações."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6875,6 +7505,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "オフラインです"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você está offline"
           }
         },
         "ru" : {
@@ -6942,6 +7578,12 @@
             "value" : "評価リーダーボード設定を開く"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir ajustes do ranking de avaliações"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7005,6 +7647,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ランキングは評価リーダーボードに参加している間のみ表示されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As posições ficam visíveis apenas enquanto você participa do ranking de avaliações."
           }
         },
         "ru" : {
@@ -7072,6 +7720,12 @@
             "value" : "評価への参加はオフです"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participação no ranking de avaliações desativada"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7135,6 +7789,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ランク%1$lld、復習%2$lld件"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posição %1$lld, %2$lld revisões"
           }
         },
         "ru" : {
@@ -7202,6 +7862,12 @@
             "value" : "あなた"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7265,6 +7931,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "評価リーダーボード"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking de avaliações"
           }
         },
         "ru" : {
@@ -7332,6 +8004,12 @@
             "value" : "サインインまたは登録"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrar ou criar conta"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7395,6 +8073,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "メールでサインインすると、評価リーダーボードでの復習ランキングを確認できます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entre com e-mail para ver como suas revisões se posicionam no ranking de avaliações."
           }
         },
         "ru" : {
@@ -7462,6 +8146,12 @@
             "value" : "評価リーダーボードに参加"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entre no ranking de avaliações"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7525,6 +8215,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "評価リーダーボードを準備しています。しばらくしてからご確認ください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O ranking de avaliações está sendo preparado. Volte em breve."
           }
         },
         "ru" : {
@@ -7592,6 +8288,12 @@
             "value" : "まだ準備中"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não está pronto"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7655,6 +8357,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@前に更新"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizado há %@"
           }
         },
         "ru" : {
@@ -7722,6 +8430,12 @@
             "value" : "%1$@%2$@"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7785,6 +8499,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1時間"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 hora"
           }
         },
         "ru" : {
@@ -7852,6 +8572,12 @@
             "value" : "%lld時間"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld horas"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7915,6 +8641,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1分"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minuto"
           }
         },
         "ru" : {
@@ -7982,6 +8714,12 @@
             "value" : "%lld分"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutos"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8045,6 +8783,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "期間"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Período"
           }
         },
         "ru" : {
@@ -8112,6 +8856,12 @@
             "value" : "全期間"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8175,6 +8925,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "3日"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d"
           }
         },
         "ru" : {
@@ -8242,6 +8998,12 @@
             "value" : "7日"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8305,6 +9067,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "24時間"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 h"
           }
         },
         "ru" : {
@@ -8372,6 +9140,12 @@
             "value" : "30日"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8435,6 +9209,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld枚のカード、%@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cartões, %@"
           }
         },
         "ru" : {
@@ -8502,6 +9282,12 @@
             "value" : "1-7日"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 dias"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8565,6 +9351,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "8-30日"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 dias"
           }
         },
         "ru" : {
@@ -8632,6 +9424,12 @@
             "value" : "31-90日"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 dias"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8695,6 +9493,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "91-360日"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 dias"
           }
         },
         "ru" : {
@@ -8762,6 +9566,12 @@
             "value" : "それ以降"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Depois"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8825,6 +9635,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新規"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Novos"
           }
         },
         "ru" : {
@@ -8892,6 +9708,12 @@
             "value" : "今日"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoje"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8955,6 +9777,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-2年"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 anos"
           }
         },
         "ru" : {
@@ -9022,6 +9850,12 @@
             "value" : "有効なカードはまだありません。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não há cartões ativos."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9085,6 +9919,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "復習スケジュール"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agenda de revisões"
           }
         },
         "ru" : {
@@ -9152,6 +9992,12 @@
             "value" : "%lld件の復習"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld revisões"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9215,6 +10061,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "次の週"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próxima semana"
           }
         },
         "ru" : {
@@ -9282,6 +10134,12 @@
             "value" : "前の週"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semana anterior"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9345,6 +10203,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "復習"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisões"
           }
         },
         "ru" : {
@@ -9412,6 +10276,12 @@
             "value" : "1日"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dia"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9475,6 +10345,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld日"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dias"
           }
         },
         "ru" : {
@@ -9542,6 +10418,12 @@
             "value" : "連続記録リーダーボードについて"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre o ranking de sequências"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9605,6 +10487,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "現在の連続記録日数でランクが決まります。連続記録の1日は、カードレビューが1回以上%1$@、%2$@、%3$@、または%4$@で評価されたローカル日です。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dias da sua sequência atual determinam a sua posição. Um dia de sequência é qualquer dia local com pelo menos uma revisão de cartão avaliada como %1$@, %2$@, %3$@ ou %4$@."
           }
         },
         "ru" : {
@@ -9672,6 +10560,12 @@
             "value" : "後でもう一度お試しください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tente de novo mais tarde."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9735,6 +10629,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連続記録リーダーボードを読み込めませんでした"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar o ranking de sequências"
           }
         },
         "ru" : {
@@ -9802,6 +10702,12 @@
             "value" : "連続記録リーダーボードを読み込むにはインターネットに接続してください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecte-se à internet para carregar o ranking de sequências."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9865,6 +10771,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "オフラインです"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você está offline"
           }
         },
         "ru" : {
@@ -9932,6 +10844,12 @@
             "value" : "ランク%1$lld、%2$@"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posição %1$lld, %2$@"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9995,6 +10913,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連続記録リーダーボード"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking de sequências"
           }
         },
         "ru" : {
@@ -10062,6 +10986,12 @@
             "value" : "フリーズした日"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dia congelado"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10125,6 +11055,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未来の日"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dia futuro"
           }
         },
         "ru" : {
@@ -10192,6 +11128,12 @@
             "value" : "連続記録"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sequência"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10255,6 +11197,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "進捗"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progresso"
           }
         },
         "ru" : {
@@ -10322,6 +11270,12 @@
             "value" : "今日"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoje"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10385,6 +11339,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通知を許可"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir notificações"
           }
         },
         "ru" : {
@@ -10452,6 +11412,12 @@
             "value" : "許可済み"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitido"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10515,6 +11481,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ブロック済み"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqueado"
           }
         },
         "ru" : {
@@ -10582,6 +11554,12 @@
             "value" : "未リクエスト"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não solicitado"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10645,6 +11623,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo で学習セッションを続けましょう。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue sua sessão de estudo no Nibomo."
           }
         },
         "ru" : {
@@ -10712,6 +11696,12 @@
             "value" : "1日1回"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma vez por dia"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10775,6 +11765,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "休憩後"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Depois de uma pausa"
           }
         },
         "ru" : {
@@ -10842,6 +11838,12 @@
             "value" : "もう一度"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De novo"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10905,6 +11907,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "簡単"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fácil"
           }
         },
         "ru" : {
@@ -10972,6 +11980,12 @@
             "value" : "良い"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bom"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11035,6 +12049,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "難しい"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difícil"
           }
         },
         "ru" : {
@@ -11102,6 +12122,12 @@
             "value" : "アカウントを削除しました"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conta excluída"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11165,6 +12191,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AI"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IA"
           }
         },
         "ru" : {
@@ -11232,6 +12264,12 @@
             "value" : "カード"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartões"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11295,6 +12333,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "後で"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Depois"
           }
         },
         "ru" : {
@@ -11362,6 +12406,12 @@
             "value" : "メールでサインインして、これらのカードと復習の進捗を失わないようにしましょう。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entre com e-mail para não perder estes cartões nem o seu progresso de revisão."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11425,6 +12475,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "サインイン"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrar"
           }
         },
         "ru" : {
@@ -11492,6 +12548,12 @@
             "value" : "進捗を保存"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salve seu progresso"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11555,6 +12617,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "進捗"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progresso"
           }
         },
         "ru" : {
@@ -11622,6 +12690,12 @@
             "value" : "復習"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisar"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11685,6 +12759,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "設定"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
           }
         },
         "ru" : {
@@ -11752,6 +12832,12 @@
             "value" : "「設定」を開く"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11817,6 +12903,12 @@
             "value" : "アクセスをリクエスト"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicitar acesso"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11877,6 +12969,12 @@
           }
         },
         "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
@@ -11947,6 +13045,12 @@
             "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと2時間です。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantenha sua sequência hoje. Revise antes da meia-noite. Faltam 2 horas."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12010,6 +13114,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと3時間です。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantenha sua sequência hoje. Revise antes da meia-noite. Faltam 3 horas."
           }
         },
         "ru" : {
@@ -12077,6 +13187,12 @@
             "value" : "今日の連続記録を保ちましょう。午前0時までに復習してください。あと4時間です。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantenha sua sequência hoje. Revise antes da meia-noite. Faltam 4 horas."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12140,6 +13256,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "もう一度お試しください。問題が続く場合は、技術的な詳細をサポートに共有してください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tente novamente. Se continuar acontecendo, envie os detalhes técnicos para o suporte."
           }
         },
         "ru" : {
@@ -12207,6 +13329,12 @@
             "value" : "問題が発生しました"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Algo deu errado"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12270,6 +13398,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閉じる"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar"
           }
         },
         "ru" : {
@@ -12337,6 +13471,12 @@
             "value" : "詳細をコピー"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar detalhes"
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12400,6 +13540,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "技術的な詳細"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalhes técnicos"
           }
         },
         "ru" : {
@@ -12467,6 +13613,12 @@
             "value" : "すでに応答を生成中です。完了するまで待つか、停止してから別のメッセージを送信してください。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Já há uma resposta em andamento. Espere terminar ou pare antes de enviar outra mensagem."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12530,6 +13682,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "インターネット接続がありません。AIチャットにはインターネット接続が必要です。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem conexão com a internet. O chat com IA precisa de acesso à internet."
           }
         },
         "ru" : {
@@ -12597,6 +13755,12 @@
             "value" : "カードがクラウドから更新されました。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartões atualizados a partir da nuvem."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12660,6 +13824,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このデバイスでは音声を利用できません。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fala não está disponível neste dispositivo."
           }
         },
         "ru" : {
@@ -12727,6 +13897,12 @@
             "value" : "この復習は別のデバイスで更新されました。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta revisão foi atualizada em outro dispositivo."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12790,6 +13966,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "テストバージョンが無効になりました。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versão de teste desativada."
           }
         },
         "ru" : {
@@ -12857,6 +14039,12 @@
             "value" : "テストバージョンが有効になりました。"
           }
         },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versão de teste ativada."
+          }
+        },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12920,6 +14108,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ワークスペースの変更は、アカウントを作成した後にのみ利用できます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As alterações do espaço de trabalho ficam disponíveis apenas depois que você cria uma conta."
           }
         },
         "ru" : {

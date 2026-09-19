@@ -225,6 +225,7 @@
 				fr,
 				hi,
 				ja,
+				"pt-BR",
 				ru,
 				"zh-Hans",
 				Base,
