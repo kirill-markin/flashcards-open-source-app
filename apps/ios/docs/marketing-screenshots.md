@@ -61,8 +61,10 @@ What each layer does:
 - `capture-ios-marketing-screenshots.sh` runs the supported unified marketing scenario and verifies screenshots 1, 2, 3, 4, and 5 in one pass.
 - `build-ios-marketing-materials.sh` can regenerate raw localized screenshots, compose the horizontal derived PNGs, and optimize the final files.
 - `MarketingManualScreenshotTestCase.swift` gates these tests behind the wrapper-provided runtime configuration, falls back to the launch environment only if that file is absent, and writes the PNG file.
-- `MarketingScreenshotFixtures.swift` defines the canonical locale list, locale aliases, localized fixture text, and the generated output filenames.
-- `FlashcardsStore+CloudUITest.swift` seeds the localized UI-test content used by the screenshot flows and defines the dedicated guest-session cleanup launch scenario used at the end of each manual test.
+- `MarketingScreenshotFixtures.swift` holds the test-side locale catalog (`MarketingScreenshotLocaleCatalog`): the supported locale list, the locale alias map, and the localized fixture card text. The generated output filenames come from the `MarketingScreenshotLocaleFixture` file-name properties and the screenshot slug constants on `MarketingScreenshotFixture`.
+- `FlashcardsStore+CloudUITest.swift` holds the app-side mirror of that catalog (`FlashcardsUITestMarketingFixtures`), seeds the localized UI-test content used by the screenshot flows, and defines the dedicated guest-session cleanup launch scenario used at the end of each manual test.
+
+Those two files each carry their own copy of the supported locale list, the locale alias map, and the localized card text, and the copies must stay character-identical. The locale list and the aliases also live in the shell layer: `scripts/ios/capture-ios-marketing-screenshot.sh` owns the `supported_locales` array and a `canonicalize_locale` function, and `scripts/ios/build-ios-marketing-materials.sh` carries a second `canonicalize_locale`. Adding, removing, or editing a locale means editing both Swift files and both shell scripts in the same change. If the shell scripts are not updated, the wrapper rejects the locale during argument validation with `Unsupported iOS marketing screenshot locale: ...` and exits before the app-side mechanism described next is ever reached. If only the test-side catalog is updated, the app side rejects the locale with `unsupportedLocalization` and the capture aborts before the first screenshot.
 
 ## Guest cloud cleanup lifecycle
 
@@ -82,9 +84,11 @@ Canonical supported locale codes:
 - `en-US`
 - `ar`
 - `zh-Hans`
+- `fr`
 - `de`
 - `hi`
 - `ja`
+- `pt-BR`
 - `ru`
 - `es-MX`
 - `es-ES`
@@ -97,9 +101,11 @@ Supported input aliases:
 
 - `en` -> `en-US`
 - `zh-CN` -> `zh-Hans`
+- `fr-FR` -> `fr`
 - `de-DE` -> `de`
 - `hi-IN` -> `hi`
 - `ja-JP` -> `ja`
+- `pt` -> `pt-BR`
 - `ru-RU` -> `ru`
 - `es-419` -> `es-MX`
 
@@ -288,7 +294,7 @@ The builder intentionally keeps PNG as the output format. These assets are UI-he
 For a clean multi-locale run, keep one simulator family booted and loop through the locales:
 
 ```bash
-for locale in en-US ar zh-Hans de hi ja ru es-MX es-ES; do
+for locale in en-US ar zh-Hans fr de hi ja pt-BR ru es-MX es-ES; do
   bash scripts/ios/capture-ios-marketing-screenshots.sh --locale "$locale"
 done
 ```

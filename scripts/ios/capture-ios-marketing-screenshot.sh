@@ -6,9 +6,11 @@ supported_locales=(
     "en-US"
     "ar"
     "zh-Hans"
+    "fr"
     "de"
     "hi"
     "ja"
+    "pt-BR"
     "ru"
     "es-MX"
     "es-ES"
@@ -24,9 +26,11 @@ Supported locales:
   en-US
   ar
   zh-Hans
+  fr
   de
   hi
   ja
+  pt-BR
   ru
   es-MX
   es-ES
@@ -54,6 +58,9 @@ canonicalize_locale() {
         zh-CN | zh-Hans)
             echo "zh-Hans"
             ;;
+        fr | fr-FR)
+            echo "fr"
+            ;;
         de | de-DE)
             echo "de"
             ;;
@@ -62,6 +69,9 @@ canonicalize_locale() {
             ;;
         ja | ja-JP)
             echo "ja"
+            ;;
+        pt-BR | pt)
+            echo "pt-BR"
             ;;
         ru | ru-RU)
             echo "ru"
