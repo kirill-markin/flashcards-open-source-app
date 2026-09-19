@@ -21,6 +21,11 @@ import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstal
 import { filterCatalogInstallsReport } from "../reports/catalogInstalls/query";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
 import { filterDailyActiveUsersReport } from "../reports/dailyActiveUsers/query";
+import {
+  buildPresetReportRange,
+  lastThreeDaysReportRangePreset,
+  reportRangePresetLabel,
+} from "../reports/reportValues";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import { ReviewEventsByDateFilters } from "../reports/reviewEventsByDate/filters/ReviewEventsByDateFilters";
 import {
@@ -184,16 +189,17 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     props.onDateRangeReset();
   }
 
-  function handleLastThreeDays(): void {
-    const fromDate = new Date(`${props.data.availableRange.to}T00:00:00.000Z`);
-    fromDate.setUTCDate(fromDate.getUTCDate() - 2);
-    const requestedFrom = fromDate.toISOString().slice(0, 10);
-    const range = {
-      from: requestedFrom < props.data.availableRange.from ? props.data.availableRange.from : requestedFrom,
-      to: props.data.availableRange.to,
-    };
+  function handleDateRangePresetSelect(range: ReviewEventsByDateRange): void {
     props.onDraftRangeChange(range);
     props.onDateRangeApply(range);
+  }
+
+  function handleLastThreeDays(): void {
+    handleDateRangePresetSelect(buildPresetReportRange(
+      lastThreeDaysReportRangePreset,
+      props.data.availableRange,
+      reportRangePresetLabel,
+    ));
   }
 
   function handleUserFilterChange(userId: string, isChecked: boolean): void {
@@ -380,6 +386,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         onFromDateChange={handleFromDateChange}
         onToDateChange={handleToDateChange}
         onDateRangeSubmit={handleDateRangeSubmit}
+        onDateRangePresetSelect={handleDateRangePresetSelect}
         onDateRangeReset={handleDateRangeReset}
         onUserFilterSearchChange={props.onUserFilterSearchChange}
         onUserFilterChange={handleUserFilterChange}

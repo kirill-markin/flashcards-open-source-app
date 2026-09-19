@@ -56,23 +56,24 @@ When adding a new web locale, inspect all of these places:
 2. [apps/web/src/i18n/locales.ts](../apps/web/src/i18n/locales.ts)
 3. [apps/web/src/i18n/catalog.ts](../apps/web/src/i18n/catalog.ts)
 4. [apps/web/src/i18n/runtime.ts](../apps/web/src/i18n/runtime.ts)
-5. [apps/web/src/i18n/context.tsx](../apps/web/src/i18n/context.tsx)
-6. [apps/web/src/main.tsx](../apps/web/src/main.tsx)
-7. [apps/web/src/App.tsx](../apps/web/src/App.tsx)
-8. [apps/web/src/appData/context/provider.tsx](../apps/web/src/appData/context/provider.tsx)
-9. [apps/web/src/appData/session/useWorkspaceSession.ts](../apps/web/src/appData/session/useWorkspaceSession.ts)
-10. [apps/web/src/api.ts](../apps/web/src/api.ts)
-11. [apps/web/src/access/browserAccess.ts](../apps/web/src/access/browserAccess.ts)
-12. [apps/web/src/chat/sessionController/context.tsx](../apps/web/src/chat/sessionController/context.tsx)
-13. [apps/web/src/chat/useChatHistory.ts](../apps/web/src/chat/useChatHistory.ts)
-14. [apps/web/src/chat/chatMessageContent.tsx](../apps/web/src/chat/chatMessageContent.tsx)
-15. [apps/web/src/screens/review/reviewSpeech.ts](../apps/web/src/screens/review/reviewSpeech.ts)
-16. [apps/web/src/screens/review/useReviewCardEditor.ts](../apps/web/src/screens/review/useReviewCardEditor.ts)
-17. [apps/web/src/screens/settings/ThisDeviceSettingsScreen.tsx](../apps/web/src/screens/settings/ThisDeviceSettingsScreen.tsx)
-18. [apps/web/src/screens/settings/access/AccessPermissionDetailScreen.tsx](../apps/web/src/screens/settings/access/AccessPermissionDetailScreen.tsx)
-19. [apps/web/src/i18n/runtime.test.ts](../apps/web/src/i18n/runtime.test.ts)
-20. [apps/web/src/api.test.ts](../apps/web/src/api.test.ts)
-21. [apps/web/e2e/live-smoke/](../apps/web/e2e/live-smoke/)
+5. [apps/web/src/i18n/weekContext.ts](../apps/web/src/i18n/weekContext.ts)
+6. [apps/web/src/i18n/context.tsx](../apps/web/src/i18n/context.tsx)
+7. [apps/web/src/main.tsx](../apps/web/src/main.tsx)
+8. [apps/web/src/App.tsx](../apps/web/src/App.tsx)
+9. [apps/web/src/appData/context/provider.tsx](../apps/web/src/appData/context/provider.tsx)
+10. [apps/web/src/appData/session/useWorkspaceSession.ts](../apps/web/src/appData/session/useWorkspaceSession.ts)
+11. [apps/web/src/api.ts](../apps/web/src/api.ts)
+12. [apps/web/src/access/browserAccess.ts](../apps/web/src/access/browserAccess.ts)
+13. [apps/web/src/chat/sessionController/context.tsx](../apps/web/src/chat/sessionController/context.tsx)
+14. [apps/web/src/chat/useChatHistory.ts](../apps/web/src/chat/useChatHistory.ts)
+15. [apps/web/src/chat/chatMessageContent.tsx](../apps/web/src/chat/chatMessageContent.tsx)
+16. [apps/web/src/screens/review/speech/reviewSpeech.ts](../apps/web/src/screens/review/speech/reviewSpeech.ts)
+17. [apps/web/src/screens/review/useReviewCardEditor.ts](../apps/web/src/screens/review/useReviewCardEditor.ts)
+18. [apps/web/src/screens/settings/ThisDeviceSettingsScreen.tsx](../apps/web/src/screens/settings/ThisDeviceSettingsScreen.tsx)
+19. [apps/web/src/screens/settings/access/AccessPermissionDetailScreen.tsx](../apps/web/src/screens/settings/access/AccessPermissionDetailScreen.tsx)
+20. [apps/web/src/i18n/runtime.test.ts](../apps/web/src/i18n/runtime.test.ts)
+21. [apps/web/src/api.test.ts](../apps/web/src/api.test.ts)
+22. [apps/web/e2e/live-smoke/](../apps/web/e2e/live-smoke/)
 
 If any of these are skipped, the app can compile and still ship with partially untranslated behavior.
 
@@ -111,7 +112,15 @@ Then update [apps/web/src/i18n/locales.ts](../apps/web/src/i18n/locales.ts):
 - update browser-tag matching rules in `resolveSupportedLocale(...)` when the new locale needs exact-tag routing
 - add or update legacy preference migration only when existing stored values must move to the new exact locale
 
-These two files together drive runtime validation, browser auto-resolution, and the browser-local language override.
+Then update [apps/web/src/i18n/weekContext.ts](../apps/web/src/i18n/weekContext.ts):
+
+- add the locale to `localeFirstDayFallbacks` with the first day of week its CLDR data defines, not the value of a neighboring row
+- this table is the Progress-screen week boundary whenever `Intl.Locale.getWeekInfo` is unavailable
+- keep the row describing the generic locale; region-specific browser tags are already handled by `resolveLocaleWeekContext(...)`
+
+Widening `supportedLocales` widens `Locale`, so every `Record<Locale, …>` map in `apps/web` must gain the new locale or `tsc -b` fails. Today those maps are `localeDirections`, `translationCatalogs`, and `localeFirstDayFallbacks`; search for `Record<Locale` before assuming the list is complete.
+
+These files together drive runtime validation, browser auto-resolution, the browser-local language override, and locale-correct week boundaries.
 
 ### 3. Add a complete translation catalog entry
 
@@ -211,7 +220,7 @@ It is to make sure loading, retry, denied-permission, interrupted-run, and dialo
 
 ### 8. Review speech support if the locale should sound correct when spoken
 
-Review [apps/web/src/screens/review/reviewSpeech.ts](../apps/web/src/screens/review/reviewSpeech.ts).
+Review [apps/web/src/screens/review/speech/reviewSpeech.ts](../apps/web/src/screens/review/speech/reviewSpeech.ts).
 
 Adding a UI locale does not automatically make speech output feel correct. The current web behavior should follow this rule:
 

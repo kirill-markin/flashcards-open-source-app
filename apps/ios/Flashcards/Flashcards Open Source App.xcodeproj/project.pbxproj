@@ -222,6 +222,7 @@
 				en,
 				"es-ES",
 				"es-MX",
+				fr,
 				hi,
 				ja,
 				ru,

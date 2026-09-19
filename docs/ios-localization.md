@@ -23,6 +23,7 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `ar`
 - `zh-Hans`
 - `de`
+- `fr`
 - `hi`
 - `ja`
 - `ru`
@@ -67,7 +68,8 @@ When adding a new language, check all of these places:
 5. `ReviewCards.xcstrings`
 6. `<language>.lproj/AISettings.strings`
 7. `<language>.lproj/InfoPlist.strings`
-8. Any new user-facing strings introduced in Swift files during the same change
+8. The supported-languages list in [LanguageSettingsView.swift](../apps/ios/Flashcards/Flashcards/Settings/LanguageSettingsView.swift)
+9. Any new user-facing strings introduced in Swift files during the same change
 
 If one of these is skipped, the new language can look partially translated even if most screens appear correct.
 
@@ -201,7 +203,16 @@ Important:
 - English fallback comes from the default value passed in code to `aiSettingsLocalized(...)`
 - every new non-English locale therefore needs a complete `<locale>.lproj/AISettings.strings` file
 
-### 9. Audit support and error layers, not just screens
+### 9. List the language on the Settings language screen
+
+`supportedLanguageSettingsItems()` in
+[LanguageSettingsView.swift](../apps/ios/Flashcards/Flashcards/Settings/LanguageSettingsView.swift)
+renders the read-only Supported Languages list in Settings.
+Add the new locale there, and add its `settings.language.supported.<language>` key to every
+`<locale>.lproj/AISettings.strings`, because the parity check requires an identical key set
+across those files.
+
+### 10. Audit support and error layers, not just screens
 
 Do not stop after visible screens.
 We already had misses in support/error code paths after the first localization pass.
@@ -220,7 +231,7 @@ When adding a new language, review these support-heavy areas explicitly:
 
 These are easy to forget because they are not all top-level screens.
 
-### 10. Keep new user-facing strings in the right bucket
+### 11. Keep new user-facing strings in the right bucket
 
 When you add new copy in code during the same change, place it consistently:
 
@@ -230,7 +241,7 @@ When you add new copy in code during the same change, place it consistently:
 
 Do not add new hardcoded English UI text in Swift and plan to “translate it later”.
 
-### 11. Do not localize technical identifiers or user data blindly
+### 12. Do not localize technical identifiers or user data blindly
 
 These should usually remain as-is:
 
@@ -243,7 +254,7 @@ These should usually remain as-is:
 
 Localize the user-facing labels around them, not the technical values themselves.
 
-### 12. Keep smoke tests deterministic
+### 13. Keep smoke tests deterministic
 
 Current iOS smoke launches intentionally force English in:
 
@@ -343,6 +354,7 @@ For the iOS client, adding a new language is not complete until all of the follo
 - `Foundation.xcstrings` contains that locale
 - `ReviewCards.xcstrings` contains that locale
 - `<locale>.lproj/AISettings.strings` exists and is complete
+- the locale appears in the Settings Supported Languages list
 - support/error paths were audited
 - build/resource validation passed
 - basic manual runtime validation passed
