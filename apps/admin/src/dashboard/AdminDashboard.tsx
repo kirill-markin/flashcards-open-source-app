@@ -1,26 +1,25 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
-import {
-  reviewEventCohorts,
-  reviewEventPlatforms,
-  type CatalogInstallsReport,
-  type CatalogInstallsUser,
-  type DailyActiveUsersReport,
-  type DailyActiveUsersUser,
-  type ReviewEventCohort,
-  type ReviewEventPlatform,
-  type ReviewEventsByDateReport,
-  type ReviewEventsByDateUser,
+import type {
+  CatalogInstallsReport,
+  DailyActiveUsersReport,
+  ReviewEventCohort,
+  ReviewEventPlatform,
+  ReviewEventsByDateReport,
+  ReviewEventsByDateUser,
 } from "../adminApi";
 import { getPackageColorScale } from "../charts/chartPrimitives";
 import { formatDateRangeLabel } from "../charts/formatting";
 import type { AdminAppConfig } from "../config";
+import {
+  buildDefaultAnalyticsFilterState,
+  type AnalyticsFilterState,
+} from "../filters/analyticsFilters";
+import type { AnalyticsFilterOptions } from "../filters/optionsQuery";
 import { AdminLink } from "../navigation/AdminLink";
 import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallFunnelSection } from "../reports/catalogInstallFunnel/CatalogInstallFunnelSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
-import { filterCatalogInstallsReport } from "../reports/catalogInstalls/query";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
-import { filterDailyActiveUsersReport } from "../reports/dailyActiveUsers/query";
 import {
   buildPresetReportRange,
   lastThreeDaysReportRangePreset,
@@ -35,16 +34,14 @@ import {
   getNormalizedSearchValue,
   visibleUserFilterOptionLimit,
 } from "../reports/reviewEventsByDate/filters/userFilters";
-import {
-  filterReviewEventsByDateReport,
-  type ReviewEventsByDateRange,
-} from "../reports/reviewEventsByDate/query";
+import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import { analyticsAreaLabels, getAnalyticsAreaPath, type AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 export type AdminReportsData = Readonly<{
   availableRange: ReviewEventsByDateRange;
   defaultRange: ReviewEventsByDateRange;
+  filterOptions: AnalyticsFilterOptions;
   report: ReviewEventsByDateReport;
   dailyActiveUsersReport: DailyActiveUsersReport;
   catalogInstallsReport: CatalogInstallsReport;
@@ -69,47 +66,16 @@ type AnalyticsReportSectionsProps = Readonly<{
   activeArea: AnalyticsArea;
   config: AdminAppConfig;
   data: AdminReportsData;
+  filters: AnalyticsFilterState;
   isReportLoading: boolean;
   dateRangeError: string;
   draftRange: ReviewEventsByDateRange;
-  selectedUserIds: ReadonlyArray<string>;
-  selectedCohorts: ReadonlyArray<ReviewEventCohort>;
-  selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
   userFilterSearchValue: string;
   onDraftRangeChange: (range: ReviewEventsByDateRange) => void;
-  onSelectedUserIdsChange: (userIds: ReadonlyArray<string>) => void;
-  onSelectedCohortsChange: (cohorts: ReadonlyArray<ReviewEventCohort>) => void;
-  onSelectedPlatformsChange: (platforms: ReadonlyArray<ReviewEventPlatform>) => void;
+  onFiltersChange: (filters: AnalyticsFilterState) => boolean;
   onUserFilterSearchChange: (searchValue: string) => void;
-  onDateRangeApply: (range: ReviewEventsByDateRange) => void;
-  onDateRangeReset: () => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>;
-
-function buildUserFilterOptionUsers(
-  reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
-  communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>,
-  activeUsers: ReadonlyArray<DailyActiveUsersUser>,
-  installerUsers: ReadonlyArray<CatalogInstallsUser>,
-): ReadonlyArray<ReviewEventsByDateUser> {
-  const usersByUserId = new Map<string, ReviewEventsByDateUser>(
-    [...reviewUsers, ...communityOnlyUsers].map((user) => [user.userId, user]),
-  );
-
-  for (const user of [...activeUsers, ...installerUsers]) {
-    if (usersByUserId.has(user.userId)) {
-      continue;
-    }
-
-    usersByUserId.set(user.userId, {
-      userId: user.userId,
-      email: user.email,
-      totalReviewEvents: 0,
-    });
-  }
-
-  return Array.from(usersByUserId.values());
-}
 
 function buildUserById(
   users: ReadonlyArray<ReviewEventsByDateUser>,
@@ -180,18 +146,23 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     });
   }
 
-  function handleDateRangeSubmit(): void {
-    props.onDateRangeApply(props.draftRange);
+  function applyDateRange(range: ReviewEventsByDateRange): boolean {
+    return props.onFiltersChange({ ...props.filters, dateRange: range });
+  }
+
+  /** Whether the typed range was accepted; a rejected one leaves the popover open on its error. */
+  function handleDateRangeSubmit(): boolean {
+    return applyDateRange(props.draftRange);
   }
 
   function handleDateRangeReset(): void {
     props.onDraftRangeChange(props.data.defaultRange);
-    props.onDateRangeReset();
+    applyDateRange(props.data.defaultRange);
   }
 
   function handleDateRangePresetSelect(range: ReviewEventsByDateRange): void {
     props.onDraftRangeChange(range);
-    props.onDateRangeApply(range);
+    applyDateRange(range);
   }
 
   function handleLastThreeDays(): void {
@@ -203,148 +174,97 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
   }
 
   function handleUserFilterChange(userId: string, isChecked: boolean): void {
-    props.onSelectedUserIdsChange(getUpdatedUserFilterSelection(props.selectedUserIds, userId, isChecked));
+    props.onFiltersChange({
+      ...props.filters,
+      users: getUpdatedUserFilterSelection(props.filters.users, userId, isChecked),
+    });
   }
 
   function handleUserFilterRemove(userId: string): void {
-    props.onSelectedUserIdsChange(props.selectedUserIds.filter((currentUserId) => currentUserId !== userId));
+    props.onFiltersChange({
+      ...props.filters,
+      users: props.filters.users.filter((currentUserId) => currentUserId !== userId),
+    });
   }
 
   function handleUserFilterClear(): void {
-    props.onSelectedUserIdsChange([]);
+    props.onFiltersChange({ ...props.filters, users: [] });
   }
 
   function handleCohortFilterChange(cohort: ReviewEventCohort, isChecked: boolean): void {
-    props.onSelectedCohortsChange(getUpdatedCohortFilterSelection(props.selectedCohorts, cohort, isChecked));
+    props.onFiltersChange({
+      ...props.filters,
+      userCohorts: getUpdatedCohortFilterSelection(props.filters.userCohorts, cohort, isChecked),
+    });
   }
 
   function handlePlatformFilterChange(platform: ReviewEventPlatform, isChecked: boolean): void {
-    props.onSelectedPlatformsChange(getUpdatedPlatformFilterSelection(props.selectedPlatforms, platform, isChecked));
+    props.onFiltersChange({
+      ...props.filters,
+      eventPlatforms: getUpdatedPlatformFilterSelection(props.filters.eventPlatforms, platform, isChecked),
+    });
   }
 
   function handleAllFiltersReset(): void {
     props.onDraftRangeChange(props.data.defaultRange);
-    props.onSelectedUserIdsChange([]);
-    props.onSelectedCohortsChange([...reviewEventCohorts]);
-    props.onSelectedPlatformsChange([...reviewEventPlatforms]);
     props.onUserFilterSearchChange("");
-    props.onDateRangeReset();
+    props.onFiltersChange(buildDefaultAnalyticsFilterState(props.data.defaultRange));
   }
 
-  const onSelectedUserIdsChange = props.onSelectedUserIdsChange;
+  const filters = props.filters;
+  const onFiltersChange = props.onFiltersChange;
   const handleChartUserFilterApply = useCallback((userId: string): void => {
-    onSelectedUserIdsChange([userId]);
-  }, [onSelectedUserIdsChange]);
+    onFiltersChange({ ...filters, users: [userId] });
+  }, [filters, onFiltersChange]);
 
   const report = props.data.report;
   const dailyActiveUsersReport = props.data.dailyActiveUsersReport;
   const catalogInstallsReport = props.data.catalogInstallsReport;
-  const selectedUserIds = props.selectedUserIds;
-  const selectedCohorts = props.selectedCohorts;
-  const selectedPlatforms = props.selectedPlatforms;
+  const filterOptions = props.data.filterOptions;
 
-  const filteredReport = useMemo(
-    () => filterReviewEventsByDateReport(report, {
-      selectedUserIds,
-      selectedCohorts,
-      selectedPlatforms,
-    }),
-    [report, selectedCohorts, selectedPlatforms, selectedUserIds],
-  );
-  const filteredDailyActiveUsersReport = useMemo(
-    () => filterDailyActiveUsersReport(dailyActiveUsersReport, {
-      selectedUserIds,
-      selectedCohorts,
-      selectedPlatforms,
-    }),
-    [dailyActiveUsersReport, selectedCohorts, selectedPlatforms, selectedUserIds],
-  );
-  // The cohort split comes from the unfiltered daily active users report, so narrowing a filter
-  // cannot change which day an installer counts as new on.
-  const filteredCatalogInstallsReport = useMemo(
-    () => filterCatalogInstallsReport(catalogInstallsReport, {
-      selectedUserIds,
-      selectedCohorts,
-      selectedPlatforms,
-      firstActiveDateByUserId: dailyActiveUsersReport.firstActiveDateByUserId,
-    }),
-    [
-      catalogInstallsReport,
-      dailyActiveUsersReport.firstActiveDateByUserId,
-      selectedCohorts,
-      selectedPlatforms,
-      selectedUserIds,
-    ],
-  );
   const selectedUserIdSet = useMemo(
-    () => new Set(selectedUserIds),
-    [selectedUserIds],
+    () => new Set(filters.users),
+    [filters.users],
   );
   const selectedCohortSet = useMemo(
-    () => new Set(selectedCohorts),
-    [selectedCohorts],
+    () => new Set(filters.userCohorts),
+    [filters.userCohorts],
   );
   const selectedPlatformSet = useMemo(
-    () => new Set(selectedPlatforms),
-    [selectedPlatforms],
-  );
-  const userFilterOptionUsers = useMemo(
-    () => buildUserFilterOptionUsers(
-      report.users,
-      report.communityOnlyUsers,
-      dailyActiveUsersReport.users,
-      catalogInstallsReport.users,
-    ),
-    [
-      catalogInstallsReport.users,
-      dailyActiveUsersReport.users,
-      report.communityOnlyUsers,
-      report.users,
-    ],
+    () => new Set(filters.eventPlatforms),
+    [filters.eventPlatforms],
   );
   const reportUserById = useMemo(
-    () => buildUserById(userFilterOptionUsers),
-    [userFilterOptionUsers],
+    () => buildUserById(filterOptions.users),
+    [filterOptions.users],
   );
   const filteredUserById = useMemo(
-    () => buildUserById([...filteredReport.users, ...filteredReport.communityOnlyUsers]),
-    [filteredReport.communityOnlyUsers, filteredReport.users],
+    () => buildUserById([...report.users, ...report.communityOnlyUsers]),
+    [report.communityOnlyUsers, report.users],
   );
-  // The domain is the union of every section's own user list, so a person keeps one colour wherever
-  // they appear and no section can ever ask the shared scale for an id it does not hold.
+  // Both colour domains come from the range-scoped options rather than from the reports on screen,
+  // so a person keeps one colour wherever they appear and a deck does not change colour because a
+  // filter removed another deck. The options span every section's users, so no section can ask the
+  // shared scale for an id it does not hold.
   const userColorScale = useMemo(
-    () => getUserColorScale(getStableUserColorDomain([
-      ...report.users,
-      ...report.communityOnlyUsers,
-      ...dailyActiveUsersReport.users,
-      ...catalogInstallsReport.users,
-    ])),
-    [
-      catalogInstallsReport.users,
-      dailyActiveUsersReport.users,
-      report.communityOnlyUsers,
-      report.users,
-    ],
+    () => getUserColorScale(getStableUserColorDomain(filterOptions.users)),
+    [filterOptions.users],
   );
-  // Built from the loaded report rather than the filtered one, for the same reason the user colour
-  // domain is: a deck must not change colour because a filter removed another deck.
   const packageColorScale = useMemo(
-    () => getPackageColorScale(
-      catalogInstallsReport.packages.map((catalogPackage) => catalogPackage.packageSlug),
-    ),
-    [catalogInstallsReport.packages],
+    () => getPackageColorScale(filterOptions.catalogPackageSlugs),
+    [filterOptions.catalogPackageSlugs],
   );
   const activeUserFilters = useMemo(
-    () => buildActiveUserFilters(selectedUserIds, reportUserById),
-    [selectedUserIds, reportUserById],
+    () => buildActiveUserFilters(filters.users, reportUserById),
+    [filters.users, reportUserById],
   );
   const normalizedUserFilterSearchValue = useMemo(
     () => getNormalizedSearchValue(props.userFilterSearchValue),
     [props.userFilterSearchValue],
   );
   const searchableUserFilterOptions = useMemo(
-    () => buildSearchableUserFilterOptions(userFilterOptionUsers),
-    [userFilterOptionUsers],
+    () => buildSearchableUserFilterOptions(filterOptions.users),
+    [filterOptions.users],
   );
   const matchingUserFilterOptions = useMemo(
     () => searchableUserFilterOptions
@@ -370,12 +290,12 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         draftRange={props.draftRange}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
-        reportUsers={userFilterOptionUsers}
-        selectedUserIds={selectedUserIds}
+        reportUsers={filterOptions.users}
+        selectedUserIds={filters.users}
         selectedUserIdSet={selectedUserIdSet}
-        selectedCohorts={selectedCohorts}
+        selectedCohorts={filters.userCohorts}
         selectedCohortSet={selectedCohortSet}
-        selectedPlatforms={selectedPlatforms}
+        selectedPlatforms={filters.eventPlatforms}
         selectedPlatformSet={selectedPlatformSet}
         userFilterSearchValue={props.userFilterSearchValue}
         visibleUserFilterOptions={visibleUserFilterOptions}
@@ -399,7 +319,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
 
       {props.activeArea === "general" ? <>
         <DailyActiveUsersSection
-        filteredReport={filteredDailyActiveUsersReport}
+        filteredReport={dailyActiveUsersReport}
         generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
         isReportLoading={props.isReportLoading}
         userColorScale={userColorScale}
@@ -407,13 +327,13 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
       />
 
         <CatalogInstallsSection
-        filteredReport={filteredCatalogInstallsReport}
+        filteredReport={catalogInstallsReport}
         generatedAtUtc={catalogInstallsReport.generatedAtUtc}
         packageColorScale={packageColorScale}
       />
 
         <ReviewActivitySection
-        filteredReport={filteredReport}
+        filteredReport={report}
         generatedAtUtc={report.generatedAtUtc}
         isReportLoading={props.isReportLoading}
         filteredUserById={filteredUserById}
@@ -422,11 +342,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         />
         </> : <AudienceSection
           config={props.config}
-          from={report.from}
-          to={report.to}
-          selectedUserIds={selectedUserIds}
-          selectedCohorts={selectedCohorts}
-          selectedPlatforms={selectedPlatforms}
+          filters={props.filters}
           isRangeLoading={props.isReportLoading}
           onLastThreeDays={handleLastThreeDays}
           onTerminalAdminError={props.onTerminalAdminError}
@@ -442,18 +358,15 @@ export function AdminDashboard(
     config: AdminAppConfig;
     adminEmail: string;
     reportState: AdminReportState;
+    filters: AnalyticsFilterState | null;
     onReportRetry: () => void;
-    onDateRangeApply: (range: ReviewEventsByDateRange) => void;
-    onDateRangeReset: () => void;
+    onFiltersChange: (filters: AnalyticsFilterState) => boolean;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
-  // Filter selections live above the report areas so that visiting Funnels, which holds no report
-  // data, does not discard them. A null draft range follows the applied range of the loaded report.
+  // The draft range is the picker's own unapplied state, so it stays here rather than in the filter
+  // selection; a null one follows the applied range of the loaded report.
   const [draftRange, setDraftRange] = useState<ReviewEventsByDateRange | null>(null);
-  const [selectedUserIds, setSelectedUserIds] = useState<ReadonlyArray<string>>([]);
-  const [selectedCohorts, setSelectedCohorts] = useState<ReadonlyArray<ReviewEventCohort>>([...reviewEventCohorts]);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<ReadonlyArray<ReviewEventPlatform>>([...reviewEventPlatforms]);
   const [userFilterSearchValue, setUserFilterSearchValue] = useState<string>("");
 
   const appliedRange = props.reportState.status === "ready"
@@ -512,28 +425,22 @@ export function AdminDashboard(
         </div>
       ) : null}
 
-      {props.activeArea !== "funnels" && props.reportState.status === "ready" ? (
+      {props.activeArea !== "funnels" && props.reportState.status === "ready" && props.filters !== null ? (
         <AnalyticsReportSections
           activeArea={props.activeArea}
           config={props.config}
           data={props.reportState.data}
+          filters={props.filters}
           isReportLoading={props.reportState.isReportLoading}
           dateRangeError={props.reportState.dateRangeError}
           draftRange={draftRange ?? {
             from: props.reportState.data.report.from,
             to: props.reportState.data.report.to,
           }}
-          selectedUserIds={selectedUserIds}
-          selectedCohorts={selectedCohorts}
-          selectedPlatforms={selectedPlatforms}
           userFilterSearchValue={userFilterSearchValue}
           onDraftRangeChange={setDraftRange}
-          onSelectedUserIdsChange={setSelectedUserIds}
-          onSelectedCohortsChange={setSelectedCohorts}
-          onSelectedPlatformsChange={setSelectedPlatforms}
+          onFiltersChange={props.onFiltersChange}
           onUserFilterSearchChange={setUserFilterSearchValue}
-          onDateRangeApply={props.onDateRangeApply}
-          onDateRangeReset={props.onDateRangeReset}
           onTerminalAdminError={props.onTerminalAdminError}
         />
       ) : null}
