@@ -11,7 +11,7 @@ These screenshot flows are manual-only Android instrumentation entrypoints.
 They are not part of Android CI, release gates, or default `androidTest` runs.
 Each flow prepares a specific in-app state, captures a PNG on the emulator, and pulls that file into `apps/android/docs/media/play-store-screenshots/`.
 The wrappers run the dedicated `marketingScreenshot` app variant, which can include screenshot-only resource overlays from `apps/android/app/src/marketingScreenshot/res` without changing normal `debug` or `release` builds.
-The wrapper runs a dedicated guest cleanup entrypoint before the screenshot flow and again from an exit trap after the wrapper finishes, including failure exits.
+The wrapper verifies a dedicated guest cleanup entrypoint before capture and after pulling the images, before publishing them. An exit trap attempts cleanup on failure.
 The screenshot reset rule also deletes any stored guest cloud screenshot session through `POST /guest-auth/session/delete` before the local reset clears the guest token, both before and after the manual screenshot test body.
 
 ## Current wrapper scripts
@@ -69,7 +69,7 @@ For marketing screenshot generation, the visible emulator UI is unnecessary and 
 1. Stop all Android emulators.
 2. Stop all booted iOS simulators.
 3. Verify `adb devices` is empty before starting a new Android run.
-4. Start exactly one Android API 37 emulator in headless mode, currently `Medium_Phone_API_37.0`.
+4. Start exactly one Android API 37 emulator in headless mode, currently `Medium_Phone_API_37.0`. Keep its owning terminal or execution session alive through the complete wrapper run, including final cleanup.
    Recommended local command:
 
    ```bash
@@ -87,7 +87,9 @@ For marketing screenshot generation, the visible emulator UI is unnecessary and 
 6. Dismiss any blocking Android system dialog before the run.
 7. Run one screenshot wrapper script at a time.
 8. Open the generated PNG and verify the actual image, not just the green test result.
-9. Stop the emulator after the run so the next screenshot starts from a clean machine state.
+9. After the wrapper exits, stop only that emulator with `adb -s <serial> emu kill`. Wait for its owning process/session to exit and for `adb devices` to become empty before starting another locale. `adb emu kill` acknowledges the request before snapshot saving and process shutdown finish.
+
+A shell that owns a background emulator must remain alive until capture, cleanup, emulator shutdown, and `wait "$emulator_pid"` have all finished. Do not leave a previous session shutting down while starting its replacement on the same AVD or serial. Preserve the emulator log and owning process exit status; an offline device alone does not establish whether the emulator crashed, was terminated, or lost its connection.
 
 Do not batch all screenshot scripts together when the machine is under load.
 Running one wrapper at a time is slower, but it is more reliable and makes failures easier to diagnose.
@@ -147,8 +149,9 @@ Each wrapper script does the following:
 
 1. Verifies that an Android API 37 device is connected.
 2. Sets the device locale and dark mode, then dismisses blocking system dialogs.
-3. Runs one manual-only instrumentation class through `:app:connectedMarketingScreenshotAndroidTest`.
-4. Pulls the generated PNG file or files from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
+3. Verifies initial guest cleanup, then runs the manual capture class through `:app:connectedMarketingScreenshotAndroidTest`.
+4. Pulls all five PNGs from `/sdcard/Download/flashcards-marketing-screenshots/` into staging.
+5. Verifies final guest cleanup, then replaces the committed locale files.
 
 The screenshot capture step explicitly collapses the Android status bar before running `screencap`.
 That prevents an already-open notification shade from being captured on top of an otherwise-correct app screen.
@@ -173,8 +176,18 @@ The screenshot variant suppresses the guest sign-in prompt. The robot rejects an
 Compose dialog before each capture. The wrapper removes the expected device files
 before the run, checks their nonzero size and modification time against the device's
 run-start clock, and verifies each pulled file's size, timestamp, and PNG signature.
-It stages all five files before replacing the committed outputs; a failed capture
-or pull leaves the previous set in place.
+It stages all five files before replacing the committed outputs; a failed capture,
+pull, or final cleanup leaves the previous set in place.
+
+Each stage removes previous instrumentation results and requires fresh aggregate
+and single-device `test-result.pb` reports. The verifier uses the generated protobuf
+API from AGP’s resolved worker dependencies. Both reports must contain exactly one
+passing test with the expected class and method, a passing suite, and no platform
+error or severe issue. Zero tests, skipped tests, and Gradle exit code 0 without this
+proof are failures. Stage reports and `verified-test.txt` evidence are retained under
+`apps/android/app/build/marketing-screenshot-runs/`; the wrapper prints the run path.
+If cleanup fails, restore the device and rerun the wrapper on the same device so its
+initial cleanup can delete the stored guest session before another capture.
 
 A green instrumentation result is not enough on its own.
 The final check is always the screenshot image itself.
@@ -183,7 +196,7 @@ The final check is always the screenshot image itself.
 
 After verification:
 
-1. Stop the Android emulator.
+1. Stop the owned Android emulator and wait for its process/session to finish, including snapshot saving.
 2. Shut down any booted iOS simulators.
 3. Confirm `adb devices` is empty again.
 
