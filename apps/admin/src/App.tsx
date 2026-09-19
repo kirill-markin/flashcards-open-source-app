@@ -9,6 +9,9 @@ import {
 } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
 import { AdminDashboard } from "./dashboard/AdminDashboard";
+import { AnalyticsIndexPage } from "./navigation/AnalyticsIndexPage";
+import { NotFoundPage } from "./navigation/NotFoundPage";
+import { RootIndexPage } from "./navigation/RootIndexPage";
 import { loadCatalogInstallsReport } from "./reports/catalogInstalls/query";
 import { loadDailyActiveUsersReport } from "./reports/dailyActiveUsers/query";
 import { buildDefaultReportRange } from "./reports/reportValues";
@@ -17,6 +20,7 @@ import {
   loadReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "./reports/reviewEventsByDate/query";
+import { getAdminRoutePath, parseAdminRoute, type AdminRoute } from "./routing";
 
 type AppState =
   | Readonly<{ status: "loading" }>
@@ -143,6 +147,40 @@ function getErrorMessage(error: unknown): string {
 
 export default function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: "loading" });
+  const [route, setRoute] = useState<AdminRoute>(() => parseAdminRoute(window.location.pathname));
+
+  // A trailing-slash variant of a known route is rewritten in place, so the address bar and any
+  // later history entry carry the canonical path without a network redirect.
+  useEffect(() => {
+    const canonicalPath = getAdminRoutePath(parseAdminRoute(window.location.pathname));
+    if (canonicalPath !== window.location.pathname) {
+      window.history.replaceState(
+        null,
+        "",
+        `${canonicalPath}${window.location.search}${window.location.hash}`,
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    function handlePopState(): void {
+      setRoute(parseAdminRoute(window.location.pathname));
+    }
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  const navigateToPath = useCallback((path: string): void => {
+    if (path !== window.location.pathname) {
+      window.history.pushState(null, "", path);
+    }
+
+    setRoute(parseAdminRoute(path));
+  }, []);
 
   const handleTerminalAdminError = useCallback((error: unknown, config: AdminAppConfig): boolean => {
     if (error instanceof AdminApiError) {
@@ -298,8 +336,22 @@ export default function App(): JSX.Element {
     return <ErrorState message={appState.message} />;
   }
 
+  if (route.kind === "root") {
+    return <RootIndexPage onNavigate={navigateToPath} />;
+  }
+
+  if (route.kind === "analyticsIndex") {
+    return <AnalyticsIndexPage onNavigate={navigateToPath} />;
+  }
+
+  if (route.kind === "notFound") {
+    return <NotFoundPage pathname={route.pathname} onNavigate={navigateToPath} />;
+  }
+
   return (
     <AdminDashboard
+      activeArea={route.area}
+      onNavigate={navigateToPath}
       config={appState.config}
       report={appState.report}
       dailyActiveUsersReport={appState.dailyActiveUsersReport}
