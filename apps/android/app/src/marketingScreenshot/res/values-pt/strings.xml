@@ -1,0 +1,64 @@
+<resources>
+    <string name="top_level_review">Revisar</string>
+    <string name="top_level_progress">Progresso</string>
+    <string name="top_level_cards">Cartões</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">Configurações</string>
+
+    <string name="progress_title">Progresso</string>
+    <string name="progress_streak_title">Sequência</string>
+    <string name="progress_streak_subtitle">Últimas 5 semanas</string>
+    <string name="progress_reviews_title">Revisões</string>
+
+    <string name="cards_title">Cartões</string>
+    <string name="cards_add_card_content_description">Adicionar cartão</string>
+    <string name="cards_search_label">Buscar cartões</string>
+    <string name="cards_empty_no_cards">Ainda não há cartões. Toque no botão de adicionar para criar o primeiro cartão.</string>
+    <string name="cards_medium">Médio</string>
+    <string name="cards_due_new">Novo</string>
+
+    <string name="review_title">Revisar</string>
+    <string name="review_all_cards">Todos os cartões</string>
+    <string name="review_front_label">Frente</string>
+    <string name="review_back_label">Verso</string>
+    <string name="review_due_label">Vencimento: %1$s</string>
+    <string name="review_due_new">Novo</string>
+    <string name="review_reps_label">Repetições %1$d</string>
+    <string name="review_lapses_label">Lapsos %1$d</string>
+    <string name="review_show_answer">Mostrar resposta</string>
+    <string name="review_again">De novo</string>
+    <string name="review_hard">Difícil</string>
+    <string name="review_good">Bom</string>
+    <string name="review_easy">Fácil</string>
+    <string name="review_medium">Médio</string>
+    <string name="review_interval_now">agora</string>
+    <string name="review_interval_less_than_one_minute">em menos de um minuto</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="one">em %d minuto</item>
+        <item quantity="other">em %d minutos</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="one">em %d hora</item>
+        <item quantity="other">em %d horas</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="one">em %d dia</item>
+        <item quantity="other">em %d dias</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">Cartão · %1$s</string>
+    <string name="ai_consent_title">Antes de usar AI</string>
+    <string name="ai_consent_warning">AI pode errar. Revise os resultados importantes antes de confiar neles.</string>
+    <string name="ai_consent_accept">OK</string>
+    <string name="ai_privacy_policy">Política de Privacidade</string>
+    <string name="ai_terms_of_service">Termos de Serviço</string>
+    <string name="ai_support">Suporte</string>
+    <string name="ai_consent_workspace_disclosure">As solicitações de AI do workspace &quot;%1$s&quot; podem enviar prompts, arquivos enviados, imagens e áudio ditado para o serviço de AI hospedado.</string>
+    <string name="ai_message_label">Mensagem</string>
+    <string name="ai_attach">Anexar</string>
+    <string name="ai_dictate">Ditar</string>
+    <string name="ai_send">Enviar</string>
+    <string name="ai_empty_title">Começar um novo chat com AI</string>
+    <string name="ai_empty_body">Pergunte sobre cartões e histórico de revisões ou anexe anotações para extração em %1$s.</string>
+</resources>

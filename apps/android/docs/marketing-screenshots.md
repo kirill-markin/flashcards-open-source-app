@@ -18,9 +18,11 @@ The screenshot catalog currently defines these locale prefixes:
 - `en-US`
 - `ar`
 - `zh-CN`
+- `fr-FR`
 - `de-DE`
 - `hi-IN`
 - `ja-JP`
+- `pt-BR`
 - `ru-RU`
 - `es-419`
 - `es-ES`
