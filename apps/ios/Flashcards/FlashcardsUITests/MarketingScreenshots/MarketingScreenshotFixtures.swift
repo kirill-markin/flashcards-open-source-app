@@ -751,6 +751,7 @@ extension MarketingManualScreenshotTestCase {
             return
         }
 
+        try self.completeBilingualKeyboardOnboardingIfVisible(timeout: timeout)
         try self.tapButton(
             identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
             timeout: timeout
@@ -764,5 +765,40 @@ extension MarketingManualScreenshotTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+    }
+
+    @MainActor
+    private func completeBilingualKeyboardOnboardingIfVisible(timeout: TimeInterval) throws {
+        let firstMemoji = self.app.images["memoji_ANZ1"]
+        let secondMemoji = self.app.images["memoji_SG2"]
+        guard firstMemoji.exists || secondMemoji.exists else {
+            return
+        }
+
+        // The system onboarding has no button ID. Its two image IDs identify
+        // the container whose only direct button completes keyboard setup.
+        let completionButtons = self.app.otherElements
+            .containing(.image, identifier: "memoji_ANZ1")
+            .containing(.image, identifier: "memoji_SG2")
+            .children(matching: .button)
+        guard completionButtons.count == 1,
+              completionButtons.element.isEnabled,
+              completionButtons.element.isHittable else {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Bilingual keyboard onboarding was visible, but its unique completion button was not usable.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        completionButtons.element.tap()
+        guard firstMemoji.waitForNonExistence(timeout: timeout),
+              secondMemoji.waitForNonExistence(timeout: timeout) else {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Bilingual keyboard onboarding remained visible after completing system keyboard setup.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 }
