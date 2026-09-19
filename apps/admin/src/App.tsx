@@ -308,7 +308,7 @@ export default function App(): JSX.Element {
     void loadAvailableRange(sessionConfig);
   }, [handleTerminalAdminError, needsReportData, reportLoadRevision, sessionConfig]);
 
-  // The user options and the colour domains are scoped to the range and deliberately blind to the
+  // The option lists and the colour domains are scoped to the range and deliberately blind to the
   // rest of the selection - a user a filter just removed from every chart is exactly the user the
   // popup has to keep offering - so only a range change asks for them again.
   const loadFilterOptions = useCallback(async (
