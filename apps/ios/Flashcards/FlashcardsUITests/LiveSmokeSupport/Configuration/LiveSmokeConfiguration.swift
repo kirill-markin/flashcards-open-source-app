@@ -15,6 +15,11 @@ enum LiveSmokeConfiguration {
     static let launchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
     static let selectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
     static let appNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
+    // Declares the launched app an automation run, so the installations these flows register against
+    // a deployed backend never become product analytics. The app target re-declares the same key in
+    // apps/ios/Flashcards/Flashcards/App/AutomationRun.swift, and the two values must match exactly.
+    static let automationRunEnvironmentKey: String = "FLASHCARDS_AUTOMATION_RUN"
+    static let automationRunEnvironmentValue: String = "1"
     static let maximumStoredBreadcrumbCount: Int = 30
 }
 

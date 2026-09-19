@@ -22,6 +22,7 @@ import {
   buildCatalogAttributionFiltersSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
+  buildExcludedActorsFilterSql,
   buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
@@ -381,7 +382,7 @@ const reviewCohortSqlExpression = "CASE WHEN review_answers.review_date = actor_
 // Per-actor breakdown for the admin "Review events by date" report (charts + tooltips).
 //
 // ONE SOURCE. This reads `analytics.product_events_resolved` and nothing else in the product
-// schemas except the identity join below. It no longer joins `content.review_events` to
+// schemas except the identity join below and the shared `analytics.excluded_actors` list. It no longer joins `content.review_events` to
 // `sync.workspace_replicas`, and it no longer restates the client-installation identity rules that
 // `apps/backend/src/globalMetrics/reporting.ts` encodes for the public snapshot. Those two surfaces
 // have deliberately diverged: the snapshot still counts raw review rows, this dashboard counts
@@ -527,6 +528,7 @@ function buildReviewAnswersCteSql(to: string): string {
     "      user_settings.email IS NULL",
     "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
     "    )",
+    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
     "),",
     // `occurred_at` is the client clock, kept only inside a 30-day window that ends at a server
     // anchor and replaced by that anchor outside the window in EITHER direction - too far in the
@@ -664,6 +666,7 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
     "      user_settings.email IS NULL",
     "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
     "    )",
+    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
     "),",
     "daily_friend_invitations AS (",
     "  SELECT",
