@@ -492,6 +492,19 @@ h2 {
   flex-wrap: wrap;
 }
 
+/* Spans the full width of both grid parents it sits in: the time popover form and the funnel range form. */
+.range-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+/* Presets size to their label instead of stretching under the narrow-screen `.filter-button` rule, but may still shrink so a long label cannot overflow the popover. */
+.range-preset-row .filter-button {
+  flex: 0 1 auto;
+}
+
 .filter-button {
   height: 42px;
   padding: 0 15px;

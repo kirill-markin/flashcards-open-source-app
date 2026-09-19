@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
+import { ReportRangePresetRow } from "../ReportRangePresetRow";
 import { buildDefaultReportRange } from "../reportValues";
 import {
   catalogInstallConversionWindowDays,
@@ -23,6 +24,7 @@ type FunnelLoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: CatalogInstallFunnelReport }>;
 
+type FilterOption = Readonly<{ value: string; label: string }>;
 type FunnelStage = Readonly<{ label: string; count: number }>;
 type FailureTotal = CatalogInstallFailureBucket & Readonly<{ count: number }>;
 
@@ -166,20 +168,44 @@ function FunnelStageTable(props: Readonly<{ stages: ReadonlyArray<FunnelStage> }
   );
 }
 
+function insertSortedByLabel(
+  options: ReadonlyArray<FilterOption>,
+  option: FilterOption,
+): ReadonlyArray<FilterOption> {
+  const index = options.findIndex((existing) => existing.label.localeCompare(option.label) > 0);
+  return index === -1
+    ? [...options, option]
+    : [...options.slice(0, index), option, ...options.slice(index)];
+}
+
 function FilterSelect(
   props: Readonly<{
     label: string;
     value: string;
-    options: ReadonlyArray<Readonly<{ value: string; label: string }>>;
-    onChange: (value: string) => void;
+    valueLabel?: string;
+    options: ReadonlyArray<FilterOption>;
+    onChange: (value: string, valueLabel: string) => void;
   }>,
 ): JSX.Element {
+  // A preset keeps the sub-filters while reloading the report, so a selected value can outlive its option
+  // list. Keep it listed, under the label the user picked it by and in its sorted place, instead of
+  // rendering a blank select with an unexplained empty funnel or a bare identifier.
+  const options = props.value !== "" && props.options.some((option) => option.value === props.value) === false
+    ? insertSortedByLabel(props.options, { value: props.value, label: props.valueLabel ?? props.value })
+    : props.options;
+
   return (
     <label className="funnel-filter-field">
       <span>{props.label}</span>
-      <select value={props.value} onChange={(event) => props.onChange(event.target.value)}>
+      <select
+        value={props.value}
+        onChange={(event) => props.onChange(
+          event.target.value,
+          options.find((option) => option.value === event.target.value)?.label ?? "",
+        )}
+      >
         <option value="">All</option>
-        {props.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
   );
@@ -196,6 +222,8 @@ export function CatalogInstallFunnelSection(
   const [draftRange, setDraftRange] = useState<CatalogInstallFunnelRange | null>(null);
   const [appliedRange, setAppliedRange] = useState<CatalogInstallFunnelRange | null>(null);
   const [filters, setFilters] = useState<CatalogInstallFunnelFilters>(emptyFilters);
+  // The label of the selected deck, so a preset reload can keep showing it while `packageOptions` is empty.
+  const [packageVersionLabel, setPackageVersionLabel] = useState<string>("");
   const [rangeLoadRevision, setRangeLoadRevision] = useState<number>(0);
   const [loadRevision, setLoadRevision] = useState<number>(0);
   const [rangeError, setRangeError] = useState<string>("");
@@ -306,7 +334,21 @@ export function CatalogInstallFunnelSection(
 
     setRangeError("");
     setFilters(emptyFilters);
+    setPackageVersionLabel("");
     setAppliedRange(draftRange);
+  }
+
+  // A preset is always inside the available range, so it applies straight away, and it moves only the
+  // dates: the deck, placement, locale, source and device filters stay exactly as the user left them.
+  function applyPresetRange(range: CatalogInstallFunnelRange): void {
+    setRangeError("");
+    setDraftRange(range);
+    setAppliedRange(range);
+  }
+
+  function selectPackageVersion(packageVersionId: string, selectedLabel: string): void {
+    setFilters({ ...filters, packageVersionId });
+    setPackageVersionLabel(packageVersionId === "" ? "" : selectedLabel);
   }
 
   function resetAll(): void {
@@ -317,6 +359,7 @@ export function CatalogInstallFunnelSection(
     setDraftRange(defaultRange);
     setAppliedRange(defaultRange);
     setFilters(emptyFilters);
+    setPackageVersionLabel("");
     setRangeError("");
     setLoadRevision((revision) => revision + 1);
   }
@@ -347,9 +390,10 @@ export function CatalogInstallFunnelSection(
       </header>
 
       {draftRange !== null && availableRange !== null ? <form className="funnel-filter-panel" onSubmit={applyRange}>
+        <ReportRangePresetRow availableRange={availableRange} isDisabled={false} onPresetSelect={applyPresetRange} />
         <label className="funnel-filter-field"><span>From (UTC)</span><input type="date" min={availableRange.from} max={availableRange.to} value={draftRange.from} onChange={(event) => setDraftRange({ ...draftRange, from: event.target.value })} /></label>
         <label className="funnel-filter-field"><span>To (UTC)</span><input type="date" min={availableRange.from} max={availableRange.to} value={draftRange.to} onChange={(event) => setDraftRange({ ...draftRange, to: event.target.value })} /></label>
-        <FilterSelect label="Deck / version" value={filters.packageVersionId} options={packageOptions} onChange={(packageVersionId) => setFilters({ ...filters, packageVersionId })} />
+        <FilterSelect label="Deck / version" value={filters.packageVersionId} valueLabel={packageVersionLabel} options={packageOptions} onChange={selectPackageVersion} />
         <FilterSelect label="Placement" value={filters.placement} options={catalogInstallPlacements.map((value) => ({ value, label: value }))} onChange={(placement) => setFilters({ ...filters, placement })} />
         <FilterSelect label="Locale" value={filters.deviceLocale} options={localeOptions} onChange={(deviceLocale) => setFilters({ ...filters, deviceLocale })} />
         <FilterSelect label="Source" value={filters.source} options={catalogInstallSources.map((value) => ({ value, label: value }))} onChange={(source) => setFilters({ ...filters, source })} />
