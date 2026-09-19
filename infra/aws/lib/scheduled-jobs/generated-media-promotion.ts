@@ -10,6 +10,7 @@ import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
+import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 export interface GeneratedMediaPromotionProps {
   vpc: ec2.Vpc; lambdaSg: ec2.SecurityGroup; db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret; mediaAssetsBucket: s3.IBucket;
@@ -44,7 +45,7 @@ export function generatedMediaPromotion(
         commandHooks: {
           beforeBundling: () => [], beforeInstall: () => [],
           afterBundling: (_inputDir: string, outputDir: string) => [
-            `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
+            createRdsCaBundleDownloadCommand(outputDir),
             createSentrySourceMapUploadCommand(outputDir),
           ],
         },
