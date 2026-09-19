@@ -12,6 +12,7 @@ import {
   uniqueUserCohortColors,
   uniqueUserCohortLabels,
 } from "../../../charts/chartPrimitives";
+import { ReportRangePresetRow } from "../../ReportRangePresetRow";
 import type { ReviewEventsByDateRange } from "../query";
 import { getUserFilterLabel, type ActiveUserFilter } from "./userFilters";
 
@@ -45,6 +46,7 @@ type ReviewEventsByDateFiltersProps = Readonly<{
   onFromDateChange: (from: string) => void;
   onToDateChange: (to: string) => void;
   onDateRangeSubmit: () => void;
+  onDateRangePresetSelect: (range: ReviewEventsByDateRange) => void;
   onDateRangeReset: () => void;
   onUserFilterSearchChange: (searchValue: string) => void;
   onUserFilterChange: (userId: string, isChecked: boolean) => void;
@@ -204,6 +206,11 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
     props.onDateRangeSubmit();
   }
 
+  function handleDateRangePresetSelect(range: ReviewEventsByDateRange): void {
+    props.onDateRangePresetSelect(range);
+    closePopover("time", true);
+  }
+
   function handleDateRangeReset(): void {
     props.onDateRangeReset();
     closePopover("time", true);
@@ -258,6 +265,11 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
           {activePopover === "time" ? (
             <FilterPopover id={timePopoverId}>
               <form className="date-filter-form" noValidate onSubmit={handleDateRangeSubmit}>
+                <ReportRangePresetRow
+                  availableRange={props.availableRange}
+                  isDisabled={props.isReportLoading}
+                  onPresetSelect={handleDateRangePresetSelect}
+                />
                 <label className="date-filter-field">
                   <span>From</span>
                   <input
