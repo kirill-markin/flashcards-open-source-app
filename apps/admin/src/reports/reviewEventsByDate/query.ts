@@ -19,6 +19,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildAppUiLanguagesFilterSql,
+  buildCatalogAttributionFiltersSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
   buildMinimumEventCountsFilterSql,
@@ -484,6 +485,7 @@ export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): strin
     `  AND ${buildMinimumEventCountsFilterSql("review_answers.actor_id", filters.minimumEventCounts, dateRange)}`,
     `  AND ${buildConnectionCountriesFilterSql("review_answers.actor_id", filters.connectionCountries, dateRange)}`,
     `  AND ${buildAppUiLanguagesFilterSql("review_answers.actor_id", filters.appUiLanguages, dateRange)}`,
+    `  AND ${buildCatalogAttributionFiltersSql("review_answers.actor_id", filters)}`,
     "GROUP BY",
     "  review_answers.review_date,",
     "  review_answers.actor_id,",
@@ -592,9 +594,9 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
   const from = dateRange.from;
   const to = dateRange.to;
   const userSelectionSql = buildUsersFilterSql("community_user_dates.actor_id", filters.users);
-  // A threshold, a connection country and an app UI language are properties of the person and not of
-  // the row, unlike the cohort and the platform below, so they restrict these rows directly instead
-  // of through the review actors.
+  // A threshold, a connection country, an app UI language and a catalog attribution are properties of
+  // the person and not of the row, unlike the cohort and the platform below, so they restrict these
+  // rows directly instead of through the review actors.
   const minimumEventCountSelectionSql = buildMinimumEventCountsFilterSql(
     "community_user_dates.actor_id",
     filters.minimumEventCounts,
@@ -604,6 +606,10 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
     "community_user_dates.actor_id",
     filters.connectionCountries,
     dateRange,
+  );
+  const catalogAttributionSelectionSql = buildCatalogAttributionFiltersSql(
+    "community_user_dates.actor_id",
+    filters,
   );
   const appUiLanguageSelectionSql = buildAppUiLanguagesFilterSql(
     "community_user_dates.actor_id",
@@ -739,6 +745,7 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
     `  AND ${minimumEventCountSelectionSql}`,
     `  AND ${countrySelectionSql}`,
     `  AND ${appUiLanguageSelectionSql}`,
+    `  AND ${catalogAttributionSelectionSql}`,
     ...(isRestrictedToFilteredReviewActors ? [
       "  AND community_user_dates.actor_id IN (SELECT actor_id FROM filtered_review_actors)",
     ] : []),
