@@ -10,6 +10,20 @@
     <string name="progress_streak_subtitle">पिछले 5 सप्ताह</string>
     <string name="progress_reviews_title">पुनरावलोकन</string>
 
+    <string name="progress_leaderboard_title">रेटिंग लीडरबोर्ड</string>
+    <string name="progress_leaderboard_sign_in_message">रेटिंग लीडरबोर्ड में अपनी दोहराई की रैंक देखने के लिए खाता बनाएँ या साइन इन करें।</string>
+    <string name="progress_leaderboard_sign_in_button">साइन इन करें</string>
+    <string name="friend_invite_button">दोस्त जोड़ें</string>
+    <string name="progress_streak_leaderboard_title">स्ट्रीक लीडरबोर्ड</string>
+    <string name="progress_streak_leaderboard_sign_in_message">समुदाय के सदस्यों से अपनी स्ट्रीक की तुलना करने के लिए खाता बनाएँ या साइन इन करें।</string>
+    <string name="progress_leaderboard_info_button_content_description">रेटिंग लीडरबोर्ड के बारे में</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">स्ट्रीक लीडरबोर्ड के बारे में</string>
+    <string name="progress_streak_freeze_bank_content_description">स्ट्रीक फ़्रीज़: %2$d में से %1$d उपलब्ध।</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">स्ट्रीक फ़्रीज़ के बारे में</string>
+    <string name="progress_streak_freeze_bank_info_title">स्ट्रीक फ़्रीज़</string>
+    <string name="progress_streak_freeze_bank_info_body">उपलब्ध: %1$d/%2$d। भरने की प्रगति: %3$d/%4$d। फ़्रीज़ छूटे हुए दिनों में स्ट्रीक बचाते हैं और स्ट्रीक जारी रखने पर फिर से भरते हैं।</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">ठीक है</string>
+
     <string name="cards_title">कार्ड</string>
     <string name="cards_add_card_content_description">कार्ड जोड़ें</string>
     <string name="cards_search_label">कार्ड खोजें</string>

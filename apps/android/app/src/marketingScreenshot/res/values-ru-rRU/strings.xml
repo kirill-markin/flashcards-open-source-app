@@ -10,6 +10,20 @@
     <string name="progress_streak_subtitle">Последние 5 недель</string>
     <string name="progress_reviews_title">Повторения</string>
 
+    <string name="progress_leaderboard_title">Рейтинг повторений</string>
+    <string name="progress_leaderboard_sign_in_message">Зарегистрируйтесь или войдите, чтобы узнать своё место в рейтинге повторений.</string>
+    <string name="progress_leaderboard_sign_in_button">Войти</string>
+    <string name="friend_invite_button">Добавить друга</string>
+    <string name="progress_streak_leaderboard_title">Рейтинг серий</string>
+    <string name="progress_streak_leaderboard_sign_in_message">Зарегистрируйтесь или войдите, чтобы сравнить свою серию с сериями других участников.</string>
+    <string name="progress_leaderboard_info_button_content_description">О рейтинге повторений</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">О рейтинге серий</string>
+    <string name="progress_streak_freeze_bank_content_description">Заморозки серии: доступно %1$d из %2$d.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">О заморозках серии</string>
+    <string name="progress_streak_freeze_bank_info_title">Заморозки серии</string>
+    <string name="progress_streak_freeze_bank_info_body">Доступно: %1$d/%2$d. Пополнение: %3$d/%4$d. Заморозки защищают серию в пропущенные дни и пополняются по мере её продолжения.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">ОК</string>
+
     <string name="cards_title">Карточки</string>
     <string name="cards_add_card_content_description">Добавить карточку</string>
     <string name="cards_search_label">Поиск карточек</string>
