@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,flash cards,cartões,cartoes,cartões de memória,cartoes de memoria,cartões de estudo,flashcard,revisão,memorização";
+"NSCameraUsageDescription" = "Permite o acesso à câmera para tirar fotos e anexá-las ao chat com IA.";
+"NSMicrophoneUsageDescription" = "Permite o acesso ao microfone para ditar texto no chat com IA.";
+"NSPhotoLibraryUsageDescription" = "Permite o acesso às fotos para escolher imagens e anexá-las ao chat com IA.";
