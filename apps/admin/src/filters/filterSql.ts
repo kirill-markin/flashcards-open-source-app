@@ -21,6 +21,16 @@ import {
 // between a row's date and that actor's first day of the activity the report counts, and no two
 // reports count the same activity.
 
+// The half-open UTC instants of a range, as the expressions a timestamp column is compared to. Each
+// one is parenthesized whole, so it drops into a comparison as safely as into a select list.
+function buildRangeStartSql(dateRange: AnalyticsDateRange): string {
+  return `((${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC')`;
+}
+
+function buildRangeEndSql(dateRange: AnalyticsDateRange): string {
+  return `((${escapeSqlStringLiteral(dateRange.to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC')`;
+}
+
 function buildInPredicateSql(sqlExpression: string, values: ReadonlyArray<string>): string {
   if (values.length === 0) {
     return "FALSE";
@@ -136,6 +146,133 @@ export function buildMinimumEventCountsFilterSql(
       dateRange,
     ))
     .join("\n  AND ")})`;
+}
+
+/**
+ * The retained connection samples of one range, as one row per (actor, sampled country, event UI
+ * locale). The audience report's country and pair dimensions, the country option list and the country
+ * filter below all read this one fragment, so a country always means the same evidence.
+ *
+ * `eventPlatforms` narrows the samples to a platform selection, and `null` is every platform. The
+ * filter and the option list both pass `null`, because a person's connection country is not a
+ * property of the platform slice on screen, and because
+ * `analytics.installation_country_observations.platform` only ever holds `web`, `ios` or `android`
+ * (`db/migrations/0137_audience_context.sql`): narrowing the platform field to `unattributed` alone -
+ * the natural way to read the catalog installs section, whose rows are always `unattributed` - would
+ * otherwise make the country predicate match nobody and empty every section. The audience report
+ * passes its own selection, because its charts count the platform slice on screen.
+ *
+ * ENDPOINT EQUALITY PROVES THE ACCEPTED SAMPLING BATCH, not the queued event's location. A sample is
+ * matched to the client events of the same installation and platform whose `server_received_at` is
+ * exactly one endpoint of the observation period. There is deliberately no interval overlap and no
+ * `analytics.installation_profiles.user_id` ownership join.
+ *
+ * DETAILED COUNTRY HISTORY IS KEPT FOR 90 DAYS ONLY
+ * (`db/migrations/0137_audience_context.sql`), so the observation period and the matched endpoint
+ * both have to fall inside that window as well as inside the range. What comes out is a conservative
+ * lower bound: an actor with no retained sample carries no country at all, and a long range loses
+ * proportionally more of them.
+ */
+export function buildConnectionCountrySamplesSql(
+  dateRange: AnalyticsDateRange,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform> | null,
+): string {
+  const rangeStartSql = buildRangeStartSql(dateRange);
+  const rangeEndSql = buildRangeEndSql(dateRange);
+  const retainedSinceSql = "now() - INTERVAL '90 days'";
+
+  return [
+    "SELECT DISTINCT sample_events.actor_id, sample_endpoints.country, sample_events.ui_locale",
+    "FROM (",
+    "  SELECT DISTINCT",
+    "    observation.anonymous_id,",
+    "    observation.platform,",
+    "    observation.country,",
+    "    endpoint.sample_time",
+    "  FROM analytics.installation_country_observations AS observation",
+    "  CROSS JOIN LATERAL (VALUES (observation.first_seen), (observation.sampled_at))",
+    "    AS endpoint(sample_time)",
+    `  WHERE observation.last_seen >= ${retainedSinceSql}`,
+    `    AND endpoint.sample_time >= ${retainedSinceSql}`,
+    `    AND endpoint.sample_time >= ${rangeStartSql}`,
+    `    AND endpoint.sample_time < ${rangeEndSql}`,
+    ") AS sample_endpoints",
+    "JOIN analytics.product_events_resolved AS sample_events",
+    "  ON sample_events.anonymous_id = sample_endpoints.anonymous_id",
+    "  AND sample_events.platform = sample_endpoints.platform",
+    "  AND sample_events.server_received_at = sample_endpoints.sample_time",
+    "WHERE sample_events.origin = 'client'",
+    // A sample nobody can be resolved behind names no person to keep or to offer.
+    "  AND sample_events.actor_id IS NOT NULL",
+    `  AND sample_events.occurred_at >= ${rangeStartSql}`,
+    `  AND sample_events.occurred_at < ${rangeEndSql}`,
+    ...(eventPlatforms === null ? [] : [
+      `  AND ${buildEventPlatformsFilterSql("COALESCE(sample_events.platform, 'unattributed')", eventPlatforms)}`,
+    ]),
+  ].join("\n");
+}
+
+/**
+ * Picking no country keeps every user, as on the users field.
+ *
+ * This restricts people rather than rows: a user matches a country when at least one retained sample
+ * says so, so a user with no retained sample matches no country at all and is dropped as soon as this
+ * field is narrowed. The samples are read across every platform whatever the platform field says, so
+ * this predicate matches exactly the countries its own range-scoped option list offers. The audience
+ * report's own country and pair charts stay narrowed to the selected platforms, so a person kept by
+ * this filter can still land in their `unknown` buckets.
+ */
+export function buildConnectionCountriesFilterSql(
+  actorIdSqlExpression: string,
+  connectionCountries: ReadonlyArray<string>,
+  dateRange: AnalyticsDateRange,
+): string {
+  if (connectionCountries.length === 0) {
+    return "TRUE";
+  }
+
+  return [
+    `${actorIdSqlExpression} IN (`,
+    "  SELECT country_samples.actor_id::text",
+    "  FROM (",
+    buildConnectionCountrySamplesSql(dateRange, null),
+    "  ) AS country_samples",
+    `  WHERE ${buildInPredicateSql("country_samples.country", connectionCountries)}`,
+    ")",
+  ].join("\n");
+}
+
+/**
+ * Picking no language keeps every user.
+ *
+ * `ui_locale` is the interface language the client recorded on the event before queuing it, taken
+ * inside the range over every event rather than over one report's own event name, and across every
+ * platform whatever the platform field says, so this predicate matches exactly the languages its own
+ * range-scoped option list offers. The audience report's own language and pair charts stay narrowed
+ * to the selected platforms, so a person kept by this filter can still land in their `unknown`
+ * buckets. An old client and an old queued event carry no locale, so a user whose events in range
+ * carry none matches no language and is dropped as soon as this field is narrowed. This restricts
+ * people rather than rows, so one person's other events stay counted.
+ */
+export function buildAppUiLanguagesFilterSql(
+  actorIdSqlExpression: string,
+  appUiLanguages: ReadonlyArray<string>,
+  dateRange: AnalyticsDateRange,
+): string {
+  if (appUiLanguages.length === 0) {
+    return "TRUE";
+  }
+
+  return [
+    `${actorIdSqlExpression} IN (`,
+    "  SELECT ui_locale_events.actor_id::text",
+    "  FROM analytics.product_events_resolved AS ui_locale_events",
+    `  WHERE ${buildInPredicateSql("ui_locale_events.ui_locale", appUiLanguages)}`,
+    "    AND ui_locale_events.actor_id IS NOT NULL",
+    `    AND ui_locale_events.occurred_at >= ${buildRangeStartSql(dateRange)}`,
+    `    AND ui_locale_events.occurred_at < ${buildRangeEndSql(dateRange)}`,
+    ")",
+  ].join("\n");
 }
 
 /**

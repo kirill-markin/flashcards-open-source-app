@@ -2,6 +2,9 @@ import { runAdminQuery, type AdminQueryRow } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
+  buildAppUiLanguagesFilterSql,
+  buildConnectionCountriesFilterSql,
+  buildConnectionCountrySamplesSql,
   buildEventPlatformsFilterSql,
   buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
@@ -49,13 +52,27 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
     filters.minimumEventCounts,
     dateRange,
   );
+  // The country and the language a person is filtered on are the same two facts this report charts,
+  // but the two predicates read their evidence across every platform while `sampled_events` and
+  // `language_events` below stay narrowed to the selected platforms. That is deliberate: these two
+  // fields select people, whose country and interface language are not properties of the platform
+  // slice on screen. So a person kept by either filter can still be counted into the `unknown`
+  // country, language or pair buckets here, when the only evidence of their value came from a
+  // platform this selection leaves out.
+  const countrySelection = buildConnectionCountriesFilterSql(
+    "history.actor_id::text",
+    filters.connectionCountries,
+    dateRange,
+  );
+  const languageSelection = buildAppUiLanguagesFilterSql(
+    "history.actor_id::text",
+    filters.appUiLanguages,
+    dateRange,
+  );
 
-  // Endpoint equality proves the accepted sampling batch, not the queued event's location.
-  // There is deliberately no interval overlap or installation_profiles.user_id ownership join.
   return `WITH bounds AS (
     SELECT (${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC' AS starts_at,
-      (${escapeSqlStringLiteral(dateRange.to)}::date + 1)::timestamp AT TIME ZONE 'UTC' AS ends_at,
-      now() - INTERVAL '90 days' AS retained_since
+      (${escapeSqlStringLiteral(dateRange.to)}::date + 1)::timestamp AT TIME ZONE 'UTC' AS ends_at
   ), history AS MATERIALIZED (
     SELECT events.actor_id, events.platform, events.occurred_at,
       (events.occurred_at AT TIME ZONE 'UTC')::date AS event_date,
@@ -78,6 +95,8 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
       AND ${userSelection}
       AND ${cohortSelection}
       AND ${minimumEventCountSelection}
+      AND ${countrySelection}
+      AND ${languageSelection}
       AND ${buildEventPlatformsFilterSql("COALESCE(history.platform, 'unattributed')", filters.eventPlatforms)}
   ), actors AS (
     SELECT DISTINCT actor_id FROM cohort_events
@@ -88,26 +107,12 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
     CROSS JOIN bounds
     WHERE events.occurred_at >= bounds.starts_at AND events.occurred_at < bounds.ends_at
       AND ${platformSelection}
-  ), endpoints AS MATERIALIZED (
-    SELECT DISTINCT observation.anonymous_id, observation.platform, observation.country, endpoint.sample_time
-    FROM analytics.installation_country_observations AS observation
-    CROSS JOIN bounds
-    CROSS JOIN LATERAL (VALUES (observation.first_seen), (observation.sampled_at)) AS endpoint(sample_time)
-    WHERE observation.last_seen >= bounds.retained_since
-      AND endpoint.sample_time >= bounds.retained_since
-      AND endpoint.sample_time >= bounds.starts_at AND endpoint.sample_time < bounds.ends_at
   ), sampled_events AS MATERIALIZED (
-    SELECT DISTINCT events.actor_id, endpoints.country, events.ui_locale
-    FROM endpoints
-    JOIN analytics.product_events_resolved AS events
-      ON events.anonymous_id = endpoints.anonymous_id
-      AND events.platform = endpoints.platform
-      AND events.server_received_at = endpoints.sample_time
-    JOIN actors ON actors.actor_id = events.actor_id
-    CROSS JOIN bounds
-    WHERE events.origin = 'client'
-      AND events.occurred_at >= bounds.starts_at AND events.occurred_at < bounds.ends_at
-      AND ${platformSelection}
+    SELECT country_samples.actor_id, country_samples.country, country_samples.ui_locale
+    FROM (
+${buildConnectionCountrySamplesSql(dateRange, filters.eventPlatforms)}
+    ) AS country_samples
+    JOIN actors ON actors.actor_id = country_samples.actor_id
   ), countries AS (
     SELECT DISTINCT actor_id, country FROM sampled_events WHERE country IS NOT NULL
   ), languages AS (

@@ -641,6 +641,14 @@ h2 {
   gap: 8px;
 }
 
+/* A field whose range offers no value at all says so, rather than showing an empty list. */
+.filter-option-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .filter-checkbox-option {
   display: flex;
   align-items: center;
