@@ -16,14 +16,18 @@ const localeDirections: Readonly<Record<Locale, LocaleDirection>> = {
   ru: "ltr",
   "es-MX": "ltr",
   "es-ES": "ltr",
+  fr: "ltr",
+  "pt-BR": "ltr",
 };
 
 const primaryLanguageLocaleFallbacks: Readonly<Record<string, Locale>> = {
   ar: "ar",
   de: "de",
   en: "en",
+  fr: "fr",
   hi: "hi",
   ja: "ja",
+  pt: "pt-BR",
   ru: "ru",
 };
 

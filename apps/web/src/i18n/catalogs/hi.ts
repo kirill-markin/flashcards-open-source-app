@@ -69,6 +69,8 @@ const hiCatalog: TranslationCatalog = {
       ru: "रूसी",
       "es-MX": "स्पेनिश (मेक्सिको)",
       "es-ES": "स्पेनिश (स्पेन)",
+      fr: "फ़्रेंच",
+      "pt-BR": "पुर्तगाली (ब्राज़ील)",
     },
     preferenceAuto: "स्वचालित (ब्राउज़र/डिवाइस)",
   },

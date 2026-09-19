@@ -21,6 +21,8 @@ const localeFirstDayFallbacks: Readonly<Record<Locale, IntlWeekday>> = {
   ru: 1,
   "es-MX": 7,
   "es-ES": 1,
+  fr: 1,
+  "pt-BR": 7,
 };
 
 function isIntlWeekday(value: number): value is IntlWeekday {
