@@ -71,7 +71,7 @@ describe("i18n runtime", () => {
   it("falls back to navigator.language when navigator.languages does not match", () => {
     const resolution = resolveBrowserLocaleFromSnapshot({
       language: "es",
-      languages: ["fr-FR"],
+      languages: ["it-IT"],
     });
 
     expect(resolution).toEqual({
@@ -83,8 +83,8 @@ describe("i18n runtime", () => {
 
   it("falls back to English when no supported browser locale is available", () => {
     const resolution = resolveBrowserLocaleFromSnapshot({
-      language: "fr-FR",
-      languages: ["pt-BR", "it-IT"],
+      language: "it-IT",
+      languages: ["nl-NL", "sv-SE"],
     });
 
     expect(resolution).toEqual({
