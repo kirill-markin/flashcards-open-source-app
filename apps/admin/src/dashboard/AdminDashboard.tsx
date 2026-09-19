@@ -42,6 +42,50 @@ import {
 import { analyticsAreaLabels, getAnalyticsAreaPath, type AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
+export type AdminReportsData = Readonly<{
+  availableRange: ReviewEventsByDateRange;
+  defaultRange: ReviewEventsByDateRange;
+  report: ReviewEventsByDateReport;
+  dailyActiveUsersReport: DailyActiveUsersReport;
+  catalogInstallsReport: CatalogInstallsReport;
+}>;
+
+/**
+ * The General report data an analytics area either already has, is still fetching, or failed to
+ * fetch. Areas that chart nothing from it, such as Funnels, render without ever leaving the loading
+ * branch. A failure is area-local and retryable; only a terminal 401/403 replaces the whole page.
+ */
+export type AdminReportState =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "error"; message: string }>
+  | Readonly<{
+      status: "ready";
+      data: AdminReportsData;
+      isReportLoading: boolean;
+      dateRangeError: string;
+    }>;
+
+type AnalyticsReportSectionsProps = Readonly<{
+  activeArea: AnalyticsArea;
+  config: AdminAppConfig;
+  data: AdminReportsData;
+  isReportLoading: boolean;
+  dateRangeError: string;
+  draftRange: ReviewEventsByDateRange;
+  selectedUserIds: ReadonlyArray<string>;
+  selectedCohorts: ReadonlyArray<ReviewEventCohort>;
+  selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  userFilterSearchValue: string;
+  onDraftRangeChange: (range: ReviewEventsByDateRange) => void;
+  onSelectedUserIdsChange: (userIds: ReadonlyArray<string>) => void;
+  onSelectedCohortsChange: (cohorts: ReadonlyArray<ReviewEventCohort>) => void;
+  onSelectedPlatformsChange: (platforms: ReadonlyArray<ReviewEventPlatform>) => void;
+  onUserFilterSearchChange: (searchValue: string) => void;
+  onDateRangeApply: (range: ReviewEventsByDateRange) => void;
+  onDateRangeReset: () => void;
+  onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+}>;
+
 function buildUserFilterOptionUsers(
   reviewUsers: ReadonlyArray<ReviewEventsByDateUser>,
   communityOnlyUsers: ReadonlyArray<ReviewEventsByDateUser>,
@@ -121,137 +165,112 @@ function getUpdatedPlatformFilterSelection(
   return currentPlatforms.filter((currentPlatform) => currentPlatform !== platform);
 }
 
-export function AdminDashboard(
-  props: Readonly<{
-    activeArea: AnalyticsArea;
-    onNavigate: (path: string) => void;
-    config: AdminAppConfig;
-    report: ReviewEventsByDateReport;
-    dailyActiveUsersReport: DailyActiveUsersReport;
-    catalogInstallsReport: CatalogInstallsReport;
-    adminEmail: string;
-    availableRange: ReviewEventsByDateRange;
-    defaultRange: ReviewEventsByDateRange;
-    isReportLoading: boolean;
-    dateRangeError: string;
-    onDateRangeApply: (range: ReviewEventsByDateRange) => void;
-    onDateRangeReset: () => void;
-    onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
-  }>,
-): JSX.Element {
-  const [draftRange, setDraftRange] = useState<ReviewEventsByDateRange>({
-    from: props.report.from,
-    to: props.report.to,
-  });
-  const [selectedUserIds, setSelectedUserIds] = useState<ReadonlyArray<string>>([]);
-  const [selectedCohorts, setSelectedCohorts] = useState<ReadonlyArray<ReviewEventCohort>>([...reviewEventCohorts]);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<ReadonlyArray<ReviewEventPlatform>>([...reviewEventPlatforms]);
-  const [userFilterSearchValue, setUserFilterSearchValue] = useState<string>("");
-
-  useEffect(() => {
-    setDraftRange({
-      from: props.report.from,
-      to: props.report.to,
-    });
-  }, [props.report.from, props.report.to]);
-
+function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Element {
   function handleFromDateChange(from: string): void {
-    setDraftRange((currentRange) => ({
-      ...currentRange,
+    props.onDraftRangeChange({
+      ...props.draftRange,
       from,
-    }));
+    });
   }
 
   function handleToDateChange(to: string): void {
-    setDraftRange((currentRange) => ({
-      ...currentRange,
+    props.onDraftRangeChange({
+      ...props.draftRange,
       to,
-    }));
+    });
   }
 
   function handleDateRangeSubmit(): void {
-    props.onDateRangeApply(draftRange);
+    props.onDateRangeApply(props.draftRange);
   }
 
   function handleDateRangeReset(): void {
-    setDraftRange(props.defaultRange);
+    props.onDraftRangeChange(props.data.defaultRange);
     props.onDateRangeReset();
   }
 
   function handleDateRangePresetSelect(range: ReviewEventsByDateRange): void {
-    setDraftRange(range);
+    props.onDraftRangeChange(range);
     props.onDateRangeApply(range);
   }
 
   function handleLastThreeDays(): void {
     handleDateRangePresetSelect(buildPresetReportRange(
       lastThreeDaysReportRangePreset,
-      props.availableRange,
+      props.data.availableRange,
       reportRangePresetLabel,
     ));
   }
 
   function handleUserFilterChange(userId: string, isChecked: boolean): void {
-    setSelectedUserIds((currentUserIds) => getUpdatedUserFilterSelection(currentUserIds, userId, isChecked));
+    props.onSelectedUserIdsChange(getUpdatedUserFilterSelection(props.selectedUserIds, userId, isChecked));
   }
 
   function handleUserFilterRemove(userId: string): void {
-    setSelectedUserIds((currentUserIds) => currentUserIds.filter((currentUserId) => currentUserId !== userId));
+    props.onSelectedUserIdsChange(props.selectedUserIds.filter((currentUserId) => currentUserId !== userId));
   }
 
   function handleUserFilterClear(): void {
-    setSelectedUserIds([]);
+    props.onSelectedUserIdsChange([]);
   }
 
   function handleCohortFilterChange(cohort: ReviewEventCohort, isChecked: boolean): void {
-    setSelectedCohorts((currentCohorts) => getUpdatedCohortFilterSelection(currentCohorts, cohort, isChecked));
+    props.onSelectedCohortsChange(getUpdatedCohortFilterSelection(props.selectedCohorts, cohort, isChecked));
   }
 
   function handlePlatformFilterChange(platform: ReviewEventPlatform, isChecked: boolean): void {
-    setSelectedPlatforms((currentPlatforms) => getUpdatedPlatformFilterSelection(currentPlatforms, platform, isChecked));
+    props.onSelectedPlatformsChange(getUpdatedPlatformFilterSelection(props.selectedPlatforms, platform, isChecked));
   }
 
   function handleAllFiltersReset(): void {
-    setDraftRange(props.defaultRange);
-    setSelectedUserIds([]);
-    setSelectedCohorts([...reviewEventCohorts]);
-    setSelectedPlatforms([...reviewEventPlatforms]);
-    setUserFilterSearchValue("");
+    props.onDraftRangeChange(props.data.defaultRange);
+    props.onSelectedUserIdsChange([]);
+    props.onSelectedCohortsChange([...reviewEventCohorts]);
+    props.onSelectedPlatformsChange([...reviewEventPlatforms]);
+    props.onUserFilterSearchChange("");
     props.onDateRangeReset();
   }
 
+  const onSelectedUserIdsChange = props.onSelectedUserIdsChange;
   const handleChartUserFilterApply = useCallback((userId: string): void => {
-    setSelectedUserIds([userId]);
-  }, []);
+    onSelectedUserIdsChange([userId]);
+  }, [onSelectedUserIdsChange]);
+
+  const report = props.data.report;
+  const dailyActiveUsersReport = props.data.dailyActiveUsersReport;
+  const catalogInstallsReport = props.data.catalogInstallsReport;
+  const selectedUserIds = props.selectedUserIds;
+  const selectedCohorts = props.selectedCohorts;
+  const selectedPlatforms = props.selectedPlatforms;
 
   const filteredReport = useMemo(
-    () => filterReviewEventsByDateReport(props.report, {
+    () => filterReviewEventsByDateReport(report, {
       selectedUserIds,
       selectedCohorts,
       selectedPlatforms,
     }),
-    [props.report, selectedCohorts, selectedPlatforms, selectedUserIds],
+    [report, selectedCohorts, selectedPlatforms, selectedUserIds],
   );
   const filteredDailyActiveUsersReport = useMemo(
-    () => filterDailyActiveUsersReport(props.dailyActiveUsersReport, {
+    () => filterDailyActiveUsersReport(dailyActiveUsersReport, {
       selectedUserIds,
       selectedCohorts,
       selectedPlatforms,
     }),
-    [props.dailyActiveUsersReport, selectedCohorts, selectedPlatforms, selectedUserIds],
+    [dailyActiveUsersReport, selectedCohorts, selectedPlatforms, selectedUserIds],
   );
   // The cohort split comes from the unfiltered daily active users report, so narrowing a filter
   // cannot change which day an installer counts as new on.
   const filteredCatalogInstallsReport = useMemo(
-    () => filterCatalogInstallsReport(props.catalogInstallsReport, {
+    () => filterCatalogInstallsReport(catalogInstallsReport, {
       selectedUserIds,
       selectedCohorts,
       selectedPlatforms,
-      firstActiveDateByUserId: props.dailyActiveUsersReport.firstActiveDateByUserId,
+      firstActiveDateByUserId: dailyActiveUsersReport.firstActiveDateByUserId,
     }),
     [
-      props.catalogInstallsReport,
-      props.dailyActiveUsersReport.firstActiveDateByUserId,
+      catalogInstallsReport,
+      dailyActiveUsersReport.firstActiveDateByUserId,
       selectedCohorts,
       selectedPlatforms,
       selectedUserIds,
@@ -271,16 +290,16 @@ export function AdminDashboard(
   );
   const userFilterOptionUsers = useMemo(
     () => buildUserFilterOptionUsers(
-      props.report.users,
-      props.report.communityOnlyUsers,
-      props.dailyActiveUsersReport.users,
-      props.catalogInstallsReport.users,
+      report.users,
+      report.communityOnlyUsers,
+      dailyActiveUsersReport.users,
+      catalogInstallsReport.users,
     ),
     [
-      props.catalogInstallsReport.users,
-      props.dailyActiveUsersReport.users,
-      props.report.communityOnlyUsers,
-      props.report.users,
+      catalogInstallsReport.users,
+      dailyActiveUsersReport.users,
+      report.communityOnlyUsers,
+      report.users,
     ],
   );
   const reportUserById = useMemo(
@@ -295,33 +314,33 @@ export function AdminDashboard(
   // they appear and no section can ever ask the shared scale for an id it does not hold.
   const userColorScale = useMemo(
     () => getUserColorScale(getStableUserColorDomain([
-      ...props.report.users,
-      ...props.report.communityOnlyUsers,
-      ...props.dailyActiveUsersReport.users,
-      ...props.catalogInstallsReport.users,
+      ...report.users,
+      ...report.communityOnlyUsers,
+      ...dailyActiveUsersReport.users,
+      ...catalogInstallsReport.users,
     ])),
     [
-      props.catalogInstallsReport.users,
-      props.dailyActiveUsersReport.users,
-      props.report.communityOnlyUsers,
-      props.report.users,
+      catalogInstallsReport.users,
+      dailyActiveUsersReport.users,
+      report.communityOnlyUsers,
+      report.users,
     ],
   );
   // Built from the loaded report rather than the filtered one, for the same reason the user colour
   // domain is: a deck must not change colour because a filter removed another deck.
   const packageColorScale = useMemo(
     () => getPackageColorScale(
-      props.catalogInstallsReport.packages.map((catalogPackage) => catalogPackage.packageSlug),
+      catalogInstallsReport.packages.map((catalogPackage) => catalogPackage.packageSlug),
     ),
-    [props.catalogInstallsReport.packages],
+    [catalogInstallsReport.packages],
   );
   const activeUserFilters = useMemo(
     () => buildActiveUserFilters(selectedUserIds, reportUserById),
     [selectedUserIds, reportUserById],
   );
   const normalizedUserFilterSearchValue = useMemo(
-    () => getNormalizedSearchValue(userFilterSearchValue),
-    [userFilterSearchValue],
+    () => getNormalizedSearchValue(props.userFilterSearchValue),
+    [props.userFilterSearchValue],
   );
   const searchableUserFilterOptions = useMemo(
     () => buildSearchableUserFilterOptions(userFilterOptionUsers),
@@ -340,34 +359,15 @@ export function AdminDashboard(
   const hiddenUserFilterOptionCount = matchingUserFilterOptions.length - visibleUserFilterOptions.length;
 
   return (
-    <main className="shell">
-      <section className="hero">
-        <div>
-          <p className="eyebrow">Admin Analytics</p>
-          <h1>Product Analytics</h1>
-        </div>
-        <div className="hero-meta">
-          <span className="hero-badge">Signed in as {props.adminEmail}</span>
-          <span className="hero-badge">General range {formatDateRangeLabel(props.report.from)} to {formatDateRangeLabel(props.report.to)}</span>
-          <span className="hero-badge">All dates and times in UTC</span>
-        </div>
-      </section>
-
-      <nav className="analytics-navigation" aria-label="Analytics sections">
-        <AdminLink className={props.activeArea === "general" ? "active" : ""} path={getAnalyticsAreaPath("general")} ariaCurrent={props.activeArea === "general" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.general}</AdminLink>
-        <AdminLink className={props.activeArea === "funnels" ? "active" : ""} path={getAnalyticsAreaPath("funnels")} ariaCurrent={props.activeArea === "funnels" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.funnels}</AdminLink>
-        <AdminLink testId="analytics-audience-tab" className={props.activeArea === "audience" ? "active" : ""} path={getAnalyticsAreaPath("audience")} ariaCurrent={props.activeArea === "audience" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.audience}</AdminLink>
-      </nav>
-
-      {props.activeArea !== "funnels" ? <>
-        <ReviewEventsByDateFilters
-        availableRange={props.availableRange}
-        defaultRange={props.defaultRange}
+    <>
+      <ReviewEventsByDateFilters
+        availableRange={props.data.availableRange}
+        defaultRange={props.data.defaultRange}
         appliedRange={{
-          from: props.report.from,
-          to: props.report.to,
+          from: report.from,
+          to: report.to,
         }}
-        draftRange={draftRange}
+        draftRange={props.draftRange}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
         reportUsers={userFilterOptionUsers}
@@ -377,7 +377,7 @@ export function AdminDashboard(
         selectedCohortSet={selectedCohortSet}
         selectedPlatforms={selectedPlatforms}
         selectedPlatformSet={selectedPlatformSet}
-        userFilterSearchValue={userFilterSearchValue}
+        userFilterSearchValue={props.userFilterSearchValue}
         visibleUserFilterOptions={visibleUserFilterOptions}
         matchingUserFilterOptionCount={matchingUserFilterOptions.length}
         hiddenUserFilterOptionCount={hiddenUserFilterOptionCount}
@@ -388,7 +388,7 @@ export function AdminDashboard(
         onDateRangeSubmit={handleDateRangeSubmit}
         onDateRangePresetSelect={handleDateRangePresetSelect}
         onDateRangeReset={handleDateRangeReset}
-        onUserFilterSearchChange={setUserFilterSearchValue}
+        onUserFilterSearchChange={props.onUserFilterSearchChange}
         onUserFilterChange={handleUserFilterChange}
         onUserFilterRemove={handleUserFilterRemove}
         onUserFilterClear={handleUserFilterClear}
@@ -397,10 +397,10 @@ export function AdminDashboard(
         onAllFiltersReset={handleAllFiltersReset}
       />
 
-        {props.activeArea === "general" ? <>
+      {props.activeArea === "general" ? <>
         <DailyActiveUsersSection
         filteredReport={filteredDailyActiveUsersReport}
-        generatedAtUtc={props.dailyActiveUsersReport.generatedAtUtc}
+        generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
         isReportLoading={props.isReportLoading}
         userColorScale={userColorScale}
         onUserFilterApply={handleChartUserFilterApply}
@@ -408,13 +408,13 @@ export function AdminDashboard(
 
         <CatalogInstallsSection
         filteredReport={filteredCatalogInstallsReport}
-        generatedAtUtc={props.catalogInstallsReport.generatedAtUtc}
+        generatedAtUtc={catalogInstallsReport.generatedAtUtc}
         packageColorScale={packageColorScale}
       />
 
         <ReviewActivitySection
         filteredReport={filteredReport}
-        generatedAtUtc={props.report.generatedAtUtc}
+        generatedAtUtc={report.generatedAtUtc}
         isReportLoading={props.isReportLoading}
         filteredUserById={filteredUserById}
         userColorScale={userColorScale}
@@ -422,8 +422,8 @@ export function AdminDashboard(
         />
         </> : <AudienceSection
           config={props.config}
-          from={props.report.from}
-          to={props.report.to}
+          from={report.from}
+          to={report.to}
           selectedUserIds={selectedUserIds}
           selectedCohorts={selectedCohorts}
           selectedPlatforms={selectedPlatforms}
@@ -431,12 +431,112 @@ export function AdminDashboard(
           onLastThreeDays={handleLastThreeDays}
           onTerminalAdminError={props.onTerminalAdminError}
         />}
-      </> : (
+    </>
+  );
+}
+
+export function AdminDashboard(
+  props: Readonly<{
+    activeArea: AnalyticsArea;
+    onNavigate: (path: string) => void;
+    config: AdminAppConfig;
+    adminEmail: string;
+    reportState: AdminReportState;
+    onReportRetry: () => void;
+    onDateRangeApply: (range: ReviewEventsByDateRange) => void;
+    onDateRangeReset: () => void;
+    onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+  }>,
+): JSX.Element {
+  // Filter selections live above the report areas so that visiting Funnels, which holds no report
+  // data, does not discard them. A null draft range follows the applied range of the loaded report.
+  const [draftRange, setDraftRange] = useState<ReviewEventsByDateRange | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<ReadonlyArray<string>>([]);
+  const [selectedCohorts, setSelectedCohorts] = useState<ReadonlyArray<ReviewEventCohort>>([...reviewEventCohorts]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<ReadonlyArray<ReviewEventPlatform>>([...reviewEventPlatforms]);
+  const [userFilterSearchValue, setUserFilterSearchValue] = useState<string>("");
+
+  const appliedRange = props.reportState.status === "ready"
+    ? { from: props.reportState.data.report.from, to: props.reportState.data.report.to }
+    : null;
+  const appliedFrom = appliedRange === null ? null : appliedRange.from;
+  const appliedTo = appliedRange === null ? null : appliedRange.to;
+
+  useEffect(() => {
+    if (appliedFrom === null || appliedTo === null) {
+      return;
+    }
+
+    setDraftRange({
+      from: appliedFrom,
+      to: appliedTo,
+    });
+  }, [appliedFrom, appliedTo]);
+
+  return (
+    <main className="shell">
+      <section className="hero">
+        <div>
+          <p className="eyebrow">Admin Analytics</p>
+          <h1>Product Analytics</h1>
+        </div>
+        <div className="hero-meta">
+          <span className="hero-badge">Signed in as {props.adminEmail}</span>
+          {appliedRange !== null ? <span className="hero-badge">General range {formatDateRangeLabel(appliedRange.from)} to {formatDateRangeLabel(appliedRange.to)}</span> : null}
+          <span className="hero-badge">All dates and times in UTC</span>
+        </div>
+      </section>
+
+      <nav className="analytics-navigation" aria-label="Analytics sections">
+        <AdminLink className={props.activeArea === "general" ? "active" : ""} path={getAnalyticsAreaPath("general")} ariaCurrent={props.activeArea === "general" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.general}</AdminLink>
+        <AdminLink className={props.activeArea === "funnels" ? "active" : ""} path={getAnalyticsAreaPath("funnels")} ariaCurrent={props.activeArea === "funnels" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.funnels}</AdminLink>
+        <AdminLink testId="analytics-audience-tab" className={props.activeArea === "audience" ? "active" : ""} path={getAnalyticsAreaPath("audience")} ariaCurrent={props.activeArea === "audience" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.audience}</AdminLink>
+      </nav>
+
+      {props.activeArea === "funnels" ? (
         <CatalogInstallFunnelSection
           config={props.config}
           onTerminalAdminError={props.onTerminalAdminError}
         />
-      )}
+      ) : null}
+
+      {props.activeArea !== "funnels" && props.reportState.status === "loading" ? (
+        <p className="report-state" aria-live="polite">Loading analytics reports…</p>
+      ) : null}
+
+      {props.activeArea !== "funnels" && props.reportState.status === "error" ? (
+        <div className="report-state report-state-error">
+          <strong>Analytics reports failed to load.</strong>
+          <span>{props.reportState.message}</span>
+          <button className="filter-button" type="button" onClick={props.onReportRetry}>Retry</button>
+        </div>
+      ) : null}
+
+      {props.activeArea !== "funnels" && props.reportState.status === "ready" ? (
+        <AnalyticsReportSections
+          activeArea={props.activeArea}
+          config={props.config}
+          data={props.reportState.data}
+          isReportLoading={props.reportState.isReportLoading}
+          dateRangeError={props.reportState.dateRangeError}
+          draftRange={draftRange ?? {
+            from: props.reportState.data.report.from,
+            to: props.reportState.data.report.to,
+          }}
+          selectedUserIds={selectedUserIds}
+          selectedCohorts={selectedCohorts}
+          selectedPlatforms={selectedPlatforms}
+          userFilterSearchValue={userFilterSearchValue}
+          onDraftRangeChange={setDraftRange}
+          onSelectedUserIdsChange={setSelectedUserIds}
+          onSelectedCohortsChange={setSelectedCohorts}
+          onSelectedPlatformsChange={setSelectedPlatforms}
+          onUserFilterSearchChange={setUserFilterSearchValue}
+          onDateRangeApply={props.onDateRangeApply}
+          onDateRangeReset={props.onDateRangeReset}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+      ) : null}
     </main>
   );
 }
