@@ -133,6 +133,10 @@ const STREAK_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
     title: "当前连续天数",
     description: "连续记录日是至少有一次卡片复习被评为重来、困难、良好或简单的本地日。排名使用公共每日快照中的当前连续天数；公共数值可能落后于你的实时个人连续记录。",
   },
+  fr: {
+    title: "Jours de série actuels",
+    description: "Un jour de série est un jour local avec au moins une révision de carte évaluée À revoir, Difficile, Correct ou Facile. Le classement utilise les jours de série actuels de l'instantané public quotidien ; les valeurs publiques peuvent être en retard sur votre série personnelle en direct.",
+  },
   de: {
     title: "Aktuelle Serien-Tage",
     description: "Ein Serien-Tag ist ein lokaler Tag mit mindestens einer Kartenabfrage, die mit Nochmal, Schwer, Gut oder Leicht bewertet wurde. Ränge verwenden aktuelle Serien-Tage aus dem öffentlichen täglichen Snapshot; öffentliche Werte können deiner aktuellen persönlichen Serie hinterherhinken.",
@@ -144,6 +148,10 @@ const STREAK_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
   ja: {
     title: "現在の連続日数",
     description: "連続日とは、少なくとも1回のカード復習がもう一度、難しい、良い、簡単のいずれかで評価されたローカル日です。順位は公開の日次スナップショットの現在の連続日数を使います。公開値は個人の最新連続記録より遅れることがあります。",
+  },
+  pt: {
+    title: "Dias de sequência atual",
+    description: "Um dia de sequência é um dia local com pelo menos uma revisão de cartão avaliada como De novo, Difícil, Bom ou Fácil. A classificação usa os dias de sequência atual do instantâneo público diário; os valores públicos podem ficar atrás da sua sequência pessoal em tempo real.",
   },
   ru: {
     title: "Текущая серия в днях",
