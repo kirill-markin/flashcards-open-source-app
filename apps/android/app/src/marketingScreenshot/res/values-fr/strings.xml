@@ -1,0 +1,64 @@
+<resources>
+    <string name="top_level_review">Révision</string>
+    <string name="top_level_progress">Progression</string>
+    <string name="top_level_cards">Cartes</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">Paramètres</string>
+
+    <string name="progress_title">Progression</string>
+    <string name="progress_streak_title">Série</string>
+    <string name="progress_streak_subtitle">5 dernières semaines</string>
+    <string name="progress_reviews_title">Révisions</string>
+
+    <string name="cards_title">Cartes</string>
+    <string name="cards_add_card_content_description">Ajouter une carte</string>
+    <string name="cards_search_label">Rechercher des cartes</string>
+    <string name="cards_empty_no_cards">Aucune carte pour l\'instant. Touchez le bouton d\'ajout pour créer la première carte.</string>
+    <string name="cards_medium">Moyen</string>
+    <string name="cards_due_new">Nouvelle</string>
+
+    <string name="review_title">Révision</string>
+    <string name="review_all_cards">Toutes les cartes</string>
+    <string name="review_front_label">Recto</string>
+    <string name="review_back_label">Verso</string>
+    <string name="review_due_label">Échéance : %1$s</string>
+    <string name="review_due_new">Nouvelle</string>
+    <string name="review_reps_label">Répét. %1$d</string>
+    <string name="review_lapses_label">Oublis %1$d</string>
+    <string name="review_show_answer">Afficher la réponse</string>
+    <string name="review_again">À revoir</string>
+    <string name="review_hard">Difficile</string>
+    <string name="review_good">Correct</string>
+    <string name="review_easy">Facile</string>
+    <string name="review_medium">Moyen</string>
+    <string name="review_interval_now">maintenant</string>
+    <string name="review_interval_less_than_one_minute">dans moins d\'une minute</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="one">dans %d minute</item>
+        <item quantity="other">dans %d minutes</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="one">dans %d heure</item>
+        <item quantity="other">dans %d heures</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="one">dans %d jour</item>
+        <item quantity="other">dans %d jours</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">Carte · %1$s</string>
+    <string name="ai_consent_title">Avant d\'utiliser AI</string>
+    <string name="ai_consent_warning">AI peut se tromper. Vérifiez les résultats importants avant de vous y fier.</string>
+    <string name="ai_consent_accept">OK</string>
+    <string name="ai_privacy_policy">Politique de confidentialité</string>
+    <string name="ai_terms_of_service">Conditions d\'utilisation</string>
+    <string name="ai_support">Assistance</string>
+    <string name="ai_consent_workspace_disclosure">Les requêtes AI de l\'espace de travail &quot;%1$s&quot; peuvent envoyer des instructions, des fichiers importés, des images et de l\'audio dicté au service AI hébergé.</string>
+    <string name="ai_message_label">Message</string>
+    <string name="ai_attach">Joindre</string>
+    <string name="ai_dictate">Dicter</string>
+    <string name="ai_send">Envoyer</string>
+    <string name="ai_empty_title">Démarrer un nouveau chat AI</string>
+    <string name="ai_empty_body">Posez des questions sur les cartes et l\'historique de révision, ou joignez des notes à analyser dans %1$s.</string>
+</resources>
