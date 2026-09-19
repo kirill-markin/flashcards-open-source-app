@@ -234,6 +234,9 @@ Anyone removing the backticks must also remove the bold.
 
 ## Localization rules
 
+Adding a language is a cross-client rollout, and the demo card is one step in it:
+see [docs/add-language.md](add-language.md).
+
 Binding for all three clients:
 
 - one paragraph per string resource: four resources per client, one front string plus three back
