@@ -145,6 +145,10 @@ const PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
     title: "有效复习",
     description: "“困难”“良好”“简单”计入排名，“重来”不计入。",
   },
+  fr: {
+    title: "Révisions comptabilisées",
+    description: "Les révisions Difficile, Correct et Facile comptent pour votre classement. À revoir ne compte pas.",
+  },
   de: {
     title: "Gewertete Wiederholungen",
     description: "Schwer, Gut und Leicht zählen für deinen Rang. Nochmal zählt nicht.",
@@ -156,6 +160,10 @@ const PROGRESS_LEADERBOARD_METRIC_COPY_BY_LOCALE: Readonly<
   ja: {
     title: "有効な復習",
     description: "「難しい」「普通」「簡単」はランクに加算されます。「もう一度」は加算されません。",
+  },
+  pt: {
+    title: "Revisões válidas",
+    description: "As revisões Difícil, Bom e Fácil contam para a sua posição. De novo não conta.",
   },
   ru: {
     title: "Зачтённые повторения",
