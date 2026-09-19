@@ -493,7 +493,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 throw error
             } catch (error: Exception) {
                 NotificationDiagnosticsUiState.Failed(
-                    message = error.message ?: "Notification diagnostics failed."
+                    message = error.message
+                        ?: context.getString(R.string.notification_diagnostics_failed_message)
                 )
             }
         }
