@@ -52,6 +52,7 @@ run_marketing_guest_cleanup() {
 
 cleanup_on_exit() {
     local exit_status="$?"
+    rm -rf "$staging_dir"
     if ! run_marketing_guest_cleanup; then
         echo "ERROR: Android marketing screenshot guest cleanup failed." >&2
         if [[ "$exit_status" -eq 0 ]]; then
@@ -62,9 +63,17 @@ cleanup_on_exit() {
 }
 
 "$repo_root/scripts/android/android-set-device-locale.sh" "$locale_prefix"
+adb shell cmd uimode night yes
 "$repo_root/scripts/android/android-dismiss-system-dialogs.sh"
+staging_dir="$(mktemp -d)"
 trap cleanup_on_exit EXIT
 run_marketing_guest_cleanup
+
+# Use the device clock because emulator and host clocks can differ.
+run_started_at="$(adb shell date +%s | tr -d '\r')"
+for file_name in "${file_names[@]}"; do
+    adb shell rm -f "$remote_screenshot_dir/$file_name"
+done
 
 cd "$android_dir"
 echo "Running the unified Android marketing screenshot flow."
@@ -78,10 +87,11 @@ echo "Running the unified Android marketing screenshot flow."
 mkdir -p "$output_dir"
 
 for file_name in "${file_names[@]}"; do
-    output_path="$output_dir/$file_name"
-    remote_screenshot_path="$remote_screenshot_dir/$file_name"
-    temp_output_path="$(mktemp)"
-    adb exec-out cat "$remote_screenshot_path" > "$temp_output_path"
-    mv "$temp_output_path" "$output_path"
-    echo "Saved screenshot to $output_path"
+    bash "$repo_root/scripts/android/pull-marketing-screenshot.sh" \
+        "$remote_screenshot_dir/$file_name" "$staging_dir/$file_name" "$run_started_at"
+done
+
+for file_name in "${file_names[@]}"; do
+    mv "$staging_dir/$file_name" "$output_dir/$file_name"
+    echo "Saved screenshot to $output_dir/$file_name"
 done

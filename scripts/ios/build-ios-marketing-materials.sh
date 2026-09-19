@@ -103,9 +103,16 @@ resolve_booted_simulator_id() {
         return
     fi
 
-    mapfile -t booted_ids < <(
+    local booted_ids_output
+    local line
+    local -a booted_ids=()
+    booted_ids_output="$(
         list_booted_simulator_lines | sed -nE 's/^.*\(([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\) \(Booted\)[[:space:]]*$/\1/p'
-    )
+    )"
+    booted_ids=()
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && booted_ids+=("$line")
+    done <<< "${booted_ids_output}"
 
     if [[ "${#booted_ids[@]}" -eq 0 ]]; then
         echo "No booted iOS simulator was found. Boot one simulator manually first." >&2
@@ -219,14 +226,20 @@ resolve_screenshot_paths() {
     local screenshot_index=""
     local -a matching_paths=()
 
+    local matching_paths_output
+    local line
     for screenshot_index in 1 2 3 4 5; do
-        mapfile -t matching_paths < <(
+        matching_paths_output="$(
             find "$screenshot_directory" \
                 -maxdepth 1 \
                 -type f \
                 -name "${locale}-${screenshot_index}_*.png" \
                 -print | sort
-        )
+        )"
+        matching_paths=()
+        while IFS= read -r line; do
+            [[ -n "$line" ]] && matching_paths+=("$line")
+        done <<< "${matching_paths_output}"
 
         if [[ "${#matching_paths[@]}" -eq 0 ]]; then
             echo "Expected raw screenshot file matching $screenshot_directory/${locale}-${screenshot_index}_*.png" >&2
@@ -429,7 +442,11 @@ if [[ "$use_all_locales" == "false" && -z "$requested_locale" ]]; then
     use_all_locales="true"
 fi
 
-mapfile -t resolved_locales < <(resolve_requested_locales "$use_all_locales" "$requested_locale")
+resolved_locales_output="$(resolve_requested_locales "$use_all_locales" "$requested_locale")"
+resolved_locales=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] && resolved_locales+=("$line")
+done <<< "${resolved_locales_output}"
 
 output_directory="$marketing_output_root/$resolved_family"
 mkdir -p "$output_directory"
@@ -439,7 +456,11 @@ for locale in "${resolved_locales[@]}"; do
         capture_raw_screenshots_for_locale "$locale"
     fi
 
-    mapfile -t screenshot_paths < <(resolve_screenshot_paths "$resolved_family" "$locale")
+    screenshot_paths_output="$(resolve_screenshot_paths "$resolved_family" "$locale")"
+    screenshot_paths=()
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && screenshot_paths+=("$line")
+    done <<< "${screenshot_paths_output}"
     output_path="$output_directory/${locale}-1-2-3-4-5-horizontal-dark-gray.png"
 
     echo "Building marketing material for locale $locale"

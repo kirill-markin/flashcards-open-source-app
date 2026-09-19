@@ -12,7 +12,6 @@ The generator is a small manual pipeline built from:
 
 It writes into the directories used for committed App Store marketing PNG assets and derived marketing compositions, but it is not part of CI or release-gate validation.
 Because this generator drives local iOS simulator-backed XCUITest flows, it is slow, so run the screenshot-generation scripts only when screenshots are actually being regenerated.
-The generator configuration now targets five-shot outputs. Existing repository media can still contain the previous four-shot assets until the screenshot flows and derived-material builder are run and the generated PNGs are reviewed.
 
 ## What is included
 
@@ -24,7 +23,7 @@ The expected generated inventory is five screenshot outputs per locale:
 4. Review AI draft state
 5. Cards list state
 
-One unified scenario seeds one guest workspace from one locale fixture, writes the canonical 30-day-ish study-history pattern onto support cards, keeps the untouched opportunity-cost card at the top of Review and Cards, and captures screenshots 1, 2, 3, 4, and 5 in one supported run. The shared history pattern yields `currentStreakDays=8`, `hasReviewedToday=true`, and `activeReviewDays=16`.
+One unified scenario seeds one guest workspace from one locale fixture, writes the canonical 30-day-ish study-history pattern onto support cards, keeps the untouched opportunity-cost card at the top of Review and Cards, and captures screenshots 1, 2, 3, 4, and 5 in one supported run. The shared history pattern yields `currentStreakDays=12`, `hasReviewedToday=true`, and `activeReviewDays=16`.
 
 The derived marketing-material flow then takes those five localized screenshots and builds one horizontal PNG per locale in the same order:
 
@@ -68,7 +67,7 @@ Those two files each carry their own copy of the supported locale list, the loca
 
 ## Guest cloud cleanup lifecycle
 
-The manual screenshot flows now treat guest cloud sessions as short-lived per-run fixtures:
+The manual screenshot flows treat guest cloud sessions as short-lived per-run fixtures:
 
 - before each marketing screenshot bootstrap, the wrapper runs a dedicated cleanup XCUITest entrypoint that relaunches the app, deletes any stored guest session remotely through `POST /guest-auth/session/delete`, and performs the existing local identity reset
 - after each manual screenshot test, XCTest still relaunches the app in the same dedicated cleanup scenario and waits for the UI-test readiness marker before finishing teardown
