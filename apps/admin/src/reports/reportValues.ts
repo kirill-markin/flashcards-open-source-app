@@ -70,7 +70,7 @@ export type ReportRangePreset =
   | Readonly<{ id: string; label: string; kind: "lookback"; lookbackDays: number }>
   | Readonly<{ id: string; label: string; kind: "all-time" }>;
 
-export const lastThreeDaysReportRangePreset: ReportRangePreset = {
+const lastThreeDaysReportRangePreset: ReportRangePreset = {
   id: "last-3-days",
   label: "Last 3 days",
   kind: "lookback",
