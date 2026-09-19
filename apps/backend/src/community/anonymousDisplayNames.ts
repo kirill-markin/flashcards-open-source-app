@@ -2,21 +2,30 @@ import { arAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/ar";
 import { deAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/de";
 import { enAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/en";
 import { esAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/es";
+import { frAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/fr";
 import { hiAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/hi";
 import { jaAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/ja";
+import { ptAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/pt";
 import { ruAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/ru";
 import type { AnonymousDisplayNameWordPools } from "./anonymousDisplayNames/types";
 import { zhHansAnonymousDisplayNameWordPools } from "./anonymousDisplayNames/zhHans";
 
 export type { AnonymousDisplayNameWordPools } from "./anonymousDisplayNames/types";
 
+// The Android client is moving to advertise the full set of languages that
+// Google Play App strings translates for it, but only the locales listed below
+// have curated native word pools. Every other language intentionally resolves to
+// `defaultAnonymousDisplayNameLocale` ("en") instead of getting a
+// machine-translated pool.
 export const supportedAnonymousDisplayNameLocales = [
   "en",
   "ar",
   "zh-Hans",
+  "fr",
   "de",
   "hi",
   "ja",
+  "pt",
   "ru",
   "es-MX",
   "es-ES",
@@ -30,8 +39,10 @@ const primaryLanguageAnonymousDisplayNameLocaleFallbacks: Readonly<Record<string
   ar: "ar",
   de: "de",
   en: "en",
+  fr: "fr",
   hi: "hi",
   ja: "ja",
+  pt: "pt",
   ru: "ru",
 };
 
@@ -46,9 +57,11 @@ const anonymousDisplayNameWordPoolsByLocale: Readonly<
   en: enAnonymousDisplayNameWordPools,
   ar: arAnonymousDisplayNameWordPools,
   "zh-Hans": zhHansAnonymousDisplayNameWordPools,
+  fr: frAnonymousDisplayNameWordPools,
   de: deAnonymousDisplayNameWordPools,
   hi: hiAnonymousDisplayNameWordPools,
   ja: jaAnonymousDisplayNameWordPools,
+  pt: ptAnonymousDisplayNameWordPools,
   ru: ruAnonymousDisplayNameWordPools,
   "es-MX": esAnonymousDisplayNameWordPools,
   "es-ES": esAnonymousDisplayNameWordPools,
