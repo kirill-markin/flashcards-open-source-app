@@ -109,7 +109,7 @@ export function AudienceSection(props: Readonly<{
   return <section className="dashboard-section" data-testid="audience-section">
     <header className="dashboard-section-header">
       <p className="eyebrow">Audience report</p><h2>Countries and UI languages</h2>
-      <p className="dashboard-section-description">Distinct resolved users, including linked guests: everyone with at least one app open inside the selected range. Active admins and example.com test accounts are excluded.</p>
+      <p className="dashboard-section-description">Distinct resolved users, including linked guests: everyone with at least one app open inside the selected range. Active admins, example.com test accounts and the actors on the analytics exclusion list are excluded.</p>
     </header>
     <div className="funnel-filter-panel">
       <span>{props.filters.dateRange.from} to {props.filters.dateRange.to}, inclusive</span>
