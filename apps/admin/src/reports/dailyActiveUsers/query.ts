@@ -13,6 +13,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildEventPlatformsFilterSql,
+  buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
 } from "../../filters/filterSql";
@@ -269,6 +270,7 @@ export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string 
     `  AND ${buildUsersFilterSql("app_opens.actor_id", filters.users)}`,
     `  AND ${buildUserCohortsFilterSql(dailyActiveUsersCohortSqlExpression, filters.userCohorts)}`,
     `  AND ${buildEventPlatformsFilterSql("app_opens.platform", filters.eventPlatforms)}`,
+    `  AND ${buildMinimumEventCountsFilterSql("app_opens.actor_id", filters.minimumEventCounts, dateRange)}`,
     "GROUP BY",
     "  app_opens.active_date,",
     "  app_opens.actor_id,",
