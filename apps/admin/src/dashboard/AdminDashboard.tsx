@@ -14,6 +14,7 @@ import {
 import { getPackageColorScale } from "../charts/chartPrimitives";
 import { formatDateRangeLabel } from "../charts/formatting";
 import type { AdminAppConfig } from "../config";
+import { AdminLink } from "../navigation/AdminLink";
 import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallFunnelSection } from "../reports/catalogInstallFunnel/CatalogInstallFunnelSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
@@ -33,6 +34,7 @@ import {
   filterReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "../reports/reviewEventsByDate/query";
+import { analyticsAreaLabels, getAnalyticsAreaPath, type AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 function buildUserFilterOptionUsers(
@@ -116,6 +118,8 @@ function getUpdatedPlatformFilterSelection(
 
 export function AdminDashboard(
   props: Readonly<{
+    activeArea: AnalyticsArea;
+    onNavigate: (path: string) => void;
     config: AdminAppConfig;
     report: ReviewEventsByDateReport;
     dailyActiveUsersReport: DailyActiveUsersReport;
@@ -130,7 +134,6 @@ export function AdminDashboard(
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
-  const [activeArea, setActiveArea] = useState<"general" | "funnels" | "audience">("general");
   const [draftRange, setDraftRange] = useState<ReviewEventsByDateRange>({
     from: props.report.from,
     to: props.report.to,
@@ -345,12 +348,12 @@ export function AdminDashboard(
       </section>
 
       <nav className="analytics-navigation" aria-label="Analytics sections">
-        <button className={activeArea === "general" ? "active" : ""} type="button" aria-current={activeArea === "general" ? "page" : undefined} onClick={() => setActiveArea("general")}>General</button>
-        <button className={activeArea === "funnels" ? "active" : ""} type="button" aria-current={activeArea === "funnels" ? "page" : undefined} onClick={() => setActiveArea("funnels")}>Funnels</button>
-        <button data-testid="analytics-audience-tab" className={activeArea === "audience" ? "active" : ""} type="button" aria-current={activeArea === "audience" ? "page" : undefined} onClick={() => setActiveArea("audience")}>Audience</button>
+        <AdminLink className={props.activeArea === "general" ? "active" : ""} path={getAnalyticsAreaPath("general")} ariaCurrent={props.activeArea === "general" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.general}</AdminLink>
+        <AdminLink className={props.activeArea === "funnels" ? "active" : ""} path={getAnalyticsAreaPath("funnels")} ariaCurrent={props.activeArea === "funnels" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.funnels}</AdminLink>
+        <AdminLink testId="analytics-audience-tab" className={props.activeArea === "audience" ? "active" : ""} path={getAnalyticsAreaPath("audience")} ariaCurrent={props.activeArea === "audience" ? "page" : undefined} onNavigate={props.onNavigate}>{analyticsAreaLabels.audience}</AdminLink>
       </nav>
 
-      {activeArea !== "funnels" ? <>
+      {props.activeArea !== "funnels" ? <>
         <ReviewEventsByDateFilters
         availableRange={props.availableRange}
         defaultRange={props.defaultRange}
@@ -387,7 +390,7 @@ export function AdminDashboard(
         onAllFiltersReset={handleAllFiltersReset}
       />
 
-        {activeArea === "general" ? <>
+        {props.activeArea === "general" ? <>
         <DailyActiveUsersSection
         filteredReport={filteredDailyActiveUsersReport}
         generatedAtUtc={props.dailyActiveUsersReport.generatedAtUtc}

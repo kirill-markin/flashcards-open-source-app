@@ -135,20 +135,21 @@ h2 {
   background: var(--panel);
 }
 
-.analytics-navigation button {
+.analytics-navigation a {
+  display: inline-flex;
+  align-items: center;
   min-height: 40px;
   padding: 0 18px;
-  border: 0;
   border-radius: 10px;
-  background: transparent;
   color: var(--muted);
   cursor: pointer;
   font: inherit;
   font-size: 14px;
   font-weight: 800;
+  text-decoration: none;
 }
 
-.analytics-navigation button.active {
+.analytics-navigation a.active {
   background: var(--accent);
   color: var(--text);
 }
@@ -983,6 +984,24 @@ h2 {
 .state-panel {
   max-width: 620px;
   padding: 28px;
+}
+
+.state-links {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.state-link {
+  color: var(--accent-strong);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.state-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 1100px) {
