@@ -69,6 +69,8 @@ const deCatalog: TranslationCatalog = {
       ru: "Russisch",
       "es-MX": "Spanisch (Mexiko)",
       "es-ES": "Spanisch (Spanien)",
+      fr: "Französisch",
+      "pt-BR": "Portugiesisch (Brasilien)",
     },
     preferenceAuto: "Automatisch (Browser/Gerät)",
   },
