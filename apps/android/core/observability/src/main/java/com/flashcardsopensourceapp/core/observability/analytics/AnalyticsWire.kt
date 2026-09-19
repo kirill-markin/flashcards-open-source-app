@@ -137,6 +137,7 @@ internal fun renderAnalyticsBatchBody(
     anonymousId: String?,
     sessionId: String?,
     deviceContext: AnalyticsDeviceContext?,
+    isAutomation: Boolean,
     eventJsonPayloads: List<String>
 ): String {
     val body = StringBuilder()
@@ -148,6 +149,9 @@ internal fun renderAnalyticsBatchBody(
     body.append(sessionId?.let { value -> JSONObject.quote(value) } ?: "null")
     body.append(",\"context\":")
     body.append(renderAnalyticsContextJson(deviceContext = deviceContext))
+    // The backend drops the whole batch on `true`; `false` is the same as saying nothing.
+    body.append(",\"isAutomation\":")
+    body.append(isAutomation.toString())
     body.append(",\"events\":[")
     eventJsonPayloads.forEachIndexed { index, eventJson ->
         if (index > 0) {
