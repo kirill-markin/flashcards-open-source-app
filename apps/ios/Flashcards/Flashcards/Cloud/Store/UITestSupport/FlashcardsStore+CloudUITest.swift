@@ -150,9 +150,11 @@ private enum FlashcardsUITestMarketingFixtures {
         "en-US",
         "ar",
         "zh-Hans",
+        "fr",
         "de",
         "hi",
         "ja",
+        "pt-BR",
         "ru",
         "es-MX",
         "es-ES"
@@ -164,12 +166,16 @@ private enum FlashcardsUITestMarketingFixtures {
         "ar": "ar",
         "zh-CN": "zh-Hans",
         "zh-Hans": "zh-Hans",
+        "fr": "fr",
+        "fr-FR": "fr",
         "de": "de",
         "de-DE": "de",
         "hi": "hi",
         "hi-IN": "hi",
         "ja": "ja",
         "ja-JP": "ja",
+        "pt-BR": "pt-BR",
+        "pt": "pt-BR",
         "ru": "ru",
         "ru-RU": "ru",
         "es-MX": "es-MX",
@@ -332,6 +338,55 @@ private enum FlashcardsUITestMarketingFixtures {
             ]
         ),
         FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "fr",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "En économie, qu'est-ce que le coût d'opportunité ?",
+                backText: """
+                Le coût d'opportunité est la valeur de la meilleure option à laquelle vous renoncez lorsque vous en choisissez une autre.
+
+                Exemple d'examen : si vous passez votre samedi à réviser un examen de microéconomie au lieu de faire un service rémunéré, le salaire perdu fait partie du coût d'opportunité.
+                """,
+                tags: ["économie"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "En économie, qu'est-ce que le coût d'opportunité ?",
+                    backText: "La valeur de la meilleure option à laquelle vous renoncez lorsque vous en choisissez une autre.",
+                    tags: ["économie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En biologie, qu'est-ce que l'osmose ?",
+                    backText: "Le passage de l'eau à travers une membrane, d'une concentration en soluté plus faible vers une concentration plus élevée.",
+                    tags: ["biologie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En statistique, qu'est-ce que l'écart type ?",
+                    backText: "Une mesure de la dispersion des valeurs autour de la moyenne.",
+                    tags: ["statistique"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En chimie, qu'est-ce qu'un catalyseur ?",
+                    backText: "Une substance qui accélère une réaction chimique sans être consommée par celle-ci.",
+                    tags: ["chimie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En psychologie, qu'est-ce qu'un biais cognitif ?",
+                    backText: "Un schéma de pensée systématique qui peut fausser le jugement et la prise de décision.",
+                    tags: ["psychologie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En physique, qu'est-ce que la vitesse vectorielle ?",
+                    backText: "La rapidité d'un objet associée à la direction de son mouvement.",
+                    tags: ["physique"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En informatique, qu'est-ce que la récursivité ?",
+                    backText: "Une méthode où une fonction résout un problème en s'appelant elle-même sur des versions plus petites de ce problème.",
+                    tags: ["informatique"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "de",
             reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "Was sind in der Volkswirtschaftslehre Opportunitätskosten?",
@@ -475,6 +530,55 @@ private enum FlashcardsUITestMarketingFixtures {
                     frontText: "情報科学でいう再帰とは何ですか？",
                     backText: "関数が自分自身を呼び出しながら、より小さな同種の問題を解く方法です。",
                     tags: ["情報科学"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "pt-BR",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Em economia, o que é custo de oportunidade?",
+                backText: """
+                Custo de oportunidade é o valor da melhor alternativa que você abre mão ao escolher uma opção em vez de outra.
+
+                Exemplo de prova: se você passa o sábado estudando para uma prova de microeconomia em vez de trabalhar em um turno remunerado, o salário perdido faz parte do custo de oportunidade.
+                """,
+                tags: ["economia"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Em economia, o que é custo de oportunidade?",
+                    backText: "O valor da melhor alternativa que você abre mão ao escolher outra opção.",
+                    tags: ["economia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Em biologia, o que é osmose?",
+                    backText: "O movimento da água através de uma membrana, de uma concentração menor de soluto para uma concentração maior.",
+                    tags: ["biologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Em estatística, o que é desvio padrão?",
+                    backText: "Uma medida de quanto os valores se espalham em torno da média.",
+                    tags: ["estatística"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Em química, o que é um catalisador?",
+                    backText: "Uma substância que acelera uma reação química sem ser consumida por ela.",
+                    tags: ["química"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Em psicologia, o que é viés cognitivo?",
+                    backText: "Um padrão sistemático de pensamento que pode distorcer o julgamento e a tomada de decisão.",
+                    tags: ["psicologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Em física, o que é velocidade vetorial?",
+                    backText: "A rapidez de um objeto junto com a direção do seu movimento.",
+                    tags: ["física"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Em ciência da computação, o que é recursão?",
+                    backText: "Um método em que uma função resolve um problema chamando a si mesma em versões menores desse problema.",
+                    tags: ["ciência da computação"]
                 )
             ]
         ),
