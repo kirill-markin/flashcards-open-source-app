@@ -1,12 +1,10 @@
 import {
-  reviewEventCohorts,
   reviewEventPlatforms,
   runAdminQuery,
 } from "../../adminApi";
 import type {
   AdminQueryResultSet,
   AdminQueryValue,
-  ReviewEventCohort,
   ReviewEventPlatform,
   ReviewEventsByDateCommunityRow,
   ReviewEventsByDatePlatformActiveUserTotal,
@@ -18,6 +16,13 @@ import type {
   ReviewEventsByDateUser,
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import {
+  buildEventPlatformsFilterSql,
+  buildUserCohortsFilterSql,
+  buildUsersFilterSql,
+  isCohortOrPlatformNarrowed,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   assertIsString,
@@ -47,12 +52,6 @@ type ReviewEventsByDateCommunityQueryRow = Readonly<{
 export type ReviewEventsByDateRange = Readonly<{
   from: string;
   to: string;
-}>;
-
-export type ReviewEventsByDateFilterState = Readonly<{
-  selectedUserIds: ReadonlyArray<string>;
-  selectedCohorts: ReadonlyArray<ReviewEventCohort>;
-  selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
 }>;
 
 type ReviewEventsByDateAvailableRangeQueryRow = Readonly<{
@@ -324,87 +323,6 @@ function buildReviewEventsByDateReport(
   };
 }
 
-function getReviewEventsByDateRowCohort(row: ReviewEventsByDateRow): ReviewEventCohort {
-  return row.firstReviewDate === row.date ? "new" : "returning";
-}
-
-function isUnfilteredReviewEventsByDateReport(filters: ReviewEventsByDateFilterState): boolean {
-  return filters.selectedUserIds.length === 0
-    && filters.selectedCohorts.length === reviewEventCohorts.length
-    && filters.selectedPlatforms.length === reviewEventPlatforms.length;
-}
-
-function hasRestrictedReviewEventFilters(filters: ReviewEventsByDateFilterState): boolean {
-  return filters.selectedCohorts.length !== reviewEventCohorts.length
-    || filters.selectedPlatforms.length !== reviewEventPlatforms.length;
-}
-
-function shouldIncludeCommunityRow(
-  row: ReviewEventsByDateCommunityRow,
-  selectedUserIdSet: ReadonlySet<string>,
-  filteredReviewUserIdSet: ReadonlySet<string>,
-  isRestrictedToFilteredReviewUsers: boolean,
-): boolean {
-  if (selectedUserIdSet.size > 0 && selectedUserIdSet.has(row.userId) === false) {
-    return false;
-  }
-
-  return isRestrictedToFilteredReviewUsers === false || filteredReviewUserIdSet.has(row.userId);
-}
-
-function shouldIncludeReviewEventsByDateRow(
-  row: ReviewEventsByDateRow,
-  selectedUserIdSet: ReadonlySet<string>,
-  selectedCohortSet: ReadonlySet<ReviewEventCohort>,
-  selectedPlatformSet: ReadonlySet<ReviewEventPlatform>,
-): boolean {
-  if (selectedUserIdSet.size > 0 && selectedUserIdSet.has(row.userId) === false) {
-    return false;
-  }
-
-  if (selectedCohortSet.has(getReviewEventsByDateRowCohort(row)) === false) {
-    return false;
-  }
-
-  return selectedPlatformSet.has(row.platform);
-}
-
-export function filterReviewEventsByDateReport(
-  report: ReviewEventsByDateReport,
-  filters: ReviewEventsByDateFilterState,
-): ReviewEventsByDateReport {
-  if (isUnfilteredReviewEventsByDateReport(filters)) {
-    return report;
-  }
-
-  const selectedUserIdSet = new Set(filters.selectedUserIds);
-  const selectedCohortSet = new Set(filters.selectedCohorts);
-  const selectedPlatformSet = new Set(filters.selectedPlatforms);
-  const rows = report.rows.filter((row) => shouldIncludeReviewEventsByDateRow(
-    row,
-    selectedUserIdSet,
-    selectedCohortSet,
-    selectedPlatformSet,
-  ));
-  const filteredReviewUserIdSet = new Set(rows.map((row) => row.userId));
-  const isRestrictedToFilteredReviewUsers = hasRestrictedReviewEventFilters(filters);
-  const communityRows = report.communityRows.filter((row) => shouldIncludeCommunityRow(
-    row,
-    selectedUserIdSet,
-    filteredReviewUserIdSet,
-    isRestrictedToFilteredReviewUsers,
-  ));
-  const dates = buildRequestedDateRange(report.from, report.to, "Review events report");
-  const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
-
-  return {
-    ...report,
-    rows,
-    communityRows,
-    ...aggregateFields,
-  };
-}
-
 // The first calendar day the dashboard has anything to show, read from the same event table the
 // charts read. Four scalar subqueries rather than one `event_name IN (...)` aggregate: each of them
 // is a `MIN` over a single leading key value of `idx_product_events_event_name_occurred_at` (0119),
@@ -451,6 +369,10 @@ export function buildReviewEventsByDateAvailableRangeSql(): string {
     "  to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS to_date",
   ].join("\n");
 }
+
+// New on the day this actor first answered a card, returning on every later day: the cohort split of
+// this report, and the expression the cohort filter is applied to.
+const reviewCohortSqlExpression = "CASE WHEN review_answers.review_date = actor_first_review_date.first_review_date THEN 'new' ELSE 'returning' END";
 
 // Per-actor breakdown for the admin "Review events by date" report (charts + tooltips).
 //
@@ -533,16 +455,51 @@ export function buildReviewEventsByDateAvailableRangeSql(): string {
 // or whose resolution failed, stays NULL too. Every NULL lands in the `unattributed` bucket, which
 // means no resolved device fact - either the actor behind the row is not a device or no device
 // could be resolved for it - rather than either case alone.
-export function buildReviewEventsByDateSql(from: string, to: string): string {
-  assertValidDateRange({ from, to }, "Review events report");
+export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): string {
+  const dateRange = assertValidDateRange(filters.dateRange, "Review events report");
+  const from = dateRange.from;
+  const to = dateRange.to;
 
   return [
-    // Bounded above only. The cohort split needs each actor's first review day over all of history,
-    // and the range filter is applied once, below, against the same materialized rows. The predicate
-    // is on the raw `occurred_at` column rather than on its UTC date so
-    // `idx_product_events_event_name_occurred_at` stays usable as an (event_name, occurred_at) range
-    // scan.
-    "WITH review_answers AS (",
+    `WITH ${buildReviewAnswersCteSql(to)}`,
+    "SELECT",
+    "  to_char(review_answers.review_date, 'YYYY-MM-DD') AS review_date,",
+    // Emitted under the name the SPA row shape already uses. The value is the resolved actor.
+    "  review_answers.actor_id AS user_id,",
+    "  review_answers.email,",
+    "  review_answers.platform,",
+    "  COUNT(*)::int AS review_event_count,",
+    "  to_char(actor_first_review_date.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
+    "FROM review_answers",
+    "INNER JOIN actor_first_review_date",
+    "  ON actor_first_review_date.actor_id = review_answers.actor_id",
+    `WHERE review_answers.review_date >= ${escapeSqlStringLiteral(from)}::date`,
+    `  AND review_answers.review_date <= ${escapeSqlStringLiteral(to)}::date`,
+    `  AND ${buildUsersFilterSql("review_answers.actor_id", filters.users)}`,
+    `  AND ${buildUserCohortsFilterSql(reviewCohortSqlExpression, filters.userCohorts)}`,
+    `  AND ${buildEventPlatformsFilterSql("review_answers.platform", filters.eventPlatforms)}`,
+    "GROUP BY",
+    "  review_answers.review_date,",
+    "  review_answers.actor_id,",
+    "  review_answers.email,",
+    "  review_answers.platform,",
+    "  actor_first_review_date.first_review_date",
+    "ORDER BY",
+    "  review_answers.review_date ASC,",
+    "  review_event_count DESC,",
+    "  review_answers.actor_id ASC,",
+    "  review_answers.platform ASC",
+  ].join("\n");
+}
+
+// The two CTEs both statements of this report build on. Bounded above only: the cohort split needs
+// each actor's first review day over all of history, and the range filter is applied by each caller
+// against the same materialized rows. The predicate is on the raw `occurred_at` column rather than on
+// its UTC date so `idx_product_events_event_name_occurred_at` stays usable as an
+// (event_name, occurred_at) range scan.
+function buildReviewAnswersCteSql(to: string): string {
+  return [
+    "review_answers AS (",
     "  SELECT",
     "    resolved.actor_id::text AS actor_id,",
     "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS review_date,",
@@ -582,30 +539,6 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
     "  FROM review_answers",
     "  GROUP BY review_answers.actor_id",
     ")",
-    "SELECT",
-    "  to_char(review_answers.review_date, 'YYYY-MM-DD') AS review_date,",
-    // Emitted under the name the SPA row shape already uses. The value is the resolved actor.
-    "  review_answers.actor_id AS user_id,",
-    "  review_answers.email,",
-    "  review_answers.platform,",
-    "  COUNT(*)::int AS review_event_count,",
-    "  to_char(actor_first_review_date.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
-    "FROM review_answers",
-    "INNER JOIN actor_first_review_date",
-    "  ON actor_first_review_date.actor_id = review_answers.actor_id",
-    `WHERE review_answers.review_date >= ${escapeSqlStringLiteral(from)}::date`,
-    `  AND review_answers.review_date <= ${escapeSqlStringLiteral(to)}::date`,
-    "GROUP BY",
-    "  review_answers.review_date,",
-    "  review_answers.actor_id,",
-    "  review_answers.email,",
-    "  review_answers.platform,",
-    "  actor_first_review_date.first_review_date",
-    "ORDER BY",
-    "  review_answers.review_date ASC,",
-    "  review_event_count DESC,",
-    "  review_answers.actor_id ASC,",
-    "  review_answers.platform ASC",
   ].join("\n");
 }
 
@@ -648,11 +581,34 @@ export function buildReviewEventsByDateSql(from: string, to: string): string {
 // catalog gives it no properties, and the other side's id is nowhere on the row - so only the actor
 // can be excluded here. A real person befriending a test account now keeps that friend in their
 // count.
-export function buildReviewEventsByDateCommunitySql(from: string, to: string): string {
-  assertValidDateRange({ from, to }, "Review events community report");
+export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterState): string {
+  const dateRange = assertValidDateRange(filters.dateRange, "Review events community report");
+  const from = dateRange.from;
+  const to = dateRange.to;
+  const userSelectionSql = buildUsersFilterSql("community_user_dates.actor_id", filters.users);
+  // A community row carries no cohort and no platform of its own: the invite and the friendship say
+  // nothing about a device, and neither is the activity either cohort is defined on. So a narrowed
+  // cohort or platform selection cannot be applied to these rows directly, and they fall back to the
+  // actors that still have review events in range under the same selection - the rule the client-side
+  // filter applied before this moved into SQL. While both selections span every value, every actor's
+  // community activity is shown.
+  const isRestrictedToFilteredReviewActors = isCohortOrPlatformNarrowed(filters);
 
   return [
-    "WITH requested_dates AS (",
+    ...(isRestrictedToFilteredReviewActors ? [
+      `WITH ${buildReviewAnswersCteSql(to)},`,
+      "filtered_review_actors AS (",
+      "  SELECT DISTINCT review_answers.actor_id",
+      "  FROM review_answers",
+      "  INNER JOIN actor_first_review_date",
+      "    ON actor_first_review_date.actor_id = review_answers.actor_id",
+      `  WHERE review_answers.review_date >= ${escapeSqlStringLiteral(from)}::date`,
+      `    AND review_answers.review_date <= ${escapeSqlStringLiteral(to)}::date`,
+      `    AND ${buildUserCohortsFilterSql(reviewCohortSqlExpression, filters.userCohorts)}`,
+      `    AND ${buildEventPlatformsFilterSql("review_answers.platform", filters.eventPlatforms)}`,
+      "),",
+      "requested_dates AS (",
+    ] : ["WITH requested_dates AS ("]),
     "  SELECT generate_series(",
     `    ${escapeSqlStringLiteral(from)}::date,`,
     `    ${escapeSqlStringLiteral(to)}::date,`,
@@ -755,6 +711,10 @@ export function buildReviewEventsByDateCommunitySql(from: string, to: string): s
     "LEFT JOIN daily_friendships",
     "  ON daily_friendships.actor_id = community_user_dates.actor_id",
     "  AND daily_friendships.report_date = community_user_dates.report_date",
+    `WHERE ${userSelectionSql}`,
+    ...(isRestrictedToFilteredReviewActors ? [
+      "  AND community_user_dates.actor_id IN (SELECT actor_id FROM filtered_review_actors)",
+    ] : []),
     "ORDER BY",
     "  community_user_dates.report_date ASC,",
     "  community_user_dates.actor_id ASC",
@@ -792,12 +752,11 @@ export async function loadReviewEventsByDateAvailableRange(
 
 export async function loadReviewEventsByDateReport(
   config: AdminAppConfig,
-  from: string,
-  to: string,
+  filters: AnalyticsFilterState,
 ): Promise<ReviewEventsByDateReport> {
   const response = await runAdminQuery(config, [
-    buildReviewEventsByDateSql(from, to),
-    buildReviewEventsByDateCommunitySql(from, to),
+    buildReviewEventsByDateSql(filters),
+    buildReviewEventsByDateCommunitySql(filters),
   ].join(";\n"));
   if (response.resultSets.length !== 2) {
     throw new Error(`Review events report must return exactly two result sets. Got ${response.resultSets.length}.`);
@@ -813,5 +772,11 @@ export async function loadReviewEventsByDateReport(
     throw new Error("Review events community report result set is missing.");
   }
 
-  return buildReviewEventsByDateReport(resultSet, communityResultSet, response.executedAtUtc, from, to);
+  return buildReviewEventsByDateReport(
+    resultSet,
+    communityResultSet,
+    response.executedAtUtc,
+    filters.dateRange.from,
+    filters.dateRange.to,
+  );
 }

@@ -160,12 +160,6 @@ export type DailyActiveUsersReport = Readonly<{
   from: string;
   to: string;
   users: ReadonlyArray<DailyActiveUsersUser>;
-  /**
-   * Each actor's first `app_opened` UTC day over all history, which is the report's cohort
-   * definition. Exposed as a lookup so another section can apply the same cohort split without
-   * restating it.
-   */
-  firstActiveDateByUserId: ReadonlyMap<string, string>;
   dailyCohortTotals: ReadonlyArray<DailyActiveUsersCohortTotal>;
   platformActiveUserTotals: ReadonlyArray<DailyActiveUsersPlatformTotal>;
   rows: ReadonlyArray<DailyActiveUsersRow>;

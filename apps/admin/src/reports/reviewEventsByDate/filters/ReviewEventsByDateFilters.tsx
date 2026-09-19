@@ -28,6 +28,12 @@ type ReviewEventsByDateFiltersProps = Readonly<{
   defaultRange: ReviewEventsByDateRange;
   appliedRange: ReviewEventsByDateRange;
   draftRange: ReviewEventsByDateRange;
+  /**
+   * A reload is pending or in flight. Every selection is applied server-side now, so this drives the
+   * "Updating" indicator and nothing else the user selects with: a click during a reload supersedes
+   * it. Only the three controls that commit a whole selection at once - Apply, Reset time and Reset
+   * all - stay disabled, because repeating them while they run means nothing.
+   */
   isReportLoading: boolean;
   dateRangeError: string;
   reportUsers: ReadonlyArray<ReviewEventsByDateUser>;
@@ -45,7 +51,8 @@ type ReviewEventsByDateFiltersProps = Readonly<{
   userColorScale: (userId: string) => string;
   onFromDateChange: (from: string) => void;
   onToDateChange: (to: string) => void;
-  onDateRangeSubmit: () => void;
+  /** Returns whether the draft range was accepted. A rejected one keeps the popover on its error. */
+  onDateRangeSubmit: () => boolean;
   onDateRangePresetSelect: (range: ReviewEventsByDateRange) => void;
   onDateRangeReset: () => void;
   onUserFilterSearchChange: (searchValue: string) => void;
@@ -201,9 +208,16 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
     };
   }, [activePopover]);
 
+  // Applying commits the draft, so the popover closes on it exactly as the preset and reset paths
+  // do. Leaving it open would let the two date inputs keep taking keystrokes that the applied range
+  // overwrites the moment the reload lands. A rejected range keeps it open to show the error.
   function handleDateRangeSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    props.onDateRangeSubmit();
+    if (props.onDateRangeSubmit() === false) {
+      return;
+    }
+
+    closePopover("time", true);
   }
 
   function handleDateRangePresetSelect(range: ReviewEventsByDateRange): void {
@@ -257,7 +271,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
             type="button"
             aria-expanded={activePopover === "time"}
             aria-controls={timePopoverId}
-            disabled={props.isReportLoading}
             onClick={() => handlePopoverToggle("time")}
           >
             Time: {props.appliedRange.from} to {props.appliedRange.to}
@@ -267,7 +280,7 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
               <form className="date-filter-form" noValidate onSubmit={handleDateRangeSubmit}>
                 <ReportRangePresetRow
                   availableRange={props.availableRange}
-                  isDisabled={props.isReportLoading}
+                  isDisabled={false}
                   onPresetSelect={handleDateRangePresetSelect}
                 />
                 <label className="date-filter-field">
@@ -277,7 +290,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                     value={props.draftRange.from}
                     min={props.availableRange.from}
                     max={props.availableRange.to}
-                    disabled={props.isReportLoading}
                     onChange={(event) => props.onFromDateChange(event.currentTarget.value)}
                   />
                 </label>
@@ -288,7 +300,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                     value={props.draftRange.to}
                     min={props.availableRange.from}
                     max={props.availableRange.to}
-                    disabled={props.isReportLoading}
                     onChange={(event) => props.onToDateChange(event.currentTarget.value)}
                   />
                 </label>
@@ -323,7 +334,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
             type="button"
             aria-expanded={activePopover === "users"}
             aria-controls={usersPopoverId}
-            disabled={props.isReportLoading}
             onClick={() => handlePopoverToggle("users")}
           >
             {getUserFilterButtonLabel(props.selectedUserIds.length)}
@@ -353,7 +363,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                       <button
                         className="active-filter-remove"
                         type="button"
-                        disabled={props.isReportLoading}
                         aria-label={`Remove user filter ${filter.label}`}
                         onClick={() => props.onUserFilterRemove(filter.userId)}
                       >
@@ -364,7 +373,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                   <button
                     className="filter-button filter-button-compact"
                     type="button"
-                    disabled={props.isReportLoading}
                     onClick={props.onUserFilterClear}
                   >
                     Clear users
@@ -379,7 +387,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                       type="search"
                       value={props.userFilterSearchValue}
                       placeholder="Email or user ID"
-                      disabled={props.isReportLoading}
                       onChange={(event) => props.onUserFilterSearchChange(event.currentTarget.value)}
                     />
                   </label>
@@ -394,7 +401,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                             type="checkbox"
                             value={user.userId}
                             checked={props.selectedUserIdSet.has(user.userId)}
-                            disabled={props.isReportLoading}
                             onChange={(event) => props.onUserFilterChange(user.userId, event.currentTarget.checked)}
                           />
                           <span
@@ -436,7 +442,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
             type="button"
             aria-expanded={activePopover === "cohort"}
             aria-controls={cohortPopoverId}
-            disabled={props.isReportLoading}
             onClick={() => handlePopoverToggle("cohort")}
           >
             {getCohortFilterButtonLabel(props.selectedCohorts)}
@@ -456,7 +461,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                     <input
                       type="checkbox"
                       checked={props.selectedCohortSet.has(cohort)}
-                      disabled={props.isReportLoading}
                       onChange={(event) => props.onCohortFilterChange(cohort, event.currentTarget.checked)}
                     />
                     <span className="platform-key-swatch" style={{ backgroundColor: uniqueUserCohortColors[cohort] }} />
@@ -478,7 +482,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
             type="button"
             aria-expanded={activePopover === "platform"}
             aria-controls={platformPopoverId}
-            disabled={props.isReportLoading}
             onClick={() => handlePopoverToggle("platform")}
           >
             {getPlatformFilterButtonLabel(props.selectedPlatforms)}
@@ -498,7 +501,6 @@ export function ReviewEventsByDateFilters(props: ReviewEventsByDateFiltersProps)
                     <input
                       type="checkbox"
                       checked={props.selectedPlatformSet.has(platform)}
-                      disabled={props.isReportLoading}
                       onChange={(event) => props.onPlatformFilterChange(platform, event.currentTarget.checked)}
                     />
                     <span className="platform-key-swatch" style={{ backgroundColor: getPlatformColor(platform) }} />
