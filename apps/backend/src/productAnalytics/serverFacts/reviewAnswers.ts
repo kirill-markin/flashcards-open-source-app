@@ -11,6 +11,7 @@ import { getDatabaseErrorFields } from "../../database/transient";
 // the warning below is the same Sentry warning there and the same structured CloudWatch record in
 // the lean handler.
 import {
+  addBackendRuntimeBreadcrumb,
   captureBackendRuntimeWarning,
   createBackendObservationScope,
 } from "../../observability/runtime";
@@ -31,7 +32,7 @@ import {
   type PostCommitFactEmissionAbortedOutcome,
 } from "./postCommitFactLifecycle";
 import {
-  toWorkspaceReplicaRowPlatform,
+  toWorkspaceReplicaRowAttribution,
   type WorkspaceReplicaPlatformRow,
 } from "./replicaPlatforms";
 import {
@@ -73,6 +74,11 @@ function toReviewAnsweredSource(actorKind: string): ReviewAnsweredSource | null 
 type ReviewAnswerReplicaAttribution = Readonly<{
   platform: ProductAnalyticsPlatform | null;
   source: ReviewAnsweredSource | null;
+  // The installation behind the replica declared itself automation, so its answers are never
+  // reported. This is read back from sync.installations on every drain rather than taken from the
+  // request, which is what makes it hold for the synced review of an installation whose own request
+  // said nothing - the shape of every server-derived review_answered.
+  isAutomation: boolean;
 }>;
 
 /**
@@ -304,9 +310,16 @@ async function resolveReviewAnswerReplicas(
       async (executor) => {
         const result = await executor.query<WorkspaceReplicaPlatformRow>(
           [
-            "SELECT replica_id, actor_kind, platform",
-            "FROM sync.workspace_replicas",
-            "WHERE replica_id = ANY($1::uuid[])",
+            // The automation marker lives on the installation rather than on the replica, so it is
+            // joined rather than selected: sync.installations is the row the client declared it on and
+            // the only place it is ever stored. A replica with no installation behind it - every actor
+            // kind but client_installation - joins to no row and is no automation.
+            "SELECT replicas.replica_id, replicas.actor_kind, replicas.platform,",
+            "COALESCE(installations.is_automation, FALSE) AS is_automation",
+            "FROM sync.workspace_replicas AS replicas",
+            "LEFT JOIN sync.installations AS installations",
+            "ON installations.installation_id = replicas.installation_id",
+            "WHERE replicas.replica_id = ANY($1::uuid[])",
           ].join(" "),
           [replicaIds],
         );
@@ -347,11 +360,13 @@ async function resolveReviewAnswerReplicas(
       });
     }
     for (const replica of replicas) {
+      const attribution = toWorkspaceReplicaRowAttribution(replica);
       attributionByReplicaId.set(replica.replica_id, {
         platform: replica.actor_kind === "ai_chat"
           ? aiChatClientPlatform
-          : toWorkspaceReplicaRowPlatform(replica),
+          : attribution.platform,
         source: toReviewAnsweredSource(replica.actor_kind),
+        isAutomation: attribution.isAutomation,
       });
     }
   } catch (error) {
@@ -500,6 +515,55 @@ function reportAbandonedReviewAnswers(
 }
 
 /**
+ * Keeps only the answers of replicas that may be reported at all.
+ *
+ * An installation that declared itself automation produces no product analytics, and its answers are
+ * dropped whole rather than stored with a null platform: the marker says the actor is not a person,
+ * not that the device is unknown. This is the rule that reaches the review_answered rows a synthetic
+ * run produces without sending a single client event, because the backend derives them from the
+ * reviews that run synced. A replica the resolution did not reach carries no marker either way and
+ * is reported as it always was.
+ *
+ * The drop is recorded rather than silent, so a run that produces nothing is legible as this rule
+ * firing instead of as a producer that stopped working.
+ */
+function dropAutomationReviewAnswers(
+  answers: ReadonlyArray<ReviewAnswer>,
+  attributionByReplicaId: ReadonlyMap<string, ReviewAnswerReplicaAttribution>,
+): ReadonlyArray<ReviewAnswer> {
+  const reportable = answers.filter(
+    (answer) => attributionByReplicaId.get(answer.replicaId)?.isAutomation !== true,
+  );
+  const suppressed = answers.length - reportable.length;
+  if (suppressed === 0) {
+    return reportable;
+  }
+
+  addBackendRuntimeBreadcrumb({
+    action: "product_analytics_review_answered_automation_suppressed",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      answers[0]?.reviewedByUserId ?? null,
+      answers[0]?.workspaceId ?? null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      factCount: answers.length,
+      suppressedFactCount: suppressed,
+    },
+  });
+
+  return reportable;
+}
+
+/**
  * Reports one committed transaction's answers after resolving its replica platforms. Review history
  * imports, sync pushes and guest merges are unbounded by an analytics batch size, so the shared
  * lifecycle bounds and partitions their sequential writer work. The platform lookup is released
@@ -527,8 +591,13 @@ async function emitCollectedReviewAnswers(
     budget,
     aiChatClientPlatform,
   );
+  const reportable = dropAutomationReviewAnswers(collected, attributionByReplicaId);
+  if (reportable.length === 0) {
+    return;
+  }
+
   const outcome = await emitPostCommitFactEvents(
-    collected,
+    reportable,
     budget,
     (answer) => {
       const attribution = attributionByReplicaId.get(answer.replicaId);
@@ -541,7 +610,7 @@ async function emitCollectedReviewAnswers(
     },
   );
   if (outcome.status === "aborted") {
-    const firstUnstored = collected[outcome.storedEventCount];
+    const firstUnstored = reportable[outcome.storedEventCount];
     reportAbandonedReviewAnswers({
       ...outcome,
       // For either stop this is the first event not stored, and for a refusal it is also the event

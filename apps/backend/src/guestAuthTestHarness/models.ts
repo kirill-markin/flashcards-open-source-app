@@ -47,6 +47,7 @@ export type InstallationState = Readonly<{
   user_id: string;
   platform: "ios" | "android" | "web";
   app_version: string | null;
+  is_automation: boolean;
 }>;
 
 export type CardState = Readonly<{
