@@ -656,7 +656,13 @@ struct AIChatView: View {
         if self.deferredPresentationRequest == request {
             self.deferredPresentationRequest = nil
         }
-        self.isComposerFocused = true
+        if case .attachCard = request,
+           let draftText = makeFlashcardsUITestMarketingAIDraft(processInfo: ProcessInfo.processInfo) {
+            self.chatStore.inputText = draftText
+            self.isComposerFocused = false
+        } else {
+            self.isComposerFocused = true
+        }
         self.navigation.clearAIChatPresentationRequest(request: request)
     }
 

@@ -321,7 +321,7 @@ bash scripts/ios/build-ios-marketing-materials.sh --all-locales
 - The scripts expect every declared screenshot index to resolve to exactly one PNG after the XCUITest finishes and fail if a generated PNG is missing or ambiguous.
 - Manual screenshot tests run only through the wrapper scripts because the wrapper writes the required runtime configuration file and also provides environment fallback values.
 - Locale-specific content is deterministic and comes from the fixture files listed above. Update those files if the screenshot copy or seeded cards need to change.
-- A fresh bilingual keyboard can show system onboarding during AI draft entry. The marketing test identifies that onboarding by both system Memoji accessibility IDs, requires its unique direct completion button, and waits for dismissal before using the app's Done button. An unexpected system layout fails the capture instead of publishing an obscured screenshot.
+- The AI screenshot launch passes the existing localized fixture text into the real unsent composer after the review-card handoff completes. Only this marketing fixture leaves the composer unfocused; capture asserts the exact draft, attached review card, and absence of messages, keyboard, and overlays without typing or opening keyboard onboarding.
 - The derived marketing-material builder depends on the raw screenshot filename prefixes staying aligned with screenshots 1, 2, 3, 4, and 5.
 - The `visually-lossless` optimization mode is not mathematically lossless. It is a high-quality palette reduction step intended to reduce PNG size aggressively while keeping UI screenshots visually unchanged in normal review.
 - The `lossless` optimization mode keeps pixels unchanged but usually saves less space than `visually-lossless`.
