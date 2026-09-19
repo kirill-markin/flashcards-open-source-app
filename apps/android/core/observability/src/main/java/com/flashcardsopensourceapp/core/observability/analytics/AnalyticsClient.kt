@@ -64,6 +64,8 @@ class AnalyticsClient internal constructor(
     private val observability: AppObservability,
     private val appVersion: String?,
     private val versionCode: Int?,
+    /** The installation runs under automation, so the backend must store none of these events. */
+    private val isAutomation: Boolean,
     private val transport: AnalyticsTransport,
     private val uiLocaleProvider: () -> String?,
     private val deviceContextProvider: () -> AnalyticsDeviceContext,
@@ -79,6 +81,7 @@ class AnalyticsClient internal constructor(
         observability: AppObservability,
         appVersion: String?,
         versionCode: Int?,
+        isAutomation: Boolean,
         uiLocaleProvider: () -> String?
     ) : this(
         context = context,
@@ -89,6 +92,7 @@ class AnalyticsClient internal constructor(
         observability = observability,
         appVersion = appVersion,
         versionCode = versionCode,
+        isAutomation = isAutomation,
         transport = OkHttpAnalyticsTransport(okHttpClient = okHttpClient),
         uiLocaleProvider = uiLocaleProvider,
         deviceContextProvider = { currentAnalyticsDeviceContext(context = context.applicationContext) },
@@ -484,6 +488,7 @@ class AnalyticsClient internal constructor(
                     anonymousId = chunk.first().anonymousId,
                     sessionId = chunk.first().sessionId,
                     deviceContext = deviceContext,
+                    isAutomation = isAutomation,
                     eventJsonPayloads = chunk.map { queuedEvent -> queuedEvent.eventJson }
                 )
             )

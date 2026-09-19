@@ -297,8 +297,10 @@ gcloud_args=(
   --timeout
   "${TEST_TIMEOUT}"
   --use-orchestrator
+  # Mirrored into `am instrument -e`, so FlashcardsAndroidTestRunner reads isAutomation before the
+  # app exists. Test Lab devices are real hardware, where the app's emulator check sees nothing.
   --environment-variables
-  "clearPackageData=true"
+  "clearPackageData=true,isAutomation=true"
   --no-performance-metrics
 )
 

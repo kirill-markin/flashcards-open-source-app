@@ -68,29 +68,37 @@ import org.json.JSONObject
 class CloudRemoteService private constructor(
     okHttpClient: OkHttpClient,
     observability: AppObservability,
-    observationVersions: CloudHttpObservationVersions
+    observationVersions: CloudHttpObservationVersions,
+    isAutomation: Boolean
 ) : CloudRemoteGateway {
     constructor(
         okHttpClient: OkHttpClient,
         observability: AppObservability,
         appVersion: String,
-        versionCode: Int
+        versionCode: Int,
+        isAutomation: Boolean
     ) : this(
         okHttpClient = okHttpClient,
         observability = observability,
         observationVersions = createCloudHttpObservationVersions(
             appVersion = appVersion,
             versionCode = versionCode
-        )
+        ),
+        isAutomation = isAutomation
     )
 
+    // No app version and no automation declaration. Today's only caller probes cloud configuration,
+    // which registers no installation; nothing here prevents a future caller from syncing through
+    // it, and such a caller would send unmarked bodies, so give it the constructor that takes
+    // `isAutomation` instead.
     constructor(okHttpClient: OkHttpClient) : this(
         okHttpClient = okHttpClient,
         observability = NoopCloudHttpObservability,
         observationVersions = createCloudHttpObservationVersions(
             appVersion = null,
             versionCode = null
-        )
+        ),
+        isAutomation = false
     )
 
     constructor() : this(okHttpClient = OkHttpClient())
@@ -108,7 +116,7 @@ class CloudRemoteService private constructor(
     private val feedbackApi = CloudFeedbackRemoteApi(httpClient = httpClient)
     private val mediaAssetApi = CloudMediaAssetRemoteApi(httpClient = httpClient)
     private val agentConnectionApi = CloudAgentConnectionRemoteApi(httpClient = httpClient)
-    private val syncApi = CloudSyncRemoteApi(httpClient = httpClient)
+    private val syncApi = CloudSyncRemoteApi(httpClient = httpClient, isAutomation = isAutomation)
     private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
 
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {

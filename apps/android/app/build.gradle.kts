@@ -200,6 +200,10 @@ android {
         versionName = "1.26.0"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
+        // Every Gradle-driven instrumentation run is automation, so nothing it syncs becomes
+        // product analytics. Firebase Test Lab passes the same argument from
+        // scripts/android/run-android-firebase-test-lab.sh, which Gradle never reaches.
+        testInstrumentationRunnerArguments["isAutomation"] = "true"
         buildConfigField("int", "ANDROID_MIN_SDK", androidMinSdk.toString())
         buildConfigField("String", "BASE_RESOURCE_LOCALE", toBuildConfigString(baseAndroidLocale))
         buildConfigField("String", "ANDROID_SENTRY_DSN", toBuildConfigString(androidSentryDsn))
