@@ -363,7 +363,8 @@ fun FlashcardsApp(
         // tracker below and by the dialog itself so the surface can never disagree with what is on
         // screen.
         val isGuestSignInAfterReviewPromptShown: Boolean =
-            guestSignInAfterReviewPromptUiState.isVisible &&
+            BuildConfig.BUILD_TYPE != "marketingScreenshot" &&
+                guestSignInAfterReviewPromptUiState.isVisible &&
                 guestSignInAfterReviewPromptContext.isAuthFlowActive.not() &&
                 guestSignInAfterReviewPromptContext.isAppModalActive.not()
         val feedbackPromptContext = FeedbackPromptContext(

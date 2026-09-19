@@ -10,6 +10,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -244,6 +245,10 @@ internal class MarketingScreenshotRobot(
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         collapseStatusBar()
         dismissExternalSystemDialogIfPresent()
+
+        check(composeRule.onAllNodes(isDialog()).fetchSemanticsNodes().isEmpty()) {
+            "Cannot capture $fileName while an app dialog is visible."
+        }
 
         val screenshotPath = "$marketingScreenshotDirectoryPath/$fileName"
         runShellCommand(command = "mkdir -p $marketingScreenshotDirectoryPath")

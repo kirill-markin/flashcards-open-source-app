@@ -247,9 +247,16 @@ resolve_booted_simulator_id() {
         return
     fi
 
-    mapfile -t booted_ids < <(
+    local booted_ids_output
+    local line
+    local -a booted_ids=()
+    booted_ids_output="$(
         list_booted_simulator_lines | sed -nE 's/^.*\(([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\) \(Booted\)[[:space:]]*$/\1/p'
-    )
+    )"
+    booted_ids=()
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && booted_ids+=("$line")
+    done <<< "${booted_ids_output}"
 
     if [[ "${#booted_ids[@]}" -eq 0 ]]; then
         echo "No booted iOS simulator was found. Boot one simulator manually first." >&2
@@ -306,14 +313,20 @@ resolve_screenshot_path_for_index() {
     fi
 
     local -a matching_paths=()
-    mapfile -t matching_paths < <(
+    local matching_paths_output
+    local line
+    matching_paths_output="$(
         find "$output_directory" \
             -maxdepth 1 \
             -type f \
             -name "${localization_code}-${screenshot_index}_*.png" \
             -newer "$run_marker_path" \
             -print | sort
-    )
+    )"
+    matching_paths=()
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && matching_paths+=("$line")
+    done <<< "${matching_paths_output}"
 
     if [[ "${#matching_paths[@]}" -eq 0 ]]; then
         echo "Expected screenshot file from the current run matching $output_directory/${localization_code}-${screenshot_index}_*.png." >&2
