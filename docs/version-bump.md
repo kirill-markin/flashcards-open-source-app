@@ -35,7 +35,7 @@ keep commentary, reasoning, and the release-sequence reminder outside them.
 Use the supported app locale order declared in
 [ios-localization.md](ios-localization.md):
 
-`en`, `ar`, `zh-Hans`, `de`, `hi`, `ja`, `ru`, `es-MX`, `es-ES`
+`en`, `ar`, `zh-Hans`, `de`, `fr`, `hi`, `ja`, `ru`, `es-MX`, `es-ES`
 
 Spanish always stays split into `es-MX` and `es-ES`; never collapse them into a
 generic `es` block. When the same notes are pasted into Google Play, keep this

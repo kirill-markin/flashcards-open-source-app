@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,flashcard,cartes mémoire,carte mémoire,cartes-mémoire,fiches,fiches de révision,mémorisation,révision";
+"NSCameraUsageDescription" = "Autorise l’accès à l’appareil photo pour prendre des photos à joindre au chat IA.";
+"NSMicrophoneUsageDescription" = "Autorise l’accès au micro pour dicter du texte dans le chat IA.";
+"NSPhotoLibraryUsageDescription" = "Autorise l’accès à la photothèque pour choisir des photos à joindre au chat IA.";
