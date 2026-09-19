@@ -79,6 +79,25 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
     verifyCodeTransportErrorMessage:
       "我们无法确认登录是否已完成。请再次输入验证码，或刷新页面检查你是否已经登录。",
   },
+  fr: {
+    pageTitle: "Connexion",
+    backToWebsite: "Retour au site",
+    signInTitle: "Connexion",
+    checkingSession: "Vérification de la session...",
+    emailLabel: "E-mail",
+    sendCode: "Envoyer le code",
+    sendingCode: "Envoi...",
+    checkEmailForCode: "Consultez votre boîte mail : vous y trouverez un code à 8 chiffres. Si vous ne le voyez pas, vérifiez le dossier spam.",
+    verificationCodeLabel: "Code de vérification",
+    verify: "Vérifier",
+    verifying: "Vérification...",
+    technicalDetails: "Détails techniques",
+    genericErrorPrefix: "Erreur",
+    sendCodeTransportErrorMessage:
+      "Nous n'avons pas pu confirmer si la demande de code a abouti. Cherchez le code dans votre boîte mail, puis réessayez si nécessaire.",
+    verifyCodeTransportErrorMessage:
+      "Nous n'avons pas pu confirmer si la connexion a abouti. Saisissez de nouveau le code ou actualisez la page pour voir si vous êtes déjà connecté.",
+  },
   de: {
     pageTitle: "Anmelden",
     backToWebsite: "Zur Website zurück",
@@ -135,6 +154,25 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
       "コード送信リクエストが完了したか確認できませんでした。メールでコードを確認し、必要に応じてもう一度お試しください。",
     verifyCodeTransportErrorMessage:
       "サインインが完了したか確認できませんでした。コードをもう一度試すか、ページを再読み込みして、すでにサインイン済みか確認してください。",
+  },
+  "pt-BR": {
+    pageTitle: "Entrar",
+    backToWebsite: "Voltar ao site",
+    signInTitle: "Entrar",
+    checkingSession: "Verificando a sessão...",
+    emailLabel: "E-mail",
+    sendCode: "Enviar código",
+    sendingCode: "Enviando...",
+    checkEmailForCode: "Procure no seu e-mail um código de 8 dígitos. Se não encontrar, verifique a pasta de spam.",
+    verificationCodeLabel: "Código de verificação",
+    verify: "Verificar",
+    verifying: "Verificando...",
+    technicalDetails: "Detalhes técnicos",
+    genericErrorPrefix: "Erro",
+    sendCodeTransportErrorMessage:
+      "Não conseguimos confirmar se o pedido do código foi concluído. Procure o código no seu e-mail e tente de novo se precisar.",
+    verifyCodeTransportErrorMessage:
+      "Não conseguimos confirmar se a entrada foi concluída. Digite o código de novo ou recarregue a página para ver se você já entrou.",
   },
   ru: {
     pageTitle: "Войти",
