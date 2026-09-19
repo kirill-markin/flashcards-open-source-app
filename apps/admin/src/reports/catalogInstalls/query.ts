@@ -15,6 +15,7 @@ import {
   buildCatalogAttributionFiltersSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
+  buildExcludedActorsFilterSql,
   buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
@@ -245,10 +246,12 @@ export function buildCatalogInstallsSql(filters: AnalyticsFilterState): string {
     "      WHERE admin_users.email = LOWER(btrim(user_settings.email))",
     "        AND admin_users.revoked_at IS NULL",
     "    )",
+    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
     "),",
-    // Only the installers' own app opens are read: an install row has already settled the actor's
-    // `%@example.com` exclusion, and the same actor carries the same email here, so this CTE does not
-    // restate it. Bounded above only, because a first active day may predate the range.
+    // Only the installers' own app opens are read: an install row has already settled which actors
+    // this section counts at all, and the same actor carries the same email and the same exclusion
+    // state here, so this CTE restates neither. Bounded above only, because a first active day may
+    // predate the range.
     "installer_app_opens AS (",
     "  SELECT",
     "    resolved.actor_id::text AS actor_id,",

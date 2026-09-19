@@ -262,7 +262,7 @@ export function CatalogInstallFunnelSection(
         </div>
       ) : null}
 
-      <p className="funnel-disclosure">Every field the shared bar offers here is applied in SQL, and each one reads the click attempt's own properties rather than a person: the five identity-derived fields are absent because a journey is keyed by an anonymous id whose first steps happen before sign-in. Test-deck journeys and journeys linked by a server install to an <code>@example.com</code> or active-admin actor are excluded. Public collector rows carry no user identity, so anonymous attempts that never reach a server install cannot always be classified or excluded.</p>
+      <p className="funnel-disclosure">Every field the shared bar offers here is applied in SQL, and each one reads the click attempt's own properties rather than a person: the five identity-derived fields are absent because a journey is keyed by an anonymous id whose first steps happen before sign-in. Test-deck journeys are excluded, and so is a journey that a server install or a signed-in install start links to an <code>@example.com</code> actor, an active admin or an actor on the analytics exclusion list. The <code>@example.com</code> and active-admin exclusions until now needed a completed server install, so these counts drop now that a signed-in install start names their actor too, before the exclusion list holds anybody. A journey that neither completed a server install nor started an install while signed in names nobody, so attempts that abandon before both cannot always be classified or excluded.</p>
     </section>
   );
 }
