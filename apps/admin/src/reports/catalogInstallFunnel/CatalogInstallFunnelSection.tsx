@@ -1,21 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent, type JSX } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
-import { ReportRangePresetRow } from "../ReportRangePresetRow";
-import { buildDefaultReportRange } from "../reportValues";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   catalogInstallConversionWindowDays,
-  catalogInstallDeviceCategories,
-  catalogInstallFunnelReportLabel,
-  catalogInstallPlacements,
-  catalogInstallSources,
-  filterCatalogInstallFunnelAttempts,
-  loadCatalogInstallFunnelAvailableRange,
   loadCatalogInstallFunnelReport,
-  validateCatalogInstallFunnelRange,
   type CatalogInstallFailureBucket,
   type CatalogInstallFunnelAttempt,
-  type CatalogInstallFunnelFilters,
-  type CatalogInstallFunnelRange,
   type CatalogInstallFunnelReport,
 } from "./query";
 
@@ -24,17 +14,11 @@ type FunnelLoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: CatalogInstallFunnelReport }>;
 
-type FilterOption = Readonly<{ value: string; label: string }>;
 type FunnelStage = Readonly<{ label: string; count: number }>;
 type FailureTotal = CatalogInstallFailureBucket & Readonly<{ count: number }>;
 
-const emptyFilters: CatalogInstallFunnelFilters = {
-  packageVersionId: "",
-  placement: "",
-  source: "",
-  deviceCategory: "",
-  deviceLocale: "",
-};
+/** One identity for every render without a report, so the derived counts below are memoized once. */
+const noAttempts: ReadonlyArray<CatalogInstallFunnelAttempt> = [];
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected catalog installation funnel error.";
@@ -168,215 +152,61 @@ function FunnelStageTable(props: Readonly<{ stages: ReadonlyArray<FunnelStage> }
   );
 }
 
-function insertSortedByLabel(
-  options: ReadonlyArray<FilterOption>,
-  option: FilterOption,
-): ReadonlyArray<FilterOption> {
-  const index = options.findIndex((existing) => existing.label.localeCompare(option.label) > 0);
-  return index === -1
-    ? [...options, option]
-    : [...options.slice(0, index), option, ...options.slice(index)];
-}
-
-function FilterSelect(
-  props: Readonly<{
-    label: string;
-    value: string;
-    valueLabel?: string;
-    options: ReadonlyArray<FilterOption>;
-    onChange: (value: string, valueLabel: string) => void;
-  }>,
-): JSX.Element {
-  // A preset keeps the sub-filters while reloading the report, so a selected value can outlive its option
-  // list. Keep it listed, under the label the user picked it by and in its sorted place, instead of
-  // rendering a blank select with an unexplained empty funnel or a bare identifier.
-  const options = props.value !== "" && props.options.some((option) => option.value === props.value) === false
-    ? insertSortedByLabel(props.options, { value: props.value, label: props.valueLabel ?? props.value })
-    : props.options;
-
-  return (
-    <label className="funnel-filter-field">
-      <span>{props.label}</span>
-      <select
-        value={props.value}
-        onChange={(event) => props.onChange(
-          event.target.value,
-          options.find((option) => option.value === event.target.value)?.label ?? "",
-        )}
-      >
-        <option value="">All</option>
-        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-    </label>
-  );
-}
-
 export function CatalogInstallFunnelSection(
   props: Readonly<{
     config: AdminAppConfig;
+    /** The live selection of the shared bar; every field it offers here is applied in SQL. */
+    filters: AnalyticsFilterState;
+    /** A General reload is pending or in flight; this section waits it out rather than querying per click. */
+    isRangeLoading: boolean;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
-  const [availableRange, setAvailableRange] = useState<CatalogInstallFunnelRange | null>(null);
-  const [defaultRange, setDefaultRange] = useState<CatalogInstallFunnelRange | null>(null);
-  const [draftRange, setDraftRange] = useState<CatalogInstallFunnelRange | null>(null);
-  const [appliedRange, setAppliedRange] = useState<CatalogInstallFunnelRange | null>(null);
-  const [filters, setFilters] = useState<CatalogInstallFunnelFilters>(emptyFilters);
-  // The label of the selected deck, so a preset reload can keep showing it while `packageOptions` is empty.
-  const [packageVersionLabel, setPackageVersionLabel] = useState<string>("");
-  const [rangeLoadRevision, setRangeLoadRevision] = useState<number>(0);
   const [loadRevision, setLoadRevision] = useState<number>(0);
-  const [rangeError, setRangeError] = useState<string>("");
   const [loadState, setLoadState] = useState<FunnelLoadState>({ status: "loading" });
 
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
-    setAvailableRange(null);
-    setDefaultRange(null);
-    setDraftRange(null);
-    setAppliedRange(null);
-    void loadCatalogInstallFunnelAvailableRange(props.config)
-      .then((loadedAvailableRange) => {
-        if (cancelled) {
-          return;
-        }
-
-        const loadedDefaultRange = buildDefaultReportRange(
-          loadedAvailableRange,
-          catalogInstallFunnelReportLabel,
-        );
-        setAvailableRange(loadedAvailableRange);
-        setDefaultRange(loadedDefaultRange);
-        setDraftRange(loadedDefaultRange);
-        setAppliedRange(loadedDefaultRange);
-      })
-      .catch((error: unknown) => {
-        if (props.onTerminalAdminError(error, props.config)) {
-          return;
-        }
-
-        if (cancelled === false) {
-          setLoadState({ status: "error", message: getErrorMessage(error) });
-        }
-      });
-
-    return () => { cancelled = true; };
-  }, [props.config, props.onTerminalAdminError, rangeLoadRevision]);
-
-  useEffect(() => {
-    if (appliedRange === null) {
-      return;
+    if (props.isRangeLoading) {
+      return () => { cancelled = true; };
     }
 
-    let cancelled = false;
-    setLoadState({ status: "loading" });
-    void loadCatalogInstallFunnelReport(props.config, appliedRange.from, appliedRange.to)
+    void loadCatalogInstallFunnelReport(props.config, props.filters)
       .then((report) => {
         if (cancelled === false) {
           setLoadState({ status: "ready", report });
         }
       })
       .catch((error: unknown) => {
-        if (props.onTerminalAdminError(error, props.config)) {
+        if (cancelled || props.onTerminalAdminError(error, props.config)) {
           return;
         }
 
-        if (cancelled === false) {
-          setLoadState({ status: "error", message: getErrorMessage(error) });
-        }
+        setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
     return () => { cancelled = true; };
-  }, [appliedRange, loadRevision, props.config, props.onTerminalAdminError]);
+  }, [loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
 
   const report = loadState.status === "ready" ? loadState.report : null;
-  const filteredAttempts = useMemo(
-    () => report === null ? [] : filterCatalogInstallFunnelAttempts(report.attempts, filters),
-    [filters, report],
-  );
-  const mainStages = useMemo(() => buildMainStages(filteredAttempts), [filteredAttempts]);
-  const authStages = useMemo(() => buildAuthStages(filteredAttempts), [filteredAttempts]);
-  const failureTotals = useMemo(() => buildFailureTotals(filteredAttempts), [filteredAttempts]);
-  const packageOptions = useMemo(() => {
-    if (report === null) {
-      return [];
-    }
-
-    const slugsByVersion = new Map<string, string>();
-    for (const attempt of report.attempts) {
-      if (attempt.packageSlug !== null) {
-        slugsByVersion.set(attempt.packageVersionId, attempt.packageSlug);
-      } else if (slugsByVersion.has(attempt.packageVersionId) === false) {
-        slugsByVersion.set(attempt.packageVersionId, "Unknown deck");
-      }
-    }
-
-    return Array.from(slugsByVersion.entries())
-      .map(([value, slug]) => ({ value, label: `${slug} — ${value}` }))
-      .sort((left, right) => left.label.localeCompare(right.label));
-  }, [report]);
-  const localeOptions = useMemo(() => report === null ? [] : Array.from(
-    new Set(report.attempts.map((attempt) => attempt.deviceLocale)),
-  ).sort().map((value) => ({ value, label: value })), [report]);
-
-  function applyRange(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    if (draftRange === null || availableRange === null) {
-      return;
-    }
-
-    const validationError = validateCatalogInstallFunnelRange(draftRange, availableRange);
-    if (validationError !== null) {
-      setRangeError(validationError);
-      return;
-    }
-
-    setRangeError("");
-    setFilters(emptyFilters);
-    setPackageVersionLabel("");
-    setAppliedRange(draftRange);
-  }
-
-  // A preset is always inside the available range, so it applies straight away, and it moves only the
-  // dates: the deck, placement, locale, source and device filters stay exactly as the user left them.
-  function applyPresetRange(range: CatalogInstallFunnelRange): void {
-    setRangeError("");
-    setDraftRange(range);
-    setAppliedRange(range);
-  }
-
-  function selectPackageVersion(packageVersionId: string, selectedLabel: string): void {
-    setFilters({ ...filters, packageVersionId });
-    setPackageVersionLabel(packageVersionId === "" ? "" : selectedLabel);
-  }
-
-  function resetAll(): void {
-    if (defaultRange === null) {
-      return;
-    }
-
-    setDraftRange(defaultRange);
-    setAppliedRange(defaultRange);
-    setFilters(emptyFilters);
-    setPackageVersionLabel("");
-    setRangeError("");
-    setLoadRevision((revision) => revision + 1);
-  }
+  const attempts = report === null ? noAttempts : report.attempts;
+  const mainStages = useMemo(() => buildMainStages(attempts), [attempts]);
+  const authStages = useMemo(() => buildAuthStages(attempts), [attempts]);
+  const failureTotals = useMemo(() => buildFailureTotals(attempts), [attempts]);
 
   const installedCount = mainStages.at(-1)?.count ?? 0;
-  const directClickCount = filteredAttempts.filter((attempt) => attempt.source === "direct").length;
-  const bypassCount = filteredAttempts.filter((attempt) => (
+  const directClickCount = attempts.filter((attempt) => attempt.source === "direct").length;
+  const bypassCount = attempts.filter((attempt) => (
     attempt.signInSucceededAt !== null
     && (attempt.codeRequestedAt === null
       || new Date(attempt.codeRequestedAt).getTime() > new Date(attempt.signInSucceededAt).getTime())
   )).length;
-  const maturingCount = report === null ? 0 : filteredAttempts.filter((attempt) => (
+  const maturingCount = report === null ? 0 : attempts.filter((attempt) => (
     new Date(attempt.clickedAt).getTime() + catalogInstallConversionWindowDays * 86_400_000
       > new Date(report.generatedAtUtc).getTime()
   )).length;
   const missingClickCount = report === null ? 0 : report.missingClickCounts
-    .filter((row) => filters.packageVersionId === "" || row.packageVersionId === filters.packageVersionId)
     .reduce((total, row) => total + row.attemptCount, 0);
 
   return (
@@ -389,36 +219,27 @@ export function CatalogInstallFunnelSection(
         </p>
       </header>
 
-      {draftRange !== null && availableRange !== null ? <form className="funnel-filter-panel" onSubmit={applyRange}>
-        <ReportRangePresetRow availableRange={availableRange} isDisabled={false} onPresetSelect={applyPresetRange} />
-        <label className="funnel-filter-field"><span>From (UTC)</span><input type="date" min={availableRange.from} max={availableRange.to} value={draftRange.from} onChange={(event) => setDraftRange({ ...draftRange, from: event.target.value })} /></label>
-        <label className="funnel-filter-field"><span>To (UTC)</span><input type="date" min={availableRange.from} max={availableRange.to} value={draftRange.to} onChange={(event) => setDraftRange({ ...draftRange, to: event.target.value })} /></label>
-        <FilterSelect label="Deck / version" value={filters.packageVersionId} valueLabel={packageVersionLabel} options={packageOptions} onChange={selectPackageVersion} />
-        <FilterSelect label="Placement" value={filters.placement} options={catalogInstallPlacements.map((value) => ({ value, label: value }))} onChange={(placement) => setFilters({ ...filters, placement })} />
-        <FilterSelect label="Locale" value={filters.deviceLocale} options={localeOptions} onChange={(deviceLocale) => setFilters({ ...filters, deviceLocale })} />
-        <FilterSelect label="Source" value={filters.source} options={catalogInstallSources.map((value) => ({ value, label: value }))} onChange={(source) => setFilters({ ...filters, source })} />
-        <FilterSelect label="Device" value={filters.deviceCategory} options={catalogInstallDeviceCategories.map((value) => ({ value, label: value }))} onChange={(deviceCategory) => setFilters({ ...filters, deviceCategory })} />
-        <div className="funnel-filter-actions"><button className="filter-button filter-button-primary" type="submit">Apply dates</button><button className="filter-button" type="button" onClick={resetAll}>Reset</button></div>
-        {rangeError !== "" ? <p className="filter-error funnel-filter-error">{rangeError}</p> : null}
-      </form> : null}
+      <div className="funnel-filter-panel">
+        <span>{props.filters.dateRange.from} to {props.filters.dateRange.to}, inclusive</span>
+      </div>
 
-      {loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading catalog installation funnel…</div> : null}
-      {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => availableRange === null ? setRangeLoadRevision((revision) => revision + 1) : setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
-      {loadState.status === "ready" && filteredAttempts.length === 0 ? <div className="report-state"><strong>No catalog click attempts match these filters.</strong><span>No earlier traffic history is inferred from Vercel aggregates.</span></div> : null}
+      {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading catalog installation funnel…</div> : null}
+      {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
+      {props.isRangeLoading === false && loadState.status === "ready" && attempts.length === 0 ? <div className="report-state"><strong>No catalog click attempts match these filters.</strong><span>No earlier traffic history is inferred from Vercel aggregates.</span></div> : null}
 
-      {loadState.status === "ready" && filteredAttempts.length > 0 ? (
+      {props.isRangeLoading === false && loadState.status === "ready" && attempts.length > 0 ? (
         <>
           <section className="summary-grid">
-            <article className="metric-card"><p className="metric-label">Click attempts</p><p className="metric-value">{filteredAttempts.length.toLocaleString("en-US")}</p></article>
+            <article className="metric-card"><p className="metric-label">Click attempts</p><p className="metric-value">{attempts.length.toLocaleString("en-US")}</p></article>
             <article className="metric-card"><p className="metric-label">Server installs</p><p className="metric-value">{installedCount.toLocaleString("en-US")}</p></article>
-            <article className="metric-card"><p className="metric-label">Overall conversion</p><p className="metric-value">{formatPercentage(installedCount, filteredAttempts.length)}</p></article>
-            <article className="metric-card"><p className="metric-label">Median click to install</p><p className="metric-value">{formatDuration(getMedianInstallSeconds(filteredAttempts))}</p></article>
+            <article className="metric-card"><p className="metric-label">Overall conversion</p><p className="metric-value">{formatPercentage(installedCount, attempts.length)}</p></article>
+            <article className="metric-card"><p className="metric-label">Median click to install</p><p className="metric-value">{formatDuration(getMedianInstallSeconds(attempts))}</p></article>
           </section>
           <div className="funnel-main-panel"><FunnelGraphic stages={mainStages} /><FunnelStageTable stages={mainStages} /></div>
         </>
       ) : null}
 
-      {loadState.status === "ready" ? (
+      {props.isRangeLoading === false && loadState.status === "ready" ? (
         <div className="funnel-detail-grid">
           <section className="funnel-detail-card">
             <h3>Signed-out authentication branch</h3>
@@ -431,7 +252,7 @@ export function CatalogInstallFunnelSection(
             <div className="funnel-detail-row"><span>Direct-source click attempts (inside denominator)</span><strong>{directClickCount.toLocaleString("en-US")}</strong></div>
             <div className="funnel-detail-row"><span>Landings without a selected-range prior click (outside denominator)</span><strong>{missingClickCount.toLocaleString("en-US")}</strong></div>
             <div className="funnel-detail-row"><span>Attempts still inside 7-day window</span><strong>{maturingCount.toLocaleString("en-US")}</strong></div>
-            <p>The no-click diagnostic can use only the date and deck/version filter because click attribution is absent. A still-maturing attempt is not a confirmed drop-off.</p>
+            <p>The no-click diagnostic can use only the date range, the installed deck and the client platform, because a landing with no click carries none of the click dimensions; narrowing placement, source, device category or browser language therefore leaves this line wider than the funnel above it. A still-maturing attempt is not a confirmed drop-off.</p>
           </section>
           <section className="funnel-detail-card">
             <h3>Observed failures</h3>
@@ -441,7 +262,7 @@ export function CatalogInstallFunnelSection(
         </div>
       ) : null}
 
-      <p className="funnel-disclosure">General filters never apply here. Test-deck journeys and journeys linked by a server install to an <code>@example.com</code> or active-admin actor are excluded. Public collector rows carry no user identity, so anonymous attempts that never reach a server install cannot always be classified or excluded.</p>
+      <p className="funnel-disclosure">Every field the shared bar offers here is applied in SQL, and each one reads the click attempt's own properties rather than a person: the five identity-derived fields are absent because a journey is keyed by an anonymous id whose first steps happen before sign-in. Test-deck journeys and journeys linked by a server install to an <code>@example.com</code> or active-admin actor are excluded. Public collector rows carry no user identity, so anonymous attempts that never reach a server install cannot always be classified or excluded.</p>
     </section>
   );
 }
