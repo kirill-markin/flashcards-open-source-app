@@ -64,6 +64,9 @@ const filterValueSwatchColor = "var(--accent-strong)";
 const optionSummaryValueLimit = 3;
 // Above this many values an option list stops being scannable in a popover and is searched instead.
 const searchableFilterOptionCount = 15;
+// The leading group of a deck version UUID, which is what tells two picked versions of one deck apart
+// on the closed button without printing an id that would not fit there. The chips carry the whole id.
+const deckVersionDiscriminatorLength = 8;
 
 type AnalyticsFilterBarProps = Readonly<{
   area: AnalyticsArea;
@@ -84,9 +87,10 @@ type AnalyticsFilterBarProps = Readonly<{
   appUiLanguageOptions: ReadonlyArray<string>;
   /**
    * What the five catalog fields can offer. Unlike every list above, these are not scoped to the
-   * range: the decks name every deck version ever installed, the four dimensions name the values the
-   * originating clicks of completed installs carried, and each is the only thing its own filter can
-   * match.
+   * range: the decks name every deck version ever installed and the four dimensions name the values
+   * the originating clicks of completed installs carried, which is exactly what the user-scoped areas
+   * can match. Funnels matches any click in range instead, so there these lists are a subset of what
+   * a selection would match and the field explanations say so.
    */
   catalogDeckOptions: ReadonlyArray<CatalogDeckOption>;
   catalogPlacementOptions: ReadonlyArray<CatalogInstallPlacement>;
@@ -495,6 +499,27 @@ function toPlainOptionChoice<Value extends string>(value: Value): FilterOptionCh
   return { value, label: value, summaryLabel: value };
 }
 
+// Only the slug fits on the closed deck button, so two picked versions of one deck would read there
+// as the same word twice. The slugs that more than one picked version shares are the ones that have
+// to carry a discriminator; every other slug stays a bare word.
+function buildAmbiguousDeckSlugs(
+  deckOptions: ReadonlyArray<CatalogDeckOption>,
+  selectedPackageVersionIds: ReadonlyArray<string>,
+): ReadonlySet<string> {
+  const selectedSlugCounts = new Map<string, number>();
+  for (const deck of deckOptions) {
+    if (selectedPackageVersionIds.includes(deck.packageVersionId)) {
+      selectedSlugCounts.set(deck.packageSlug, (selectedSlugCounts.get(deck.packageSlug) ?? 0) + 1);
+    }
+  }
+
+  return new Set(
+    Array.from(selectedSlugCounts.entries())
+      .filter(([, slugCount]) => slugCount > 1)
+      .map(([packageSlug]) => packageSlug),
+  );
+}
+
 // A field the filter model declares and the bar does not build would leave the area without a control
 // for a filter the URL can still carry, so it is a compile error here rather than a silent omission.
 function assertEveryFilterFieldIsWired(field: never): never {
@@ -549,6 +574,17 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
       window.requestAnimationFrame(() => focusFieldButton(field));
     }
   }
+
+  // The applicable fields differ by area, so moving to an area that does not render the open field
+  // would hide its popover while the outside-click and Escape effect below stayed armed on a control
+  // nobody can see or dismiss.
+  useEffect(() => {
+    setOpenField((currentField) => (
+      currentField === null || analyticsFilterFieldsByArea[props.area].includes(currentField)
+        ? currentField
+        : null
+    ));
+  }, [props.area]);
 
   useEffect(() => {
     if (openField === null) {
@@ -1033,18 +1069,25 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
       });
     }
 
-    // The five catalog fields below read the whole history rather than the selected range, because
-    // that is the only thing their filters can match, so an empty list says that nothing was ever
-    // recorded rather than nothing in this range. The deck field is answered by the install event
-    // itself; the four click dimensions need the originating click of that install.
+    // The five catalog fields below offer the whole history rather than the selected range, so an
+    // empty list says that nothing was ever recorded rather than nothing in this range. The deck
+    // field is answered by the install event itself; the four click dimensions need the originating
+    // click of that install.
     if (field === "installedDecks") {
+      const ambiguousDeckSlugs = buildAmbiguousDeckSlugs(
+        props.catalogDeckOptions,
+        props.filters.installedDecks,
+      );
+
       return buildOptionFieldView({
         fieldLabel: analyticsFilterFieldLabels.installedDecks,
         selectedValues: props.filters.installedDecks,
         options: props.catalogDeckOptions.map((deck) => ({
           value: deck.packageVersionId,
           label: `${deck.packageSlug} — ${deck.packageVersionId}`,
-          summaryLabel: deck.packageSlug,
+          summaryLabel: ambiguousDeckSlugs.has(deck.packageSlug)
+            ? `${deck.packageSlug} — ${deck.packageVersionId.slice(0, deckVersionDiscriminatorLength)}`
+            : deck.packageSlug,
         })),
         defaultValues: defaultFilters.installedDecks,
         everyValueSummary: "Every deck",

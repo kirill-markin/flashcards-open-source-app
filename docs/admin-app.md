@@ -17,7 +17,7 @@ The dashboard has three top-level analytics sections. `General` contains these t
 - `catalog-deck-installs`
 - `review-events-by-date`
 
-`Funnels` is separate from General and currently carries `catalog-installation`. Each funnel owns its query, parser, controls, and display so later funnels can be added without changing General or introducing a generic reporting engine.
+`Funnels` is separate from General and currently carries `catalog-installation`. Each funnel owns its query, parser, and display so later funnels can be added without changing General or introducing a generic reporting engine; the controls are the one shared filter bar, which offers Funnels only the fields an anonymous journey can answer.
 
 `Audience` shows the distinct users who opened the app in range by observed connection country, actual event UI language, and platform, with upload country/language pairs and coverage. It shares every filter in General's bar, and a per-user event threshold restricts its cohort rather than only the rows inside it, where the `Cards answered` threshold counts resolved review actors and every grade including `Again`. Its [query](../apps/admin/src/reports/audience/query.ts) and [display](../apps/admin/src/reports/audience/AudienceSection.tsx) define cohort and conservative sample matching; [Audience analytics](analytics-audience.md) defines collection and retention. Sparse samples cannot reconstruct daily presence or historical offline event geography.
 
@@ -101,11 +101,12 @@ Attribution contract for `catalog-deck-installs`:
 Attribution contract for the `catalog-installation` funnel:
 
 - the denominator is distinct `install_journey_id` attempts with an actual `catalog_install_clicked` whose `occurred_at` falls in the selected UTC click-cohort dates; there is no historical backfill and no Vercel aggregate is converted into attempt history
-- selectable history is loaded independently from General and begins on the first client catalog click or landing, so abandoned signed-out landings remain available to the no-click diagnostic
+- selectable history reaches back to the first client catalog click or landing, which is folded into the shared picker's bounds as a union with the review-events range, so abandoned signed-out landings remain available to the no-click diagnostic and a range with data in only one area is still selectable
 - later steps must keep the click's `package_version_id`, occur in order with equal timestamps allowed, and fall within seven days of the click even when that follow-up is after the selected cohort's end date; repeated milestones do not add another attempt
 - the main path is clicked, landed, preview ready, install started, then installed; only an `origin = 'server'` `catalog_deck_installed` is success, while `catalog_deck_install_started` remains intent
 - signed-in landings proceed directly through the main path and never have to pass a sign-in step; signed-out landings have a separate authentication branch whose success count includes resumed sessions that legitimately have no earlier code-request event
-- deck/version, placement, locale, source, and device filters use the click's acquisition context and are independent of General's user, cohort, and platform filters, which preserves anonymous attempts
+- the installed deck, placement, source, device category, browser language and client platform fields of the shared bar all apply here in SQL, each read off the click attempt's own properties rather than through a completed install; the five identity-derived fields are not offered at all, because applying them would leave the top of an anonymous journey intact while cutting its lower steps and print a conversion rate that looks plausible and is wrong
+- the no-click diagnostic can be narrowed only by the date range, the installed deck and the client platform, because a landing with no click carries none of the click dimensions
 - failure totals count distinct attempts per observed stage/reason, so they are not inferred abandonments and are not mutually exclusive; the report separately shows selected-range landings without an earlier selected-range click and click attempts whose seven-day window is still maturing
 - the delisted `test` deck is excluded when an install-start fact identifies it; `@example.com` and active-admin journeys are excluded only when a matching server install identifies the actor. The public collector stores no user identity or identity link, so anonymous attempts that never install cannot always be classified or excluded
 
@@ -205,7 +206,7 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - `https://admin.<domain>` returns `200`
 - unauthenticated access redirects to the login flow
 - a listed admin email loads `https://admin.<domain>/analytics/general`, where the shared hero and filter row sit above titled report sections, each separated by a divider
-- General still contains every existing chart; Funnels opens separately with Catalog installation and its own date and acquisition controls
+- General still contains every existing chart; Funnels opens separately with Catalog installation under the same shared filter bar, which drops the five identity-derived fields there
 - Audience opens as a sibling and the shared filters remain visible
 - the Audience cohort is the distinct resolved actors with an `app_opened` event in range, excluding active admins and example.com accounts, and counting merged guests only once
 - set `Cards answered` to 1 in the threshold filter; the Audience denominator drops to the people who also answered a card, including Again reviews
@@ -234,5 +235,5 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - hover tooltips on the per-user stacked charts (daily active users, review events, friend invite links, friend connections) may reveal the current email and user ID for the hovered segment, and clicking a segment applies that user filter
 - backend logs do not show writes through the reporting path
 - the catalog installation funnel treats only a matching server install as success, allows signed-in users to bypass authentication, labels session-resume/code-request bypasses, and shows `—` or an explicit empty state instead of NaN or invented history
-- the funnel date picker can reach the first catalog click or landing even when it predates General's first selectable event
+- the shared date picker can reach the first catalog click or landing even when it predates General's first selectable event, and General simply shows an empty tail over the days only the funnel carries
 - a click near the range end remains marked as maturing until its seven-day window closes, while a matching follow-up after the cohort end still counts
