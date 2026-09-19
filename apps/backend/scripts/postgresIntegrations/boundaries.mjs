@@ -70,11 +70,30 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0141 adds sync.installations.is_automation and recreates sync.claim_installation with it as an
+  // extra output column, and the shared replica reads now name that column: the claim SELECT in
+  // sync/identity/replica.ts, and the LEFT JOIN behind the product analytics content-creation and
+  // review-answer producers. Boundaries run current backend code against their own older schema, so
+  // every test whose path reaches one of those reads has to be pinned at or after this migration or
+  // it fails with `column installations.is_automation does not exist`. The three moved here are the
+  // complete set: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and the post-commit
+  // content-creation resolution) from 0138, and freshBootstrap (the /sync/bootstrap replica claim)
+  // plus jobsSettlement (which verifies a promoted asset through a real processSyncPull) from 0107.
+  // Moving them retires the older-schema coverage they used to give, because each test runs only at
+  // its pinned boundary and there is no full-schema pass.
+  Object.freeze({
+    migrationFileName: "0141_sync_installation_automation_marker.sql",
+    expectedMigrationCount: 143,
+    testFiles: Object.freeze([
+      "src/agent/reviews.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
+      "src/sync/freshBootstrap.postgres.integration.ts",
+    ]),
+  }),
   Object.freeze({
     migrationFileName: "0138_feedback_connection_country.sql",
     expectedMigrationCount: 140,
     testFiles: Object.freeze([
-      "src/agent/reviews.postgres.integration.ts",
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/productAnalytics/writer.postgres.integration.ts",
     ]),
@@ -173,10 +192,8 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/cards/managedMedia/generatedImageAppend.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
-      "src/sync/freshBootstrap.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
