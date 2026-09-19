@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { AdminApiError, fetchAdminSession, type AdminSession } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
 import { AdminDashboard, type AdminReportState } from "./dashboard/AdminDashboard";
+import type { AnalyticsDateRange, AnalyticsFilterState } from "./filters/analyticsFilters";
 import {
-  buildDefaultAnalyticsFilterState,
-  type AnalyticsDateRange,
-  type AnalyticsFilterState,
-} from "./filters/analyticsFilters";
+  normalizeAnalyticsFilterState,
+  parseAnalyticsFilterState,
+  toAnalyticsFilterSearchParams,
+} from "./filters/analyticsFiltersUrl";
 import { loadAnalyticsFilterOptions, type AnalyticsFilterOptions } from "./filters/optionsQuery";
 import { AnalyticsIndexPage } from "./navigation/AnalyticsIndexPage";
 import { NotFoundPage } from "./navigation/NotFoundPage";
@@ -158,6 +159,9 @@ export default function App(): JSX.Element {
   // coming back keeps it. It is null until the available range is known, because the default
   // selection opens on the default range.
   const [filterState, setFilterState] = useState<AnalyticsFilterState | null>(null);
+  // Mirrors `filterState` for `applyFilters`, which has to stay stable across renders and therefore
+  // cannot read the state itself.
+  const filterStateRef = useRef<AnalyticsFilterState | null>(null);
   const [reportRanges, setReportRanges] = useState<AdminReportRanges | null>(null);
   // The available range is fetched at most once per page load. The latch is also the re-entry guard:
   // while that request is in flight no revision bump or area switch can start a second one.
@@ -273,9 +277,16 @@ export default function App(): JSX.Element {
       try {
         const availableRange = await loadReviewEventsByDateAvailableRange(config);
         const defaultRange = buildDefaultReportRange(availableRange, "Review events default");
+        // The URL carries the whole selection, so a reload or a shared link opens the view it asks
+        // for; anything it does not carry, or carries malformed, opens on the default instead.
+        const urlFilterState = parseAnalyticsFilterState(
+          new URLSearchParams(window.location.search),
+          availableRange,
+        );
 
         setReportRanges({ availableRange, defaultRange });
-        setFilterState(buildDefaultAnalyticsFilterState(defaultRange));
+        filterStateRef.current = urlFilterState;
+        setFilterState(urlFilterState);
       } catch (error) {
         // Nothing is loaded and nothing is in flight, so the next revision bump or area switch may
         // ask for the range again.
@@ -393,6 +404,31 @@ export default function App(): JSX.Element {
     sessionConfig,
   ]);
 
+  // The selection is written back into the URL so a reload or a shared link reopens the same view.
+  // It replaces the current history entry rather than pushing one, so Back leaves the area instead of
+  // stepping through every click, and the single write this does on load is the canonicalization of a
+  // hand-typed query string rather than a filter change of its own. The selection lives above the
+  // areas, so switching area re-writes it onto the new path instead of being read back from it;
+  // Funnels has its own panel and keeps a clean URL until it joins this bar.
+  useEffect(() => {
+    if (filterState === null || reportRanges === null || doesRouteNeedReportData(route) === false) {
+      return;
+    }
+
+    const searchParams = toAnalyticsFilterSearchParams(filterState, reportRanges.availableRange);
+    const serializedParams = searchParams.toString();
+    const nextSearch = serializedParams === "" ? "" : `?${serializedParams}`;
+    if (nextSearch === window.location.search) {
+      return;
+    }
+
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${nextSearch}${window.location.hash}`,
+    );
+  }, [filterState, reportRanges, route]);
+
   const retryReportLoad = useCallback((): void => {
     setReportLoadRevision((revision) => revision + 1);
   }, []);
@@ -406,7 +442,14 @@ export default function App(): JSX.Element {
       return false;
     }
 
-    const validationError = validateRequestedRange(nextFilters.dateRange, reportRanges.availableRange);
+    // Canonical here rather than only where it is serialized, so a value the URL codec would drop or
+    // reorder cannot stay on screen as a chip and then change on the next reload.
+    const filters = normalizeAnalyticsFilterState(nextFilters);
+
+    // Every selection is judged against the available data, including one that only changes another
+    // field: a range the URL carried is already clamped into that window by the parser, so this
+    // cannot refuse a filter click on a link older than the retained data.
+    const validationError = validateRequestedRange(filters.dateRange, reportRanges.availableRange);
     if (validationError !== null) {
       setReportState((currentState) => (currentState.status === "ready"
         ? { ...currentState, dateRangeError: validationError }
@@ -419,9 +462,23 @@ export default function App(): JSX.Element {
     setReportState((currentState) => (currentState.status === "ready"
       ? { ...currentState, isReportLoading: true, dateRangeError: "" }
       : currentState));
-    setFilterState(nextFilters);
+    filterStateRef.current = filters;
+    setFilterState(filters);
     return true;
   }, [reportRanges]);
+
+  // Clicking a person in a chart narrows the selection to them. It reads the current selection from
+  // the ref rather than taking it as a dependency, so this identity survives every filter change:
+  // it reaches the charts' render effects, and a new one on each change would tear down and redraw
+  // all nine charts at click time with the data already on screen.
+  const applyChartUserFilter = useCallback((userId: string): void => {
+    const currentFilters = filterStateRef.current;
+    if (currentFilters === null) {
+      return;
+    }
+
+    applyFilters({ ...currentFilters, users: [userId] });
+  }, [applyFilters]);
 
   if (appState.status === "loading" || appState.status === "redirecting") {
     return <LoadingState />;
@@ -457,6 +514,7 @@ export default function App(): JSX.Element {
       filters={filterState}
       onReportRetry={retryReportLoad}
       onFiltersChange={applyFilters}
+      onChartUserFilterApply={applyChartUserFilter}
       onTerminalAdminError={handleTerminalAdminError}
     />
   );

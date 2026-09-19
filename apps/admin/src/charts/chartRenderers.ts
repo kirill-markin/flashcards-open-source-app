@@ -48,7 +48,6 @@ type UserStackedBarChartParams<User extends ChartUser> = Readonly<{
   xAxisLabel: string;
   segmentClass: string;
   buildTooltipMetricsHtml: (entry: StackedChartRectEntry, user: User) => string;
-  isReportLoading: boolean;
   onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
@@ -113,7 +112,6 @@ export type RenderUserReviewEventsChartParams = Readonly<{
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
   totalReviewEventsByDate: ReadonlyMap<string, number>;
   peakDailyVolume: number;
-  isReportLoading: boolean;
   onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
@@ -148,7 +146,6 @@ export type RenderDailyActiveUsersByUserChartParams = Readonly<{
   userById: ReadonlyMap<string, DailyActiveUsersUser>;
   dailyActiveUsersByDate: ReadonlyMap<string, number>;
   peakDailyActiveUsers: number;
-  isReportLoading: boolean;
   onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
@@ -164,7 +161,6 @@ export type RenderDailyFriendInvitationsChartParams = Readonly<{
   totalFriendInvitationsByDate: ReadonlyMap<string, number>;
   friendInvitationTotalsByUserId: ReadonlyMap<string, number>;
   peakDailyFriendInvitations: number;
-  isReportLoading: boolean;
   onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
@@ -179,7 +175,6 @@ export type RenderDailyFriendshipsChartParams = Readonly<{
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
   totalFriendshipsByDate: ReadonlyMap<string, number>;
   peakDailyFriendships: number;
-  isReportLoading: boolean;
   onUserFilterApply: (userId: string) => void;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
@@ -340,7 +335,7 @@ function renderUserStackedBarChart<User extends ChartUser>(params: UserStackedBa
       value: entry.data.valuesByKey[segment.key] ?? 0,
     })).filter((entry) => entry.value > 0))
     .join("rect")
-    .attr("class", `bar-segment ${params.segmentClass}${params.isReportLoading ? "" : " clickable"}`)
+    .attr("class", `bar-segment ${params.segmentClass} clickable`)
     .attr("x", (entry) => x(entry.date) ?? 0)
     .attr("y", (entry) => y(entry.y1))
     .attr("width", x.bandwidth())
@@ -365,13 +360,9 @@ function renderUserStackedBarChart<User extends ChartUser>(params: UserStackedBa
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
 
-  if (params.isReportLoading === false) {
-    bars.on("click", (_event: MouseEvent, entry: StackedChartRectEntry) => {
-      params.onUserFilterApply(entry.key);
-    });
-  } else {
-    bars.on("click", null);
-  }
+  bars.on("click", (_event: MouseEvent, entry: StackedChartRectEntry) => {
+    params.onUserFilterApply(entry.key);
+  });
 }
 
 function renderUniqueUserCohortChart(params: UniqueUserCohortChartParams): void {
@@ -486,7 +477,6 @@ export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartP
       `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalReviewEventsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>User total</span><strong>${numberFormatter(user.totalReviewEvents)}</strong></div>`,
     ].join(""),
-    isReportLoading: params.isReportLoading,
     onUserFilterApply: params.onUserFilterApply,
     tooltipHandlers: params.tooltipHandlers,
   });
@@ -510,7 +500,6 @@ export function renderDailyFriendInvitationsChart(params: RenderDailyFriendInvit
       `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalFriendInvitationsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>User total</span><strong>${numberFormatter(params.friendInvitationTotalsByUserId.get(user.userId) ?? entry.value)}</strong></div>`,
     ].join(""),
-    isReportLoading: params.isReportLoading,
     onUserFilterApply: params.onUserFilterApply,
     tooltipHandlers: params.tooltipHandlers,
   });
@@ -534,7 +523,6 @@ export function renderDailyFriendshipsChart(params: RenderDailyFriendshipsChartP
       `<div class="tooltip-metric"><span>User connections at end of day</span><strong>${numberFormatter(entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalFriendshipsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
     ].join(""),
-    isReportLoading: params.isReportLoading,
     onUserFilterApply: params.onUserFilterApply,
     tooltipHandlers: params.tooltipHandlers,
   });
@@ -558,7 +546,6 @@ export function renderDailyActiveUsersByUserChart(params: RenderDailyActiveUsers
       `<div class="tooltip-metric"><span>Total active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>User active days in range</span><strong>${numberFormatter(user.activeDayCount)}</strong></div>`,
     ].join(""),
-    isReportLoading: params.isReportLoading,
     onUserFilterApply: params.onUserFilterApply,
     tooltipHandlers: params.tooltipHandlers,
   });
