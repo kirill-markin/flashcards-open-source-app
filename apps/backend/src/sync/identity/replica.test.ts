@@ -84,6 +84,7 @@ function createSyncIdentityExecutor(
           platform: "ios",
           previous_user_id: options.claimStatus === "inserted" ? null : "user-a",
           current_user_id: "user-b",
+          is_automation: false,
         } as unknown as Row]);
       }
 
@@ -137,6 +138,7 @@ test("ensureWorkspaceReplicaInExecutor accepts inserted, refreshed, and reassign
       installationId: "installation-1",
       platform: "ios",
       appVersion: "1.2.3",
+      isAutomation: false,
     });
 
     assert.equal(recordedQueries.length, 5);
@@ -167,6 +169,7 @@ test("ensureWorkspaceReplicaInExecutor raises platform mismatch without touching
       installationId: "installation-1",
       platform: "ios",
       appVersion: "1.2.3",
+      isAutomation: false,
     }),
     (error: unknown): boolean => {
       assert.ok(error instanceof HttpError);
@@ -197,6 +200,7 @@ test("ensureWorkspaceReplicaInExecutor raises workspace not found before registe
       installationId: "installation-1",
       platform: "ios",
       appVersion: "1.2.3",
+      isAutomation: false,
     }),
     (error: unknown): boolean => {
       assert.ok(error instanceof HttpError);

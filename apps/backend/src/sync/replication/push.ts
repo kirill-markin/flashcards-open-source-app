@@ -356,6 +356,7 @@ export async function processSyncPush(
         installationId: input.installationId,
         platform: input.platform,
         appVersion: input.appVersion ?? null,
+        isAutomation: input.isAutomation === true,
       });
 
       return processSyncPushOperationsInExecutor(executor, workspaceId, replicaId, input.operations);

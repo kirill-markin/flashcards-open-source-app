@@ -136,6 +136,7 @@ export async function processSyncReviewHistoryPull(
       installationId: input.installationId,
       platform: input.platform,
       appVersion: input.appVersion ?? null,
+      isAutomation: input.isAutomation === true,
     });
 
     const result = await executor.query<ReviewHistoryRow>(
@@ -184,6 +185,7 @@ export async function processSyncReviewHistoryImport(
         installationId: input.installationId,
         platform: input.platform,
         appVersion: input.appVersion ?? null,
+        isAutomation: input.isAutomation === true,
       });
 
       return processSyncReviewHistoryImportInExecutor(executor, workspaceId, replicaId, input);

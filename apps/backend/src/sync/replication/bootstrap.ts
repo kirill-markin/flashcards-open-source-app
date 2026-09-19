@@ -186,6 +186,7 @@ export async function processSyncBootstrap(
         installationId: input.installationId,
         platform: input.platform,
         appVersion: input.appVersion ?? null,
+        isAutomation: input.isAutomation === true,
       });
       await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
       const remoteIsEmpty = await loadRemoteEmptyState(
@@ -285,6 +286,7 @@ export async function processSyncBootstrap(
       installationId: input.installationId,
       platform: input.platform,
       appVersion: input.appVersion ?? null,
+      isAutomation: input.isAutomation === true,
     });
     await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
     const cursor = input.cursor === null
