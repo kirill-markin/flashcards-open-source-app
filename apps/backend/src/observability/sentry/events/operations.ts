@@ -529,6 +529,19 @@ export type ProductAnalyticsDrainAbortedDetails = Readonly<{
   skippedEventCount: number;
 }>;
 
+// A drain resolved facts that belong to an installation which declared itself automation, so it
+// reported none of them. Nothing failed and nothing is missing: the marker says the actor is not a
+// person (db/migrations/0141_sync_installation_automation_marker.sql), so those events were never
+// owed. The record exists because a drain that legitimately emits nothing is otherwise
+// indistinguishable from a producer that stopped working. One type for both producers, because the
+// action already says which fact was suppressed.
+export type ProductAnalyticsAutomationSuppressionDetails = Readonly<{
+  // What the drain held, and how much of it this rule dropped. Equal counts mean the drain emitted
+  // nothing at all.
+  factCount: number;
+  suppressedFactCount: number;
+}>;
+
 // Raised when a drain could not read the replicas its reviews were recorded against, so it could not
 // resolve the platform or the source of each review. Nothing was dropped: the review_answered rows
 // are still emitted and still stored, they just carry a null platform and no source, and an
@@ -678,7 +691,15 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
   | EventByAction<"catalog_dump_s3_retry", CatalogDumpS3RetryDetails>
   | EventByAction<"media_asset_storage_retry", MediaAssetStorageRetryDetails>
-  | EventByAction<"media_asset_storage_terminal", MediaAssetStorageTerminalDetails>;
+  | EventByAction<"media_asset_storage_terminal", MediaAssetStorageTerminalDetails>
+  | EventByAction<
+    "product_analytics_content_creation_automation_suppressed",
+    ProductAnalyticsAutomationSuppressionDetails
+  >
+  | EventByAction<
+    "product_analytics_review_answered_automation_suppressed",
+    ProductAnalyticsAutomationSuppressionDetails
+  >;
 
 export type OperationsWarningEvent =
   | (EventByAction<"global_snapshot_error", Readonly<{
