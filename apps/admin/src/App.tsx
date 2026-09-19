@@ -12,6 +12,7 @@ import { loadAnalyticsFilterOptions, type AnalyticsFilterOptions } from "./filte
 import { AnalyticsIndexPage } from "./navigation/AnalyticsIndexPage";
 import { NotFoundPage } from "./navigation/NotFoundPage";
 import { RootIndexPage } from "./navigation/RootIndexPage";
+import { loadCatalogInstallFunnelAvailableRange } from "./reports/catalogInstallFunnel/query";
 import { loadCatalogInstallsReport } from "./reports/catalogInstalls/query";
 import { loadDailyActiveUsersReport } from "./reports/dailyActiveUsers/query";
 import { buildDefaultReportRange } from "./reports/reportValues";
@@ -95,9 +96,26 @@ function validateRequestedRange(
   return null;
 }
 
-/** Only the areas that chart the General reports pay for loading them. */
-function doesRouteNeedReportData(route: AdminRoute): boolean {
-  return route.kind === "analyticsArea" && route.area !== "funnels";
+/**
+ * The bounds the shared date picker allows: every day either area can carry data on.
+ *
+ * The review events and the catalog funnel start on different days, and one bar now drives both, so
+ * a range with data in one area and none in the other stays selectable and simply shows an empty
+ * tail rather than being refused.
+ */
+function buildUnionRange(
+  left: ReviewEventsByDateRange,
+  right: ReviewEventsByDateRange,
+): ReviewEventsByDateRange {
+  return {
+    from: compareCalendarDates(left.from, right.from) <= 0 ? left.from : right.from,
+    to: compareCalendarDates(left.to, right.to) >= 0 ? left.to : right.to,
+  };
+}
+
+/** Every analytics area renders the shared filter bar and carries its selection in the URL. */
+function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
+  return route.kind === "analyticsArea";
 }
 
 function redirectToLogin(config: AdminAppConfig): void {
@@ -263,10 +281,10 @@ export default function App(): JSX.Element {
   }, [handleTerminalAdminError]);
 
   const sessionConfig = appState.status === "ready" ? appState.config : null;
-  const needsReportData = doesRouteNeedReportData(route);
+  const usesAnalyticsFilters = doesRouteUseAnalyticsFilters(route);
 
   useEffect(() => {
-    if (!needsReportData || sessionConfig === null || hasRequestedAvailableRangeRef.current) {
+    if (!usesAnalyticsFilters || sessionConfig === null || hasRequestedAvailableRangeRef.current) {
       return;
     }
 
@@ -275,8 +293,12 @@ export default function App(): JSX.Element {
 
     async function loadAvailableRange(config: AdminAppConfig): Promise<void> {
       try {
-        const availableRange = await loadReviewEventsByDateAvailableRange(config);
-        const defaultRange = buildDefaultReportRange(availableRange, "Review events default");
+        const [reviewAvailableRange, funnelAvailableRange] = await Promise.all([
+          loadReviewEventsByDateAvailableRange(config),
+          loadCatalogInstallFunnelAvailableRange(config),
+        ]);
+        const availableRange = buildUnionRange(reviewAvailableRange, funnelAvailableRange);
+        const defaultRange = buildDefaultReportRange(availableRange, "Analytics default");
         // The URL carries the whole selection, so a reload or a shared link opens the view it asks
         // for; anything it does not carry, or carries malformed, opens on the default instead.
         const urlFilterState = parseAnalyticsFilterState(
@@ -296,8 +318,8 @@ export default function App(): JSX.Element {
           return;
         }
 
-        // A failed report load stays inside the reports area: the session, the hero, the nav and the
-        // Funnels area keep working, and only a 401/403 replaces the whole page.
+        // A failed report load stays inside the reports area: the session, the hero and the nav keep
+        // working, and only a 401/403 replaces the whole page.
         setReportState({
           status: "error",
           message: getErrorMessage(error),
@@ -306,7 +328,7 @@ export default function App(): JSX.Element {
     }
 
     void loadAvailableRange(sessionConfig);
-  }, [handleTerminalAdminError, needsReportData, reportLoadRevision, sessionConfig]);
+  }, [handleTerminalAdminError, reportLoadRevision, sessionConfig, usesAnalyticsFilters]);
 
   // The option lists and the colour domains are deliberately blind to the rest of the selection - a
   // user a filter just removed from every chart is exactly the user the popup has to keep offering -
@@ -409,10 +431,9 @@ export default function App(): JSX.Element {
   // It replaces the current history entry rather than pushing one, so Back leaves the area instead of
   // stepping through every click, and the single write this does on load is the canonicalization of a
   // hand-typed query string rather than a filter change of its own. The selection lives above the
-  // areas, so switching area re-writes it onto the new path instead of being read back from it;
-  // Funnels has its own panel and keeps a clean URL until it joins this bar.
+  // areas, so switching area re-writes it onto the new path instead of being read back from it.
   useEffect(() => {
-    if (filterState === null || reportRanges === null || doesRouteNeedReportData(route) === false) {
+    if (filterState === null || reportRanges === null || doesRouteUseAnalyticsFilters(route) === false) {
       return;
     }
 
