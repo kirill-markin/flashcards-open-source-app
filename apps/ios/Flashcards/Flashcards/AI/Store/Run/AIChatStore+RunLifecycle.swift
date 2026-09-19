@@ -92,7 +92,7 @@ extension AIChatStore {
         self.storePreSendSnapshot(preSendSnapshot, conversationId: conversationId)
         self.activeConversationId = conversationId
 
-        let task = Task {
+        let task = Task { [self] in
             defer {
                 self.clearPreSendSnapshot(conversationId: conversationId)
                 if self.activeConversationId == conversationId {
