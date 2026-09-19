@@ -88,3 +88,7 @@ that installation permanently.
   twice: the argument arrives from
   [the submission script](../scripts/android/run-android-firebase-test-lab.sh), and the device
   setting marks the run on its own if that argument is ever dropped on the way.
+- [iOS declaration](../apps/ios/Flashcards/Flashcards/App/AutomationRun.swift): simulator detection
+  or the `FLASHCARDS_AUTOMATION_RUN` environment signal, with an explicit negative value of that
+  variable overriding both, decided once per launch and sent on every sync request and analytics
+  batch; the harness side is in [`ios-ci-cd.md`](ios-ci-cd.md#automation-marker).

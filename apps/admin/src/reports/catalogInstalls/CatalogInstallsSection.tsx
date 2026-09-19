@@ -124,7 +124,7 @@ export function CatalogInstallsSection(
       <header className="dashboard-section-header">
         <h2>Catalog deck installs</h2>
         <p className="dashboard-section-description">
-          One install action by one person, from the <code>catalog_deck_installed</code> event. Installs of the delisted <code>test</code> fixture deck and installs by active admins are excluded, which leaves almost nothing on production history so far. The event carries no platform, so every install sits in the <strong>Unresolved</strong> bucket and picking any device platform empties this section. Dates are grouped in <strong>UTC</strong>.
+          One install action by one person, from the <code>catalog_deck_installed</code> event. Installs of the delisted <code>test</code> fixture deck, installs by active admins and installs by the actors on the analytics exclusion list are excluded, which leaves almost nothing on production history so far. The event carries no platform, so every install sits in the <strong>Unresolved</strong> bucket and picking any device platform empties this section. Dates are grouped in <strong>UTC</strong>.
         </p>
       </header>
 

@@ -81,6 +81,7 @@ extension CloudSyncRunner {
                         installationId: installationId,
                         platform: "ios",
                         appVersion: self.transport.appVersion(),
+                        isAutomation: AutomationRun.current.isAutomation,
                         operations: outboxEntries.map { entry in
                             SyncOperationEnvelope(operation: entry.operation)
                         }
