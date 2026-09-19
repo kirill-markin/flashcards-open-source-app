@@ -2,6 +2,12 @@ import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { AdminApiError, fetchAdminSession, type AdminSession } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
 import { AdminDashboard, type AdminReportState } from "./dashboard/AdminDashboard";
+import {
+  buildDefaultAnalyticsFilterState,
+  type AnalyticsDateRange,
+  type AnalyticsFilterState,
+} from "./filters/analyticsFilters";
+import { loadAnalyticsFilterOptions, type AnalyticsFilterOptions } from "./filters/optionsQuery";
 import { AnalyticsIndexPage } from "./navigation/AnalyticsIndexPage";
 import { NotFoundPage } from "./navigation/NotFoundPage";
 import { RootIndexPage } from "./navigation/RootIndexPage";
@@ -21,6 +27,17 @@ type AppState =
   | Readonly<{ status: "denied" }>
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; config: AdminAppConfig; session: AdminSession }>;
+
+/** The ranges the picker validates against, loaded once per page load. */
+type AdminReportRanges = Readonly<{
+  availableRange: ReviewEventsByDateRange;
+  defaultRange: ReviewEventsByDateRange;
+}>;
+
+// Every filter is applied server-side, so a burst of clicks would be a burst of report queries. The
+// newest selection waits this long before it is sent, and the ones it superseded never reach the
+// network at all.
+const filterReloadDebounceMs = 400;
 
 const calendarDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
@@ -137,10 +154,21 @@ export default function App(): JSX.Element {
   const [reportState, setReportState] = useState<AdminReportState>({ status: "loading" });
   const [route, setRoute] = useState<AdminRoute>(() => parseAdminRoute(window.location.pathname));
   const [reportLoadRevision, setReportLoadRevision] = useState<number>(0);
-  // The reports are fetched at most once per page load, so moving between General and Audience,
-  // or leaving for Funnels and coming back, reuses what is already in memory. The latch is also the
-  // re-entry guard: while a load is in flight no revision bump or area switch can start a second one.
-  const hasRequestedReportsRef = useRef<boolean>(false);
+  // The whole filter selection lives here, above every area, so leaving General for Funnels and
+  // coming back keeps it. It is null until the available range is known, because the default
+  // selection opens on the default range.
+  const [filterState, setFilterState] = useState<AnalyticsFilterState | null>(null);
+  const [reportRanges, setReportRanges] = useState<AdminReportRanges | null>(null);
+  // The available range is fetched at most once per page load. The latch is also the re-entry guard:
+  // while that request is in flight no revision bump or area switch can start a second one.
+  const hasRequestedAvailableRangeRef = useRef<boolean>(false);
+  // Only a view that already has numbers on screen waits for the debounce; the first load has
+  // nothing to coalesce.
+  const hasLoadedReportsRef = useRef<boolean>(false);
+  const loadedFilterOptionsRef = useRef<Readonly<{
+    dateRange: AnalyticsDateRange;
+    options: AnalyticsFilterOptions;
+  }> | null>(null);
 
   // A trailing-slash variant of a known route is rewritten in place, so the address bar and any
   // later history entry carry the canonical path without a network redirect.
@@ -234,39 +262,24 @@ export default function App(): JSX.Element {
   const needsReportData = doesRouteNeedReportData(route);
 
   useEffect(() => {
-    if (!needsReportData || sessionConfig === null || hasRequestedReportsRef.current) {
+    if (!needsReportData || sessionConfig === null || hasRequestedAvailableRangeRef.current) {
       return;
     }
 
-    hasRequestedReportsRef.current = true;
+    hasRequestedAvailableRangeRef.current = true;
     setReportState({ status: "loading" });
 
-    async function loadReports(config: AdminAppConfig): Promise<void> {
+    async function loadAvailableRange(config: AdminAppConfig): Promise<void> {
       try {
         const availableRange = await loadReviewEventsByDateAvailableRange(config);
         const defaultRange = buildDefaultReportRange(availableRange, "Review events default");
-        const [report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
-          loadReviewEventsByDateReport(config, defaultRange.from, defaultRange.to),
-          loadDailyActiveUsersReport(config, defaultRange.from, defaultRange.to),
-          loadCatalogInstallsReport(config, defaultRange.from, defaultRange.to),
-        ]);
 
-        setReportState({
-          status: "ready",
-          data: {
-            availableRange,
-            defaultRange,
-            report,
-            dailyActiveUsersReport,
-            catalogInstallsReport,
-          },
-          isReportLoading: false,
-          dateRangeError: "",
-        });
+        setReportRanges({ availableRange, defaultRange });
+        setFilterState(buildDefaultAnalyticsFilterState(defaultRange));
       } catch (error) {
         // Nothing is loaded and nothing is in flight, so the next revision bump or area switch may
-        // ask for the reports again.
-        hasRequestedReportsRef.current = false;
+        // ask for the range again.
+        hasRequestedAvailableRangeRef.current = false;
 
         if (handleTerminalAdminError(error, config)) {
           return;
@@ -281,84 +294,134 @@ export default function App(): JSX.Element {
       }
     }
 
-    void loadReports(sessionConfig);
+    void loadAvailableRange(sessionConfig);
   }, [handleTerminalAdminError, needsReportData, reportLoadRevision, sessionConfig]);
 
-  const retryReportLoad = useCallback((): void => {
-    setReportLoadRevision((revision) => revision + 1);
+  // The user options and the colour domains are scoped to the range and deliberately blind to the
+  // rest of the selection - a user a filter just removed from every chart is exactly the user the
+  // popup has to keep offering - so only a range change asks for them again.
+  const loadFilterOptions = useCallback(async (
+    config: AdminAppConfig,
+    dateRange: AnalyticsDateRange,
+  ): Promise<AnalyticsFilterOptions> => {
+    const loadedOptions = loadedFilterOptionsRef.current;
+    if (
+      loadedOptions !== null
+      && loadedOptions.dateRange.from === dateRange.from
+      && loadedOptions.dateRange.to === dateRange.to
+    ) {
+      return loadedOptions.options;
+    }
+
+    const options = await loadAnalyticsFilterOptions(config, dateRange);
+    loadedFilterOptionsRef.current = { dateRange, options };
+    return options;
   }, []);
 
-  async function reloadReport(range: ReviewEventsByDateRange): Promise<void> {
-    if (appState.status !== "ready" || reportState.status !== "ready" || reportState.isReportLoading) {
+  useEffect(() => {
+    if (sessionConfig === null || filterState === null || reportRanges === null) {
       return;
     }
 
-    const validationError = validateRequestedRange(range, reportState.data.availableRange);
-    if (validationError !== null) {
-      setReportState({
-        ...reportState,
-        dateRangeError: validationError,
-      });
-      return;
-    }
+    const config = sessionConfig;
+    const filters = filterState;
+    const ranges = reportRanges;
+    let isSuperseded = false;
 
-    const config = appState.config;
-    setReportState({
-      ...reportState,
-      isReportLoading: true,
-      dateRangeError: "",
-    });
+    async function loadReports(): Promise<void> {
+      setReportState((currentState) => (currentState.status === "ready"
+        ? { ...currentState, isReportLoading: true, dateRangeError: "" }
+        : currentState));
 
-    try {
-      const [report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
-        loadReviewEventsByDateReport(config, range.from, range.to),
-        loadDailyActiveUsersReport(config, range.from, range.to),
-        loadCatalogInstallsReport(config, range.from, range.to),
-      ]);
+      try {
+        const [filterOptions, report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
+          loadFilterOptions(config, filters.dateRange),
+          loadReviewEventsByDateReport(config, filters),
+          loadDailyActiveUsersReport(config, filters),
+          loadCatalogInstallsReport(config, filters),
+        ]);
 
-      setReportState((currentState) => {
-        if (currentState.status !== "ready") {
-          return currentState;
+        if (isSuperseded) {
+          return;
         }
 
-        return {
-          ...currentState,
+        hasLoadedReportsRef.current = true;
+        setReportState({
+          status: "ready",
           data: {
-            ...currentState.data,
+            ...ranges,
+            filterOptions,
             report,
             dailyActiveUsersReport,
             catalogInstallsReport,
           },
           isReportLoading: false,
           dateRangeError: "",
-        };
-      });
-    } catch (error) {
-      if (handleTerminalAdminError(error, config)) {
-        return;
-      }
-
-      setReportState((currentState) => {
-        if (currentState.status !== "ready") {
-          return currentState;
+        });
+      } catch (error) {
+        if (isSuperseded) {
+          return;
         }
 
-        return {
-          ...currentState,
-          isReportLoading: false,
-          dateRangeError: getErrorMessage(error),
-        };
-      });
-    }
-  }
+        if (handleTerminalAdminError(error, config)) {
+          return;
+        }
 
-  function resetReportRange(): void {
-    if (reportState.status !== "ready") {
-      return;
+        // A selection that fails keeps the numbers it replaced, with the failure shown in the filter
+        // row; only a view that has nothing on screen yet falls back to the retryable error state.
+        setReportState((currentState) => (currentState.status === "ready"
+          ? { ...currentState, isReportLoading: false, dateRangeError: getErrorMessage(error) }
+          : { status: "error", message: getErrorMessage(error) }));
+      }
     }
 
-    void reloadReport(reportState.data.defaultRange);
-  }
+    const reloadTimeoutId = window.setTimeout(
+      () => { void loadReports(); },
+      hasLoadedReportsRef.current ? filterReloadDebounceMs : 0,
+    );
+
+    return () => {
+      isSuperseded = true;
+      window.clearTimeout(reloadTimeoutId);
+    };
+  }, [
+    filterState,
+    handleTerminalAdminError,
+    loadFilterOptions,
+    reportLoadRevision,
+    reportRanges,
+    sessionConfig,
+  ]);
+
+  const retryReportLoad = useCallback((): void => {
+    setReportLoadRevision((revision) => revision + 1);
+  }, []);
+
+  // Stable across renders on purpose: this reaches the charts through the filter callbacks, and a new
+  // identity on every render would tear down and redraw every chart on every click.
+  // Returns whether the selection was accepted, so a caller that dismisses its own control on
+  // success - the date popover - keeps it open to show the rejection instead.
+  const applyFilters = useCallback((nextFilters: AnalyticsFilterState): boolean => {
+    if (reportRanges === null) {
+      return false;
+    }
+
+    const validationError = validateRequestedRange(nextFilters.dateRange, reportRanges.availableRange);
+    if (validationError !== null) {
+      setReportState((currentState) => (currentState.status === "ready"
+        ? { ...currentState, dateRangeError: validationError }
+        : currentState));
+      return false;
+    }
+
+    // The reload waits out the debounce, so the indicator is raised here rather than when the request
+    // finally leaves: a selection that shows nothing for 400 ms reads as a dead control.
+    setReportState((currentState) => (currentState.status === "ready"
+      ? { ...currentState, isReportLoading: true, dateRangeError: "" }
+      : currentState));
+    setFilterState(nextFilters);
+    return true;
+  }, [reportRanges]);
 
   if (appState.status === "loading" || appState.status === "redirecting") {
     return <LoadingState />;
@@ -391,9 +454,9 @@ export default function App(): JSX.Element {
       config={appState.config}
       adminEmail={appState.session.email}
       reportState={reportState}
+      filters={filterState}
       onReportRetry={retryReportLoad}
-      onDateRangeApply={(range) => void reloadReport(range)}
-      onDateRangeReset={resetReportRange}
+      onFiltersChange={applyFilters}
       onTerminalAdminError={handleTerminalAdminError}
     />
   );

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
-import type { ReviewEventCohort, ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import { audienceTotal, loadAudienceReport, type AudienceBucket, type AudiencePopulation, type AudienceReport } from "./query";
 import "./audience.css";
 
@@ -84,11 +84,9 @@ function AudienceResults(props: Readonly<{ report: AudienceReport; from: string 
 
 export function AudienceSection(props: Readonly<{
   config: AdminAppConfig;
-  from: string;
-  to: string;
-  selectedUserIds: ReadonlyArray<string>;
-  selectedCohorts: ReadonlyArray<ReviewEventCohort>;
-  selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  /** The live selection, so this section answers a filter click even when a General report failed. */
+  filters: AnalyticsFilterState;
+  /** A General reload is pending or in flight; this section waits it out rather than querying per click. */
   isRangeLoading: boolean;
   onLastThreeDays: () => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
@@ -96,25 +94,23 @@ export function AudienceSection(props: Readonly<{
   const [population, setPopulation] = useState<AudiencePopulation>("active");
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
-  const filters = useMemo(() => ({
-    from: props.from, to: props.to, population,
-    selectedUserIds: props.selectedUserIds,
-    selectedCohorts: props.selectedCohorts,
-    selectedPlatforms: props.selectedPlatforms,
-  }), [props.from, props.to, population, props.selectedUserIds, props.selectedCohorts, props.selectedPlatforms]);
+  const audienceFilters = useMemo(
+    () => ({ population, filters: props.filters }),
+    [population, props.filters],
+  );
 
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
     if (props.isRangeLoading) return () => { cancelled = true; };
-    void loadAudienceReport(props.config, filters).then((report) => {
+    void loadAudienceReport(props.config, audienceFilters).then((report) => {
       if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Audience query error." });
     });
     return () => { cancelled = true; };
-  }, [filters, props.config, props.isRangeLoading, props.onTerminalAdminError, revision]);
+  }, [audienceFilters, props.config, props.isRangeLoading, props.onTerminalAdminError, revision]);
 
   return <section className="dashboard-section" data-testid="audience-section">
     <header className="dashboard-section-header">
@@ -128,7 +124,7 @@ export function AudienceSection(props: Readonly<{
         </select>
       </label>
       <button className="filter-button" type="button" data-testid="audience-last-three-days" onClick={props.onLastThreeDays}>Last 3 days (UTC)</button>
-      <span>{props.from} to {props.to}, inclusive</span>
+      <span>{props.filters.dateRange.from} to {props.filters.dateRange.to}, inclusive</span>
     </div>
     <p className="funnel-disclosure">The shared date, user, platform and new/returning filters apply here. New means activity on the first recorded app-open day for Active, or the first review day for Reviewed. A user may qualify as both new and returning during a range. Language describes that cohort’s events across selected platforms in the range, not only its app opens or review answers. Older clients and old queued events can have unknown UI language.</p>
     {props.isRangeLoading || loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading Audience…</p> : null}
@@ -136,6 +132,6 @@ export function AudienceSection(props: Readonly<{
       <strong>Audience query failed.</strong><span>{loadState.message}</span>
       <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
     </div> : null}
-    {!props.isRangeLoading && loadState.status === "ready" ? <AudienceResults report={loadState.report} from={props.from} /> : null}
+    {!props.isRangeLoading && loadState.status === "ready" ? <AudienceResults report={loadState.report} from={props.filters.dateRange.from} /> : null}
   </section>;
 }
