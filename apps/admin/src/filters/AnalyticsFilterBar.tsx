@@ -13,6 +13,11 @@ import {
   uniqueUserCohortLabels,
 } from "../charts/chartPrimitives";
 import type { UserColorScale } from "../dashboard/userColors";
+import type {
+  CatalogInstallDeviceCategory,
+  CatalogInstallPlacement,
+  CatalogInstallSource,
+} from "../reports/catalogInstallFunnel/query";
 import { analyticsAreaLabels, type AnalyticsArea } from "../routing";
 import {
   analyticsFilterFieldLabels,
@@ -29,6 +34,7 @@ import {
   type AnalyticsThresholdEventType,
 } from "./analyticsFilters";
 import { DateRangeCalendar, type DateRangeCalendarRange } from "./DateRangeCalendar";
+import type { CatalogDeckOption } from "./optionsQuery";
 import {
   buildActiveUserFilters,
   buildSearchableUserFilterOptions,
@@ -55,7 +61,9 @@ const unknownUserSwatchColor = "rgba(255, 255, 255, 0.36)";
 const filterValueSwatchColor = "var(--accent-strong)";
 // Above this many picked values the button prints a count instead, which is where the values stop
 // fitting on one line of it.
-const openOptionSummaryValueLimit = 3;
+const optionSummaryValueLimit = 3;
+// Above this many values an option list stops being scannable in a popover and is searched instead.
+const searchableFilterOptionCount = 15;
 
 type AnalyticsFilterBarProps = Readonly<{
   area: AnalyticsArea;
@@ -74,6 +82,17 @@ type AnalyticsFilterBarProps = Readonly<{
   connectionCountryOptions: ReadonlyArray<string>;
   /** Every app UI locale tag the range can offer, from that same query. */
   appUiLanguageOptions: ReadonlyArray<string>;
+  /**
+   * What the five catalog fields can offer. Unlike every list above, these are not scoped to the
+   * range: the decks name every deck version ever installed, the four dimensions name the values the
+   * originating clicks of completed installs carried, and each is the only thing its own filter can
+   * match.
+   */
+  catalogDeckOptions: ReadonlyArray<CatalogDeckOption>;
+  catalogPlacementOptions: ReadonlyArray<CatalogInstallPlacement>;
+  catalogSourceOptions: ReadonlyArray<CatalogInstallSource>;
+  catalogDeviceCategoryOptions: ReadonlyArray<CatalogInstallDeviceCategory>;
+  catalogClickBrowserLanguageOptions: ReadonlyArray<string>;
   userColorScale: UserColorScale;
   /** Whether the selection was accepted; a rejected one keeps its popover open on the error. */
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
@@ -90,6 +109,15 @@ type FilterOption<Value extends string> = Readonly<{
   value: Value;
   label: string;
   swatchColor: string;
+}>;
+
+/** One pickable value of a field whose values carry no colour of their own. */
+type FilterOptionChoice<Value extends string> = Readonly<{
+  value: Value;
+  /** What the checkbox and the chip print, where there is room for the whole value. */
+  label: string;
+  /** What the field button prints, where a deck version's full label would not fit. */
+  summaryLabel: string;
 }>;
 
 /** What one field contributes to the bar; the shared shell around it is the same for every field. */
@@ -234,6 +262,11 @@ function FilterChipRow(
   );
 }
 
+// One checkbox per value, and a search once a list is too long to scan - decks and locale tags can be
+// numerous, so they get what the users field already has: the search narrows what is rendered, only
+// the first matches are rendered, and the count line says how many more the search still matches. A
+// search is a way of looking rather than part of the selection, so it lives here and ends with the
+// popover instead of reaching the URL.
 function FilterOptionList<Value extends string>(
   props: Readonly<{
     options: ReadonlyArray<FilterOption<Value>>;
@@ -241,23 +274,55 @@ function FilterOptionList<Value extends string>(
     onToggle: (value: Value, isChecked: boolean) => void;
   }>,
 ): JSX.Element {
+  const [searchValue, setSearchValue] = useState<string>("");
+  const normalizedSearchValue = getNormalizedSearchValue(searchValue);
+  const matchingOptions = props.options.filter(
+    (option) => getNormalizedSearchValue(option.label).includes(normalizedSearchValue),
+  );
+  // The users list' own limit, because these lists render the same way and one number is what keeps
+  // them from drifting apart; the count line below says how many more the search still matches.
+  const visibleOptions = matchingOptions.slice(0, visibleUserFilterOptionLimit);
+  const hiddenOptionCount = matchingOptions.length - visibleOptions.length;
+
   return (
-    <div className="filter-option-list">
-      {props.options.map((option) => (
-        <label
-          key={option.value}
-          className={`filter-checkbox-option${props.selectedValues.has(option.value) ? " selected" : ""}`}
-        >
+    <>
+      {props.options.length > searchableFilterOptionCount ? (
+        <label className="filter-option-search">
+          <span>Search values</span>
           <input
-            type="checkbox"
-            checked={props.selectedValues.has(option.value)}
-            onChange={(event) => props.onToggle(option.value, event.currentTarget.checked)}
+            type="search"
+            value={searchValue}
+            placeholder="Any part of a value"
+            onChange={(event) => setSearchValue(event.currentTarget.value)}
           />
-          <span className="platform-key-swatch" style={{ backgroundColor: option.swatchColor }} />
-          <span>{option.label}</span>
         </label>
-      ))}
-    </div>
+      ) : null}
+      {visibleOptions.length === 0 ? (
+        <p className="filter-option-empty">No value matches this search.</p>
+      ) : (
+        <div className="filter-option-list">
+          {visibleOptions.map((option) => (
+            <label
+              key={option.value}
+              className={`filter-checkbox-option${props.selectedValues.has(option.value) ? " selected" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={props.selectedValues.has(option.value)}
+                onChange={(event) => props.onToggle(option.value, event.currentTarget.checked)}
+              />
+              <span className="platform-key-swatch" style={{ backgroundColor: option.swatchColor }} />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {hiddenOptionCount > 0 ? (
+        <p className="filter-option-limit">
+          Showing {visibleOptions.length.toLocaleString("en-US")} of {matchingOptions.length.toLocaleString("en-US")} matching values.
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -342,39 +407,47 @@ function UserFilterOptions(
   );
 }
 
-/** The picked values while they still fit on the button, and a count once they do not. */
-function getOpenOptionSelectionSummary(
-  selectedValues: ReadonlyArray<string>,
+/** The picked labels while they still fit on the button, and a count once they do not. */
+function getOptionSelectionSummary(
+  selectedLabels: ReadonlyArray<string>,
   everyValueSummary: string,
 ): string {
-  if (selectedValues.length === 0) {
+  if (selectedLabels.length === 0) {
     return everyValueSummary;
   }
 
-  return selectedValues.length <= openOptionSummaryValueLimit
-    ? selectedValues.join(" + ")
-    : `${selectedValues.length.toLocaleString("en-US")} selected`;
+  return selectedLabels.length <= optionSummaryValueLimit
+    ? selectedLabels.join(" + ")
+    : `${selectedLabels.length.toLocaleString("en-US")} selected`;
 }
 
-// Countries and locale tags are open sets that name no chart series, so the two fields offering them
-// read the same way: chips for the selection, one checkbox per value the range offers, and a reset
-// that clears the field. The options are range-scoped and deliberately independent of the selection,
-// so a picked value the range stopped offering still shows as a chip and can still be removed, rather
-// than sitting applied with no control for it.
-function buildOpenOptionFieldView(props: Readonly<{
+// Every field whose values name no chart series reads the same way, whether its values are an open set
+// like countries and locale tags or a closed one like the catalog placements: chips for the selection,
+// one checkbox per offered value, and a reset that clears the field. The options are deliberately
+// independent of the selection, so a picked value that stopped being offered still shows as a chip and
+// can still be removed, rather than sitting applied with no control for it - which is also why a value
+// with no option to read a label from prints as itself.
+function buildOptionFieldView<Value extends string>(props: Readonly<{
   fieldLabel: string;
-  selectedValues: ReadonlyArray<string>;
-  options: ReadonlyArray<string>;
-  defaultValues: ReadonlyArray<string>;
+  selectedValues: ReadonlyArray<Value>;
+  options: ReadonlyArray<FilterOptionChoice<Value>>;
+  defaultValues: ReadonlyArray<Value>;
   everyValueSummary: string;
   emptyOptionsMessage: string;
   resetLabel: string;
-  onSelectionChange: (values: ReadonlyArray<string>) => void;
+  onSelectionChange: (values: ReadonlyArray<Value>) => void;
 }>): FilterFieldView {
-  const selectedValueSet: ReadonlySet<string> = new Set<string>(props.selectedValues);
+  const selectedValueSet: ReadonlySet<Value> = new Set<Value>(props.selectedValues);
+  const optionsByValue: ReadonlyMap<Value, FilterOptionChoice<Value>> = new Map<
+    Value,
+    FilterOptionChoice<Value>
+  >(props.options.map((option) => [option.value, option]));
+  const selectedSummaryLabels = props.selectedValues.map(
+    (value) => optionsByValue.get(value)?.summaryLabel ?? value,
+  );
 
   return {
-    summary: getOpenOptionSelectionSummary(props.selectedValues, props.everyValueSummary),
+    summary: getOptionSelectionSummary(selectedSummaryLabels, props.everyValueSummary),
     isFiltered: props.selectedValues.length > 0,
     isWide: false,
     content: (
@@ -383,7 +456,7 @@ function buildOpenOptionFieldView(props: Readonly<{
           fieldLabel={props.fieldLabel}
           chips={props.selectedValues.map((value) => ({
             value,
-            label: value,
+            label: optionsByValue.get(value)?.label ?? value,
             secondaryLabel: "",
             swatchColor: filterValueSwatchColor,
           }))}
@@ -395,13 +468,13 @@ function buildOpenOptionFieldView(props: Readonly<{
           <p className="filter-option-empty">{props.emptyOptionsMessage}</p>
         ) : (
           <FilterOptionList
-            options={props.options.map((value) => ({
-              value,
-              label: value,
+            options={props.options.map((option) => ({
+              value: option.value,
+              label: option.label,
               swatchColor: filterValueSwatchColor,
             }))}
             selectedValues={selectedValueSet}
-            onToggle={(value: string, isChecked) => props.onSelectionChange(
+            onToggle={(value: Value, isChecked) => props.onSelectionChange(
               toggleSelectedValue(props.selectedValues, value, isChecked),
             )}
           />
@@ -415,6 +488,17 @@ function buildOpenOptionFieldView(props: Readonly<{
       </>
     ),
   };
+}
+
+/** A value that is its own label, which is every option field but the decks. */
+function toPlainOptionChoice<Value extends string>(value: Value): FilterOptionChoice<Value> {
+  return { value, label: value, summaryLabel: value };
+}
+
+// A field the filter model declares and the bar does not build would leave the area without a control
+// for a filter the URL can still carry, so it is a compile error here rather than a silent omission.
+function assertEveryFilterFieldIsWired(field: never): never {
+  throw new Error(`Analytics filter field ${String(field)} has no control in the filter bar.`);
 }
 
 function FilterFieldResetButton(
@@ -652,7 +736,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     }
   }
 
-  function buildFilterFieldView(field: AnalyticsFilterField): FilterFieldView | null {
+  function buildFilterFieldView(field: AnalyticsFilterField): FilterFieldView {
     if (field === "dateRange") {
       const isDefaultRange = props.filters.dateRange.from === props.defaultRange.from
         && props.filters.dateRange.to === props.defaultRange.to;
@@ -918,10 +1002,10 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     }
 
     if (field === "connectionCountries") {
-      return buildOpenOptionFieldView({
+      return buildOptionFieldView({
         fieldLabel: analyticsFilterFieldLabels.connectionCountries,
         selectedValues: props.filters.connectionCountries,
-        options: props.connectionCountryOptions,
+        options: props.connectionCountryOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.connectionCountries,
         everyValueSummary: "Every country",
         emptyOptionsMessage: "No retained connection sample in this range.",
@@ -934,10 +1018,10 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     }
 
     if (field === "appUiLanguages") {
-      return buildOpenOptionFieldView({
+      return buildOptionFieldView({
         fieldLabel: analyticsFilterFieldLabels.appUiLanguages,
         selectedValues: props.filters.appUiLanguages,
-        options: props.appUiLanguageOptions,
+        options: props.appUiLanguageOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.appUiLanguages,
         everyValueSummary: "Every language",
         emptyOptionsMessage: "No event in this range recorded a UI language.",
@@ -949,17 +1033,99 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
       });
     }
 
-    // The catalog attribution fields of the filter model are declared but their controls are not
-    // built yet; they land with their own item. An unwired field is left out of the bar rather than
-    // shown as an empty control.
-    return null;
+    // The five catalog fields below read the whole history rather than the selected range, because
+    // that is the only thing their filters can match, so an empty list says that nothing was ever
+    // recorded rather than nothing in this range. The deck field is answered by the install event
+    // itself; the four click dimensions need the originating click of that install.
+    if (field === "installedDecks") {
+      return buildOptionFieldView({
+        fieldLabel: analyticsFilterFieldLabels.installedDecks,
+        selectedValues: props.filters.installedDecks,
+        options: props.catalogDeckOptions.map((deck) => ({
+          value: deck.packageVersionId,
+          label: `${deck.packageSlug} — ${deck.packageVersionId}`,
+          summaryLabel: deck.packageSlug,
+        })),
+        defaultValues: defaultFilters.installedDecks,
+        everyValueSummary: "Every deck",
+        emptyOptionsMessage: "No catalog deck install was ever recorded.",
+        resetLabel: "Select every deck",
+        onSelectionChange: (installedDecks) => props.onFiltersChange({
+          ...props.filters,
+          installedDecks,
+        }),
+      });
+    }
+
+    if (field === "catalogPlacements") {
+      return buildOptionFieldView({
+        fieldLabel: analyticsFilterFieldLabels.catalogPlacements,
+        selectedValues: props.filters.catalogPlacements,
+        options: props.catalogPlacementOptions.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.catalogPlacements,
+        everyValueSummary: "Every placement",
+        emptyOptionsMessage: "No attributed click recorded a page placement.",
+        resetLabel: "Select every placement",
+        onSelectionChange: (catalogPlacements) => props.onFiltersChange({
+          ...props.filters,
+          catalogPlacements,
+        }),
+      });
+    }
+
+    if (field === "catalogSources") {
+      return buildOptionFieldView({
+        fieldLabel: analyticsFilterFieldLabels.catalogSources,
+        selectedValues: props.filters.catalogSources,
+        options: props.catalogSourceOptions.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.catalogSources,
+        everyValueSummary: "Every source",
+        emptyOptionsMessage: "No attributed click recorded a traffic source.",
+        resetLabel: "Select every source",
+        onSelectionChange: (catalogSources) => props.onFiltersChange({
+          ...props.filters,
+          catalogSources,
+        }),
+      });
+    }
+
+    if (field === "catalogDeviceCategories") {
+      return buildOptionFieldView({
+        fieldLabel: analyticsFilterFieldLabels.catalogDeviceCategories,
+        selectedValues: props.filters.catalogDeviceCategories,
+        options: props.catalogDeviceCategoryOptions.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.catalogDeviceCategories,
+        everyValueSummary: "Every device category",
+        emptyOptionsMessage: "No attributed click recorded a device category.",
+        resetLabel: "Select every device category",
+        onSelectionChange: (catalogDeviceCategories) => props.onFiltersChange({
+          ...props.filters,
+          catalogDeviceCategories,
+        }),
+      });
+    }
+
+    if (field === "catalogClickBrowserLanguages") {
+      return buildOptionFieldView({
+        fieldLabel: analyticsFilterFieldLabels.catalogClickBrowserLanguages,
+        selectedValues: props.filters.catalogClickBrowserLanguages,
+        options: props.catalogClickBrowserLanguageOptions.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.catalogClickBrowserLanguages,
+        everyValueSummary: "Every browser language",
+        emptyOptionsMessage: "No attributed click reported a browser language.",
+        resetLabel: "Select every browser language",
+        onSelectionChange: (catalogClickBrowserLanguages) => props.onFiltersChange({
+          ...props.filters,
+          catalogClickBrowserLanguages,
+        }),
+      });
+    }
+
+    return assertEveryFilterFieldIsWired(field);
   }
 
   const fieldViews = analyticsFilterFieldsByArea[props.area]
-    .map((field) => ({ field, view: buildFilterFieldView(field) }))
-    .filter((entry): entry is Readonly<{ field: AnalyticsFilterField; view: FilterFieldView }> => (
-      entry.view !== null
-    ));
+    .map((field) => ({ field, view: buildFilterFieldView(field) }));
 
   return (
     <section className="filter-panel" aria-labelledby="analytics-filters-title" ref={panelRef}>

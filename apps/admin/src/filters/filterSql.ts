@@ -218,9 +218,11 @@ export function buildConnectionCountrySamplesSql(
  * This restricts people rather than rows: a user matches a country when at least one retained sample
  * says so, so a user with no retained sample matches no country at all and is dropped as soon as this
  * field is narrowed. The samples are read across every platform whatever the platform field says, so
- * this predicate matches exactly the countries its own range-scoped option list offers. The audience
- * report's own country and pair charts stay narrowed to the selected platforms, so a person kept by
- * this filter can still land in their `unknown` buckets.
+ * the platform dimension never narrows what this can match, which is exactly how its own range-scoped
+ * option list reads them too. The list is still a strict subset of what this matches, because it
+ * restates the `%@example.com` exclusion on purpose. The audience report's own country and pair
+ * charts stay narrowed to the selected platforms, so a person kept by this filter can still land in
+ * their `unknown` buckets.
  */
 export function buildConnectionCountriesFilterSql(
   actorIdSqlExpression: string,
@@ -247,12 +249,14 @@ export function buildConnectionCountriesFilterSql(
  *
  * `ui_locale` is the interface language the client recorded on the event before queuing it, taken
  * inside the range over every event rather than over one report's own event name, and across every
- * platform whatever the platform field says, so this predicate matches exactly the languages its own
- * range-scoped option list offers. The audience report's own language and pair charts stay narrowed
- * to the selected platforms, so a person kept by this filter can still land in their `unknown`
- * buckets. An old client and an old queued event carry no locale, so a user whose events in range
- * carry none matches no language and is dropped as soon as this field is narrowed. This restricts
- * people rather than rows, so one person's other events stay counted.
+ * platform whatever the platform field says, so the platform dimension never narrows what this can
+ * match, which is exactly how its own range-scoped option list reads them too. The list is still a
+ * strict subset of what this matches, because it restates the `%@example.com` exclusion on purpose.
+ * The audience report's own language and pair charts stay narrowed to the selected platforms, so a
+ * person kept by this filter can still land in their `unknown` buckets. An old client and an old
+ * queued event carry no locale, so a user whose events in range carry none matches no language and is
+ * dropped as soon as this field is narrowed. This restricts people rather than rows, so one person's
+ * other events stay counted.
  */
 export function buildAppUiLanguagesFilterSql(
   actorIdSqlExpression: string,
@@ -273,6 +277,182 @@ export function buildAppUiLanguagesFilterSql(
     `    AND ui_locale_events.occurred_at < ${buildRangeEndSql(dateRange)}`,
     ")",
   ].join("\n");
+}
+
+/**
+ * Every completed catalog install, as one row per install carrying the deck version the install
+ * itself recorded. The installed-deck predicate below and the deck option list both read this one
+ * fragment, so an installed deck always means the same evidence.
+ *
+ * THIS DELIBERATELY ASKS NOTHING ABOUT A CLICK. `package_version_id` is a property of
+ * `catalog_deck_installed` itself, and both it and `install_journey_id` are optional on that event
+ * (`docs/catalog-install-funnel.md`, whose acceptance keeps a legacy confirm carrying no journey id
+ * valid). An install whose click was never recorded - a legacy one, or one whose click never reached
+ * the public collector that must never block an install - still names the deck it installed, so
+ * requiring a click here would drop those people and never even offer their deck version.
+ *
+ * There is deliberately no date bound: this answers what a person ever installed, over that person's
+ * whole history.
+ */
+export function buildCatalogInstalledDeckVersionsSql(): string {
+  return [
+    "SELECT",
+    "  installs.actor_id,",
+    "  installs.event_properties ->> 'package_version_id' AS package_version_id,",
+    "  installs.event_properties ->> 'package_slug' AS package_slug",
+    "FROM analytics.product_events_resolved AS installs",
+    "WHERE installs.event_name = 'catalog_deck_installed'",
+    "  AND installs.origin = 'server'",
+    "  AND installs.actor_id IS NOT NULL",
+  ].join("\n");
+}
+
+/**
+ * Picking no deck keeps every user, as on the users field.
+ *
+ * This restricts people rather than rows, and it restricts them on their whole history rather than
+ * inside the selected range, so what it keeps is "users who ever completed an install of one of these
+ * deck versions" - whether or not the click that led there was ever recorded. Its own option list is
+ * a strict subset of what this matches, because the list restates the `%@example.com` and delisted
+ * `test` exclusions on purpose and this restates neither.
+ */
+export function buildInstalledDecksFilterSql(
+  actorIdSqlExpression: string,
+  installedDecks: ReadonlyArray<string>,
+): string {
+  if (installedDecks.length === 0) {
+    return "TRUE";
+  }
+
+  return [
+    `${actorIdSqlExpression} IN (`,
+    "  SELECT installed_decks.actor_id::text",
+    "  FROM (",
+    buildCatalogInstalledDeckVersionsSql(),
+    "  ) AS installed_decks",
+    `  WHERE ${buildInPredicateSql("installed_decks.package_version_id", installedDecks)}`,
+    ")",
+  ].join("\n");
+}
+
+/**
+ * Every completed catalog install whose originating click was recorded, as one row per install
+ * carrying the properties of that click. The four click-dimension predicates below and their four
+ * option lists all read this one fragment, so an attribution value always means the same evidence.
+ *
+ * `catalog_install_clicked` NAMES NO USER, because the click happens before sign-in. The only bridge
+ * to a person is the server-origin `catalog_deck_installed`, which carries `actor_id` next to the
+ * same `install_journey_id` and `package_version_id`; those two are the join keys here, exactly as in
+ * `apps/admin/src/reports/catalogInstallFunnel/query.ts`. A click that never became an install names
+ * nobody and can therefore never match, and an install whose click was never recorded carries no
+ * attribution at all - which is why the installed-deck fragment above reads the install alone.
+ *
+ * ONE CLICK PER JOURNEY, THE FIRST ONE. The clicks are reduced by the same
+ * `DISTINCT ON (install_journey_id)` ordering the funnel applies, so a journey that recorded several
+ * clicks is attributed to one click here exactly as it is there, rather than carrying the values of
+ * every click it ever recorded.
+ *
+ * Both sides state `event_properties ? 'install_journey_id'`, which is the predicate of
+ * `idx_product_events_catalog_install_journey`
+ * (`db/migrations/0134_catalog_install_journey_analytics.sql`). This join is unbounded by date and
+ * sits on the critical path of every General and Audience load, so the guard is what lets the planner
+ * prove that partial index applies; it also prunes the installs that could never have joined.
+ *
+ * There is deliberately no date bound and no conversion window here. The funnel measures one cohort
+ * converting within seven days; this answers what a person's installs were ever attributed to, over
+ * that person's whole history.
+ *
+ * `placement`, `source` and `device_category` are properties of the click event, while `device_locale`
+ * is a view column on the click row. An empty locale is the absence of a reported browser language
+ * rather than a value, so it is folded to NULL and can then be neither offered nor matched.
+ */
+export function buildCatalogInstallAttributionSql(): string {
+  return [
+    "SELECT",
+    "  installs.actor_id,",
+    "  clicks.placement,",
+    "  clicks.source,",
+    "  clicks.device_category,",
+    "  clicks.device_locale",
+    "FROM analytics.product_events_resolved AS installs",
+    "JOIN (",
+    "  SELECT DISTINCT ON (candidate_clicks.event_properties ->> 'install_journey_id')",
+    "    candidate_clicks.event_properties ->> 'install_journey_id' AS install_journey_id,",
+    "    candidate_clicks.event_properties ->> 'package_version_id' AS package_version_id,",
+    "    candidate_clicks.event_properties ->> 'placement' AS placement,",
+    "    candidate_clicks.event_properties ->> 'source' AS source,",
+    "    candidate_clicks.event_properties ->> 'device_category' AS device_category,",
+    "    NULLIF(candidate_clicks.device_locale, '') AS device_locale",
+    "  FROM analytics.product_events_resolved AS candidate_clicks",
+    "  WHERE candidate_clicks.event_name = 'catalog_install_clicked'",
+    "    AND candidate_clicks.origin = 'client'",
+    "    AND candidate_clicks.trust_level = 'anonymous_client'",
+    "    AND candidate_clicks.event_properties ? 'install_journey_id'",
+    "  ORDER BY",
+    "    candidate_clicks.event_properties ->> 'install_journey_id',",
+    "    candidate_clicks.occurred_at,",
+    "    candidate_clicks.event_id",
+    ") AS clicks",
+    "  ON clicks.install_journey_id = installs.event_properties ->> 'install_journey_id'",
+    "  AND clicks.package_version_id = installs.event_properties ->> 'package_version_id'",
+    "WHERE installs.event_name = 'catalog_deck_installed'",
+    "  AND installs.origin = 'server'",
+    "  AND installs.actor_id IS NOT NULL",
+    "  AND installs.event_properties ? 'install_journey_id'",
+  ].join("\n");
+}
+
+/**
+ * The whole catalog selection at once: picking nothing in every one of the five fields is the absence
+ * of a filter, as on the users field.
+ *
+ * This restricts people rather than rows, and it restricts them on their whole history rather than
+ * inside the selected range. The four click dimensions are all applied to the same attributed
+ * install, so narrowing two of them asks for one install whose own click carried both values rather
+ * than for two unrelated installs. A narrowed deck stands next to them as its own condition, because
+ * it is read from the install event itself and therefore also holds for the installs whose click was
+ * never recorded.
+ */
+export function buildCatalogAttributionFiltersSql(
+  actorIdSqlExpression: string,
+  filters: AnalyticsFilterState,
+): string {
+  const clickSelections: ReadonlyArray<Readonly<{
+    columnSqlName: string;
+    values: ReadonlyArray<string>;
+  }>> = [
+    { columnSqlName: "placement", values: filters.catalogPlacements },
+    { columnSqlName: "source", values: filters.catalogSources },
+    { columnSqlName: "device_category", values: filters.catalogDeviceCategories },
+    { columnSqlName: "device_locale", values: filters.catalogClickBrowserLanguages },
+  ];
+  const narrowedSelections = clickSelections.filter((selection) => selection.values.length > 0);
+  const clickAttributionSql = narrowedSelections.length === 0 ? "TRUE" : [
+    `${actorIdSqlExpression} IN (`,
+    "  SELECT install_attribution.actor_id::text",
+    "  FROM (",
+    buildCatalogInstallAttributionSql(),
+    "  ) AS install_attribution",
+    `  WHERE ${narrowedSelections
+      .map((selection) => buildInPredicateSql(
+        `install_attribution.${selection.columnSqlName}`,
+        selection.values,
+      ))
+      .join("\n    AND ")}`,
+    ")",
+  ].join("\n");
+  const narrowedPredicateSql = [
+    buildInstalledDecksFilterSql(actorIdSqlExpression, filters.installedDecks),
+    clickAttributionSql,
+  ].filter((predicateSql) => predicateSql !== "TRUE");
+
+  if (narrowedPredicateSql.length === 0) {
+    return "TRUE";
+  }
+
+  // Parenthesized as a whole, so a caller can drop it into an `OR` branch as safely as into an
+  // `AND` chain.
+  return `(${narrowedPredicateSql.join("\n  AND ")})`;
 }
 
 /**

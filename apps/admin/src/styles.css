@@ -639,9 +639,19 @@ h2 {
 .filter-option-list {
   display: grid;
   gap: 8px;
+  max-height: 260px;
+  overflow: auto;
 }
 
-/* A field whose range offers no value at all says so, rather than showing an empty list. */
+/* How many more values the search in a long option list still matches. */
+.filter-option-limit {
+  margin: 0;
+  color: var(--muted-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* A field with no value to offer, or a search with no match, says so rather than showing an empty list. */
 .filter-option-empty {
   margin: 0;
   color: var(--muted);
@@ -754,7 +764,8 @@ h2 {
   text-transform: uppercase;
 }
 
-.user-filter-search {
+.user-filter-search,
+.filter-option-search {
   display: grid;
   gap: 7px;
   max-width: 420px;
@@ -764,11 +775,13 @@ h2 {
   text-transform: uppercase;
 }
 
-.filter-popover .user-filter-search {
+.filter-popover .user-filter-search,
+.filter-popover .filter-option-search {
   max-width: none;
 }
 
-.user-filter-search input {
+.user-filter-search input,
+.filter-option-search input {
   width: 100%;
   height: 40px;
   border: 1px solid var(--panel-border);
@@ -783,22 +796,26 @@ h2 {
   outline: none;
 }
 
-.user-filter-search input:focus {
+.user-filter-search input:focus,
+.filter-option-search input:focus {
   border-color: rgba(255, 255, 255, 0.28);
 }
 
-.user-filter-search input:focus-visible {
+.user-filter-search input:focus-visible,
+.filter-option-search input:focus-visible {
   border-color: rgba(255, 255, 255, 0.72);
   outline: 2px solid rgba(255, 255, 255, 0.72);
   outline-offset: 2px;
 }
 
-.user-filter-search input:disabled {
+.user-filter-search input:disabled,
+.filter-option-search input:disabled {
   cursor: wait;
   opacity: 0.68;
 }
 
-.user-filter-search input::placeholder {
+.user-filter-search input::placeholder,
+.filter-option-search input::placeholder {
   color: var(--muted-soft);
 }
 

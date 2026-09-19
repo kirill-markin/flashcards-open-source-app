@@ -97,6 +97,11 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         userOptions={filterOptions.users}
         connectionCountryOptions={filterOptions.connectionCountries}
         appUiLanguageOptions={filterOptions.appUiLanguages}
+        catalogDeckOptions={filterOptions.catalogDecks}
+        catalogPlacementOptions={filterOptions.catalogPlacements}
+        catalogSourceOptions={filterOptions.catalogSources}
+        catalogDeviceCategoryOptions={filterOptions.catalogDeviceCategories}
+        catalogClickBrowserLanguageOptions={filterOptions.catalogClickBrowserLanguages}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
         userColorScale={userColorScale}
