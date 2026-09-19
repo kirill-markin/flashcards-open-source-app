@@ -21,6 +21,42 @@ import {
 // between a row's date and that actor's first day of the activity the report counts, and no two
 // reports count the same activity.
 
+/**
+ * Whether one actor is excluded from reporting right now.
+ *
+ * `analytics.excluded_actors` is the one list of actors no human produced, and an exclusion is active
+ * while `restored_at IS NULL`, because a human restore is recorded on the row rather than deleting it
+ * (`db/migrations/0140_analytics_excluded_actors.sql`).
+ *
+ * NOTHING IS FOLDED ON THIS SIDE. The stored key is lower-cased and trimmed by its own CHECK, so every
+ * reader folds its own side to match it - but every actor expression on this dashboard is
+ * `analytics.product_events_resolved.actor_id`, a UUID whose `::text` is already canonical lowercase
+ * hex, so a fold here would be a no-op. A reader comparing an unconstrained TEXT id instead, as the
+ * public snapshot does, has to fold that column.
+ */
+export function buildActorIsExcludedSql(actorIdSqlExpression: string): string {
+  return [
+    "EXISTS (",
+    "  SELECT 1",
+    "  FROM analytics.excluded_actors AS excluded_actors",
+    `  WHERE excluded_actors.actor_id = ${actorIdSqlExpression}`,
+    "    AND excluded_actors.restored_at IS NULL",
+    ")",
+  ].join("\n");
+}
+
+/**
+ * Drops every event of an excluded actor, on every surface that counts people.
+ *
+ * This is an identity rule rather than a selection, so it takes no filter state and a report composes
+ * it into the CTE its own actors come from, beside the `%@example.com` exclusion that is restated
+ * there. The option lists restate it for the reason they restate that one: a country, language or deck
+ * only an excluded actor ever produced must not be offered.
+ */
+export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): string {
+  return `NOT ${buildActorIsExcludedSql(actorIdSqlExpression)}`;
+}
+
 // The half-open UTC instants of a range, as the expressions a timestamp column is compared to. Each
 // one is parenthesized whole, so it drops into a comparison as safely as into a select list.
 function buildRangeStartSql(dateRange: AnalyticsDateRange): string {
@@ -68,8 +104,9 @@ export function buildEventPlatformsFilterSql(
 // would let a chip and a chart disagree about the same person. So this repeats the two exclusions the
 // `deck_installs` CTE of `buildCatalogInstallsSql` applies: the delisted `test` fixture of
 // `db/migrations/0111_delist_catalog_test_fixture.sql`, and installs made by an admin whose grant is
-// not revoked. The `%@example.com` exclusion that CTE also applies is deliberately not repeated,
-// because every set of users a threshold is applied to has already dropped those actors itself.
+// not revoked. The `%@example.com` and excluded-actor exclusions that CTE also applies are
+// deliberately not repeated, because every set of users a threshold is applied to has already dropped
+// those actors itself.
 const catalogInstallThresholdExclusionSqlLines = [
   "    AND threshold_events.event_properties ->> 'package_slug' <> 'test'",
   "    AND NOT EXISTS (",
@@ -220,9 +257,9 @@ export function buildConnectionCountrySamplesSql(
  * field is narrowed. The samples are read across every platform whatever the platform field says, so
  * the platform dimension never narrows what this can match, which is exactly how its own range-scoped
  * option list reads them too. The list is still a strict subset of what this matches, because it
- * restates the `%@example.com` exclusion on purpose. The audience report's own country and pair
- * charts stay narrowed to the selected platforms, so a person kept by this filter can still land in
- * their `unknown` buckets.
+ * restates the `%@example.com` and excluded-actor exclusions on purpose. The audience report's own
+ * country and pair charts stay narrowed to the selected platforms, so a person kept by this filter can
+ * still land in their `unknown` buckets.
  */
 export function buildConnectionCountriesFilterSql(
   actorIdSqlExpression: string,
@@ -251,7 +288,8 @@ export function buildConnectionCountriesFilterSql(
  * inside the range over every event rather than over one report's own event name, and across every
  * platform whatever the platform field says, so the platform dimension never narrows what this can
  * match, which is exactly how its own range-scoped option list reads them too. The list is still a
- * strict subset of what this matches, because it restates the `%@example.com` exclusion on purpose.
+ * strict subset of what this matches, because it restates the `%@example.com` and excluded-actor
+ * exclusions on purpose.
  * The audience report's own language and pair charts stay narrowed to the selected platforms, so a
  * person kept by this filter can still land in their `unknown` buckets. An old client and an old
  * queued event carry no locale, so a user whose events in range carry none matches no language and is
@@ -313,8 +351,8 @@ export function buildCatalogInstalledDeckVersionsSql(): string {
  * This restricts people rather than rows, and it restricts them on their whole history rather than
  * inside the selected range, so what it keeps is "users who ever completed an install of one of these
  * deck versions" - whether or not the click that led there was ever recorded. Its own option list is
- * a strict subset of what this matches, because the list restates the `%@example.com` and delisted
- * `test` exclusions on purpose and this restates neither.
+ * a strict subset of what this matches, because the list restates the `%@example.com`, excluded-actor
+ * and delisted `test` exclusions on purpose and this restates none of them.
  */
 export function buildInstalledDecksFilterSql(
   actorIdSqlExpression: string,
