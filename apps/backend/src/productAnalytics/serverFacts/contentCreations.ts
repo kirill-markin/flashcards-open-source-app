@@ -19,6 +19,7 @@ import {
 // below is the same Sentry warning there and the same structured CloudWatch record in the lean
 // handler.
 import {
+  addBackendRuntimeBreadcrumb,
   captureBackendRuntimeWarning,
   createBackendObservationScope,
 } from "../../observability/runtime";
@@ -38,8 +39,9 @@ import {
   type PostCommitFactEmissionAbortedOutcome,
 } from "./postCommitFactLifecycle";
 import {
-  toWorkspaceReplicaPlatform,
-  toWorkspaceReplicaRowPlatform,
+  toWorkspaceReplicaAttribution,
+  toWorkspaceReplicaRowAttribution,
+  type WorkspaceReplicaAttribution,
   type WorkspaceReplicaPlatformFacts,
   type WorkspaceReplicaPlatformRow,
 } from "./replicaPlatforms";
@@ -69,7 +71,7 @@ export type ContentCreation = Readonly<{
   // insert stored it, which on a creation is the replica that wrote the row rather than the last one
   // to touch it. It is carried as the id rather than as a platform because the replica row lives in
   // another table: resolving it is one lookup for a whole drain instead of one per row on the content
-  // write. See resolveContentCreationPlatforms.
+  // write. See resolveContentCreationReplicaAttributions.
   replicaId: string;
   // sync.hot_changes.client_updated_at for the write that created the row, as an ISO string.
   clientUpdatedAt: string;
@@ -105,46 +107,55 @@ export function collectContentCreation(
   collectPostCommitFact(collectedContentCreations, executor, creation);
 }
 
-// The platform behind a replica this transaction writes through, keyed by the executor running it
-// and with the same lifetime as the creations above: created on first use, dropped with the executor.
+// What a replica this transaction writes through decides for its creations, keyed by the executor
+// running it and with the same lifetime as the creations above: created on first use, dropped with
+// the executor.
 //
 // A caller that ensured a replica already holds everything the derivation needs, so what it names
-// here is exactly what the drain would otherwise read sync.workspace_replicas back for. A null value
-// is an answer like any other - "this replica justifies no platform" - and saves that read just as
-// much as a device does.
-const declaredReplicaPlatforms = new WeakMap<
+// here is exactly what the drain would otherwise read sync.workspace_replicas back for. A null
+// platform is an answer like any other - "this replica justifies no platform" - and saves that read
+// just as much as a device does.
+const declaredReplicaAttributions = new WeakMap<
   DatabaseExecutor,
-  Map<string, ProductAnalyticsPlatform | null>
+  Map<string, WorkspaceReplicaAttribution>
 >();
 
 /**
- * Names the platform behind one replica, from the facts the caller ensured that replica with.
+ * Names what one replica decides for its creations, from the facts the caller ensured it with.
  *
  * Callers must pass the actor kind and platform the stored row really carries, which is what
  * ensuring the replica guarantees: the upsert refuses a replica whose row disagrees with either. The
  * derivation is the drain's own, so a platform named here and one read back later cannot differ.
+ *
+ * The automation marker holds the same way, and nothing here reads it back: a declared replica is
+ * never resolved, so what a caller names must already be the stored marker. The caller reads it
+ * from sync.claim_installation, which returns it from the row it just locked, and folds this
+ * request's own declaration into it before naming it (../../sync/identity/replica.ts). A client that
+ * declares automation once therefore reports nothing for any creation afterwards, including on the
+ * requests it declares nothing on - naming this request's body here instead would silently un-mark
+ * the installation for exactly those.
  *
  * Declaring is optional everywhere. Creations naming a replica nothing declared are resolved by the
  * drain instead, which is the only route left to a caller that was handed a replica id and no facts
  * at all - a workspace-package import, or a tool write whose replica was ensured in an earlier
  * transaction.
  */
-export function declareContentCreationReplicaPlatform(
+export function declareContentCreationReplicaFacts(
   executor: DatabaseExecutor,
   replicaId: string,
   replica: WorkspaceReplicaPlatformFacts,
 ): void {
-  const platform = toWorkspaceReplicaPlatform(replica);
-  const declared = declaredReplicaPlatforms.get(executor);
+  const attribution = toWorkspaceReplicaAttribution(replica);
+  const declared = declaredReplicaAttributions.get(executor);
   if (declared === undefined) {
-    declaredReplicaPlatforms.set(
+    declaredReplicaAttributions.set(
       executor,
-      new Map<string, ProductAnalyticsPlatform | null>([[replicaId, platform]]),
+      new Map<string, WorkspaceReplicaAttribution>([[replicaId, attribution]]),
     );
     return;
   }
 
-  declared.set(replicaId, platform);
+  declared.set(replicaId, attribution);
 }
 
 /**
@@ -206,18 +217,18 @@ const contentCreationPlatformResolutionTimeoutMs = 2_000;
  * spent, a replica the scoped read does not reach - each leaves its creations out of a per-platform
  * breakdown rather than guessing at a platform the append-only table could never be corrected of.
  */
-async function resolveContentCreationPlatforms(
+async function resolveContentCreationReplicaAttributions(
   creations: ReadonlyArray<ContentCreation>,
-  declaredPlatformByReplicaId: ReadonlyMap<string, ProductAnalyticsPlatform | null>,
+  declaredAttributionByReplicaId: ReadonlyMap<string, WorkspaceReplicaAttribution>,
   actorUserId: string,
   budget: PostCommitAnalyticsBudget,
-): Promise<ReadonlyMap<string, ProductAnalyticsPlatform | null>> {
+): Promise<ReadonlyMap<string, WorkspaceReplicaAttribution>> {
   const undeclaredCreations = creations.filter(
-    (creation) => !declaredPlatformByReplicaId.has(creation.replicaId),
+    (creation) => !declaredAttributionByReplicaId.has(creation.replicaId),
   );
   const scopingCreation = undeclaredCreations[0];
   if (scopingCreation === undefined) {
-    return declaredPlatformByReplicaId;
+    return declaredAttributionByReplicaId;
   }
 
   // The budget is checked here for the same reason a chunk checks it: this runs after COMMIT on the
@@ -225,11 +236,11 @@ async function resolveContentCreationPlatforms(
   // on the same check, so the request pays for neither. A drain with nothing left to read returned
   // above without reaching this, so it neither starts that clock nor spends it.
   if (!budget.hasTimeForAnotherOperation()) {
-    return declaredPlatformByReplicaId;
+    return declaredAttributionByReplicaId;
   }
 
   const replicaIds = [...new Set(undeclaredCreations.map((creation) => creation.replicaId))];
-  const platformByReplicaId = new Map(declaredPlatformByReplicaId);
+  const attributionByReplicaId = new Map(declaredAttributionByReplicaId);
   const resolutionScope = createBackendObservationScope(
     "backend-api",
     null,
@@ -261,9 +272,16 @@ async function resolveContentCreationPlatforms(
         async (executor) => {
           const result = await executor.query<WorkspaceReplicaPlatformRow>(
             [
-              "SELECT replica_id, actor_kind, platform",
-              "FROM sync.workspace_replicas",
-              "WHERE replica_id = ANY($1::uuid[])",
+              // The automation marker lives on the installation rather than on the replica, so it is
+              // joined rather than selected: sync.installations is the row the client declared it on
+              // and the only place it is ever stored. A replica with no installation behind it - every
+              // actor kind but client_installation - joins to no row and is no automation.
+              "SELECT replicas.replica_id, replicas.actor_kind, replicas.platform,",
+              "COALESCE(installations.is_automation, FALSE) AS is_automation",
+              "FROM sync.workspace_replicas AS replicas",
+              "LEFT JOIN sync.installations AS installations",
+              "ON installations.installation_id = replicas.installation_id",
+              "WHERE replicas.replica_id = ANY($1::uuid[])",
             ].join(" "),
             [replicaIds],
           );
@@ -291,7 +309,7 @@ async function resolveContentCreationPlatforms(
       });
     }
     for (const replica of replicas) {
-      platformByReplicaId.set(replica.replica_id, toWorkspaceReplicaRowPlatform(replica));
+      attributionByReplicaId.set(replica.replica_id, toWorkspaceReplicaRowAttribution(replica));
     }
   } catch (error) {
     // Reported rather than swallowed. The events themselves are unaffected and still worth storing,
@@ -311,7 +329,7 @@ async function resolveContentCreationPlatforms(
     });
   }
 
-  return platformByReplicaId;
+  return attributionByReplicaId;
 }
 
 function toContentCreationEvent(
@@ -358,7 +376,7 @@ function toContentCreationEvent(
     workspaceId: creation.workspaceId,
     // The platform of the replica that wrote the row: named by the transaction that ensured that
     // replica itself, and otherwise read back from sync.workspace_replicas once for the whole drain.
-    // See resolveContentCreationPlatforms.
+    // See resolveContentCreationReplicaAttributions.
     //
     // The platform column may never be read without the actor kind beside it, and the two actor kinds
     // that reach this producer with no device behind them are why: the machine API writes cards
@@ -429,6 +447,60 @@ function reportAbandonedContentCreations(
 }
 
 /**
+ * Keeps only the creations of replicas that may be reported at all.
+ *
+ * An installation that declared itself automation produces no product analytics, and a creation it
+ * wrote is dropped whole rather than stored with a null platform: the marker says the actor is not a
+ * person, not that the device is unknown. A replica the resolution did not reach carries no marker
+ * either way and is reported as it always was.
+ *
+ * That last case is emit-on-unknown and is deliberate. Once the declaration reflects storage, a
+ * creation reaches it only when the resolution read threw or the post-commit budget ran out, and
+ * both are transient: dropping on an unknown marker would lose a real person's creations to a
+ * failure that has nothing to do with them, while reporting one costs a marked installation a few
+ * creations that the exclusion work removes downstream anyway. Do not "tighten" this to a drop.
+ *
+ * The drop is recorded rather than silent, so a run that produces nothing is legible as this rule
+ * firing instead of as a producer that stopped working.
+ */
+function dropAutomationContentCreations(
+  creations: ReadonlyArray<ContentCreation>,
+  attributionByReplicaId: ReadonlyMap<string, WorkspaceReplicaAttribution>,
+  actorUserId: string,
+): ReadonlyArray<ContentCreation> {
+  const reportable = creations.filter(
+    (creation) => attributionByReplicaId.get(creation.replicaId)?.isAutomation !== true,
+  );
+  const suppressed = creations.length - reportable.length;
+  if (suppressed === 0) {
+    return reportable;
+  }
+
+  addBackendRuntimeBreadcrumb({
+    action: "product_analytics_content_creation_automation_suppressed",
+    scope: createBackendObservationScope(
+      "backend-api",
+      null,
+      null,
+      null,
+      actorUserId,
+      creations[0]?.workspaceId ?? null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ),
+    details: {
+      factCount: creations.length,
+      suppressedFactCount: suppressed,
+    },
+  });
+
+  return reportable;
+}
+
+/**
  * Reports one committed transaction's creations after resolving all undeclared replica platforms.
  * Workspace-package imports, bootstrap pushes and guest merges can collect thousands of creations;
  * the shared lifecycle bounds and partitions their sequential writer work. The platform lookup is
@@ -448,9 +520,9 @@ async function emitCollectedContentCreations(
     return;
   }
 
-  const declaredPlatformByReplicaId: ReadonlyMap<string, ProductAnalyticsPlatform | null>
-    = declaredReplicaPlatforms.get(executor) ?? new Map<string, ProductAnalyticsPlatform | null>();
-  declaredReplicaPlatforms.delete(executor);
+  const declaredAttributionByReplicaId: ReadonlyMap<string, WorkspaceReplicaAttribution>
+    = declaredReplicaAttributions.get(executor) ?? new Map<string, WorkspaceReplicaAttribution>();
+  declaredReplicaAttributions.delete(executor);
   // The server timestamp every event of this drain carries. The drain's stop clock is no longer read
   // here: it belongs to the request rather than to this drain, so it is the budget's.
   const recordedAt = new Date();
@@ -458,20 +530,25 @@ async function emitCollectedContentCreations(
   // replicas it did not, before the first chunk and after the commit that released this transaction's
   // connection. Creations left unresolved keep the null platform they always had; nothing here can
   // fail the drain.
-  const platformByReplicaId = await resolveContentCreationPlatforms(
+  const attributionByReplicaId = await resolveContentCreationReplicaAttributions(
     collected,
-    declaredPlatformByReplicaId,
+    declaredAttributionByReplicaId,
     actorUserId,
     budget,
   );
+  const reportable = dropAutomationContentCreations(collected, attributionByReplicaId, actorUserId);
+  if (reportable.length === 0) {
+    return;
+  }
+
   const outcome = await emitPostCommitFactEvents(
-    collected,
+    reportable,
     budget,
     (creation) => toContentCreationEvent(
       creation,
       actorUserId,
       recordedAt,
-      platformByReplicaId.get(creation.replicaId) ?? null,
+      attributionByReplicaId.get(creation.replicaId)?.platform ?? null,
     ),
   );
   if (outcome.status === "aborted") {
@@ -480,7 +557,7 @@ async function emitCollectedContentCreations(
       actorUserId,
       // For either stop this is the first event not stored, and for a refusal it is also the event
       // named by the writer's failure warning.
-      workspaceId: collected[outcome.storedEventCount]?.workspaceId ?? null,
+      workspaceId: reportable[outcome.storedEventCount]?.workspaceId ?? null,
     });
   }
 }

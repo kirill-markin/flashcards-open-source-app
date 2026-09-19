@@ -21,7 +21,13 @@ export function handleSyncExecutorQuery<Row extends pg.QueryResultRow>(
       : state.workspaceReplicas
         .filter((replica) => replica.workspace_id === workspaceId)
         .sort((left, right) => left.created_at.localeCompare(right.created_at) || left.replica_id.localeCompare(right.replica_id))
-        .map((replica) => ({ ...replica } as unknown as Row));
+        .map((replica) => ({
+          ...replica,
+          // The loader joins the marker from sync.installations, so the harness answers from there.
+          is_automation: replica.installation_id === null
+            ? false
+            : state.installations.get(replica.installation_id)?.is_automation ?? false,
+        } as unknown as Row));
     return createQueryResult<Row>(rows);
   }
 
@@ -63,6 +69,7 @@ export function handleSyncExecutorQuery<Row extends pg.QueryResultRow>(
         platform: installation.platform,
         previous_user_id: installation.user_id,
         current_user_id: installation.user_id,
+        is_automation: installation.is_automation,
       } as unknown as Row]);
     }
 
@@ -72,14 +79,20 @@ export function handleSyncExecutorQuery<Row extends pg.QueryResultRow>(
       user_id: targetUserId,
       platform: installation.platform,
       app_version: typeof nextAppVersion === "string" ? nextAppVersion : null,
+      is_automation: installation.is_automation,
     });
 
+    // The claim returns the stored marker, and the merge declares exactly what it loaded from the
+    // same installation, so a fixture whose installation is already automation never reaches an
+    // `UPDATE sync.installations` here: the caller writes the marker only on the transition, and a
+    // merge cannot be one.
     return createQueryResult<Row>([{
       claim_status: claimStatus,
       installation_id: installation.installation_id,
       platform: installation.platform,
       previous_user_id: installation.user_id,
       current_user_id: targetUserId,
+      is_automation: installation.is_automation,
     } as unknown as Row]);
   }
 

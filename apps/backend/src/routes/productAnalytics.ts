@@ -398,6 +398,40 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
         scope,
       );
 
+      // An installation that declared itself automation stores nothing, whichever way its events
+      // reach the backend: the server-derived producers drop its facts
+      // (../productAnalytics/serverFacts/), and its own uploads stop here, before the events, the
+      // identity link and the installation profile are written. The batch is still validated and
+      // still answered with its rejections, and the accepted count stays the number of events this
+      // request took responsibility for, so the client's durable queue retires them instead of
+      // redelivering a batch that will never be stored.
+      if (batch.isAutomation) {
+        addBackendBreadcrumb({
+          action: "analytics_events_ingest_automation_dropped",
+          scope,
+          details: {
+            statusCode: 200,
+            authTransport: loadedContext.requestContext.transport,
+            trustLevel: toTrustLevel(loadedContext.requestContext),
+            platform: facts.platform,
+            appVersion: facts.appVersion,
+            eventCount: rows.length + rejected.length,
+            acceptedCount: rows.length,
+            rejectedCount: rejected.length,
+            outOfWindowCount: countOutOfWindowRejections(rejected),
+            contractRejectedCount: countContractRejections(rejected),
+            // The whole difference this rule makes: the batch was accepted and stored nowhere.
+            storedCount: 0,
+            identityLinked: null,
+          },
+        });
+
+        return context.json({
+          accepted: rows.length,
+          rejected,
+        } satisfies ProductAnalyticsIngestEnvelope);
+      }
+
       const identityLink = createIngestIdentityLink(
         batch.anonymousId,
         rows.length,
