@@ -128,11 +128,14 @@ async function loadAnalyticsUserIdsForPersonInExecutor(
  * One pseudonym covers every id the person ever produced events under, guest
  * phase included, so their whole history collapses to a single unlinkable
  * identity rather than to several that stay separable from each other.
+ *
+ * Returns the person-wide ids it covered, which only a permanent deletion goes on
+ * to erase the analytics exclusion rows for.
  */
 async function anonymizeProductAnalyticsInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
-): Promise<void> {
+): Promise<Array<string>> {
   const anonymizedUserId = randomUUID();
   const personUserIds = await loadAnalyticsUserIdsForPersonInExecutor(executor, appUserId);
 
@@ -181,12 +184,47 @@ async function anonymizeProductAnalyticsInExecutor(
     "DELETE FROM analytics.identity_links WHERE user_id = ANY($1::uuid[])",
     [personUserIds],
   );
+
+  return personUserIds;
 }
 
+/**
+ * Erases the analytics exclusion rows that still name one permanently deleted person.
+ *
+ * An exclusion row names the person by id, so it outlives the anonymization above. Erasing it is
+ * a delete because actor_id is the primary key and this role holds no UPDATE beside the restore
+ * columns, and the ids are folded to the normalization the column stores under. This is the one
+ * caller that db/migrations/0140_analytics_excluded_actors.sql granted DELETE for and wrote its
+ * excluded_actors_restore_survives_live_account guard around, so that migration's "does not exist
+ * yet" reads as superseded by this function.
+ *
+ * Call it only once org.user_settings is gone, which is what lets that guard pass for a restored
+ * row; reaching this table any earlier raises there and aborts the whole account deletion. Only a
+ * permanent deletion may call it: a path that reuses the account id leaves a live person behind,
+ * and erasing there would silently undo a human restore and let the detector re-exclude that
+ * actor on its next run, the exact reversal the guard exists to refuse.
+ */
+async function eraseAnalyticsExclusionsInExecutor(
+  executor: DatabaseExecutor,
+  personUserIds: ReadonlyArray<string>,
+): Promise<void> {
+  await executor.query(
+    [
+      "DELETE FROM analytics.excluded_actors",
+      "WHERE actor_id IN (",
+      "SELECT pg_catalog.lower(pg_catalog.btrim(person_user_id))",
+      "FROM pg_catalog.unnest($1::text[]) AS person_user_id",
+      ")",
+    ].join(" "),
+    [personUserIds],
+  );
+}
+
+/** Returns the person-wide analytics ids whose data this cleared. */
 async function deleteAccountDataInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
-): Promise<void> {
+): Promise<Array<string>> {
   const userSettingsResult = await executor.query<UserSettingsEmailRow>(
     "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
     [appUserId],
@@ -244,7 +282,8 @@ async function deleteAccountDataInExecutor(
     [appUserId, email],
   );
   await executor.query("DELETE FROM org.user_settings WHERE user_id = $1", [appUserId]);
-  await anonymizeProductAnalyticsInExecutor(executor, appUserId);
+
+  return await anonymizeProductAnalyticsInExecutor(executor, appUserId);
 }
 
 /**
@@ -260,7 +299,8 @@ async function deleteRealAccountDataInExecutor(
   appUserId: string,
   authSubjectUserId: string,
 ): Promise<void> {
-  await deleteAccountDataInExecutor(executor, appUserId);
+  const personUserIds = await deleteAccountDataInExecutor(executor, appUserId);
+  await eraseAnalyticsExclusionsInExecutor(executor, personUserIds);
   await markDeletedSubjectInExecutor(executor, authSubjectUserId);
 }
 
@@ -270,6 +310,9 @@ async function deleteRealAccountDataInExecutor(
  *
  * This path exists only for the explicit `DEMO_EMAIL_DOSTIP` allowlist inside
  * the `@example.com` domain. Real user accounts must not use it.
+ *
+ * The account id survives the reset and signs in again, so no person is erased here
+ * and any analytics exclusion row naming that id stays, restore included.
  */
 async function deleteDemoAccountDataInExecutor(
   executor: DatabaseExecutor,

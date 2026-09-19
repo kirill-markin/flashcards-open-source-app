@@ -145,7 +145,12 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
   const userSettingsLockIndex = recordedQueries.findIndex((query) => (
     query.text === "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE"
   ));
+  const exclusionEraseIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("DELETE FROM analytics.excluded_actors")
+  ));
 
+  // A demo reset reuses the account id, so erasing its exclusion rows would undo a human restore.
+  assert.equal(exclusionEraseIndex, -1);
   assert.notEqual(identityLockIndex, -1);
   assert.notEqual(tombstoneReadIndex, -1);
   assert.notEqual(mappingReadIndex, -1);
@@ -167,6 +172,7 @@ test("deleteAccountForAuthenticatedUser locks shared workspace membership lifecy
 test("deleteAccountForAuthenticatedUser rereads the mapping under the identity lock and deletes the authoritative user", async () => {
   const subjectUserId = "subject-authoritative";
   const authoritativeUserId = "mapped-user";
+  const mergedGuestUserId = "merged-guest-user";
   const recordedQueries: Array<RecordedQuery> = [];
   let deletedCognitoUsername: string | null = null;
   const executor: DatabaseExecutor = {
@@ -182,12 +188,20 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
         || text === "SELECT auth.delete_user_auth_artifacts($1, $2)"
         || text === "DELETE FROM org.user_settings WHERE user_id = $1"
         || text.includes("INSERT INTO auth.deleted_subjects")
-        || text.includes("FROM auth.guest_upgrade_history")
         || text.includes("UPDATE analytics.product_events")
         || text.includes("DELETE FROM analytics.identity_links")
         || text.includes("DELETE FROM analytics.installation_profiles")
+        || text.includes("DELETE FROM analytics.excluded_actors")
       ) {
         return createQueryResult<Row>([]);
+      }
+      // The person walk: this account absorbed one guest id, so the ids the deletion carries
+      // around are wider than the account id alone.
+      if (text.includes("FROM auth.guest_upgrade_history")) {
+        return createQueryResult<Row>([
+          { user_id: authoritativeUserId } as unknown as Row,
+          { user_id: mergedGuestUserId } as unknown as Row,
+        ]);
       }
       if (text.includes("FROM auth.deleted_subjects")) {
         return createQueryResult<Row>([]);
@@ -234,12 +248,26 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
   const tombstoneQuery = recordedQueries.find((query) => query.text.includes("INSERT INTO auth.deleted_subjects"));
   const identityLockIndex = recordedQueries.findIndex((query) => query.text.includes("auth.cognito_identity:"));
   const userSettingsLockIndex = recordedQueries.findIndex((query) => query.text.includes("FROM org.user_settings"));
+  const userSettingsDeleteIndex = recordedQueries.findIndex((query) => (
+    query.text === "DELETE FROM org.user_settings WHERE user_id = $1"
+  ));
+  const exclusionEraseIndex = recordedQueries.findIndex((query) => (
+    query.text.includes("DELETE FROM analytics.excluded_actors")
+  ));
+  const exclusionEraseQuery = recordedQueries[exclusionEraseIndex];
 
   assert.equal(scopeQuery?.params[0], authoritativeUserId);
   assert.equal(deleteUserQuery?.params[0], authoritativeUserId);
   assert.equal(tombstoneQuery?.params[0], hashDeletedSubject(subjectUserId));
   assert.equal(deletedCognitoUsername, "cognito-username");
   assert.ok(identityLockIndex < userSettingsLockIndex);
+  // The exclusion table's delete guard raises while the account row still exists, and that raise
+  // would abort the whole deletion transaction.
+  assert.notEqual(exclusionEraseIndex, -1);
+  assert.ok(userSettingsDeleteIndex < exclusionEraseIndex);
+  // The erasure key is the person, not the account: an exclusion row naming the guest id this
+  // account absorbed has to go too, so the walk has to reach the erase intact.
+  assert.deepEqual(exclusionEraseQuery?.params[0], [authoritativeUserId, mergedGuestUserId]);
 });
 
 test("deleteAccountForAuthenticatedUser retries Cognito deletion for an existing tombstone without touching app data", async () => {
