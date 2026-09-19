@@ -69,6 +69,8 @@ export const zhHansCatalog = {
       ru: "俄语",
       "es-MX": "西班牙语（墨西哥）",
       "es-ES": "西班牙语（西班牙）",
+      fr: "法语",
+      "pt-BR": "葡萄牙语（巴西）",
     },
     preferenceAuto: "自动（浏览器/设备）",
   },
