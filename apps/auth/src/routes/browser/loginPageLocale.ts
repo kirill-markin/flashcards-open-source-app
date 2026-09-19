@@ -1,4 +1,4 @@
-const SUPPORTED_LOGIN_PAGE_LOCALES = ["en", "ar", "zh-Hans", "de", "hi", "ja", "ru", "es-MX", "es-ES"] as const;
+const SUPPORTED_LOGIN_PAGE_LOCALES = ["en", "ar", "zh-Hans", "fr", "de", "hi", "ja", "pt-BR", "ru", "es-MX", "es-ES"] as const;
 const DEFAULT_LOGIN_PAGE_LOCALE = "en" as const;
 const DEFAULT_SPANISH_LOGIN_PAGE_LOCALE = "es-ES" as const;
 
@@ -15,9 +15,11 @@ const LOGIN_PAGE_LOCALE_DIRECTIONS: Readonly<Record<LoginPageLocale, LoginPageDi
   en: "ltr",
   ar: "rtl",
   "zh-Hans": "ltr",
+  fr: "ltr",
   de: "ltr",
   hi: "ltr",
   ja: "ltr",
+  "pt-BR": "ltr",
   ru: "ltr",
   "es-MX": "ltr",
   "es-ES": "ltr",
@@ -27,8 +29,10 @@ const PRIMARY_LANGUAGE_LOGIN_PAGE_FALLBACKS: Readonly<Record<string, LoginPageLo
   ar: "ar",
   de: "de",
   en: "en",
+  fr: "fr",
   hi: "hi",
   ja: "ja",
+  pt: "pt-BR",
   ru: "ru",
 };
 
