@@ -67,6 +67,8 @@ const enCatalog = {
       ru: "Russian",
       "es-MX": "Spanish (Mexico)",
       "es-ES": "Spanish (Spain)",
+      fr: "French",
+      "pt-BR": "Portuguese (Brazil)",
     },
     preferenceAuto: "Automatic (browser/device)",
   },

@@ -69,6 +69,8 @@ const esEsCatalog: TranslationCatalog = {
       ru: "Ruso",
       "es-MX": "Español (México)",
       "es-ES": "Español (España)",
+      fr: "Francés",
+      "pt-BR": "Portugués (Brasil)",
     },
     preferenceAuto: "Automático (navegador/dispositivo)",
   },
