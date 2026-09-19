@@ -17,6 +17,7 @@ type WorkspaceReplicaRow = Readonly<{
   app_version: string | null;
   created_at: Date | string;
   last_seen_at: Date | string;
+  is_automation: boolean;
 }>;
 
 export type GuestReplicaRecord = Readonly<{
@@ -28,6 +29,10 @@ export type GuestReplicaRecord = Readonly<{
   appVersion: string | null;
   createdAt: Date | string;
   lastSeenAt: Date | string;
+  // The stored automation marker of the installation behind this replica, read here because the
+  // merge recreates the replica in the target workspace and makes no declaration of its own. A
+  // system actor has no installation and is never automation.
+  isAutomation: boolean;
 }>;
 
 function mapGuestReplicaRecord(row: WorkspaceReplicaRow): GuestReplicaRecord {
@@ -40,6 +45,7 @@ function mapGuestReplicaRecord(row: WorkspaceReplicaRow): GuestReplicaRecord {
     appVersion: row.app_version,
     createdAt: row.created_at,
     lastSeenAt: row.last_seen_at,
+    isAutomation: row.is_automation,
   };
 }
 
@@ -55,10 +61,14 @@ export async function loadGuestReplicasInExecutor(
 
   const result = await executor.query<WorkspaceReplicaRow>(
     [
-      "SELECT replica_id, actor_kind, installation_id, actor_key, platform, app_version, created_at, last_seen_at",
-      "FROM sync.workspace_replicas",
-      "WHERE workspace_id = $1",
-      "ORDER BY created_at ASC, replica_id ASC",
+      "SELECT replicas.replica_id, replicas.actor_kind, replicas.installation_id, replicas.actor_key,",
+      "replicas.platform, replicas.app_version, replicas.created_at, replicas.last_seen_at,",
+      "COALESCE(installations.is_automation, FALSE) AS is_automation",
+      "FROM sync.workspace_replicas AS replicas",
+      "LEFT JOIN sync.installations AS installations",
+      "ON installations.installation_id = replicas.installation_id",
+      "WHERE replicas.workspace_id = $1",
+      "ORDER BY replicas.created_at ASC, replicas.replica_id ASC",
     ].join(" "),
     [guestWorkspaceId],
   );

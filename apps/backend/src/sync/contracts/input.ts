@@ -15,6 +15,14 @@ const fsrsCardStateSchema = z.enum(["new", "learning", "review", "relearning"]);
 const reviewRatingSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 const platformSchema = z.enum(["ios", "android", "web"]);
 const installationIdSchema = z.string().uuid();
+// What a client says about itself: `true` claims that this installation runs under automation. An
+// absent field is the negative case, which is what every already released client sends, and `false`
+// is accepted and means exactly the same thing - a client holding a real boolean may send it on
+// every request without a build that serializes `false` for its ordinary users failing every sync
+// call it makes. Only `true` is ever one-way, and that is enforced where the marker is written
+// rather than here: nothing clears it once stored
+// (db/migrations/0141_sync_installation_automation_marker.sql).
+const automationDeclarationSchema = z.boolean().optional();
 const isoTimestampStringSchema = z.string().datetime();
 const cardTypeSchema = z.string();
 const mediaAssetMimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/i;
@@ -355,6 +363,7 @@ const syncPushInputBaseSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  isAutomation: automationDeclarationSchema,
   operations: z.array(syncPushOperationSchema),
 });
 
@@ -389,6 +398,7 @@ const syncPullInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  isAutomation: automationDeclarationSchema,
   afterHotChangeId: z.number().int().nonnegative(),
   limit: z.number().int().positive().max(syncIncrementalPullLimit),
   includeMediaAssets: z.boolean().optional(),
@@ -399,6 +409,7 @@ const syncBootstrapPullInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  isAutomation: automationDeclarationSchema,
   cursor: z.string().min(1).nullable(),
   limit: z.number().int().positive().max(syncBootstrapPullLimit),
   includeMediaAssets: z.boolean().optional(),
@@ -409,6 +420,7 @@ const syncBootstrapPushInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  isAutomation: automationDeclarationSchema,
   includeMediaAssets: z.boolean().optional(),
   entries: z.array(
     z.discriminatedUnion("entityType", [
@@ -444,6 +456,7 @@ const syncReviewHistoryPullInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  isAutomation: automationDeclarationSchema,
   afterReviewSequenceId: z.number().int().nonnegative(),
   limit: z.number().int().positive().max(syncReviewHistoryPullLimit),
 });
@@ -452,6 +465,7 @@ const syncReviewHistoryImportInputSchema = z.object({
   installationId: installationIdSchema,
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
+  isAutomation: automationDeclarationSchema,
   reviewEvents: z.array(reviewEventImportPayloadSchema),
 });
 
