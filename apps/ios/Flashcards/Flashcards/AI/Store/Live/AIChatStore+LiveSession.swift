@@ -97,7 +97,7 @@ extension AIChatStore {
         }
 
         self.activeLiveResumeAttemptSequence = resumeAttemptDiagnostics?.sequence
-        Task {
+        Task { [self] in
             await self.runtime.detach()
             await self.runtime.attachLive(
                 liveStream: activeRun.live.stream,
@@ -145,7 +145,7 @@ extension AIChatStore {
         let sessionId = self.chatSessionId
         let afterCursor = self.liveCursor
         self.activeLiveResumeAttemptSequence = nil
-        Task {
+        Task { [self] in
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 guard self.shouldKeepLiveAttached else {
