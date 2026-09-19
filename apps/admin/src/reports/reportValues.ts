@@ -4,7 +4,7 @@ import { reviewEventPlatforms, type AdminQueryValue, type ReviewEventPlatform } 
 // arithmetic every report needs to fill in the days its SQL returned no row for. `reportLabel` is the
 // report naming itself, so a failure says which panel produced it.
 
-function parseCalendarDate(date: string, reportLabel: string): Date {
+export function parseCalendarDate(date: string, reportLabel: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(date);
   if (match === null) {
     throw new Error(`${reportLabel} date must use YYYY-MM-DD: ${date}`);
@@ -27,7 +27,7 @@ function parseCalendarDate(date: string, reportLabel: string): Date {
   return parsedDate;
 }
 
-function formatCalendarDate(date: Date): string {
+export function formatCalendarDate(date: Date): string {
   const year = date.getUTCFullYear();
   const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");
   const day = `${date.getUTCDate()}`.padStart(2, "0");
