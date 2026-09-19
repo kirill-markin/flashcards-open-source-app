@@ -50,9 +50,12 @@ import {
 // by an arriving report.
 
 const unknownUserSwatchColor = "rgba(255, 255, 255, 0.36)";
-// A threshold counts one event type rather than naming a value a chart gives a colour to, so its
-// chips take the accent every filtered control in the bar already uses.
-const minimumEventCountSwatchColor = "var(--accent-strong)";
+// A threshold, a country and a locale tag name no value a chart gives a colour to, so their chips and
+// options take the accent every filtered control in the bar already uses.
+const filterValueSwatchColor = "var(--accent-strong)";
+// Above this many picked values the button prints a count instead, which is where the values stop
+// fitting on one line of it.
+const openOptionSummaryValueLimit = 3;
 
 type AnalyticsFilterBarProps = Readonly<{
   area: AnalyticsArea;
@@ -67,6 +70,10 @@ type AnalyticsFilterBarProps = Readonly<{
    */
   isReportLoading: boolean;
   dateRangeError: string;
+  /** Every country the range can offer, from the same range-scoped options query as `userOptions`. */
+  connectionCountryOptions: ReadonlyArray<string>;
+  /** Every app UI locale tag the range can offer, from that same query. */
+  appUiLanguageOptions: ReadonlyArray<string>;
   userColorScale: UserColorScale;
   /** Whether the selection was accepted; a rejected one keeps its popover open on the error. */
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
@@ -335,6 +342,81 @@ function UserFilterOptions(
   );
 }
 
+/** The picked values while they still fit on the button, and a count once they do not. */
+function getOpenOptionSelectionSummary(
+  selectedValues: ReadonlyArray<string>,
+  everyValueSummary: string,
+): string {
+  if (selectedValues.length === 0) {
+    return everyValueSummary;
+  }
+
+  return selectedValues.length <= openOptionSummaryValueLimit
+    ? selectedValues.join(" + ")
+    : `${selectedValues.length.toLocaleString("en-US")} selected`;
+}
+
+// Countries and locale tags are open sets that name no chart series, so the two fields offering them
+// read the same way: chips for the selection, one checkbox per value the range offers, and a reset
+// that clears the field. The options are range-scoped and deliberately independent of the selection,
+// so a picked value the range stopped offering still shows as a chip and can still be removed, rather
+// than sitting applied with no control for it.
+function buildOpenOptionFieldView(props: Readonly<{
+  fieldLabel: string;
+  selectedValues: ReadonlyArray<string>;
+  options: ReadonlyArray<string>;
+  defaultValues: ReadonlyArray<string>;
+  everyValueSummary: string;
+  emptyOptionsMessage: string;
+  resetLabel: string;
+  onSelectionChange: (values: ReadonlyArray<string>) => void;
+}>): FilterFieldView {
+  const selectedValueSet: ReadonlySet<string> = new Set<string>(props.selectedValues);
+
+  return {
+    summary: getOpenOptionSelectionSummary(props.selectedValues, props.everyValueSummary),
+    isFiltered: props.selectedValues.length > 0,
+    isWide: false,
+    content: (
+      <>
+        <FilterChipRow
+          fieldLabel={props.fieldLabel}
+          chips={props.selectedValues.map((value) => ({
+            value,
+            label: value,
+            secondaryLabel: "",
+            swatchColor: filterValueSwatchColor,
+          }))}
+          onRemove={(value) => props.onSelectionChange(
+            props.selectedValues.filter((selectedValue) => selectedValue !== value),
+          )}
+        />
+        {props.options.length === 0 ? (
+          <p className="filter-option-empty">{props.emptyOptionsMessage}</p>
+        ) : (
+          <FilterOptionList
+            options={props.options.map((value) => ({
+              value,
+              label: value,
+              swatchColor: filterValueSwatchColor,
+            }))}
+            selectedValues={selectedValueSet}
+            onToggle={(value: string, isChecked) => props.onSelectionChange(
+              toggleSelectedValue(props.selectedValues, value, isChecked),
+            )}
+          />
+        )}
+        {props.selectedValues.length === 0 ? null : (
+          <FilterFieldResetButton
+            label={props.resetLabel}
+            onReset={() => props.onSelectionChange(props.defaultValues)}
+          />
+        )}
+      </>
+    ),
+  };
+}
+
 function FilterFieldResetButton(
   props: Readonly<{
     label: string;
@@ -512,12 +594,13 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     });
   }
 
-  // An empty input is no threshold on that event type, which is the one way to clear one. Text that
-  // does not name a whole count of at least one is not a threshold this filter can hold: it is kept
-  // as a draft and named as not applied, so the selection it failed to change stays exactly what the
-  // chips and the summary say it is, rather than being silently dropped or reread into a different
-  // one. A keystroke that lands on the count already applied commits nothing, because every commit
-  // repaints the bar as `Updating` and refetches every report in the area.
+  // An empty input is no threshold on that event type, which is how this input clears one; removing
+  // its chip and `Clear every threshold` clear one too. Text that does not name a whole count of at
+  // least one is not a threshold this filter can hold: it is kept as a draft and named as not
+  // applied, so the selection it failed to change stays exactly what the chips and the summary say it
+  // is, rather than being silently dropped or reread into a different one. A keystroke that lands on
+  // the count already applied commits nothing, because every commit repaints the bar as `Updating`
+  // and refetches every report in the area.
   function handleMinimumEventCountChange(
     eventType: AnalyticsThresholdEventType,
     rawMinimumCount: string,
@@ -772,7 +855,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
                 value: entry.eventType,
                 label: formatMinimumEventCountLabel(entry),
                 secondaryLabel: "",
-                swatchColor: minimumEventCountSwatchColor,
+                swatchColor: filterValueSwatchColor,
               }))}
               onRemove={(eventType) => props.onFiltersChange({
                 ...props.filters,
@@ -834,9 +917,41 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
       };
     }
 
-    // The remaining fields of the filter model are declared but their controls are not built yet:
-    // countries and languages, and the catalog attribution fields, each land with their own item. An
-    // unwired field is left out of the bar rather than shown as an empty control.
+    if (field === "connectionCountries") {
+      return buildOpenOptionFieldView({
+        fieldLabel: analyticsFilterFieldLabels.connectionCountries,
+        selectedValues: props.filters.connectionCountries,
+        options: props.connectionCountryOptions,
+        defaultValues: defaultFilters.connectionCountries,
+        everyValueSummary: "Every country",
+        emptyOptionsMessage: "No retained connection sample in this range.",
+        resetLabel: "Select every country",
+        onSelectionChange: (connectionCountries) => props.onFiltersChange({
+          ...props.filters,
+          connectionCountries,
+        }),
+      });
+    }
+
+    if (field === "appUiLanguages") {
+      return buildOpenOptionFieldView({
+        fieldLabel: analyticsFilterFieldLabels.appUiLanguages,
+        selectedValues: props.filters.appUiLanguages,
+        options: props.appUiLanguageOptions,
+        defaultValues: defaultFilters.appUiLanguages,
+        everyValueSummary: "Every language",
+        emptyOptionsMessage: "No event in this range recorded a UI language.",
+        resetLabel: "Select every language",
+        onSelectionChange: (appUiLanguages) => props.onFiltersChange({
+          ...props.filters,
+          appUiLanguages,
+        }),
+      });
+    }
+
+    // The catalog attribution fields of the filter model are declared but their controls are not
+    // built yet; they land with their own item. An unwired field is left out of the bar rather than
+    // shown as an empty control.
     return null;
   }
 

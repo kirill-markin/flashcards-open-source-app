@@ -95,6 +95,8 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         defaultRange={props.data.defaultRange}
         filters={props.filters}
         userOptions={filterOptions.users}
+        connectionCountryOptions={filterOptions.connectionCountries}
+        appUiLanguageOptions={filterOptions.appUiLanguages}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
         userColorScale={userColorScale}
