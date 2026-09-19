@@ -1,4 +1,16 @@
-export const supportedLocales = ["en", "ar", "zh-Hans", "de", "hi", "ja", "ru", "es-MX", "es-ES"] as const;
+export const supportedLocales = [
+  "en",
+  "ar",
+  "zh-Hans",
+  "de",
+  "hi",
+  "ja",
+  "ru",
+  "es-MX",
+  "es-ES",
+  "fr",
+  "pt-BR",
+] as const;
 export const defaultLocale = "en" as const;
 export const defaultSpanishLocale = "es-ES" as const;
 export const autoLocalePreference = "auto" as const;
