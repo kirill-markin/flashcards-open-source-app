@@ -25,6 +25,7 @@ import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
 import { countryRetention } from "./scheduled-jobs/country-retention";
+import { syntheticActorDetector } from "./scheduled-jobs/synthetic-actor-detector";
 import { webGuestReaper } from "./scheduled-jobs/web-guest-reaper";
 import { publicEndpointHeartbeat } from "./scheduled-jobs/public-endpoint-heartbeat";
 import {
@@ -279,6 +280,14 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       ...sentryContext,
     });
+    const syntheticActorDetectorResult = syntheticActorDetector(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      reportingDbSecret: dbResult.reportingDbSecret,
+      ...sentryContext,
+    });
     publicEndpointHeartbeat(this, { baseDomain, mcpAlternateHeartbeatHost });
     const mediaAssetsResult = mediaAssets(this, {
       baseDomain,
@@ -400,6 +409,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
     addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
     addDatabaseMigrationDependency(countryRetentionResult.retentionFunction, migrationGate);
+    addDatabaseMigrationDependency(syntheticActorDetectorResult.detectorFunction, migrationGate);
     const web = webApp(this, {
       baseDomain,
       webCertificateArnUsEast1,
@@ -429,6 +439,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
       countryRetentionFn: countryRetentionResult.retentionFunction,
+      syntheticActorDetectorFn: syntheticActorDetectorResult.detectorFunction,
       webGuestReaperFn: webGuestReaperResult.reaperFunction,
       generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,
       multipartCompletionReconciliationFn:
