@@ -7,6 +7,7 @@ import {
   buildConnectionCountriesFilterSql,
   buildConnectionCountrySamplesSql,
   buildEventPlatformsFilterSql,
+  buildExcludedActorsFilterSql,
   buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
@@ -92,6 +93,7 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
       AND events.actor_id IS NOT NULL
       AND events.occurred_at < bounds.ends_at
       AND COALESCE(lower(settings.email), '') NOT LIKE '%@example.com'
+      AND ${buildExcludedActorsFilterSql("events.actor_id::text")}
       AND NOT EXISTS (
         SELECT 1 FROM auth.admin_users AS admins
         WHERE lower(admins.email) = lower(settings.email) AND admins.revoked_at IS NULL
