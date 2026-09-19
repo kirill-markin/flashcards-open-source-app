@@ -2,6 +2,14 @@
 
 Related competitor references: [Android competitors](competitor-store-metadata.md#android)
 
+## Which languages live in this file
+
+This file holds hand-written Play listing copy: one section per language, each written for its own market rather than translated from the English default. Most sections match a language the apps themselves ship, namely English, Arabic, Chinese (Simplified), German, Hindi, Japanese, Russian, and Spanish for both Mexico and Spain; the `Spanish (Latin America) - es-419` section below is the Play code for the `es-MX` product locale. The remaining sections are Play-only for now: `Spanish (United States) - es-US` has no matching product locale, and the French and Portuguese (Brazil) listing copy lands ahead of the in-app French and Portuguese translations, which arrive with the client work.
+
+So a section here is not evidence that a shipped build carries that language. Before publishing a listing, check the client locale lists in `apps/web/src/i18n/types.ts`, `apps/android/app/src/main/res/xml/locales_config.xml`, and the iOS `knownRegions` in `apps/ios/Flashcards/Flashcards Open Source App.xcodeproj/project.pbxproj`.
+
+Google Play advertises the app in many more languages and auto-translates the listing into them. That generated copy is deliberately absent here: it has no source of truth in the repository, and in the Play Console the auto-translated text is regenerated from the English default while hand-editing one of those listings turns the auto-translation off for that language. A language earns a hand-written section here once its market is worth addressing directly, and that section can land before, with, or after the in-app translation for the same language.
+
 ## Default - English (United States) - en-US
 
 ### App Name
@@ -167,6 +175,61 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 应用现已更名为 Nibomo（原名开源闪卡）。
 
+## French - fr-FR
+
+### App Name
+
+Nibomo : Flashcards IA
+
+### Short Description
+
+Notes et photos en fiches de révision, mémorisées par répétition espacée
+
+### Full Description
+
+Révisez avec une application de fiches propulsée par l'IA, pensée pour celles et ceux qui doivent vraiment retenir ce qu'ils apprennent.
+
+Nibomo s'appelait avant Flashcards open source.
+
+Nibomo vous aide à préparer vos examens, à apprendre du vocabulaire, à mémoriser des contenus médicaux et techniques, à améliorer vos cartes avec l'IA et à tenir une vraie routine de révision quotidienne.
+
+À utiliser pour :
+- préparer vos examens, du brevet au bac et aux études supérieures
+- apprendre une langue et enrichir votre vocabulaire
+- réviser la médecine, les matières techniques et tout ce qui demande beaucoup de mémorisation
+- améliorer vos cartes et planifier vos révisions avec l'IA
+- réviser vite chaque jour avec des paquets, des étiquettes et la répétition espacée
+
+Ce que vous pouvez faire :
+- réviser les cartes du jour dans un flux de répétition espacée sans distraction
+- créer et modifier vos cartes avec recto, verso, paquets et étiquettes
+- chercher et filtrer dans votre bibliothèque
+- construire des paquets filtrés selon les étiquettes et le niveau d'effort
+- ajuster les réglages du planificateur pour les prochaines révisions
+- exporter votre espace de travail actuel en CSV
+- utiliser le chat IA pour explorer vos cartes, améliorer leur contenu et organiser vos révisions
+- joindre des photos et des fichiers à vos requêtes IA, ou dicter à la voix sur les appareils compatibles
+- vous connecter par e-mail et synchroniser votre espace de travail entre vos appareils
+- utiliser le service officiel ou connecter votre propre serveur
+
+Pourquoi on l'utilise :
+- l'IA fait partie de la révision, ce n'est pas un module ajouté à côté
+- des sessions rapides, avec moins de désordre et moins de friction
+- une organisation solide avec paquets, étiquettes, filtres et réglages de planning
+- un produit open source, avec hébergement autonome possible
+- une expérience Android native en Material 3
+
+L'application convient aux lycéens, aux étudiants, aux personnes qui apprennent une langue, aux étudiants en médecine, aux développeurs et à tous ceux qui veulent une vraie application de fiches avec IA, répétition espacée et un rythme de révision clair.
+
+Le projet est open source, donc vous pouvez inspecter toute la pile technique, construire dessus et l'héberger vous-même.
+
+Tout le code de l'application, du backend et de l'infrastructure est ouvert et disponible sur GitHub :
+https://github.com/kirill-markin/flashcards-open-source-app
+
+### Release notes
+
+Nibomo est maintenant disponible en français, de l'interface au chat IA.
+
 ## German - de-DE
 
 ### App Name
@@ -331,6 +394,61 @@ https://github.com/kirill-markin/flashcards-open-source-app
 ### Release notes
 
 アプリ名が Nibomo になりました（旧「オープンソース暗記カード」）。
+
+## Portuguese (Brazil) - pt-BR
+
+### App Name
+
+Nibomo: Flashcards com IA
+
+### Short Description
+
+Transforme notas e fotos em flashcards e memorize com repetição espaçada
+
+### Full Description
+
+Estude com um app de flashcards com IA feito para quem precisa mesmo lembrar o que aprendeu.
+
+O Nibomo se chamava antes Flashcards de código aberto.
+
+O Nibomo ajuda você a se preparar para provas, aprender vocabulário, memorizar conteúdo médico e técnico, melhorar seus cartões com IA e manter uma rotina séria de estudo diário.
+
+Use para:
+- estudar para o ENEM, vestibulares, concursos e a faculdade
+- aprender idiomas e ampliar o vocabulário
+- revisar medicina, matérias técnicas e tudo o que exige muita memorização
+- melhorar seus cartões e planejar o estudo com ajuda da IA
+- revisar rápido todo dia com baralhos, etiquetas e repetição espaçada
+
+O que dá para fazer:
+- revisar os cartões do dia num fluxo de repetição espaçada sem distração
+- criar e editar cartões com frente, verso, baralhos e etiquetas
+- buscar e filtrar sua biblioteca
+- montar baralhos filtrados por etiqueta e nível de esforço
+- ajustar as configurações do agendador para as próximas revisões
+- exportar seu workspace atual em CSV
+- usar o chat com IA para explorar seus cartões, melhorar o conteúdo e planejar o estudo
+- anexar fotos e arquivos aos pedidos para a IA, ou ditar por voz nos aparelhos compatíveis
+- entrar com e-mail e sincronizar seu workspace entre aparelhos
+- usar o serviço oficial ou conectar um servidor próprio
+
+Por que as pessoas usam:
+- a IA faz parte do jeito de estudar, não é um extra pregado do lado
+- sessões de revisão rápidas, com menos bagunça e menos atrito
+- organização forte com baralhos, etiquetas, filtros e controle de agendamento
+- produto de código aberto, com hospedagem própria opcional
+- experiência Android nativa em Material 3
+
+O app serve para vestibulandos, concurseiros, quem aprende idiomas, estudantes de medicina, desenvolvedores e qualquer pessoa que queira um app de flashcards sério, com IA, repetição espaçada e um estudo diário limpo.
+
+O projeto é de código aberto, então você pode inspecionar toda a stack, construir em cima e hospedar por conta própria.
+
+Todo o código do app, do backend e da infraestrutura está aberto e disponível no GitHub:
+https://github.com/kirill-markin/flashcards-open-source-app
+
+### Release notes
+
+O Nibomo agora está disponível em português do Brasil, da interface ao chat com IA.
 
 ## Russian - ru-RU
 

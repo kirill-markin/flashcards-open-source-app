@@ -122,6 +122,46 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 应用现已更名为 Nibomo（原名开源闪卡）。
 
+## French
+
+### Name
+
+Nibomo : Flashcards IA
+
+### Subtitle
+
+Notes en fiches de révision
+
+### Description
+
+Créez des fiches de révision avec l'IA à partir de vos notes, puis révisez-les en répétition espacée pour vos examens, vos langues et votre travail quotidien.
+
+Nibomo s'appelait avant Flashcards open source.
+
+À utiliser pour :
+- préparer vos examens, du brevet au bac et aux études supérieures
+- apprendre une langue et enrichir votre vocabulaire
+- réviser la médecine, les matières techniques et tout ce qui demande beaucoup de mémorisation
+- améliorer vos cartes et planifier vos révisions avec l'IA
+- réviser vite chaque jour avec des paquets, des étiquettes et la répétition espacée
+
+Créez et modifiez vos cartes en quelques secondes, organisez vos révisions avec des paquets et des étiquettes, et suivez un planning clair qui vous fait retenir plus en perdant moins de temps.
+
+L'IA fait partie de la révision elle-même. Servez-vous-en pour explorer un sujet, reformuler vos cartes, démêler les points difficiles et décider quoi réviser ensuite, sans quitter vos fiches.
+
+Pour les personnes qui tiennent à la transparence, l'application reste open source et toute la pile technique peut être hébergée par vos soins. L'assistance, la politique de confidentialité et les conditions d'utilisation sont disponibles dans l'application.
+
+Tout le code de l'application, du backend et de l'infrastructure est ouvert et disponible sur GitHub :
+https://github.com/kirill-markin/flashcards-open-source-app
+
+### Keywords
+
+open,source,cartes,mémo,répétition,espacée,bac,brevet,médecine,vocabulaire,anglais,étudiant,quiz
+
+### What's New
+
+Nibomo est maintenant disponible en français, de l'interface au chat IA.
+
 ## German
 
 ### Name
@@ -241,6 +281,46 @@ https://github.com/kirill-markin/flashcards-open-source-app
 ### What's New
 
 アプリ名が Nibomo になりました（旧「オープンソース暗記カード」）。
+
+## Portuguese (Brazil)
+
+### Name
+
+Nibomo: Flashcards com IA
+
+### Subtitle
+
+Notas viram cartões de estudo
+
+### Description
+
+Transforme suas notas em flashcards com IA e revise com repetição espaçada para provas, idiomas e estudo diário sério.
+
+O Nibomo se chamava antes Flashcards de código aberto.
+
+Use para:
+- estudar para o ENEM, vestibulares, concursos e a faculdade
+- aprender idiomas e ampliar o vocabulário
+- revisar medicina, matérias técnicas e tudo o que exige muita memorização
+- melhorar seus cartões e planejar o estudo com ajuda da IA
+- revisar rápido todo dia com baralhos, etiquetas e repetição espaçada
+
+Crie e edite cartões em segundos, organize seu estudo com baralhos e etiquetas, e revise num cronograma claro que faz você reter mais e perder menos tempo com tarefas repetitivas.
+
+A IA faz parte do estudo em si. Use para explorar o conteúdo, melhorar o texto dos cartões, destrinchar os pontos difíceis e decidir o que estudar depois, sem sair dos seus flashcards.
+
+Para quem se importa com transparência, o app é de código aberto e toda a stack pode ser hospedada por você. Suporte, política de privacidade e termos estão dentro do app.
+
+Todo o código do app, do backend e da infraestrutura está aberto e disponível no GitHub:
+https://github.com/kirill-markin/flashcards-open-source-app
+
+### Keywords
+
+open,source,fichas,repetição,espaçada,enem,vestibular,concurso,oab,medicina,memorização,inglês
+
+### What's New
+
+O Nibomo agora está disponível em português do Brasil, da interface ao chat com IA.
 
 ## Russian
 
