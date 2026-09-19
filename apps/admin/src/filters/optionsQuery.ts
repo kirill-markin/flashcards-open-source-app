@@ -45,7 +45,7 @@ export type AnalyticsFilterOptions = Readonly<{
   catalogClickBrowserLanguages: ReadonlyArray<string>;
 }>;
 
-/** One installable deck version, named the way the funnel filter names it: its slug and its id. */
+/** One installable deck version, named the way the shared `Installed deck` field names it: its slug and its version id. */
 export type CatalogDeckOption = Readonly<{
   packageVersionId: string;
   packageSlug: string;
@@ -55,8 +55,10 @@ export type CatalogDeckOption = Readonly<{
 // offered. It folds the stored side of the email join for the reason `buildReviewEventsByDateSql`
 // states in full, and it asks whether any stored row of that actor is a test address rather than
 // joining them: an actor with two case-folded rows would otherwise keep the value as soon as one of
-// them carried a NULL or a real address. The active-admin exclusion is deliberately not restated
-// here, for the reason the country list below states.
+// them carried a NULL or a real address. This helper carries that one exclusion and no other: a
+// caller whose own report also drops active admins restates that exclusion itself right after
+// calling this, as the packages list below does, while the country and language lists deliberately
+// do not, for the reason the country list below states.
 function buildExcludedTestAccountSqlLines(
   actorIdSqlExpression: string,
 ): ReadonlyArray<string> {
@@ -174,13 +176,13 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
 
 // The decks the installs chart can colour inside the range. Same two exclusions as
 // `buildCatalogInstallsSql`, which states why they exist; the colour scale sorts the slugs itself, so
-// this returns the set rather than an order.
+// this returns the set rather than an order. Both are asked as `NOT EXISTS` over the stored rows of
+// the actor, like every other list here, so an actor with two case-folded rows cannot keep a slug
+// just because one of those rows carries a NULL or a non-test address.
 function buildAnalyticsFilterOptionPackagesSql(dateRange: AnalyticsDateRange): string {
   return [
     "SELECT DISTINCT resolved.event_properties ->> 'package_slug' AS package_slug",
     "FROM analytics.product_events_resolved AS resolved",
-    "LEFT JOIN org.user_settings AS user_settings",
-    "  ON pg_catalog.lower(user_settings.user_id) = resolved.actor_id::text",
     "WHERE resolved.event_name = 'catalog_deck_installed'",
     "  AND resolved.occurred_at >= (",
     `    (${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC'`,
@@ -189,14 +191,13 @@ function buildAnalyticsFilterOptionPackagesSql(dateRange: AnalyticsDateRange): s
     `    (${escapeSqlStringLiteral(dateRange.to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "  )",
     "  AND resolved.event_properties ->> 'package_slug' <> 'test'",
-    "  AND (",
-    "    user_settings.email IS NULL",
-    "    OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
-    "  )",
+    ...buildExcludedTestAccountSqlLines("resolved.actor_id::text"),
     "  AND NOT EXISTS (",
     "    SELECT 1",
-    "    FROM auth.admin_users AS admin_users",
-    "    WHERE admin_users.email = LOWER(btrim(user_settings.email))",
+    "    FROM org.user_settings AS admin_settings",
+    "    JOIN auth.admin_users AS admin_users",
+    "      ON admin_users.email = LOWER(btrim(admin_settings.email))",
+    "    WHERE pg_catalog.lower(admin_settings.user_id) = resolved.actor_id::text",
     "      AND admin_users.revoked_at IS NULL",
     "  )",
   ].join("\n");

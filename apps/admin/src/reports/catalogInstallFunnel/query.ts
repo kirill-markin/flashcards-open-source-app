@@ -5,6 +5,8 @@ import type {
   AdminQueryValue,
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import { buildEventPlatformsFilterSql } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   assertIsString,
@@ -71,12 +73,10 @@ export type CatalogInstallFailureBucket = Readonly<{
 export type CatalogInstallFunnelAttempt = Readonly<{
   journeyId: string;
   packageVersionId: string;
-  packageSlug: string | null;
   clickedAt: string;
   placement: CatalogInstallPlacement;
   source: CatalogInstallSource;
   deviceCategory: CatalogInstallDeviceCategory;
-  deviceLocale: string;
   landedAt: string | null;
   landedAuthState: "signed_in" | "signed_out" | null;
   previewReadyAt: string | null;
@@ -108,14 +108,6 @@ export type CatalogInstallFunnelRange = Readonly<{
   to: string;
 }>;
 
-export type CatalogInstallFunnelFilters = Readonly<{
-  packageVersionId: string;
-  placement: string;
-  source: string;
-  deviceCategory: string;
-  deviceLocale: string;
-}>;
-
 function assertEnumValue<Value extends string>(
   value: AdminQueryValue,
   values: ReadonlyArray<Value>,
@@ -127,14 +119,6 @@ function assertEnumValue<Value extends string>(
   }
 
   return parsedValue as Value;
-}
-
-function assertNullableString(value: AdminQueryValue, fieldName: string): string | null {
-  if (value === null) {
-    return null;
-  }
-
-  return assertIsString(value, catalogInstallFunnelReportLabel, fieldName);
 }
 
 function assertTimestamp(value: AdminQueryValue, fieldName: string): string {
@@ -201,7 +185,6 @@ function parseAttemptRow(row: Readonly<Record<string, AdminQueryValue>>): Catalo
       catalogInstallFunnelReportLabel,
       "package_version_id",
     ),
-    packageSlug: assertNullableString(row.package_slug ?? null, "package_slug"),
     clickedAt: assertTimestamp(row.clicked_at ?? null, "clicked_at"),
     placement: assertEnumValue(row.placement ?? null, catalogInstallPlacements, "placement"),
     source: assertEnumValue(row.source ?? null, catalogInstallSources, "source"),
@@ -209,11 +192,6 @@ function parseAttemptRow(row: Readonly<Record<string, AdminQueryValue>>): Catalo
       row.device_category ?? null,
       catalogInstallDeviceCategories,
       "device_category",
-    ),
-    deviceLocale: assertIsString(
-      row.device_locale ?? null,
-      catalogInstallFunnelReportLabel,
-      "device_locale",
     ),
     landedAt: assertNullableTimestamp(row.landed_at ?? null, "landed_at"),
     landedAuthState,
@@ -264,21 +242,52 @@ export function buildCatalogInstallFunnelAvailableRangeSql(): string {
   ].join("\n");
 }
 
-export function validateCatalogInstallFunnelRange(
-  range: CatalogInstallFunnelRange,
-  availableRange: CatalogInstallFunnelRange,
-): string | null {
-  try {
-    assertValidDateRange(range, catalogInstallFunnelReportLabel);
-  } catch (error) {
-    return error instanceof Error ? error.message : "Catalog installation funnel date range is invalid.";
+/** One dimension of the row's own click, as a predicate; picking nothing keeps every value. */
+function buildAttemptDimensionFilterSqlLines(
+  columnSqlExpression: string,
+  values: ReadonlyArray<string>,
+): ReadonlyArray<string> {
+  if (values.length === 0) {
+    return [];
   }
 
-  if (range.from < availableRange.from || range.to > availableRange.to) {
-    return `Use a range from ${availableRange.from} to ${availableRange.to}.`;
-  }
+  return [`    AND ${columnSqlExpression} IN (${values.map(escapeSqlStringLiteral).join(", ")})`];
+}
 
-  return null;
+/**
+ * The five catalog dimensions and the platform, as predicates on the click attempt itself.
+ *
+ * A row here is one anonymous click rather than a person, so each field reads the click's own
+ * properties instead of resolving somebody through a completed install the way the user-scoped areas
+ * do. The identity-derived fields are absent from this area for the same reason.
+ *
+ * These are applied after `cohort_clicks` has already reduced a journey to its first click, so a
+ * selection drops whole journeys and can never move the anchor the later stages are measured from.
+ * Selecting nothing anywhere leaves every predicate out, so a stage counts exactly what it counted
+ * before this area had filters.
+ */
+function buildFunnelClickFilterSqlLines(filters: AnalyticsFilterState): ReadonlyArray<string> {
+  return [
+    `    AND ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}`,
+    ...buildAttemptDimensionFilterSqlLines("candidate.package_version_id", filters.installedDecks),
+    ...buildAttemptDimensionFilterSqlLines("candidate.placement", filters.catalogPlacements),
+    ...buildAttemptDimensionFilterSqlLines("candidate.source", filters.catalogSources),
+    ...buildAttemptDimensionFilterSqlLines("candidate.device_category", filters.catalogDeviceCategories),
+    ...buildAttemptDimensionFilterSqlLines("candidate.device_locale", filters.catalogClickBrowserLanguages),
+  ];
+}
+
+/**
+ * The same selection on the no-click diagnostic, which counts landings that recorded no click at
+ * all. Only the two things such a row answers itself can narrow it: the deck version it names and
+ * its own client platform. The four click dimensions are absent from it by definition, so the
+ * diagnostic stays wider than the funnel whenever one of them is narrowed, and the section says so.
+ */
+function buildFunnelLandingFilterSqlLines(filters: AnalyticsFilterState): ReadonlyArray<string> {
+  return [
+    `    AND ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}`,
+    ...buildAttemptDimensionFilterSqlLines("candidate.package_version_id", filters.installedDecks),
+  ];
 }
 
 function buildEventWindowSql(from: string, to: string): ReadonlyArray<string> {
@@ -342,8 +351,8 @@ function buildExcludedActorPredicateSql(eventAlias: string): ReadonlyArray<strin
   ];
 }
 
-export function buildCatalogInstallFunnelSql(from: string, to: string): string {
-  assertValidDateRange({ from, to }, catalogInstallFunnelReportLabel);
+export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): string {
+  const { from, to } = assertValidDateRange(filters.dateRange, catalogInstallFunnelReportLabel);
 
   const cohortQuery = [
     "WITH",
@@ -357,7 +366,11 @@ export function buildCatalogInstallFunnelSql(from: string, to: string): string {
     "    events.event_properties ->> 'placement' AS placement,",
     "    events.event_properties ->> 'source' AS source,",
     "    events.event_properties ->> 'device_category' AS device_category,",
-    "    COALESCE(NULLIF(events.device_locale, ''), 'unknown') AS device_locale",
+    // Folded with the same `NULLIF` the General attribution fragment uses, so an empty locale is the
+    // absence of a reported browser language on both areas rather than a value on one of them and a
+    // bucket name on the other. The one shared option list can then neither offer nor match it.
+    "    NULLIF(events.device_locale, '') AS device_locale,",
+    "    events.platform",
     "  FROM client_events AS events",
     "  WHERE events.event_name = 'catalog_install_clicked'",
     "    AND events.occurred_at < (",
@@ -384,16 +397,15 @@ export function buildCatalogInstallFunnelSql(from: string, to: string): string {
     "    AND NOT EXISTS (",
     ...buildExcludedActorPredicateSql("excluded_install"),
     "    )",
+    ...buildFunnelClickFilterSqlLines(filters),
     ")",
     "SELECT",
     "  click.install_journey_id AS journey_id,",
     "  click.package_version_id,",
-    "  known_package.package_slug,",
     "  click.anchor_at AS clicked_at,",
     "  click.placement,",
     "  click.source,",
     "  click.device_category,",
-    "  click.device_locale,",
     "  landed.occurred_at AS landed_at,",
     "  landed.auth_state AS landed_auth_state,",
     "  preview.occurred_at AS preview_ready_at,",
@@ -406,17 +418,6 @@ export function buildCatalogInstallFunnelSql(from: string, to: string): string {
     "  signed_out_preview.occurred_at AS signed_out_preview_ready_at,",
     "  COALESCE(failures.failure_buckets, '[]'::jsonb) AS failure_buckets",
     "FROM eligible_clicks AS click",
-    "LEFT JOIN LATERAL (",
-    "  SELECT start_event.event_properties ->> 'package_slug' AS package_slug",
-    "  FROM install_start_events AS start_event",
-    "  WHERE start_event.event_name = 'catalog_deck_install_started'",
-    "    AND start_event.event_properties ->> 'install_journey_id' = click.install_journey_id",
-    "    AND start_event.event_properties ->> 'package_version_id' = click.package_version_id",
-    "    AND start_event.occurred_at >= click.anchor_at",
-    `    AND start_event.occurred_at <= click.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
-    "  ORDER BY start_event.occurred_at, start_event.event_id",
-    "  LIMIT 1",
-    ") AS known_package ON TRUE",
     "LEFT JOIN LATERAL (",
     "  SELECT",
     "    landed_event.occurred_at,",
@@ -550,7 +551,8 @@ export function buildCatalogInstallFunnelSql(from: string, to: string): string {
     "  )",
     "    landing.event_properties ->> 'install_journey_id' AS install_journey_id,",
     "    landing.event_properties ->> 'package_version_id' AS package_version_id,",
-    "    landing.occurred_at AS anchor_at",
+    "    landing.occurred_at AS anchor_at,",
+    "    landing.platform",
     "  FROM client_events AS landing",
     "  WHERE landing.event_name = 'catalog_install_landed'",
     "    AND landing.occurred_at < (",
@@ -585,6 +587,7 @@ export function buildCatalogInstallFunnelSql(from: string, to: string): string {
     "    AND NOT EXISTS (",
     ...buildExcludedActorPredicateSql("excluded_install"),
     "    )",
+    ...buildFunnelLandingFilterSqlLines(filters),
     ")",
     "SELECT",
     "  eligible_landings.package_version_id,",
@@ -595,19 +598,6 @@ export function buildCatalogInstallFunnelSql(from: string, to: string): string {
   ].join("\n");
 
   return [cohortQuery, missingClickQuery].join(";\n");
-}
-
-export function filterCatalogInstallFunnelAttempts(
-  attempts: ReadonlyArray<CatalogInstallFunnelAttempt>,
-  filters: CatalogInstallFunnelFilters,
-): ReadonlyArray<CatalogInstallFunnelAttempt> {
-  return attempts.filter((attempt) => (
-    (filters.packageVersionId === "" || attempt.packageVersionId === filters.packageVersionId)
-    && (filters.placement === "" || attempt.placement === filters.placement)
-    && (filters.source === "" || attempt.source === filters.source)
-    && (filters.deviceCategory === "" || attempt.deviceCategory === filters.deviceCategory)
-    && (filters.deviceLocale === "" || attempt.deviceLocale === filters.deviceLocale)
-  ));
 }
 
 export async function loadCatalogInstallFunnelAvailableRange(
@@ -640,10 +630,9 @@ export async function loadCatalogInstallFunnelAvailableRange(
 
 export async function loadCatalogInstallFunnelReport(
   config: AdminAppConfig,
-  from: string,
-  to: string,
+  filters: AnalyticsFilterState,
 ): Promise<CatalogInstallFunnelReport> {
-  const response = await runAdminQuery(config, buildCatalogInstallFunnelSql(from, to));
+  const response = await runAdminQuery(config, buildCatalogInstallFunnelSql(filters));
   if (response.resultSets.length !== 2) {
     throw new Error(
       `${catalogInstallFunnelReportLabel} must return exactly two result sets. Got ${response.resultSets.length}.`,
@@ -658,8 +647,8 @@ export async function loadCatalogInstallFunnelReport(
 
   return {
     generatedAtUtc: response.executedAtUtc,
-    from,
-    to,
+    from: filters.dateRange.from,
+    to: filters.dateRange.to,
     attempts: attemptsResultSet.rows.map(parseAttemptRow),
     missingClickCounts: parseMissingClickCounts(missingClicksResultSet),
   };

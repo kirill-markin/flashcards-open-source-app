@@ -220,22 +220,39 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     + ` ${catalogClickAttributionExplanationTail}`,
 };
 
+// What the four click-based catalog fields have to admit on this area, where they match a click that
+// never had to become anything: the one shared option list behind each of them is built from the
+// clicks that did become installs, because that is all the user-scoped areas can match. The installed
+// deck is not one of them, because its list is read from the install alone and says so itself.
+const funnelsCatalogOptionCoverageTail =
+  "The values on offer are the ones carried by clicks that became installs, so a value only abandoned clicks ever recorded is not listed here even though picking it would match attempts.";
+
 // Funnels counts one anonymous catalog click attempt per row, so the five catalog fields read off the
-// attempt's own click inside the selected range instead of a person's lifetime install history. Every
-// other field keeps the shared wording, which is already true of both.
+// attempt's own click inside the selected range instead of a person's lifetime install history, and
+// the platform is the click's own platform rather than every step's. The date range changes meaning
+// too: it places an attempt by its opening step and then lets the later steps run past the range,
+// so the shared "only events inside these days" wording would be false here.
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
+  dateRange:
+    "Selects an attempt by the click that opens it rather than bounding every event counted here: an attempt belongs to this range when its own catalog click falls on a UTC calendar day inside it, with the first and the last day both included, and the no-click diagnostic places a landing the same way. Every later milestone still counts for seven days after that opening step, so Landed, Preview ready, Install started and Installed can each have happened up to seven days past the last selected day. A range ending near today is therefore still filling rather than finished, which is what the 'Attempts still inside 7-day window' line under the funnel counts, and a short recent window reads as a drop-off when it is only immature.",
+  eventPlatforms:
+    "Keeps only the catalog click attempts whose own click row carries one of the client platforms you pick, and the no-click diagnostic keeps landings by the landing row's own platform the same way; a journey's later steps are never judged by it, so an install finished on another device still counts. The public collector stamps every anonymous catalog click and every landing as web itself and no client can override it, so picking any other platform on its own empties this whole area, the no-click line included.",
   installedDecks:
-    "Keeps only the catalog click attempts aimed at one of the deck versions you pick, read from the attempt's own click inside the selected date range.",
+    "Keeps only the catalog click attempts aimed at one of the deck versions you pick, read from the attempt's own click inside the selected date range. The values on offer are the deck versions somebody ever completed an install of, whether or not that install had a recorded click, so a version that was clicked here but never installed by anybody is the one that is missing from the list even though picking it would match attempts.",
   catalogPlacements:
-    "Keeps only the catalog click attempts whose own click came from one of the page placements you pick, inside the selected date range.",
+    "Keeps only the catalog click attempts whose own click came from one of the page placements you pick, inside the selected date range."
+    + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogSources:
-    "Keeps only the catalog click attempts whose own click was attributed to one of the traffic sources you pick, inside the selected date range.",
+    "Keeps only the catalog click attempts whose own click was attributed to one of the traffic sources you pick, inside the selected date range."
+    + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogDeviceCategories:
-    "Keeps only the catalog click attempts whose own click came from one of the device categories you pick, inside the selected date range.",
+    "Keeps only the catalog click attempts whose own click came from one of the device categories you pick, inside the selected date range."
+    + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogClickBrowserLanguages:
-    "Keeps only the catalog click attempts whose own click reported one of the browser languages you pick, inside the selected date range; it is the browser setting at click time rather than the language the app is used in.",
+    "Keeps only the catalog click attempts whose own click reported one of the browser languages you pick, inside the selected date range; it is the browser setting at click time rather than the language the app is used in."
+    + ` ${funnelsCatalogOptionCoverageTail}`,
 };
 
 const analyticsFilterFieldExplanationOverridesByArea: Readonly<
