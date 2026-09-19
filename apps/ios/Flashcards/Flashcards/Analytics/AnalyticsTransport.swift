@@ -37,6 +37,7 @@ final class AnalyticsTransport: @unchecked Sendable {
             anonymousId: anonymousId,
             sessionId: sessionId,
             context: analyticsClientContextPayload(),
+            isAutomation: AutomationRun.current.isAutomation,
             events: payloads
         )
 

@@ -70,6 +70,7 @@ extension CloudSyncRunner {
                     installationId: installationId,
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
+                    isAutomation: AutomationRun.current.isAutomation,
                     afterHotChangeId: afterHotChangeId,
                     limit: 200,
                     includeMediaAssets: true

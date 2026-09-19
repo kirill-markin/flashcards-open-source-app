@@ -315,6 +315,9 @@ bash scripts/ios/build-ios-marketing-materials.sh --all-locales
 ## Important constraints and caveats
 
 - Only one booted simulator is allowed unless you set `FLASHCARDS_IOS_SIMULATOR_ID`.
+- Capture registers real guest installations against the deployed backend. The XCUITest launch marks
+  them as automation so they never become product analytics; see the automation marker section of
+  [`docs/ios-ci-cd.md`](../../../docs/ios-ci-cd.md#automation-marker).
 - Device family is inferred from the simulator name, so the booted simulator directly controls whether output lands in `iphone/` or `ipad/`.
 - Run screenshot wrappers sequentially, not in parallel. The current generator uses one shared runtime configuration file at `/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json`, so overlapping runs can make one flow skip or read the wrong configuration.
 - Prefer running the generator without a visible simulator window. The wrappers do not require interactive simulator UI, and hiding `Simulator.app` avoids unnecessary rendering load on the local machine.
