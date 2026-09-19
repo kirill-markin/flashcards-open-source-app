@@ -22,8 +22,10 @@ export const catalogAudienceLocales = [
   "de",
   "en",
   "es",
+  "fr",
   "hi",
   "ja",
+  "pt",
   "ru",
   "zh",
 ] as const;
