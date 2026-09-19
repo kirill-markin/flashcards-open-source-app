@@ -10,6 +10,20 @@
     <string name="progress_streak_subtitle">Letzte 5 Wochen</string>
     <string name="progress_reviews_title">Wiederholungen</string>
 
+    <string name="progress_leaderboard_title">Bewertungsrangliste</string>
+    <string name="progress_leaderboard_sign_in_message">Registriere dich oder melde dich an, um zu sehen, welchen Platz deine Wiederholungen in der Bewertungsrangliste belegen.</string>
+    <string name="progress_leaderboard_sign_in_button">Anmelden</string>
+    <string name="friend_invite_button">Freund hinzufügen</string>
+    <string name="progress_streak_leaderboard_title">Serienrangliste</string>
+    <string name="progress_streak_leaderboard_sign_in_message">Registriere dich oder melde dich an, um deine Serie mit der Community zu vergleichen.</string>
+    <string name="progress_leaderboard_info_button_content_description">Über die Bewertungsrangliste</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">Über die Serienrangliste</string>
+    <string name="progress_streak_freeze_bank_content_description">Serienschutz: %1$d von %2$d verfügbar.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">Über den Serienschutz</string>
+    <string name="progress_streak_freeze_bank_info_title">Serienschutz</string>
+    <string name="progress_streak_freeze_bank_info_body">Verfügbar: %1$d/%2$d. Aufladen: %3$d/%4$d. Der Serienschutz schützt verpasste Tage und lädt sich auf, wenn du deine Serie fortsetzt.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">OK</string>
+
     <string name="cards_title">Karten</string>
     <string name="cards_add_card_content_description">Karte hinzufügen</string>
     <string name="cards_search_label">Karten suchen</string>

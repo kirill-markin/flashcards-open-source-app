@@ -1,0 +1,50 @@
+gradle.projectsEvaluated {
+    Project app = gradle.rootProject.project(":app")
+    String expectedTest = app.providers.gradleProperty("marketingScreenshotExpectedTest").get()
+    File proofFile = new File(app.providers.gradleProperty("marketingScreenshotProofFile").get())
+    File resultDir = app.layout.buildDirectory.dir("outputs/androidTest-results/connected/marketingScreenshot").get().asFile
+    ClassLoader androidLoader = app.plugins.getPlugin("com.android.application").class.classLoader
+
+    app.tasks.named("connectedMarketingScreenshotAndroidTest") {
+        outputs.upToDateWhen { false }
+    }
+    app.tasks.register("verifyMarketingScreenshotResult") {
+        dependsOn(":app:connectedMarketingScreenshotAndroidTest")
+        doLast {
+            File aggregateReport = new File(resultDir, "test-result.pb")
+            List<File> deviceReports = app.fileTree(resultDir) {
+                include "*/test-result.pb"
+            }.files.toList()
+            if (!aggregateReport.isFile() || deviceReports.size() != 1) {
+                throw new GradleException("Expected fresh aggregate and exactly one device report for ${expectedTest} in ${resultDir}; found ${deviceReports.size()} device reports.")
+            }
+
+            // AGP isolates the generated report API in its own resolved worker dependencies.
+            Class<?> dependencyType = androidLoader.loadClass("com.android.tools.utp.gradle.api.UtpDependency")
+            String configurationName = dependencyType.getField("GRADLE_WORK_ACTION").get(null).configurationName
+            URL[] workerClasspath = app.configurations.getByName(configurationName).files.collect {
+                it.toURI().toURL()
+            } as URL[]
+            new URLClassLoader(workerClasspath, ClassLoader.platformClassLoader).withCloseable { reportLoader ->
+                Class<?> suiteType = reportLoader.loadClass('com.google.testing.platform.proto.api.core.TestSuiteResultProto$TestSuiteResult')
+                for (File report : [aggregateReport] + deviceReports) {
+                    def suite = suiteType.getMethod("parseFrom", byte[].class).invoke(null, [report.bytes] as Object[])
+                    if (suite.testStatus.name() != "PASSED" || suite.hasPlatformError() || suite.testResultCount != 1) {
+                        throw new GradleException("Invalid screenshot test suite for ${expectedTest} in ${report}: status=${suite.testStatus}, tests=${suite.testResultCount}, platformError=${suite.hasPlatformError()}.")
+                    }
+                    def result = suite.getTestResult(0)
+                    def testCase = result.testCase
+                    String actualTest = "${testCase.testPackage}.${testCase.testClass}#${testCase.testMethod}"
+                    if (actualTest != expectedTest || result.testStatus.name() != "PASSED" || result.hasError()) {
+                        throw new GradleException("Expected ${expectedTest} to pass in ${report}; actual=${actualTest}, status=${result.testStatus}, error=${result.hasError()}.")
+                    }
+                    if (suite.issueList.any { it.severity.name() == "SEVERE" }) {
+                        throw new GradleException("Severe test platform issue for ${expectedTest} in ${report}: ${suite.issueList}.")
+                    }
+                }
+            }
+            proofFile.text = expectedTest + "\n"
+            logger.lifecycle("Verified Android marketing test: {}", expectedTest)
+        }
+    }
+}
