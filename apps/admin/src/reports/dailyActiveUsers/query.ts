@@ -1,4 +1,4 @@
-import { reviewEventCohorts, reviewEventPlatforms, runAdminQuery } from "../../adminApi";
+import { reviewEventPlatforms, runAdminQuery } from "../../adminApi";
 import type {
   AdminQueryResultSet,
   AdminQueryValue,
@@ -7,10 +7,15 @@ import type {
   DailyActiveUsersReport,
   DailyActiveUsersRow,
   DailyActiveUsersUser,
-  ReviewEventCohort,
   ReviewEventPlatform,
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import {
+  buildEventPlatformsFilterSql,
+  buildUserCohortsFilterSql,
+  buildUsersFilterSql,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   assertIsString,
@@ -27,12 +32,6 @@ type DailyActiveUsersQueryRow = Readonly<{
   email: string;
   platform: ReviewEventPlatform;
   user_first_active_date: string;
-}>;
-
-export type DailyActiveUsersFilterState = Readonly<{
-  selectedUserIds: ReadonlyArray<string>;
-  selectedCohorts: ReadonlyArray<ReviewEventCohort>;
-  selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
 }>;
 
 type DailyActiveUsersAggregateFields = Readonly<Pick<
@@ -88,17 +87,6 @@ function buildDailyActiveUsersUsers(
       const rightLabel = right.email === "(no email)" ? right.userId : right.email;
       return leftLabel.localeCompare(rightLabel);
     });
-}
-
-/**
- * Built from the loaded rows and then carried through filtering unchanged: the first active day is a
- * fact about the person rather than about the current filter selection, and another section reads it
- * to apply the same cohort split.
- */
-function buildFirstActiveDateByUserId(
-  rows: ReadonlyArray<DailyActiveUsersRow>,
-): ReadonlyMap<string, string> {
-  return new Map(rows.map((row) => [row.userId, row.firstActiveDate]));
 }
 
 // A person active on two platforms in one day is one active person, so every count here is over a
@@ -188,64 +176,14 @@ function buildDailyActiveUsersReport(
     generatedAtUtc: executedAtUtc,
     from,
     to,
-    firstActiveDateByUserId: buildFirstActiveDateByUserId(rows),
     ...buildDailyActiveUsersAggregateFields(rows, dates),
     rows,
   };
 }
 
-function getDailyActiveUsersRowCohort(row: DailyActiveUsersRow): ReviewEventCohort {
-  return row.firstActiveDate === row.date ? "new" : "returning";
-}
-
-function isUnfilteredDailyActiveUsersReport(filters: DailyActiveUsersFilterState): boolean {
-  return filters.selectedUserIds.length === 0
-    && filters.selectedCohorts.length === reviewEventCohorts.length
-    && filters.selectedPlatforms.length === reviewEventPlatforms.length;
-}
-
-function shouldIncludeDailyActiveUsersRow(
-  row: DailyActiveUsersRow,
-  selectedUserIdSet: ReadonlySet<string>,
-  selectedCohortSet: ReadonlySet<ReviewEventCohort>,
-  selectedPlatformSet: ReadonlySet<ReviewEventPlatform>,
-): boolean {
-  if (selectedUserIdSet.size > 0 && selectedUserIdSet.has(row.userId) === false) {
-    return false;
-  }
-
-  if (selectedCohortSet.has(getDailyActiveUsersRowCohort(row)) === false) {
-    return false;
-  }
-
-  return selectedPlatformSet.has(row.platform);
-}
-
-export function filterDailyActiveUsersReport(
-  report: DailyActiveUsersReport,
-  filters: DailyActiveUsersFilterState,
-): DailyActiveUsersReport {
-  if (isUnfilteredDailyActiveUsersReport(filters)) {
-    return report;
-  }
-
-  const selectedUserIdSet = new Set(filters.selectedUserIds);
-  const selectedCohortSet = new Set(filters.selectedCohorts);
-  const selectedPlatformSet = new Set(filters.selectedPlatforms);
-  const rows = report.rows.filter((row) => shouldIncludeDailyActiveUsersRow(
-    row,
-    selectedUserIdSet,
-    selectedCohortSet,
-    selectedPlatformSet,
-  ));
-  const dates = buildRequestedDateRange(report.from, report.to, reportLabel);
-
-  return {
-    ...report,
-    rows,
-    ...buildDailyActiveUsersAggregateFields(rows, dates),
-  };
-}
+// New on the day this actor first opened the app, returning on every later day: this section's own
+// cohort split, and the expression the cohort filter is applied to.
+const dailyActiveUsersCohortSqlExpression = "CASE WHEN app_opens.active_date = actor_first_active_date.first_active_date THEN 'new' ELSE 'returning' END";
 
 // Per-actor active days for the admin "Daily active users" section.
 //
@@ -277,8 +215,10 @@ export function filterDailyActiveUsersReport(
 // being `db/migrations/0126_backfill_app_opened_rollout_gap.sql`. Replays keep running after the
 // clients went live, so `origin = 'backfill'` rows also fall on days a client was already reporting.
 // Reconstructed and live rows are deliberately not distinguished here or anywhere in the UI.
-export function buildDailyActiveUsersSql(from: string, to: string): string {
-  assertValidDateRange({ from, to }, reportLabel);
+export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string {
+  const dateRange = assertValidDateRange(filters.dateRange, reportLabel);
+  const from = dateRange.from;
+  const to = dateRange.to;
 
   return [
     // Bounded above only: `actor_first_active_date` needs each actor's first active day over all of
@@ -326,6 +266,9 @@ export function buildDailyActiveUsersSql(from: string, to: string): string {
     "  ON actor_first_active_date.actor_id = app_opens.actor_id",
     `WHERE app_opens.active_date >= ${escapeSqlStringLiteral(from)}::date`,
     `  AND app_opens.active_date <= ${escapeSqlStringLiteral(to)}::date`,
+    `  AND ${buildUsersFilterSql("app_opens.actor_id", filters.users)}`,
+    `  AND ${buildUserCohortsFilterSql(dailyActiveUsersCohortSqlExpression, filters.userCohorts)}`,
+    `  AND ${buildEventPlatformsFilterSql("app_opens.platform", filters.eventPlatforms)}`,
     "GROUP BY",
     "  app_opens.active_date,",
     "  app_opens.actor_id,",
@@ -341,10 +284,9 @@ export function buildDailyActiveUsersSql(from: string, to: string): string {
 
 export async function loadDailyActiveUsersReport(
   config: AdminAppConfig,
-  from: string,
-  to: string,
+  filters: AnalyticsFilterState,
 ): Promise<DailyActiveUsersReport> {
-  const response = await runAdminQuery(config, buildDailyActiveUsersSql(from, to));
+  const response = await runAdminQuery(config, buildDailyActiveUsersSql(filters));
   if (response.resultSets.length !== 1) {
     throw new Error(`Daily active users report must return exactly one result set. Got ${response.resultSets.length}.`);
   }
@@ -354,5 +296,10 @@ export async function loadDailyActiveUsersReport(
     throw new Error("Daily active users report result set is missing.");
   }
 
-  return buildDailyActiveUsersReport(resultSet, response.executedAtUtc, from, to);
+  return buildDailyActiveUsersReport(
+    resultSet,
+    response.executedAtUtc,
+    filters.dateRange.from,
+    filters.dateRange.to,
+  );
 }

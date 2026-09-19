@@ -1,4 +1,4 @@
-import { reviewEventCohorts, reviewEventPlatforms, runAdminQuery } from "../../adminApi";
+import { runAdminQuery } from "../../adminApi";
 import type {
   AdminQueryResultSet,
   AdminQueryValue,
@@ -6,10 +6,16 @@ import type {
   CatalogInstallsReport,
   CatalogInstallsRow,
   CatalogInstallsUser,
-  ReviewEventCohort,
   ReviewEventPlatform,
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import {
+  buildEventPlatformsFilterSql,
+  buildUserCohortsFilterSql,
+  buildUsersFilterSql,
+  isEveryUserCohortSelected,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   assertIsString,
@@ -30,29 +36,10 @@ type CatalogInstallsQueryRow = Readonly<{
   card_count: string | number;
 }>;
 
-export type CatalogInstallsFilterState = Readonly<{
-  selectedUserIds: ReadonlyArray<string>;
-  selectedCohorts: ReadonlyArray<ReviewEventCohort>;
-  selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
-  /**
-   * `DailyActiveUsersReport.firstActiveDateByUserId`, so new versus returning is defined in exactly
-   * one place instead of being recomputed from installs.
-   */
-  firstActiveDateByUserId: ReadonlyMap<string, string>;
-}>;
-
 type CatalogInstallsAggregateFields = Readonly<Pick<
   CatalogInstallsReport,
   "totalInstalls" | "users" | "packages"
 >>;
-
-type CatalogInstallsRowFilter = Readonly<{
-  selectedUserIds: ReadonlySet<string>;
-  selectedCohorts: ReadonlySet<ReviewEventCohort>;
-  selectedPlatforms: ReadonlySet<ReviewEventPlatform>;
-  firstActiveDateByUserId: ReadonlyMap<string, string>;
-  keepsUnknownCohort: boolean;
-}>;
 
 function toCatalogInstallsQueryRow(
   resultSetRow: Readonly<Record<string, AdminQueryValue>>,
@@ -154,76 +141,16 @@ function buildCatalogInstallsReport(
   };
 }
 
-/**
- * The cohort of one install, read from the daily active users report instead of recomputed here.
- *
- * `null` means the installer has no `app_opened` day inside the loaded range, so that report knows
- * of no first active day to compare this install against and the row belongs to neither cohort. It
- * is then kept only while the cohort filter still selects every cohort, which is the state the
- * filter row treats as "no cohort filter"; any narrowing drops the row rather than guessing a side
- * for it.
- */
-function getCatalogInstallsRowCohort(
-  row: CatalogInstallsRow,
-  firstActiveDateByUserId: ReadonlyMap<string, string>,
-): ReviewEventCohort | null {
-  const firstActiveDate = firstActiveDateByUserId.get(row.userId);
-  if (firstActiveDate === undefined) {
-    return null;
-  }
-
-  return firstActiveDate === row.date ? "new" : "returning";
-}
-
-function isUnfilteredCatalogInstallsReport(filters: CatalogInstallsFilterState): boolean {
-  return filters.selectedUserIds.length === 0
-    && filters.selectedCohorts.length === reviewEventCohorts.length
-    && filters.selectedPlatforms.length === reviewEventPlatforms.length;
-}
-
-function shouldIncludeCatalogInstallsRow(
-  row: CatalogInstallsRow,
-  rowFilter: CatalogInstallsRowFilter,
-): boolean {
-  if (rowFilter.selectedUserIds.size > 0 && rowFilter.selectedUserIds.has(row.userId) === false) {
-    return false;
-  }
-
-  const cohort = getCatalogInstallsRowCohort(row, rowFilter.firstActiveDateByUserId);
-  if (cohort === null) {
-    if (rowFilter.keepsUnknownCohort === false) {
-      return false;
-    }
-  } else if (rowFilter.selectedCohorts.has(cohort) === false) {
-    return false;
-  }
-
-  return rowFilter.selectedPlatforms.has(row.platform);
-}
-
-export function filterCatalogInstallsReport(
-  report: CatalogInstallsReport,
-  filters: CatalogInstallsFilterState,
-): CatalogInstallsReport {
-  if (isUnfilteredCatalogInstallsReport(filters)) {
-    return report;
-  }
-
-  const rowFilter: CatalogInstallsRowFilter = {
-    selectedUserIds: new Set(filters.selectedUserIds),
-    selectedCohorts: new Set(filters.selectedCohorts),
-    selectedPlatforms: new Set(filters.selectedPlatforms),
-    firstActiveDateByUserId: filters.firstActiveDateByUserId,
-    keepsUnknownCohort: filters.selectedCohorts.length === reviewEventCohorts.length,
-  };
-  const rows = report.rows.filter((row) => shouldIncludeCatalogInstallsRow(row, rowFilter));
-
-  return {
-    ...report,
-    ...buildCatalogInstallsAggregateFields(rows),
-    rows,
-  };
-}
+// The side one install takes, NULL when the installer has no first active day to compare it against.
+// A NULL never satisfies the cohort `IN` list, so the "neither side" case is decided entirely by the
+// predicate that guards it.
+const catalogInstallCohortSqlExpression = [
+  "CASE",
+  "  WHEN installer_first_active_date.first_active_date IS NULL THEN NULL",
+  "  WHEN installer_first_active_date.first_active_date = deck_installs.install_date THEN 'new'",
+  "  ELSE 'returning'",
+  "END",
+].join(" ");
 
 // Per-actor catalog deck installs for the admin "Catalog deck installs" section. One install action
 // by one person is one event, and one row is one (UTC date, actor, package slug).
@@ -234,8 +161,20 @@ export function filterCatalogInstallsReport(
 // restated inline because this package cannot import
 // `exampleComEmailExclusionSqlFragments` from `apps/backend/src/globalMetrics/reporting.ts`, and
 // grouping by `actor_id` so a guest and the account that guest became are one person. Unlike that
-// query this CTE is bounded on both sides, because new versus returning is read from the daily
-// active users report rather than recomputed from a first-install day here.
+// query the install CTE is bounded on both sides, because an install's cohort is not derived from a
+// first-install day at all.
+//
+// NEW VERSUS RETURNING IS THE INSTALLER'S FIRST `app_opened` DAY, which is the cohort definition of
+// the daily active users section rather than one of this section's own, so the two sections cannot
+// disagree about which day a person was new on. `installer_first_active_date` recreates exactly what
+// that section exposes: each installer's first `app_opened` day over all history up to the end of the
+// range, kept only for installers that have an `app_opened` day INSIDE the range, because that is the
+// window the other section reports on.
+//
+// AN INSTALLER WITH NO `app_opened` DAY INSIDE THE RANGE BELONGS TO NEITHER SIDE. There is no first
+// active day to compare the install against, so the row is kept only while both cohorts are selected,
+// which is the state the filter row treats as "no cohort filter"; any narrowing drops the row rather
+// than guessing a side for it.
 //
 // EVERYTHING THIS SECTION NEEDS IS ON THE EVENT. `catalog_deck_installed` is server-only and carries
 // `package_slug` and `card_count` (`apps/backend/src/productAnalytics/catalog.ts`), emitted after the
@@ -260,8 +199,11 @@ export function filterCatalogInstallsReport(
 // client claim - and the `0120` backfill wrote none either. The bucket is still derived with the same
 // CASE as every other report rather than invented, so the section obeys the shared platform filter,
 // which means selecting any device platform empties it.
-export function buildCatalogInstallsSql(from: string, to: string): string {
-  assertValidDateRange({ from, to }, catalogInstallsReportLabel);
+export function buildCatalogInstallsSql(filters: AnalyticsFilterState): string {
+  const dateRange = assertValidDateRange(filters.dateRange, catalogInstallsReportLabel);
+  const from = dateRange.from;
+  const to = dateRange.to;
+  const unknownCohortSelectionSql = isEveryUserCohortSelected(filters) ? "TRUE" : "FALSE";
 
   return [
     // The range predicate is on the raw `occurred_at` column rather than on its UTC date so
@@ -299,6 +241,35 @@ export function buildCatalogInstallsSql(from: string, to: string): string {
     "      WHERE admin_users.email = LOWER(btrim(user_settings.email))",
     "        AND admin_users.revoked_at IS NULL",
     "    )",
+    "),",
+    // Only the installers' own app opens are read: an install row has already settled the actor's
+    // `%@example.com` exclusion, and the same actor carries the same email here, so this CTE does not
+    // restate it. Bounded above only, because a first active day may predate the range.
+    "installer_app_opens AS (",
+    "  SELECT",
+    "    resolved.actor_id::text AS actor_id,",
+    "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS active_date",
+    "  FROM analytics.product_events_resolved AS resolved",
+    "  WHERE resolved.event_name = 'app_opened'",
+    "    AND resolved.occurred_at < (",
+    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
+    "    )",
+    "    AND EXISTS (",
+    "      SELECT 1",
+    "      FROM deck_installs",
+    "      WHERE deck_installs.actor_id = resolved.actor_id::text",
+    "    )",
+    "),",
+    // `HAVING` is the "inside the range" rule: the rows are bounded above already, so an actor whose
+    // last active day is still before the range start has no active day in it and drops out, leaving
+    // the install with no cohort.
+    "installer_first_active_date AS (",
+    "  SELECT",
+    "    installer_app_opens.actor_id,",
+    "    MIN(installer_app_opens.active_date) AS first_active_date",
+    "  FROM installer_app_opens",
+    "  GROUP BY installer_app_opens.actor_id",
+    `  HAVING MAX(installer_app_opens.active_date) >= ${escapeSqlStringLiteral(from)}::date`,
     ")",
     "SELECT",
     "  to_char(deck_installs.install_date, 'YYYY-MM-DD') AS install_date,",
@@ -312,6 +283,14 @@ export function buildCatalogInstallsSql(from: string, to: string): string {
     // on a day and a later version can carry a different card count.
     "  SUM(deck_installs.card_count)::int AS card_count",
     "FROM deck_installs",
+    "LEFT JOIN installer_first_active_date",
+    "  ON installer_first_active_date.actor_id = deck_installs.actor_id",
+    `WHERE ${buildUsersFilterSql("deck_installs.actor_id", filters.users)}`,
+    `  AND ${buildEventPlatformsFilterSql("deck_installs.platform", filters.eventPlatforms)}`,
+    "  AND (",
+    `    (installer_first_active_date.first_active_date IS NULL AND ${unknownCohortSelectionSql})`,
+    `    OR ${buildUserCohortsFilterSql(catalogInstallCohortSqlExpression, filters.userCohorts)}`,
+    "  )",
     "GROUP BY",
     "  deck_installs.install_date,",
     "  deck_installs.actor_id,",
@@ -328,10 +307,9 @@ export function buildCatalogInstallsSql(from: string, to: string): string {
 
 export async function loadCatalogInstallsReport(
   config: AdminAppConfig,
-  from: string,
-  to: string,
+  filters: AnalyticsFilterState,
 ): Promise<CatalogInstallsReport> {
-  const response = await runAdminQuery(config, buildCatalogInstallsSql(from, to));
+  const response = await runAdminQuery(config, buildCatalogInstallsSql(filters));
   if (response.resultSets.length !== 1) {
     throw new Error(`${catalogInstallsReportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
   }
@@ -341,5 +319,10 @@ export async function loadCatalogInstallsReport(
     throw new Error(`${catalogInstallsReportLabel} result set is missing.`);
   }
 
-  return buildCatalogInstallsReport(resultSet, response.executedAtUtc, from, to);
+  return buildCatalogInstallsReport(
+    resultSet,
+    response.executedAtUtc,
+    filters.dateRange.from,
+    filters.dateRange.to,
+  );
 }
