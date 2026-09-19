@@ -308,9 +308,10 @@ export default function App(): JSX.Element {
     void loadAvailableRange(sessionConfig);
   }, [handleTerminalAdminError, needsReportData, reportLoadRevision, sessionConfig]);
 
-  // The option lists and the colour domains are scoped to the range and deliberately blind to the
-  // rest of the selection - a user a filter just removed from every chart is exactly the user the
-  // popup has to keep offering - so only a range change asks for them again.
+  // The option lists and the colour domains are deliberately blind to the rest of the selection - a
+  // user a filter just removed from every chart is exactly the user the popup has to keep offering -
+  // so only a range change asks for them again. The five catalog attribution lists do not depend on
+  // the range at all and are simply reloaded with the rest.
   const loadFilterOptions = useCallback(async (
     config: AdminAppConfig,
     dateRange: AnalyticsDateRange,

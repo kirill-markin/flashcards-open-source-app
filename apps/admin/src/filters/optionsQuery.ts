@@ -5,7 +5,19 @@ import {
 } from "../adminApi";
 import type { AdminAppConfig } from "../config";
 import { assertIsString, assertValidDateRange, toInteger } from "../reports/reportValues";
-import { buildConnectionCountrySamplesSql } from "./filterSql";
+import {
+  catalogInstallDeviceCategories,
+  catalogInstallPlacements,
+  catalogInstallSources,
+  type CatalogInstallDeviceCategory,
+  type CatalogInstallPlacement,
+  type CatalogInstallSource,
+} from "../reports/catalogInstallFunnel/query";
+import {
+  buildCatalogInstallAttributionSql,
+  buildCatalogInstalledDeckVersionsSql,
+  buildConnectionCountrySamplesSql,
+} from "./filterSql";
 import { getUserFilterLabel } from "./userFilters";
 import { escapeSqlStringLiteral } from "../sql";
 import type { AnalyticsDateRange } from "./analyticsFilters";
@@ -26,7 +38,37 @@ export type AnalyticsFilterOptions = Readonly<{
   catalogPackageSlugs: ReadonlyArray<string>;
   connectionCountries: ReadonlyArray<string>;
   appUiLanguages: ReadonlyArray<string>;
+  catalogDecks: ReadonlyArray<CatalogDeckOption>;
+  catalogPlacements: ReadonlyArray<CatalogInstallPlacement>;
+  catalogSources: ReadonlyArray<CatalogInstallSource>;
+  catalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
+  catalogClickBrowserLanguages: ReadonlyArray<string>;
 }>;
+
+/** One installable deck version, named the way the funnel filter names it: its slug and its id. */
+export type CatalogDeckOption = Readonly<{
+  packageVersionId: string;
+  packageSlug: string;
+}>;
+
+// The one exclusion every option list restates, so a value only a test account ever produced is not
+// offered. It folds the stored side of the email join for the reason `buildReviewEventsByDateSql`
+// states in full, and it asks whether any stored row of that actor is a test address rather than
+// joining them: an actor with two case-folded rows would otherwise keep the value as soon as one of
+// them carried a NULL or a real address. The active-admin exclusion is deliberately not restated
+// here, for the reason the country list below states.
+function buildExcludedTestAccountSqlLines(
+  actorIdSqlExpression: string,
+): ReadonlyArray<string> {
+  return [
+    "  AND NOT EXISTS (",
+    "    SELECT 1",
+    "    FROM org.user_settings AS excluded_settings",
+    `    WHERE pg_catalog.lower(excluded_settings.user_id) = ${actorIdSqlExpression}`,
+    "      AND LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'",
+    "  )",
+  ];
+}
 
 // Every actor the General sections can show inside the range, with the review-event count the popup
 // prints next to them. The four sources are the four ways a person reaches a chart: review events,
@@ -176,15 +218,10 @@ function buildAnalyticsFilterOptionCountriesSql(dateRange: AnalyticsDateRange): 
     "FROM (",
     buildConnectionCountrySamplesSql(dateRange, null),
     ") AS country_samples",
-    "LEFT JOIN org.user_settings AS user_settings",
-    "  ON pg_catalog.lower(user_settings.user_id) = country_samples.actor_id::text",
     // A sampled lookup that returned no country is the `unknown` bucket of the audience report rather
     // than a country anybody can pick.
     "WHERE country_samples.country IS NOT NULL",
-    "  AND (",
-    "    user_settings.email IS NULL",
-    "    OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
-    "  )",
+    ...buildExcludedTestAccountSqlLines("country_samples.actor_id::text"),
     "ORDER BY country ASC",
   ].join("\n");
 }
@@ -199,8 +236,6 @@ function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRan
   return [
     "SELECT DISTINCT resolved.ui_locale AS ui_locale",
     "FROM analytics.product_events_resolved AS resolved",
-    "LEFT JOIN org.user_settings AS user_settings",
-    "  ON pg_catalog.lower(user_settings.user_id) = resolved.actor_id::text",
     "WHERE resolved.ui_locale IS NOT NULL",
     "  AND resolved.actor_id IS NOT NULL",
     "  AND resolved.occurred_at >= (",
@@ -209,12 +244,86 @@ function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRan
     "  AND resolved.occurred_at < (",
     `    (${escapeSqlStringLiteral(dateRange.to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "  )",
-    "  AND (",
-    "    user_settings.email IS NULL",
-    "    OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
-    "  )",
+    ...buildExcludedTestAccountSqlLines("resolved.actor_id::text"),
     "ORDER BY ui_locale ASC",
   ].join("\n");
+}
+
+// Every deck version somebody ever completed an install of, read through the same install-only
+// lifetime fragment the installed-deck filter reads, so a legacy install and an install whose click
+// was never recorded are both offered here. This list and the four below are the one group of option
+// lists the selected range does not scope, because neither the installed-deck filter nor the
+// click-attribution filter is scoped by it either. What this offers is a strict subset of what the
+// installed-deck filter matches, because it restates the two exclusions below and that filter
+// restates neither.
+//
+// The delisted `test` fixture of `db/migrations/0111_delist_catalog_test_fixture.sql` is left out
+// here, as it is everywhere a deck is named; the four dimension lists below cannot name a deck and
+// leave it in.
+function buildAnalyticsFilterOptionCatalogDecksSql(): string {
+  return [
+    "SELECT",
+    "  installed_decks.package_version_id AS package_version_id,",
+    // One row per deck version whatever its installs recorded, so a version cannot be offered twice
+    // under two slugs, and a version whose installs named no slug is still offered.
+    "  COALESCE(MIN(installed_decks.package_slug), 'Unknown deck') AS package_slug",
+    "FROM (",
+    buildCatalogInstalledDeckVersionsSql(),
+    ") AS installed_decks",
+    // `package_version_id` is optional on the install event, so an install that named no version
+    // names no deck anybody can pick, and a NULL here would reach the string assertion that reads
+    // this list in `loadAnalyticsFilterOptions` and fail the whole load.
+    "WHERE installed_decks.package_version_id IS NOT NULL",
+    "  AND installed_decks.package_slug IS DISTINCT FROM 'test'",
+    ...buildExcludedTestAccountSqlLines("installed_decks.actor_id::text"),
+    "GROUP BY installed_decks.package_version_id",
+    // Ordered on the aggregate itself rather than on the output name it shares with an ungrouped
+    // input column, which would leave the sort to Postgres ambiguity resolution.
+    "ORDER BY COALESCE(MIN(installed_decks.package_slug), 'Unknown deck') ASC,",
+    "  installed_decks.package_version_id ASC",
+  ].join("\n");
+}
+
+// Every value one catalog attribution dimension carried on the originating click of a completed
+// install, read through the same lifetime fragment the four click-dimension predicates read, so this
+// list is unscoped by the selected range exactly as they are. What it offers is a strict subset of
+// what they match, because it restates `%@example.com` and they restate nothing; the active-admin
+// exclusion is not restated, for the reason the country list above states. A NULL is not offered: no
+// selection can match it, and a person whose attributed clicks recorded only NULLs is exactly the
+// person a narrowed field drops.
+function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string): string {
+  return [
+    `SELECT DISTINCT install_attribution.${columnSqlName} AS option_value`,
+    "FROM (",
+    buildCatalogInstallAttributionSql(),
+    ") AS install_attribution",
+    `WHERE install_attribution.${columnSqlName} IS NOT NULL`,
+    ...buildExcludedTestAccountSqlLines("install_attribution.actor_id::text"),
+    "ORDER BY option_value ASC",
+  ].join("\n");
+}
+
+/**
+ * The declared values of one closed attribution dimension that the data actually carries.
+ *
+ * A value outside the declared list is skipped rather than raised. A value that is never offered can
+ * never be selected, so dropping it costs one popover entry and makes nothing on screen lie, while
+ * raising here would blank both General and Audience whole: this list loads in the same `Promise.all`
+ * as every report of both areas, and because it is not scoped by the range no date selection could
+ * dodge the offending row. The funnel report keeps refusing the same three columns, which stays the
+ * deliberate loud place for a producer contract break - there the value would be charted rather than
+ * only offered.
+ */
+function buildCatalogAttributionEnumOptions<Value extends string>(
+  resultSet: AdminQueryResultSet,
+  declaredValues: ReadonlyArray<Value>,
+  fieldName: string,
+): ReadonlyArray<Value> {
+  return resultSet.rows.flatMap((row) => {
+    const optionValue = assertIsString(row.option_value ?? null, optionsReportLabel, fieldName);
+
+    return declaredValues.includes(optionValue as Value) ? [optionValue as Value] : [];
+  });
 }
 
 /** Most review events first, then by the label the popup prints, as the review report sorts its own users. */
@@ -234,52 +343,79 @@ function buildUserOptions(resultSet: AdminQueryResultSet): ReadonlyArray<ReviewE
     });
 }
 
+/** One result set per option list, in the order `loadAnalyticsFilterOptions` sends them. */
+function requireResultSet(
+  resultSets: ReadonlyArray<AdminQueryResultSet>,
+  index: number,
+  resultSetLabel: string,
+): AdminQueryResultSet {
+  const resultSet = resultSets[index];
+  if (resultSet === undefined) {
+    throw new Error(`${optionsReportLabel} ${resultSetLabel} result set is missing.`);
+  }
+
+  return resultSet;
+}
+
 export async function loadAnalyticsFilterOptions(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
 ): Promise<AnalyticsFilterOptions> {
   assertValidDateRange(dateRange, optionsReportLabel);
-  const response = await runAdminQuery(config, [
+  const optionListSql = [
     buildAnalyticsFilterOptionUsersSql(dateRange),
     buildAnalyticsFilterOptionPackagesSql(dateRange),
     buildAnalyticsFilterOptionCountriesSql(dateRange),
     buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange),
-  ].join(";\n"));
-  if (response.resultSets.length !== 4) {
-    throw new Error(`${optionsReportLabel} must return exactly four result sets. Got ${response.resultSets.length}.`);
+    buildAnalyticsFilterOptionCatalogDecksSql(),
+    buildAnalyticsFilterOptionCatalogAttributionSql("placement"),
+    buildAnalyticsFilterOptionCatalogAttributionSql("source"),
+    buildAnalyticsFilterOptionCatalogAttributionSql("device_category"),
+    buildAnalyticsFilterOptionCatalogAttributionSql("device_locale"),
+  ];
+  const response = await runAdminQuery(config, optionListSql.join(";\n"));
+  if (response.resultSets.length !== optionListSql.length) {
+    throw new Error(`${optionsReportLabel} must return exactly ${optionListSql.length} result sets. Got ${response.resultSets.length}.`);
   }
 
-  const userResultSet = response.resultSets[0];
-  if (userResultSet === undefined) {
-    throw new Error(`${optionsReportLabel} user result set is missing.`);
-  }
-
-  const packageResultSet = response.resultSets[1];
-  if (packageResultSet === undefined) {
-    throw new Error(`${optionsReportLabel} package result set is missing.`);
-  }
-
-  const countryResultSet = response.resultSets[2];
-  if (countryResultSet === undefined) {
-    throw new Error(`${optionsReportLabel} connection country result set is missing.`);
-  }
-
-  const appUiLanguageResultSet = response.resultSets[3];
-  if (appUiLanguageResultSet === undefined) {
-    throw new Error(`${optionsReportLabel} app UI language result set is missing.`);
-  }
+  const resultSets = response.resultSets;
 
   return {
     generatedAtUtc: response.executedAtUtc,
-    users: buildUserOptions(userResultSet),
-    catalogPackageSlugs: packageResultSet.rows.map(
+    users: buildUserOptions(requireResultSet(resultSets, 0, "user")),
+    catalogPackageSlugs: requireResultSet(resultSets, 1, "package").rows.map(
       (row) => assertIsString(row.package_slug ?? null, optionsReportLabel, "package_slug"),
     ),
-    connectionCountries: countryResultSet.rows.map(
+    connectionCountries: requireResultSet(resultSets, 2, "connection country").rows.map(
       (row) => assertIsString(row.country ?? null, optionsReportLabel, "country"),
     ),
-    appUiLanguages: appUiLanguageResultSet.rows.map(
+    appUiLanguages: requireResultSet(resultSets, 3, "app UI language").rows.map(
       (row) => assertIsString(row.ui_locale ?? null, optionsReportLabel, "ui_locale"),
     ),
+    catalogDecks: requireResultSet(resultSets, 4, "catalog deck").rows.map((row) => ({
+      packageVersionId: assertIsString(
+        row.package_version_id ?? null,
+        optionsReportLabel,
+        "package_version_id",
+      ),
+      packageSlug: assertIsString(row.package_slug ?? null, optionsReportLabel, "package_slug"),
+    })),
+    catalogPlacements: buildCatalogAttributionEnumOptions(
+      requireResultSet(resultSets, 5, "catalog placement"),
+      catalogInstallPlacements,
+      "placement",
+    ),
+    catalogSources: buildCatalogAttributionEnumOptions(
+      requireResultSet(resultSets, 6, "catalog source"),
+      catalogInstallSources,
+      "source",
+    ),
+    catalogDeviceCategories: buildCatalogAttributionEnumOptions(
+      requireResultSet(resultSets, 7, "catalog device category"),
+      catalogInstallDeviceCategories,
+      "device_category",
+    ),
+    catalogClickBrowserLanguages: requireResultSet(resultSets, 8, "catalog click browser language")
+      .rows.map((row) => assertIsString(row.option_value ?? null, optionsReportLabel, "device_locale")),
   };
 }

@@ -3,6 +3,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildAppUiLanguagesFilterSql,
+  buildCatalogAttributionFiltersSql,
   buildConnectionCountriesFilterSql,
   buildConnectionCountrySamplesSql,
   buildEventPlatformsFilterSql,
@@ -69,6 +70,13 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
     filters.appUiLanguages,
     dateRange,
   );
+  // The catalog attribution fields select people too, as the two above do, so they belong on the same
+  // cohort: every number here is a share of one distinct-user denominator. They read a person's whole
+  // history rather than the range, which is the one thing that makes them unlike every other field.
+  const catalogAttributionSelection = buildCatalogAttributionFiltersSql(
+    "history.actor_id::text",
+    filters,
+  );
 
   return `WITH bounds AS (
     SELECT (${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC' AS starts_at,
@@ -97,6 +105,7 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
       AND ${minimumEventCountSelection}
       AND ${countrySelection}
       AND ${languageSelection}
+      AND ${catalogAttributionSelection}
       AND ${buildEventPlatformsFilterSql("COALESCE(history.platform, 'unattributed')", filters.eventPlatforms)}
   ), actors AS (
     SELECT DISTINCT actor_id FROM cohort_events
