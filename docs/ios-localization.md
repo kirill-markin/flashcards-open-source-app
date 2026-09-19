@@ -5,6 +5,7 @@ Use this document every time you add a new in-app language to the iOS client.
 This guide is about in-app localization for the iOS binary and bundle.
 App Store metadata localization is separate and is not enough on its own.
 If you also need localized App Store metadata, see [docs/app-store-connect-metadata.md](../docs/app-store-connect-metadata.md).
+For the full cross-client rollout order and the locale tag each surface expects, see [docs/add-language.md](add-language.md).
 
 ## Goal
 

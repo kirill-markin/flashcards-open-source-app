@@ -4,6 +4,7 @@ Use this document every time you add a new in-app language to the web client.
 
 This guide is about the web app itself.
 The auth UI is a separate app, so login-language coordination is a follow-up concern, not the primary source of truth for web translations.
+For the full cross-client rollout order and the locale tag each surface expects, see [docs/add-language.md](add-language.md).
 
 ## Goal
 
