@@ -79,9 +79,11 @@ Notes that are easy to get wrong:
 - Backend name pools spell Brazilian Portuguese `pt`, not `pt-BR`; `es-MX` and
   `es-ES` both resolve to one shared Spanish pool file.
 - Play carries an `es-US` listing with no matching product locale.
-- The website's `public/home/app-screens-showcase-<website-tag>.png` files are the
-  composites produced by `scripts/ios/build-ios-marketing-materials.sh`, copied
-  into the website repository and renamed from the app tag to the website tag.
+- The website's `public/home/app-screens-showcase-<website-tag>.png` files come
+  from the composites produced by `scripts/ios/build-ios-marketing-materials.sh`,
+  copied into the website repository and renamed from the app tag to the website
+  tag. Each live file is frozen at the build run that produced it, so it need not
+  match this repository's current composite byte for byte.
 
 ## Two steps a person must do by hand
 
@@ -92,26 +94,43 @@ Notes that are easy to get wrong:
   metadata through the App Store Connect API, so [docs/app-store-connect-metadata.md](app-store-connect-metadata.md)
   is the source text and a human copies it into App Store Connect.
 
-## Known blockers, as of 2026-09
+## Stale marketing screenshots, as of 2026-09
 
-Neither marketing-screenshot flow can currently produce localized assets, and
-both failures are in the app, not the tooling. They fail in opposite ways:
+The committed screenshots are two product generations on both platforms. French
+and Brazilian Portuguese were captured 2026-09-19 against the current app. Every
+other locale is from April 2026 — `en-US`, `ar`, `de`, `es-ES`, `es-MX`, `hi`,
+`ja`, `ru`, `zh-Hans`, in iOS spelling; the table above maps each to its Play
+tag, except that English's committed Android set is `en`, not the table's
+`en-US`, so capturing `en-US` on Android adds a second set and leaves the stale
+one in place. Android is stale in those nine too, plus `es-US`, the Play
+listing with no matching product locale and therefore no iOS counterpart. A
+regeneration pass driven by the iOS list alone leaves that tenth Android set
+behind.
 
-- iOS fails loudly. `dismissAiComposerKeyboardIfVisible` in
-  [MarketingScreenshotFixtures.swift](../apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingScreenshotFixtures.swift)
-  exhausts its dismissal attempts and throws
-  `AI composer keyboard remained visible after dismissal attempts.` at
-  screenshot index 4, in every locale.
-- Android fails silently green. The seeded screenshot state crosses the
-  20-review threshold in
-  [GuestSignInAfterReviewPromptPolicy.kt](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/prompts/guestreview/GuestSignInAfterReviewPromptPolicy.kt),
-  so the guest sign-in dialog covers every frame. Nothing asserts on it: the
-  instrumentation passes, and `scripts/android/capture-android-marketing-screenshots.sh`
-  pulls whatever is on the device without a freshness or content check, so the
-  run prints a saved path per screenshot and exits 0. Only the dismissal helper
-  for Android *system* dialogs exists; this one is an app dialog. A green
-  Android run is not evidence of a usable screenshot — open the PNG.
+Tell the two generations apart by the structure of the progress screen, the only
+marker that holds on both platforms and in every locale:
 
-French and Brazilian Portuguese therefore have screenshot tooling on both
-platforms but no captured assets, and the website falls back to the English
-composite for `fr` and `pt`.
+- Stale: the streak card carries no freeze indicator, and the "Reviews" bar
+  chart sits directly under it. There is no leaderboard.
+- Current: the streak card carries a freeze indicator, and a grade leaderboard
+  with a friend-invite call to action sits directly under it. The "Reviews"
+  chart still exists, but it moved below the leaderboard and off the first
+  screen, so a capture that ends at the leaderboard is not missing it. The
+  always-rendered half differs by platform — on iOS it is the freeze indicator,
+  and the leaderboard needs a loaded snapshot; on Android it is the leaderboard
+  section, and the freeze indicator needs a loaded summary — so decide on that
+  half and treat the other one as optional.
+
+Do not use the streak number or the chart's date range to date a capture. The
+streak number is a per-platform fixture value — the current iOS captures read
+12, while the current Android captures read 8, which is also the stale iOS
+number — and the chart's date range follows the locale's week start, so
+Sunday-first locales never show the Monday-first range.
+
+The difference is structural, not cosmetic, and the marketing website is still
+live on this April generation for every locale except `fr` and `pt`.
+
+Both capture flows work again, and
+[scripts/android/pull-marketing-screenshot.sh](../scripts/android/pull-marketing-screenshot.sh)
+rejects a stale, empty, truncated, or non-PNG pull. Still open the PNG: the
+guards prove a fresh file arrived, not that it shows the right thing.
