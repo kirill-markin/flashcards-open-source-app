@@ -7,6 +7,19 @@ Supported browser entrypoints:
 - `http://localhost:3001`
 - `https://admin.<domain>`
 
+## Routes
+
+- `/` - links to the analytics pages
+- `/analytics` - links to the three analytics areas
+- `/analytics/general` - the General report sections
+- `/analytics/funnels` - the catalog installation funnel
+- `/analytics/audience` - the audience report
+- any other path - the not-found page, naming the path as typed
+
+Every area has its own URL, so a reload or a shared link reopens the same area, and a trailing slash on a known path is normalized in place. A deep link into any of these paths depends on the admin CloudFront SPA rewrite in [infra/aws/lib/admin.ts](../../infra/aws/lib/admin.ts).
+
+Every route resolves `GET /v1/admin/session` first, and `/`, `/analytics` and the not-found page need nothing more. General and Audience then load the review range once per page load, and the three General reports on the first entry into either area and again on every applied range, preset or reset, including the Audience last-three-days shortcut; those results stay in memory, so moving between areas does not fetch them again. Audience additionally fetches its own audience report on every entry and on every filter or range change, with no in-memory reuse; Funnels loads only its own funnel data. A failed report load stays inside the report area with a Retry button while the hero, the navigation and Funnels keep working, and only a terminal `401`/`403` replaces the page.
+
 ## Local development
 
 Install dependencies:
@@ -37,7 +50,6 @@ The local backend and auth allowlists must include both `http://localhost:3000` 
 - The app calls `GET /v1/admin/session` on load.
 - `401` first attempts the existing `auth.<domain>/api/refresh-session` silent recovery flow, then redirects to login only if recovery fails.
 - `403` renders the admin access denied state.
-- `200` loads dashboard data through `POST /v1/admin/reports/query`.
 
 The admin app uses the existing Cognito browser session cookies. It does not introduce a separate login system.
 
@@ -49,7 +61,7 @@ Do not host the browser entry on a raw CloudFront or other non-admin hostname, e
 
 ## Current scope
 
-v1 includes one dashboard page only, carrying three report sections in page order:
+The General area carries three report sections in page order:
 
 - `daily-active-users`
 - `catalog-deck-installs`

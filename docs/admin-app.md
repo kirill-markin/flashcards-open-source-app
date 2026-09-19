@@ -7,6 +7,8 @@ Supported browser entrypoints:
 - `http://localhost:3001`
 - `https://admin.<domain>`
 
+Each serves `/`, `/analytics`, `/analytics/general`, `/analytics/funnels` and `/analytics/audience`, and renders a not-found page on any other path. The route contract and its per-route loading are in [apps/admin/README.md](../apps/admin/README.md).
+
 ## Scope
 
 The dashboard has three top-level analytics sections. `General` contains these three report sections, in page order:
@@ -189,7 +191,7 @@ For the first `admin.<domain>` rollout, use this exact order:
 6. Run `bash scripts/checks/check-public-endpoints.sh --stack-name <stack-name>` after the DNS change.
 7. Open `https://admin.<domain>`.
 8. Sign in with the existing Cognito email.
-9. Confirm that the dashboard loads.
+9. Confirm that `https://admin.<domain>/analytics/general` loads.
 
 Important rollout note: if `CDK_ADMIN_CERTIFICATE_ARN_US_EAST_1` or `CDK_ADMIN_EMAILS` was added to GitHub after a release workflow had already started, that in-flight workflow does not see the new values. In that case, finish the setup above and then run another deploy or rerun the workflow.
 
@@ -202,8 +204,8 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 
 - `https://admin.<domain>` returns `200`
 - unauthenticated access redirects to the login flow
-- a listed admin email loads the dashboard, where the shared hero and filter row sit above titled report sections, each separated by a divider
-- General opens by default and still contains every existing chart; Funnels opens separately with Catalog installation and its own date and acquisition controls
+- a listed admin email loads `https://admin.<domain>/analytics/general`, where the shared hero and filter row sit above titled report sections, each separated by a divider
+- General still contains every existing chart; Funnels opens separately with Catalog installation and its own date and acquisition controls
 - Audience opens as a sibling; the shared filters remain visible and the last-three-days shortcut selects today and the preceding two UTC calendar dates (clamped to available history)
 - switch Audience between Active users and Reviewed ≥1 card; compare distinct resolved actors from `app_opened` and `review_answered`, excluding active admins and example.com accounts, including Again reviews and merged guests only once
 - apply a user, platform, and new/returning filter in Audience; confirm the denominator and distributions reload, and General keeps its charts when switching back
