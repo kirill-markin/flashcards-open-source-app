@@ -28,6 +28,7 @@ import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
 import { webGuestReaperScheduleHours } from "./scheduled-jobs/web-guest-reaper";
 import { countryRetentionScheduleHours } from "./scheduled-jobs/country-retention";
+import { syntheticActorDetectorScheduleHours } from "./scheduled-jobs/synthetic-actor-detector";
 import { addProductAnalyticsMonitoring } from "./product-analytics-monitoring";
 
 const restApiNoTrafficEvaluationPeriods = 4;
@@ -64,6 +65,7 @@ export interface MonitoringProps {
   // reads `.logGroup`.
   webGuestReaperFn: lambda.Function;
   countryRetentionFn: lambda.IFunction;
+  syntheticActorDetectorFn: lambda.IFunction;
   generatedMediaPromotionFn: lambda.IFunction;
   multipartCompletionReconciliationFn: lambda.Function;
   catalogDumpFn: lambda.IFunction;
@@ -723,6 +725,24 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 2,
     datapointsToAlarm: 2,
     alarmDescription: "Country retention has not run for two consecutive days",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+  }), alertTopic);
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "SyntheticActorDetectorLambdaErrorAlarm", {
+    metric: props.syntheticActorDetectorFn.metricErrors({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Synthetic actor detector failed; analytics exclusions are not being recorded",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "SyntheticActorDetectorStaleAlarm", {
+    metric: props.syntheticActorDetectorFn.metricInvocations({ period: cdk.Duration.hours(syntheticActorDetectorScheduleHours), statistic: "Sum" }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription: "Synthetic actor detector has not run for two consecutive days",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 

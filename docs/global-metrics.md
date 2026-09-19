@@ -103,6 +103,7 @@ The snapshot uses `content.review_events.reviewed_at_server` and UTC calendar da
 - `days` covers all complete UTC days from `from` through `to`.
 - Missing days are represented as explicit zero-value entries instead of being omitted.
 - `reviewEvents.byPlatform` contains `web`, `android`, and `ios`.
+- Actors held in `analytics.excluded_actors` with an active exclusion whose recorded id matches the reviewing account are left out of every counter, for past days as well as future ones, so excluding such an actor lowers already-published figures on the next run.
 - Do not infer per-platform unique user counts from review-event volume.
 
 `uniqueReviewingUsers`, `newReviewingUsers`, and `returningReviewingUsers` are all derived from the current `sync.workspace_replicas.user_id` label attached to each joined `review_events.replica_id`.
@@ -112,7 +113,7 @@ That means these counts are not immutable historical authorship: if the current 
 
 - Treat the snapshot as a cached daily aggregate, not a live analytics stream.
 - Render UTC dates exactly as provided instead of converting bucket labels into local time.
-- Expect the payload to grow by one `days[]` row per UTC day after the first qualifying review date, and possibly grow backward if older review history is backfilled later.
+- Expect the payload to grow by one `days[]` row per UTC day after the first qualifying review date, possibly grow backward if older review history is backfilled later, and possibly shorten from the front when excluding an actor removes the earliest qualifying reviews, because that moves `from` forward rather than zeroing the leading days.
 - Treat `totals` as the canonical headline counters; for review events they should match the sum of the all-time `days` series.
 - Websites can fetch this endpoint when visibility is enabled, and future mobile-app endpoint consumers can do the same once those clients add UI.
 

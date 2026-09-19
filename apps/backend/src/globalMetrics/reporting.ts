@@ -13,7 +13,7 @@ import {
 // (`apps/backend/src/routes/globalSnapshot.ts`) and the scheduled snapshot Lambda
 // (`apps/backend/src/entrypoints/scheduledJobs/lambda-global-metrics-snapshot.ts`).
 //
-// The two fragment constants below are the canonical encoding of the user-identity
+// The first two fragment constants below are the canonical encoding of the user-identity
 // filters shared by those three queries, and canonical for those three queries only.
 // Both rules are restated elsewhere, and every restatement below is live:
 //   * `community.refresh_leaderboard_snapshot`, whose current definition is
@@ -66,6 +66,38 @@ const exampleComEmailExclusionSqlFragments = {
   ],
 } as const;
 
+// SQL fragments that exclude the actors `analytics.excluded_actors` holds an active
+// exclusion for, an exclusion being active while `restored_at IS NULL`. The stored key is
+// lower-cased and trimmed, while `workspace_replicas.user_id` is unconstrained TEXT that
+// this file otherwise joins and counts raw, so that side is folded before the comparison:
+// comparing it raw matches no row and fails silently as a non-exclusion rather than as an
+// error. See `db/migrations/0140_analytics_excluded_actors.sql`.
+//
+// Only the authenticated part of that table can reach these numbers. The stored key is the
+// `actor_id` that `analytics.product_events_resolved` reports, and that value falls back to a
+// client-chosen `anonymous_id`. Nothing constrains that UUID space to be disjoint from
+// `workspace_replicas.user_id`; the fallback is simply unreachable today, because it needs an
+// `analytics.product_events` row whose `user_id` is NULL and every stored row carries one, as
+// `db/migrations/0115_product_analytics_resolved_view.sql` states.
+//
+// Intended end state: an actor excluded from the anonymous space drops out of the admin reports
+// while leaving these counters alone, so the two surfaces exclude overlapping sets rather than
+// the same set. The second half of that is an expectation resting on today's invariants, not a
+// guarantee: it holds only while the two id spaces stay disjoint in fact, and an `anonymous_id`
+// equal to some `workspace_replicas.user_id` would fold onto it and be matched below, excluding
+// an unrelated real account instead of changing nothing. Nothing enforces that disjointness, and
+// the reachable defense is on the writer side, which does not exist yet. The asymmetry also
+// depends on the admin surfaces reading this table, and no admin query reads it yet, so today
+// neither surface excludes anything from the anonymous space.
+const excludedActorWhereSqlFragments = [
+  "  AND NOT EXISTS (",
+  "    SELECT 1",
+  "    FROM analytics.excluded_actors AS excluded_actors",
+  "    WHERE excluded_actors.actor_id = pg_catalog.lower(pg_catalog.btrim(workspace_replicas.user_id))",
+  "      AND excluded_actors.restored_at IS NULL",
+  "  )",
+] as const;
+
 type GlobalMetricsSnapshotHistoricalStartDateRow = Readonly<{
   historical_start_date: string | null;
 }>;
@@ -81,6 +113,7 @@ function buildGlobalMetricsSnapshotHistoricalStartDateSql(): string {
     "WHERE review_events.reviewed_at_server < $1::timestamptz",
     ...clientInstallationActivityWhereSqlFragments,
     ...exampleComEmailExclusionSqlFragments.whereFragments,
+    ...excludedActorWhereSqlFragments,
   ].join(" ");
 }
 
@@ -99,6 +132,7 @@ function buildGlobalMetricsSnapshotTotalsSql(): string {
     "WHERE review_events.reviewed_at_server < $1::timestamptz",
     ...clientInstallationActivityWhereSqlFragments,
     ...exampleComEmailExclusionSqlFragments.whereFragments,
+    ...excludedActorWhereSqlFragments,
   ].join(" ");
 }
 
@@ -115,6 +149,7 @@ function buildGlobalMetricsSnapshotDaysSql(): string {
     "  WHERE review_events.reviewed_at_server < $2::timestamptz",
     ...clientInstallationActivityWhereSqlFragments,
     ...exampleComEmailExclusionSqlFragments.whereFragments,
+    ...excludedActorWhereSqlFragments,
     "  GROUP BY workspace_replicas.user_id",
     "), daily_user_activity AS (",
     "  SELECT",
@@ -135,6 +170,7 @@ function buildGlobalMetricsSnapshotDaysSql(): string {
     "    AND review_events.reviewed_at_server < $2::timestamptz",
     ...clientInstallationActivityWhereSqlFragments,
     ...exampleComEmailExclusionSqlFragments.whereFragments,
+    ...excludedActorWhereSqlFragments,
     "  GROUP BY (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date, workspace_replicas.user_id, user_first_review_date.first_review_date",
     ")",
     "SELECT",
