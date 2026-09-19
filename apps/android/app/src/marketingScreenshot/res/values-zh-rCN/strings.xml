@@ -10,6 +10,20 @@
     <string name="progress_streak_subtitle">最近 5 周</string>
     <string name="progress_reviews_title">复习</string>
 
+    <string name="progress_leaderboard_title">评分排行榜</string>
+    <string name="progress_leaderboard_sign_in_message">注册或登录，查看你的复习在评分排行榜中的排名。</string>
+    <string name="progress_leaderboard_sign_in_button">登录</string>
+    <string name="friend_invite_button">添加好友</string>
+    <string name="progress_streak_leaderboard_title">连续学习排行榜</string>
+    <string name="progress_streak_leaderboard_sign_in_message">注册或登录，与社区成员比较连续学习天数。</string>
+    <string name="progress_leaderboard_info_button_content_description">关于评分排行榜</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">关于连续学习排行榜</string>
+    <string name="progress_streak_freeze_bank_content_description">连续学习冻结卡：%2$d 张中有 %1$d 张可用。</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">关于连续学习冻结卡</string>
+    <string name="progress_streak_freeze_bank_info_title">连续学习冻结卡</string>
+    <string name="progress_streak_freeze_bank_info_body">可用：%1$d/%2$d。补充进度：%3$d/%4$d。冻结卡可在漏学时保护连续学习记录，并随持续学习而补充。</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">确定</string>
+
     <string name="cards_title">卡片</string>
     <string name="cards_add_card_content_description">添加卡片</string>
     <string name="cards_search_label">搜索卡片</string>
