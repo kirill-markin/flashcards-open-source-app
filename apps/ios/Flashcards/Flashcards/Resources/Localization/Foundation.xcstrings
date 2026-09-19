@@ -34,6 +34,12 @@
             "value" : "Abre Ajustes si quieres desactivar este acceso."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez Réglages si vous souhaitez désactiver cet accès."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -91,6 +97,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solicita acceso ahora o abre Ajustes más tarde si quieres gestionarlo manualmente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demandez l’accès maintenant, ou ouvrez Réglages plus tard si vous souhaitez le gérer manuellement."
           }
         },
         "hi" : {
@@ -152,6 +164,12 @@
             "value" : "El acceso a la cámara está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Cámara para cambiarlo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès à l’appareil photo est désactivé pour Nibomo. Ouvrez Réglages > Confidentialité et sécurité > Appareil photo pour le modifier."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -209,6 +227,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abre Ajustes para revisar o ampliar este acceso."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez Réglages pour vérifier ou étendre cet accès."
           }
         },
         "hi" : {
@@ -270,6 +294,12 @@
             "value" : "El acceso al micrófono está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Micrófono para cambiarlo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès au microphone est désactivé pour Nibomo. Ouvrez Réglages > Confidentialité et sécurité > Microphone pour le modifier."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -327,6 +357,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a Fotos está desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Fotos para cambiarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès aux photos est désactivé pour Nibomo. Ouvrez Réglages > Confidentialité et sécurité > Photos pour le modifier."
           }
         },
         "hi" : {
@@ -388,6 +424,12 @@
             "value" : "Solo están disponibles las fotos que ya compartiste con Nibomo. Abre Ajustes para conceder un acceso más amplio a Fotos."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seules les photos que vous avez déjà partagées avec Nibomo sont disponibles. Ouvrez Réglages pour accorder un accès plus large aux photos."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -445,6 +487,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Este acceso no está disponible en el dispositivo actual."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet accès est indisponible sur l’appareil actuel."
           }
         },
         "hi" : {
@@ -506,6 +554,12 @@
             "value" : "Permitido"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisé"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -563,6 +617,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preguntar cada vez"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demander à chaque fois"
           }
         },
         "hi" : {
@@ -624,6 +684,12 @@
             "value" : "Bloqueado"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqué"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -681,6 +747,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Limitado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limité"
           }
         },
         "hi" : {
@@ -742,6 +814,12 @@
             "value" : "No disponible"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indisponible"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -799,6 +877,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Haz fotos directamente desde el chat con IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prenez des photos directement depuis le chat IA."
           }
         },
         "hi" : {
@@ -860,6 +944,12 @@
             "value" : "Cámara"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appareil photo"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -917,6 +1007,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dicta texto en el chat con IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictez du texte dans le chat IA."
           }
         },
         "hi" : {
@@ -978,6 +1074,12 @@
             "value" : "Micrófono"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1035,6 +1137,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elige fotos para los archivos adjuntos del chat con IA."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez des photos pour les pièces jointes du chat IA."
           }
         },
         "hi" : {
@@ -1096,6 +1204,12 @@
             "value" : "Fotos"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1153,6 +1267,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso al micrófono está desactivado para Nibomo. Abre Ajustes para permitirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès au microphone est désactivé pour Nibomo. Ouvrez Réglages pour l’autoriser."
           }
         },
         "hi" : {
@@ -1214,6 +1334,12 @@
             "value" : "Se necesita acceso al micrófono"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès au microphone requis"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1271,6 +1397,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a la cámara está desactivado para Nibomo. Abre Ajustes para permitirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès à l’appareil photo est désactivé pour Nibomo. Ouvrez Réglages pour l’autoriser."
           }
         },
         "hi" : {
@@ -1332,6 +1464,12 @@
             "value" : "Se necesita acceso a la cámara"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès à l’appareil photo requis"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1389,6 +1527,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a Archivos está desactivado para Nibomo. Abre Ajustes para permitirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès aux fichiers est désactivé pour Nibomo. Ouvrez Réglages pour l’autoriser."
           }
         },
         "hi" : {
@@ -1450,6 +1594,12 @@
             "value" : "Se necesita acceso a Archivos"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès aux fichiers requis"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1507,6 +1657,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a Fotos está desactivado para Nibomo. Abre Ajustes para permitirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès aux photos est désactivé pour Nibomo. Ouvrez Réglages pour l’autoriser."
           }
         },
         "hi" : {
@@ -1568,6 +1724,12 @@
             "value" : "Se necesita acceso a Fotos"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès aux photos requis"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1625,6 +1787,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Todas las tarjetas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes les cartes"
           }
         },
         "hi" : {
@@ -1686,6 +1854,12 @@
             "value" : "Desconectado"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déconnecté"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1743,6 +1917,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Invitado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invité"
           }
         },
         "hi" : {
@@ -1804,6 +1984,12 @@
             "value" : "Vinculado"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lié"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1861,6 +2047,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Listo para vincular"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prêt à lier"
           }
         },
         "hi" : {
@@ -1922,6 +2114,12 @@
             "value" : "El inicio de sesión en la nube no está disponible. Revisa la configuración de la app."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion au cloud n’est pas disponible. Vérifiez la configuration de l’app."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1979,6 +2177,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Introduce una dirección de correo válida."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez une adresse e-mail valide."
           }
         },
         "hi" : {
@@ -2040,6 +2244,12 @@
             "value" : "El código ya se ha usado. Solicita uno nuevo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code déjà utilisé. Demandez-en un nouveau."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2097,6 +2307,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El código no es válido. Inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code non valide. Réessayez."
           }
         },
         "hi" : {
@@ -2158,6 +2374,12 @@
             "value" : "No se pudo enviar el código. Inténtalo de nuevo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’envoyer un code. Réessayez."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2215,6 +2437,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El código ya expiró. Solicita uno nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code expiré. Demandez-en un nouveau."
           }
         },
         "hi" : {
@@ -2276,6 +2504,12 @@
             "value" : "Demasiados intentos. Solicita un código nuevo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trop de tentatives. Demandez un nouveau code."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2333,6 +2567,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo verificar el código. Inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de vérifier le code. Réessayez."
           }
         },
         "hi" : {
@@ -2394,6 +2634,12 @@
             "value" : "No se pudo iniciar sesión en la nube. Inténtalo de nuevo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la connexion au cloud. Réessayez."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2451,6 +2697,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La conexión se interrumpió mientras se enviaba el código. Revisa tu correo y, si hace falta, vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion a été interrompue pendant l’envoi du code. Vérifiez votre e-mail, puis réessayez si nécessaire."
           }
         },
         "hi" : {
@@ -2512,6 +2764,12 @@
             "value" : "La conexión se interrumpió mientras se verificaba el código. Inténtalo de nuevo o solicita un código nuevo si hace falta."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexion a été interrompue pendant la vérification du code. Réessayez ou demandez un nouveau code si nécessaire."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2569,6 +2827,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo actualizar la tabla por valoración. Desliza para intentarlo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’actualiser le classement par note. Tirez pour réessayer."
           }
         },
         "hi" : {
@@ -2630,6 +2894,12 @@
             "value" : "No se pudo actualizar el calendario de repaso. Desliza para intentarlo de nuevo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’actualiser le calendrier de révision. Tirez pour réessayer."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2687,6 +2957,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo mostrar el calendario de repaso. Desliza para intentarlo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’afficher le calendrier de révision. Tirez pour réessayer."
           }
         },
         "hi" : {
@@ -2748,6 +3024,12 @@
             "value" : "No se pudo actualizar el gráfico de progreso. Desliza para intentarlo de nuevo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’actualiser le graphique de progression. Tirez pour réessayer."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2805,6 +3087,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo actualizar la tabla de rachas. Desliza para intentarlo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’actualiser le classement des séries. Tirez pour réessayer."
           }
         },
         "hi" : {
@@ -2866,6 +3154,12 @@
             "value" : "No se pudo actualizar el resumen de progreso. Desliza para intentarlo de nuevo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’actualiser le résumé de progression. Tirez pour réessayer."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2923,6 +3217,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El progreso no está disponible. Desliza para actualizar e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La progression n’est pas disponible. Tirez pour actualiser et réessayez."
           }
         },
         "hi" : {
@@ -2984,6 +3284,12 @@
             "value" : "Banco de congelación: %@ de %@ disponible."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réserve de gels : %@ sur %@ disponibles."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3041,6 +3347,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Muestra cómo funcionan las congelaciones de racha."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explique le fonctionnement des gels de série."
           }
         },
         "hi" : {
@@ -3102,6 +3414,12 @@
             "value" : "Disponibles: %@/%@. Recarga: %@/%@. Las congelaciones protegen días perdidos y se recargan a medida que continúa tu racha."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibles : %@/%@. Recharge : %@/%@. Les gels protègent les jours manqués et se rechargent à mesure que votre série continue."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3159,6 +3477,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Congelaciones de racha"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gels de série"
           }
         },
         "hi" : {
@@ -3220,6 +3544,12 @@
             "value" : "Crear enlace"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un lien"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3277,6 +3607,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Podrá abrirlo, iniciar sesión o registrarse, y se verán en la app. Los enlaces de invitación vencen en 2 días."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre ami peut l’ouvrir, se connecter ou s’inscrire, et vous vous verrez ensuite dans l’app. Les liens d’invitation expirent au bout de 2 jours."
           }
         },
         "hi" : {
@@ -3338,6 +3674,12 @@
             "value" : "Envía este enlace a tu amigo"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyez ce lien à votre ami"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3395,6 +3737,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Creando..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Création..."
           }
         },
         "hi" : {
@@ -3456,6 +3804,12 @@
             "value" : "Crea un enlace privado de amigo para la tabla de posiciones."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créez un lien d’ami privé pour le classement."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3513,6 +3867,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solo tú ves este nombre en tu tabla de posiciones. Tu amigo elige cómo llamarte al aceptar. Los enlaces de invitación vencen en 2 días."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous seul voyez ce nom dans votre classement. Votre ami choisit le nom qu’il vous donne en acceptant. Les liens d’invitation expirent au bout de 2 jours."
           }
         },
         "hi" : {
@@ -3574,6 +3934,12 @@
             "value" : "Nombre del amigo en tu tabla de posiciones"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom de l’ami dans votre classement"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3631,6 +3997,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nombre de tu amigo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom de votre ami"
           }
         },
         "hi" : {
@@ -3692,6 +4064,12 @@
             "value" : "Listo"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3749,6 +4127,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enviar enlace de invitación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer le lien d’invitation"
           }
         },
         "hi" : {
@@ -3810,6 +4194,12 @@
             "value" : "Abre esta invitación de Nibomo, inicia sesión o regístrate, y nos veremos en la app."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrez cette invitation Nibomo, connectez-vous ou inscrivez-vous, et nous nous verrons dans l’app."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3867,6 +4257,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Invitación de amigo de Nibomo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitation d’ami Nibomo"
           }
         },
         "hi" : {
@@ -3928,6 +4324,12 @@
             "value" : "Agregar amigo"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un ami"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3985,6 +4387,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se permiten saltos de línea ni caracteres de control."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les sauts de ligne et les caractères de contrôle ne sont pas autorisés."
           }
         },
         "hi" : {
@@ -4046,6 +4454,12 @@
             "value" : "Ingresa entre 1 y 30 caracteres."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisissez entre 1 et 30 caractères."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4103,6 +4517,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Actividad de repaso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité de révision"
           }
         },
         "hi" : {
@@ -4164,6 +4584,12 @@
             "value" : "Fecha"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4221,6 +4647,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Repasos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Révisions"
           }
         },
         "hi" : {
@@ -4282,6 +4714,12 @@
             "value" : "Últimos 30 días."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 derniers jours."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4339,6 +4777,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 repaso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 révision"
           }
         },
         "hi" : {
@@ -4400,6 +4844,12 @@
             "value" : "%lld repasos"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld révisions"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4459,6 +4909,12 @@
             "value" : "Actividad de repaso"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité de révision"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4513,6 +4969,12 @@
           }
         },
         "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld en %2$@"
+          }
+        },
+        "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld en %2$@"
@@ -4577,6 +5039,12 @@
             "value" : "Mejor puntuación"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meilleur classement"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4634,6 +5102,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aún sin puntuación"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore classé"
           }
         },
         "hi" : {
@@ -4695,6 +5169,12 @@
             "value" : "1 tarjeta"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 carte"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4752,6 +5232,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld tarjetas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cartes"
           }
         },
         "hi" : {
@@ -4813,6 +5299,12 @@
             "value" : "Tarjetas"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartes"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4870,6 +5362,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Racha actual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Série actuelle"
           }
         },
         "hi" : {
@@ -4931,6 +5429,12 @@
             "value" : "Listo"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4988,6 +5492,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Revisa tu conexión e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifiez votre connexion et réessayez."
           }
         },
         "hi" : {
@@ -5049,6 +5559,12 @@
             "value" : "No se pudo cargar el perfil"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger le profil"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5106,6 +5622,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Amigo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ami"
           }
         },
         "hi" : {
@@ -5167,6 +5689,12 @@
             "value" : "Se unió"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inscrit le"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5224,6 +5752,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cargando perfil..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement du profil..."
           }
         },
         "hi" : {
@@ -5285,6 +5819,12 @@
             "value" : "Métricas"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indicateurs"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5342,6 +5882,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Intentar de nuevo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
           }
         },
         "hi" : {
@@ -5403,6 +5949,12 @@
             "value" : "Estadísticas"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistiques"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5460,6 +6012,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inicia sesión con email para ver perfiles de la clasificación."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous avec votre e-mail pour voir les profils du classement."
           }
         },
         "hi" : {
@@ -5521,6 +6079,12 @@
             "value" : "Se requiere iniciar sesión"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion requise"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5578,6 +6142,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Los perfiles solo se ven mientras la participación en la clasificación de puntuación está activada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les profils sont visibles uniquement lorsque la participation au classement par note est activée."
           }
         },
         "hi" : {
@@ -5639,6 +6209,12 @@
             "value" : "La participación está desactivada"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participation désactivée"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5696,6 +6272,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Este perfil de la clasificación no se puede mostrar ahora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce profil de classement ne peut pas être affiché pour le moment."
           }
         },
         "hi" : {
@@ -5757,6 +6339,12 @@
             "value" : "Perfil no disponible"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil non disponible"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5814,6 +6402,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Acerca de la tabla por valoración"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À propos du classement par note"
           }
         },
         "hi" : {
@@ -5875,6 +6469,12 @@
             "value" : "Los repasos Difícil, Bien y Fácil cuentan para tu posición. De nuevo no cuenta."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les révisions notées « Difficile », « Correct » et « Facile » comptent pour votre classement. « À revoir » ne compte pas."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5932,6 +6532,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Agregar amigo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un ami"
           }
         },
         "hi" : {
@@ -5993,6 +6599,12 @@
             "value" : "Agregar amigo"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un ami"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6050,6 +6662,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inténtalo de nuevo más tarde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayez plus tard."
           }
         },
         "hi" : {
@@ -6111,6 +6729,12 @@
             "value" : "No se pudo cargar la tabla por valoración"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger le classement par note"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6168,6 +6792,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Conéctate a internet para cargar la tabla por valoración."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous à Internet pour charger le classement par note."
           }
         },
         "hi" : {
@@ -6229,6 +6859,12 @@
             "value" : "Sin conexión"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes hors ligne"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6286,6 +6922,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir configuración de valoración"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les réglages du classement par note"
           }
         },
         "hi" : {
@@ -6347,6 +6989,12 @@
             "value" : "Las posiciones solo son visibles mientras participas en la tabla por valoración."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les classements sont visibles uniquement si vous participez au classement par note."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6404,6 +7052,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La participación por valoración está desactivada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participation au classement par note désactivée"
           }
         },
         "hi" : {
@@ -6465,6 +7119,12 @@
             "value" : "Puesto %1$lld, %2$lld repasos"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rang %1$lld, %2$lld révisions"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6522,6 +7182,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tú"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous"
           }
         },
         "hi" : {
@@ -6583,6 +7249,12 @@
             "value" : "Tabla por valoración"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classement par note"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6640,6 +7312,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inicia sesión o regístrate"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter ou s’inscrire"
           }
         },
         "hi" : {
@@ -6701,6 +7379,12 @@
             "value" : "Inicia sesión con tu correo para ver cómo se posicionan tus repasos en la tabla por valoración."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous avec votre e-mail pour voir où vos révisions vous placent dans le classement par note."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6758,6 +7442,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Únete a la tabla por valoración"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rejoignez le classement par note"
           }
         },
         "hi" : {
@@ -6819,6 +7509,12 @@
             "value" : "La tabla por valoración se está preparando. Vuelve pronto."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le classement par note est en cours de préparation. Revenez bientôt."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6876,6 +7572,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aún no está lista"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore prêt"
           }
         },
         "hi" : {
@@ -6937,6 +7639,12 @@
             "value" : "Actualizado hace %@"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mis à jour il y a %@"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6991,6 +7699,12 @@
           }
         },
         "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ %2$@"
@@ -7055,6 +7769,12 @@
             "value" : "1 hora"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 heure"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7112,6 +7832,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld horas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld heures"
           }
         },
         "hi" : {
@@ -7173,6 +7899,12 @@
             "value" : "1 minuto"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minute"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7230,6 +7962,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld minutos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutes"
           }
         },
         "hi" : {
@@ -7291,6 +8029,12 @@
             "value" : "Periodo"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Période"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7348,6 +8092,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Total"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout"
           }
         },
         "hi" : {
@@ -7409,6 +8159,12 @@
             "value" : "3 d"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 j"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7468,6 +8224,12 @@
             "value" : "7 d"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 j"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7522,6 +8284,12 @@
           }
         },
         "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 h"
+          }
+        },
+        "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "24 h"
@@ -7586,6 +8354,12 @@
             "value" : "30 d"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 j"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7643,6 +8417,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld tarjetas, %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld cartes, %@"
           }
         },
         "hi" : {
@@ -7704,6 +8484,12 @@
             "value" : "1-7 días"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 jours"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7761,6 +8547,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "8-30 días"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 jours"
           }
         },
         "hi" : {
@@ -7822,6 +8614,12 @@
             "value" : "31-90 días"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 jours"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7879,6 +8677,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "91-360 días"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 jours"
           }
         },
         "hi" : {
@@ -7940,6 +8744,12 @@
             "value" : "Más tarde"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus tard"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7997,6 +8807,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nuevas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvelles"
           }
         },
         "hi" : {
@@ -8058,6 +8874,12 @@
             "value" : "Hoy"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd’hui"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8115,6 +8937,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-2 años"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 ans"
           }
         },
         "hi" : {
@@ -8176,6 +9004,12 @@
             "value" : "Todavía no hay tarjetas activas."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune carte active pour l’instant."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8233,6 +9067,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Calendario de repasos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendrier de révision"
           }
         },
         "hi" : {
@@ -8294,6 +9134,12 @@
             "value" : "%lld revisiones"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld révisions"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8351,6 +9197,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Semana siguiente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semaine suivante"
           }
         },
         "hi" : {
@@ -8412,6 +9264,12 @@
             "value" : "Semana anterior"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semaine précédente"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8469,6 +9327,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Revisiones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Révisions"
           }
         },
         "hi" : {
@@ -8530,6 +9394,12 @@
             "value" : "1 día"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 jour"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8587,6 +9457,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld días"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld jours"
           }
         },
         "hi" : {
@@ -8648,6 +9524,12 @@
             "value" : "Acerca de la tabla de rachas"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À propos du classement des séries"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8705,6 +9587,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tus días de racha actuales determinan tu posición. Un día de racha es cualquier día local con al menos una revisión de tarjeta calificada como %1$@, %2$@, %3$@ o %4$@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre rang est déterminé par le nombre de jours de votre série actuelle. Un jour de série est un jour local avec au moins une révision de carte notée %1$@, %2$@, %3$@ ou %4$@."
           }
         },
         "hi" : {
@@ -8766,6 +9654,12 @@
             "value" : "Inténtalo de nuevo más tarde."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayez plus tard."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8823,6 +9717,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo cargar la tabla de rachas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger le classement des séries"
           }
         },
         "hi" : {
@@ -8884,6 +9784,12 @@
             "value" : "Conéctate a internet para cargar la tabla de rachas."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous à Internet pour charger le classement des séries."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8941,6 +9847,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sin conexión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous êtes hors ligne"
           }
         },
         "hi" : {
@@ -9002,6 +9914,12 @@
             "value" : "Puesto %1$lld, %2$@"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rang %1$lld, %2$@"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9059,6 +9977,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tabla de rachas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classement des séries"
           }
         },
         "hi" : {
@@ -9120,6 +10044,12 @@
             "value" : "Día congelado"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jour gelé"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9177,6 +10107,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Día futuro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jour à venir"
           }
         },
         "hi" : {
@@ -9238,6 +10174,12 @@
             "value" : "Racha"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Série"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9295,6 +10237,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Progreso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progression"
           }
         },
         "hi" : {
@@ -9356,6 +10304,12 @@
             "value" : "Hoy"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd’hui"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9413,6 +10367,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permitir notificaciones"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser les notifications"
           }
         },
         "hi" : {
@@ -9474,6 +10434,12 @@
             "value" : "Permitido"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisé"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9531,6 +10497,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bloqueado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqué"
           }
         },
         "hi" : {
@@ -9592,6 +10564,12 @@
             "value" : "No solicitado"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non demandé"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9649,6 +10627,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Continúa tu sesión de estudio en Nibomo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuez votre session d’apprentissage dans Nibomo."
           }
         },
         "hi" : {
@@ -9710,6 +10694,12 @@
             "value" : "Una vez al día"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une fois par jour"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9767,6 +10757,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Después de una pausa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Après une pause"
           }
         },
         "hi" : {
@@ -9828,6 +10824,12 @@
             "value" : "De nuevo"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À revoir"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9885,6 +10887,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fácil"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facile"
           }
         },
         "hi" : {
@@ -9946,6 +10954,12 @@
             "value" : "Bien"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Correct"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10003,6 +11017,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Difícil"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difficile"
           }
         },
         "hi" : {
@@ -10064,6 +11084,12 @@
             "value" : "Cuenta eliminada"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compte supprimé"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10118,6 +11144,12 @@
           }
         },
         "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IA"
+          }
+        },
+        "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "IA"
@@ -10182,6 +11214,12 @@
             "value" : "Tarjetas"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartes"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10239,6 +11277,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Más tarde"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus tard"
           }
         },
         "hi" : {
@@ -10300,6 +11344,12 @@
             "value" : "Inicia sesión con tu correo para que estas tarjetas y tu progreso de repaso no se pierdan."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connectez-vous avec votre e-mail pour ne pas perdre ces cartes ni votre progression de révision."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10357,6 +11407,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Iniciar sesión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se connecter"
           }
         },
         "hi" : {
@@ -10418,6 +11474,12 @@
             "value" : "Guarda tu progreso"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrez votre progression"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10475,6 +11537,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Progreso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progression"
           }
         },
         "hi" : {
@@ -10536,6 +11604,12 @@
             "value" : "Repasar"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réviser"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10593,6 +11667,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages"
           }
         },
         "hi" : {
@@ -10654,6 +11734,12 @@
             "value" : "Abrir Ajustes"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Réglages"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10711,6 +11797,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solicitar acceso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demander l’accès"
           }
         },
         "hi" : {
@@ -10772,6 +11864,12 @@
             "value" : "Aceptar"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10829,6 +11927,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 2 horas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gardez votre série aujourd’hui. Révisez avant minuit. Il reste 2 heures."
           }
         },
         "hi" : {
@@ -10890,6 +11994,12 @@
             "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 3 horas."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gardez votre série aujourd’hui. Révisez avant minuit. Il reste 3 heures."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10947,6 +12057,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mantén tu racha hoy. Repasa antes de medianoche. Quedan 4 horas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gardez votre série aujourd’hui. Révisez avant minuit. Il reste 4 heures."
           }
         },
         "hi" : {
@@ -11008,6 +12124,12 @@
             "value" : "Inténtalo de nuevo. Si sigue ocurriendo, comparte los detalles técnicos con soporte."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayez. Si le problème persiste, transmettez les détails techniques à l’assistance."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11065,6 +12187,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Algo ha fallado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une erreur est survenue"
           }
         },
         "hi" : {
@@ -11126,6 +12254,12 @@
             "value" : "Cerrar"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fermer"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11183,6 +12317,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copiar detalles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier les détails"
           }
         },
         "hi" : {
@@ -11244,6 +12384,12 @@
             "value" : "Detalles técnicos"
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Détails techniques"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11301,6 +12447,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ya hay una respuesta en curso. Espera a que termine o detenla antes de enviar otro mensaje."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une réponse est déjà en cours. Attendez qu’elle se termine ou arrêtez-la avant d’envoyer un autre message."
           }
         },
         "hi" : {
@@ -11362,6 +12514,12 @@
             "value" : "No hay conexión a internet. El chat con IA requiere acceso a internet."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune connexion Internet. Le chat IA nécessite un accès à Internet."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11419,6 +12577,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tarjetas actualizadas desde la nube."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartes mises à jour depuis le cloud."
           }
         },
         "hi" : {
@@ -11480,6 +12644,12 @@
             "value" : "La voz no está disponible en este dispositivo."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La synthèse vocale n’est pas disponible sur cet appareil."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11537,6 +12707,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esta revisión se actualizó en otro dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette révision a été mise à jour sur un autre appareil."
           }
         },
         "hi" : {
@@ -11598,6 +12774,12 @@
             "value" : "Versión de prueba desactivada."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version de test désactivée."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11657,6 +12839,12 @@
             "value" : "Versión de prueba activada."
           }
         },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version de test activée."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11714,6 +12902,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Los cambios del espacio de trabajo solo están disponibles después de crear una cuenta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les modifications de l’espace de travail sont disponibles uniquement après la création d’un compte."
           }
         },
         "hi" : {
