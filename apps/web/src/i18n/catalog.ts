@@ -4,8 +4,10 @@ import { deCatalog } from "./catalogs/de";
 import { enCatalog } from "./catalogs/en";
 import { esEsCatalog } from "./catalogs/es-ES";
 import { esMxCatalog } from "./catalogs/es-MX";
+import { frCatalog } from "./catalogs/fr";
 import { hiCatalog } from "./catalogs/hi";
 import { jaCatalog } from "./catalogs/ja";
+import { ptBrCatalog } from "./catalogs/pt-BR";
 import { ruCatalog } from "./catalogs/ru";
 import { zhHansCatalog } from "./catalogs/zh-Hans";
 import type { TranslationCatalog } from "./catalogTypes";
@@ -24,4 +26,6 @@ export const translationCatalogs: Readonly<Record<Locale, TranslationCatalog>> =
   ru: ruCatalog,
   "es-MX": esMxCatalog,
   "es-ES": esEsCatalog,
+  fr: frCatalog,
+  "pt-BR": ptBrCatalog,
 };
