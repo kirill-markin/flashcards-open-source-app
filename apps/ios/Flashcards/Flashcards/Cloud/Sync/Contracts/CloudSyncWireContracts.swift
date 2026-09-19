@@ -3,6 +3,11 @@
  - apps/backend/src/sync/contracts/input.ts
  - apps/backend/src/sync/contracts/types.ts
  - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/remote/sync/CloudSyncRemoteApi.kt
+
+ `isAutomation` is the declaration described in docs/analytics-audience.md: only `true` marks the
+ installation, `false` is the ordinary case the backend treats exactly like an absent field, and the
+ marker is never cleared once stored. It rides on every request rather than a dedicated registration
+ call because any of them can be the one that registers this installation.
  */
 
 /// Wire contract for `POST /sync/push`.
@@ -13,6 +18,7 @@ struct PushRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let isAutomation: Bool
     let operations: [SyncOperationEnvelope]
 }
 
@@ -24,6 +30,7 @@ struct PullRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let isAutomation: Bool
     let afterHotChangeId: Int64
     let limit: Int
     let includeMediaAssets: Bool
@@ -40,6 +47,7 @@ struct BootstrapPullRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let isAutomation: Bool
     let cursor: String?
     let limit: Int
     let includeMediaAssets: Bool
@@ -49,6 +57,7 @@ struct BootstrapPullRequest: Encodable {
         case installationId
         case platform
         case appVersion
+        case isAutomation
         case cursor
         case limit
         case includeMediaAssets
@@ -64,6 +73,7 @@ struct BootstrapPullRequest: Encodable {
         try container.encode(self.installationId, forKey: .installationId)
         try container.encode(self.platform, forKey: .platform)
         try container.encode(self.appVersion, forKey: .appVersion)
+        try container.encode(self.isAutomation, forKey: .isAutomation)
         if let cursor = self.cursor {
             try container.encode(cursor, forKey: .cursor)
         } else {
@@ -84,6 +94,7 @@ struct BootstrapPushRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let isAutomation: Bool
     let includeMediaAssets: Bool
     let entries: [SyncBootstrapEntryEnvelope]
 }
@@ -108,6 +119,7 @@ struct ReviewHistoryPullRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let isAutomation: Bool
     let afterReviewSequenceId: Int64
     let limit: Int
 }
@@ -120,6 +132,7 @@ struct ReviewHistoryImportRequest: Encodable {
     let installationId: String
     let platform: String
     let appVersion: String
+    let isAutomation: Bool
     let reviewEvents: [ReviewEvent]
 }
 

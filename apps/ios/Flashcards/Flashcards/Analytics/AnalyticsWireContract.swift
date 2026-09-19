@@ -76,6 +76,9 @@ struct AnalyticsBatchPayload: Sendable, Equatable, Encodable {
     let anonymousId: String?
     let sessionId: String?
     let context: AnalyticsContextPayload?
+    /// The same declaration the installation makes over sync, repeated because the two surfaces share
+    /// no identifier. `true` makes the server answer for the batch and store none of it.
+    let isAutomation: Bool
     let events: [AnalyticsEventPayload]
 
     private enum CodingKeys: String, CodingKey {
@@ -83,6 +86,7 @@ struct AnalyticsBatchPayload: Sendable, Equatable, Encodable {
         case anonymousId
         case sessionId
         case context
+        case isAutomation
         case events
     }
 
@@ -92,6 +96,7 @@ struct AnalyticsBatchPayload: Sendable, Equatable, Encodable {
         try container.encode(self.anonymousId, forKey: .anonymousId)
         try container.encode(self.sessionId, forKey: .sessionId)
         try container.encode(self.context, forKey: .context)
+        try container.encode(self.isAutomation, forKey: .isAutomation)
         try container.encode(self.events, forKey: .events)
     }
 }

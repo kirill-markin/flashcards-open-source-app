@@ -43,6 +43,7 @@ struct FlashcardsApp: App {
     @MainActor
     init() {
         FlashcardsObservability.configure(bundle: .main, processInfo: ProcessInfo.processInfo)
+        AutomationRun.logDecision()
         logAppLifecycleBreadcrumb(
             action: .appInitConfigured,
             store: nil,

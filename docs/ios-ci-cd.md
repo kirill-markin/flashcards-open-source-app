@@ -68,6 +68,55 @@ This keeps the login smoke path pinned to the intended review account instead of
 
 `FLASHCARDS_LIVE_REVIEW_EMAIL` remains optional.
 
+## Automation marker
+
+iOS smoke and marketing screenshot runs drive the real app against a deployed backend, so every run
+registers installations that seed cards and reviews. The app declares those installations as
+automation and the backend then refuses to emit product analytics for them, permanently: the
+declaration is described in [`analytics-audience.md`](analytics-audience.md#automation-installations)
+and decided in `apps/ios/Flashcards/Flashcards/App/AutomationRun.swift`.
+
+The decision combines two positive inputs, and neither covers the other:
+
+- the app is running on a simulator, which needs no configuration and catches local runs and the
+  simulator-backed Xcode Cloud tests
+- `FLASHCARDS_AUTOMATION_RUN` is set to `1`, `true` or `yes` in the app process environment, which is
+  the only input that works in a cloud device farm on real hardware
+
+Setting `FLASHCARDS_AUTOMATION_RUN` to `0`, `false` or `no` (trimmed, case-insensitive, like the
+affirmative values) overrides both inputs and declares the run human. Because the simulator input
+cannot be turned off and the backend marker is sticky, that override is the only way to exercise the
+real install and ingest path from a simulator; it is logged separately from an unset variable, so an
+unmarked run still explains itself.
+
+The repository's own XCUITest harnesses set that variable through `XCUIApplication.launchEnvironment`
+in `LiveSmokeLaunching.swift` and `MarketingManualScreenshotTestCase.swift`, so it reaches the app on
+a physical device too. Any other automation that drives this app must set it the same way.
+
+Every launch logs the decision and all three of its inputs under the `automation_run` category, so a
+run that should have been marked and was not is diagnosable from the run's own log.
+The line is emitted at default level, so it is both streamable live and persisted for later reading.
+
+On a simulator, stream it while the run is in progress:
+
+```bash
+xcrun simctl spawn booted log stream --predicate 'category == "automation_run"'
+```
+
+On real hardware there is no `simctl`, and a device-farm run has no booted simulator to stream, so
+the recipe above cannot reach it. A simulator run is marked unless `FLASHCARDS_AUTOMATION_RUN`
+carries a negative value, so that stream recipe is how an unexpected override is confirmed. On a
+device, collect the log from a connected device and read the archive afterwards:
+
+```bash
+log collect --device --last 10m --output automation-run.logarchive
+log show --archive automation-run.logarchive --predicate 'category == "automation_run"'
+```
+
+In a device farm the device is not connected to your machine, so read the same category from the
+device log inside the run's result bundle, or from the sysdiagnose the farm returns, with the same
+`log show --archive ... --predicate ...` command.
+
 ## Human operation
 
 The Xcode Cloud test and build workflows are manually started and monitored by a human. Agents must not trigger or monitor them unless the user explicitly requests that exact action.
