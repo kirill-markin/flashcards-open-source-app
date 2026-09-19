@@ -179,6 +179,13 @@ export const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, s
   catalogClickBrowserLanguages: "Browser language at catalog click",
 };
 
+// What the four click-based catalog fields all have to say, because the evidence behind them is one
+// and the same: the click that carries these values happens before sign-in, so it names nobody, and
+// only a completed install bridges it to a person. The installed deck is not one of them - that is
+// read from the install event itself, which needs no click at all.
+const catalogClickAttributionExplanationTail =
+  "A click that never became an install names nobody, because the click happens before sign-in, so it can never match here, and an install whose click was never recorded carries no click values at all; narrowing a second of these click-based fields asks for one install whose own click carried every value you picked.";
+
 // Shown next to each filter, so it has to be readable by someone who never opens this code. These are
 // the wordings of the user-scoped areas, where a row is a person or an event of a person; `funnels`
 // overrides the ones whose meaning genuinely changes there.
@@ -198,15 +205,19 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   appUiLanguages:
     "Keeps only users whose events inside the selected date range recorded one of the app interface languages you pick, read from the UI locale the client wrote on the event before queuing it and never inferred from the device language or the account, and taken across every client platform whatever the platform filter says; old clients and old queued events carry no locale at all, so a user whose events in range carry none matches no language and is dropped whenever this field is narrowed. The Audience language charts stay narrowed to the platforms you picked, so somebody this field keeps can still be counted as unknown there; picking nothing keeps every language.",
   installedDecks:
-    "Keeps only users who ever completed an install of one of the catalog deck versions you pick, counted over their whole history rather than only inside the selected date range.",
+    "Keeps only users who ever completed an install of one of the catalog deck versions you pick, counted over their whole history rather than only inside the selected date range, and read from the install itself so an install whose catalog click was never recorded still counts.",
   catalogPlacements:
-    "Keeps only users who completed a catalog install whose originating click came from one of the page placements you pick, counted over their whole history rather than only inside the selected date range.",
+    "Keeps only users who completed a catalog install whose originating click came from one of the page placements you pick, counted over their whole history rather than only inside the selected date range."
+    + ` ${catalogClickAttributionExplanationTail}`,
   catalogSources:
-    "Keeps only users who completed a catalog install whose originating click was attributed to one of the traffic sources you pick, counted over their whole history rather than only inside the selected date range.",
+    "Keeps only users who completed a catalog install whose originating click was attributed to one of the traffic sources you pick, counted over their whole history rather than only inside the selected date range."
+    + ` ${catalogClickAttributionExplanationTail}`,
   catalogDeviceCategories:
-    "Keeps only users who completed a catalog install whose originating click came from one of the device categories you pick, counted over their whole history rather than only inside the selected date range.",
+    "Keeps only users who completed a catalog install whose originating click came from one of the device categories you pick, counted over their whole history rather than only inside the selected date range."
+    + ` ${catalogClickAttributionExplanationTail}`,
   catalogClickBrowserLanguages:
-    "Keeps only users who completed a catalog install whose originating click reported one of the browser languages you pick, counted over their whole history; it is the browser setting at click time rather than the language the app is used in.",
+    "Keeps only users who completed a catalog install whose originating click reported one of the browser languages you pick, counted over their whole history; it is the browser setting at click time rather than the language the app is used in."
+    + ` ${catalogClickAttributionExplanationTail}`,
 };
 
 // Funnels counts one anonymous catalog click attempt per row, so the five catalog fields read off the
