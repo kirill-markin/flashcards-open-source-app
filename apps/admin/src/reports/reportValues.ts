@@ -36,25 +36,74 @@ function formatCalendarDate(date: Date): string {
 
 const defaultReportRangeLookbackDays = 30;
 
-// The window the dashboard opens on: the available range's last day back `defaultReportRangeLookbackDays`
-// days, both ends inclusive, clamped up to the available first day so the default can never fall
-// outside the range the picker and the range validation allow.
-export function buildDefaultReportRange(
+// A lookback window anchored on the last day that carries data rather than on today: the available
+// range's last day back `lookbackDays` days, both ends inclusive, clamped up to the available first
+// day so the window can never fall outside the range the picker and the range validation allow.
+function buildLookbackReportRange(
   availableRange: Readonly<{ from: string; to: string }>,
+  lookbackDays: number,
   reportLabel: string,
 ): Readonly<{ from: string; to: string }> {
   const availableFromDate = parseCalendarDate(availableRange.from, reportLabel);
   const availableToDate = parseCalendarDate(availableRange.to, reportLabel);
 
-  const defaultFromDate = new Date(availableToDate);
-  defaultFromDate.setUTCDate(defaultFromDate.getUTCDate() - defaultReportRangeLookbackDays);
+  const lookbackFromDate = new Date(availableToDate);
+  lookbackFromDate.setUTCDate(lookbackFromDate.getUTCDate() - lookbackDays);
 
   return {
     from: formatCalendarDate(
-      defaultFromDate.getTime() < availableFromDate.getTime() ? availableFromDate : defaultFromDate,
+      lookbackFromDate.getTime() < availableFromDate.getTime() ? availableFromDate : lookbackFromDate,
     ),
     to: formatCalendarDate(availableToDate),
   };
+}
+
+// The window the dashboard opens on.
+export function buildDefaultReportRange(
+  availableRange: Readonly<{ from: string; to: string }>,
+  reportLabel: string,
+): Readonly<{ from: string; to: string }> {
+  return buildLookbackReportRange(availableRange, defaultReportRangeLookbackDays, reportLabel);
+}
+
+export type ReportRangePreset =
+  | Readonly<{ id: string; label: string; kind: "lookback"; lookbackDays: number }>
+  | Readonly<{ id: string; label: string; kind: "all-time" }>;
+
+export const lastThreeDaysReportRangePreset: ReportRangePreset = {
+  id: "last-3-days",
+  label: "Last 3 days",
+  kind: "lookback",
+  lookbackDays: 3,
+};
+
+// The one-click ranges every time filter offers, in row order.
+export const reportRangePresets: ReadonlyArray<ReportRangePreset> = [
+  lastThreeDaysReportRangePreset,
+  { id: "last-7-days", label: "Last 7 days", kind: "lookback", lookbackDays: 7 },
+  { id: "last-30-days", label: "Last 30 days", kind: "lookback", lookbackDays: 30 },
+  { id: "last-60-days", label: "Last 60 days", kind: "lookback", lookbackDays: 60 },
+  { id: "last-90-days", label: "Last 90 days", kind: "lookback", lookbackDays: 90 },
+  { id: "last-130-days", label: "Last 130 days", kind: "lookback", lookbackDays: 130 },
+  { id: "last-360-days", label: "Last 360 days", kind: "lookback", lookbackDays: 360 },
+  { id: "all-time", label: "All time", kind: "all-time" },
+];
+
+export const reportRangePresetLabel = "Report range preset";
+
+export function buildPresetReportRange(
+  preset: ReportRangePreset,
+  availableRange: Readonly<{ from: string; to: string }>,
+  reportLabel: string,
+): Readonly<{ from: string; to: string }> {
+  if (preset.kind === "all-time") {
+    return {
+      from: formatCalendarDate(parseCalendarDate(availableRange.from, reportLabel)),
+      to: formatCalendarDate(parseCalendarDate(availableRange.to, reportLabel)),
+    };
+  }
+
+  return buildLookbackReportRange(availableRange, preset.lookbackDays, reportLabel);
 }
 
 export function buildRequestedDateRange(
