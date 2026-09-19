@@ -663,6 +663,53 @@ export type FriendshipCreatedAnalyticsSkippedDetails = Readonly<{
   errorMessage: string | null;
 }>;
 
+/**
+ * One record per actor the synthetic-actor detector inserted into `analytics.excluded_actors`. It
+ * is the audit trail the automatic insertion is allowed to happen without human confirmation
+ * because of, so it carries the population scope and both matched signals as the numbers the
+ * selecting query measured rather than as a claim: `reviewAnsweredEvents` is what puts the actor in
+ * the population the rule was validated on, `appOpenedEvents` is the count over the actor's whole
+ * resolved history, and `clientInstallationReplicas` is the count over every id that actor's events
+ * name.
+ *
+ * `actorId` is the analytics actor id, which is both the id inserted and the id the admin surfaces
+ * match on. The person's replica-side ids are read for the signal only and are never excluded.
+ */
+export type SyntheticActorExcludedDetails = Readonly<{
+  actorId: string;
+  analyticsEvents: number;
+  reviewAnsweredEvents: number;
+  appOpenedEvents: number;
+  clientInstallationReplicas: number;
+  workspaceReplicas: number;
+  firstEventAtUtc: string;
+  lastEventAtUtc: string;
+}>;
+
+/**
+ * The one record per detector run. `candidateActors` is what the rule matched, `inserted` is what
+ * the insert created, and `alreadyRecorded` is the candidates the insert's `ON CONFLICT DO NOTHING`
+ * skipped because the table already held them.
+ */
+export type SyntheticActorDetectorCompletedDetails = Readonly<{
+  candidateActors: number;
+  inserted: number;
+  alreadyRecorded: number;
+  largeRunThreshold: number;
+  largeRun: boolean;
+}>;
+
+/**
+ * The safety net on automatic insertion: a run large enough that it is worth a human reading the
+ * table before the exclusions reach a report. It is a warning rather than an exception because the
+ * run itself succeeded and the insertions stand; the correction is a recorded restore.
+ */
+export type SyntheticActorDetectorLargeRunDetails = Readonly<{
+  candidateActors: number;
+  inserted: number;
+  threshold: number;
+}>;
+
 export type MigrationFailureDetails = Readonly<{
   migrationSurface: "lambda";
   operation: "run_migrations";
@@ -681,6 +728,8 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"web_guest_reaper_completed", WebGuestReaperCompletedDetails>
   | EventByAction<"country_retention_completed", Readonly<{ deleted: number; cutoff: string; finished: boolean }>>
+  | EventByAction<"synthetic_actor_excluded", SyntheticActorExcludedDetails>
+  | EventByAction<"synthetic_actor_detector_completed", SyntheticActorDetectorCompletedDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
   | EventByAction<"media_blob_cleanup_retry", MediaBlobCleanupRetryDetails>
@@ -752,10 +801,15 @@ export type OperationsWarningEvent =
   | (EventByAction<
     "web_guest_reaper_scan_failed",
     WebGuestReaperScanFailureDetails
+  > & Readonly<{ message: string }>)
+  | (EventByAction<
+    "synthetic_actor_detector_large_run",
+    SyntheticActorDetectorLargeRunDetails
   > & Readonly<{ message: string }>);
 
 export type OperationsExceptionEvent =
   | (EventByAction<"country_retention_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
+  | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_failed", CatalogDumpFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_refresh_failed", CatalogDumpRefreshFailureDetails> & Readonly<{ error: Error }>)

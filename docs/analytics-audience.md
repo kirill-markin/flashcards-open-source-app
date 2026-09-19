@@ -23,6 +23,12 @@ backfill or account-global language inference is performed.
 - [Country retention](../apps/backend/src/productAnalytics/countryRetention.ts),
   [daily schedule](../infra/aws/lib/scheduled-jobs/country-retention.ts) and
   [failure/staleness alarms](../infra/aws/lib/monitoring.ts)
+- [Synthetic actor detection](../apps/backend/src/productAnalytics/syntheticActorDetector.ts) and
+  its [daily schedule](../infra/aws/lib/scheduled-jobs/synthetic-actor-detector.ts): records
+  reviewing actors that no human produced into
+  [`analytics.excluded_actors`](../db/migrations/0140_analytics_excluded_actors.sql), one row per
+  matched analytics actor id, with a per-actor log record and a Sentry warning on an unusually
+  large run.
 - [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql):
   saved only with the initial submission; existing locale/timezone snapshots remain intact.
 - [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts):
