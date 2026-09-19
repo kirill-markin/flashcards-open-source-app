@@ -1,14 +1,7 @@
-import { useCallback, useEffect, useState, type JSX } from "react";
-import {
-  AdminApiError,
-  fetchAdminSession,
-  type AdminSession,
-  type CatalogInstallsReport,
-  type DailyActiveUsersReport,
-  type ReviewEventsByDateReport,
-} from "./adminApi";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+import { AdminApiError, fetchAdminSession, type AdminSession } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
-import { AdminDashboard } from "./dashboard/AdminDashboard";
+import { AdminDashboard, type AdminReportState } from "./dashboard/AdminDashboard";
 import { AnalyticsIndexPage } from "./navigation/AnalyticsIndexPage";
 import { NotFoundPage } from "./navigation/NotFoundPage";
 import { RootIndexPage } from "./navigation/RootIndexPage";
@@ -27,18 +20,7 @@ type AppState =
   | Readonly<{ status: "redirecting" }>
   | Readonly<{ status: "denied" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{
-      status: "ready";
-      config: AdminAppConfig;
-      session: AdminSession;
-      availableRange: ReviewEventsByDateRange;
-      defaultRange: ReviewEventsByDateRange;
-      report: ReviewEventsByDateReport;
-      dailyActiveUsersReport: DailyActiveUsersReport;
-      catalogInstallsReport: CatalogInstallsReport;
-      isReportLoading: boolean;
-      dateRangeError: string;
-    }>;
+  | Readonly<{ status: "ready"; config: AdminAppConfig; session: AdminSession }>;
 
 const calendarDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
@@ -95,6 +77,11 @@ function validateRequestedRange(
   return null;
 }
 
+/** Only the areas that chart the General reports pay for loading them. */
+function doesRouteNeedReportData(route: AdminRoute): boolean {
+  return route.kind === "analyticsArea" && route.area !== "funnels";
+}
+
 function redirectToLogin(config: AdminAppConfig): void {
   const loginUrl = new URL(`${config.authBaseUrl}/login`);
   loginUrl.searchParams.set("redirect_uri", window.location.href);
@@ -108,7 +95,7 @@ function LoadingState(): JSX.Element {
       <section className="state-panel">
         <p className="eyebrow">Admin</p>
         <h1>Loading dashboard</h1>
-        <p className="state-copy">Checking the current session and preparing the analytics report.</p>
+        <p className="state-copy">Checking the current admin session.</p>
       </section>
     </main>
   );
@@ -147,7 +134,13 @@ function getErrorMessage(error: unknown): string {
 
 export default function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: "loading" });
+  const [reportState, setReportState] = useState<AdminReportState>({ status: "loading" });
   const [route, setRoute] = useState<AdminRoute>(() => parseAdminRoute(window.location.pathname));
+  const [reportLoadRevision, setReportLoadRevision] = useState<number>(0);
+  // The reports are fetched at most once per page load, so moving between General and Audience,
+  // or leaving for Funnels and coming back, reuses what is already in memory. The latch is also the
+  // re-entry guard: while a load is in flight no revision bump or area switch can start a second one.
+  const hasRequestedReportsRef = useRef<boolean>(false);
 
   // A trailing-slash variant of a known route is rewritten in place, so the address bar and any
   // later history entry carry the canonical path without a network redirect.
@@ -202,36 +195,18 @@ export default function App(): JSX.Element {
   useEffect(() => {
     let cancelled = false;
 
-    async function load(): Promise<void> {
+    async function loadSession(): Promise<void> {
       let config: AdminAppConfig | null = null;
 
       try {
         config = getAdminAppConfig();
         const session = await fetchAdminSession(config);
-        const availableRange = await loadReviewEventsByDateAvailableRange(config);
-        const defaultRange = buildDefaultReportRange(availableRange, "Review events default");
-        const [report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
-          loadReviewEventsByDateReport(config, defaultRange.from, defaultRange.to),
-          loadDailyActiveUsersReport(config, defaultRange.from, defaultRange.to),
-          loadCatalogInstallsReport(config, defaultRange.from, defaultRange.to),
-        ]);
 
         if (cancelled) {
           return;
         }
 
-        setAppState({
-          status: "ready",
-          config,
-          session,
-          availableRange,
-          defaultRange,
-          report,
-          dailyActiveUsersReport,
-          catalogInstallsReport,
-          isReportLoading: false,
-          dateRangeError: "",
-        });
+        setAppState({ status: "ready", config, session });
       } catch (error) {
         if (cancelled) {
           return;
@@ -248,61 +223,122 @@ export default function App(): JSX.Element {
       }
     }
 
-    void load();
+    void loadSession();
 
     return () => {
       cancelled = true;
     };
   }, [handleTerminalAdminError]);
 
-  async function reloadReport(range: ReviewEventsByDateRange): Promise<void> {
-    if (appState.status !== "ready" || appState.isReportLoading) {
+  const sessionConfig = appState.status === "ready" ? appState.config : null;
+  const needsReportData = doesRouteNeedReportData(route);
+
+  useEffect(() => {
+    if (!needsReportData || sessionConfig === null || hasRequestedReportsRef.current) {
       return;
     }
 
-    const validationError = validateRequestedRange(range, appState.availableRange);
+    hasRequestedReportsRef.current = true;
+    setReportState({ status: "loading" });
+
+    async function loadReports(config: AdminAppConfig): Promise<void> {
+      try {
+        const availableRange = await loadReviewEventsByDateAvailableRange(config);
+        const defaultRange = buildDefaultReportRange(availableRange, "Review events default");
+        const [report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
+          loadReviewEventsByDateReport(config, defaultRange.from, defaultRange.to),
+          loadDailyActiveUsersReport(config, defaultRange.from, defaultRange.to),
+          loadCatalogInstallsReport(config, defaultRange.from, defaultRange.to),
+        ]);
+
+        setReportState({
+          status: "ready",
+          data: {
+            availableRange,
+            defaultRange,
+            report,
+            dailyActiveUsersReport,
+            catalogInstallsReport,
+          },
+          isReportLoading: false,
+          dateRangeError: "",
+        });
+      } catch (error) {
+        // Nothing is loaded and nothing is in flight, so the next revision bump or area switch may
+        // ask for the reports again.
+        hasRequestedReportsRef.current = false;
+
+        if (handleTerminalAdminError(error, config)) {
+          return;
+        }
+
+        // A failed report load stays inside the reports area: the session, the hero, the nav and the
+        // Funnels area keep working, and only a 401/403 replaces the whole page.
+        setReportState({
+          status: "error",
+          message: getErrorMessage(error),
+        });
+      }
+    }
+
+    void loadReports(sessionConfig);
+  }, [handleTerminalAdminError, needsReportData, reportLoadRevision, sessionConfig]);
+
+  const retryReportLoad = useCallback((): void => {
+    setReportLoadRevision((revision) => revision + 1);
+  }, []);
+
+  async function reloadReport(range: ReviewEventsByDateRange): Promise<void> {
+    if (appState.status !== "ready" || reportState.status !== "ready" || reportState.isReportLoading) {
+      return;
+    }
+
+    const validationError = validateRequestedRange(range, reportState.data.availableRange);
     if (validationError !== null) {
-      setAppState({
-        ...appState,
+      setReportState({
+        ...reportState,
         dateRangeError: validationError,
       });
       return;
     }
 
-    const readyState = appState;
-    setAppState({
-      ...readyState,
+    const config = appState.config;
+    setReportState({
+      ...reportState,
       isReportLoading: true,
       dateRangeError: "",
     });
 
     try {
       const [report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
-        loadReviewEventsByDateReport(readyState.config, range.from, range.to),
-        loadDailyActiveUsersReport(readyState.config, range.from, range.to),
-        loadCatalogInstallsReport(readyState.config, range.from, range.to),
+        loadReviewEventsByDateReport(config, range.from, range.to),
+        loadDailyActiveUsersReport(config, range.from, range.to),
+        loadCatalogInstallsReport(config, range.from, range.to),
       ]);
 
-      setAppState((currentState) => {
+      setReportState((currentState) => {
         if (currentState.status !== "ready") {
           return currentState;
         }
 
         return {
           ...currentState,
-          report,
-          dailyActiveUsersReport,
-          catalogInstallsReport,
+          data: {
+            ...currentState.data,
+            report,
+            dailyActiveUsersReport,
+            catalogInstallsReport,
+          },
           isReportLoading: false,
           dateRangeError: "",
         };
       });
     } catch (error) {
-      if (handleTerminalAdminError(error, readyState.config)) {
+      if (handleTerminalAdminError(error, config)) {
         return;
       }
 
-      setAppState((currentState) => {
+      setReportState((currentState) => {
         if (currentState.status !== "ready") {
           return currentState;
         }
@@ -317,11 +353,11 @@ export default function App(): JSX.Element {
   }
 
   function resetReportRange(): void {
-    if (appState.status !== "ready") {
+    if (reportState.status !== "ready") {
       return;
     }
 
-    void reloadReport(appState.defaultRange);
+    void reloadReport(reportState.data.defaultRange);
   }
 
   if (appState.status === "loading" || appState.status === "redirecting") {
@@ -353,14 +389,9 @@ export default function App(): JSX.Element {
       activeArea={route.area}
       onNavigate={navigateToPath}
       config={appState.config}
-      report={appState.report}
-      dailyActiveUsersReport={appState.dailyActiveUsersReport}
-      catalogInstallsReport={appState.catalogInstallsReport}
       adminEmail={appState.session.email}
-      availableRange={appState.availableRange}
-      defaultRange={appState.defaultRange}
-      isReportLoading={appState.isReportLoading}
-      dateRangeError={appState.dateRangeError}
+      reportState={reportState}
+      onReportRetry={retryReportLoad}
       onDateRangeApply={(range) => void reloadReport(range)}
       onDateRangeReset={resetReportRange}
       onTerminalAdminError={handleTerminalAdminError}
