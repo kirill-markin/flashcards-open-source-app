@@ -80,3 +80,7 @@ that installation permanently.
 - [Client ingest](../apps/backend/src/routes/productAnalytics.ts): a batch declaring
   `isAutomation: true` is validated, answered, and stored nowhere;
   `analytics_events_ingest_automation_dropped` records it.
+- [iOS declaration](../apps/ios/Flashcards/Flashcards/App/AutomationRun.swift): simulator detection
+  or the `FLASHCARDS_AUTOMATION_RUN` environment signal, with an explicit negative value of that
+  variable overriding both, decided once per launch and sent on every sync request and analytics
+  batch; the harness side is in [`ios-ci-cd.md`](ios-ci-cd.md#automation-marker).

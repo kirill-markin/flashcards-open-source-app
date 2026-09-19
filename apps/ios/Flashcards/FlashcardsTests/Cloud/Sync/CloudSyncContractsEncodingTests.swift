@@ -22,6 +22,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             installationId: "installation-1",
             platform: "ios",
             appVersion: "1.0",
+            isAutomation: false,
             includeMediaAssets: true,
             entries: [
                 SyncBootstrapEntryEnvelope(
@@ -69,6 +70,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             installationId: "installation-1",
             platform: "ios",
             appVersion: "1.0",
+            isAutomation: false,
             includeMediaAssets: true,
             entries: [
                 SyncBootstrapEntryEnvelope(
@@ -200,6 +202,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             installationId: "installation-1",
             platform: "ios",
             appVersion: "1.0",
+            isAutomation: false,
             afterHotChangeId: 42,
             limit: 200,
             includeMediaAssets: true
@@ -209,6 +212,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             installationId: "installation-1",
             platform: "ios",
             appVersion: "1.0",
+            isAutomation: false,
             cursor: nil,
             limit: 200,
             includeMediaAssets: true
@@ -300,6 +304,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             installationId: "installation-1",
             platform: "ios",
             appVersion: "1.0",
+            isAutomation: false,
             includeMediaAssets: true,
             entries: [
                 SyncBootstrapEntryEnvelope(
