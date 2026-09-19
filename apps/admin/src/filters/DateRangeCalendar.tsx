@@ -104,8 +104,8 @@ function isDayUnavailable(dayValue: string, availableRange: DateRangeCalendarRan
   return dayValue < availableRange.from || dayValue > availableRange.to;
 }
 
-// Out-of-range days carry their own class: they are disabled for a different reason than a loading
-// report, and only they may lose the range highlight.
+// Out-of-range days carry their own class: they are the only disabled days, and the only ones that
+// may lose the range highlight.
 function getDayClassName(
   dayValue: string,
   highlightRange: DateRangeCalendarRange,
@@ -174,16 +174,18 @@ function getRangeSummary(
 // A controlled picker: it owns which months are on screen and which end is half-picked, and reports
 // only complete ranges. The first click starts a range, the second one closes it, and a second click
 // before the start swaps the ends rather than refusing the day.
+//
+// Every day stays pickable while the report it filters is reloading, the same way the rest of the
+// filter bar does: a pick made during a reload supersedes that reload.
 export function DateRangeCalendar(
   props: Readonly<{
     availableRange: DateRangeCalendarRange;
     selectedRange: DateRangeCalendarRange;
-    isDisabled: boolean;
     onRangeChange: (range: DateRangeCalendarRange) => void;
   }>,
 ): JSX.Element {
-  const [visibleMonthStart, setVisibleMonthStart] = useState(
-    () => clampVisibleMonthStart(startOfUtcMonth(props.selectedRange.from), props.availableRange),
+  const [requestedMonthStart, setRequestedMonthStart] = useState(
+    () => startOfUtcMonth(props.selectedRange.from),
   );
   const [focusedDay, setFocusedDay] = useState(
     () => clampDay(props.selectedRange.from, props.availableRange),
@@ -193,10 +195,16 @@ export function DateRangeCalendar(
     `${props.selectedRange.from}/${props.selectedRange.to}`,
   );
   const focusedDayButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousMonthButtonRef = useRef<HTMLButtonElement | null>(null);
+  const nextMonthButtonRef = useRef<HTMLButtonElement | null>(null);
   // Bumped once per keyboard move so the focus effect runs exactly once per request. A bare
   // after-every-render flag would stay armed whenever the move is clamped back onto the day that
   // already holds focus, and would then steal focus on the next unrelated render.
   const [focusRequestCount, setFocusRequestCount] = useState(0);
+
+  // The pair of months is clamped where it is read rather than where it is set, so it follows an
+  // available range that changes after mount instead of staying on months the data no longer covers.
+  const visibleMonthStart = clampVisibleMonthStart(requestedMonthStart, props.availableRange);
 
   // A selection made elsewhere, such as a preset, drops a half-picked end and pulls the months back
   // only when the new start is off screen, so month navigation survives a selection inside it.
@@ -206,9 +214,7 @@ export function DateRangeCalendar(
     setPendingStart(null);
 
     if (isDayVisible(props.selectedRange.from, visibleMonthStart) === false) {
-      setVisibleMonthStart(
-        clampVisibleMonthStart(startOfUtcMonth(props.selectedRange.from), props.availableRange),
-      );
+      setRequestedMonthStart(startOfUtcMonth(props.selectedRange.from));
     }
   }
 
@@ -225,10 +231,38 @@ export function DateRangeCalendar(
     dayButton.focus();
   }, [focusRequestCount]);
 
+  // Stepping onto a clamp boundary disables the very button that was pressed, which would drop
+  // keyboard focus to the document. The still-enabled sibling takes it, or the tab-stop day when the
+  // whole available range fits in one pair of months and neither nav button survives the step.
   function handleMonthStep(monthCount: number): void {
-    setVisibleMonthStart(
-      clampVisibleMonthStart(addUtcMonths(visibleMonthStart, monthCount), props.availableRange),
+    const nextMonthStart = clampVisibleMonthStart(
+      addUtcMonths(visibleMonthStart, monthCount),
+      props.availableRange,
     );
+    setRequestedMonthStart(nextMonthStart);
+
+    const steppedButton = monthCount < 0 ? previousMonthButtonRef.current : nextMonthButtonRef.current;
+    const isSteppedButtonDisabledNext = clampVisibleMonthStart(
+      addUtcMonths(nextMonthStart, monthCount),
+      props.availableRange,
+    ) === nextMonthStart;
+    if (
+      isSteppedButtonDisabledNext === false
+      || steppedButton === null
+      || document.activeElement !== steppedButton
+    ) {
+      return;
+    }
+
+    const siblingButton = monthCount < 0 ? nextMonthButtonRef.current : previousMonthButtonRef.current;
+    window.requestAnimationFrame(() => {
+      if (siblingButton !== null && siblingButton.disabled === false) {
+        siblingButton.focus();
+        return;
+      }
+
+      focusedDayButtonRef.current?.focus();
+    });
   }
 
   function moveFocusToDay(dayValue: string): void {
@@ -240,10 +274,9 @@ export function DateRangeCalendar(
       return;
     }
 
-    const targetMonthStart = targetDay < visibleMonthStart
+    setRequestedMonthStart(targetDay < visibleMonthStart
       ? startOfUtcMonth(targetDay)
-      : addUtcMonths(startOfUtcMonth(targetDay), 1 - visibleMonthCount);
-    setVisibleMonthStart(clampVisibleMonthStart(targetMonthStart, props.availableRange));
+      : addUtcMonths(startOfUtcMonth(targetDay), 1 - visibleMonthCount));
   }
 
   function handleDayKeyDown(event: KeyboardEvent<HTMLButtonElement>, dayValue: string): void {
@@ -283,27 +316,28 @@ export function DateRangeCalendar(
   );
   const selectableDayValues = months
     .flatMap((month) => month.dayValues)
-    .filter((dayValue) => dayValue >= props.availableRange.from && dayValue <= props.availableRange.to);
+    .filter((dayValue) => isDayUnavailable(dayValue, props.availableRange) === false);
   // The roving tab stop has to be a day that is on screen and pickable, or the grid drops out of the
   // tab order once navigation moves past the focused day.
   const tabStopDay = selectableDayValues.includes(focusedDay) ? focusedDay : selectableDayValues[0];
   const highlightRange: DateRangeCalendarRange = pendingStart === null
     ? props.selectedRange
     : { from: pendingStart, to: pendingStart };
-  const isPreviousMonthDisabled = props.isDisabled
-    || clampVisibleMonthStart(addUtcMonths(visibleMonthStart, -1), props.availableRange) === visibleMonthStart;
-  const isNextMonthDisabled = props.isDisabled
-    || clampVisibleMonthStart(addUtcMonths(visibleMonthStart, 1), props.availableRange) === visibleMonthStart;
+  const isPreviousMonthDisabled = clampVisibleMonthStart(
+    addUtcMonths(visibleMonthStart, -1),
+    props.availableRange,
+  ) === visibleMonthStart;
+  const isNextMonthDisabled = clampVisibleMonthStart(
+    addUtcMonths(visibleMonthStart, 1),
+    props.availableRange,
+  ) === visibleMonthStart;
 
   return (
-    <div
-      className={props.isDisabled ? "date-range-calendar date-range-calendar-busy" : "date-range-calendar"}
-      role="group"
-      aria-label="UTC date range calendar"
-    >
+    <div className="date-range-calendar" role="group" aria-label="UTC date range calendar">
       <div className="date-range-calendar-body">
         <div className="calendar-nav">
           <button
+            ref={previousMonthButtonRef}
             className="filter-button filter-button-compact"
             type="button"
             data-testid="range-calendar-previous-month"
@@ -317,6 +351,7 @@ export function DateRangeCalendar(
             {getRangeSummary(props.selectedRange, pendingStart)}
           </span>
           <button
+            ref={nextMonthButtonRef}
             className="filter-button filter-button-compact"
             type="button"
             data-testid="range-calendar-next-month"
@@ -354,7 +389,7 @@ export function DateRangeCalendar(
                     data-testid={`range-calendar-day-${dayValue}`}
                     aria-label={dayValue}
                     tabIndex={dayValue === tabStopDay ? 0 : -1}
-                    disabled={props.isDisabled || isDayUnavailable(dayValue, props.availableRange)}
+                    disabled={isDayUnavailable(dayValue, props.availableRange)}
                     onClick={() => handleDaySelect(dayValue)}
                     onKeyDown={(event) => handleDayKeyDown(event, dayValue)}
                   >
@@ -369,7 +404,7 @@ export function DateRangeCalendar(
 
       <ReportRangePresetRow
         availableRange={props.availableRange}
-        isDisabled={props.isDisabled}
+        isDisabled={false}
         onPresetSelect={handlePresetSelect}
       />
     </div>

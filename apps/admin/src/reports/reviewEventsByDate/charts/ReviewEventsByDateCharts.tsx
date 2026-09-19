@@ -17,7 +17,6 @@ import type { ReviewEventsByDateChartModel } from "./chartModel";
 type ReviewEventsByDateChartsProps = Readonly<{
   chartModel: ReviewEventsByDateChartModel;
   generatedAtUtc: string;
-  isReportLoading: boolean;
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
   userColorScale: UserColorScale;
   onUserFilterApply: (userId: string) => void;
@@ -75,7 +74,6 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       userById: props.userById,
       totalReviewEventsByDate: props.chartModel.totalReviewEventsByDate,
       peakDailyVolume: props.chartModel.peakDailyVolume,
-      isReportLoading: props.isReportLoading,
       onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
@@ -108,7 +106,6 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       totalFriendInvitationsByDate: props.chartModel.totalFriendInvitationsByDate,
       friendInvitationTotalsByUserId: props.chartModel.friendInvitationTotalsByUserId,
       peakDailyFriendInvitations: props.chartModel.peakDailyFriendInvitations,
-      isReportLoading: props.isReportLoading,
       onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
@@ -122,13 +119,11 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       userById: props.userById,
       totalFriendshipsByDate: props.chartModel.totalFriendshipsByDate,
       peakDailyFriendships: props.chartModel.peakDailyFriendships,
-      isReportLoading: props.isReportLoading,
       onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
   }, [
     props.chartModel,
-    props.isReportLoading,
     props.userById,
     props.userColorScale,
     handleUserFilterApply,

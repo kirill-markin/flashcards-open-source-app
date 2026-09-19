@@ -66,33 +66,49 @@ export type AnalyticsFilterState = Readonly<{
 
 export type AnalyticsFilterField = keyof AnalyticsFilterState;
 
+// The order the filter bar offers the fields in, written as a record rather than as a list: a field
+// added to `AnalyticsFilterState` stops this file compiling until it is given a place here, instead
+// of silently missing from the bar. Object key order is the declaration order for these names.
+const analyticsFilterFieldOrder = {
+  dateRange: true,
+  users: true,
+  userCohorts: true,
+  eventPlatforms: true,
+  minimumEventCounts: true,
+  connectionCountries: true,
+  appUiLanguages: true,
+  installedDecks: true,
+  catalogPlacements: true,
+  catalogSources: true,
+  catalogDeviceCategories: true,
+  catalogClickBrowserLanguages: true,
+} as const satisfies Readonly<Record<AnalyticsFilterField, true>>;
+
 /** Every field, in the order the filter bar offers them. */
-export const analyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
-  "dateRange",
-  "users",
-  "userCohorts",
-  "eventPlatforms",
-  "minimumEventCounts",
-  "connectionCountries",
-  "appUiLanguages",
-  "installedDecks",
-  "catalogPlacements",
-  "catalogSources",
-  "catalogDeviceCategories",
-  "catalogClickBrowserLanguages",
-];
+export const analyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = Object.keys(
+  analyticsFilterFieldOrder,
+) as Array<AnalyticsFilterField>;
 
 // Funnels is keyed by an anonymous `install_journey_id` and its top steps happen before sign-in, so
-// the five identity-derived fields cannot be answered there and are absent rather than empty.
-const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
-  "dateRange",
-  "eventPlatforms",
-  "installedDecks",
-  "catalogPlacements",
-  "catalogSources",
-  "catalogDeviceCategories",
-  "catalogClickBrowserLanguages",
-];
+// the five identity-derived fields cannot be answered there and are absent rather than empty. Every
+// field takes a side here for the same reason the order above is exhaustive.
+const funnelsAnalyticsFilterFieldApplicability = {
+  dateRange: true,
+  users: false,
+  userCohorts: false,
+  eventPlatforms: true,
+  minimumEventCounts: false,
+  connectionCountries: false,
+  appUiLanguages: false,
+  installedDecks: true,
+  catalogPlacements: true,
+  catalogSources: true,
+  catalogDeviceCategories: true,
+  catalogClickBrowserLanguages: true,
+} as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
+
+const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
+  .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
 
 export const analyticsFilterFieldsByArea: Readonly<
   Record<AnalyticsArea, ReadonlyArray<AnalyticsFilterField>>
