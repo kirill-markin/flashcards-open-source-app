@@ -26,6 +26,7 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `fr`
 - `hi`
 - `ja`
+- `pt-BR`
 - `ru`
 - `es-MX`
 - `es-ES`
