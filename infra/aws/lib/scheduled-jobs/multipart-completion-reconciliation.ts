@@ -13,6 +13,7 @@ import {
 } from "../nodejs-project-paths";
 import { backendStructuredLoggingProps } from "../backend-lambda-logging";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
+import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
 export interface MultipartCompletionReconciliationProps {
   vpc: ec2.Vpc;
@@ -96,7 +97,7 @@ export function multipartCompletionReconciliation(
           beforeBundling: () => [],
           beforeInstall: () => [],
           afterBundling: (_inputDir: string, outputDir: string) => [
-            `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
+            createRdsCaBundleDownloadCommand(outputDir),
             createSentrySourceMapUploadCommand(outputDir),
           ],
         },

@@ -14,6 +14,7 @@ import {
 } from "../lambda-database-capacity";
 import { authNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { getMcpResourceUrl, getPrimaryMcpHost } from "../mcp-alternate-host";
+import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
 export interface AuthGatewayProps {
   vpc: ec2.Vpc;
@@ -139,7 +140,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeBundling: () => [],
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
-      `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
+      createRdsCaBundleDownloadCommand(outputDir),
     ],
   },
 };
