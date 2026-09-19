@@ -16,6 +16,8 @@ import { buildDefaultReportRange } from "../reports/reportValues";
 import {
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
+  isAcceptedMinimumCount,
+  parseAcceptedMinimumCount,
   type AnalyticsDateRange,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
@@ -27,9 +29,11 @@ import {
 //
 // Writing omits every field that still holds its default, so a default view carries no filter
 // parameters at all. Reading is tolerant of anything a person can type into an address bar: an
-// unknown, repeated or malformed parameter is ignored and that field keeps its default. It is never
-// repaired, because dropping one bad entry out of a list would silently hand back a different
-// selection from the one the URL asked for.
+// unknown, repeated or malformed parameter is ignored and that field keeps its default. A list
+// parameter is never repaired, because dropping one bad entry out of a list would silently hand back
+// a different selection from the one the URL asked for. The date range is the exception:
+// `parseDateRange` clamps a window that reaches past the available data onto it and falls back to the
+// default only when the two do not overlap at all.
 //
 // Every option field is an unordered multi-select, so both directions put its values back into one
 // canonical order first: the declared option order for the closed enums, plain sorting for the
@@ -81,25 +85,17 @@ function areStringListsEqual(
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
-// The invariant the two predicates below hold up: everything a normalizer emits must survive a
-// write-then-read round trip unchanged. They are the only places that decide what a list entry and
-// what a threshold count may be, and both directions go through them, so the writer cannot emit a
-// value the reader throws the whole parameter away over.
+// The invariant `isAcceptedListEntry` and the imported count rule hold up: everything a normalizer
+// emits must survive a write-then-read round trip unchanged. They are the only places that decide
+// what a list entry and what a threshold count may be, and both directions go through them, so the
+// writer cannot emit a value the reader throws the whole parameter away over. The count rule has
+// two faces of one definition, `isAcceptedMinimumCount` for the number the writer normalizes and
+// `parseAcceptedMinimumCount` for the text the reader receives, and the digits the writer emits for
+// an accepted number are exactly the text that rule accepts back.
 
 /** An entry is written verbatim between separators, so an empty or padded one cannot come back. */
 function isAcceptedListEntry(entry: string): boolean {
   return entry !== "" && entry === entry.trim();
-}
-
-/**
- * A threshold of zero is not a filter, and a count that is not an exactly representable integer does
- * not come back as itself: `app_opened:9007199254740993` would be read, and written back, as
- * `...992`, a different threshold from the one the URL carried.
- */
-function isAcceptedMinimumCount(minimumCount: number): boolean {
-  return Number.isInteger(minimumCount)
-    && minimumCount >= 1
-    && minimumCount <= Number.MAX_SAFE_INTEGER;
 }
 
 // A closed enum selection is canonical in the order the options are declared in, which is also the
@@ -211,7 +207,10 @@ export function buildDefaultAnalyticsFilterStateForAvailableRange(
 }
 
 /**
- * The canonical form of a selection: exactly what writing it to the URL and reading it back gives.
+ * The canonical form of the option fields of a selection: exactly what writing them to the URL and
+ * reading them back gives. `dateRange` is passed through untouched, because canonicalizing it takes
+ * the `availableRange` this function is not given; `parseDateRange` validates the range on the way in
+ * and `assertValidDateRange` refuses it on the way to a report.
  *
  * The filter bar puts every selection it builds through this, so a value the codec would drop or
  * reorder cannot stay on screen as a chip and then change on the next reload.
@@ -401,9 +400,10 @@ function isThresholdEventType(value: string): value is AnalyticsThresholdEventTy
   return thresholdEventTypeValues.has(value);
 }
 
-// The count reaches this side as text and the writer's normalizer sees it as a number, so the text
-// becomes a candidate count first and is then judged by the same `isAcceptedMinimumCount`. Neither
-// side restates the rule, so neither can drift out of the round trip.
+// The count reaches this side as text, so it is judged as text, by the same
+// `parseAcceptedMinimumCount` the filter bar's input uses. `app_opened:1.` and `app_opened:1e3` are
+// therefore entries this reader does not accept rather than thresholds of 1 and 1000: the parameter
+// is dropped whole, instead of being rewritten into the URL in a spelling the link never carried.
 function parseMinimumEventCount(entry: string): AnalyticsMinimumEventCount | undefined {
   const separatorIndex = entry.indexOf(minimumEventCountSeparator);
   if (separatorIndex === -1) {
@@ -415,8 +415,8 @@ function parseMinimumEventCount(entry: string): AnalyticsMinimumEventCount | und
     return undefined;
   }
 
-  const minimumCount = Number(entry.slice(separatorIndex + 1));
-  return isAcceptedMinimumCount(minimumCount) ? { eventType, minimumCount } : undefined;
+  const minimumCount = parseAcceptedMinimumCount(entry.slice(separatorIndex + 1));
+  return minimumCount === undefined ? undefined : { eventType, minimumCount };
 }
 
 function parseMinimumEventCounts(
@@ -451,7 +451,9 @@ function parseMinimumEventCounts(
 // old bookmark unusable, and passing it through would send an arbitrary window - a hand-typed
 // `1900-01-01` to `2099-12-31` - to the report query and to the day-by-day gap filling. A window that
 // does not overlap the available data at all has nothing to clamp onto and opens on the default.
-// Both ends are `YYYY-MM-DD` here, so comparing them as text is comparing them as dates.
+// Both ends are `YYYY-MM-DD` here, so comparing them as text is comparing them as dates: the typed
+// ends are checked by `isCalendarDate` just above, and the available ends by the
+// `assertValidDateRange` that `loadReviewEventsByDateAvailableRange` returns them through.
 function parseDateRange(
   searchParams: URLSearchParams,
   availableRange: AnalyticsDateRange,

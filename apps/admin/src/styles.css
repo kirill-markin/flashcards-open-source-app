@@ -674,6 +674,61 @@ h2 {
   opacity: 0.68;
 }
 
+.filter-threshold-list {
+  display: grid;
+  gap: 8px;
+}
+
+.filter-threshold-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.filter-threshold-option.selected {
+  border-color: rgba(214, 90, 56, 0.62);
+  background: rgba(196, 75, 45, 0.14);
+}
+
+.filter-threshold-option input {
+  width: 104px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  padding: 0 10px;
+  outline: none;
+}
+
+.filter-threshold-option input:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.filter-threshold-option input:focus-visible {
+  border-color: rgba(255, 255, 255, 0.72);
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 2px;
+}
+
+.filter-threshold-option input::placeholder {
+  color: var(--muted-soft);
+}
+
 .user-filter-section {
   display: grid;
   gap: 10px;

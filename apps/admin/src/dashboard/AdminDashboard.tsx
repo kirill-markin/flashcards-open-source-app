@@ -16,11 +16,6 @@ import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallFunnelSection } from "../reports/catalogInstallFunnel/CatalogInstallFunnelSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
-import {
-  buildPresetReportRange,
-  lastThreeDaysReportRangePreset,
-  reportRangePresetLabel,
-} from "../reports/reportValues";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import { analyticsAreaLabels, getAnalyticsAreaPath, type AnalyticsArea } from "../routing";
@@ -70,17 +65,6 @@ function buildUserById(
 }
 
 function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Element {
-  function handleLastThreeDays(): void {
-    props.onFiltersChange({
-      ...props.filters,
-      dateRange: buildPresetReportRange(
-        lastThreeDaysReportRangePreset,
-        props.data.availableRange,
-        reportRangePresetLabel,
-      ),
-    });
-  }
-
   const report = props.data.report;
   const dailyActiveUsersReport = props.data.dailyActiveUsersReport;
   const catalogInstallsReport = props.data.catalogInstallsReport;
@@ -142,7 +126,6 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
           config={props.config}
           filters={props.filters}
           isRangeLoading={props.isReportLoading}
-          onLastThreeDays={handleLastThreeDays}
           onTerminalAdminError={props.onTerminalAdminError}
         />}
     </>
