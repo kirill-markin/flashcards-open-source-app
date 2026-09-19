@@ -20,12 +20,12 @@ import type {
 } from "../reports/catalogInstallFunnel/query";
 import { analyticsAreaLabels, type AnalyticsArea } from "../routing";
 import {
-  analyticsFilterFieldLabels,
   analyticsFilterFieldsByArea,
   analyticsThresholdEventTypeLabels,
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
   getAnalyticsFilterFieldExplanation,
+  getAnalyticsFilterFieldLabel,
   parseAcceptedMinimumCount,
   type AnalyticsDateRange,
   type AnalyticsFilterField,
@@ -812,7 +812,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         content: (
           <>
             <FilterChipRow
-              fieldLabel={analyticsFilterFieldLabels.users}
+              fieldLabel={getAnalyticsFilterFieldLabel(props.area, "users")}
               chips={selectedUserFilters.map((userFilter) => ({
                 value: userFilter.userId,
                 label: userFilter.label,
@@ -860,7 +860,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         content: (
           <>
             <FilterChipRow
-              fieldLabel={analyticsFilterFieldLabels.userCohorts}
+              fieldLabel={getAnalyticsFilterFieldLabel(props.area, "userCohorts")}
               chips={reviewEventCohorts
                 .filter((cohort) => selectedCohorts.has(cohort))
                 .map((cohort) => ({
@@ -914,7 +914,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         content: (
           <>
             <FilterChipRow
-              fieldLabel={analyticsFilterFieldLabels.eventPlatforms}
+              fieldLabel={getAnalyticsFilterFieldLabel(props.area, "eventPlatforms")}
               chips={reviewEventPlatforms
                 .filter((platform) => selectedPlatforms.has(platform))
                 .map((platform) => ({
@@ -970,7 +970,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         content: (
           <>
             <FilterChipRow
-              fieldLabel={analyticsFilterFieldLabels.minimumEventCounts}
+              fieldLabel={getAnalyticsFilterFieldLabel(props.area, "minimumEventCounts")}
               chips={props.filters.minimumEventCounts.map((entry) => ({
                 value: entry.eventType,
                 label: formatMinimumEventCountLabel(entry),
@@ -1039,7 +1039,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "connectionCountries") {
       return buildOptionFieldView({
-        fieldLabel: analyticsFilterFieldLabels.connectionCountries,
+        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "connectionCountries"),
         selectedValues: props.filters.connectionCountries,
         options: props.connectionCountryOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.connectionCountries,
@@ -1055,7 +1055,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "appUiLanguages") {
       return buildOptionFieldView({
-        fieldLabel: analyticsFilterFieldLabels.appUiLanguages,
+        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "appUiLanguages"),
         selectedValues: props.filters.appUiLanguages,
         options: props.appUiLanguageOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.appUiLanguages,
@@ -1080,7 +1080,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
       );
 
       return buildOptionFieldView({
-        fieldLabel: analyticsFilterFieldLabels.installedDecks,
+        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "installedDecks"),
         selectedValues: props.filters.installedDecks,
         options: props.catalogDeckOptions.map((deck) => ({
           value: deck.packageVersionId,
@@ -1102,7 +1102,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "catalogPlacements") {
       return buildOptionFieldView({
-        fieldLabel: analyticsFilterFieldLabels.catalogPlacements,
+        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "catalogPlacements"),
         selectedValues: props.filters.catalogPlacements,
         options: props.catalogPlacementOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.catalogPlacements,
@@ -1118,7 +1118,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "catalogSources") {
       return buildOptionFieldView({
-        fieldLabel: analyticsFilterFieldLabels.catalogSources,
+        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "catalogSources"),
         selectedValues: props.filters.catalogSources,
         options: props.catalogSourceOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.catalogSources,
@@ -1134,7 +1134,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "catalogDeviceCategories") {
       return buildOptionFieldView({
-        fieldLabel: analyticsFilterFieldLabels.catalogDeviceCategories,
+        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "catalogDeviceCategories"),
         selectedValues: props.filters.catalogDeviceCategories,
         options: props.catalogDeviceCategoryOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.catalogDeviceCategories,
@@ -1150,7 +1150,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "catalogClickBrowserLanguages") {
       return buildOptionFieldView({
-        fieldLabel: analyticsFilterFieldLabels.catalogClickBrowserLanguages,
+        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "catalogClickBrowserLanguages"),
         selectedValues: props.filters.catalogClickBrowserLanguages,
         options: props.catalogClickBrowserLanguageOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.catalogClickBrowserLanguages,
@@ -1185,7 +1185,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
       <div className="filter-bar" aria-label={`${analyticsAreaLabels[props.area]} filters`}>
         {fieldViews.map((entry, index) => {
           const popoverId = `analytics-filter-${entry.field}-popover`;
-          const fieldLabel = analyticsFilterFieldLabels[entry.field];
+          const fieldLabel = getAnalyticsFilterFieldLabel(props.area, entry.field);
 
           return (
             <div
