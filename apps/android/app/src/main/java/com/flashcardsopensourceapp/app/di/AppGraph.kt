@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.app.analytics.AppAnalyticsCredentialProvider
 import com.flashcardsopensourceapp.app.analytics.currentAppUiLocaleTag
 import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
 import com.flashcardsopensourceapp.app.analytics.isProductAnalyticsDisabledForProcess
+import com.flashcardsopensourceapp.app.automation.resolveAutomationEnvironment
 import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
@@ -178,6 +179,8 @@ class AppGraph(
     private var notificationsWorkspaceObserverJob: Job? = null
 
     internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
+    // One decision per process, taken before anything can sync or upload an event.
+    private val automationEnvironment = resolveAutomationEnvironment(contentResolver = context.contentResolver)
     val appMessageBus = AppMessageBus(
         reportTechnicalError = ::captureTechnicalErrorDialogException,
         shouldReportTechnicalError = ::shouldCaptureAndroidThrowable
@@ -197,7 +200,8 @@ class AppGraph(
         okHttpClient = okHttpClient,
         observability = observability,
         appVersion = appPackageInfo.versionName,
-        versionCode = appPackageInfo.longVersionCode.toInt()
+        versionCode = appPackageInfo.longVersionCode.toInt(),
+        isAutomation = automationEnvironment.isAutomation
     )
     private val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
@@ -250,6 +254,7 @@ class AppGraph(
         observability = observability,
         appVersion = appPackageInfo.versionName,
         versionCode = appPackageInfo.longVersionCode.toInt(),
+        isAutomation = automationEnvironment.isAutomation,
         uiLocaleProvider = { currentAppUiLocaleTag(context = context) }
     )
     val analytics: Analytics = analyticsClient

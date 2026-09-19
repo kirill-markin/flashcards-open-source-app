@@ -92,7 +92,8 @@ data class RemotePushResponse(
 )
 
 internal class CloudSyncRemoteApi(
-    private val httpClient: CloudJsonHttpClient
+    private val httpClient: CloudJsonHttpClient,
+    private val isAutomation: Boolean
 ) {
     suspend fun push(
         apiBaseUrl: String,
@@ -104,7 +105,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/push",
             authorizationHeader = authorizationHeader,
-            body = body
+            body = withAutomationDeclaration(body = body)
         )
         return parseRemotePushResponse(response = response)
     }
@@ -119,7 +120,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/pull",
             authorizationHeader = authorizationHeader,
-            body = body
+            body = withAutomationDeclaration(body = body)
         )
 
         return RemotePullResponse(
@@ -139,7 +140,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/bootstrap",
             authorizationHeader = authorizationHeader,
-            body = body
+            body = withAutomationDeclaration(body = body)
         )
 
         return RemoteBootstrapPullResponse(
@@ -161,7 +162,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/bootstrap",
             authorizationHeader = authorizationHeader,
-            body = body
+            body = withAutomationDeclaration(body = body)
         )
 
         return RemoteBootstrapPushResponse(
@@ -180,7 +181,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/review-history/pull",
             authorizationHeader = authorizationHeader,
-            body = body
+            body = withAutomationDeclaration(body = body)
         )
 
         return RemoteReviewHistoryPullResponse(
@@ -200,7 +201,7 @@ internal class CloudSyncRemoteApi(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/review-history/import",
             authorizationHeader = authorizationHeader,
-            body = body
+            body = withAutomationDeclaration(body = body)
         )
 
         return RemoteReviewHistoryImportResponse(
@@ -208,6 +209,21 @@ internal class CloudSyncRemoteApi(
             duplicateCount = response.requireCloudInt("duplicateCount", "reviewHistoryImport.duplicateCount"),
             nextReviewSequenceId = response.optCloudLongOrNull("nextReviewSequenceId", "reviewHistoryImport.nextReviewSequenceId")
         )
+    }
+
+    /**
+     * Adds the automation declaration the backend stores on the installation. It rides on every
+     * sync body rather than on one chosen call, because the request that first registers the
+     * installation is not fixed. Returns a copy; the caller's body is left alone.
+     */
+    private fun withAutomationDeclaration(body: JSONObject): JSONObject {
+        if (isAutomation.not()) {
+            return body
+        }
+
+        val declaredBody = JSONObject()
+        body.keys().forEach { key -> declaredBody.put(key, body.get(key)) }
+        return declaredBody.put("isAutomation", true)
     }
 }
 

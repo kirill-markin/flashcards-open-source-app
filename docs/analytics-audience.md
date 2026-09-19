@@ -80,3 +80,11 @@ that installation permanently.
 - [Client ingest](../apps/backend/src/routes/productAnalytics.ts): a batch declaring
   `isAutomation: true` is validated, answered, and stored nowhere;
   `analytics_events_ingest_automation_dropped` records it.
+- [Android declaration](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/automation/AutomationEnvironment.kt):
+  emulator detection, an `isAutomation` instrumentation argument, or the `firebase.test.lab` device
+  setting; decided and logged once per process as `event=automation_environment_resolved` with each
+  signal as its own field, then sent on every sync body and analytics batch.
+  Firebase Test Lab runs on real hardware, where the emulator check sees nothing, and is covered
+  twice: the argument arrives from
+  [the submission script](../scripts/android/run-android-firebase-test-lab.sh), and the device
+  setting marks the run on its own if that argument is ever dropped on the way.

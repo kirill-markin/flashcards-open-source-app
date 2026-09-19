@@ -1,8 +1,8 @@
 package com.flashcardsopensourceapp.app.observability
 
 import android.app.Application
-import android.provider.Settings
 import com.flashcardsopensourceapp.app.BuildConfig
+import com.flashcardsopensourceapp.app.automation.isFirebaseTestLabDevice
 import com.flashcardsopensourceapp.app.runtime.isAndroidRuntimeSupported
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.network.TracePropagationTarget
@@ -30,7 +30,6 @@ private const val flashcardsOfficialAuthTraceTarget: String =
 private const val sentryHttpUrlSpanDataKey: String = "http.url"
 private const val sentryUrlFullSpanDataKey: String = "url.full"
 private const val sentryUrlSpanDataKey: String = "url"
-private const val firebaseTestLabSettingName: String = "firebase.test.lab"
 private const val firebaseTestLabSentryEnvironment: String = "firebase-test-lab"
 
 data class AndroidObservabilityStartup(
@@ -97,7 +96,7 @@ private fun sentryEnvironment(application: Application): String {
         return overrideEnvironment
     }
 
-    if (Settings.System.getString(application.contentResolver, firebaseTestLabSettingName) == "true") {
+    if (isFirebaseTestLabDevice(contentResolver = application.contentResolver)) {
         return firebaseTestLabSentryEnvironment
     }
 
