@@ -164,7 +164,9 @@ project_path="$repo_root/apps/ios/Flashcards/Flashcards Open Source App.xcodepro
 scheme_name="Flashcards Open Source App"
 derived_data_path="$repo_root/tmp/ios-derived-data"
 runtime_configuration_path="/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
-screenshot_run_marker_path=""
+capture_directory=""
+captured_screenshot_paths=()
+capture_complete=false
 
 list_booted_simulator_lines() {
     xcrun simctl list devices booted | sed -nE '/^[[:space:]]+.+ \([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\) \(Booted\)[[:space:]]*$/p'
@@ -198,16 +200,13 @@ EOF
 
 cleanup_runtime_configuration() {
     rm -f "$runtime_configuration_path"
-    if [[ -n "$screenshot_run_marker_path" ]]; then
-        rm -f "$screenshot_run_marker_path"
-    fi
 }
 
 run_ios_marketing_xcodebuild_test() {
     local selected_test_identifier="$1"
 
     FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS=true \
-    FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIRECTORY="$output_directory" \
+    FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIRECTORY="$capture_directory" \
     FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION="$localization_code" \
     xcodebuild \
       -project "$project_path" \
@@ -223,6 +222,30 @@ run_ios_marketing_guest_cleanup() {
     run_ios_marketing_xcodebuild_test "$cleanup_test_identifier"
 }
 
+publish_captured_screenshots() {
+    local array_index
+    local screenshot_index
+    local captured_path
+    local file_name
+
+    for array_index in "${!expected_screenshot_indices[@]}"; do
+        screenshot_index="${expected_screenshot_indices[$array_index]}"
+        captured_path="${captured_screenshot_paths[$array_index]}"
+        file_name="$(basename "$captured_path")"
+        if ! mv "$captured_path" "$output_directory/$file_name"; then
+            echo "ERROR: Could not publish screenshot $captured_path to $output_directory/$file_name." >&2
+            return 1
+        fi
+        if ! find "$output_directory" -maxdepth 1 -type f \
+            -name "${localization_code}-${screenshot_index}_*.png" \
+            ! -name "$file_name" -exec rm -f {} +; then
+            echo "ERROR: Could not remove obsolete screenshot slugs for locale $localization_code, index $screenshot_index." >&2
+            return 1
+        fi
+        echo "Saved screenshot to $output_directory/$file_name"
+    done
+}
+
 cleanup_on_exit() {
     local exit_status="$?"
 
@@ -230,9 +253,27 @@ cleanup_on_exit() {
     run_ios_marketing_guest_cleanup
     local cleanup_status="$?"
     cleanup_runtime_configuration
+    local configuration_cleanup_status="$?"
 
     if [[ "$cleanup_status" -ne 0 ]]; then
-        echo "ERROR: iOS marketing screenshot guest cleanup failed." >&2
+        echo "ERROR: iOS marketing screenshot guest cleanup failed; captured screenshots will not be published." >&2
+        if [[ "$exit_status" -eq 0 ]]; then
+            exit_status="$cleanup_status"
+        fi
+    fi
+    if [[ "$configuration_cleanup_status" -ne 0 ]]; then
+        echo "ERROR: Could not remove runtime configuration $runtime_configuration_path; captured screenshots will not be published." >&2
+        if [[ "$exit_status" -eq 0 ]]; then
+            exit_status="$configuration_cleanup_status"
+        fi
+    fi
+
+    if [[ "$exit_status" -eq 0 && "$capture_complete" == true ]]; then
+        publish_captured_screenshots
+        exit_status="$?"
+    fi
+    if ! rm -rf "$capture_directory"; then
+        echo "ERROR: Could not remove iOS marketing screenshot staging directory $capture_directory." >&2
         if [[ "$exit_status" -eq 0 ]]; then
             exit_status=1
         fi
@@ -305,7 +346,6 @@ resolve_screenshot_path_for_index() {
     local output_directory="$1"
     local localization_code="$2"
     local screenshot_index="$3"
-    local run_marker_path="$4"
 
     if [[ ! "$screenshot_index" =~ ^[0-9]+$ ]]; then
         echo "Expected numeric screenshot index, got: $screenshot_index" >&2
@@ -320,7 +360,6 @@ resolve_screenshot_path_for_index() {
             -maxdepth 1 \
             -type f \
             -name "${localization_code}-${screenshot_index}_*.png" \
-            -newer "$run_marker_path" \
             -print | sort
     )"
     matching_paths=()
@@ -349,9 +388,12 @@ device_family="$(resolve_device_family "$simulator_name")"
 output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_family"
 
 mkdir -p "$output_directory"
-write_runtime_configuration "$output_directory" "$localization_code"
-screenshot_run_marker_path="$(mktemp -t flashcards-open-source-app-ios-marketing-screenshot-run)"
+mkdir -p "$repo_root/tmp"
+capture_directory="$(mktemp -d "$repo_root/tmp/ios-marketing-capture.XXXXXX")"
 trap cleanup_on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+write_runtime_configuration "$capture_directory" "$localization_code"
 
 echo "Running manual iOS marketing screenshot script for $description on $simulator_name."
 echo "Locale: $localization_code"
@@ -361,6 +403,7 @@ run_ios_marketing_guest_cleanup
 run_ios_marketing_xcodebuild_test "$test_identifier"
 
 for screenshot_index in "${expected_screenshot_indices[@]}"; do
-    output_path="$(resolve_screenshot_path_for_index "$output_directory" "$localization_code" "$screenshot_index" "$screenshot_run_marker_path")"
-    echo "Saved screenshot to $output_path"
+    output_path="$(resolve_screenshot_path_for_index "$capture_directory" "$localization_code" "$screenshot_index")"
+    captured_screenshot_paths+=("$output_path")
 done
+capture_complete=true
