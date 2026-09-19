@@ -20,6 +20,7 @@ import {
   mcpHandlerReservedConcurrency,
 } from "../lambda-database-capacity";
 import { resolveMcpAlternateHost } from "../mcp-alternate-host";
+import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
 export interface McpGatewayProps {
   vpc: ec2.Vpc;
@@ -87,7 +88,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     beforeBundling: () => [],
     beforeInstall: () => [],
     afterBundling: (_inputDir: string, outputDir: string) => [
-      `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
+      createRdsCaBundleDownloadCommand(outputDir),
     ],
   },
 };
