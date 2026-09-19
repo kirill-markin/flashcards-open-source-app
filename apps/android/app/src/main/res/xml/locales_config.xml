@@ -3,6 +3,9 @@
     <!-- Mirrors the languages enabled for Google Play App strings translation. -->
     <!-- The build mirrors this list into androidResources.localeFilters, so a tag here -->
     <!-- must match the locale Play actually delivers. -->
+    <!-- Generic fr and pt are also the only reason the marketingScreenshot values-fr and -->
+    <!-- values-pt overlays survive localeFilters; remove them and those Play screenshots -->
+    <!-- silently render English. -->
     <!-- English is the base unqualified resource locale. -->
     <locale android:name="en" />
     <locale android:name="ar" />

@@ -8,7 +8,7 @@ if [[ "$#" -ne 1 ]]; then
 fi
 
 locale="$1"
-supported_locales=("en-US" "ar" "zh-CN" "de-DE" "hi-IN" "ja-JP" "ru-RU" "es-419" "es-ES" "es-US")
+supported_locales=("en-US" "ar" "zh-CN" "fr-FR" "de-DE" "hi-IN" "ja-JP" "pt-BR" "ru-RU" "es-419" "es-ES" "es-US")
 is_supported="false"
 
 for supported_locale in "${supported_locales[@]}"; do

@@ -250,6 +250,73 @@ private val chineseSimplifiedMarketingScreenshotLocaleConfig: MarketingScreensho
     )
 )
 
+private val frenchMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConfig = MarketingScreenshotLocaleConfig(
+    localePrefix = "fr-FR",
+    appLocaleTag = "fr-FR",
+    uiText = MarketingScreenshotUiText(
+        emptyCardsMessage = "Aucune carte pour l'instant. Touchez le bouton d'ajout pour créer la première carte.",
+        cardsTabTitle = "Cartes",
+        reviewTabTitle = "Révision",
+        aiTabTitle = "AI",
+        searchCardsPlaceholder = "Rechercher des cartes",
+        addCardContentDescription = "Ajouter une carte",
+        frontFieldTitle = "Recto",
+        backFieldTitle = "Verso",
+        tagsFieldTitle = "Étiquettes",
+        addTagFieldTitle = "Ajouter une étiquette",
+        addTagButtonTitle = "Ajouter l'étiquette",
+        saveButtonTitle = "Enregistrer",
+        ratingAgainTitle = "À revoir",
+        ratingHardTitle = "Difficile",
+        ratingGoodTitle = "Correct",
+        ratingEasyTitle = "Facile"
+    ),
+    reviewCard = MarketingReviewCardFixture(
+        frontText = "En économie, qu'est-ce que le coût d'opportunité ?",
+        backText = "Le coût d'opportunité est la valeur de la meilleure option à laquelle vous renoncez quand vous en choisissez une autre.\n\n" +
+            "Exemple d'examen : si vous passez votre samedi à réviser un examen de microéconomie au lieu de faire un service rémunéré, le salaire perdu fait partie du coût d'opportunité.",
+        tags = listOf("économie")
+    ),
+    reviewAiDraftMessage = "Crée 6 nouvelles cartes sur le même thème d'économie, qui couvrent des idées proches que nous n'avons pas encore.",
+    cards = listOf(
+        MarketingConceptCard(
+            frontText = "En économie, qu'est-ce que le coût d'opportunité ?",
+            backText = "La valeur de la meilleure option à laquelle vous renoncez quand vous en choisissez une autre.",
+            subjectTag = "économie"
+        ),
+        MarketingConceptCard(
+            frontText = "En biologie, qu'est-ce que l'osmose ?",
+            backText = "Le déplacement de l'eau à travers une membrane, d'une concentration en soluté plus faible vers une concentration plus élevée.",
+            subjectTag = "biologie"
+        ),
+        MarketingConceptCard(
+            frontText = "En statistiques, qu'est-ce que l'écart type ?",
+            backText = "Une mesure de la dispersion des valeurs autour de la moyenne.",
+            subjectTag = "statistiques"
+        ),
+        MarketingConceptCard(
+            frontText = "En chimie, qu'est-ce qu'un catalyseur ?",
+            backText = "Une substance qui accélère une réaction chimique sans être consommée par elle.",
+            subjectTag = "chimie"
+        ),
+        MarketingConceptCard(
+            frontText = "En psychologie, qu'est-ce qu'un biais cognitif ?",
+            backText = "Un schéma de pensée systématique qui peut fausser le jugement et la prise de décision.",
+            subjectTag = "psychologie"
+        ),
+        MarketingConceptCard(
+            frontText = "En physique, qu'est-ce que la vitesse vectorielle ?",
+            backText = "La rapidité d'un objet associée à la direction de son mouvement.",
+            subjectTag = "physique"
+        ),
+        MarketingConceptCard(
+            frontText = "En informatique, qu'est-ce que la récursivité ?",
+            backText = "Une méthode où une fonction résout un problème en s'appelant elle-même sur des versions plus petites de ce problème.",
+            subjectTag = "informatique"
+        )
+    )
+)
+
 private val germanMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConfig = MarketingScreenshotLocaleConfig(
     localePrefix = "de-DE",
     appLocaleTag = "de-DE",
@@ -447,6 +514,73 @@ private val japaneseMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleCo
             frontText = "情報科学でいう再帰とは何ですか？",
             backText = "関数が自分自身を呼び出しながら、より小さな同種の問題を解く方法です。",
             subjectTag = "情報科学"
+        )
+    )
+)
+
+private val portugueseBrazilMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConfig = MarketingScreenshotLocaleConfig(
+    localePrefix = "pt-BR",
+    appLocaleTag = "pt-BR",
+    uiText = MarketingScreenshotUiText(
+        emptyCardsMessage = "Ainda não há cartões. Toque no botão de adicionar para criar o primeiro cartão.",
+        cardsTabTitle = "Cartões",
+        reviewTabTitle = "Revisar",
+        aiTabTitle = "AI",
+        searchCardsPlaceholder = "Buscar cartões",
+        addCardContentDescription = "Adicionar cartão",
+        frontFieldTitle = "Frente",
+        backFieldTitle = "Verso",
+        tagsFieldTitle = "Etiquetas",
+        addTagFieldTitle = "Adicionar uma etiqueta",
+        addTagButtonTitle = "Adicionar etiqueta",
+        saveButtonTitle = "Salvar",
+        ratingAgainTitle = "De novo",
+        ratingHardTitle = "Difícil",
+        ratingGoodTitle = "Bom",
+        ratingEasyTitle = "Fácil"
+    ),
+    reviewCard = MarketingReviewCardFixture(
+        frontText = "Em economia, o que é custo de oportunidade?",
+        backText = "Custo de oportunidade é o valor da melhor alternativa de que você abre mão ao escolher uma opção em vez de outra.\n\n" +
+            "Exemplo de prova: se você passa o sábado estudando para uma prova de microeconomia em vez de trabalhar em um turno remunerado, o salário perdido faz parte do custo de oportunidade.",
+        tags = listOf("economia")
+    ),
+    reviewAiDraftMessage = "Crie 6 cartões novos sobre o mesmo tema de economia, cobrindo ideias bem relacionadas que ainda não temos.",
+    cards = listOf(
+        MarketingConceptCard(
+            frontText = "Em economia, o que é custo de oportunidade?",
+            backText = "O valor da melhor alternativa de que você abre mão ao escolher uma opção em vez de outra.",
+            subjectTag = "economia"
+        ),
+        MarketingConceptCard(
+            frontText = "Em biologia, o que é osmose?",
+            backText = "O movimento da água através de uma membrana, de uma concentração menor de soluto para uma concentração maior.",
+            subjectTag = "biologia"
+        ),
+        MarketingConceptCard(
+            frontText = "Em estatística, o que é desvio padrão?",
+            backText = "Uma medida de quanto os valores estão dispersos em torno da média.",
+            subjectTag = "estatística"
+        ),
+        MarketingConceptCard(
+            frontText = "Em química, o que é um catalisador?",
+            backText = "Uma substância que acelera uma reação química sem ser consumida por ela.",
+            subjectTag = "química"
+        ),
+        MarketingConceptCard(
+            frontText = "Em psicologia, o que é viés cognitivo?",
+            backText = "Um padrão sistemático de pensamento que pode distorcer o julgamento e a tomada de decisão.",
+            subjectTag = "psicologia"
+        ),
+        MarketingConceptCard(
+            frontText = "Em física, o que é velocidade vetorial?",
+            backText = "A rapidez de um objeto junto com a direção do seu movimento.",
+            subjectTag = "física"
+        ),
+        MarketingConceptCard(
+            frontText = "Em ciência da computação, o que é recursão?",
+            backText = "Um método em que uma função resolve um problema chamando a si mesma em versões menores desse problema.",
+            subjectTag = "computação"
         )
     )
 )
@@ -724,9 +858,11 @@ private val marketingScreenshotLocaleConfigs: List<MarketingScreenshotLocaleConf
     makeEnglishUnitedStatesMarketingScreenshotLocaleConfig(localePrefix = "en-US"),
     arabicMarketingScreenshotLocaleConfig,
     chineseSimplifiedMarketingScreenshotLocaleConfig,
+    frenchMarketingScreenshotLocaleConfig,
     germanMarketingScreenshotLocaleConfig,
     hindiMarketingScreenshotLocaleConfig,
     japaneseMarketingScreenshotLocaleConfig,
+    portugueseBrazilMarketingScreenshotLocaleConfig,
     russianMarketingScreenshotLocaleConfig,
     spanishLatinAmericaMarketingScreenshotLocaleConfig,
     spanishSpainMarketingScreenshotLocaleConfig,

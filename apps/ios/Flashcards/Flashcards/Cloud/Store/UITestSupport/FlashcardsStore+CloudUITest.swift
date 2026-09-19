@@ -538,7 +538,7 @@ private enum FlashcardsUITestMarketingFixtures {
             reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "Em economia, o que é custo de oportunidade?",
                 backText: """
-                Custo de oportunidade é o valor da melhor alternativa que você abre mão ao escolher uma opção em vez de outra.
+                Custo de oportunidade é o valor da melhor alternativa de que você abre mão ao escolher uma opção em vez de outra.
 
                 Exemplo de prova: se você passa o sábado estudando para uma prova de microeconomia em vez de trabalhar em um turno remunerado, o salário perdido faz parte do custo de oportunidade.
                 """,
@@ -547,7 +547,7 @@ private enum FlashcardsUITestMarketingFixtures {
             conceptCards: [
                 FlashcardsUITestFixtureCard(
                     frontText: "Em economia, o que é custo de oportunidade?",
-                    backText: "O valor da melhor alternativa que você abre mão ao escolher outra opção.",
+                    backText: "O valor da melhor alternativa de que você abre mão ao escolher outra opção.",
                     tags: ["economia"]
                 ),
                 FlashcardsUITestFixtureCard(
