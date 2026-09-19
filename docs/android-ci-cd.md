@@ -101,6 +101,8 @@ Top-level release workflow Firebase job: `.github/workflows/android-release.yml`
 
 - Starts on every manual `Android Release` run after `android_ci` succeeds
 - Validates Firebase Test Lab configuration, authenticates to Google Cloud, downloads the debug APK artifacts, and submits the full app instrumentation package `com.flashcardsopensourceapp.app`, excluding `com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`
+- Declares the run to the backend as automation with the `isAutomation=true` instrumentation environment variable, so nothing it syncs becomes product analytics
+- Nothing before a real Test Lab run proves that the orchestrator forwards that variable into each `am instrument -e`, so confirm it on the first run from the device logcat line `event=automation_environment_resolved`: `hasArgumentSignal=true` means the chain works, while `hasArgumentSignal=false isFirebaseTestLabDevice=true` means the run was marked only by the device-setting fallback and the argument was dropped
 - Reuses the shared release identifier `vc<versionCode>-r<runId>a<attempt>-s<shortSha>` in Firebase result naming and traces results under `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>`
 - Requires Firebase Test Lab submission before the Play draft upload starts; the submission is asynchronous, so review the Firebase matrix result before publishing from Play Console
 

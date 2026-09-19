@@ -5,6 +5,8 @@ import android.content.Context
 import android.os.Bundle
 import androidx.test.runner.AndroidJUnitRunner
 import com.flashcardsopensourceapp.app.analytics.disableProductAnalyticsForProcess
+import com.flashcardsopensourceapp.app.automation.automationDeclarationArgumentKey
+import com.flashcardsopensourceapp.app.automation.markProcessAsAutomationEnvironment
 import com.flashcardsopensourceapp.app.observability.androidSentryEnvironmentOverrideArgumentKey
 import com.flashcardsopensourceapp.app.observability.setAndroidSentryEnvironmentOverride
 import com.flashcardsopensourceapp.app.observability.setDefaultAndroidSentryEnvironmentOverride
@@ -28,6 +30,14 @@ class FlashcardsAndroidTestRunner : AndroidJUnitRunner() {
 
     override fun onCreate(arguments: Bundle) {
         val runnerArguments = Bundle(arguments)
+        if (runnerArguments.getString(automationDeclarationArgumentKey)?.toBooleanStrictOrNull() == true) {
+            // Runs before `Application.onCreate`, so the first app graph of the process already
+            // declares automation to the backend. Firebase Test Lab runs on real hardware and is
+            // covered twice, by this argument and by the `firebase.test.lab` device setting the app
+            // reads itself; this argument is the only signal for a connected run against a physical
+            // device outside Test Lab.
+            markProcessAsAutomationEnvironment()
+        }
         val sentryEnvironmentOverride = sentryEnvironmentOverride(arguments = runnerArguments)
         setAndroidSentryEnvironmentOverride(environment = sentryEnvironmentOverride)
         runnerArguments.putString(androidSentryEnvironmentOverrideArgumentKey, sentryEnvironmentOverride)
