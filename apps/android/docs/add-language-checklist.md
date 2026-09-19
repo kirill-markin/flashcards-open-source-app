@@ -2,6 +2,9 @@
 
 Use this checklist when adding a new Android UI language.
 
+Android is one surface of a cross-client rollout; for the order and the locale tag
+each other surface expects, see [docs/add-language.md](../../../docs/add-language.md).
+
 The Android localization model is Play-first:
 
 - The repository owns the base English Android strings plus locale plumbing.
@@ -31,6 +34,8 @@ The default Play-first path keeps locale advertising explicit without reintroduc
 - Verify `apps/android/app/src/main/res/resources.properties` still points `unqualifiedResLocale` at the base language. Today that is `en`; adding a translated app language does not require changing the base locale.
 - Maintain the checked-in explicit supported-language locale config that the app uses to advertise languages to Android system settings. Update that config whenever an app language is added or removed.
 - The Android app build reads `apps/android/app/src/main/res/xml/locales_config.xml` and mirrors that list into `androidResources.localeFilters`, so keep the XML list authoritative and complete.
+- `readSupportedAndroidLocales` in `apps/android/app/build.gradle.kts` parses that XML with a regular expression, not an XML parser. Commenting out a `<locale>` line does not disable it. Removing a language means deleting the line.
+- Keep the alias spellings that `toAndroidLocaleFilters` in the same file emits. Two different cases sit behind that map: Android resource qualifiers still use the superseded ISO 639 codes `iw` for `he` and `in` for `id`, while `nb` is not a legacy spelling of `no` but Bokmål, the narrower code AndroidX ships Norwegian resources under. Either way AAPT2 treats `he`/`iw`, `id`/`in`, and `no`/`nb` as unrelated resource configurations, so `locales_config.xml` keeps the code Play uses while the build filters on both spellings. Drop the alias and every library translation for that language, Hebrew included, is stripped from the bundle with no failing check.
 - The Android app bundle ships the full supported locale set instead of relying on Play language splits. This keeps Play translation preview, RTL checks, and offline app-language switching deterministic.
 - Do not rely on AGP locale generation from checked-in resources as the only way Android discovers supported languages. That path cannot advertise Play-managed translations by itself once repository-owned `values-xx` folders are gone.
 - Keep the explicit Android supported-language list aligned with the languages that will actually be translated in Play App strings for the release.
