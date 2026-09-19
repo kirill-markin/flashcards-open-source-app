@@ -35,7 +35,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-private val reviewTopBarFilterMaxWidth = 160.dp
+private val reviewTopBarFilterMaxWidth = 128.dp
 private val reviewLeaderboardTrophyColor = Color(0xFFFFD60A)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,7 +67,11 @@ internal fun ReviewTopBar(
 
     TopAppBar(
         title = {
-            Text(stringResource(id = R.string.review_title))
+            Text(
+                text = stringResource(id = R.string.review_title),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         },
         actions = {
             FilterChip(
