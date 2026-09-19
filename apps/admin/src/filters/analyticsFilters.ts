@@ -36,11 +36,57 @@ export const analyticsThresholdEventTypes = [
 
 export type AnalyticsThresholdEventType = (typeof analyticsThresholdEventTypes)[number];
 
+// What each counted event is called in the filter bar, because the stored event name is a producer
+// contract rather than UI copy.
+export const analyticsThresholdEventTypeLabels: Readonly<
+  Record<AnalyticsThresholdEventType, string>
+> = {
+  app_opened: "App opens",
+  review_answered: "Cards answered",
+  catalog_deck_installed: "Catalog deck installs",
+};
+
 /** One threshold: the user must have produced at least `minimumCount` of `eventType` in range. */
 export type AnalyticsMinimumEventCount = Readonly<{
   eventType: AnalyticsThresholdEventType;
   minimumCount: number;
 }>;
+
+/**
+ * What a threshold count may be, for everything that reads or writes one: the filter bar, the URL
+ * codec and the SQL builders.
+ *
+ * A threshold of zero is not a filter, and a count that is not an exactly representable integer does
+ * not come back as itself: `app_opened:9007199254740993` would be read, and written back, as
+ * `...992`, a different threshold from the one the URL carried.
+ */
+export function isAcceptedMinimumCount(minimumCount: number): boolean {
+  return Number.isInteger(minimumCount)
+    && minimumCount >= 1
+    && minimumCount <= Number.MAX_SAFE_INTEGER;
+}
+
+/**
+ * The same rule applied to a count that arrives as characters, which is how both the filter bar
+ * input and the URL codec receive one.
+ *
+ * The text is judged before it is converted, because `Number` reinterprets rather than rejects:
+ * `Number("1.")` is 1, `Number("1e3")` is 1000 and `Number("0x10")` is 16, so judging the converted
+ * number alone would apply a threshold nobody typed and show no sign that the text was reread.
+ * Only a run of digits is a count here; `isAcceptedMinimumCount` then keeps its range and precision
+ * gate on the converted number, so `"0"` and a digit run past `Number.MAX_SAFE_INTEGER` are still
+ * refused. Surrounding spaces and leading zeros are dropped rather than refused, because `" 5 "`
+ * and `"007"` name 5 and 7 and nothing else.
+ */
+export function parseAcceptedMinimumCount(rawMinimumCount: string): number | undefined {
+  const trimmedMinimumCount = rawMinimumCount.trim();
+  if (/^[0-9]+$/.test(trimmedMinimumCount) === false) {
+    return undefined;
+  }
+
+  const minimumCount = Number(trimmedMinimumCount);
+  return isAcceptedMinimumCount(minimumCount) ? minimumCount : undefined;
+}
 
 /**
  * The complete filter selection of one analytics area.
@@ -146,7 +192,7 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   eventPlatforms:
     "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device.",
   minimumEventCounts:
-    "Keeps only users who produced at least the given number of each listed event inside the selected date range, and a user has to clear every listed threshold at once.",
+    "Keeps only users who produced at least the given number of each listed event inside the selected date range, and a user has to clear every listed threshold at once; catalog deck installs are counted exactly as the Catalog deck installs section counts them, so the delisted test deck and installs made by an active admin are left out here too.",
   connectionCountries:
     "Keeps only users seen connecting from the countries you pick, taken from retained connection samples, so it is connection geography rather than residence or nationality; picking nothing keeps every country.",
   appUiLanguages:

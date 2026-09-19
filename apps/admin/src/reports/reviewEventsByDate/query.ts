@@ -19,6 +19,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildEventPlatformsFilterSql,
+  buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
   isCohortOrPlatformNarrowed,
@@ -478,6 +479,7 @@ export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): strin
     `  AND ${buildUsersFilterSql("review_answers.actor_id", filters.users)}`,
     `  AND ${buildUserCohortsFilterSql(reviewCohortSqlExpression, filters.userCohorts)}`,
     `  AND ${buildEventPlatformsFilterSql("review_answers.platform", filters.eventPlatforms)}`,
+    `  AND ${buildMinimumEventCountsFilterSql("review_answers.actor_id", filters.minimumEventCounts, dateRange)}`,
     "GROUP BY",
     "  review_answers.review_date,",
     "  review_answers.actor_id,",
@@ -586,6 +588,13 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
   const from = dateRange.from;
   const to = dateRange.to;
   const userSelectionSql = buildUsersFilterSql("community_user_dates.actor_id", filters.users);
+  // A threshold is a property of the person and not of the row, unlike the cohort and the platform
+  // below, so it restricts these rows directly instead of through the review actors.
+  const minimumEventCountSelectionSql = buildMinimumEventCountsFilterSql(
+    "community_user_dates.actor_id",
+    filters.minimumEventCounts,
+    dateRange,
+  );
   // A community row carries no cohort and no platform of its own: the invite and the friendship say
   // nothing about a device, and neither is the activity either cohort is defined on. So a narrowed
   // cohort or platform selection cannot be applied to these rows directly, and they fall back to the
@@ -712,6 +721,7 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
     "  ON daily_friendships.actor_id = community_user_dates.actor_id",
     "  AND daily_friendships.report_date = community_user_dates.report_date",
     `WHERE ${userSelectionSql}`,
+    `  AND ${minimumEventCountSelectionSql}`,
     ...(isRestrictedToFilteredReviewActors ? [
       "  AND community_user_dates.actor_id IN (SELECT actor_id FROM filtered_review_actors)",
     ] : []),

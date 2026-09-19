@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useEffect, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
-import { audienceTotal, loadAudienceReport, type AudienceBucket, type AudiencePopulation, type AudienceReport } from "./query";
+import { audienceTotal, loadAudienceReport, type AudienceBucket, type AudienceReport } from "./query";
 import "./audience.css";
 
 type LoadState =
@@ -88,45 +88,33 @@ export function AudienceSection(props: Readonly<{
   filters: AnalyticsFilterState;
   /** A General reload is pending or in flight; this section waits it out rather than querying per click. */
   isRangeLoading: boolean;
-  onLastThreeDays: () => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
-  const [population, setPopulation] = useState<AudiencePopulation>("active");
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
-  const audienceFilters = useMemo(
-    () => ({ population, filters: props.filters }),
-    [population, props.filters],
-  );
 
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
     if (props.isRangeLoading) return () => { cancelled = true; };
-    void loadAudienceReport(props.config, audienceFilters).then((report) => {
+    void loadAudienceReport(props.config, props.filters).then((report) => {
       if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Audience query error." });
     });
     return () => { cancelled = true; };
-  }, [audienceFilters, props.config, props.isRangeLoading, props.onTerminalAdminError, revision]);
+  }, [props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError, revision]);
 
   return <section className="dashboard-section" data-testid="audience-section">
     <header className="dashboard-section-header">
       <p className="eyebrow">Audience report</p><h2>Countries and UI languages</h2>
-      <p className="dashboard-section-description">Distinct resolved users, including linked guests. Active means at least one app open; reviewed means at least one review answer, including Again. Active admins and example.com test accounts are excluded.</p>
+      <p className="dashboard-section-description">Distinct resolved users, including linked guests: everyone with at least one app open inside the selected range. Active admins and example.com test accounts are excluded.</p>
     </header>
     <div className="funnel-filter-panel">
-      <label className="funnel-filter-field"><span>Audience</span>
-        <select data-testid="audience-population" value={population} onChange={(event) => setPopulation(event.target.value === "reviewed" ? "reviewed" : "active")}>
-          <option value="active">Active users</option><option value="reviewed">Reviewed ≥1 card</option>
-        </select>
-      </label>
-      <button className="filter-button" type="button" data-testid="audience-last-three-days" onClick={props.onLastThreeDays}>Last 3 days (UTC)</button>
       <span>{props.filters.dateRange.from} to {props.filters.dateRange.to}, inclusive</span>
     </div>
-    <p className="funnel-disclosure">The shared date, user, platform and new/returning filters apply here. New means activity on the first recorded app-open day for Active, or the first review day for Reviewed. A user may qualify as both new and returning during a range. Language describes that cohort’s events across selected platforms in the range, not only its app opens or review answers. Older clients and old queued events can have unknown UI language.</p>
+    <p className="funnel-disclosure">Every filter in the shared bar applies here, including the per-user event thresholds. New means activity on that person’s first recorded app-open day. A user may qualify as both new and returning during a range. Language describes that cohort’s events across selected platforms in the range, not only its app opens. Older clients and old queued events can have unknown UI language.</p>
     {props.isRangeLoading || loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading Audience…</p> : null}
     {!props.isRangeLoading && loadState.status === "error" ? <div className="report-state report-state-error">
       <strong>Audience query failed.</strong><span>{loadState.message}</span>

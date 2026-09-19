@@ -3,17 +3,12 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildEventPlatformsFilterSql,
+  buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
-
-export type AudiencePopulation = "active" | "reviewed";
-export type AudienceFilters = Readonly<{
-  population: AudiencePopulation;
-  filters: AnalyticsFilterState;
-}>;
 
 const dimensions = ["summary", "country", "language", "pair", "platform"] as const;
 type AudienceDimension = (typeof dimensions)[number];
@@ -28,10 +23,16 @@ export type AudienceReport = Readonly<{
   buckets: ReadonlyArray<AudienceBucket>;
 }>;
 
-export function buildAudienceSql(audienceFilters: AudienceFilters): string {
-  const filters = audienceFilters.filters;
+// The cohort is everyone who opened the app inside the range, which is the "was here" definition of
+// the daily active users section rather than one of this section's own, so the two cannot disagree
+// about which day a person was new on. THE TWO DENOMINATORS STILL DIFFER, by exactly the admin
+// accounts: `history` below drops every user with an unrevoked `auth.admin_users` grant, which the
+// daily active users section keeps, and on production history admin activity is most of the traffic.
+// Reconciling this section's user count against that one's unique users has to allow for that gap.
+// A narrower population is a threshold rather than a mode: the people who answered at least one card
+// are `review_answered >= 1`.
+export function buildAudienceSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, "Audience");
-  const eventName = audienceFilters.population === "active" ? "app_opened" : "review_answered";
   const userSelection = buildUsersFilterSql("history.actor_id::text", filters.users);
   const platformSelection = buildEventPlatformsFilterSql(
     "COALESCE(events.platform, 'unattributed')",
@@ -40,6 +41,13 @@ export function buildAudienceSql(audienceFilters: AudienceFilters): string {
   const cohortSelection = buildUserCohortsFilterSql(
     "CASE WHEN history.event_date = history.first_date THEN 'new' ELSE 'returning' END",
     filters.userCohorts,
+  );
+  // Every number in this report is a share of one distinct-user denominator, so a threshold has to
+  // restrict the cohort the denominator is counted from rather than only the rows inside it.
+  const minimumEventCountSelection = buildMinimumEventCountsFilterSql(
+    "history.actor_id::text",
+    filters.minimumEventCounts,
+    dateRange,
   );
 
   // Endpoint equality proves the accepted sampling batch, not the queued event's location.
@@ -55,7 +63,7 @@ export function buildAudienceSql(audienceFilters: AudienceFilters): string {
     FROM analytics.product_events_resolved AS events
     CROSS JOIN bounds
     LEFT JOIN org.user_settings AS settings ON lower(settings.user_id) = events.actor_id::text
-    WHERE events.event_name = '${eventName}'
+    WHERE events.event_name = 'app_opened'
       AND events.actor_id IS NOT NULL
       AND events.occurred_at < bounds.ends_at
       AND COALESCE(lower(settings.email), '') NOT LIKE '%@example.com'
@@ -69,6 +77,7 @@ export function buildAudienceSql(audienceFilters: AudienceFilters): string {
     WHERE history.occurred_at >= bounds.starts_at
       AND ${userSelection}
       AND ${cohortSelection}
+      AND ${minimumEventCountSelection}
       AND ${buildEventPlatformsFilterSql("COALESCE(history.platform, 'unattributed')", filters.eventPlatforms)}
   ), actors AS (
     SELECT DISTINCT actor_id FROM cohort_events
@@ -172,8 +181,8 @@ function parseBucket(row: AdminQueryRow): AudienceBucket {
   };
 }
 
-export async function loadAudienceReport(config: AdminAppConfig, audienceFilters: AudienceFilters): Promise<AudienceReport> {
-  const response = await runAdminQuery(config, buildAudienceSql(audienceFilters));
+export async function loadAudienceReport(config: AdminAppConfig, filters: AnalyticsFilterState): Promise<AudienceReport> {
+  const response = await runAdminQuery(config, buildAudienceSql(filters));
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined) {
     throw new Error("Audience query must return exactly one result set.");

@@ -12,6 +12,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildEventPlatformsFilterSql,
+  buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
   isEveryUserCohortSelected,
@@ -287,6 +288,7 @@ export function buildCatalogInstallsSql(filters: AnalyticsFilterState): string {
     "  ON installer_first_active_date.actor_id = deck_installs.actor_id",
     `WHERE ${buildUsersFilterSql("deck_installs.actor_id", filters.users)}`,
     `  AND ${buildEventPlatformsFilterSql("deck_installs.platform", filters.eventPlatforms)}`,
+    `  AND ${buildMinimumEventCountsFilterSql("deck_installs.actor_id", filters.minimumEventCounts, dateRange)}`,
     "  AND (",
     `    (installer_first_active_date.first_active_date IS NULL AND ${unknownCohortSelectionSql})`,
     `    OR ${buildUserCohortsFilterSql(catalogInstallCohortSqlExpression, filters.userCohorts)}`,
