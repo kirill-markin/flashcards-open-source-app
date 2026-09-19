@@ -12,7 +12,6 @@ export function ReviewActivitySection(
   props: Readonly<{
     filteredReport: ReviewEventsByDateReport;
     generatedAtUtc: string;
-    isReportLoading: boolean;
     filteredUserById: ReadonlyMap<string, ReviewEventsByDateUser>;
     userColorScale: UserColorScale;
     onUserFilterApply: (userId: string) => void;
@@ -45,7 +44,6 @@ export function ReviewActivitySection(
       <ReviewEventsByDateCharts
         chartModel={chartModel}
         generatedAtUtc={props.generatedAtUtc}
-        isReportLoading={props.isReportLoading}
         userById={props.filteredUserById}
         userColorScale={props.userColorScale}
         onUserFilterApply={props.onUserFilterApply}

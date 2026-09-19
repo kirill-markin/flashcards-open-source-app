@@ -1,19 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
+import { useMemo, type JSX } from "react";
 import type {
   CatalogInstallsReport,
   DailyActiveUsersReport,
-  ReviewEventCohort,
-  ReviewEventPlatform,
   ReviewEventsByDateReport,
   ReviewEventsByDateUser,
 } from "../adminApi";
 import { getPackageColorScale } from "../charts/chartPrimitives";
 import { formatDateRangeLabel } from "../charts/formatting";
 import type { AdminAppConfig } from "../config";
-import {
-  buildDefaultAnalyticsFilterState,
-  type AnalyticsFilterState,
-} from "../filters/analyticsFilters";
+import { AnalyticsFilterBar } from "../filters/AnalyticsFilterBar";
+import type { AnalyticsFilterState } from "../filters/analyticsFilters";
 import type { AnalyticsFilterOptions } from "../filters/optionsQuery";
 import { AdminLink } from "../navigation/AdminLink";
 import { AudienceSection } from "../reports/audience/AudienceSection";
@@ -26,14 +22,6 @@ import {
   reportRangePresetLabel,
 } from "../reports/reportValues";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
-import { ReviewEventsByDateFilters } from "../reports/reviewEventsByDate/filters/ReviewEventsByDateFilters";
-import {
-  buildActiveUserFilters,
-  buildSearchableUserFilterOptions,
-  doesUserMatchSearch,
-  getNormalizedSearchValue,
-  visibleUserFilterOptionLimit,
-} from "../reports/reviewEventsByDate/filters/userFilters";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import { analyticsAreaLabels, getAnalyticsAreaPath, type AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
@@ -69,11 +57,9 @@ type AnalyticsReportSectionsProps = Readonly<{
   filters: AnalyticsFilterState;
   isReportLoading: boolean;
   dateRangeError: string;
-  draftRange: ReviewEventsByDateRange;
-  userFilterSearchValue: string;
-  onDraftRangeChange: (range: ReviewEventsByDateRange) => void;
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
-  onUserFilterSearchChange: (searchValue: string) => void;
+  /** Stable across filter changes on purpose; see `App`. */
+  onChartUserFilterApply: (userId: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>;
 
@@ -83,161 +69,23 @@ function buildUserById(
   return new Map<string, ReviewEventsByDateUser>(users.map((user) => [user.userId, user]));
 }
 
-function getUpdatedUserFilterSelection(
-  currentUserIds: ReadonlyArray<string>,
-  userId: string,
-  isChecked: boolean,
-): ReadonlyArray<string> {
-  if (isChecked) {
-    if (currentUserIds.includes(userId)) {
-      return currentUserIds;
-    }
-
-    return [...currentUserIds, userId];
-  }
-
-  return currentUserIds.filter((currentUserId) => currentUserId !== userId);
-}
-
-function getUpdatedCohortFilterSelection(
-  currentCohorts: ReadonlyArray<ReviewEventCohort>,
-  cohort: ReviewEventCohort,
-  isChecked: boolean,
-): ReadonlyArray<ReviewEventCohort> {
-  if (isChecked) {
-    if (currentCohorts.includes(cohort)) {
-      return currentCohorts;
-    }
-
-    return [...currentCohorts, cohort];
-  }
-
-  return currentCohorts.filter((currentCohort) => currentCohort !== cohort);
-}
-
-function getUpdatedPlatformFilterSelection(
-  currentPlatforms: ReadonlyArray<ReviewEventPlatform>,
-  platform: ReviewEventPlatform,
-  isChecked: boolean,
-): ReadonlyArray<ReviewEventPlatform> {
-  if (isChecked) {
-    if (currentPlatforms.includes(platform)) {
-      return currentPlatforms;
-    }
-
-    return [...currentPlatforms, platform];
-  }
-
-  return currentPlatforms.filter((currentPlatform) => currentPlatform !== platform);
-}
-
 function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Element {
-  function handleFromDateChange(from: string): void {
-    props.onDraftRangeChange({
-      ...props.draftRange,
-      from,
-    });
-  }
-
-  function handleToDateChange(to: string): void {
-    props.onDraftRangeChange({
-      ...props.draftRange,
-      to,
-    });
-  }
-
-  function applyDateRange(range: ReviewEventsByDateRange): boolean {
-    return props.onFiltersChange({ ...props.filters, dateRange: range });
-  }
-
-  /** Whether the typed range was accepted; a rejected one leaves the popover open on its error. */
-  function handleDateRangeSubmit(): boolean {
-    return applyDateRange(props.draftRange);
-  }
-
-  function handleDateRangeReset(): void {
-    props.onDraftRangeChange(props.data.defaultRange);
-    applyDateRange(props.data.defaultRange);
-  }
-
-  function handleDateRangePresetSelect(range: ReviewEventsByDateRange): void {
-    props.onDraftRangeChange(range);
-    applyDateRange(range);
-  }
-
   function handleLastThreeDays(): void {
-    handleDateRangePresetSelect(buildPresetReportRange(
-      lastThreeDaysReportRangePreset,
-      props.data.availableRange,
-      reportRangePresetLabel,
-    ));
-  }
-
-  function handleUserFilterChange(userId: string, isChecked: boolean): void {
     props.onFiltersChange({
       ...props.filters,
-      users: getUpdatedUserFilterSelection(props.filters.users, userId, isChecked),
+      dateRange: buildPresetReportRange(
+        lastThreeDaysReportRangePreset,
+        props.data.availableRange,
+        reportRangePresetLabel,
+      ),
     });
   }
-
-  function handleUserFilterRemove(userId: string): void {
-    props.onFiltersChange({
-      ...props.filters,
-      users: props.filters.users.filter((currentUserId) => currentUserId !== userId),
-    });
-  }
-
-  function handleUserFilterClear(): void {
-    props.onFiltersChange({ ...props.filters, users: [] });
-  }
-
-  function handleCohortFilterChange(cohort: ReviewEventCohort, isChecked: boolean): void {
-    props.onFiltersChange({
-      ...props.filters,
-      userCohorts: getUpdatedCohortFilterSelection(props.filters.userCohorts, cohort, isChecked),
-    });
-  }
-
-  function handlePlatformFilterChange(platform: ReviewEventPlatform, isChecked: boolean): void {
-    props.onFiltersChange({
-      ...props.filters,
-      eventPlatforms: getUpdatedPlatformFilterSelection(props.filters.eventPlatforms, platform, isChecked),
-    });
-  }
-
-  function handleAllFiltersReset(): void {
-    props.onDraftRangeChange(props.data.defaultRange);
-    props.onUserFilterSearchChange("");
-    props.onFiltersChange(buildDefaultAnalyticsFilterState(props.data.defaultRange));
-  }
-
-  const filters = props.filters;
-  const onFiltersChange = props.onFiltersChange;
-  const handleChartUserFilterApply = useCallback((userId: string): void => {
-    onFiltersChange({ ...filters, users: [userId] });
-  }, [filters, onFiltersChange]);
 
   const report = props.data.report;
   const dailyActiveUsersReport = props.data.dailyActiveUsersReport;
   const catalogInstallsReport = props.data.catalogInstallsReport;
   const filterOptions = props.data.filterOptions;
 
-  const selectedUserIdSet = useMemo(
-    () => new Set(filters.users),
-    [filters.users],
-  );
-  const selectedCohortSet = useMemo(
-    () => new Set(filters.userCohorts),
-    [filters.userCohorts],
-  );
-  const selectedPlatformSet = useMemo(
-    () => new Set(filters.eventPlatforms),
-    [filters.eventPlatforms],
-  );
-  const reportUserById = useMemo(
-    () => buildUserById(filterOptions.users),
-    [filterOptions.users],
-  );
   const filteredUserById = useMemo(
     () => buildUserById([...report.users, ...report.communityOnlyUsers]),
     [report.communityOnlyUsers, report.users],
@@ -254,76 +102,27 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     () => getPackageColorScale(filterOptions.catalogPackageSlugs),
     [filterOptions.catalogPackageSlugs],
   );
-  const activeUserFilters = useMemo(
-    () => buildActiveUserFilters(filters.users, reportUserById),
-    [filters.users, reportUserById],
-  );
-  const normalizedUserFilterSearchValue = useMemo(
-    () => getNormalizedSearchValue(props.userFilterSearchValue),
-    [props.userFilterSearchValue],
-  );
-  const searchableUserFilterOptions = useMemo(
-    () => buildSearchableUserFilterOptions(filterOptions.users),
-    [filterOptions.users],
-  );
-  const matchingUserFilterOptions = useMemo(
-    () => searchableUserFilterOptions
-      .filter((option) => doesUserMatchSearch(option, normalizedUserFilterSearchValue))
-      .map((option) => option.user),
-    [normalizedUserFilterSearchValue, searchableUserFilterOptions],
-  );
-  const visibleUserFilterOptions = useMemo(
-    () => matchingUserFilterOptions.slice(0, visibleUserFilterOptionLimit),
-    [matchingUserFilterOptions],
-  );
-  const hiddenUserFilterOptionCount = matchingUserFilterOptions.length - visibleUserFilterOptions.length;
 
   return (
     <>
-      <ReviewEventsByDateFilters
+      <AnalyticsFilterBar
+        area={props.activeArea}
         availableRange={props.data.availableRange}
         defaultRange={props.data.defaultRange}
-        appliedRange={{
-          from: report.from,
-          to: report.to,
-        }}
-        draftRange={props.draftRange}
+        filters={props.filters}
+        userOptions={filterOptions.users}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
-        reportUsers={filterOptions.users}
-        selectedUserIds={filters.users}
-        selectedUserIdSet={selectedUserIdSet}
-        selectedCohorts={filters.userCohorts}
-        selectedCohortSet={selectedCohortSet}
-        selectedPlatforms={filters.eventPlatforms}
-        selectedPlatformSet={selectedPlatformSet}
-        userFilterSearchValue={props.userFilterSearchValue}
-        visibleUserFilterOptions={visibleUserFilterOptions}
-        matchingUserFilterOptionCount={matchingUserFilterOptions.length}
-        hiddenUserFilterOptionCount={hiddenUserFilterOptionCount}
-        activeUserFilters={activeUserFilters}
         userColorScale={userColorScale}
-        onFromDateChange={handleFromDateChange}
-        onToDateChange={handleToDateChange}
-        onDateRangeSubmit={handleDateRangeSubmit}
-        onDateRangePresetSelect={handleDateRangePresetSelect}
-        onDateRangeReset={handleDateRangeReset}
-        onUserFilterSearchChange={props.onUserFilterSearchChange}
-        onUserFilterChange={handleUserFilterChange}
-        onUserFilterRemove={handleUserFilterRemove}
-        onUserFilterClear={handleUserFilterClear}
-        onCohortFilterChange={handleCohortFilterChange}
-        onPlatformFilterChange={handlePlatformFilterChange}
-        onAllFiltersReset={handleAllFiltersReset}
+        onFiltersChange={props.onFiltersChange}
       />
 
       {props.activeArea === "general" ? <>
         <DailyActiveUsersSection
         filteredReport={dailyActiveUsersReport}
         generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
-        isReportLoading={props.isReportLoading}
         userColorScale={userColorScale}
-        onUserFilterApply={handleChartUserFilterApply}
+        onUserFilterApply={props.onChartUserFilterApply}
       />
 
         <CatalogInstallsSection
@@ -335,10 +134,9 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         <ReviewActivitySection
         filteredReport={report}
         generatedAtUtc={report.generatedAtUtc}
-        isReportLoading={props.isReportLoading}
         filteredUserById={filteredUserById}
         userColorScale={userColorScale}
-        onUserFilterApply={handleChartUserFilterApply}
+        onUserFilterApply={props.onChartUserFilterApply}
         />
         </> : <AudienceSection
           config={props.config}
@@ -361,30 +159,14 @@ export function AdminDashboard(
     filters: AnalyticsFilterState | null;
     onReportRetry: () => void;
     onFiltersChange: (filters: AnalyticsFilterState) => boolean;
+    onChartUserFilterApply: (userId: string) => void;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
-  // The draft range is the picker's own unapplied state, so it stays here rather than in the filter
-  // selection; a null one follows the applied range of the loaded report.
-  const [draftRange, setDraftRange] = useState<ReviewEventsByDateRange | null>(null);
-  const [userFilterSearchValue, setUserFilterSearchValue] = useState<string>("");
-
+  // The range the numbers on screen were produced with, which lags the selection while a reload runs.
   const appliedRange = props.reportState.status === "ready"
     ? { from: props.reportState.data.report.from, to: props.reportState.data.report.to }
     : null;
-  const appliedFrom = appliedRange === null ? null : appliedRange.from;
-  const appliedTo = appliedRange === null ? null : appliedRange.to;
-
-  useEffect(() => {
-    if (appliedFrom === null || appliedTo === null) {
-      return;
-    }
-
-    setDraftRange({
-      from: appliedFrom,
-      to: appliedTo,
-    });
-  }, [appliedFrom, appliedTo]);
 
   return (
     <main className="shell">
@@ -433,14 +215,8 @@ export function AdminDashboard(
           filters={props.filters}
           isReportLoading={props.reportState.isReportLoading}
           dateRangeError={props.reportState.dateRangeError}
-          draftRange={draftRange ?? {
-            from: props.reportState.data.report.from,
-            to: props.reportState.data.report.to,
-          }}
-          userFilterSearchValue={userFilterSearchValue}
-          onDraftRangeChange={setDraftRange}
           onFiltersChange={props.onFiltersChange}
-          onUserFilterSearchChange={setUserFilterSearchValue}
+          onChartUserFilterApply={props.onChartUserFilterApply}
           onTerminalAdminError={props.onTerminalAdminError}
         />
       ) : null}

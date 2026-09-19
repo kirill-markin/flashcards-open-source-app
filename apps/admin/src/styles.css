@@ -446,53 +446,21 @@ h2 {
   text-transform: uppercase;
 }
 
-.date-filter-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(160px, 1fr)) auto;
-  align-items: end;
-  gap: 12px;
-}
-
-.date-filter-field {
-  display: grid;
-  gap: 7px;
+/* Every filter says what it means and how it is counted in its own popover, so the wording carries
+   sentences rather than a caption. */
+.filter-popover-explanation {
+  margin: 0;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
+  line-height: 1.55;
 }
 
-.date-filter-field input {
-  width: 100%;
-  height: 42px;
-  border: 1px solid var(--panel-border);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: none;
-  padding: 0 12px;
-  outline: none;
-}
-
-.date-filter-field input:focus {
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
-.date-filter-field input:disabled {
-  cursor: wait;
-  opacity: 0.68;
-}
-
-.date-filter-actions {
+.filter-popover-actions {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-/* Spans the full width of both grid parents it sits in: the time popover form and the funnel range form. */
+/* Spans the full width of the grid parent it sits in: the funnel range form. */
 .range-preset-row {
   display: flex;
   flex-wrap: wrap;
@@ -614,16 +582,6 @@ h2 {
   opacity: 0.5;
 }
 
-/* Busy means "the report is loading", the same convention as `.filter-button:disabled`: dim the
-   grid and wait, but keep the selected range visible. */
-.date-range-calendar-busy .calendar-months {
-  opacity: 0.62;
-}
-
-.date-range-calendar-busy .calendar-day {
-  cursor: wait;
-}
-
 .calendar-day:not(:disabled):hover {
   border-color: rgba(255, 255, 255, 0.24);
 }
@@ -676,10 +634,6 @@ h2 {
   color: #ffb6a6;
   font-size: 13px;
   font-weight: 700;
-}
-
-.filter-popover-error {
-  grid-column: 1 / -1;
 }
 
 .filter-option-list {
@@ -770,7 +724,6 @@ h2 {
   border-color: rgba(255, 255, 255, 0.28);
 }
 
-.date-filter-field input:focus-visible,
 .user-filter-search input:focus-visible {
   border-color: rgba(255, 255, 255, 0.72);
   outline: 2px solid rgba(255, 255, 255, 0.72);
@@ -910,7 +863,8 @@ h2 {
   font-weight: 800;
 }
 
-.active-filter-text span:last-child {
+/* Only a chip that carries a second line dims it; a one-line chip keeps the primary style. */
+.active-filter-text span:first-child + span {
   color: var(--muted);
   font-size: 10px;
   font-weight: 700;
@@ -1172,10 +1126,6 @@ h2 {
     max-width: 100%;
   }
 
-  .date-filter-form {
-    grid-template-columns: 1fr;
-  }
-
   .date-range-calendar {
     flex-direction: column;
   }
@@ -1207,10 +1157,6 @@ h2 {
 
   .filter-popover {
     transform: none;
-  }
-
-  .date-filter-actions {
-    width: 100%;
   }
 
   .calendar-months {

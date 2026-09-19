@@ -119,7 +119,6 @@ export function DailyActiveUsersSection(
   props: Readonly<{
     filteredReport: DailyActiveUsersReport;
     generatedAtUtc: string;
-    isReportLoading: boolean;
     userColorScale: UserColorScale;
     onUserFilterApply: (userId: string) => void;
   }>,
@@ -182,13 +181,11 @@ export function DailyActiveUsersSection(
       userById,
       dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
       peakDailyActiveUsers: chartModel.peakDailyActiveUsers,
-      isReportLoading: props.isReportLoading,
       onUserFilterApply: handleUserFilterApply,
       tooltipHandlers,
     });
   }, [
     chartModel,
-    props.isReportLoading,
     props.userColorScale,
     userById,
     handleUserFilterApply,
