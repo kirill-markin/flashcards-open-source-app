@@ -69,6 +69,8 @@ export const jaCatalog = {
       ru: "ロシア語",
       "es-MX": "スペイン語（メキシコ）",
       "es-ES": "スペイン語（スペイン）",
+      fr: "フランス語",
+      "pt-BR": "ポルトガル語（ブラジル）",
     },
     preferenceAuto: "自動（ブラウザ/デバイス）",
   },
