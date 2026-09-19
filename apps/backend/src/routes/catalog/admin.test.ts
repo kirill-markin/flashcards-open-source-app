@@ -364,7 +364,7 @@ test("catalog package inputs reject a language tag outside the supported audienc
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), {
       error: "languageTags[1] must be a supported catalog audience locale. "
-        + "tag=world history supported=ar, de, en, es, hi, ja, ru, zh",
+        + "tag=world history supported=ar, de, en, es, fr, hi, ja, pt, ru, zh",
       code: "CATALOG_INVALID_INPUT",
     });
   }
