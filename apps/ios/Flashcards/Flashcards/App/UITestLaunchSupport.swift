@@ -4,6 +4,7 @@ let flashcardsUITestLaunchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_L
 let flashcardsUITestSelectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
 private let flashcardsUITestAppNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
 private let flashcardsUITestAIHandoffCardEnvironmentKey: String = "FLASHCARDS_UI_TEST_AI_HANDOFF_CARD"
+private let flashcardsUITestMarketingAIDraftEnvironmentKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_AI_DRAFT"
 @MainActor
 private var hasConsumedFlashcardsUITestAppNotificationTapEnvironment: Bool = false
 
@@ -101,6 +102,19 @@ func makeFlashcardsUITestAIHandoffCard(
     }
 
     return FlashcardsUITestAIHandoffCard(rawValue: rawValue)
+}
+
+@MainActor
+func makeFlashcardsUITestMarketingAIDraft(processInfo: ProcessInfo) -> String? {
+    guard processInfo.environment[flashcardsUITestLaunchScenarioEnvironmentKey]
+        == FlashcardsUITestLaunchScenario.marketingScreenshots.rawValue,
+        makeFlashcardsUITestAIHandoffCard(processInfo: processInfo) == .firstCard,
+        let draftText = processInfo.environment[flashcardsUITestMarketingAIDraftEnvironmentKey],
+        draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
+        return nil
+    }
+
+    return draftText
 }
 
 @MainActor

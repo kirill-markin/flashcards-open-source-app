@@ -738,64 +738,31 @@ extension MarketingManualScreenshotTestCase {
             identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.replaceAiComposerText(
+        try self.waitForAiComposerValue(
             draftText,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.dismissAiComposerKeyboardIfVisible(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-    }
-
-    @MainActor
-    func dismissAiComposerKeyboardIfVisible(timeout: TimeInterval) throws {
-        guard self.softwareKeyboardIsVisible() else {
-            return
-        }
-
-        try self.completeBilingualKeyboardOnboardingIfVisible(timeout: timeout)
-        try self.tapButton(
-            identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
-            timeout: timeout
+        let localeFixture = try self.marketingLocaleFixture()
+        try self.assertElementLabel(
+            identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip,
+            expectedLabel: "Card · \(localeFixture.reviewCard.frontText)",
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        if self.app.keyboards.firstMatch.waitForNonExistence(timeout: timeout) {
-            return
-        }
 
-        throw LiveSmokeFailure.unexpectedAiConversationState(
-            message: "AI composer keyboard remained visible after tapping Done.",
-            screen: self.currentScreenSummary(),
-            step: self.currentStepTitle
-        )
-    }
-
-    @MainActor
-    private func completeBilingualKeyboardOnboardingIfVisible(timeout: TimeInterval) throws {
-        let firstMemoji = self.app.images["memoji_ANZ1"]
-        let secondMemoji = self.app.images["memoji_SG2"]
-        guard firstMemoji.exists || secondMemoji.exists else {
-            return
-        }
-
-        // The system onboarding has no button ID. Its two image IDs identify
-        // the container whose only direct button completes keyboard setup.
-        let completionButtons = self.app.otherElements
-            .containing(.image, identifier: "memoji_ANZ1")
-            .containing(.image, identifier: "memoji_SG2")
-            .children(matching: .button)
-        guard completionButtons.count == 1,
-              completionButtons.element.isEnabled,
-              completionButtons.element.isHittable else {
+        let composer = self.aiComposerTextFieldElement()
+        let attachmentChips = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip)
+        guard self.elementValue(element: composer) == draftText,
+              attachmentChips.count == 1,
+              composer.isHittable,
+              attachmentChips.firstMatch.isHittable,
+              self.softwareKeyboardIsVisible() == false,
+              self.app.alerts.firstMatch.exists == false,
+              self.app.sheets.firstMatch.exists == false,
+              self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiMessageRow).firstMatch.exists == false else {
             throw LiveSmokeFailure.unexpectedAiConversationState(
-                message: "Bilingual keyboard onboarding was visible, but its unique completion button was not usable.",
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
-        }
-
-        completionButtons.element.tap()
-        guard firstMemoji.waitForNonExistence(timeout: timeout),
-              secondMemoji.waitForNonExistence(timeout: timeout) else {
-            throw LiveSmokeFailure.unexpectedAiConversationState(
-                message: "Bilingual keyboard onboarding remained visible after completing system keyboard setup.",
+                message: "Expected the exact unsent marketing AI draft with one review card attached, no messages, and no keyboard or overlays.",
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )

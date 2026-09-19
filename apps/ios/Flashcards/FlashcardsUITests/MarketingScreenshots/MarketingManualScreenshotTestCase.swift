@@ -42,6 +42,7 @@ enum MarketingScreenshotEnvironment {
     static let localizationKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION"
     static let outputDirectoryPathKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIRECTORY"
     static let aiHandoffCardKey: String = "FLASHCARDS_UI_TEST_AI_HANDOFF_CARD"
+    static let aiDraftKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_AI_DRAFT"
 }
 
 private let marketingExpectedProgressSummaryValue: String = [
@@ -387,6 +388,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.launchScenarioEnvironmentKey)
         app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
         app.launchEnvironment.removeValue(forKey: MarketingScreenshotEnvironment.aiHandoffCardKey)
+        app.launchEnvironment.removeValue(forKey: MarketingScreenshotEnvironment.aiDraftKey)
         app.launchEnvironment[LiveSmokeConfiguration.sentryEnvironmentOverrideKey] =
             LiveSmokeConfiguration.marketingScreenshotSentryEnvironmentOverrideValue
         app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = selectedTab.rawValue
@@ -394,6 +396,9 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         app.launchEnvironment[MarketingScreenshotEnvironment.localizationKey] = localeFixture.localizationCode
         if let aiHandoffCard {
             app.launchEnvironment[MarketingScreenshotEnvironment.aiHandoffCardKey] = aiHandoffCard
+            if launchScenario == .marketingScreenshots {
+                app.launchEnvironment[MarketingScreenshotEnvironment.aiDraftKey] = localeFixture.reviewAiDraftMessage
+            }
         }
         app.launchArguments = Self.strippingMarketingAppleLocalizationLaunchArguments(arguments: app.launchArguments)
         app.launchArguments += localeFixture.launchArguments
