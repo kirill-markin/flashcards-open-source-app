@@ -1,7 +1,7 @@
 import { runAdminQuery, type AdminQueryResultSet, type ReviewEventsByDateUser } from "../adminApi";
 import type { AdminAppConfig } from "../config";
 import { assertIsString, assertValidDateRange, toInteger } from "../reports/reportValues";
-import { getUserFilterLabel } from "../reports/reviewEventsByDate/filters/userFilters";
+import { getUserFilterLabel } from "./userFilters";
 import { escapeSqlStringLiteral } from "../sql";
 import type { AnalyticsDateRange } from "./analyticsFilters";
 
