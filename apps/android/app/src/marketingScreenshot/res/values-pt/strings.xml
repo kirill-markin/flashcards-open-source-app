@@ -15,6 +15,16 @@
     <string name="progress_leaderboard_sign_in_button">Entrar</string>
     <string name="friend_invite_button">Adicionar amigo</string>
 
+    <string name="progress_streak_leaderboard_title">Ranking de sequências</string>
+    <string name="progress_streak_leaderboard_sign_in_message">Crie uma conta ou entre para comparar suas sequências com a comunidade.</string>
+    <string name="progress_leaderboard_info_button_content_description">Sobre o ranking de avaliações</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">Sobre o ranking de sequências</string>
+    <string name="progress_streak_freeze_bank_content_description">Proteções de sequência: %1$d de %2$d disponíveis.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">Sobre as proteções de sequência</string>
+    <string name="progress_streak_freeze_bank_info_title">Proteções de sequência</string>
+    <string name="progress_streak_freeze_bank_info_body">Disponíveis: %1$d/%2$d. Recarga: %3$d/%4$d. As proteções cobrem os dias perdidos e recarregam conforme você mantém sua sequência.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">OK</string>
+
     <string name="cards_title">Cartões</string>
     <string name="cards_add_card_content_description">Adicionar cartão</string>
     <string name="cards_search_label">Buscar cartões</string>

@@ -10,6 +10,20 @@
     <string name="progress_streak_subtitle">آخر 5 أسابيع</string>
     <string name="progress_reviews_title">المراجعات</string>
 
+    <string name="progress_leaderboard_title">لوحة ترتيب التقييمات</string>
+    <string name="progress_leaderboard_sign_in_message">أنشئ حسابًا أو سجّل الدخول لمعرفة ترتيب مراجعاتك في لوحة ترتيب التقييمات.</string>
+    <string name="progress_leaderboard_sign_in_button">تسجيل الدخول</string>
+    <string name="friend_invite_button">إضافة صديق</string>
+    <string name="progress_streak_leaderboard_title">لوحة ترتيب سلاسل التعلم</string>
+    <string name="progress_streak_leaderboard_sign_in_message">أنشئ حسابًا أو سجّل الدخول لمقارنة سلسلة تعلمك بأعضاء المجتمع.</string>
+    <string name="progress_leaderboard_info_button_content_description">حول لوحة ترتيب التقييمات</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">حول لوحة ترتيب سلاسل التعلم</string>
+    <string name="progress_streak_freeze_bank_content_description">وسائل تجميد السلسلة: %1$d من %2$d متاحة.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">حول تجميد السلسلة</string>
+    <string name="progress_streak_freeze_bank_info_title">تجميد السلسلة</string>
+    <string name="progress_streak_freeze_bank_info_body">المتاح: %1$d/%2$d. إعادة الشحن: %3$d/%4$d. يحمي التجميد سلسلتك في الأيام الفائتة ويُعاد شحنه مع استمرار السلسلة.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">حسنًا</string>
+
     <string name="cards_title">البطاقات</string>
     <string name="cards_add_card_content_description">إضافة بطاقة</string>
     <string name="cards_search_label">ابحث في البطاقات</string>
