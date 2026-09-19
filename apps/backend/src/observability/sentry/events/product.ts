@@ -422,6 +422,10 @@ export type ProductBreadcrumbEvent =
   | EventByAction<"guest_upgrade_complete", GuestUpgradeCompleteDetails>
   | EventByAction<"guest_upgrade_complete_error", FailureDetailsFor<GuestUpgradeCompleteDetails>>
   | EventByAction<"analytics_events_ingest", ProductAnalyticsIngestDetails>
+  // The same shape as an ingest that stored its batch, because the two are read side by side: this
+  // one reports what it accepted and storedCount 0, which is the whole difference an automation
+  // installation makes (db/migrations/0141_sync_installation_automation_marker.sql).
+  | EventByAction<"analytics_events_ingest_automation_dropped", ProductAnalyticsIngestDetails>
   | EventByAction<"analytics_events_ingest_error", FailureDetailsFor<ProductAnalyticsIngestDetails>>
   | EventByAction<"workspaces_list", WorkspacesListDetails>
   | EventByAction<"workspaces_list_error", FailureDetailsFor<WorkspacesListDetails>>

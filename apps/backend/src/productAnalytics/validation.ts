@@ -102,6 +102,15 @@ const batchEnvelopeSchema = z.object({
   anonymousId: analyticsUuidSchema.nullish(),
   sessionId: analyticsUuidSchema.nullish(),
   context: clientContextSchema.nullish(),
+  // The same declaration the installation makes when it registers over sync
+  // (apps/backend/src/sync/contracts/input.ts), repeated here because the two surfaces share no id:
+  // an analytics batch carries an anonymousId, which is deliberately not the sync installation id.
+  // Only `true` drops the batch; an absent field and `false` are the same negative case, so a
+  // released client that knows nothing of the marker keeps behaving exactly as it does today, and a
+  // client that does know it may send a real boolean. Refusing `false` here would be an envelope
+  // violation, which validateProductAnalyticsBatch answers with a 400 naming no event, so every
+  // batch of every ordinary user of such a build would be redelivered by its durable queue forever.
+  isAutomation: z.boolean().optional(),
   events: z.array(z.unknown()).max(productAnalyticsBatchEventLimit),
 }).strict();
 
@@ -145,6 +154,9 @@ export type ProductAnalyticsBatchValidation = Readonly<{
   anonymousId: string | null;
   sessionId: string | null;
   context: ProductAnalyticsClientContext;
+  // The batch was uploaded by an installation running under automation, so nothing in it is product
+  // analytics. Every event is still validated and answered for, and none of them is stored.
+  isAutomation: boolean;
   accepted: ReadonlyArray<ValidatedProductAnalyticsEvent>;
   rejected: ReadonlyArray<ProductAnalyticsRejectedEvent>;
 }>;
@@ -380,6 +392,7 @@ export function validateProductAnalyticsBatch(
     anonymousId: envelope.anonymousId ?? null,
     sessionId: envelope.sessionId ?? null,
     context: toClientContext(envelope.context),
+    isAutomation: envelope.isAutomation === true,
     accepted,
     rejected,
   };

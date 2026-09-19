@@ -9,13 +9,27 @@ import type { ProductAnalyticsPlatform } from "../catalog";
 export type WorkspaceReplicaPlatformFacts = Readonly<{
   actorKind: string;
   platform: string;
+  // The installation behind this replica declared itself automation
+  // (db/migrations/0141_sync_installation_automation_marker.sql). It is carried beside the platform
+  // rather than folded into it, because the two answer different questions: a null platform still
+  // stores an event with no device on it, while automation stores no event at all.
+  isAutomation: boolean;
 }>;
 
-// The same two facts as one replica row selects them, alongside the id they belong to.
+// The same facts as one replica row selects them, alongside the id they belong to. is_automation is
+// the joined sync.installations marker, never a column of sync.workspace_replicas.
 export type WorkspaceReplicaPlatformRow = Readonly<{
   replica_id: string;
   actor_kind: string;
   platform: string;
+  is_automation: boolean;
+}>;
+
+// What one replica decides for every event attributed to it: the platform to file it under, and
+// whether it may be reported at all.
+export type WorkspaceReplicaAttribution = Readonly<{
+  platform: ProductAnalyticsPlatform | null;
+  isAutomation: boolean;
 }>;
 
 /**
@@ -43,7 +57,7 @@ export type WorkspaceReplicaPlatformRow = Readonly<{
  * value is what would let a later widening of that constraint file rows under something this catalog
  * never meant.
  */
-export function toWorkspaceReplicaPlatform(
+function toWorkspaceReplicaPlatform(
   replica: WorkspaceReplicaPlatformFacts,
 ): ProductAnalyticsPlatform | null {
   if (replica.actorKind === "agent_connection") {
@@ -61,8 +75,28 @@ export function toWorkspaceReplicaPlatform(
   return null;
 }
 
-export function toWorkspaceReplicaRowPlatform(
+/**
+ * Everything one replica decides, from the facts a caller already holds.
+ *
+ * An automation installation is reported as automation whatever its platform resolves to: the
+ * platform is still derived, and is still the answer for the events of every other replica, but for
+ * this one it never reaches an event because the producers drop those facts before they emit.
+ */
+export function toWorkspaceReplicaAttribution(
+  replica: WorkspaceReplicaPlatformFacts,
+): WorkspaceReplicaAttribution {
+  return {
+    platform: toWorkspaceReplicaPlatform(replica),
+    isAutomation: replica.isAutomation,
+  };
+}
+
+export function toWorkspaceReplicaRowAttribution(
   row: WorkspaceReplicaPlatformRow,
-): ProductAnalyticsPlatform | null {
-  return toWorkspaceReplicaPlatform({ actorKind: row.actor_kind, platform: row.platform });
+): WorkspaceReplicaAttribution {
+  return toWorkspaceReplicaAttribution({
+    actorKind: row.actor_kind,
+    platform: row.platform,
+    isAutomation: row.is_automation,
+  });
 }

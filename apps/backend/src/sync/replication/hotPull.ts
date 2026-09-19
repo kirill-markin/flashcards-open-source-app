@@ -327,6 +327,7 @@ export async function processSyncPull(
       installationId: input.installationId,
       platform: input.platform,
       appVersion: input.appVersion ?? null,
+      isAutomation: input.isAutomation === true,
     });
     await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
     const minAvailableHotChangeId = await loadMinAvailableHotChangeId(executor, workspaceId);

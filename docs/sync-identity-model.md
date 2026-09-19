@@ -11,7 +11,7 @@ The sync layer now treats installation identity and workspace actor identity as 
 - It may change users over time without rewriting history.
 - Clients send `installationId` on authenticated sync requests.
 
-`sync.installations` stores this global client identity. These rows are not historical actors and must never be used as foreign keys from cards, decks, review events, scheduler settings, or sync logs.
+`sync.installations` stores this global client identity. These rows are not historical actors and must never be used as foreign keys from cards, decks, review events, scheduler settings, or sync logs. It also carries the automation marker a client declares about itself, documented in [Audience analytics](analytics-audience.md).
 
 ## Replica Id
 
