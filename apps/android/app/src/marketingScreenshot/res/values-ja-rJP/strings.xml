@@ -10,6 +10,20 @@
     <string name="progress_streak_subtitle">過去5週間</string>
     <string name="progress_reviews_title">復習</string>
 
+    <string name="progress_leaderboard_title">評価ランキング</string>
+    <string name="progress_leaderboard_sign_in_message">登録またはログインして、復習の評価ランキングを確認しましょう。</string>
+    <string name="progress_leaderboard_sign_in_button">ログイン</string>
+    <string name="friend_invite_button">友達を追加</string>
+    <string name="progress_streak_leaderboard_title">連続学習ランキング</string>
+    <string name="progress_streak_leaderboard_sign_in_message">登録またはログインして、コミュニティのメンバーと連続学習日数を比べましょう。</string>
+    <string name="progress_leaderboard_info_button_content_description">評価ランキングについて</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">連続学習ランキングについて</string>
+    <string name="progress_streak_freeze_bank_content_description">連続学習フリーズ：%2$d 個中 %1$d 個が利用可能。</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">連続学習フリーズについて</string>
+    <string name="progress_streak_freeze_bank_info_title">連続学習フリーズ</string>
+    <string name="progress_streak_freeze_bank_info_body">利用可能：%1$d/%2$d。補充状況：%3$d/%4$d。フリーズは学習を休んだ日の連続記録を守り、連続学習を続けると補充されます。</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">OK</string>
+
     <string name="cards_title">カード</string>
     <string name="cards_add_card_content_description">カードを追加</string>
     <string name="cards_search_label">カードを検索</string>

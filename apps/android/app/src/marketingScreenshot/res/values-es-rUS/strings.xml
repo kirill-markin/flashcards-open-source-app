@@ -10,6 +10,20 @@
     <string name="progress_streak_subtitle">Últimas 5 semanas</string>
     <string name="progress_reviews_title">Repasos</string>
 
+    <string name="progress_leaderboard_title">Clasificación por valoración</string>
+    <string name="progress_leaderboard_sign_in_message">Regístrate o inicia sesión para ver la posición de tus repasos en la clasificación por valoración.</string>
+    <string name="progress_leaderboard_sign_in_button">Iniciar sesión</string>
+    <string name="friend_invite_button">Agregar amigo</string>
+    <string name="progress_streak_leaderboard_title">Clasificación de rachas</string>
+    <string name="progress_streak_leaderboard_sign_in_message">Regístrate o inicia sesión para comparar tu racha con las de la comunidad.</string>
+    <string name="progress_leaderboard_info_button_content_description">Acerca de la clasificación por valoración</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">Acerca de la clasificación de rachas</string>
+    <string name="progress_streak_freeze_bank_content_description">Protectores de racha: %1$d de %2$d disponibles.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">Acerca de los protectores de racha</string>
+    <string name="progress_streak_freeze_bank_info_title">Protectores de racha</string>
+    <string name="progress_streak_freeze_bank_info_body">Disponibles: %1$d/%2$d. Recarga: %3$d/%4$d. Los protectores cubren los días perdidos y se recargan a medida que mantienes tu racha.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">Aceptar</string>
+
     <string name="cards_title">Tarjetas</string>
     <string name="cards_add_card_content_description">Agregar tarjeta</string>
     <string name="cards_search_label">Buscar tarjetas</string>

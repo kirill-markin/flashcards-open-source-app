@@ -15,6 +15,16 @@
     <string name="progress_leaderboard_sign_in_button">Se connecter</string>
     <string name="friend_invite_button">Ajouter un ami</string>
 
+    <string name="progress_streak_leaderboard_title">Classement des séries</string>
+    <string name="progress_streak_leaderboard_sign_in_message">Inscrivez-vous ou connectez-vous pour comparer vos séries avec la communauté.</string>
+    <string name="progress_leaderboard_info_button_content_description">À propos du classement par note</string>
+    <string name="progress_streak_leaderboard_info_button_content_description">À propos du classement des séries</string>
+    <string name="progress_streak_freeze_bank_content_description">Protections de série : %1$d sur %2$d disponibles.</string>
+    <string name="progress_streak_freeze_bank_info_button_content_description">À propos des protections de série</string>
+    <string name="progress_streak_freeze_bank_info_title">Protections de série</string>
+    <string name="progress_streak_freeze_bank_info_body">Disponibles : %1$d/%2$d. Recharge : %3$d/%4$d. Les protections préservent votre série les jours manqués et se rechargent lorsque vous poursuivez votre série.</string>
+    <string name="progress_streak_freeze_bank_info_dismiss">OK</string>
+
     <string name="cards_title">Cartes</string>
     <string name="cards_add_card_content_description">Ajouter une carte</string>
     <string name="cards_search_label">Rechercher des cartes</string>
