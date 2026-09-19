@@ -46,7 +46,7 @@ export type AnalyticsFilterOptions = Readonly<{
   catalogClickBrowserLanguages: ReadonlyArray<string>;
 }>;
 
-/** One installable deck version, named the way the shared `Installed deck` field names it: its slug and its version id. */
+/** One installable deck version, named the way the shared `Catalog deck version` field names it: its slug and its version id. */
 export type CatalogDeckOption = Readonly<{
   packageVersionId: string;
   packageSlug: string;
@@ -58,8 +58,9 @@ export type CatalogDeckOption = Readonly<{
 // test address rather than joining them: an actor with two case-folded rows would otherwise keep the
 // value as soon as one of them carried a NULL or a real address. This helper carries those two
 // exclusions and no other: a caller whose own report also drops active admins restates that exclusion
-// itself right after calling this, as the packages list below does, while the country and language
-// lists deliberately do not, for the reason the country list below states.
+// itself right after calling this, as the packages list below does, while a caller whose own surface
+// still shows admins deliberately leaves it out, as the country list below does for the reason it
+// states there.
 function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
 ): ReadonlyArray<string> {

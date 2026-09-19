@@ -80,15 +80,13 @@ const exampleComEmailExclusionSqlFragments = {
 // `analytics.product_events` row whose `user_id` is NULL and every stored row carries one, as
 // `db/migrations/0115_product_analytics_resolved_view.sql` states.
 //
-// Intended end state: an actor excluded from the anonymous space drops out of the admin reports
-// while leaving these counters alone, so the two surfaces exclude overlapping sets rather than
-// the same set. The second half of that is an expectation resting on today's invariants, not a
-// guarantee: it holds only while the two id spaces stay disjoint in fact, and an `anonymous_id`
-// equal to some `workspace_replicas.user_id` would fold onto it and be matched below, excluding
-// an unrelated real account instead of changing nothing. Nothing enforces that disjointness, and
-// the reachable defense is on the writer side, which does not exist yet. The asymmetry also
-// depends on the admin surfaces reading this table, and no admin query reads it yet, so today
-// neither surface excludes anything from the anonymous space.
+// The design rule the asymmetry is meant to express: an actor excluded from the anonymous space
+// drops out of the admin reports while leaving these counters alone, so the two surfaces exclude
+// overlapping sets rather than the same set. The second half of that rests on today's invariants
+// rather than on a guarantee: it holds only while the two id spaces stay disjoint in fact, and an
+// `anonymous_id` equal to some `workspace_replicas.user_id` would fold onto it and be matched
+// below, excluding an unrelated real account instead of changing nothing. Nothing in the schema
+// enforces that disjointness, so the only reachable defense is on the writer that lists an actor.
 const excludedActorWhereSqlFragments = [
   "  AND NOT EXISTS (",
   "    SELECT 1",
