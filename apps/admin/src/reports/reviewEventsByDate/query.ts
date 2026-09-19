@@ -772,5 +772,11 @@ export async function loadReviewEventsByDateReport(
     throw new Error("Review events community report result set is missing.");
   }
 
-  return buildReviewEventsByDateReport(resultSet, communityResultSet, response.executedAtUtc, from, to);
+  return buildReviewEventsByDateReport(
+    resultSet,
+    communityResultSet,
+    response.executedAtUtc,
+    filters.dateRange.from,
+    filters.dateRange.to,
+  );
 }
