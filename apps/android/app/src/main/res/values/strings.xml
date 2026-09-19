@@ -42,6 +42,7 @@
     <string name="demo_card_back_2">Give the built-in AI chat a topic and it will create a set of cards for you.</string>
     <!-- Third paragraph on the back of the onboarding demo flashcard. The placeholder is the review rating button label. -->
     <string name="demo_card_back_3">Try it right now: rate this card <xliff:g id="again_button" example="Again">%1$s</xliff:g>, and it will come back in about a minute — so this answer sticks.</string>
+    <string name="notification_diagnostics_failed_message">Notification diagnostics failed.</string>
     <string name="review_notification_channel_name">Review reminders</string>
     <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
 </resources>
