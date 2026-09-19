@@ -505,6 +505,134 @@ h2 {
   flex: 0 1 auto;
 }
 
+/* The two-month range picker: month grids on the left, the shared preset row as a column beside them. */
+.date-range-calendar {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  grid-column: 1 / -1;
+}
+
+.date-range-calendar-body {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Presets stack next to the months here instead of wrapping into a row above them. */
+.date-range-calendar > .range-preset-row {
+  flex: 0 0 auto;
+  flex-direction: column;
+  width: 128px;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.calendar-nav-summary {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.calendar-months {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.calendar-month {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.calendar-month-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.calendar-weekday-row,
+.calendar-day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.calendar-weekday-row span {
+  color: var(--muted-soft);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.calendar-day-blank {
+  height: 30px;
+}
+
+.calendar-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.calendar-day.in-range {
+  background: rgba(196, 75, 45, 0.18);
+}
+
+.calendar-day.range-start,
+.calendar-day.range-end {
+  border-color: rgba(214, 90, 56, 0.62);
+  background: var(--accent);
+}
+
+/* Only days outside the available range are refused outright; a day disabled because the report is
+   loading keeps its range highlight through the busy rules below. */
+.calendar-day.calendar-day-unavailable {
+  background: transparent;
+  color: var(--muted-soft);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Busy means "the report is loading", the same convention as `.filter-button:disabled`: dim the
+   grid and wait, but keep the selected range visible. */
+.date-range-calendar-busy .calendar-months {
+  opacity: 0.62;
+}
+
+.date-range-calendar-busy .calendar-day {
+  cursor: wait;
+}
+
+.calendar-day:not(:disabled):hover {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.calendar-day:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 2px;
+}
+
 .filter-button {
   height: 42px;
   padding: 0 15px;
@@ -1047,6 +1175,15 @@ h2 {
   .date-filter-form {
     grid-template-columns: 1fr;
   }
+
+  .date-range-calendar {
+    flex-direction: column;
+  }
+
+  .date-range-calendar > .range-preset-row {
+    flex-direction: row;
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1074,6 +1211,10 @@ h2 {
 
   .date-filter-actions {
     width: 100%;
+  }
+
+  .calendar-months {
+    grid-template-columns: 1fr;
   }
 
   .filter-button {
