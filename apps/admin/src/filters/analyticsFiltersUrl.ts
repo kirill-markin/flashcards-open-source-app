@@ -115,9 +115,11 @@ function normalizeEnumList<Value extends string>(
 // Users, decks, countries and locale tags are open sets with no declared order, so sorting is the
 // canonical order available to them. A repeated entry collapses and an entry the reader does not
 // accept is dropped, because either one makes the reader treat the whole list as malformed and hand
-// back the default instead of the selection that was written.
+// back the default instead of the selection that was written. A padded entry is trimmed rather than
+// dropped: client-reported locale tags reach the selection as they were recorded, and losing such a
+// value silently would leave it on screen as a chip and gone after a reload.
 function normalizeOpaqueList(values: ReadonlyArray<string>): ReadonlyArray<string> {
-  return [...new Set(values.filter(isAcceptedListEntry))].sort();
+  return [...new Set(values.map((value) => value.trim()).filter(isAcceptedListEntry))].sort();
 }
 
 // Thresholds are an unordered AND of at most one entry per event type, so they follow the declared
@@ -206,6 +208,32 @@ export function buildDefaultAnalyticsFilterStateForAvailableRange(
   return buildDefaultAnalyticsFilterState(
     buildDefaultReportRange(availableRange, analyticsFilterReportLabel),
   );
+}
+
+/**
+ * The canonical form of a selection: exactly what writing it to the URL and reading it back gives.
+ *
+ * The filter bar puts every selection it builds through this, so a value the codec would drop or
+ * reorder cannot stay on screen as a chip and then change on the next reload.
+ */
+export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): AnalyticsFilterState {
+  return {
+    dateRange: state.dateRange,
+    users: normalizeOpaqueList(state.users),
+    userCohorts: normalizeEnumList(state.userCohorts, reviewEventCohorts),
+    eventPlatforms: normalizeEnumList(state.eventPlatforms, reviewEventPlatforms),
+    minimumEventCounts: normalizeMinimumEventCounts(state.minimumEventCounts),
+    connectionCountries: normalizeOpaqueList(state.connectionCountries),
+    appUiLanguages: normalizeOpaqueList(state.appUiLanguages),
+    installedDecks: normalizeOpaqueList(state.installedDecks),
+    catalogPlacements: normalizeEnumList(state.catalogPlacements, catalogInstallPlacements),
+    catalogSources: normalizeEnumList(state.catalogSources, catalogInstallSources),
+    catalogDeviceCategories: normalizeEnumList(
+      state.catalogDeviceCategories,
+      catalogInstallDeviceCategories,
+    ),
+    catalogClickBrowserLanguages: normalizeOpaqueList(state.catalogClickBrowserLanguages),
+  };
 }
 
 export function toAnalyticsFilterSearchParams(
@@ -418,10 +446,15 @@ function parseMinimumEventCounts(
   return normalizeMinimumEventCounts(parsedEntries);
 }
 
-// A range whose days lie outside the available data is kept rather than clamped: the available range
-// grows with every new event, so clamping would quietly rewrite a link shared a day earlier.
+// A range whose days reach past the available data is clamped onto it rather than refused, so a link
+// older than the retained window still opens, on the data that does exist. Refusing it would make an
+// old bookmark unusable, and passing it through would send an arbitrary window - a hand-typed
+// `1900-01-01` to `2099-12-31` - to the report query and to the day-by-day gap filling. A window that
+// does not overlap the available data at all has nothing to clamp onto and opens on the default.
+// Both ends are `YYYY-MM-DD` here, so comparing them as text is comparing them as dates.
 function parseDateRange(
   searchParams: URLSearchParams,
+  availableRange: AnalyticsDateRange,
   defaultDateRange: AnalyticsDateRange,
 ): AnalyticsDateRange {
   const from = readSingleParam(searchParams, dateRangeFromParamName);
@@ -434,14 +467,22 @@ function parseDateRange(
     return defaultDateRange;
   }
 
-  return { from, to };
+  const clampedFrom = from < availableRange.from ? availableRange.from : from;
+  const clampedTo = to > availableRange.to ? availableRange.to : to;
+  if (clampedFrom > clampedTo) {
+    return defaultDateRange;
+  }
+
+  return { from: clampedFrom, to: clampedTo };
 }
 
 /**
  * The selection a query string asks for, filled in from the defaults for every field it does not
  * carry. `availableRange` is the full range the data covers, and both directions turn it into
  * defaults through the same builder, so this is the exact inverse of `toAnalyticsFilterSearchParams`
- * called with the same `availableRange`.
+ * called with the same `availableRange` - for every selection whose range lies inside that window,
+ * which is every selection the app itself can hold, because a wider one is clamped here on the way
+ * in and refused on the way to the reports.
  */
 export function parseAnalyticsFilterState(
   searchParams: URLSearchParams,
@@ -450,7 +491,7 @@ export function parseAnalyticsFilterState(
   const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(availableRange);
 
   return {
-    dateRange: parseDateRange(searchParams, defaults.dateRange),
+    dateRange: parseDateRange(searchParams, availableRange, defaults.dateRange),
     users: parseOpaqueList(searchParams, usersParamName, defaults.users),
     userCohorts: parseEnumList<ReviewEventCohort>(
       searchParams,
