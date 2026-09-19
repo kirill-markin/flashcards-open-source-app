@@ -1,16 +1,18 @@
-import { runAdminQuery, type AdminQueryRow, type ReviewEventCohort, type ReviewEventPlatform } from "../../adminApi";
+import { runAdminQuery, type AdminQueryRow } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import {
+  buildEventPlatformsFilterSql,
+  buildUserCohortsFilterSql,
+  buildUsersFilterSql,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
 
 export type AudiencePopulation = "active" | "reviewed";
 export type AudienceFilters = Readonly<{
-  from: string;
-  to: string;
   population: AudiencePopulation;
-  selectedUserIds: ReadonlyArray<string>;
-  selectedCohorts: ReadonlyArray<ReviewEventCohort>;
-  selectedPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  filters: AnalyticsFilterState;
 }>;
 
 const dimensions = ["summary", "country", "language", "pair", "platform"] as const;
@@ -26,26 +28,25 @@ export type AudienceReport = Readonly<{
   buckets: ReadonlyArray<AudienceBucket>;
 }>;
 
-function sqlSelection(column: string, values: ReadonlyArray<string>): string {
-  return values.length === 0 ? "FALSE" : `${column} IN (${values.map(escapeSqlStringLiteral).join(", ")})`;
-}
-
-export function buildAudienceSql(filters: AudienceFilters): string {
-  assertValidDateRange(filters, "Audience");
-  const eventName = filters.population === "active" ? "app_opened" : "review_answered";
-  const userSelection = filters.selectedUserIds.length === 0
-    ? "TRUE" : sqlSelection("history.actor_id::text", filters.selectedUserIds);
-  const platformSelection = sqlSelection("COALESCE(events.platform, 'unattributed')", filters.selectedPlatforms);
-  const cohortSelection = sqlSelection(
+export function buildAudienceSql(audienceFilters: AudienceFilters): string {
+  const filters = audienceFilters.filters;
+  const dateRange = assertValidDateRange(filters.dateRange, "Audience");
+  const eventName = audienceFilters.population === "active" ? "app_opened" : "review_answered";
+  const userSelection = buildUsersFilterSql("history.actor_id::text", filters.users);
+  const platformSelection = buildEventPlatformsFilterSql(
+    "COALESCE(events.platform, 'unattributed')",
+    filters.eventPlatforms,
+  );
+  const cohortSelection = buildUserCohortsFilterSql(
     "CASE WHEN history.event_date = history.first_date THEN 'new' ELSE 'returning' END",
-    filters.selectedCohorts,
+    filters.userCohorts,
   );
 
   // Endpoint equality proves the accepted sampling batch, not the queued event's location.
   // There is deliberately no interval overlap or installation_profiles.user_id ownership join.
   return `WITH bounds AS (
-    SELECT (${escapeSqlStringLiteral(filters.from)}::date)::timestamp AT TIME ZONE 'UTC' AS starts_at,
-      (${escapeSqlStringLiteral(filters.to)}::date + 1)::timestamp AT TIME ZONE 'UTC' AS ends_at,
+    SELECT (${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC' AS starts_at,
+      (${escapeSqlStringLiteral(dateRange.to)}::date + 1)::timestamp AT TIME ZONE 'UTC' AS ends_at,
       now() - INTERVAL '90 days' AS retained_since
   ), history AS MATERIALIZED (
     SELECT events.actor_id, events.platform, events.occurred_at,
@@ -68,7 +69,7 @@ export function buildAudienceSql(filters: AudienceFilters): string {
     WHERE history.occurred_at >= bounds.starts_at
       AND ${userSelection}
       AND ${cohortSelection}
-      AND ${sqlSelection("COALESCE(history.platform, 'unattributed')", filters.selectedPlatforms)}
+      AND ${buildEventPlatformsFilterSql("COALESCE(history.platform, 'unattributed')", filters.eventPlatforms)}
   ), actors AS (
     SELECT DISTINCT actor_id FROM cohort_events
   ), language_events AS MATERIALIZED (
@@ -171,8 +172,8 @@ function parseBucket(row: AdminQueryRow): AudienceBucket {
   };
 }
 
-export async function loadAudienceReport(config: AdminAppConfig, filters: AudienceFilters): Promise<AudienceReport> {
-  const response = await runAdminQuery(config, buildAudienceSql(filters));
+export async function loadAudienceReport(config: AdminAppConfig, audienceFilters: AudienceFilters): Promise<AudienceReport> {
+  const response = await runAdminQuery(config, buildAudienceSql(audienceFilters));
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined) {
     throw new Error("Audience query must return exactly one result set.");
