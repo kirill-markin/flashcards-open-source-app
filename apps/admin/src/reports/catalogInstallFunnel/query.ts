@@ -6,7 +6,10 @@ import type {
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
-import { buildEventPlatformsFilterSql } from "../../filters/filterSql";
+import {
+  buildActorIsExcludedSql,
+  buildEventPlatformsFilterSql,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   assertIsString,
@@ -327,14 +330,51 @@ function buildEventWindowSql(from: string, to: string): ReadonlyArray<string> {
   ];
 }
 
-function buildExcludedActorPredicateSql(eventAlias: string): ReadonlyArray<string> {
-  return [
+/**
+ * The two `NOT EXISTS` disqualifiers that drop a journey belonging to somebody this area does not
+ * count: a test address, an active admin, or an actor listed in `analytics.excluded_actors`.
+ *
+ * A JOURNEY NAMES NOBODY OF ITSELF, so this is what the exclusion can and cannot reach here. The
+ * click and the landing are anonymous by construction, and a person appears only through one of two
+ * bridges inside the conversion window: a matching server `catalog_deck_installed`, or a matching
+ * `catalog_deck_install_started` sent by the authenticated client collector, which carries the
+ * signed-in request's `user_id` that the resolved view turns into an `actor_id`. A journey that
+ * reached either one is dropped when that actor is excluded; a journey that neither completed a server
+ * install nor started an install while signed in is attributable to no actor at all and is therefore
+ * counted whoever produced it. That remaining case is the one this cannot exclude, and no join here can
+ * fix it - only an identity on the click itself could, and the public collector deliberately stores
+ * none.
+ *
+ * THE INSTALL-INTENT BRIDGE MOVES THE FUNNEL ON ITS OWN, before any actor is listed. It carries the
+ * same condition as the install bridge, so the long-standing `%@example.com` and active-admin
+ * exclusions now also reach a journey that only started an install while signed in. Until now they
+ * needed a server `catalog_deck_installed` row, so the funnel and the no-click diagnostic drop the
+ * moment this lands: a failed install, or an install whose confirm omitted
+ * `installJourneyId` and therefore carries no matching server fact (`docs/catalog-install-funnel.md`
+ * documents both as valid), no longer keeps a test-address or admin journey in the counts. That is
+ * deliberate - the funnel already dropped such a person's completed install, and a signed-in install
+ * start names the same person just as well.
+ *
+ * `trust_level = 'authenticated_client'` on the install-intent bridge is load-bearing rather than
+ * tidiness: an `anonymous_client` row carries no `user_id`, so its resolved `actor_id` falls back to
+ * the `anonymous_id`, which is the journey UUID itself, and an unrestricted check would compare
+ * journey ids against the exclusion list.
+ *
+ * Both bridges anchor on `candidate.anchor_at`, which is the click in the funnel and the landing in
+ * the no-click diagnostic, so the conversion window shifts with whichever candidate row applies.
+ */
+function buildExcludedJourneyActorFilterSqlLines(): ReadonlyArray<string> {
+  const buildBridgeSqlLines = (
+    sourceRelation: string,
+    eventAlias: string,
+    sourceConditionSqlLines: ReadonlyArray<string>,
+  ): ReadonlyArray<string> => [
+    "    AND NOT EXISTS (",
     "      SELECT 1",
-    `      FROM events AS ${eventAlias}`,
+    `      FROM ${sourceRelation} AS ${eventAlias}`,
     "      LEFT JOIN org.user_settings AS excluded_user_settings",
     `        ON pg_catalog.lower(excluded_user_settings.user_id) = ${eventAlias}.actor_id::text`,
-    `      WHERE ${eventAlias}.event_name = 'catalog_deck_installed'`,
-    `        AND ${eventAlias}.origin = 'server'`,
+    ...sourceConditionSqlLines,
     `        AND ${eventAlias}.event_properties ->> 'install_journey_id' = candidate.install_journey_id`,
     `        AND ${eventAlias}.event_properties ->> 'package_version_id' = candidate.package_version_id`,
     `        AND ${eventAlias}.occurred_at >= candidate.anchor_at`,
@@ -347,7 +387,19 @@ function buildExcludedActorPredicateSql(eventAlias: string): ReadonlyArray<strin
     "            WHERE excluded_admin.email = LOWER(btrim(excluded_user_settings.email))",
     "              AND excluded_admin.revoked_at IS NULL",
     "          )",
+    `          OR ${buildActorIsExcludedSql(`${eventAlias}.actor_id::text`)}`,
     "        )",
+    "    )",
+  ];
+
+  return [
+    ...buildBridgeSqlLines("events", "excluded_install", [
+      "      WHERE excluded_install.event_name = 'catalog_deck_installed'",
+      "        AND excluded_install.origin = 'server'",
+    ]),
+    ...buildBridgeSqlLines("install_start_events", "excluded_install_start", [
+      "      WHERE excluded_install_start.trust_level = 'authenticated_client'",
+    ]),
   ];
 }
 
@@ -394,9 +446,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "      AND test_start.occurred_at >= candidate.anchor_at",
     `      AND test_start.occurred_at <= candidate.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
     "  )",
-    "    AND NOT EXISTS (",
-    ...buildExcludedActorPredicateSql("excluded_install"),
-    "    )",
+    ...buildExcludedJourneyActorFilterSqlLines(),
     ...buildFunnelClickFilterSqlLines(filters),
     ")",
     "SELECT",
@@ -584,9 +634,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "        AND test_start.occurred_at >= candidate.anchor_at",
     `        AND test_start.occurred_at <= candidate.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
     "    )",
-    "    AND NOT EXISTS (",
-    ...buildExcludedActorPredicateSql("excluded_install"),
-    "    )",
+    ...buildExcludedJourneyActorFilterSqlLines(),
     ...buildFunnelLandingFilterSqlLines(filters),
     ")",
     "SELECT",
