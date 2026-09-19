@@ -642,6 +642,7 @@ final class CloudSyncService: @unchecked Sendable {
                 installationId: installationId,
                 platform: "ios",
                 appVersion: self.transport.appVersion(),
+                isAutomation: AutomationRun.current.isAutomation,
                 cursor: nil,
                 limit: 1,
                 includeMediaAssets: true
