@@ -52,6 +52,35 @@ fun toAndroidLocaleFilter(localeTag: String): String {
     }
 }
 
+// Android resource qualifiers still use the superseded ISO 639 codes for these languages, and
+// Norwegian library resources ship as Bokmal, so AAPT2 treats "he"/"iw", "id"/"in" and "no"/"nb"
+// as unrelated configurations. Filtering on only one spelling strips every library translation for
+// that language out of the bundle, so keep both.
+val androidLocaleFilterLanguageAliases: Map<String, String> = mapOf(
+    "he" to "iw",
+    "iw" to "he",
+    "id" to "in",
+    "in" to "id",
+    "no" to "nb",
+    "nb" to "no"
+)
+
+fun toAndroidLocaleFilters(localeTag: String): List<String> {
+    val localeFilter = toAndroidLocaleFilter(localeTag)
+    val language = Locale.forLanguageTag(localeTag).language
+    val aliasLanguage = androidLocaleFilterLanguageAliases[language]
+        ?: return listOf(localeFilter)
+
+    val aliasFilter = when {
+        localeFilter == language -> aliasLanguage
+        localeFilter.startsWith("$language-r") -> aliasLanguage + localeFilter.removePrefix(language)
+        localeFilter.startsWith("b+$language+") -> "b+" + aliasLanguage + localeFilter.removePrefix("b+$language")
+        else -> return listOf(localeFilter)
+    }
+
+    return listOf(localeFilter, aliasFilter)
+}
+
 // Build types the `androidx.baselineprofile` plugin derives from `release` for local profile
 // generation. They are never released.
 val baselineProfileNonMinifiedBuildTypePrefix = "nonMinified"
@@ -82,7 +111,8 @@ if (Locale.forLanguageTag(baseAndroidLocale).language.isBlank()) {
     throw GradleException("Invalid unqualifiedResLocale in resources.properties: $baseAndroidLocale")
 }
 val supportedAndroidLocales: List<String> = readSupportedAndroidLocales()
-val supportedAndroidLocaleFilters: List<String> = supportedAndroidLocales.map(::toAndroidLocaleFilter)
+val supportedAndroidLocaleFilters: List<String> =
+    supportedAndroidLocales.flatMap(::toAndroidLocaleFilters).distinct()
 val marketingScreenshotLocales: List<String> = listOf(
     "en-US",
     "ar",
@@ -95,7 +125,8 @@ val marketingScreenshotLocales: List<String> = listOf(
     "es-ES",
     "es-US"
 )
-val marketingScreenshotLocaleFilters: List<String> = marketingScreenshotLocales.map(::toAndroidLocaleFilter)
+val marketingScreenshotLocaleFilters: List<String> =
+    marketingScreenshotLocales.flatMap(::toAndroidLocaleFilters).distinct()
 
 val androidVersionCodeValue: String? = providers.environmentVariable("ANDROID_VERSION_CODE").orNull
 val androidVersionCode: Int? = androidVersionCodeValue?.toIntOrNull()

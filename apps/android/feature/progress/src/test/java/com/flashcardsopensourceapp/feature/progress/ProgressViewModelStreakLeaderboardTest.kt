@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -63,7 +64,7 @@ class ProgressViewModelStreakLeaderboardTest {
         ) as ProgressStreakLeaderboardSectionUiState.Ready
 
         assertEquals(1, sectionUiState.participantCount)
-        assertTrue(checkNotNull(sectionUiState.metricDescription).contains("Again, Hard, Good, or Easy"))
+        assertNull(sectionUiState.metricDescription)
         val viewerRow = sectionUiState.rows.single() as ProgressStreakLeaderboardRowUiState.Participant
         assertEquals(1, viewerRow.rank)
         assertEquals(12, viewerRow.streakDays)
