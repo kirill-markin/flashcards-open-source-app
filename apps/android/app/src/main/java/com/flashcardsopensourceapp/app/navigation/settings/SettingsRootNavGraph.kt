@@ -479,6 +479,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
     composable(route = SettingsNotificationDiagnosticsDestination.route) {
         val context = LocalContext.current
+        val failedMessage = stringResource(id = R.string.notification_diagnostics_failed_message)
         val uiState by produceState<NotificationDiagnosticsUiState>(
             initialValue = NotificationDiagnosticsUiState.Loading,
             key1 = appGraph,
@@ -493,8 +494,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 throw error
             } catch (error: Exception) {
                 NotificationDiagnosticsUiState.Failed(
-                    message = error.message
-                        ?: context.getString(R.string.notification_diagnostics_failed_message)
+                    message = error.message ?: failedMessage
                 )
             }
         }
