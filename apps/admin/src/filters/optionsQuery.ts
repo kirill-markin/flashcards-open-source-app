@@ -17,6 +17,7 @@ import {
   buildCatalogInstallAttributionSql,
   buildCatalogInstalledDeckVersionsSql,
   buildConnectionCountrySamplesSql,
+  buildExcludedActorsFilterSql,
 } from "./filterSql";
 import { getUserFilterLabel } from "./userFilters";
 import { escapeSqlStringLiteral } from "../sql";
@@ -51,15 +52,15 @@ export type CatalogDeckOption = Readonly<{
   packageSlug: string;
 }>;
 
-// The one exclusion every option list restates, so a value only a test account ever produced is not
-// offered. It folds the stored side of the email join for the reason `buildReviewEventsByDateSql`
-// states in full, and it asks whether any stored row of that actor is a test address rather than
-// joining them: an actor with two case-folded rows would otherwise keep the value as soon as one of
-// them carried a NULL or a real address. This helper carries that one exclusion and no other: a
-// caller whose own report also drops active admins restates that exclusion itself right after
-// calling this, as the packages list below does, while the country and language lists deliberately
-// do not, for the reason the country list below states.
-function buildExcludedTestAccountSqlLines(
+// The two exclusions every option list restates, so a value only a test account or an excluded actor
+// ever produced is not offered. The email side folds the stored side of its join for the reason
+// `buildReviewEventsByDateSql` states in full, and it asks whether any stored row of that actor is a
+// test address rather than joining them: an actor with two case-folded rows would otherwise keep the
+// value as soon as one of them carried a NULL or a real address. This helper carries those two
+// exclusions and no other: a caller whose own report also drops active admins restates that exclusion
+// itself right after calling this, as the packages list below does, while the country and language
+// lists deliberately do not, for the reason the country list below states.
+function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
 ): ReadonlyArray<string> {
   return [
@@ -69,6 +70,7 @@ function buildExcludedTestAccountSqlLines(
     `    WHERE pg_catalog.lower(excluded_settings.user_id) = ${actorIdSqlExpression}`,
     "      AND LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'",
     "  )",
+    `  AND ${buildExcludedActorsFilterSql(actorIdSqlExpression)}`,
   ];
 }
 
@@ -76,8 +78,9 @@ function buildExcludedTestAccountSqlLines(
 // prints next to them. The four sources are the four ways a person reaches a chart: review events,
 // community activity, active days and catalog installs. Each source restates the exclusions of the
 // report it stands for, so a person offered here is a person some section can really show:
-// `%@example.com` everywhere, and the delisted `test` fixture plus active admins on installs alone -
-// an admin who opened the app is still an active user and stays in the list.
+// `%@example.com` and the excluded actors of `analytics.excluded_actors` everywhere, and the delisted
+// `test` fixture plus active admins on installs alone - an admin who opened the app is still an active
+// user and stays in the list.
 //
 // `friendship_created` is the one source that reaches back before the range, because the community
 // chart carries a running friendship total: a friendship created earlier still shows on every day in
@@ -150,6 +153,7 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
     "      user_emails.email IS NULL",
     "      OR LOWER(user_emails.email) NOT LIKE '%@example.com'",
     "    )",
+    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
     ")",
     // One row per actor, and one popup entry per person: `user_emails` holds one row per folded
     // actor key, so the email here is functionally determined by the actor and grouping by the pair
@@ -174,7 +178,7 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
   ].join("\n");
 }
 
-// The decks the installs chart can colour inside the range. Same two exclusions as
+// The decks the installs chart can colour inside the range. Same exclusions as
 // `buildCatalogInstallsSql`, which states why they exist; the colour scale sorts the slugs itself, so
 // this returns the set rather than an order. Both are asked as `NOT EXISTS` over the stored rows of
 // the actor, like every other list here, so an actor with two case-folded rows cannot keep a slug
@@ -191,7 +195,7 @@ function buildAnalyticsFilterOptionPackagesSql(dateRange: AnalyticsDateRange): s
     `    (${escapeSqlStringLiteral(dateRange.to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "  )",
     "  AND resolved.event_properties ->> 'package_slug' <> 'test'",
-    ...buildExcludedTestAccountSqlLines("resolved.actor_id::text"),
+    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     "  AND NOT EXISTS (",
     "    SELECT 1",
     "    FROM org.user_settings AS admin_settings",
@@ -209,10 +213,11 @@ function buildAnalyticsFilterOptionPackagesSql(dateRange: AnalyticsDateRange): s
 // narrowed to the selected platforms instead, so a country offered here can still chart as `unknown`
 // there.
 //
-// Like the users list above, this restates the one exclusion every report applies, `%@example.com`,
-// so a country only a test account was ever seen connecting from is not offered. The active-admin
-// exclusion is deliberately not restated: Audience drops admins but the General sections show them,
-// so a country only an admin connected from is a country some section can really display.
+// Like the users list above, this restates the two exclusions every report applies, `%@example.com`
+// and `analytics.excluded_actors`, so a country only a test account or an excluded actor was ever
+// seen connecting from is not offered. The active-admin exclusion is deliberately not restated:
+// Audience drops admins but the General sections show them, so a country only an admin connected from
+// is a country some section can really display.
 function buildAnalyticsFilterOptionCountriesSql(dateRange: AnalyticsDateRange): string {
   return [
     "SELECT DISTINCT country_samples.country AS country",
@@ -222,7 +227,7 @@ function buildAnalyticsFilterOptionCountriesSql(dateRange: AnalyticsDateRange): 
     // A sampled lookup that returned no country is the `unknown` bucket of the audience report rather
     // than a country anybody can pick.
     "WHERE country_samples.country IS NOT NULL",
-    ...buildExcludedTestAccountSqlLines("country_samples.actor_id::text"),
+    ...buildExcludedActorSqlLines("country_samples.actor_id::text"),
     "ORDER BY country ASC",
   ].join("\n");
 }
@@ -231,8 +236,8 @@ function buildAnalyticsFilterOptionCountriesSql(dateRange: AnalyticsDateRange): 
 // which is how the language filter reads it; the audience report narrows the same locales to the
 // selected platforms, so a locale offered here can still chart as `unknown` there. A NULL locale is
 // not offered: no selection can match it, and a person whose events carry only NULLs is exactly the
-// person a narrowed language filter drops. `%@example.com` is restated and the active-admin exclusion
-// is not, for the reason the country list above states.
+// person a narrowed language filter drops. `%@example.com` and the excluded actors are restated and
+// the active-admin exclusion is not, for the reason the country list above states.
 function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRange): string {
   return [
     "SELECT DISTINCT resolved.ui_locale AS ui_locale",
@@ -245,7 +250,7 @@ function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRan
     "  AND resolved.occurred_at < (",
     `    (${escapeSqlStringLiteral(dateRange.to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "  )",
-    ...buildExcludedTestAccountSqlLines("resolved.actor_id::text"),
+    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     "ORDER BY ui_locale ASC",
   ].join("\n");
 }
@@ -255,8 +260,8 @@ function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRan
 // was never recorded are both offered here. This list and the four below are the one group of option
 // lists the selected range does not scope, because neither the installed-deck filter nor the
 // click-attribution filter is scoped by it either. What this offers is a strict subset of what the
-// installed-deck filter matches, because it restates the two exclusions below and that filter
-// restates neither.
+// installed-deck filter matches, because it restates the three exclusions below and that filter
+// restates none of them.
 //
 // The delisted `test` fixture of `db/migrations/0111_delist_catalog_test_fixture.sql` is left out
 // here, as it is everywhere a deck is named; the four dimension lists below cannot name a deck and
@@ -276,7 +281,7 @@ function buildAnalyticsFilterOptionCatalogDecksSql(): string {
     // this list in `loadAnalyticsFilterOptions` and fail the whole load.
     "WHERE installed_decks.package_version_id IS NOT NULL",
     "  AND installed_decks.package_slug IS DISTINCT FROM 'test'",
-    ...buildExcludedTestAccountSqlLines("installed_decks.actor_id::text"),
+    ...buildExcludedActorSqlLines("installed_decks.actor_id::text"),
     "GROUP BY installed_decks.package_version_id",
     // Ordered on the aggregate itself rather than on the output name it shares with an ungrouped
     // input column, which would leave the sort to Postgres ambiguity resolution.
@@ -288,10 +293,10 @@ function buildAnalyticsFilterOptionCatalogDecksSql(): string {
 // Every value one catalog attribution dimension carried on the originating click of a completed
 // install, read through the same lifetime fragment the four click-dimension predicates read, so this
 // list is unscoped by the selected range exactly as they are. What it offers is a strict subset of
-// what they match, because it restates `%@example.com` and they restate nothing; the active-admin
-// exclusion is not restated, for the reason the country list above states. A NULL is not offered: no
-// selection can match it, and a person whose attributed clicks recorded only NULLs is exactly the
-// person a narrowed field drops.
+// what they match, because it restates `%@example.com` and the excluded actors while they restate
+// nothing; the active-admin exclusion is not restated, for the reason the country list above states.
+// A NULL is not offered: no selection can match it, and a person whose attributed clicks recorded only
+// NULLs is exactly the person a narrowed field drops.
 function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string): string {
   return [
     `SELECT DISTINCT install_attribution.${columnSqlName} AS option_value`,
@@ -299,7 +304,7 @@ function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string):
     buildCatalogInstallAttributionSql(),
     ") AS install_attribution",
     `WHERE install_attribution.${columnSqlName} IS NOT NULL`,
-    ...buildExcludedTestAccountSqlLines("install_attribution.actor_id::text"),
+    ...buildExcludedActorSqlLines("install_attribution.actor_id::text"),
     "ORDER BY option_value ASC",
   ].join("\n");
 }
