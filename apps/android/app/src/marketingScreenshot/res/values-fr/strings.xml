@@ -2,13 +2,18 @@
     <string name="top_level_review">Révision</string>
     <string name="top_level_progress">Progression</string>
     <string name="top_level_cards">Cartes</string>
-    <string name="top_level_ai">AI</string>
+    <string name="top_level_ai">IA</string>
     <string name="top_level_settings">Paramètres</string>
 
     <string name="progress_title">Progression</string>
     <string name="progress_streak_title">Série</string>
     <string name="progress_streak_subtitle">5 dernières semaines</string>
     <string name="progress_reviews_title">Révisions</string>
+
+    <string name="progress_leaderboard_title">Classement par note</string>
+    <string name="progress_leaderboard_sign_in_message">Inscrivez-vous ou connectez-vous pour voir votre place dans le classement par note.</string>
+    <string name="progress_leaderboard_sign_in_button">Se connecter</string>
+    <string name="friend_invite_button">Ajouter un ami</string>
 
     <string name="cards_title">Cartes</string>
     <string name="cards_add_card_content_description">Ajouter une carte</string>
@@ -46,7 +51,7 @@
         <item quantity="other">dans %d jours</item>
     </plurals>
 
-    <string name="ai_title">AI</string>
+    <string name="ai_title">IA</string>
     <string name="ai_card_attachment_title">Carte · %1$s</string>
     <string name="ai_consent_title">Avant d\'utiliser AI</string>
     <string name="ai_consent_warning">AI peut se tromper. Vérifiez les résultats importants avant de vous y fier.</string>
@@ -59,6 +64,6 @@
     <string name="ai_attach">Joindre</string>
     <string name="ai_dictate">Dicter</string>
     <string name="ai_send">Envoyer</string>
-    <string name="ai_empty_title">Démarrer un nouveau chat AI</string>
+    <string name="ai_empty_title">Démarrer un nouveau chat IA</string>
     <string name="ai_empty_body">Posez des questions sur les cartes et l\'historique de révision, ou joignez des notes à analyser dans %1$s.</string>
 </resources>

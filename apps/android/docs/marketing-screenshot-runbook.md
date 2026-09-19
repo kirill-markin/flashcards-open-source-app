@@ -11,7 +11,7 @@ These screenshot flows are manual-only Android instrumentation entrypoints.
 They are not part of Android CI, release gates, or default `androidTest` runs.
 Each flow prepares a specific in-app state, captures a PNG on the emulator, and pulls that file into `apps/android/docs/media/play-store-screenshots/`.
 The wrappers run the dedicated `marketingScreenshot` app variant, which can include screenshot-only resource overlays from `apps/android/app/src/marketingScreenshot/res` without changing normal `debug` or `release` builds.
-The wrapper now runs a dedicated guest cleanup entrypoint before the screenshot flow and again from an exit trap after the wrapper finishes, including failure exits.
+The wrapper runs a dedicated guest cleanup entrypoint before the screenshot flow and again from an exit trap after the wrapper finishes, including failure exits.
 The screenshot reset rule also deletes any stored guest cloud screenshot session through `POST /guest-auth/session/delete` before the local reset clears the guest token, both before and after the manual screenshot test body.
 
 ## Current wrapper scripts
@@ -146,11 +146,11 @@ bash scripts/android/capture-android-marketing-screenshots.sh
 Each wrapper script does the following:
 
 1. Verifies that an Android API 37 device is connected.
-2. Dismisses blocking system dialogs.
+2. Sets the device locale and dark mode, then dismisses blocking system dialogs.
 3. Runs one manual-only instrumentation class through `:app:connectedMarketingScreenshotAndroidTest`.
 4. Pulls the generated PNG file or files from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
 
-The screenshot capture step now explicitly collapses the Android status bar before running `screencap`.
+The screenshot capture step explicitly collapses the Android status bar before running `screencap`.
 That prevents an already-open notification shade from being captured on top of an otherwise-correct app screen.
 
 The unified wrapper runs one shared entrypoint, seeds the guest workspace once, and pulls screenshots 1, 2, 3, 4, and 5 from the same instrumentation run.
@@ -168,6 +168,13 @@ After a wrapper finishes:
 1. Check that the expected PNG exists in `apps/android/docs/media/play-store-screenshots/`.
 2. Open the actual PNG file.
 3. Verify that there is no system dialog overlay, loading spinner, missing handoff state, or stale content.
+
+The screenshot variant suppresses the guest sign-in prompt. The robot rejects any
+Compose dialog before each capture. The wrapper removes the expected device files
+before the run, checks their nonzero size and modification time against the device's
+run-start clock, and verifies each pulled file's size, timestamp, and PNG signature.
+It stages all five files before replacing the committed outputs; a failed capture
+or pull leaves the previous set in place.
 
 A green instrumentation result is not enough on its own.
 The final check is always the screenshot image itself.

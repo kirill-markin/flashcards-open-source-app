@@ -133,6 +133,20 @@ extension AIChatView {
                     .disabled(self.composerTextFieldDisabled)
                     .autocorrectionDisabled(true)
                     .focused(self.$isComposerFocused)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button(String(
+                                localized: "ai.composer.dismiss_keyboard",
+                                defaultValue: "Done",
+                                table: "Foundation",
+                                comment: "Dismiss the AI composer keyboard"
+                            )) {
+                                self.dismissComposerFocus()
+                            }
+                            .accessibilityIdentifier(UITestIdentifier.aiComposerDismissKeyboardButton)
+                        }
+                    }
                     .lineLimit(1...aiChatComposerMaximumLineCount)
                     .padding(.leading, 12)
                     .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)

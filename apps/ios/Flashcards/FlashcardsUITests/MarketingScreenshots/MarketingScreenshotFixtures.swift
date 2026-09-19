@@ -751,71 +751,16 @@ extension MarketingManualScreenshotTestCase {
             return
         }
 
-        let dismissalSurface = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiScreen)
-            .firstMatch
-        let navigationBar = self.app.navigationBars.firstMatch
-        let composerTextField = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiComposerTextField)
-            .firstMatch
-        let deadline = Date().addingTimeInterval(timeout)
-
-        while Date() < deadline {
-            if dismissalSurface.exists && dismissalSurface.isHittable {
-                dismissalSurface.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)
-                ).tap()
-            } else if navigationBar.exists && navigationBar.isHittable {
-                navigationBar.tap()
-            } else {
-                let coordinate = self.app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
-                coordinate.tap()
-            }
-
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
-            if self.softwareKeyboardIsVisible() == false {
-                return
-            }
-        }
-
-        if dismissalSurface.exists && dismissalSurface.isHittable {
-            dismissalSurface.swipeDown()
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
-            if self.softwareKeyboardIsVisible() == false {
-                return
-            }
-        }
-
-        if navigationBar.exists && navigationBar.isHittable {
-            navigationBar.tap()
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
-            if self.softwareKeyboardIsVisible() == false {
-                return
-            }
-        }
-
-        let returnButtons = self.app.keyboards.buttons.matching(identifier: "Return")
-        for index in 0..<returnButtons.count {
-            let returnButton = returnButtons.element(boundBy: index)
-            if returnButton.exists && returnButton.isHittable {
-                returnButton.tap()
-                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
-                if self.softwareKeyboardIsVisible() == false {
-                    return
-                }
-            }
-        }
-
-        if composerTextField.exists && self.elementHasKeyboardFocus(element: composerTextField) {
-            composerTextField.typeText(XCUIKeyboardKey.return.rawValue)
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
-            if self.softwareKeyboardIsVisible() == false {
-                return
-            }
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
+            timeout: timeout
+        )
+        if self.app.keyboards.firstMatch.waitForNonExistence(timeout: timeout) {
+            return
         }
 
         throw LiveSmokeFailure.unexpectedAiConversationState(
-            message: "AI composer keyboard remained visible after dismissal attempts.",
+            message: "AI composer keyboard remained visible after tapping Done.",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
