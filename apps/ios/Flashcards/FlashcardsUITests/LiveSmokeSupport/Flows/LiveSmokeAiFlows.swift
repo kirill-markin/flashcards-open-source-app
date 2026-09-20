@@ -46,6 +46,14 @@ extension LiveSmokeTestCase {
                 aiCreatePromptText,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            try self.assertElementDoesNotExist(
+                identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
             let messageRowsBeforeSend = self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
                 .count

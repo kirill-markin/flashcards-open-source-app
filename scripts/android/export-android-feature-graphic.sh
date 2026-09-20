@@ -8,7 +8,7 @@ if [[ "$#" -ne 1 ]]; then
 fi
 
 locale="$1"
-supported_locales=("en-US" "ar" "zh-CN" "fr-FR" "de-DE" "hi-IN" "ja-JP" "pt-BR" "ru-RU" "es-419" "es-ES" "es-US")
+supported_locales=("en-US" "ar" "zh-CN" "fr-FR" "de-DE" "hi-IN" "ja-JP" "pt-BR" "ru-RU" "es-419" "es-ES" "es-US" "bg" "bn-BD" "ca" "cs-CZ" "da-DK" "el-GR" "et" "fa" "fi-FI" "gu" "iw-IL" "hr" "hu-HU" "id" "is-IS" "it-IT" "kn-IN" "ko-KR" "lt" "lv" "ml-IN" "mr-IN" "nl-NL" "no-NO" "pa" "pl-PL" "ro" "sk" "sl" "sv-SE" "sw" "ta-IN" "te-IN" "th" "tr-TR" "uk" "ur" "vi" "zu")
 is_supported="false"
 
 for supported_locale in "${supported_locales[@]}"; do

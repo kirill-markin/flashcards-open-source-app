@@ -75,6 +75,30 @@ function buildInPredicateSql(sqlExpression: string, values: ReadonlyArray<string
   return `${sqlExpression} IN (${values.map(escapeSqlStringLiteral).join(", ")})`;
 }
 
+/**
+ * One person-level membership test, as `= ANY (ARRAY(...))` over an uncorrelated subquery.
+ *
+ * DELIBERATELY NOT `IN (SELECT ...)`, and the difference is only a planning one: both forms mean the
+ * same set here, because every subquery below selects an actor id it has already guarded as non-NULL,
+ * which is the one case the two disagree on. Every caller compares an actor expression a report reads
+ * off a CTE, and a CTE scan carries no column statistics, so the planner falls back to a `rows=1`
+ * guess for the outer side, picks a nested loop and re-executes the whole inner subquery once per
+ * outer row - which on a range-wide scan of `analytics.product_events_resolved` is what takes a report
+ * past the 30s `reporting_readonly` statement timeout. `ARRAY(...)` around the subquery makes it an
+ * InitPlan: it is uncorrelated, so it is evaluated exactly once no matter how wrong that outer
+ * estimate is, and the outer row then probes the finished array.
+ */
+function buildSubqueryMembershipSql(
+  sqlExpression: string,
+  subquerySqlLines: ReadonlyArray<string>,
+): string {
+  return [
+    `${sqlExpression} = ANY (ARRAY(`,
+    ...subquerySqlLines,
+    "))",
+  ].join("\n");
+}
+
 /** Picking nobody keeps every user, so an empty selection is the absence of a filter rather than "none". */
 export function buildUsersFilterSql(
   actorIdSqlExpression: string,
@@ -136,8 +160,7 @@ function buildMinimumEventCountFilterSql(
     );
   }
 
-  return [
-    `${actorIdSqlExpression} IN (`,
+  return buildSubqueryMembershipSql(actorIdSqlExpression, [
     "  SELECT threshold_events.actor_id::text",
     "  FROM analytics.product_events_resolved AS threshold_events",
     `  WHERE threshold_events.event_name = ${escapeSqlStringLiteral(minimumEventCount.eventType)}`,
@@ -153,8 +176,7 @@ function buildMinimumEventCountFilterSql(
       : []),
     "  GROUP BY threshold_events.actor_id",
     `  HAVING COUNT(*) >= ${minimumEventCount.minimumCount}`,
-    ")",
-  ].join("\n");
+  ]);
 }
 
 /**
@@ -270,15 +292,13 @@ export function buildConnectionCountriesFilterSql(
     return "TRUE";
   }
 
-  return [
-    `${actorIdSqlExpression} IN (`,
+  return buildSubqueryMembershipSql(actorIdSqlExpression, [
     "  SELECT country_samples.actor_id::text",
     "  FROM (",
     buildConnectionCountrySamplesSql(dateRange, null),
     "  ) AS country_samples",
     `  WHERE ${buildInPredicateSql("country_samples.country", connectionCountries)}`,
-    ")",
-  ].join("\n");
+  ]);
 }
 
 /**
@@ -305,16 +325,14 @@ export function buildAppUiLanguagesFilterSql(
     return "TRUE";
   }
 
-  return [
-    `${actorIdSqlExpression} IN (`,
+  return buildSubqueryMembershipSql(actorIdSqlExpression, [
     "  SELECT ui_locale_events.actor_id::text",
     "  FROM analytics.product_events_resolved AS ui_locale_events",
     `  WHERE ${buildInPredicateSql("ui_locale_events.ui_locale", appUiLanguages)}`,
     "    AND ui_locale_events.actor_id IS NOT NULL",
     `    AND ui_locale_events.occurred_at >= ${buildRangeStartSql(dateRange)}`,
     `    AND ui_locale_events.occurred_at < ${buildRangeEndSql(dateRange)}`,
-    ")",
-  ].join("\n");
+  ]);
 }
 
 /**
@@ -362,15 +380,13 @@ export function buildInstalledDecksFilterSql(
     return "TRUE";
   }
 
-  return [
-    `${actorIdSqlExpression} IN (`,
+  return buildSubqueryMembershipSql(actorIdSqlExpression, [
     "  SELECT installed_decks.actor_id::text",
     "  FROM (",
     buildCatalogInstalledDeckVersionsSql(),
     "  ) AS installed_decks",
     `  WHERE ${buildInPredicateSql("installed_decks.package_version_id", installedDecks)}`,
-    ")",
-  ].join("\n");
+  ]);
 }
 
 /**
@@ -465,20 +481,20 @@ export function buildCatalogAttributionFiltersSql(
     { columnSqlName: "device_locale", values: filters.catalogClickBrowserLanguages },
   ];
   const narrowedSelections = clickSelections.filter((selection) => selection.values.length > 0);
-  const clickAttributionSql = narrowedSelections.length === 0 ? "TRUE" : [
-    `${actorIdSqlExpression} IN (`,
-    "  SELECT install_attribution.actor_id::text",
-    "  FROM (",
-    buildCatalogInstallAttributionSql(),
-    "  ) AS install_attribution",
-    `  WHERE ${narrowedSelections
-      .map((selection) => buildInPredicateSql(
-        `install_attribution.${selection.columnSqlName}`,
-        selection.values,
-      ))
-      .join("\n    AND ")}`,
-    ")",
-  ].join("\n");
+  const clickAttributionSql = narrowedSelections.length === 0
+    ? "TRUE"
+    : buildSubqueryMembershipSql(actorIdSqlExpression, [
+      "  SELECT install_attribution.actor_id::text",
+      "  FROM (",
+      buildCatalogInstallAttributionSql(),
+      "  ) AS install_attribution",
+      `  WHERE ${narrowedSelections
+        .map((selection) => buildInPredicateSql(
+          `install_attribution.${selection.columnSqlName}`,
+          selection.values,
+        ))
+        .join("\n    AND ")}`,
+    ]);
   const narrowedPredicateSql = [
     buildInstalledDecksFilterSql(actorIdSqlExpression, filters.installedDecks),
     clickAttributionSql,

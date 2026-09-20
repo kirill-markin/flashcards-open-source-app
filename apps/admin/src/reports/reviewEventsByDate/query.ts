@@ -466,7 +466,7 @@ export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): strin
   const to = dateRange.to;
 
   return [
-    `WITH ${buildReviewAnswersCteSql(to)}`,
+    `WITH ${buildReviewAnswersCteSql(to, filters.users)}`,
     "SELECT",
     "  to_char(review_answers.review_date, 'YYYY-MM-DD') AS review_date,",
     // Emitted under the name the SPA row shape already uses. The value is the resolved actor.
@@ -480,7 +480,6 @@ export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): strin
     "  ON actor_first_review_date.actor_id = review_answers.actor_id",
     `WHERE review_answers.review_date >= ${escapeSqlStringLiteral(from)}::date`,
     `  AND review_answers.review_date <= ${escapeSqlStringLiteral(to)}::date`,
-    `  AND ${buildUsersFilterSql("review_answers.actor_id", filters.users)}`,
     `  AND ${buildUserCohortsFilterSql(reviewCohortSqlExpression, filters.userCohorts)}`,
     `  AND ${buildEventPlatformsFilterSql("review_answers.platform", filters.eventPlatforms)}`,
     `  AND ${buildMinimumEventCountsFilterSql("review_answers.actor_id", filters.minimumEventCounts, dateRange)}`,
@@ -506,7 +505,22 @@ export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): strin
 // against the same materialized rows. The predicate is on the raw `occurred_at` column rather than on
 // its UTC date so `idx_product_events_event_name_occurred_at` stays usable as an
 // (event_name, occurred_at) range scan.
-function buildReviewAnswersCteSql(to: string): string {
+//
+// THE USER SELECTION IS PUSHED IN HERE, and it is the one filter field that is. It selects actors
+// rather than rows, so pushing it in keeps each selected actor's whole review history and the cohort
+// split below is still computed from all of it; what it removes is every other actor's history from
+// the rows both callers then scan. Left outside only, it was a filter on a CTE scan - which has no
+// column statistics, so the planner guessed `rows=1`, chose a nested loop and re-executed the
+// aggregate below once per row. This is an ADDITIONAL application, not a replacement for the
+// callers': `buildReviewEventsByDateSql` relies on it alone, but
+// `buildReviewEventsByDateCommunitySql` also keeps its own outer predicate on
+// `community_user_dates.actor_id`, and must. That statement emits this CTE only when the cohort or
+// platform field is narrowed, so on every unnarrowed selection the outer predicate is the only place
+// the user filter exists at all; deleting it would silently drop the filter from the whole community
+// panel. Applying both where both exist costs nothing, because the two intersect to the same set.
+// Every other field stays with the callers, because the two statements apply them to different
+// expressions.
+function buildReviewAnswersCteSql(to: string, users: ReadonlyArray<string>): string {
   return [
     "review_answers AS (",
     "  SELECT",
@@ -521,6 +535,7 @@ function buildReviewAnswersCteSql(to: string): string {
     "  LEFT JOIN org.user_settings AS user_settings",
     "    ON pg_catalog.lower(user_settings.user_id) = resolved.actor_id::text",
     "  WHERE resolved.event_name = 'review_answered'",
+    `    AND ${buildUsersFilterSql("resolved.actor_id::text", users)}`,
     "    AND resolved.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
@@ -542,7 +557,12 @@ function buildReviewAnswersCteSql(to: string): string {
     // an offline, imported or guest-merged history older than 30 days collapses onto sync day
     // instead of onto the days it was answered - which is the opposite of the in-window shift and
     // worth knowing before reading an early spike as real.
-    "actor_first_review_date AS (",
+    //
+    // MATERIALIZED ON PURPOSE. This is referenced once, so Postgres would otherwise inline it into
+    // the caller's join, where the same missing statistics on a CTE scan let a nested loop rescan the
+    // whole aggregate per outer row. Materializing computes each actor's first review day exactly
+    // once, whatever the caller's join turns out to look like.
+    "actor_first_review_date AS MATERIALIZED (",
     "  SELECT",
     "    review_answers.actor_id,",
     "    MIN(review_answers.review_date) AS first_review_date",
@@ -628,7 +648,7 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
 
   return [
     ...(isRestrictedToFilteredReviewActors ? [
-      `WITH ${buildReviewAnswersCteSql(to)},`,
+      `WITH ${buildReviewAnswersCteSql(to, filters.users)},`,
       "filtered_review_actors AS (",
       "  SELECT DISTINCT review_answers.actor_id",
       "  FROM review_answers",
