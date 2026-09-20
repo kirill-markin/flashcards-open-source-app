@@ -720,7 +720,7 @@
 "settings.workspace.decks.searchPrompt" = "Kaartensets zoeken";
 "settings.workspace.decks.newDeck" = "Nieuwe kaartenset";
 "settings.workspace.decks.dueCount" = "Te herhalen: %d";
-"settings.workspace.decks.totalCards" = "%d kaarten";
+"settings.workspace.decks.totalCards" = "Kaarten: %d";
 "settings.workspace.decks.newCount" = "Nieuw: %d";
 "settings.workspace.decks.reviewedCount" = "Herhaald: %d";
 "settings.workspace.decks.emptyAllCards" = "Je hebt nog geen kaarten gemaakt.";
