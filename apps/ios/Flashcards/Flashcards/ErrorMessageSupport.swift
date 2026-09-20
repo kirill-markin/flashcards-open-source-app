@@ -311,7 +311,9 @@ private func safeIOSNetworkTransportEndpointPath(_ endpointPath: String) -> Stri
     let redactedPath: String = normalizedPath
         .split(separator: "/", omittingEmptySubsequences: false)
         .map { segment in
-            let segmentValue: String = String(segment)
+            // Classification trims the segment, so emit the trimmed value too; otherwise a
+            // segment judged safe can still fail the allowed-character guard below.
+            let segmentValue: String = String(segment).trimmingCharacters(in: .whitespacesAndNewlines)
             guard shouldRedactIOSNetworkTransportEndpointPathSegment(segmentValue) else {
                 return segmentValue
             }
@@ -386,8 +388,21 @@ private func iosNetworkTransportAPIHostDiagnostics(
     )
 }
 
+// Network transport identifiers (hosts, HTTP methods, NSError domains, endpoint path
+// segments) are machine-shaped, so they keep the strict allowlist. `safeDiagnosticIdentifier`
+// itself allows a wider punctuation set for code-authored descriptions; these transport
+// identifiers deliberately do not use it.
+private let iosNetworkTransportIdentifierAllowedCharacters: CharacterSet = CharacterSet(
+    charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-"
+)
+
 private func safeIOSNetworkTransportIdentifier(_ value: String) -> String? {
-    let candidate: String = safeDiagnosticIdentifier(value)
+    let trimmedValue: String = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.isEmpty == false,
+          trimmedValue.rangeOfCharacter(from: iosNetworkTransportIdentifierAllowedCharacters.inverted) == nil else {
+        return nil
+    }
+    let candidate: String = safeDiagnosticIdentifier(trimmedValue)
     guard candidate != filteredDiagnosticValue else {
         return nil
     }
