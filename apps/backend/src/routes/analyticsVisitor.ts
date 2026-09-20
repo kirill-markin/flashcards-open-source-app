@@ -187,10 +187,11 @@ export function createAnalyticsVisitorRoutes(
     const granted = expectBoolean(body.granted, "granted");
     const consentRequired = await isConsentRequiredForRequest(context);
     if (!granted) {
-      // A decline drops the cookie and is recorded nowhere else yet: the durable consent record is
-      // p03/p08 work. Until those land, "never mint on a decline" holds only through `GET` refusing
-      // to mint in a consent-required country, and a decline outside one is re-minted on the next
-      // `GET`. That is expected at this stage, not a bug.
+      // A decline drops the cookie and records nothing here: this route holds no durable record of
+      // one. The two that do are the account column and the client's own stored decision, and the
+      // second is what stops a declining browser asking again — `GET` mints for any country that
+      // requires no consent, so a client that kept asking would be re-minted on the next call
+      // (docs/analytics-visitor-identity.md).
       clearAnalyticsVisitor(context);
       const declinedEnvelope: AnalyticsVisitorEnvelope = { consentRequired, visitorId: null };
       return context.json(declinedEnvelope);

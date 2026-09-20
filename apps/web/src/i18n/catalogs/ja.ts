@@ -819,6 +819,21 @@ export const jaCatalog = {
     toggleTitle: "AIチャット入力欄に提案を表示",
     toggleDescription: "チャットが待機中で準備できているとき、入力欄の上に提案プロンプトが表示されます。",
   },
+  analyticsConsentBanner: {
+    label: "分析用Cookie",
+    message: "アプリの使われ方を把握するために、Cookieとブラウザーのその他の保存領域を使います。選ぶまで、この端末には何も保存せず、あなたを特定できるものも送信しません。",
+    allow: "許可",
+    decline: "拒否",
+    privacyPolicy: "プライバシーポリシー",
+    error: "うまくいきませんでした。もう一度お試しください。",
+  },
+  analyticsSettings: {
+    title: "分析",
+    subtitle: "このブラウザーを計測してよいかを選びます。",
+    toggleTitle: "分析用Cookieを許可する",
+    toggleDescription: "オフのあいだ、このブラウザーには識別子が割り当てられず、分析のための保存も行いません。ただしサインインしている間は、計測した内容はあなたのアカウントに記録されます。",
+    error: "うまくいきませんでした。もう一度お試しください。",
+  },
   leaderboardParticipationSettings: {
     title: "リーダーボード参加",
     subtitle: "コミュニティランキングに表示されるか、ランキングを見られるかを管理します。",

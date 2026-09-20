@@ -107,6 +107,7 @@ export const seededSession: SessionInfo = {
   csrfToken: "csrf-seeded",
   preferences: {
     reviewReactionAnimationsEnabled: true,
+    analyticsConsent: null,
   },
   profile: {
     email: "user@example.com",
@@ -197,6 +198,7 @@ export function buildSessionResponseForUser(userId: string, selectedWorkspaceId:
     csrfToken,
     preferences: {
       reviewReactionAnimationsEnabled: true,
+      analyticsConsent: null,
     },
     profile: {
       email: "user@example.com",

@@ -1,5 +1,8 @@
+import { test as playwrightTest } from "@playwright/test";
+
 import { test } from "./live-smoke/fixture";
 import { runAiCardCreationFlow, runAiConversationResetFlow } from "./live-smoke/flows/ai";
+import { runAnalyticsConsentBannerFlow } from "./live-smoke/flows/analytics-consent";
 import { runLinkedWorkspaceSetupFlow } from "./live-smoke/flows/auth-workspace";
 import { runSeededCardReviewFlow } from "./live-smoke/flows/cards-review";
 import { runResetProgressFlow } from "./live-smoke/flows/reset-progress";
@@ -59,4 +62,13 @@ test.describe.serial("live smoke flow uses the configured review account across 
   test("new chat resets the AI conversation cleanly", async ({ liveSmokeSession }) => {
     await runAiConversationResetFlow(liveSmokeSession);
   });
+});
+
+/**
+ * Deliberately outside the group above and on the raw Playwright fixture: this is the one scenario
+ * that must run on a browser with no seeded consent answer, and the shared session is seeded before
+ * the app starts.
+ */
+playwrightTest("first-time visitor is asked for analytics consent and the page underneath keeps working", async ({ browser }, testInfo) => {
+  await runAnalyticsConsentBannerFlow(browser, testInfo);
 });

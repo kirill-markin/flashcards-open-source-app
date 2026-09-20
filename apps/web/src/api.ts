@@ -28,6 +28,7 @@ export {
   requestAnalyticsVisitor,
   sendAnalyticsEventsBatch,
   sendAnonymousAnalyticsEvent,
+  submitAnalyticsVisitorConsent,
 } from "./api/endpoints/analytics";
 export type {
   AnalyticsIngestResult,

@@ -5,6 +5,7 @@
  * and `identity.ts` is imported by the browser-data cleanup the API transport itself depends on.
  */
 import { requestAnalyticsVisitor } from "../api";
+import { publishAnalyticsConsentJurisdiction, readAnalyticsConsentDecision } from "./consent";
 import {
   adoptLegacyAnalyticsAnonymousId,
   dropLegacyAnalyticsAnonymousId,
@@ -31,7 +32,9 @@ async function runVisitorIdentityResolution(): Promise<void> {
   try {
     if (readAnalyticsVisitorId() !== null) {
       // This browser already carries the shared identity, so the stored key describes history the
-      // cookie has replaced.
+      // cookie has replaced, and the cookie is itself the record that it was allowed one: no banner
+      // is owed to a browser that already holds it.
+      publishAnalyticsConsentJurisdiction(false);
       dropLegacyAnalyticsAnonymousId();
       hasSettledVisitorIdentity = true;
       return;
@@ -41,6 +44,9 @@ async function runVisitorIdentityResolution(): Promise<void> {
     // stored the cookie that came with it, so the cookie is the only evidence that this browser has
     // an identity at all (docs/analytics-visitor-identity.md).
     const visitor = await requestAnalyticsVisitor();
+    // The banner is owed to this browser exactly where the route says the country requires one, and
+    // it is published before the cookie is read so a granting browser stops being asked either way.
+    publishAnalyticsConsentJurisdiction(visitor.consentRequired);
     if (readAnalyticsVisitorId() !== null) {
       adoptLegacyAnalyticsAnonymousId();
       hasSettledVisitorIdentity = true;
@@ -54,7 +60,12 @@ async function runVisitorIdentityResolution(): Promise<void> {
     // this browser is asked, and reporting it under a fabricated per-tab id is precisely what that
     // refusal forbids — so the gate stays shut and the events wait in the queue for the consent
     // banner. An unreadable body is parsed as withheld, so this fails closed too.
-    hasSettledVisitorIdentity = visitor.consentRequired === false;
+    //
+    // A browser that has already granted is settled either way: it asked for the identity itself
+    // and the server withholding one here means it kept no cookie, which is the same
+    // cookie-blocking degrade to the per-tab id that a minted browser takes.
+    hasSettledVisitorIdentity = visitor.consentRequired === false
+      || readAnalyticsConsentDecision() === "granted";
   } catch {
     // A transient failure is not an answer, so the gate stays shut rather than releasing delivery
     // under a per-tab id no later load can ever see again: the events stay queued under their
@@ -66,6 +77,15 @@ async function runVisitorIdentityResolution(): Promise<void> {
     // nothing analytics does may surface to the user.
     hasFailedVisitorIdentity = true;
     lastVisitorIdentityFailureAtMs = Date.now();
+    if (visitorIdentityAttemptCount >= maxVisitorIdentityAttemptCount) {
+      // The attempts are spent, so this load will never be told what the country requires — and not
+      // knowing is not permission, the same rule the route itself applies when it cannot place a
+      // caller. Published as "must be asked": the gate stays shut, but the banner comes up and the
+      // person can open it themselves. Without an answer here nothing else moves either — the flush
+      // returns on the open question, a deferred queue-owner claim is never run, and a signed-in
+      // browser that refused holds everything it collects in memory until the document goes away.
+      publishAnalyticsConsentJurisdiction(true);
+    }
   }
 }
 
@@ -99,6 +119,22 @@ export function resolveAnalyticsVisitorIdentity(): Promise<void> {
     return visitorIdentityTask;
   }
 
+  return startVisitorIdentityAttempt();
+}
+
+/**
+ * Asks once more after the consent banner granted, which is the one thing that turns a deliberately
+ * withheld identity into one this browser may hold. The grant's own `POST` has already minted the
+ * cookie, so this normally settles by reading it rather than by asking for anything; a browser that
+ * kept no cookie pays one more `GET` and then degrades to the per-tab id its grant allows.
+ *
+ * The attempt bounds are reset with it: they exist to stop a flaky network from polling the route,
+ * and a person answering a banner is neither.
+ */
+export function resolveAnalyticsVisitorIdentityAfterConsentGrant(): Promise<void> {
+  hasSettledVisitorIdentity = false;
+  visitorIdentityAttemptCount = 0;
+  lastVisitorIdentityFailureAtMs = 0;
   return startVisitorIdentityAttempt();
 }
 

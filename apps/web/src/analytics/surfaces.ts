@@ -4,6 +4,7 @@ import {
   chatRoute,
   devPreviewsRoutePrefix,
   friendInviteRoutePrefix,
+  normalizeRoutePath,
   progressRoute,
   reviewRoute,
   settingsDecksRoute,
@@ -78,7 +79,12 @@ function isDeckEditorRoute(pathname: string): boolean {
  * three steps of the install flow behind it are component state rather than routes, so they report
  * themselves through `useAnalyticsScreenView`, as does the sign-in gate a signed-out visitor sees.
  */
-export function resolveAnalyticsSurface(pathname: string): AnalyticsSurface | null {
+export function resolveAnalyticsSurface(rawPathname: string): AnalyticsSurface | null {
+  // Matched on the same normalized path `isAuthenticatedAppPath` uses, because the comparisons
+  // below are against the same route constants: a raw `/Review` or `/review/` would report no
+  // surface at all while React Router renders the screen.
+  const pathname = normalizeRoutePath(rawPathname);
+
   if (pathname === reviewRoute) {
     return "review";
   }

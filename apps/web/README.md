@@ -25,6 +25,11 @@ The web app does not own an anonymous identity of its own. `anonymous_id` is the
 measure one person under one id, from the first page view and across a logout:
 [analytics visitor identity](../../docs/analytics-visitor-identity.md).
 
+Where the law requires consent first, a bottom strip asks for it, and until the person answers
+nothing is written to the device and nothing carrying an identifier is sent. Read
+[analytics visitor identity](../../docs/analytics-visitor-identity.md) before touching the banner,
+the settings withdrawal entry, or anything in `src/analytics/` that runs before a decision exists.
+
 Which transport an event leaves on follows from whether a credential exists. A signed-in browser
 batches through the authenticated ingest; a signed-out one reports one event per request through the
 credential-free collector, [anonymous client analytics](../../docs/anonymous-client-analytics.md).
