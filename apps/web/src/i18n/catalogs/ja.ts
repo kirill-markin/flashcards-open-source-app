@@ -109,6 +109,11 @@ export const jaCatalog = {
       reload: "ページを再読み込み",
       later: "後で",
     },
+    storageUnavailable: {
+      title: "ブラウザのストレージを利用できません",
+      message: "このアプリはブラウザのストレージを必要としますが、このブラウザがブロックしています。",
+      guidance: "プライベートではない通常のウィンドウ、または別のブラウザでアプリを開いてください。",
+    },
   },
   filters: {
     allCards: "すべてのカード",

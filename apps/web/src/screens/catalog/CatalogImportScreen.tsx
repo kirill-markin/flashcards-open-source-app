@@ -186,6 +186,7 @@ export function CatalogImportScreen(): ReactElement {
         testId="catalog-import-loading"
         title={t("catalogImport.title")}
         message={t("catalogImport.loading")}
+        guidance={null}
         retryLabel={null}
         onRetry={null}
       />
@@ -198,6 +199,7 @@ export function CatalogImportScreen(): ReactElement {
         testId="catalog-import-not-found"
         title={t("catalogImport.unavailableTitle")}
         message={t("catalogImport.versionUnavailable")}
+        guidance={null}
         retryLabel={t("common.retry")}
         onRetry={() => void loadCatalogImport()}
       />
@@ -210,6 +212,7 @@ export function CatalogImportScreen(): ReactElement {
         testId="catalog-import-error"
         title={t("catalogImport.errorTitle")}
         message={errorMessage === "" ? t("catalogImport.errorBody") : errorMessage}
+        guidance={null}
         retryLabel={packageVersionId === null ? null : t("common.retry")}
         onRetry={packageVersionId === null ? null : () => void loadCatalogImport()}
       />

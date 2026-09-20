@@ -109,6 +109,11 @@ export const zhHansCatalog = {
       reload: "重新加载页面",
       later: "稍后",
     },
+    storageUnavailable: {
+      title: "浏览器存储不可用",
+      message: "此应用需要浏览器存储，但当前浏览器阻止了它。",
+      guidance: "请在普通窗口（非隐私模式）或其他浏览器中打开此应用。",
+    },
   },
   filters: {
     allCards: "所有卡片",

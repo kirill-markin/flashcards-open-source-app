@@ -109,6 +109,11 @@ const esEsCatalog: TranslationCatalog = {
       reload: "Recargar página",
       later: "Más tarde",
     },
+    storageUnavailable: {
+      title: "Almacenamiento del navegador no disponible",
+      message: "Esta aplicación necesita el almacenamiento del navegador y este navegador lo está bloqueando.",
+      guidance: "Abre la aplicación en una ventana normal (no privada) o en otro navegador.",
+    },
   },
   filters: {
     allCards: "Todas las tarjetas",
