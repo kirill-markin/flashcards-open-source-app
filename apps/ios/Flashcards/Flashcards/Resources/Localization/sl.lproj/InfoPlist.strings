@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,učne kartice,kartice za učenje,spominske kartice";
+"NSCameraUsageDescription" = "Dovolite dostop do kamere za fotografiranje prilog v klepetu z UI.";
+"NSMicrophoneUsageDescription" = "Dovolite dostop do mikrofona za narekovanje besedila v klepet z UI.";
+"NSPhotoLibraryUsageDescription" = "Dovolite dostop do knjižnice fotografij za izbiro fotografij za priloge v klepetu z UI.";
