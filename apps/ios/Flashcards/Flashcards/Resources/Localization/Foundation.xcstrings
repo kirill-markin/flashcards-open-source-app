@@ -28,6 +28,24 @@
             "value" : "Fet"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotovo"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Færdig"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τέλος"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -115,6 +133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Obriu Configuració si voleu desactivar aquest accés."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokud chcete tento přístup vypnout, otevřete Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbn Indstillinger, hvis du vil slå denne adgang fra."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ανοίξτε τις Ρυθμίσεις για να απενεργοποιήσετε αυτήν την πρόσβαση."
           }
         },
         "de" : {
@@ -206,6 +242,24 @@
             "value" : "Sol·liciteu accés ara o obriu Configuració més tard si voleu gestionar-lo manualment."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Požádejte o přístup nyní, nebo jej později spravujte ručně v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmod om adgang nu, eller administrer den senere manuelt i Indstillinger."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ζητήστε πρόσβαση τώρα ή διαχειριστείτε τη χειροκίνητα αργότερα στις Ρυθμίσεις."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -293,6 +347,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L'accés a la càmera està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Càmera per canviar-ho."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k fotoaparátu je pro Nibomo vypnutý. Změníte jej v Nastavení > Soukromí a zabezpečení > Fotoaparát."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameraadgang er slået fra for Nibomo. Åbn Indstillinger > Anonymitet & sikkerhed > Kamera for at ændre det."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στην κάμερα είναι απενεργοποιημένη για το Nibomo. Αλλάξτε την στις Ρυθμίσεις > Απόρρητο και ασφάλεια > Κάμερα."
           }
         },
         "de" : {
@@ -384,6 +456,24 @@
             "value" : "Obriu Configuració per revisar o ampliar aquest accés."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otevřete Nastavení a zkontrolujte nebo rozšiřte tento přístup."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbn Indstillinger for at gennemgå eller udvide denne adgang."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ανοίξτε τις Ρυθμίσεις για να ελέγξετε ή να επεκτείνετε αυτήν την πρόσβαση."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -471,6 +561,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L'accés al micròfon està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Micròfon per canviar-lo."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k mikrofonu je pro Nibomo vypnutý. Změníte jej v Nastavení > Soukromí a zabezpečení > Mikrofon."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonadgang er slået fra for Nibomo. Åbn Indstillinger > Anonymitet & sikkerhed > Mikrofon for at ændre det."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στο μικρόφωνο είναι απενεργοποιημένη για το Nibomo. Αλλάξτε την στις Ρυθμίσεις > Απόρρητο και ασφάλεια > Μικρόφωνο."
           }
         },
         "de" : {
@@ -562,6 +670,24 @@
             "value" : "L'accés a les fotos està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Fotos per canviar-ho."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k fotkám je pro Nibomo vypnutý. Změníte jej v Nastavení > Soukromí a zabezpečení > Fotky."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoadgang er slået fra for Nibomo. Åbn Indstillinger > Anonymitet & sikkerhed > Fotos for at ændre det."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στις φωτογραφίες είναι απενεργοποιημένη για το Nibomo. Αλλάξτε την στις Ρυθμίσεις > Απόρρητο και ασφάλεια > Φωτογραφίες."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -649,6 +775,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Només estan disponibles les fotos que ja has compartit amb Nibomo. Obriu Configuració per concedir un accés més ampli a les fotos."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostupné jsou pouze fotky, které jste již sdíleli s Nibomo. Širší přístup k fotkám povolíte v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kun de fotos, du allerede har delt med Nibomo, er tilgængelige. Åbn Indstillinger for at give adgang til flere fotos."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Είναι διαθέσιμες μόνο οι φωτογραφίες που έχετε ήδη μοιραστεί με το Nibomo. Ανοίξτε τις Ρυθμίσεις για ευρύτερη πρόσβαση στις φωτογραφίες."
           }
         },
         "de" : {
@@ -740,6 +884,24 @@
             "value" : "Aquest accés no està disponible al dispositiu actual."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tento přístup není na tomto zařízení dostupný."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne adgang er ikke tilgængelig på denne enhed."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αυτή η πρόσβαση δεν είναι διαθέσιμη σε αυτήν τη συσκευή."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -827,6 +989,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permès"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Povoleno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilladt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επιτρέπεται"
           }
         },
         "de" : {
@@ -918,6 +1098,24 @@
             "value" : "Preguntar cada cop"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokaždé se zeptat"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spørg hver gang"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ερώτηση κάθε φορά"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1005,6 +1203,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bloquejat"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zablokováno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blokeret"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποκλεισμένη"
           }
         },
         "de" : {
@@ -1096,6 +1312,24 @@
             "value" : "Limitat"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omezeno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begrænset"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Περιορισμένη"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1183,6 +1417,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No disponible"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nedostupné"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke tilgængelig"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μη διαθέσιμο"
           }
         },
         "de" : {
@@ -1274,6 +1526,24 @@
             "value" : "Fes fotos directament des del xat IA."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pořizujte fotky přímo v chatu s AI."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag fotos direkte i AI-chatten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τραβήξτε φωτογραφίες απευθείας στη συνομιλία με την ΤΝ."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1361,6 +1631,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Càmera"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoaparát"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κάμερα"
           }
         },
         "de" : {
@@ -1452,6 +1740,24 @@
             "value" : "Dicta text al xat amb IA."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktujte text do chatu s AI."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dikter tekst til AI-chatten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Υπαγορεύστε κείμενο στη συνομιλία με την ΤΝ."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1539,6 +1845,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Micròfon"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μικρόφωνο"
           }
         },
         "de" : {
@@ -1630,6 +1954,24 @@
             "value" : "Trieu fotos per als fitxers adjunts de xat d'IA."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vybírejte fotky jako přílohy do chatu s AI."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vælg fotos som vedhæftninger i AI-chatten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επιλέξτε φωτογραφίες για επισύναψη στη συνομιλία με την ΤΝ."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1717,6 +2059,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fotos"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Φωτογραφίες"
           }
         },
         "de" : {
@@ -1808,6 +2168,24 @@
             "value" : "L'accés al micròfon està desactivat per a Nibomo. Obriu Configuració per permetre-ho."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k mikrofonu je pro Nibomo vypnutý. Povolte jej v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonadgang er slået fra for Nibomo. Åbn Indstillinger for at tillade den."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στο μικρόφωνο είναι απενεργοποιημένη για το Nibomo. Επιτρέψτε την στις Ρυθμίσεις."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1895,6 +2273,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accés al micròfon necessari"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je potřeba přístup k mikrofonu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonadgang kræves"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Απαιτείται πρόσβαση στο μικρόφωνο"
           }
         },
         "de" : {
@@ -1986,6 +2382,24 @@
             "value" : "L'accés a la càmera està desactivat per a Nibomo. Obriu Configuració per permetre-ho."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k fotoaparátu je pro Nibomo vypnutý. Povolte jej v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameraadgang er slået fra for Nibomo. Åbn Indstillinger for at tillade den."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στην κάμερα είναι απενεργοποιημένη για το Nibomo. Επιτρέψτε την στις Ρυθμίσεις."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2073,6 +2487,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Necessita accés a la càmera"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je potřeba přístup k fotoaparátu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameraadgang kræves"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Απαιτείται πρόσβαση στην κάμερα"
           }
         },
         "de" : {
@@ -2164,6 +2596,24 @@
             "value" : "L'accés al fitxer està desactivat per a Nibomo. Obriu Configuració per permetre-ho."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k souborům je pro Nibomo vypnutý. Povolte jej v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filadgang er slået fra for Nibomo. Åbn Indstillinger for at tillade den."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στα αρχεία είναι απενεργοποιημένη για το Nibomo. Επιτρέψτε την στις Ρυθμίσεις."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2251,6 +2701,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Accés al fitxer necessari"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je potřeba přístup k souborům"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filadgang kræves"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Απαιτείται πρόσβαση στα αρχεία"
           }
         },
         "de" : {
@@ -2342,6 +2810,24 @@
             "value" : "L'accés a les fotos està desactivat per a Nibomo. Obriu Configuració per permetre-ho."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k fotkám je pro Nibomo vypnutý. Povolte jej v Nastavení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoadgang er slået fra for Nibomo. Åbn Indstillinger for at tillade den."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στις φωτογραφίες είναι απενεργοποιημένη για το Nibomo. Επιτρέψτε την στις Ρυθμίσεις."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2429,6 +2915,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cal accedir a la foto"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je potřeba přístup k fotkám"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoadgang kræves"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Απαιτείται πρόσβαση στις φωτογραφίες"
           }
         },
         "de" : {
@@ -2520,6 +3024,24 @@
             "value" : "Totes les targetes"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Všechny kartičky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle kort"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Όλες οι κάρτες"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2607,6 +3129,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desconnectat"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odpojeno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afbrudt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποσυνδεδεμένο"
           }
         },
         "de" : {
@@ -2698,6 +3238,24 @@
             "value" : "Convidat"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Host"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gæst"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επισκέπτης"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2785,6 +3343,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enllaçat"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propojeno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilknyttet"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συνδεδεμένο"
           }
         },
         "de" : {
@@ -2876,6 +3452,24 @@
             "value" : "Enllaç a punt"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Připraveno k propojení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klar til tilknytning"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Έτοιμο για σύνδεση"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2963,6 +3557,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L'inici de sessió al núvol no està disponible. Comproveu la configuració de l'aplicació."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přihlášení do cloudu není dostupné. Zkontrolujte konfiguraci aplikace."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login til skyen er ikke tilgængeligt. Kontrollér appens konfiguration."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η σύνδεση στο cloud δεν είναι διαθέσιμη. Ελέγξτε τη διαμόρφωση της εφαρμογής."
           }
         },
         "de" : {
@@ -3054,6 +3666,24 @@
             "value" : "Introduïu una adreça de correu electrònic vàlida."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zadejte platnou e-mailovou adresu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indtast en gyldig e-mailadresse."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εισαγάγετε μια έγκυρη διεύθυνση email."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3141,6 +3771,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El codi ja s’ha utilitzat. Demana’n un de nou."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kód již byl použit. Vyžádejte si nový."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koden er allerede brugt. Anmod om en ny."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο κωδικός έχει ήδη χρησιμοποιηθεί. Ζητήστε νέο."
           }
         },
         "de" : {
@@ -3232,6 +3880,24 @@
             "value" : "El codi no és vàlid. Torna-ho a provar."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kód je neplatný. Zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koden er ugyldig. Prøv igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο κωδικός δεν είναι έγκυρος. Δοκιμάστε ξανά."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3319,6 +3985,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No s'ha pogut enviar el codi. Torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kód se nepodařilo odeslat. Zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koden kunne ikke sendes. Prøv igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η αποστολή κωδικού. Δοκιμάστε ξανά."
           }
         },
         "de" : {
@@ -3410,6 +4094,24 @@
             "value" : "El codi ha caducat. Demana’n un de nou."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platnost kódu vypršela. Vyžádejte si nový."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koden er udløbet. Anmod om en ny."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο κωδικός έληξε. Ζητήστε νέο."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3497,6 +4199,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Massa intents. Demana un codi nou."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Příliš mnoho pokusů. Vyžádejte si nový kód."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For mange forsøg. Anmod om en ny kode."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Πάρα πολλές προσπάθειες. Ζητήστε νέο κωδικό."
           }
         },
         "de" : {
@@ -3588,6 +4308,24 @@
             "value" : "No s'ha pogut verificar el codi. Torna-ho a provar."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kód se nepodařilo ověřit. Zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koden kunne ikke bekræftes. Prøv igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η επαλήθευση του κωδικού. Δοκιμάστε ξανά."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3675,6 +4413,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No s'ha pogut iniciar la sessió al núvol. Torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přihlášení do cloudu selhalo. Zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login til skyen mislykkedes. Prøv igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η σύνδεση στο cloud απέτυχε. Δοκιμάστε ξανά."
           }
         },
         "de" : {
@@ -3766,6 +4522,24 @@
             "value" : "La connexió s'ha interromput mentre s'envia el codi. Comproveu el vostre correu electrònic i torneu-ho a provar si cal."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Během odesílání kódu se přerušilo připojení. Zkontrolujte e-mail a případně to zkuste znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbindelsen blev afbrudt under afsendelse af koden. Tjek din e-mail, og prøv igen om nødvendigt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η σύνδεση διακόπηκε κατά την αποστολή του κωδικού. Ελέγξτε το email σας και δοκιμάστε ξανά αν χρειάζεται."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3853,6 +4627,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La connexió s'ha interromput mentre es verificava el codi. Torna-ho a provar o sol·licita un codi nou si cal."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Během ověřování kódu se přerušilo připojení. Zkuste to znovu nebo si vyžádejte nový kód."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbindelsen blev afbrudt under bekræftelse af koden. Prøv igen, eller anmod om en ny kode om nødvendigt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η σύνδεση διακόπηκε κατά την επαλήθευση του κωδικού. Δοκιμάστε ξανά ή ζητήστε νέο κωδικό αν χρειάζεται."
           }
         },
         "de" : {
@@ -3944,6 +4736,24 @@
             "value" : "No s'ha pogut actualitzar la classificació de repassos. Estira per tornar-ho a provar."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Žebříček opakování se nepodařilo aktualizovat. Potáhněte a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranglisten over repetitioner kunne ikke opdateres. Træk ned for at prøve igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η ανανέωση της κατάταξης επαναλήψεων. Σύρετε προς τα κάτω για νέα προσπάθεια."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4031,6 +4841,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No s'ha pogut actualitzar la programació de repassos. Estira per tornar-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plán opakování se nepodařilo aktualizovat. Potáhněte a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetitionsplanen kunne ikke opdateres. Træk ned for at prøve igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η ανανέωση του προγράμματος επαναλήψεων. Σύρετε προς τα κάτω για νέα προσπάθεια."
           }
         },
         "de" : {
@@ -4122,6 +4950,24 @@
             "value" : "No s'ha pogut mostrar la programació de repassos. Estira per tornar-ho a provar."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plán opakování se nepodařilo zobrazit. Potáhněte a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetitionsplanen kunne ikke vises. Træk ned for at prøve igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η εμφάνιση του προγράμματος επαναλήψεων. Σύρετε προς τα κάτω για νέα προσπάθεια."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4209,6 +5055,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "El gràfic de progrés no s'ha pogut actualitzar. Estira per tornar-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Graf pokroku se nepodařilo aktualizovat. Potáhněte a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremskridtsgrafen kunne ikke opdateres. Træk ned for at prøve igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η ανανέωση του γραφήματος προόδου. Σύρετε προς τα κάτω για νέα προσπάθεια."
           }
         },
         "de" : {
@@ -4300,6 +5164,24 @@
             "value" : "La taula de classificació de la ratxa no s'ha pogut actualitzar. Estira per tornar-ho a provar."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Žebříček sérií se nepodařilo aktualizovat. Potáhněte a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranglisten over læringsserier kunne ikke opdateres. Træk ned for at prøve igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η ανανέωση της κατάταξης σερί. Σύρετε προς τα κάτω για νέα προσπάθεια."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4387,6 +5269,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No s'ha pogut actualitzar el resum del progrés. Estira per tornar-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Souhrn pokroku se nepodařilo aktualizovat. Potáhněte a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oversigten over fremskridt kunne ikke opdateres. Træk ned for at prøve igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η ανανέωση της σύνοψης προόδου. Σύρετε προς τα κάτω για νέα προσπάθεια."
           }
         },
         "de" : {
@@ -4478,6 +5378,24 @@
             "value" : "El progrés no està disponible. Estira per actualitzar i torna-ho a provar."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokrok není dostupný. Potáhněte pro aktualizaci a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremskridt er ikke tilgængelige. Træk ned for at opdatere og prøve igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόοδος δεν είναι διαθέσιμη. Σύρετε προς τα κάτω για ανανέωση και δοκιμάστε ξανά."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4565,6 +5483,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Congelacions disponibles: %@ de %@."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostupná zmrazení: %@ z %@."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilgængelige frysninger: %@ af %@."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Διαθέσιμα παγώματα: %@ από %@."
           }
         },
         "de" : {
@@ -4656,6 +5592,24 @@
             "value" : "Mostra com funcionen les congelacions de ratxa."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vysvětluje, jak funguje zmrazení série."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viser, hvordan frysning af læringsserier fungerer."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δείχνει πώς λειτουργεί το πάγωμα σερί."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4743,6 +5697,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disponibles: %@/%@. Recàrrega: %@/%@. Les congelacions protegeixen els dies que no estudies i es recarreguen mentre mantens la ratxa."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostupné: %@/%@. Doplnění: %@/%@. Zmrazení chrání vynechané dny a doplňují se, když pokračujete v sérii."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilgængelige: %@/%@. Genopfyldning: %@/%@. Frysninger beskytter oversprungne dage og genopfyldes, når din læringsserie fortsætter."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Διαθέσιμα: %@/%@. Αναπλήρωση: %@/%@. Τα παγώματα προστατεύουν τις ημέρες που παραλείπετε και αναπληρώνονται όσο συνεχίζεται το σερί σας."
           }
         },
         "de" : {
@@ -4834,6 +5806,24 @@
             "value" : "Congelacions de ratxa"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmrazení série"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frysninger af læringsserie"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Παγώματα σερί"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4921,6 +5911,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Crea un enllaç"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vytvořit odkaz"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opret link"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιουργία συνδέσμου"
           }
         },
         "de" : {
@@ -5012,6 +6020,24 @@
             "value" : "Poden obrir-lo, iniciar sessió o registrar-se, i després us veureu a l'aplicació. Els enllaços d'invitació caduquen d'aquí a 2 dies."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přítel jej může otevřít, přihlásit se nebo si vytvořit účet a pak se v aplikaci navzájem uvidíte. Platnost pozvánek vyprší za 2 dny."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din ven kan åbne det og logge ind eller oprette en konto. Derefter kan I se hinanden i appen. Invitationslinks udløber efter 2 dage."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο φίλος σας μπορεί να τον ανοίξει και να συνδεθεί ή να εγγραφεί. Έπειτα θα βλέπετε ο ένας τον άλλον στην εφαρμογή. Οι σύνδεσμοι πρόσκλησης λήγουν σε 2 ημέρες."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5099,6 +6125,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Envia aquest enllaç al teu amic"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pošlete tento odkaz příteli"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send dette link til din ven"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Στείλτε αυτόν τον σύνδεσμο στον φίλο σας"
           }
         },
         "de" : {
@@ -5190,6 +6234,24 @@
             "value" : "S'està creant..."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vytváření…"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opretter…"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιουργία…"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5277,6 +6339,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Creeu un enllaç d'amic privat per a la taula de classificació."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vytvořte soukromý odkaz pro pozvání přítele do žebříčku."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opret et privat vennelink til ranglisten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δημιουργήστε έναν ιδιωτικό σύνδεσμο φίλου για την κατάταξη."
           }
         },
         "de" : {
@@ -5368,6 +6448,24 @@
             "value" : "Només tu veus aquest nom a la teva classificació. En acceptar, el teu amic tria amb quin nom et vol veure. Els enllaços d’invitació caduquen al cap de 2 dies."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toto jméno ve svém žebříčku vidíte jen vy. Přítel při přijetí pozvánky zvolí jméno pro vás. Platnost pozvánek vyprší za 2 dny."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kun du ser dette navn på din rangliste. Din ven vælger et navn til dig ved accept. Invitationslinks udløber efter 2 dage."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μόνο εσείς βλέπετε αυτό το όνομα στην κατάταξή σας. Ο φίλος σας επιλέγει πώς θα σας ονομάζει όταν αποδεχτεί την πρόσκληση. Οι σύνδεσμοι πρόσκλησης λήγουν σε 2 ημέρες."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5455,6 +6553,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nom de l'amic a la taula de classificació"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jméno přítele ve vašem žebříčku"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vennens navn på din rangliste"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Όνομα φίλου στην κατάταξή σας"
           }
         },
         "de" : {
@@ -5546,6 +6662,24 @@
             "value" : "Nom del teu amic"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jméno přítele"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din vens navn"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Όνομα φίλου"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5633,6 +6767,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fet"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotovo"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Færdig"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τέλος"
           }
         },
         "de" : {
@@ -5724,6 +6876,24 @@
             "value" : "Envia l'enllaç d'invitació"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odeslat odkaz s pozvánkou"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send invitationslink"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποστολή συνδέσμου πρόσκλησης"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5811,6 +6981,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Obre aquesta invitació de Nibomo, inicia la sessió o registra’t i ens veurem a l’app."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otevřete tuto pozvánku do Nibomo, přihlaste se nebo si vytvořte účet a uvidíme se v aplikaci."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbn denne Nibomo-invitation, log ind eller opret en konto, så kan vi se hinanden i appen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ανοίξτε αυτήν την πρόσκληση στο Nibomo, συνδεθείτε ή εγγραφείτε και θα βλέπουμε ο ένας τον άλλον στην εφαρμογή."
           }
         },
         "de" : {
@@ -5902,6 +7090,24 @@
             "value" : "Invitació d’amistat a Nibomo"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozvánka od přítele do Nibomo"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-venneinvitation"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Πρόσκληση φίλου στο Nibomo"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5989,6 +7195,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afegeix amic"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přidat přítele"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføj ven"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Προσθήκη φίλου"
           }
         },
         "de" : {
@@ -6080,6 +7304,24 @@
             "value" : "No es permeten noves línies ni caràcters de control."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nové řádky a řídicí znaky nejsou povoleny."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linjeskift og kontroltegn er ikke tilladt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν επιτρέπονται αλλαγές γραμμής και χαρακτήρες ελέγχου."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6167,6 +7409,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Introduïu d'1 a 30 caràcters."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zadejte 1–30 znaků."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indtast 1–30 tegn."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εισαγάγετε 1–30 χαρακτήρες."
           }
         },
         "de" : {
@@ -6258,6 +7518,24 @@
             "value" : "Activitat de repàs"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktivita opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetitionsaktivitet"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δραστηριότητα επαναλήψεων"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6345,6 +7623,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Data"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dato"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ημερομηνία"
           }
         },
         "de" : {
@@ -6436,6 +7732,24 @@
             "value" : "Repassos"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επαναλήψεις"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6523,6 +7837,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Últims 30 dies."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posledních 30 dní."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De seneste 30 dage."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τελευταίες 30 ημέρες."
           }
         },
         "de" : {
@@ -6614,6 +7946,24 @@
             "value" : "1 repàs"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 repetition"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 επανάληψη"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6701,6 +8051,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld repassos"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld επαναλήψεις"
           }
         },
         "de" : {
@@ -6792,6 +8160,24 @@
             "value" : "Activitat de repàs"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktivita opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetitionsaktivitet"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δραστηριότητα επαναλήψεων"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6879,6 +8265,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld a %2$@"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld v %2$@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nr. %1$lld i %2$@"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld σε %2$@"
           }
         },
         "de" : {
@@ -6970,6 +8374,24 @@
             "value" : "Millor posició"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nejlepší umístění"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bedste placering"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Καλύτερη θέση"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7057,6 +8479,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Encara no hi ha cap posició"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatím bez umístění"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen placering endnu"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Καμία θέση ακόμα"
           }
         },
         "de" : {
@@ -7148,6 +8588,24 @@
             "value" : "1 targeta"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kartička"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kort"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 κάρτα"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7235,6 +8693,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld targetes"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartičky: %lld"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kort"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld κάρτες"
           }
         },
         "de" : {
@@ -7326,6 +8802,24 @@
             "value" : "Targetes"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartičky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kort"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κάρτες"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7413,6 +8907,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ratxa actual"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuální série"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuværende læringsserie"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τρέχον σερί"
           }
         },
         "de" : {
@@ -7504,6 +9016,24 @@
             "value" : "Fet"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hotovo"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Færdig"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τέλος"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7591,6 +9121,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Comprova la teva connexió i torna-ho a provar."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zkontrolujte připojení a zkuste to znovu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrollér forbindelsen, og prøv igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά."
           }
         },
         "de" : {
@@ -7682,6 +9230,24 @@
             "value" : "No s'ha pogut carregar el perfil"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil se nepodařilo načíst"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilen kunne ikke indlæses"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η φόρτωση του προφίλ"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7769,6 +9335,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Amic"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přítel"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ven"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Φίλος"
           }
         },
         "de" : {
@@ -7860,6 +9444,24 @@
             "value" : "Data d’incorporació"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum připojení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilmeldt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εγγραφή"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7947,6 +9549,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "S'està carregant el perfil..."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Načítání profilu…"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indlæser profil…"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Φόρτωση προφίλ…"
           }
         },
         "de" : {
@@ -8038,6 +9658,24 @@
             "value" : "Indicadors"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukazatele"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Målinger"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μετρήσεις"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8125,6 +9763,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Torna-ho a provar"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zkusit znovu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δοκιμή ξανά"
           }
         },
         "de" : {
@@ -8216,6 +9872,24 @@
             "value" : "Estadístiques"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistiky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistik"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Στατιστικά"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8303,6 +9977,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inicieu la sessió amb el correu electrònic per veure els perfils de la classificació."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chcete-li zobrazit profily v žebříčku, přihlaste se e-mailem."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log ind med e-mail for at se profiler på ranglisten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συνδεθείτε με email για να δείτε προφίλ στην κατάταξη."
           }
         },
         "de" : {
@@ -8394,6 +10086,24 @@
             "value" : "Cal iniciar sessió"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je vyžadováno přihlášení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Login kræves"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Απαιτείται σύνδεση"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8481,6 +10191,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Els perfils només són visibles mentre participes a la classificació de repassos."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profily jsou viditelné pouze při zapnuté účasti v žebříčku opakování."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiler er kun synlige, når deltagelse i ranglisten over repetitioner er slået til."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τα προφίλ είναι ορατά μόνο όταν η συμμετοχή στην κατάταξη επαναλήψεων είναι ενεργή."
           }
         },
         "de" : {
@@ -8572,6 +10300,24 @@
             "value" : "La participació està desactivada"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Účast je vypnutá"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deltagelse er slået fra"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η συμμετοχή είναι ανενεργή"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8659,6 +10405,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aquest perfil de classificació no es pot mostrar ara mateix."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tento profil v žebříčku nyní nelze zobrazit."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne profil på ranglisten kan ikke vises lige nu."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αυτό το προφίλ κατάταξης δεν μπορεί να εμφανιστεί τώρα."
           }
         },
         "de" : {
@@ -8750,6 +10514,24 @@
             "value" : "Perfil no disponible"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil není dostupný"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilen er ikke tilgængelig"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Το προφίλ δεν είναι διαθέσιμο"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8837,6 +10619,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sobre la classificació de repassos"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O žebříčku opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Om ranglisten over repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σχετικά με την κατάταξη επαναλήψεων"
           }
         },
         "de" : {
@@ -8928,6 +10728,24 @@
             "value" : "Els repassos valorats amb Difícil, Bé i Fàcil compten per a la classificació. Un altre cop no compta."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opakování s hodnocením Těžké, Dobré a Snadné se započítávají do umístění. Znovu se nezapočítává."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetitioner bedømt som Svært, Godt og Let tæller med i din placering. Igen tæller ikke med."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι επαναλήψεις με βαθμό Δύσκολο, Καλό και Εύκολο μετράνε στη θέση σας. Ο βαθμός Ξανά δεν μετράει."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9015,6 +10833,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afegeix un amic"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přidat přítele"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføj en ven"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Προσθήκη φίλου"
           }
         },
         "de" : {
@@ -9106,6 +10942,24 @@
             "value" : "Afegeix amic"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přidat přítele"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilføj ven"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Προσθήκη φίλου"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9193,6 +11047,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Torna-ho a provar més tard."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zkuste to znovu později."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igen senere."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δοκιμάστε ξανά αργότερα."
           }
         },
         "de" : {
@@ -9284,6 +11156,24 @@
             "value" : "No s'ha pogut carregar la classificació de repassos"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Žebříček opakování se nepodařilo načíst"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranglisten over repetitioner kunne ikke indlæses"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η φόρτωση της κατάταξης επαναλήψεων"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9371,6 +11261,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connecteu-vos a Internet per carregar la classificació de repassos."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro načtení žebříčku opakování se připojte k internetu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opret forbindelse til internettet for at indlæse ranglisten over repetitioner."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συνδεθείτε στο διαδίκτυο για να φορτώσετε την κατάταξη επαναλήψεων."
           }
         },
         "de" : {
@@ -9462,6 +11370,24 @@
             "value" : "Estàs fora de línia"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jste offline"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du er offline"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Είστε εκτός σύνδεσης"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9549,6 +11475,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Obre la configuració de la classificació de repassos"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otevřít nastavení žebříčku opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbn indstillinger for ranglisten over repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Άνοιγμα ρυθμίσεων κατάταξης επαναλήψεων"
           }
         },
         "de" : {
@@ -9640,6 +11584,24 @@
             "value" : "Les classificacions només són visibles mentre participeu a la classificació de repassos."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pořadí je viditelné pouze při účasti v žebříčku opakování."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placeringer er kun synlige, mens du deltager i ranglisten over repetitioner."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι θέσεις είναι ορατές μόνο όσο συμμετέχετε στην κατάταξη επαναλήψεων."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9727,6 +11689,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La participació a la classificació de repassos està desactivada"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Účast v žebříčku opakování je vypnutá"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deltagelse i repetitionsranglisten er slået fra"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η συμμετοχή στην κατάταξη επαναλήψεων είναι ανενεργή"
           }
         },
         "de" : {
@@ -9818,6 +11798,24 @@
             "value" : "Posició %1$lld, %2$lld repassos"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pořadí %1$lld, %2$lld opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placering %1$lld, %2$lld repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Θέση %1$lld, %2$lld επαναλήψεις"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9905,6 +11903,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tu"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vy"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dig"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εσείς"
           }
         },
         "de" : {
@@ -9996,6 +12012,24 @@
             "value" : "Classificació de repassos"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Žebříček opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rangliste over repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κατάταξη επαναλήψεων"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10083,6 +12117,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inicia sessió o registra't"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přihlásit se nebo vytvořit účet"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log ind eller opret konto"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σύνδεση ή εγγραφή"
           }
         },
         "de" : {
@@ -10174,6 +12226,24 @@
             "value" : "Inicieu la sessió amb el correu electrònic per veure com es classifiquen les vostres repassos a la classificació de repassos."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přihlaste se e-mailem a porovnejte svá opakování v žebříčku."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log ind med e-mail for at se, hvordan dine repetitioner placerer dig på ranglisten."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συνδεθείτε με email για να δείτε τη θέση των επαναλήψεών σας στην κατάταξη."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10261,6 +12331,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uneix-te a la classificació de repassos"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapojit se do žebříčku opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deltag i ranglisten over repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συμμετοχή στην κατάταξη επαναλήψεων"
           }
         },
         "de" : {
@@ -10352,6 +12440,24 @@
             "value" : "S'està preparant la classificació de repassos. Torna a consultar aviat."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Žebříček opakování se připravuje. Vraťte se brzy."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranglisten over repetitioner er ved at blive klargjort. Kig snart igen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η κατάταξη επαναλήψεων ετοιμάζεται. Ελέγξτε ξανά σύντομα."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10439,6 +12545,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Encara no està llest"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatím není připraveno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke klar endnu"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν είναι έτοιμο ακόμα"
           }
         },
         "de" : {
@@ -10530,6 +12654,24 @@
             "value" : "Actualitzat fa %@"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualizováno před %@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opdateret for %@ siden"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ενημερώθηκε πριν από %@"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10614,6 +12756,24 @@
           }
         },
         "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "el" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ %2$@"
@@ -10708,6 +12868,24 @@
             "value" : "1 hora"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 hodinou"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 time"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ώρα"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10795,6 +12973,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld hores"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld hodinami"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld timer"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ώρες"
           }
         },
         "de" : {
@@ -10886,6 +13082,24 @@
             "value" : "1 minut"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minutou"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minut"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 λεπτό"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10973,6 +13187,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld minuts"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutami"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutter"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld λεπτά"
           }
         },
         "de" : {
@@ -11064,6 +13296,24 @@
             "value" : "Període"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Období"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periode"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Περίοδος"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11151,6 +13401,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Des de sempre"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Celkově"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al tid"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συνολικά"
           }
         },
         "de" : {
@@ -11242,6 +13510,24 @@
             "value" : "3 d"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 ημ."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11329,6 +13615,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 d"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 ημ."
           }
         },
         "de" : {
@@ -11420,6 +13724,24 @@
             "value" : "24 h"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 h"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 t"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 ώρ."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11507,6 +13829,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 d"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 ημ."
           }
         },
         "de" : {
@@ -11598,6 +13938,24 @@
             "value" : "%lld targetes, %@"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Počet kartiček: %lld, %@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kort, %@"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld κάρτες, %@"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11685,6 +14043,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 dies"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 dní"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 dage"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 ημέρες"
           }
         },
         "de" : {
@@ -11776,6 +14152,24 @@
             "value" : "8-30 dies"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 dní"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 dage"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 ημέρες"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11863,6 +14257,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 dies"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 dní"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 dage"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 ημέρες"
           }
         },
         "de" : {
@@ -11954,6 +14366,24 @@
             "value" : "91-360 dies"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 dní"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 dage"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 ημέρες"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12041,6 +14471,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Més tard"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Později"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senere"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αργότερα"
           }
         },
         "de" : {
@@ -12132,6 +14580,24 @@
             "value" : "Nou"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nové"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nye"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Νέες"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12219,6 +14685,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avui"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dnes"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dag"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σήμερα"
           }
         },
         "de" : {
@@ -12310,6 +14794,24 @@
             "value" : "1-2 anys"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 roky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 år"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 έτη"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12397,6 +14899,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Encara no hi ha cap targeta activa."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zatím žádné aktivní kartičky."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen aktive kort endnu."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν υπάρχουν ενεργές κάρτες ακόμα."
           }
         },
         "de" : {
@@ -12488,6 +15008,24 @@
             "value" : "Calendari de repàs"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plán opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetitionsplan"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Πρόγραμμα επαναλήψεων"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12575,6 +15113,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld repassos"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld επαναλήψεις"
           }
         },
         "de" : {
@@ -12666,6 +15222,24 @@
             "value" : "La setmana vinent"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Příští týden"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Næste uge"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επόμενη εβδομάδα"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12753,6 +15327,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Setmana anterior"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Předchozí týden"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forrige uge"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Προηγούμενη εβδομάδα"
           }
         },
         "de" : {
@@ -12844,6 +15436,24 @@
             "value" : "Repassos"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetitioner"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επαναλήψεις"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12931,6 +15541,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 dia"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 den"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dag"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ημέρα"
           }
         },
         "de" : {
@@ -13022,6 +15650,24 @@
             "value" : "%lld dies"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld d."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dage"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ημέρες"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13109,6 +15755,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sobre la classificació de la ratxa"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O žebříčku sérií"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Om ranglisten over læringsserier"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σχετικά με την κατάταξη σερί"
           }
         },
         "de" : {
@@ -13200,6 +15864,24 @@
             "value" : "Els dies de la ratxa actual determinen la teva posició. Compta com a dia de ratxa qualsevol dia local amb almenys un repàs d’una targeta valorat amb %1$@, %2$@, %3$@ o %4$@."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vaše pořadí určuje počet dní aktuální série. Den série je místní den s alespoň jedním opakováním kartičky hodnoceným %1$@, %2$@, %3$@ nebo %4$@."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antallet af dage i din aktuelle læringsserie bestemmer din placering. En seriedag er en lokal dag med mindst én kortrepetition bedømt som %1$@, %2$@, %3$@ eller %4$@."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι ημέρες του τρέχοντος σερί καθορίζουν τη θέση σας. Ημέρα σερί είναι κάθε τοπική ημέρα με τουλάχιστον μία επανάληψη κάρτας με βαθμό %1$@, %2$@, %3$@ ή %4$@."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13287,6 +15969,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Torna-ho a provar més tard."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zkuste to znovu později."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igen senere."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δοκιμάστε ξανά αργότερα."
           }
         },
         "de" : {
@@ -13378,6 +16078,24 @@
             "value" : "No s'ha pogut carregar la taula de classificació de la ratxa"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Žebříček sérií se nepodařilo načíst"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranglisten over læringsserier kunne ikke indlæses"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν ήταν δυνατή η φόρτωση της κατάταξης σερί"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13465,6 +16183,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Connecteu-vos a Internet per carregar la classificació de la ratxa."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro načtení žebříčku sérií se připojte k internetu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opret forbindelse til internettet for at indlæse ranglisten over læringsserier."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συνδεθείτε στο διαδίκτυο για να φορτώσετε την κατάταξη σερί."
           }
         },
         "de" : {
@@ -13556,6 +16292,24 @@
             "value" : "Estàs fora de línia"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jste offline"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du er offline"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Είστε εκτός σύνδεσης"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13643,6 +16397,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Posició %1$lld, %2$@"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pořadí %1$lld, %2$@"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placering %1$lld, %2$@"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Θέση %1$lld, %2$@"
           }
         },
         "de" : {
@@ -13734,6 +16506,24 @@
             "value" : "Classificació de ratxes"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Žebříček sérií"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rangliste over læringsserier"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κατάταξη σερί"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13821,6 +16611,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dia congelat"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Den chráněný zmrazením"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frosset dag"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Παγωμένη ημέρα"
           }
         },
         "de" : {
@@ -13912,6 +16720,24 @@
             "value" : "Dia futur"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Budoucí den"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremtidig dag"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μελλοντική ημέρα"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13999,6 +16825,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ratxa"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Série"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Læringsserie"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σερί"
           }
         },
         "de" : {
@@ -14090,6 +16934,24 @@
             "value" : "Progrés"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokrok"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremskridt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Πρόοδος"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14177,6 +17039,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avui"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dnes"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dag"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σήμερα"
           }
         },
         "de" : {
@@ -14268,6 +17148,24 @@
             "value" : "Permet notificacions"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Povolit oznámení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tillad notifikationer"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Να επιτρέπονται γνωστοποιήσεις"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14355,6 +17253,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permès"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Povoleno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilladt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επιτρέπεται"
           }
         },
         "de" : {
@@ -14446,6 +17362,24 @@
             "value" : "Bloquejat"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zablokováno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blokeret"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποκλεισμένη"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14533,6 +17467,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No sol·licitat"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dosud nevyžádáno"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke anmodet"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν έχει ζητηθεί"
           }
         },
         "de" : {
@@ -14624,6 +17576,24 @@
             "value" : "Continua la teva sessió d'estudi a Nibomo."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokračujte v učení v Nibomo."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortsæt din læring i Nibomo."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συνεχίστε τη μελέτη σας στο Nibomo."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14711,6 +17681,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un cop al dia"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jednou denně"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Én gang dagligt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μία φορά την ημέρα"
           }
         },
         "de" : {
@@ -14802,6 +17790,24 @@
             "value" : "Després d'un descans"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Po přestávce"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Efter en pause"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Μετά από διάλειμμα"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14889,6 +17895,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un altre cop"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znovu"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Igen"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ξανά"
           }
         },
         "de" : {
@@ -14980,6 +18004,24 @@
             "value" : "Fàcil"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snadné"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Let"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Εύκολο"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15067,6 +18109,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bé"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dobré"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Godt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Καλό"
           }
         },
         "de" : {
@@ -15158,6 +18218,24 @@
             "value" : "Difícil"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Těžké"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Svært"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δύσκολο"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15245,6 +18323,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Compte suprimit"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Účet byl smazán"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto slettet"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ο λογαριασμός διαγράφηκε"
           }
         },
         "de" : {
@@ -15336,6 +18432,24 @@
             "value" : "IA"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ΤΝ"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15423,6 +18537,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Targetes"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartičky"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kort"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κάρτες"
           }
         },
         "de" : {
@@ -15514,6 +18646,24 @@
             "value" : "Més tard"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Později"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senere"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αργότερα"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15601,6 +18751,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inicia la sessió amb el correu electrònic per no perdre aquestes targetes i el progrés dels repassos."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přihlaste se e-mailem, aby se tyto kartičky a pokrok v opakování neztratily."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log ind med e-mail, så disse kort og dine fremskridt ikke går tabt."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Συνδεθείτε με email για να μη χαθούν αυτές οι κάρτες και η πρόοδος των επαναλήψεών σας."
           }
         },
         "de" : {
@@ -15692,6 +18860,24 @@
             "value" : "Inicia la sessió"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přihlásit se"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log ind"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Σύνδεση"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15779,6 +18965,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Guarda el teu progrés"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uložte svůj pokrok"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gem dine fremskridt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αποθηκεύστε την πρόοδό σας"
           }
         },
         "de" : {
@@ -15870,6 +19074,24 @@
             "value" : "Progrés"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pokrok"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremskridt"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Πρόοδος"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15957,6 +19179,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Repàs"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opakování"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetition"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Επανάληψη"
           }
         },
         "de" : {
@@ -16048,6 +19288,24 @@
             "value" : "Configuració"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nastavení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indstillinger"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ρυθμίσεις"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16135,6 +19393,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Obriu Configuració"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otevřít Nastavení"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbn Indstillinger"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Άνοιγμα Ρυθμίσεων"
           }
         },
         "de" : {
@@ -16226,6 +19502,24 @@
             "value" : "Sol·licitar accés"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Požádat o přístup"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmod om adgang"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αίτημα πρόσβασης"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16313,6 +19607,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "D’acord"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         },
         "de" : {
@@ -16404,6 +19716,24 @@
             "value" : "Mantén la ratxa avui. Repassa abans de mitjanit. Queden 2 hores."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Udržte dnes svou sérii. Opakujte před půlnocí. Zbývají 2 hodiny."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold din læringsserie i gang i dag. Repetér før midnat. 2 timer tilbage."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Διατηρήστε το σερί σας σήμερα. Κάντε επανάληψη πριν από τα μεσάνυχτα. Απομένουν 2 ώρες."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16491,6 +19821,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mantén la ratxa avui. Repassa abans de mitjanit. Queden 3 hores."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Udržte dnes svou sérii. Opakujte před půlnocí. Zbývají 3 hodiny."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold din læringsserie i gang i dag. Repetér før midnat. 3 timer tilbage."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Διατηρήστε το σερί σας σήμερα. Κάντε επανάληψη πριν από τα μεσάνυχτα. Απομένουν 3 ώρες."
           }
         },
         "de" : {
@@ -16582,6 +19930,24 @@
             "value" : "Mantén la ratxa avui. Repassa abans de mitjanit. Queden 4 hores."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Udržte dnes svou sérii. Opakujte před půlnocí. Zbývají 4 hodiny."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold din læringsserie i gang i dag. Repetér før midnat. 4 timer tilbage."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Διατηρήστε το σερί σας σήμερα. Κάντε επανάληψη πριν από τα μεσάνυχτα. Απομένουν 4 ώρες."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16669,6 +20035,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Torna-ho a provar. Si continua passant, compartiu els detalls tècnics amb el suport."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zkuste to znovu. Pokud problém přetrvá, sdílejte technické podrobnosti s podporou."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igen. Hvis problemet fortsætter, så del de tekniske oplysninger med support."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δοκιμάστε ξανά. Αν το πρόβλημα επιμένει, στείλτε τις τεχνικές λεπτομέρειες στην υποστήριξη."
           }
         },
         "de" : {
@@ -16760,6 +20144,24 @@
             "value" : "Alguna cosa va fallar"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Něco se pokazilo"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der opstod en fejl"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Παρουσιάστηκε σφάλμα"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16847,6 +20249,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tanca"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zavřít"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luk"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Κλείσιμο"
           }
         },
         "de" : {
@@ -16938,6 +20358,24 @@
             "value" : "Copia els detalls"
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopírovat podrobnosti"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiér oplysninger"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αντιγραφή λεπτομερειών"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17025,6 +20463,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Detalls tècnics"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Technické podrobnosti"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekniske oplysninger"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Τεχνικές λεπτομέρειες"
           }
         },
         "de" : {
@@ -17116,6 +20572,24 @@
             "value" : "La resposta ja està en curs. Espereu que acabi o atureu-lo abans d'enviar un altre missatge."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odpověď se již vytváří. Než odešlete další zprávu, počkejte na dokončení nebo vytváření zastavte."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Et svar er allerede i gang. Vent, til det er færdigt, eller stop det, før du sender en ny besked."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Υπάρχει ήδη απάντηση σε εξέλιξη. Περιμένετε να ολοκληρωθεί ή σταματήστε την πριν στείλετε άλλο μήνυμα."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17203,6 +20677,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sense connexió a Internet. El xat amb IA requereix accés a Internet."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Není připojení k internetu. Chat s AI vyžaduje internet."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen internetforbindelse. AI-chat kræver internetadgang."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Δεν υπάρχει σύνδεση στο διαδίκτυο. Η συνομιλία με την ΤΝ απαιτεί πρόσβαση στο διαδίκτυο."
           }
         },
         "de" : {
@@ -17294,6 +20786,24 @@
             "value" : "Targetes actualitzades des del núvol."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartičky byly aktualizovány z cloudu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kort opdateret fra skyen."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι κάρτες ενημερώθηκαν από το cloud."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17381,6 +20891,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La veu no està disponible en aquest dispositiu."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Řeč není na tomto zařízení dostupná."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tale er ikke tilgængelig på denne enhed."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η ομιλία δεν είναι διαθέσιμη σε αυτήν τη συσκευή."
           }
         },
         "de" : {
@@ -17472,6 +21000,24 @@
             "value" : "Aquesta revisió s'ha actualitzat en un altre dispositiu."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toto opakování bylo aktualizováno na jiném zařízení."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne repetition blev opdateret på en anden enhed."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Αυτή η επανάληψη ενημερώθηκε σε άλλη συσκευή."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17559,6 +21105,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Versió de prova desactivada."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testovací verze vypnuta."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testversion deaktiveret."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η δοκιμαστική έκδοση απενεργοποιήθηκε."
           }
         },
         "de" : {
@@ -17650,6 +21214,24 @@
             "value" : "Versió de prova activada."
           }
         },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testovací verze zapnuta."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testversion aktiveret."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η δοκιμαστική έκδοση ενεργοποιήθηκε."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17737,6 +21319,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Els canvis a l'espai de treball només estan disponibles després de crear un compte."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pracovní prostor lze měnit až po vytvoření účtu."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arbejdsområder kan først ændres, når du har oprettet en konto."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Οι αλλαγές χώρου εργασίας είναι διαθέσιμες μόνο αφού δημιουργήσετε λογαριασμό."
           }
         },
         "de" : {
