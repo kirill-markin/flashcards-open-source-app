@@ -431,7 +431,6 @@ Set these substitutions on the trigger:
 ## Local Testing Rules
 
 For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Tests should be run only against the final supported Android target, not against older API levels.
-Run Android local tests only sequentially on the local machine. Do not run Android local tests in parallel.
 Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, start it in the background without a visible emulator window by default and preserve the usual test artifacts, logs, screenshots, and reports. Open a visible Android emulator only when the user explicitly asks for it at that time.
 For local instrumentation runs, prefer one clean emulator only:
 
