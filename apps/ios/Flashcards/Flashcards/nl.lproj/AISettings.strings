@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Foto kiezen";
 "ai.composer.attachment.chooseFile" = "Bestand kiezen";
 "ai.composer.attachment.unsupported" = "Niet-ondersteunde bijlage (%@)";
+"ai.attachment.card.title" = "Kaart";
+"ai.attachment.card.withSnippet" = "Kaart · %@";
 "ai.attachment.error.unsupportedType" = "Niet-ondersteund bestandstype: .%@";
 "ai.attachment.error.cameraUnavailable" = "Camera is niet beschikbaar op dit apparaat.";
 "ai.attachment.error.photoUnavailable" = "Fototoegang is niet beschikbaar op dit apparaat.";

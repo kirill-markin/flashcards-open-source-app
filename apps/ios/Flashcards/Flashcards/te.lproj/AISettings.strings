@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "ఫొటో ఎంచుకో";
 "ai.composer.attachment.chooseFile" = "ఫైల్ ఎంచుకో";
 "ai.composer.attachment.unsupported" = "మద్దతు లేని జోడింపు (%@)";
+"ai.attachment.card.title" = "కార్డు";
+"ai.attachment.card.withSnippet" = "కార్డు · %@";
 "ai.attachment.error.unsupportedType" = "మద్దతు లేని ఫైల్ రకం: .%@";
 "ai.attachment.error.cameraUnavailable" = "ఈ పరికరంలో కెమెరా అందుబాటులో లేదు.";
 "ai.attachment.error.photoUnavailable" = "ఈ పరికరంలో ఫొటోల అనుమతి అందుబాటులో లేదు.";

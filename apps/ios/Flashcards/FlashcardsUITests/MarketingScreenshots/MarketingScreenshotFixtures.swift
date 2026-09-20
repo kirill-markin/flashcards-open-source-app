@@ -2430,17 +2430,13 @@ extension MarketingManualScreenshotTestCase {
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         let localeFixture = try self.marketingLocaleFixture()
-        try self.assertElementLabel(
-            identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip,
-            expectedLabel: "Card · \(localeFixture.reviewCard.frontText)",
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
 
         let composer = self.aiComposerTextFieldElement()
         let attachmentChips = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip)
         guard self.elementValue(element: composer) == draftText,
               attachmentChips.count == 1,
+              attachmentChips.firstMatch.label.hasSuffix(" · \(localeFixture.reviewCard.frontText)"),
               composer.isHittable,
               attachmentChips.firstMatch.isHittable,
               self.softwareKeyboardIsVisible() == false,

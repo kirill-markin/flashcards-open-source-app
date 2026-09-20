@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Chọn ảnh";
 "ai.composer.attachment.chooseFile" = "Chọn tệp";
 "ai.composer.attachment.unsupported" = "Tệp đính kèm không được hỗ trợ (%@)";
+"ai.attachment.card.title" = "Thẻ";
+"ai.attachment.card.withSnippet" = "Thẻ · %@";
 "ai.attachment.error.unsupportedType" = "Loại tệp không được hỗ trợ: .%@";
 "ai.attachment.error.cameraUnavailable" = "Camera không khả dụng trên thiết bị này.";
 "ai.attachment.error.photoUnavailable" = "Quyền truy cập ảnh không khả dụng trên thiết bị này.";

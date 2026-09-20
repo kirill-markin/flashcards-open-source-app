@@ -2,7 +2,11 @@ import Foundation
 
 func aiChatCardAttachmentLabel(card: AIChatCardReference) -> String {
     let snippet = aiChatTruncatedSnippet(card.frontText)
-    return snippet.isEmpty ? "Card" : "Card · \(snippet)"
+    if snippet.isEmpty {
+        return aiSettingsLocalized("ai.attachment.card.title", "Card")
+    }
+
+    return aiSettingsLocalizedFormat("ai.attachment.card.withSnippet", "Card · %@", snippet)
 }
 
 func buildAIChatCardContextXML(card: AIChatCardReference) -> String {

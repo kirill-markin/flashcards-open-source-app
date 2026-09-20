@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "选择照片";
 "ai.composer.attachment.chooseFile" = "选择文件";
 "ai.composer.attachment.unsupported" = "不支持的附件 (%@)";
+"ai.attachment.card.title" = "卡片";
+"ai.attachment.card.withSnippet" = "卡片 · %@";
 "ai.attachment.error.unsupportedType" = "不支持的文件类型：.%@";
 "ai.attachment.error.cameraUnavailable" = "相机在此设备上不可用。";
 "ai.attachment.error.photoUnavailable" = "此设备上无法访问照片。";

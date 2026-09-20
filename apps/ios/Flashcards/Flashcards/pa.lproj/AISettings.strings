@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "ਫ਼ੋਟੋ ਚੁਣੋ";
 "ai.composer.attachment.chooseFile" = "ਫ਼ਾਈਲ ਚੁਣੋ";
 "ai.composer.attachment.unsupported" = "ਗੈਰ-ਸਮਰਥਿਤ ਅਟੈਚਮੈਂਟ (%@)";
+"ai.attachment.card.title" = "ਕਾਰਡ";
+"ai.attachment.card.withSnippet" = "ਕਾਰਡ · %@";
 "ai.attachment.error.unsupportedType" = "ਗੈਰ-ਸਮਰਥਿਤ ਫ਼ਾਈਲ ਕਿਸਮ: .%@";
 "ai.attachment.error.cameraUnavailable" = "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਕੈਮਰਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।";
 "ai.attachment.error.photoUnavailable" = "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਫ਼ੋਟੋਆਂ ਦੀ ਪਹੁੰਚ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।";

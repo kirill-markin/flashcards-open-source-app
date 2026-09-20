@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Trieu Foto";
 "ai.composer.attachment.chooseFile" = "Trieu Fitxer";
 "ai.composer.attachment.unsupported" = "Fitxer adjunt no compatible (%@)";
+"ai.attachment.card.title" = "Targeta";
+"ai.attachment.card.withSnippet" = "Targeta · %@";
 "ai.attachment.error.unsupportedType" = "Tipus de fitxer no compatible: .%@";
 "ai.attachment.error.cameraUnavailable" = "La càmera no està disponible en aquest dispositiu.";
 "ai.attachment.error.photoUnavailable" = "L'accés a les fotos no està disponible en aquest dispositiu.";

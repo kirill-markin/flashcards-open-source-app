@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "ഫോട്ടോ തിരഞ്ഞെടുക്കുക";
 "ai.composer.attachment.chooseFile" = "ഫയൽ തിരഞ്ഞെടുക്കുക";
 "ai.composer.attachment.unsupported" = "പിന്തുണയ്ക്കാത്ത അറ്റാച്ച്മെന്റ് (%@)";
+"ai.attachment.card.title" = "കാർഡ്";
+"ai.attachment.card.withSnippet" = "കാർഡ് · %@";
 "ai.attachment.error.unsupportedType" = "പിന്തുണയ്ക്കാത്ത ഫയൽ തരം: .%@";
 "ai.attachment.error.cameraUnavailable" = "ഈ ഉപകരണത്തിൽ ക്യാമറ ലഭ്യമല്ല.";
 "ai.attachment.error.photoUnavailable" = "ഈ ഉപകരണത്തിൽ ഫോട്ടോ ആക്സസ് ലഭ്യമല്ല.";

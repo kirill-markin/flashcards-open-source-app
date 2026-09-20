@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Izberi fotografijo";
 "ai.composer.attachment.chooseFile" = "Izberi datoteko";
 "ai.composer.attachment.unsupported" = "Nepodprta priloga (%@)";
+"ai.attachment.card.title" = "Kartica";
+"ai.attachment.card.withSnippet" = "Kartica · %@";
 "ai.attachment.error.unsupportedType" = "Nepodprta vrsta datoteke: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kamera v tej napravi ni na voljo.";
 "ai.attachment.error.photoUnavailable" = "Dostop do fotografij v tej napravi ni na voljo.";
