@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 
-// Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
+// Frozen test input — intentionally not the real app version; do not bump on release (see docs/release-current-version.md).
 internal const val AI_CHAT_TEST_APP_VERSION: String = "1.0.0"
 internal const val AI_CHAT_TEST_VERSION_CODE: Int = 1
 internal const val AI_CHAT_TEST_UI_LOCALE: String = "es-ES"
