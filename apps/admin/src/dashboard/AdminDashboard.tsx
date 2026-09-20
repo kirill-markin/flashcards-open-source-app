@@ -38,12 +38,24 @@ export type AdminReportsData = Readonly<{
  */
 export type AdminReportState =
   | Readonly<{ status: "loading" }>
-  | Readonly<{ status: "error"; message: string }>
+  | Readonly<{
+      status: "error";
+      message: string;
+      /** A Retry the operator pressed is in flight, so the control says so instead of reading as dead. */
+      isRetrying: boolean;
+    }>
   | Readonly<{
       status: "ready";
       data: AdminReportsData;
       isReportLoading: boolean;
+      /** The synchronous rejection of a requested range, shown inside the filter panel. */
       dateRangeError: string;
+      /**
+       * The failure of a reload that had numbers on screen already. Non-empty is also the record
+       * that those numbers answer an older selection than the current one, so it drives both the
+       * sticky failure banner and the stale mark on the sections. Only an outcome clears it.
+       */
+      reloadError: string;
     }>;
 
 type AnalyticsReportSectionsProps = Readonly<{
@@ -53,6 +65,8 @@ type AnalyticsReportSectionsProps = Readonly<{
   filters: AnalyticsFilterState;
   isReportLoading: boolean;
   dateRangeError: string;
+  /** The General numbers on screen are the ones a failed reload left behind. */
+  isReportStale: boolean;
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
   /** Stable across filter changes on purpose; see `App`. */
   onChartUserFilterApply: (userId: string) => void;
@@ -109,7 +123,14 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         onFiltersChange={props.onFiltersChange}
       />
 
-      {props.activeArea === "general" ? <>
+      {/*
+        Only the General sections are drawn from the report state a failed reload leaves behind;
+        Audience and Funnels fetch their own data from the live selection and own their error states,
+        so the stale mark stops here.
+      */}
+      {props.activeArea === "general" ? <div
+        className={props.isReportStale ? "report-sections-stale" : undefined}
+      >
         <DailyActiveUsersSection
         filteredReport={dailyActiveUsersReport}
         generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
@@ -130,7 +151,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         userColorScale={userColorScale}
         onUserFilterApply={props.onChartUserFilterApply}
         />
-        </> : null}
+        </div> : null}
 
       {props.activeArea === "funnels" ? <CatalogInstallFunnelSection
         config={props.config}
@@ -196,7 +217,43 @@ export function AdminDashboard(
         <div className="report-state report-state-error">
           <strong>Analytics reports failed to load.</strong>
           <span>{props.reportState.message}</span>
-          <button className="filter-button" type="button" onClick={props.onReportRetry}>Retry</button>
+          <button
+            className="filter-button"
+            type="button"
+            disabled={props.reportState.isRetrying}
+            onClick={props.onReportRetry}
+          >{props.reportState.isRetrying ? "Retrying…" : "Retry"}</button>
+        </div>
+      ) : null}
+
+      {/*
+        A reload that fails leaves complete, confidently drawn numbers on screen, so the failure gets
+        the one place a filter popover cannot cover and a scroll to the charts cannot leave behind: a
+        sticky banner above the filter panel, stacked over the popovers, carrying the Retry the
+        operator has to press because nothing retries on its own.
+      */}
+      {props.reportState.status === "ready" && props.reportState.reloadError !== "" ? (
+        <div className="report-reload-banner" role="alert">
+          <div className="report-reload-banner-text">
+            {/*
+              Funnels and Audience fetch their own numbers from the live selection, so on those areas
+              the report on screen is not what the failure left behind. The shared range is loaded
+              once per page load and cannot go stale, so the only thing the failed reload can leave
+              behind there is the option lists, which are refetched with it whenever the range moves.
+            */}
+            <strong>{props.activeArea === "general"
+              ? "General reports failed to reload. The numbers below are stale."
+              : "General reports failed to reload. The filter option lists may not match the current range."}</strong>
+            {/* Clamped to three lines in CSS, so a long backend message cannot take over a short
+                viewport for as long as the failure stands; `title` keeps the whole text reachable. */}
+            <span title={props.reportState.reloadError}>{props.reportState.reloadError}</span>
+          </div>
+          <button
+            className="filter-button"
+            type="button"
+            disabled={props.reportState.isReportLoading}
+            onClick={props.onReportRetry}
+          >{props.reportState.isReportLoading ? "Reloading…" : "Retry"}</button>
         </div>
       ) : null}
 
@@ -208,6 +265,7 @@ export function AdminDashboard(
           filters={props.filters}
           isReportLoading={props.reportState.isReportLoading}
           dateRangeError={props.reportState.dateRangeError}
+          isReportStale={props.reportState.reloadError !== ""}
           onFiltersChange={props.onFiltersChange}
           onChartUserFilterApply={props.onChartUserFilterApply}
           onTerminalAdminError={props.onTerminalAdminError}
