@@ -1,0 +1,67 @@
+{
+  "localePrefix": "it-IT",
+  "appLocaleTag": "it",
+  "reviewAiDraftMessage": "Crea 6 nuove carte sullo stesso argomento di economia, includendo concetti collegati che non abbiamo ancora.",
+  "uiText": {
+    "emptyCardsMessage": "Non ci sono ancora carte. Tocca il pulsante aggiungi per creare la prima.",
+    "cardsTabTitle": "Carte",
+    "reviewTabTitle": "Ripasso",
+    "aiTabTitle": "IA",
+    "searchCardsPlaceholder": "Cerca carte",
+    "addCardContentDescription": "Aggiungi carta",
+    "frontFieldTitle": "Fronte",
+    "backFieldTitle": "Retro",
+    "tagsFieldTitle": "Tag",
+    "addTagFieldTitle": "Aggiungi un tag",
+    "addTagButtonTitle": "Aggiungi tag",
+    "saveButtonTitle": "Salva",
+    "ratingAgainTitle": "Ancora",
+    "ratingHardTitle": "Difficile",
+    "ratingGoodTitle": "Bene",
+    "ratingEasyTitle": "Facile"
+  },
+  "reviewCard": {
+    "frontText": "Che cos’è il costo opportunità?",
+    "backText": "Il valore della migliore alternativa a cui rinunci quando scegli un’opzione invece di un’altra.\n\nEsempio d’esame: se passi il sabato a studiare microeconomia invece di fare un turno retribuito, lo stipendio perso fa parte del costo opportunità.",
+    "tags": [
+      "economia"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "Che cos’è il costo opportunità?",
+      "backText": "Il valore della migliore alternativa a cui rinunci quando scegli un’opzione invece di un’altra.",
+      "subjectTag": "economia"
+    },
+    {
+      "frontText": "In biologia, che cos’è l’osmosi?",
+      "backText": "Il passaggio dell’acqua attraverso una membrana da una minore a una maggiore concentrazione di soluti.",
+      "subjectTag": "biologia"
+    },
+    {
+      "frontText": "In statistica, che cos’è la deviazione standard?",
+      "backText": "Una misura della dispersione dei valori intorno alla media.",
+      "subjectTag": "statistica"
+    },
+    {
+      "frontText": "In chimica, che cos’è un catalizzatore?",
+      "backText": "Una sostanza che accelera una reazione chimica senza essere consumata.",
+      "subjectTag": "chimica"
+    },
+    {
+      "frontText": "In psicologia, che cos’è un bias cognitivo?",
+      "backText": "Uno schema di pensiero sistematico che può alterare giudizi e decisioni.",
+      "subjectTag": "psicologia"
+    },
+    {
+      "frontText": "In fisica, che cos’è la velocità vettoriale?",
+      "backText": "La rapidità di movimento di un corpo insieme alla sua direzione.",
+      "subjectTag": "fisica"
+    },
+    {
+      "frontText": "In informatica, che cos’è la ricorsione?",
+      "backText": "Un metodo in cui una funzione risolve un problema richiamando sé stessa su versioni più piccole del problema.",
+      "subjectTag": "informatica"
+    }
+  ]
+}
