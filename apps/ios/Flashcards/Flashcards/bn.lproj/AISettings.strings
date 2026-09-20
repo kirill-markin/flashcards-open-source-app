@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "ফটো নির্বাচন করুন";
 "ai.composer.attachment.chooseFile" = "ফাইল নির্বাচন করুন";
 "ai.composer.attachment.unsupported" = "অসমর্থিত সংযুক্তি (%@)";
+"ai.attachment.card.title" = "কার্ড";
+"ai.attachment.card.withSnippet" = "কার্ড · %@";
 "ai.attachment.error.unsupportedType" = "অসমর্থিত ফাইল প্রকার: .%@";
 "ai.attachment.error.cameraUnavailable" = "এই ডিভাইসে ক্যামেরা উপলব্ধ নেই।";
 "ai.attachment.error.photoUnavailable" = "এই ডিভাইসে ফটো অ্যাক্সেস পাওয়া যায় না।";

@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Επιλογή φωτογραφίας";
 "ai.composer.attachment.chooseFile" = "Επιλογή αρχείου";
 "ai.composer.attachment.unsupported" = "Μη υποστηριζόμενο συνημμένο (%@)";
+"ai.attachment.card.title" = "Κάρτα";
+"ai.attachment.card.withSnippet" = "Κάρτα · %@";
 "ai.attachment.error.unsupportedType" = "Μη υποστηριζόμενος τύπος αρχείου: .%@";
 "ai.attachment.error.cameraUnavailable" = "Η κάμερα δεν είναι διαθέσιμη σε αυτήν τη συσκευή.";
 "ai.attachment.error.photoUnavailable" = "Η πρόσβαση στις φωτογραφίες δεν είναι διαθέσιμη σε αυτήν τη συσκευή.";

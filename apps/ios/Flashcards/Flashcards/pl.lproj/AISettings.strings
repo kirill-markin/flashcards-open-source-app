@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Wybierz zdjęcie";
 "ai.composer.attachment.chooseFile" = "Wybierz plik";
 "ai.composer.attachment.unsupported" = "Nieobsługiwany załącznik (%@)";
+"ai.attachment.card.title" = "Fiszka";
+"ai.attachment.card.withSnippet" = "Fiszka · %@";
 "ai.attachment.error.unsupportedType" = "Nieobsługiwany typ pliku: .%@";
 "ai.attachment.error.cameraUnavailable" = "Aparat jest niedostępny na tym urządzeniu.";
 "ai.attachment.error.photoUnavailable" = "Dostęp do zdjęć jest niedostępny na tym urządzeniu.";

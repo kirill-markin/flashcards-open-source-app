@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "புகைப்படத்தைத் தேர்ந்தெடு";
 "ai.composer.attachment.chooseFile" = "கோப்பைத் தேர்ந்தெடு";
 "ai.composer.attachment.unsupported" = "ஆதரிக்கப்படாத இணைப்பு (%@)";
+"ai.attachment.card.title" = "அட்டை";
+"ai.attachment.card.withSnippet" = "அட்டை · %@";
 "ai.attachment.error.unsupportedType" = "ஆதரிக்கப்படாத கோப்பு வகை: .%@";
 "ai.attachment.error.cameraUnavailable" = "இந்தச் சாதனத்தில் கேமரா கிடைக்கவில்லை.";
 "ai.attachment.error.photoUnavailable" = "இந்தச் சாதனத்தில் புகைப்பட அணுகல் கிடைக்கவில்லை.";

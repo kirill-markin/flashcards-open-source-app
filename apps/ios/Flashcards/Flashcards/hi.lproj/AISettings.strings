@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "फ़ोटो चुनें";
 "ai.composer.attachment.chooseFile" = "फ़ाइल चुनें";
 "ai.composer.attachment.unsupported" = "असमर्थित अनुलग्नक (%@)";
+"ai.attachment.card.title" = "कार्ड";
+"ai.attachment.card.withSnippet" = "कार्ड · %@";
 "ai.attachment.error.unsupportedType" = "असमर्थित फ़ाइल प्रकार: .%@";
 "ai.attachment.error.cameraUnavailable" = "इस डिवाइस पर कैमरा उपलब्ध नहीं है.";
 "ai.attachment.error.photoUnavailable" = "इस डिवाइस पर फ़ोटो तक पहुंच उपलब्ध नहीं है।";
