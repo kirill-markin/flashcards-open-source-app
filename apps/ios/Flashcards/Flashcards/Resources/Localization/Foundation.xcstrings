@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হয়েছে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fet"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -79,6 +97,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отворете Настройки, ако искате да изключите този достъп."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি যদি এই অ্যাক্সেস বন্ধ করতে চান তবে সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obriu Configuració si voleu desactivar aquest accés."
           }
         },
         "de" : {
@@ -152,6 +188,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поискайте достъп сега или отворете Настройки по-късно, ако искате да го управлявате ръчно."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনই অ্যাক্সেসের জন্য অনুরোধ করুন, অথবা আপনি যদি ম্যানুয়ালি এটি পরিচালনা করতে চান তাহলে পরে সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sol·liciteu accés ara o obriu Configuració més tard si voleu gestionar-lo manualment."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -221,6 +275,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до камерата е изключен за Nibomo. Отворете Настройки > Поверителност и сигурност > Камера, за да го промените."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo এর জন্য ক্যামেরা অ্যাক্সেস বন্ধ করা আছে। এটি পরিবর্তন করতে সেটিংস > গোপনীয়তা এবং নিরাপত্তা > ক্যামেরা খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés a la càmera està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Càmera per canviar-ho."
           }
         },
         "de" : {
@@ -294,6 +366,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отворете Настройки, за да прегледате или разширите този достъп."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই অ্যাক্সেস পর্যালোচনা বা প্রসারিত করতে সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obriu Configuració per revisar o ampliar aquest accés."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -363,6 +453,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до микрофона е изключен за Nibomo. Отворете Настройки > Поверителност и сигурност > Микрофон, за да го промените."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo এর জন্য মাইক্রোফোন অ্যাক্সেস বন্ধ করা হয়েছে। এটি পরিবর্তন করতে সেটিংস > গোপনীয়তা ও নিরাপত্তা > মাইক্রোফোন খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés al micròfon està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Micròfon per canviar-lo."
           }
         },
         "de" : {
@@ -436,6 +544,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до снимки е изключен за Nibomo. Отворете Настройки > Поверителност и сигурност > Снимки, за да го промените."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফটো অ্যাক্সেস Nibomo এর জন্য বন্ধ করা হয়েছে। এটি পরিবর্তন করতে সেটিংস > গোপনীয়তা এবং নিরাপত্তা > ফটো খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés a les fotos està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Fotos per canviar-ho."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -505,6 +631,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Налични са само снимките, които вече споделихте с Nibomo. Отворете Настройки, за да предоставите по-широк достъп до снимки."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শুধুমাত্র আপনি ইতিমধ্যেই Nibomo এর সাথে ভাগ করা ফটোগুলি উপলব্ধ। বৃহত্তর ফটো অ্যাক্সেস মঞ্জুর করতে সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Només estan disponibles les fotos que ja has compartit amb Nibomo. Obriu Configuració per concedir un accés més ampli a les fotos."
           }
         },
         "de" : {
@@ -578,6 +722,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Този достъп не е наличен на текущото устройство."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই অ্যাক্সেস বর্তমান ডিভাইসে অনুপলব্ধ।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquest accés no està disponible al dispositiu actual."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -647,6 +809,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешен"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুমোদিত"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permès"
           }
         },
         "de" : {
@@ -720,6 +900,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Питай всеки път"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রতিবার জিজ্ঞাসা করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar cada cop"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -789,6 +987,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокиран"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবরুদ্ধ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloquejat"
           }
         },
         "de" : {
@@ -862,6 +1078,24 @@
             "value" : "محدود"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ограничен"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সীমিত"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitat"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -931,6 +1165,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недостъпен"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "উপলভ্য নয়"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No disponible"
           }
         },
         "de" : {
@@ -1004,6 +1256,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Правете снимки директно от ИИ чата."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এআই চ্যাট থেকে সরাসরি ছবি তুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fes fotos directament des del xat IA."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1073,6 +1343,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Камера"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যামেরা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Càmera"
           }
         },
         "de" : {
@@ -1146,6 +1434,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Диктувайте текст в чата с ИИ."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কথা বলে এআই চ্যাটে লেখা যোগ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicta text al xat amb IA."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1215,6 +1521,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Микрофон"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মাইক্রোফোন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micròfon"
           }
         },
         "de" : {
@@ -1288,6 +1612,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изберете снимки за прикачени файлове за ИИ чат."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এআই চ্যাট সংযুক্তিগুলির জন্য ফটোগুলি চয়ন করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trieu fotos per als fitxers adjunts de xat d'IA."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1357,6 +1699,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Снимки"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফটো"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
           }
         },
         "de" : {
@@ -1430,6 +1790,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до микрофона е изключен за Nibomo. Отворете Настройки, за да го разрешите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo এর জন্য মাইক্রোফোন অ্যাক্সেস বন্ধ করা হয়েছে। অনুমতি দিতে সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés al micròfon està desactivat per a Nibomo. Obriu Configuració per permetre-ho."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1499,6 +1877,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Необходим е достъп до микрофона"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মাইক্রোফোন অ্যাক্সেস প্রয়োজন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accés al micròfon necessari"
           }
         },
         "de" : {
@@ -1572,6 +1968,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до камерата е изключен за Nibomo. Отворете Настройки, за да го разрешите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo এর জন্য ক্যামেরা অ্যাক্সেস বন্ধ করা আছে। অনুমতি দিতে সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés a la càmera està desactivat per a Nibomo. Obriu Configuració per permetre-ho."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1641,6 +2055,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Необходим е достъп до камерата"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যামেরা অ্যাক্সেস প্রয়োজন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Necessita accés a la càmera"
           }
         },
         "de" : {
@@ -1714,6 +2146,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до файлове е изключен за Nibomo. Отворете Настройки, за да го разрешите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফাইল অ্যাক্সেস Nibomo এর জন্য বন্ধ করা হয়েছে। অনুমতি দিতে সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés al fitxer està desactivat per a Nibomo. Obriu Configuració per permetre-ho."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1783,6 +2233,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Необходим е достъп до файла"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফাইল অ্যাক্সেস প্রয়োজন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accés al fitxer necessari"
           }
         },
         "de" : {
@@ -1856,6 +2324,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до снимки е изключен за Nibomo. Отворете Настройки, за да го разрешите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফটো অ্যাক্সেস Nibomo এর জন্য বন্ধ করা হয়েছে। অনুমতি দিতে সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés a les fotos està desactivat per a Nibomo. Obriu Configuració per permetre-ho."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1925,6 +2411,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Необходим е достъп до снимки"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফটো অ্যাক্সেস প্রয়োজন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cal accedir a la foto"
           }
         },
         "de" : {
@@ -1998,6 +2502,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всички карти"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব কার্ড"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totes les targetes"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2067,6 +2589,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прекъсната връзка"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সংযোগ বিচ্ছিন্ন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconnectat"
           }
         },
         "de" : {
@@ -2140,6 +2680,24 @@
             "value" : "ضيف"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Гост"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অতিথি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convidat"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2209,6 +2767,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свързан"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লিঙ্কযুক্ত"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enllaçat"
           }
         },
         "de" : {
@@ -2282,6 +2858,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово за свързване"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লিঙ্ক প্রস্তুত"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enllaç a punt"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2351,6 +2945,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Влизането в облак не е налично. Проверете конфигурацията на приложението."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্লাউড সাইন-ইন অনুপলব্ধ। অ্যাপ কনফিগারেশন চেক করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'inici de sessió al núvol no està disponible. Comproveu la configuració de l'aplicació."
           }
         },
         "de" : {
@@ -2424,6 +3036,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Въведете валиден имейл адрес."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি বৈধ ইমেল ঠিকানা লিখুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduïu una adreça de correu electrònic vàlida."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2493,6 +3123,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кодът вече е използван. Поискайте нов."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোডটি ইতিমধ্যে ব্যবহার করা হয়েছে। নতুন কোডের অনুরোধ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El codi ja s’ha utilitzat. Demana’n un de nou."
           }
         },
         "de" : {
@@ -2566,6 +3214,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кодът е невалиден. Опитайте отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোড অবৈধ। আবার চেষ্টা করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El codi no és vàlid. Torna-ho a provar."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2635,6 +3301,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не може да се изпрати код. Опитайте отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি কোড পাঠানো যায়নি। আবার চেষ্টা করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut enviar el codi. Torna-ho a provar."
           }
         },
         "de" : {
@@ -2708,6 +3392,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кодът е изтекъл. Поискайте нов."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোডের মেয়াদ শেষ। নতুন কোডের অনুরোধ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El codi ha caducat. Demana’n un de nou."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2777,6 +3479,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Твърде много опити. Поискайте нов код."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনেকবার চেষ্টা করা হয়েছে। নতুন কোডের অনুরোধ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Massa intents. Demana un codi nou."
           }
         },
         "de" : {
@@ -2850,6 +3570,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кодът не може да бъде потвърден. Опитайте отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোড যাচাই করা যায়নি। আবার চেষ্টা করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut verificar el codi. Torna-ho a provar."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2919,6 +3657,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неуспешно влизане в облака. Опитайте отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্লাউড সাইন-ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut iniciar la sessió al núvol. Torna-ho a provar."
           }
         },
         "de" : {
@@ -2992,6 +3748,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Връзката беше прекъсната при изпращане на кода. Проверете имейла си и опитайте отново, ако е необходимо."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোড পাঠানোর সময় সংযোগ বিঘ্নিত হয়েছিল। আপনার ইমেল চেক করুন, তারপর প্রয়োজন হলে আবার চেষ্টা করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexió s'ha interromput mentre s'envia el codi. Comproveu el vostre correu electrònic i torneu-ho a provar si cal."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3061,6 +3835,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Връзката беше прекъсната по време на проверка на кода. Опитайте отново или поискайте нов код, ако е необходимо."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোড যাচাই করার সময় সংযোগ বিঘ্নিত হয়েছে। আবার চেষ্টা করুন, অথবা প্রয়োজন হলে একটি নতুন কোডের অনুরোধ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connexió s'ha interromput mentre es verificava el codi. Torna-ho a provar o sol·licita un codi nou si cal."
           }
         },
         "de" : {
@@ -3134,6 +3926,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класацията по преговори не можа да се опресни. Издърпайте, за да опитате отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রেটিং লিডারবোর্ড রিফ্রেশ করা যায়নি। আবার চেষ্টা করার জন্য টানুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut actualitzar la classificació de repassos. Estira per tornar-ho a provar."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3203,6 +4013,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Графикът за преговор не можа да се опресни. Издърпайте, за да опитате отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনার সময়সূচী রিফ্রেশ করা যায়নি। আবার চেষ্টা করার জন্য টানুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut actualitzar la programació de repassos. Estira per tornar-ho a provar."
           }
         },
         "de" : {
@@ -3276,6 +4104,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Графикът за преговор не можа да бъде показан. Издърпайте, за да опитате отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনার সময়সূচী দেখানো যায়নি। আবার চেষ্টা করার জন্য টানুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut mostrar la programació de repassos. Estira per tornar-ho a provar."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3345,6 +4191,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Диаграмата на напредъка не можа да се опресни. Издърпайте, за да опитате отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অগ্রগতির চার্ট রিফ্রেশ করা যায়নি। আবার চেষ্টা করার জন্য টানুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El gràfic de progrés no s'ha pogut actualitzar. Estira per tornar-ho a provar."
           }
         },
         "de" : {
@@ -3418,6 +4282,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класацията по поредица не можа да се опресни. Издърпайте, за да опитате отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধারাবাহিকতা লিডারবোর্ড রিফ্রেশ করা যায়নি। আবার চেষ্টা করার জন্য টানুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La taula de classificació de la ratxa no s'ha pogut actualitzar. Estira per tornar-ho a provar."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3487,6 +4369,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обобщението на напредъка не можа да се опресни. Издърпайте, за да опитате отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অগ্রগতির সারাংশ রিফ্রেশ করা যায়নি। আবার চেষ্টা করার জন্য টানুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut actualitzar el resum del progrés. Estira per tornar-ho a provar."
           }
         },
         "de" : {
@@ -3560,6 +4460,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Напредъкът е недостъпен. Издърпайте за опресняване и опитайте отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অগ্রগতি অনুপলব্ধ। রিফ্রেশ করতে টানুন এবং আবার চেষ্টা করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El progrés no està disponible. Estira per actualitzar i torna-ho a provar."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3629,6 +4547,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Налични замразявания: %@ от %@."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "উপলভ্য ফ্রিজ %@টি, মোট %@টি।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Congelacions disponibles: %@ de %@."
           }
         },
         "de" : {
@@ -3702,6 +4638,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показва как работят замразяванията на поредицата."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধারাবাহিকতা সুরক্ষার ফ্রিজ কীভাবে কাজ করে তা দেখায়।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra com funcionen les congelacions de ratxa."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3771,6 +4725,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Налични: %@/%@. Възстановяване: %@/%@. Замразяванията предпазват поредицата при пропуснати дни и се възстановяват, докато тя продължава."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "উপলভ্য: %@/%@। পুনরায় জমা হচ্ছে: %@/%@। ফ্রিজ ব্যবহার করলে বাদ পড়া দিনেও ধারাবাহিকতা অক্ষুণ্ণ থাকে। ধারাবাহিকতা বজায় রাখলে ফ্রিজ আবার জমা হয়।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibles: %@/%@. Recàrrega: %@/%@. Les congelacions protegeixen els dies que no estudies i es recarreguen mentre mantens la ratxa."
           }
         },
         "de" : {
@@ -3844,6 +4816,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Замразявания на поредицата"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধারাবাহিকতা সুরক্ষার ফ্রিজ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Congelacions de ratxa"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3913,6 +4903,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Създаване на връзка"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লিঙ্ক তৈরি করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un enllaç"
           }
         },
         "de" : {
@@ -3986,6 +4994,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Те могат да го отворят, да влязат или да се регистрират и след това ще се видите в приложението. Връзките за покани изтичат след 2 дни."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তারা এটি খুলতে, সাইন ইন করতে বা সাইন আপ করতে পারে এবং তারপরে আপনি অ্যাপটিতে একে অপরকে দেখতে পাবেন। আমন্ত্রণ লিঙ্ক 2 দিনের মধ্যে মেয়াদ শেষ হয়।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poden obrir-lo, iniciar sessió o registrar-se, i després us veureu a l'aplicació. Els enllaços d'invitació caduquen d'aquí a 2 dies."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4055,6 +5081,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изпратете тази връзка на ваш приятел"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার বন্ধুকে এই লিঙ্ক পাঠান"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envia aquest enllaç al teu amic"
           }
         },
         "de" : {
@@ -4128,6 +5172,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Създава се..."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তৈরি করা হচ্ছে..."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S'està creant..."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4197,6 +5259,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Създайте частна връзка за приятелство за класацията."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লিডারবোর্ডের জন্য একটি ব্যক্তিগত বন্ধু লিঙ্ক তৈরি করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creeu un enllaç d'amic privat per a la taula de classificació."
           }
         },
         "de" : {
@@ -4270,6 +5350,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Само вие виждате това име в класацията си. При приемане приятелят ви избира с какво име да ви вижда. Връзките за покана изтичат след 2 дни."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার লিডারবোর্ডে এই নামটি শুধু আপনিই দেখবেন। আমন্ত্রণ গ্রহণের সময় আপনার বন্ধু আপনাকে কোন নামে দেখবেন তা বেছে নেবেন। আমন্ত্রণের লিঙ্কের মেয়াদ ২ দিন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Només tu veus aquest nom a la teva classificació. En acceptar, el teu amic tria amb quin nom et vol veure. Els enllaços d’invitació caduquen al cap de 2 dies."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4339,6 +5437,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Име на приятел във вашата класация"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার লিডারবোর্ডে বন্ধুর নাম"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom de l'amic a la taula de classificació"
           }
         },
         "de" : {
@@ -4412,6 +5528,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Името на вашия приятел"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার বন্ধুর নাম"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom del teu amic"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4481,6 +5615,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হয়েছে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fet"
           }
         },
         "de" : {
@@ -4554,6 +5706,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изпратете връзка за покана"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আমন্ত্রণ লিঙ্ক পাঠান"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envia l'enllaç d'invitació"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4623,6 +5793,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отворете тази покана за Nibomo, влезте или се регистрирайте и ще се виждаме в приложението."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-এর এই আমন্ত্রণটি খুলে সাইন ইন করুন বা নিবন্ধন করুন। তারপর আমরা অ্যাপে একে অপরকে দেখতে পাব।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obre aquesta invitació de Nibomo, inicia la sessió o registra’t i ens veurem a l’app."
           }
         },
         "de" : {
@@ -4696,6 +5884,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покана за приятелство в Nibomo"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-তে বন্ধুত্বের আমন্ত্রণ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitació d’amistat a Nibomo"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4765,6 +5971,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавяне на приятел"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বন্ধু যোগ করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afegeix amic"
           }
         },
         "de" : {
@@ -4838,6 +6062,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не се допускат нови редове и контролни знаци."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নতুন লাইন এবং নিয়ন্ত্রণ অক্ষর অনুমোদিত নয়।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No es permeten noves línies ni caràcters de control."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4907,6 +6149,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Въведете 1-30 знака."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-30টি অক্ষর লিখুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduïu d'1 a 30 caràcters."
           }
         },
         "de" : {
@@ -4980,6 +6240,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активност при преговор"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনার কার্যক্রম"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activitat de repàs"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5049,6 +6327,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তারিখ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
           }
         },
         "de" : {
@@ -5122,6 +6418,24 @@
             "value" : "المراجعات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Преговори"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repassos"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5191,6 +6505,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последните 30 дни."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গত 30 দিন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Últims 30 dies."
           }
         },
         "de" : {
@@ -5264,6 +6596,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 преговор"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "১ বার পুনরালোচনা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 repàs"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5333,6 +6683,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld преговора"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld বার পুনরালোচনা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld repassos"
           }
         },
         "de" : {
@@ -5406,6 +6774,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активност при преговор"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনার কার্যক্রম"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activitat de repàs"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5475,6 +6861,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld في %2$@"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld в %2$@"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ এ #%1$lld"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld a %2$@"
           }
         },
         "de" : {
@@ -5548,6 +6952,24 @@
             "value" : "أفضل تصنيف"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Най-добро класиране"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সেরা অবস্থান"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Millor posició"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5617,6 +7039,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد تصنيف بعد"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все още няма класиране"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো অবস্থান নেই"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encara no hi ha cap posició"
           }
         },
         "de" : {
@@ -5690,6 +7130,24 @@
             "value" : "بطاقة واحدة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 карта"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 কার্ড"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 targeta"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5759,6 +7217,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld بطاقات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld карти"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld কার্ড"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld targetes"
           }
         },
         "de" : {
@@ -5832,6 +7308,24 @@
             "value" : "البطاقات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Карти"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কার্ড"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Targetes"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5901,6 +7395,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة الحالية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текуща поредица"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বর্তমান ধারাবাহিকতা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ratxa actual"
           }
         },
         "de" : {
@@ -5974,6 +7486,24 @@
             "value" : "تم"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হয়েছে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fet"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6043,6 +7573,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверете връзката си и опитайте отново."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার সংযোগ পরীক্ষা করুন এবং আবার চেষ্টা করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprova la teva connexió i torna-ho a provar."
           }
         },
         "de" : {
@@ -6116,6 +7664,24 @@
             "value" : "تعذر تحميل الملف الشخصي"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Профилът не можа да се зареди"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রোফাইল লোড করা যায়নি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut carregar el perfil"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6185,6 +7751,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "صديق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приятел"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বন্ধু"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amic"
           }
         },
         "de" : {
@@ -6258,6 +7842,24 @@
             "value" : "تاريخ الانضمام"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата на присъединяване"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "যোগদানের তারিখ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data d’incorporació"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6327,6 +7929,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جارٍ تحميل الملف الشخصي..."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Профилът се зарежда..."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রোফাইল লোড হচ্ছে..."
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S'està carregant el perfil..."
           }
         },
         "de" : {
@@ -6400,6 +8020,24 @@
             "value" : "المقاييس"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показатели"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিমাপ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indicadors"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6469,6 +8107,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опитайте отново"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আবার চেষ্টা করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna-ho a provar"
           }
         },
         "de" : {
@@ -6542,6 +8198,24 @@
             "value" : "الإحصاءات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статистика"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিসংখ্যান"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estadístiques"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6611,6 +8285,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Влезте с имейл, за да видите профилите в класацията."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লিডারবোর্ড প্রোফাইল দেখতে ইমেল দিয়ে সাইন ইন করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicieu la sessió amb el correu electrònic per veure els perfils de la classificació."
           }
         },
         "de" : {
@@ -6684,6 +8376,24 @@
             "value" : "يلزم تسجيل الدخول"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изисква се влизане"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সাইন ইন প্রয়োজন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cal iniciar sessió"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6753,6 +8463,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Профилите се виждат само докато участието в класацията по преговори е включено."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনার লিডারবোর্ডে অংশগ্রহণ চালু থাকলেই প্রোফাইল দেখা যায়।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Els perfils només són visibles mentre participes a la classificació de repassos."
           }
         },
         "de" : {
@@ -6826,6 +8554,24 @@
             "value" : "المشاركة متوقفة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Участието е изключено"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অংশগ্রহণ বন্ধ আছে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La participació està desactivada"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6895,6 +8641,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Този профил на класацията не може да бъде показан в момента."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই লিডারবোর্ড প্রোফাইল এখন দেখানো যাবে না।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquest perfil de classificació no es pot mostrar ara mateix."
           }
         },
         "de" : {
@@ -6968,6 +8732,24 @@
             "value" : "الملف الشخصي غير متاح"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Профилът е недостъпен"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রোফাইল অনুপলব্ধ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfil no disponible"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7037,6 +8819,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة التقييمات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Относно класацията по преговори"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রেটিং লিডারবোর্ড সম্পর্কে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre la classificació de repassos"
           }
         },
         "de" : {
@@ -7110,6 +8910,24 @@
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Преговорите с оценка „Трудно“, „Добре“ и „Лесно“ се зачитат за класирането. „Отново“ не се зачита."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কঠিন, ভালো ও সহজ দিয়ে মূল্যায়ন করা পুনরালোচনা আপনার অবস্থান নির্ধারণে গণনা করা হয়। আবার গণনা করা হয় না।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Els repassos valorats amb Difícil, Bé i Fàcil compten per a la classificació. Un altre cop no compta."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7179,6 +8997,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавяне на приятел"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি বন্ধু যোগ করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afegeix un amic"
           }
         },
         "de" : {
@@ -7252,6 +9088,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавяне на приятел"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বন্ধু যোগ করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afegeix amic"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7321,6 +9175,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опитайте отново по-късно."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরে আবার চেষ্টা করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna-ho a provar més tard."
           }
         },
         "de" : {
@@ -7394,6 +9266,24 @@
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не можа да се зареди класацията по преговори"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রেটিং লিডারবোর্ড লোড করা যায়নি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut carregar la classificació de repassos"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7463,6 +9353,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свържете се с интернет, за да заредите класацията по преговори."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রেটিং লিডারবোর্ড লোড করতে ইন্টারনেটের সাথে সংযোগ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecteu-vos a Internet per carregar la classificació de repassos."
           }
         },
         "de" : {
@@ -7536,6 +9444,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вие сте офлайн"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি অফলাইনে আছেন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estàs fora de línia"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7605,6 +9531,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отворете настройките на класацията по преговори"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রেটিং লিডারবোর্ড সেটিংস খুলুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obre la configuració de la classificació de repassos"
           }
         },
         "de" : {
@@ -7678,6 +9622,24 @@
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класациите се виждат само докато участвате в класацията по преговори."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি যখন রেটিং লিডারবোর্ডে অংশগ্রহণ করেন তখনই র‌্যাঙ্কিং দৃশ্যমান হয়।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les classificacions només són visibles mentre participeu a la classificació de repassos."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7747,6 +9709,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة في التقييمات متوقفة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Участието в класацията по преговори е изключено"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনার লিডারবোর্ডে অংশগ্রহণ বন্ধ আছে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La participació a la classificació de repassos està desactivada"
           }
         },
         "de" : {
@@ -7820,6 +9800,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Място %1$lld, %2$lld преговора"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান %1$lld, %2$lld বার পুনরালোচনা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posició %1$lld, %2$lld repassos"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7889,6 +9887,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вие"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu"
           }
         },
         "de" : {
@@ -7962,6 +9978,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класация по преговори"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনার লিডারবোর্ড"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classificació de repassos"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8031,6 +10065,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Влезте или се регистрирайте"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সাইন ইন বা সাইন আপ করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sessió o registra't"
           }
         },
         "de" : {
@@ -8104,6 +10156,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Влезте с имейл, за да видите как вашите преговори се класират в класацията по преговори."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রেটিং লিডারবোর্ডে আপনার পুনরালোচনাগুলি কীভাবে স্থান পেয়েছে তা দেখতে ইমেল দিয়ে সাইন ইন করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicieu la sessió amb el correu electrònic per veure com es classifiquen les vostres repassos a la classificació de repassos."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8173,6 +10243,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Присъединете се към класацията по преговори"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রেটিং লিডারবোর্ডে যোগ দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uneix-te a la classificació de repassos"
           }
         },
         "de" : {
@@ -8246,6 +10334,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подготвя се класацията по преговори. Проверете отново скоро."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রেটিং লিডারবোর্ড প্রস্তুত করা হচ্ছে। শীঘ্রই আবার চেক করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S'està preparant la classificació de repassos. Torna a consultar aviat."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8315,6 +10421,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все още не е готов"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনো প্রস্তুত হয়নি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encara no està llest"
           }
         },
         "de" : {
@@ -8388,6 +10512,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Актуализирано преди %@"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ আগে আপডেট করা হয়েছে।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualitzat fa %@"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8457,6 +10599,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "de" : {
@@ -8530,6 +10690,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 час"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ঘণ্টা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 hora"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8599,6 +10777,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld ساعة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld часа"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ঘণ্টা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld hores"
           }
         },
         "de" : {
@@ -8672,6 +10868,24 @@
             "value" : "دقيقة واحدة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 минута"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 মিনিট"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minut"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8741,6 +10955,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld دقيقة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld минути"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld মিনিট"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minuts"
           }
         },
         "de" : {
@@ -8814,6 +11046,24 @@
             "value" : "الفترة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Период"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সময়কাল"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Període"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8883,6 +11133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "كل الأوقات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За цялото време"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব সময়"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Des de sempre"
           }
         },
         "de" : {
@@ -8956,6 +11224,24 @@
             "value" : "3 ي"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 д"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "৩ দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9025,6 +11311,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 ي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 д"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "৭ দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d"
           }
         },
         "de" : {
@@ -9098,6 +11402,24 @@
             "value" : "24 س"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 ч"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "২৪ ঘণ্টা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 h"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9167,6 +11489,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 ي"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 д"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "৩০ দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d"
           }
         },
         "de" : {
@@ -9240,6 +11580,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld карти, %@"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld কার্ড, %@"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld targetes, %@"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9309,6 +11667,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 дни"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 dies"
           }
         },
         "de" : {
@@ -9382,6 +11758,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 дни"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 dies"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9451,6 +11845,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 дни"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 dies"
           }
         },
         "de" : {
@@ -9524,6 +11936,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 дни"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 dies"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9593,6 +12023,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По-късно"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Més tard"
           }
         },
         "de" : {
@@ -9666,6 +12114,24 @@
             "value" : "جديدة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нов"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নতুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nou"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9735,6 +12201,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Днес"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avui"
           }
         },
         "de" : {
@@ -9808,6 +12292,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 години"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 বছর"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 anys"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9877,6 +12379,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все още няма активни карти."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনো কোনো সক্রিয় কার্ড নেই।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encara no hi ha cap targeta activa."
           }
         },
         "de" : {
@@ -9950,6 +12470,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "График за преговор"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনার সময়সূচি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calendari de repàs"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10019,6 +12557,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld преговора"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld বার পুনরালোচনা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld repassos"
           }
         },
         "de" : {
@@ -10092,6 +12648,24 @@
             "value" : "الأسبوع التالي"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Следващата седмица"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরের সপ্তাহে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La setmana vinent"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10161,6 +12735,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع السابق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предишната седмица"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আগের সপ্তাহে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setmana anterior"
           }
         },
         "de" : {
@@ -10234,6 +12826,24 @@
             "value" : "المراجعات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Преговори"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repassos"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10303,6 +12913,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم واحد"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ден"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dia"
           }
         },
         "de" : {
@@ -10376,6 +13004,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld дни"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dies"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10445,6 +13091,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Относно класацията по поредица"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধারাবাহিকতা লিডারবোর্ড সম্পর্কে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre la classificació de la ratxa"
           }
         },
         "de" : {
@@ -10518,6 +13182,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дните в текущата поредица определят мястото ви. За ден от поредицата се брои всеки ден по местно време с поне един преговор на карта с оценка %1$@, %2$@, %3$@ или %4$@."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বর্তমান ধারাবাহিকতার দিনের সংখ্যা আপনার অবস্থান নির্ধারণ করে। স্থানীয় সময় অনুযায়ী কোনো দিনে অন্তত একটি কার্ড %1$@, %2$@, %3$@ বা %4$@ দিয়ে মূল্যায়ন করলে সেই দিনটি ধারাবাহিকতায় গণনা করা হয়।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Els dies de la ratxa actual determinen la teva posició. Compta com a dia de ratxa qualsevol dia local amb almenys un repàs d’una targeta valorat amb %1$@, %2$@, %3$@ o %4$@."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10587,6 +13269,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опитайте отново по-късно."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরে আবার চেষ্টা করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna-ho a provar més tard."
           }
         },
         "de" : {
@@ -10660,6 +13360,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класацията по поредица не можа да се зареди"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধারাবাহিকতা লিডারবোর্ড লোড করা যায়নি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No s'ha pogut carregar la taula de classificació de la ratxa"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10729,6 +13447,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свържете се с интернет, за да заредите класацията по поредица."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধারাবাহিকতা লিডারবোর্ড লোড করতে ইন্টারনেটের সাথে সংযোগ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecteu-vos a Internet per carregar la classificació de la ratxa."
           }
         },
         "de" : {
@@ -10802,6 +13538,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вие сте офлайн"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি অফলাইনে আছেন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estàs fora de línia"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10871,6 +13625,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Място %1$lld, %2$@"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থান %1$lld, %2$@"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posició %1$lld, %2$@"
           }
         },
         "de" : {
@@ -10944,6 +13716,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Класация по поредица"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধারাবাহিকতার লিডারবোর্ড"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classificació de ratxes"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11013,6 +13803,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Замразен ден"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফ্রিজ দিয়ে সুরক্ষিত দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dia congelat"
           }
         },
         "de" : {
@@ -11086,6 +13894,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бъдещ ден"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ভবিষ্যতের দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dia futur"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11155,6 +13981,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поредица"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধারাবাহিকতা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ratxa"
           }
         },
         "de" : {
@@ -11228,6 +14072,24 @@
             "value" : "التقدم"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Напредък"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অগ্রগতি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progrés"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11297,6 +14159,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Днес"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avui"
           }
         },
         "de" : {
@@ -11370,6 +14250,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешаване на известия"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিজ্ঞপ্তির অনুমতি দিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet notificacions"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11439,6 +14337,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешен"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুমোদিত"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permès"
           }
         },
         "de" : {
@@ -11512,6 +14428,24 @@
             "value" : "محظور"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокиран"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবরুদ্ধ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloquejat"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11581,6 +14515,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не е поискано"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুরোধ করা হয়নি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No sol·licitat"
           }
         },
         "de" : {
@@ -11654,6 +14606,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продължете учебната си сесия в Nibomo."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo এ আপনার অধ্যয়ন সেশন চালিয়ে যান।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua la teva sessió d'estudi a Nibomo."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11723,6 +14693,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веднъж дневно"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রতিদিন একবার"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un cop al dia"
           }
         },
         "de" : {
@@ -11796,6 +14784,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "След почивка"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিরতির পর"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Després d'un descans"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11865,6 +14871,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отново"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আবার"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un altre cop"
           }
         },
         "de" : {
@@ -11938,6 +14962,24 @@
             "value" : "سهل"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лесно"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সহজ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fàcil"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12007,6 +15049,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добре"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ভালো"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bé"
           }
         },
         "de" : {
@@ -12080,6 +15140,24 @@
             "value" : "صعب"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Трудно"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কঠিন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difícil"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12149,6 +15227,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Акаунтът е изтрит"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্ট মুছে ফেলা হয়েছে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compte suprimit"
           }
         },
         "de" : {
@@ -12222,6 +15318,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИИ"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এআই"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IA"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12291,6 +15405,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Карти"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কার্ড"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Targetes"
           }
         },
         "de" : {
@@ -12364,6 +15496,24 @@
             "value" : "لاحقًا"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По-късно"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Més tard"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12433,6 +15583,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Влезте с имейл, за да запазите тези карти и напредъка от преговорите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই কার্ড ও পুনরালোচনার অগ্রগতি যাতে হারিয়ে না যায়, ইমেল দিয়ে সাইন ইন করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia la sessió amb el correu electrònic per no perdre aquestes targetes i el progrés dels repassos."
           }
         },
         "de" : {
@@ -12506,6 +15674,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вход"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সাইন ইন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia la sessió"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12575,6 +15761,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запазете напредъка си"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার অগ্রগতি সংরক্ষণ করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guarda el teu progrés"
           }
         },
         "de" : {
@@ -12648,6 +15852,24 @@
             "value" : "التقدم"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Напредък"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অগ্রগতি"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progrés"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12717,6 +15939,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Преговор"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরালোচনা"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repàs"
           }
         },
         "de" : {
@@ -12790,6 +16030,24 @@
             "value" : "الإعدادات"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সেটিংস"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuració"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12859,6 +16117,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отворете Настройки"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সেটিংস খুলুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obriu Configuració"
           }
         },
         "de" : {
@@ -12932,6 +16208,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поискайте достъп"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাক্সেসের অনুরোধ করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sol·licitar accés"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13001,6 +16295,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добре"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ঠিক আছে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D’acord"
           }
         },
         "de" : {
@@ -13074,6 +16386,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продължете поредицата си днес. Преговорете преди полунощ. Остават 2 часа."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজও ধারাবাহিকতা বজায় রাখুন। মধ্যরাতের আগে পুনরালোচনা করুন। আর ২ ঘণ্টা বাকি।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén la ratxa avui. Repassa abans de mitjanit. Queden 2 hores."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13143,6 +16473,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продължете поредицата си днес. Преговорете преди полунощ. Остават 3 часа."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজও ধারাবাহিকতা বজায় রাখুন। মধ্যরাতের আগে পুনরালোচনা করুন। আর ৩ ঘণ্টা বাকি।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén la ratxa avui. Repassa abans de mitjanit. Queden 3 hores."
           }
         },
         "de" : {
@@ -13216,6 +16564,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продължете поредицата си днес. Преговорете преди полунощ. Остават 4 часа."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজও ধারাবাহিকতা বজায় রাখুন। মধ্যরাতের আগে পুনরালোচনা করুন। আর ৪ ঘণ্টা বাকি।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén la ratxa avui. Repassa abans de mitjanit. Queden 4 hores."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13285,6 +16651,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Опитайте отново. Ако продължава да се случва, споделете техническите подробности с поддръжката."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আবার চেষ্টা করুন যদি এটি ঘটতে থাকে তবে সহায়তার সাথে প্রযুক্তিগত বিবরণ ভাগ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna-ho a provar. Si continua passant, compartiu els detalls tècnics amb el suport."
           }
         },
         "de" : {
@@ -13358,6 +16742,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нещо се обърка"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কিছু ভুল হয়েছে"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alguna cosa va fallar"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13427,6 +16829,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Затваряне"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বন্ধ করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanca"
           }
         },
         "de" : {
@@ -13500,6 +16920,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Копиране на подробности"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিবরণ অনুলিপি করুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia els detalls"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13569,6 +17007,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Технически детайли"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রযুক্তিগত বিবরণ"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalls tècnics"
           }
         },
         "de" : {
@@ -13642,6 +17098,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вече е в ход отговор. Изчакайте да приключи или го спрете, преди да изпратите друго съобщение."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি প্রতিক্রিয়া ইতিমধ্যেই চলছে। এটি শেষ হওয়ার জন্য অপেক্ষা করুন বা অন্য বার্তা পাঠানোর আগে এটি বন্ধ করুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La resposta ja està en curs. Espereu que acabi o atureu-lo abans d'enviar un altre missatge."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13711,6 +17185,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Няма интернет връзка. ИИ чатът изисква достъп до интернет."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইন্টারনেট সংযোগ নেই। এআই চ্যাটের জন্য ইন্টারনেট অ্যাক্সেস প্রয়োজন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sense connexió a Internet. El xat amb IA requereix accés a Internet."
           }
         },
         "de" : {
@@ -13784,6 +17276,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Картите се актуализират от облака."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্লাউড থেকে কার্ড আপডেট করা হয়েছে।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Targetes actualitzades des del núvol."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13853,6 +17363,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Говорът не е наличен на това устройство."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বক্তৃতা এই ডিভাইসে অনুপলব্ধ।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La veu no està disponible en aquest dispositiu."
           }
         },
         "de" : {
@@ -13926,6 +17454,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Този преговор е актуализиран на друго устройство."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই পুনরালোচনাটি অন্য ডিভাইসে আপডেট করা হয়েছে।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquesta revisió s'ha actualitzat en un altre dispositiu."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13995,6 +17541,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тестовата версия е деактивирана."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরীক্ষা সংস্করণ নিষ্ক্রিয়।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versió de prova desactivada."
           }
         },
         "de" : {
@@ -14068,6 +17632,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тестовата версия е активирана."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরীক্ষা সংস্করণ সক্ষম।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versió de prova activada."
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14137,6 +17719,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Промените в работното пространство са налични само след като създадете акаунт."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি একটি অ্যাকাউন্ট তৈরি করার পরেই কর্মক্ষেত্র পরিবর্তনগুলি উপলব্ধ।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Els canvis a l'espai de treball només estan disponibles després de crear un compte."
           }
         },
         "de" : {

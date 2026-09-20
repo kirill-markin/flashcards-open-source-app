@@ -22,6 +22,9 @@ The iOS app currently declares support for these Apple locale identifiers:
 
 - `en` as the development and source language
 - `ar`
+- `bg`
+- `bn`
+- `ca`
 - `zh-Hans`
 - `de`
 - `fr`
