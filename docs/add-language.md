@@ -14,6 +14,12 @@ editable Store drafts, and the released binary are separate delivery states.
 Do not widen web, Android, website, or name-pool coverage without an explicit
 scope decision.
 
+Read the current locale sets from each surface's source below and its linked
+guide. The sets can differ intentionally; reconcile each requested rollout
+against them instead of assuming a shared count. Listing-only Android work uses
+the [Play listing localization runbook](../apps/android/docs/play-store-localization-runbook.md)
+without changing shipping app languages.
+
 ## The locale lists are hand-maintained and mostly not type-checked
 
 Widening a locale union breaks every `Record<…>` keyed by it, so those maps are
@@ -51,13 +57,14 @@ which must be changed together with the website's `src/lib/localeConfig.ts`, and
 | 4 | Demo onboarding card | the four strings in every locale of each affected client | [docs/demo-card.md](demo-card.md) |
 | 5 | iOS | bundle localization, `kMDItemKeywords`, and the Settings language row | [docs/ios-localization.md](ios-localization.md) |
 | 6 | Android | one line in `locales_config.xml`, then enable the language in Play App strings | [apps/android/docs/add-language-checklist.md](../apps/android/docs/add-language-checklist.md) |
-| 7 | Store listings | supported Store locale, localized copy, and an editable version | [docs/app-store-connect-metadata.md](app-store-connect-metadata.md), [docs/google-play-store-metadata.md](google-play-store-metadata.md) |
+| 7 | Store listings | supported Store locale, authored copy, localized assets, and publication from an editable version | [docs/app-store-connect-metadata.md](app-store-connect-metadata.md), [Play listing localization runbook](../apps/android/docs/play-store-localization-runbook.md) |
 | 8 | Screenshots and composites | capture per locale, then build the derived materials | [apps/ios/docs/marketing-screenshots.md](../apps/ios/docs/marketing-screenshots.md), [apps/android/docs/marketing-screenshot-runbook.md](../apps/android/docs/marketing-screenshot-runbook.md) |
 | 9 | Marketing website | the generic tag, its content tree, and the home-page composite | `flashcards-open-source-app-website`, `src/lib/localeConfig.ts` |
 
 Step 4 lands with each affected client. Deploy auth and backend locale handling
 before a client ships that locale. Capture screenshots only after its complete
-resources and fixtures land. Website images depend on captures only when a
+resources and fixtures land. Android screenshot-only overlays do not require
+a new shipping app language. Website images depend on captures only when a
 website update is in scope.
 
 ## Auth and backend dependencies
@@ -134,3 +141,41 @@ that the PNGs were regenerated: inspect the actual output for the intended
 source revision, locale, and screen before upload. Updating iOS screenshots does
 not refresh Android screenshots or the website's copied composites; handle those
 only within their own approved scope and linked platform runbooks.
+
+## Identify stale marketing screenshots
+
+Inspect the committed PNGs against the structural markers below. Android has
+current French and Brazilian Portuguese sets plus the 39 additional locales in
+the [JSON loader map](../apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotLocaleLoader.kt);
+do not classify every other language as April-era content.
+
+The remaining legacy Android sets to check are `en`, `ar`, `de-DE`, `es-ES`,
+`es-419`, `es-US`, `hi-IN`, `ja-JP`, `ru-RU`, and `zh-CN`. The committed English
+prefix is `en`; capturing `en-US` creates a second set instead of replacing it.
+The corresponding legacy iOS sets are `en-US`, `ar`, `de`, `es-ES`, `es-MX`,
+`hi`, `ja`, `ru`, and `zh-Hans`. Android's `es-US` has no iOS counterpart, so a
+regeneration pass driven by the iOS list alone misses it.
+
+Tell the two generations apart by the structure of the progress screen, the only
+marker that holds on both platforms and in every locale:
+
+- Stale: the streak card carries no freeze indicator, and the "Reviews" bar
+  chart sits directly under it. There is no leaderboard.
+- Current: the streak card carries a freeze indicator, and a grade leaderboard
+  with a friend-invite call to action sits directly under it. The "Reviews"
+  chart still exists, but it moved below the leaderboard and off the first
+  screen, so a capture that ends at the leaderboard is not missing it. The
+  always-rendered half differs by platform — on iOS it is the freeze indicator,
+  and the leaderboard needs a loaded snapshot; on Android it is the leaderboard
+  section, and the freeze indicator needs a loaded summary — so decide on that
+  half and treat the other one as optional.
+
+Do not use the streak number or the chart's date range to date a capture. The
+streak number is a per-platform fixture value — the current iOS captures read
+12, while the current Android captures read 8, which is also the stale iOS
+number — and the chart's date range follows the locale's week start, so
+Sunday-first locales never show the Monday-first range.
+
+[scripts/android/pull-marketing-screenshot.sh](../scripts/android/pull-marketing-screenshot.sh)
+rejects a stale, empty, truncated, or non-PNG pull. Still open the PNG: the
+guards prove a fresh file arrived, not that it shows the right thing.
