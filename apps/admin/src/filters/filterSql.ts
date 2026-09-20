@@ -57,6 +57,101 @@ export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): stri
   return `NOT ${buildActorIsExcludedSql(actorIdSqlExpression)}`;
 }
 
+/**
+ * Drops rows a credential-free caller wrote, on every surface that counts people.
+ *
+ * `trust_level = 'anonymous_client'` is the credential-free collector
+ * (`docs/anonymous-client-analytics.md`): the row is accepted from an allowlisted browser origin
+ * with no credential at all, and its `anonymous_id` - which is what
+ * `analytics.product_events_resolved` falls back to for `actor_id` - is a caller-supplied UUID the
+ * route verifies nothing about. Such a claim is evidence that an event happened; it is not evidence
+ * that a person exists, so it must never enter a distinct count of people. The collector accepts
+ * every client-reportable name, `app_opened` among them, so without this predicate a signed-out
+ * marketing-site visitor, or anyone posting to the route, would become a daily active user on an
+ * append-only table that cannot be corrected afterwards.
+ *
+ * This is a trust rule rather than a selection, so it takes no filter state and a report composes it
+ * into the CTE its own actors come from, beside the exclusion above. Every other trust level is
+ * kept: `server_derived` and `backfill_derived` are the server's own observations, and
+ * `authenticated_client` and `guest_client` are claims made on an authenticated request.
+ *
+ * NOT YET APPLIED EVERYWHERE, AND THIS IS THE WHOLE LIST. Nineteen entries below derive an
+ * actor-level fact from `analytics.product_events_resolved`, eighteen in this package and one
+ * outside it. Each is APPLIED, UNREACHABLE, or PENDING, and the three are not interchangeable: only
+ * a PENDING entry is work. Reading an UNREACHABLE entry as an unconverted one produces a no-op
+ * predicate; reading it as an omission produces a remediation that converts the entries it happens
+ * to have been told about and stops. A shared fragment is one entry, listed where it is written,
+ * with its readers named.
+ *
+ * APPLIED (4).
+ *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
+ *     feeds.
+ *   - `reports/audience/query.ts`, the `history` CTE and the cohort it feeds.
+ *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
+ *     filter bar composes.
+ *   - `filters/optionsQuery.ts`, the `Users` option list.
+ *
+ * UNREACHABLE (8): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
+ * from is either `serverOnly: true` in `apps/backend/src/productAnalytics/catalog.ts`, which the
+ * collector refuses outright, or already carries a trust predicate of its own, so no row this
+ * collector writes can reach them and this predicate would change nothing.
+ *   - `reports/reviewEventsByDate/query.ts`, the `review_answered` cohort. By event name.
+ *   - `reports/reviewEventsByDate/query.ts`, the `friend_invitation_created` and
+ *     `friendship_created` community series. By event name.
+ *   - `reports/catalogInstalls/query.ts`, the `deck_installs` CTE (`catalog_deck_installed`). By
+ *     event name.
+ *   - `reports/catalogInstallFunnel/query.ts`, `install_actors` and `install_actor_reviews`. By
+ *     event name: an attempt names a person only through the server-origin
+ *     `catalog_deck_installed`, and the reviews read `review_answered`.
+ *   - `reports/catalogInstallFunnel/query.ts`, the journey-level exclusion. By event name on the
+ *     install bridge and by that query's own `trust_level = 'authenticated_client'` on the
+ *     install-start bridge, which its comment already states is load-bearing.
+ *   - `buildCatalogInstalledDeckVersionsSql` and `buildCatalogInstallAttributionSql` below - two
+ *     fragments, one bridge - read by the installed-deck and click-attribution filters and by their
+ *     five option lists. The attribution fragment reads `anonymous_client` clicks deliberately, but
+ *     a click names nobody: every actor it emits comes from the server-origin install it joins to.
+ *   - `reports/catalogInstallFunnel/query.ts`, the installs-without-journey diagnostic, which
+ *     applies the actor exclusions to a server-origin `catalog_deck_installed`. By event name.
+ *   - `filters/optionsQuery.ts`, the deck-slug list (`catalog_deck_installed`). By event name.
+ *
+ * PENDING (6), each needing this predicate of its own. Each is reachable as soon as a producer
+ * sends the shared browser visitor id, because an `anonymous_client` row then resolves onto a real
+ * person through `first_anonymous_link` in
+ * `db/migrations/0115_product_analytics_resolved_view.sql`.
+ *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
+ *   - `reports/catalogInstallFunnel/query.ts`, `install_actor_first_event`: the same cohort, and by
+ *     design it carries no event-name restriction at all, so it sees every name the collector
+ *     accepts.
+ *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
+ *     of an already-counted actor, over every event name.
+ *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
+ *     `anonymous_client` row carries; read by the country filter, the country option list and the
+ *     country and pair charts of `Audience`.
+ *   - `buildAppUiLanguagesFilterSql` below, over every event name, composed by every report's
+ *     filter bar.
+ *   - `filters/optionsQuery.ts`, the `ui_locale` list, which gates on nothing but a non-NULL actor,
+ *     so a locale only a signed-out visitor ever sent would be offered as a filter value.
+ *
+ * OUTSIDE THIS PACKAGE (1), and it cannot take the rule from here.
+ *   - `apps/backend/src/productAnalytics/syntheticActorDetector.ts` groups the whole event store by
+ *     actor and restates its own rules, because the backend cannot import this package. Its
+ *     candidate population is gated on `review_answered`, so the collector can never produce a
+ *     candidate, but its `app_opened_events = 0` safety signal counts that actor's whole unfiltered
+ *     history, so a collector row resolving onto a candidate can only suppress a detection, never
+ *     cause one. Pending in the weaker direction, and it is a restatement rather than a call.
+ *
+ * NOT ENTRIES, AND NOT OMISSIONS. The two available-range probes,
+ * `buildReviewEventsByDateAvailableRangeSql` and `buildCatalogInstallFunnelAvailableRangeSql`, read
+ * the same view but derive no actor fact at all - each is a `MIN(occurred_at)` over event names - so
+ * neither needs this predicate, and the funnel's reads `anonymous_client` rows on purpose.
+ *
+ * Any further reader that decides a person takes the rule from here rather than restating it, and
+ * adds itself to this list.
+ */
+export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string): string {
+  return `${trustLevelSqlExpression} <> 'anonymous_client'`;
+}
+
 // The half-open UTC instants of a range, as the expressions a timestamp column is compared to. Each
 // one is parenthesized whole, so it drops into a comparison as safely as into a select list.
 function buildRangeStartSql(dateRange: AnalyticsDateRange): string {
@@ -145,10 +240,13 @@ const catalogInstallThresholdExclusionSqlLines = [
 
 // One threshold, as the set of actors that cleared it. The count is taken inside the selected range
 // on `analytics.product_events_resolved`, the one table every report here reads, so a threshold means
-// the same thing on every area no matter which activity that area charts. Actors are compared as
-// text because that is how each report already exposes its own actor id; `actor_id IS NOT NULL`
-// keeps the set free of a NULL, which would otherwise make a non-match read as unknown rather than
-// as false.
+// the same thing on every area no matter which activity that area charts. Actors are compared as text
+// because that is how each report already exposes its own actor id; `actor_id IS NOT NULL` keeps the
+// set free of a NULL, which would otherwise make a non-match read as unknown rather than as false.
+//
+// The trust rule is restated for the same reason the range is: a threshold decides whether a person
+// is kept, so counting rows the report itself refuses to count would let `app_opened:N` keep or drop
+// someone on evidence no chart of that report shows.
 function buildMinimumEventCountFilterSql(
   actorIdSqlExpression: string,
   minimumEventCount: AnalyticsMinimumEventCount,
@@ -165,6 +263,7 @@ function buildMinimumEventCountFilterSql(
     "  FROM analytics.product_events_resolved AS threshold_events",
     `  WHERE threshold_events.event_name = ${escapeSqlStringLiteral(minimumEventCount.eventType)}`,
     "    AND threshold_events.actor_id IS NOT NULL",
+    `    AND ${buildTrustedActorRowsFilterSql("threshold_events.trust_level")}`,
     "    AND threshold_events.occurred_at >= (",
     `      (${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC'`,
     "    )",
