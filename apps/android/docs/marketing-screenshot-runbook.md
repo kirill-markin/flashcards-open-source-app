@@ -30,23 +30,12 @@ FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/android/capture-android-marke
 
 The wrapper passes that prefix into the manual AndroidTest entrypoint, which resolves the matching screenshot locale configuration before preparing the app state and file names.
 
-The currently configured screenshot locale prefixes are:
-
-- `en`
-- `en-US`
-- `ar`
-- `zh-CN`
-- `fr-FR`
-- `de-DE`
-- `hi-IN`
-- `ja-JP`
-- `pt-BR`
-- `ru-RU`
-- `es-419`
-- `es-ES`
-- `es-US`
-
-Today the default remains `en`.
+Built-in locale prefixes and the required JSON pack format are listed in
+[the screenshot inventory](marketing-screenshots.md#json-locale-packs).
+For a new locale, add its fixture and screenshot-only resource overlay before
+running the wrapper with the exact Play code, for example
+`FLASHCARDS_MARKETING_LOCALE_PREFIX=bn-BD`. Missing or malformed fixtures fail
+explicitly. The default remains `en`.
 
 After the wrapper scripts run, the expected generated output files are:
 
@@ -159,7 +148,7 @@ That prevents an already-open notification shade from being captured on top of a
 The unified wrapper runs one shared entrypoint, seeds the guest workspace once, and pulls screenshots 1, 2, 3, 4, and 5 from the same instrumentation run.
 The seed uses one deterministic 30-day-ish study-history pattern with gaps, a final streak of 8 days, `hasReviewedToday = true`, and `activeReviewDays = 16`.
 
-The locale-specific card texts, AI draft texts, file-name prefixes, and UI labels used by these screenshot flows are defined in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotCatalog.kt`.
+Locale content comes from the Kotlin catalog or a JSON pack; see the [pack contract](marketing-screenshots.md#json-locale-packs).
 
 The screenshot-only variant exists to package repository-owned screenshot translations without leaking them into shipping builds.
 Keep normal Android UI localization Play-first, and limit repository-managed screenshot overlays to screenshot capture only.
