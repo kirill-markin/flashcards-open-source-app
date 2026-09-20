@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Вибрати фото";
 "ai.composer.attachment.chooseFile" = "Вибрати файл";
 "ai.composer.attachment.unsupported" = "Непідтримуване вкладення (%@)";
+"ai.attachment.card.title" = "Картка";
+"ai.attachment.card.withSnippet" = "Картка · %@";
 "ai.attachment.error.unsupportedType" = "Непідтримуваний тип файлу: .%@";
 "ai.attachment.error.cameraUnavailable" = "Камера недоступна на цьому пристрої.";
 "ai.attachment.error.photoUnavailable" = "Доступ до фото недоступний на цьому пристрої.";
