@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,картки,навчальні картки,флешкартки";
+"NSCameraUsageDescription" = "Дозвольте доступ до камери, щоб робити фото для вкладень у чаті ШІ.";
+"NSMicrophoneUsageDescription" = "Дозвольте доступ до мікрофона, щоб диктувати текст у чаті ШІ.";
+"NSPhotoLibraryUsageDescription" = "Дозвольте доступ до фототеки, щоб вибирати фото для вкладень у чаті ШІ.";
