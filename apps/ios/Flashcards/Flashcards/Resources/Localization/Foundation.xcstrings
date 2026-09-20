@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmis"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انجام شد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmis"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -115,6 +133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kui soovid selle juurdepääsu välja lülitada, ava seaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اگر می‌خواهید این دسترسی را غیرفعال کنید، تنظیمات را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avaa asetukset, jos haluat poistaa tämän käyttöoikeuden."
           }
         },
         "bg" : {
@@ -224,6 +260,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taotle juurdepääsu kohe või ava seaded hiljem, et seda käsitsi hallata."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اکنون درخواست دسترسی دهید یا برای مدیریت دستی آن بعداً تنظیمات را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pyydä käyttöoikeutta nyt tai hallitse sitä myöhemmin asetuksissa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -329,6 +383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo kaamerale juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Kaamera."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به دوربین غیرفعال است. برای تغییر آن، تنظیمات > حریم خصوصی و امنیت > دوربین را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon kameran käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Kamera."
           }
         },
         "bg" : {
@@ -438,6 +510,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selle juurdepääsu kontrollimiseks või laiendamiseks ava seaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برای بررسی یا گسترش این دسترسی، تنظیمات را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarkista käyttöoikeus tai laajenna sitä avaamalla asetukset."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -543,6 +633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo mikrofoni juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Mikrofon."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به میکروفون غیرفعال است. برای تغییر آن، تنظیمات > حریم خصوصی و امنیت > میکروفون را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon mikrofonin käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Mikrofoni."
           }
         },
         "bg" : {
@@ -652,6 +760,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo fotodele juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Fotod."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به عکس‌ها غیرفعال است. برای تغییر آن، تنظیمات > حریم خصوصی و امنیت > عکس‌ها را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon kuvien käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Kuvat."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -757,6 +883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saadaval on ainult fotod, mida oled juba Nibomoga jaganud. Laiema juurdepääsu andmiseks ava seaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فقط عکس‌هایی که قبلاً با Nibomo به اشتراک گذاشته‌اید در دسترس‌اند. برای دسترسی بیشتر به عکس‌ها، تنظیمات را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vain Nibomon kanssa jo jakamasi kuvat ovat käytettävissä. Anna laajempi kuvien käyttöoikeus asetuksissa."
           }
         },
         "bg" : {
@@ -866,6 +1010,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See juurdepääs pole selles seadmes saadaval."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "این دسترسی در دستگاه فعلی در دسترس نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tämä käyttöoikeus ei ole saatavilla tällä laitteella."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -971,6 +1133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lubatud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مجاز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sallittu"
           }
         },
         "bg" : {
@@ -1080,6 +1260,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Küsi iga kord"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هر بار بپرس"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kysy joka kerta"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1185,6 +1383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blokeeritud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسدود"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estetty"
           }
         },
         "bg" : {
@@ -1294,6 +1510,24 @@
             "value" : "محدود"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piiratud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محدود"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rajoitettu"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1399,6 +1633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pole saadaval"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "در دسترس نیست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei saatavilla"
           }
         },
         "bg" : {
@@ -1508,6 +1760,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pildista otse tehisintellekti vestluses."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مستقیماً از گفت‌وگوی هوش مصنوعی عکس بگیرید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ota kuvia suoraan tekoälykeskustelussa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1613,6 +1883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaamera"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوربین"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
           }
         },
         "bg" : {
@@ -1722,6 +2010,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dikteeri teksti tehisintellekti vestlusesse."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متن را در گفت‌وگوی هوش مصنوعی دیکته کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sanele tekstiä tekoälykeskusteluun."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1827,6 +2133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "میکروفون"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofoni"
           }
         },
         "bg" : {
@@ -1936,6 +2260,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vali fotod tehisintellekti vestluse manusteks."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عکس‌هایی برای پیوست گفت‌وگوی هوش مصنوعی انتخاب کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valitse kuvia tekoälykeskustelun liitteiksi."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2041,6 +2383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotod"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عکس‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuvat"
           }
         },
         "bg" : {
@@ -2150,6 +2510,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo mikrofoni juurdepääs on välja lülitatud. Selle lubamiseks ava seaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به میکروفون غیرفعال است. برای فعال کردن آن، تنظیمات را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon mikrofonin käyttöoikeus on poistettu. Salli se asetuksissa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2255,6 +2633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vajalik on juurdepääs mikrofonile"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی به میکروفون لازم است"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonin käyttöoikeus tarvitaan"
           }
         },
         "bg" : {
@@ -2364,6 +2760,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo kaamerale juurdepääs on välja lülitatud. Selle lubamiseks ava seaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به دوربین غیرفعال است. برای فعال کردن آن، تنظیمات را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon kameran käyttöoikeus on poistettu. Salli se asetuksissa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2469,6 +2883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vajalik on juurdepääs kaamerale"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی به دوربین لازم است"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameran käyttöoikeus tarvitaan"
           }
         },
         "bg" : {
@@ -2578,6 +3010,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo failidele juurdepääs on välja lülitatud. Selle lubamiseks ava seaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به فایل‌ها غیرفعال است. برای فعال کردن آن، تنظیمات را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon tiedostojen käyttöoikeus on poistettu. Salli se asetuksissa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2683,6 +3133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vajalik on juurdepääs failidele"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی به فایل‌ها لازم است"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiedostojen käyttöoikeus tarvitaan"
           }
         },
         "bg" : {
@@ -2792,6 +3260,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo fotodele juurdepääs on välja lülitatud. Selle lubamiseks ava seaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به عکس‌ها غیرفعال است. برای فعال کردن آن، تنظیمات را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon kuvien käyttöoikeus on poistettu. Salli se asetuksissa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2897,6 +3383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vajalik on juurdepääs fotodele"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی به عکس‌ها لازم است"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuvien käyttöoikeus tarvitaan"
           }
         },
         "bg" : {
@@ -3006,6 +3510,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kõik kaardid"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "همهٔ کارت‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaikki kortit"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3111,6 +3633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ühendus katkestatud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قطع اتصال"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhteys katkaistu"
           }
         },
         "bg" : {
@@ -3220,6 +3760,24 @@
             "value" : "ضيف"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Külaline"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مهمان"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vieras"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3325,6 +3883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seotud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متصل"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhdistetty"
           }
         },
         "bg" : {
@@ -3434,6 +4010,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sidumiseks valmis"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آمادهٔ اتصال"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmis yhdistettäväksi"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3539,6 +4133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilve sisselogimine pole saadaval. Kontrolli rakenduse seadistust."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ورود به فضای ابری در دسترس نیست. پیکربندی برنامه را بررسی کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilvipalveluun kirjautuminen ei ole käytettävissä. Tarkista sovelluksen määritykset."
           }
         },
         "bg" : {
@@ -3648,6 +4260,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sisesta kehtiv e-posti aadress."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "یک نشانی ایمیل معتبر وارد کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anna kelvollinen sähköpostiosoite."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3753,6 +4383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kood on juba kasutatud. Küsi uus kood."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کد قبلاً استفاده شده است. کد جدیدی درخواست کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koodi on jo käytetty. Pyydä uusi."
           }
         },
         "bg" : {
@@ -3862,6 +4510,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kood ei kehti. Proovi uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کد نامعتبر است. دوباره امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koodi ei kelpaa. Yritä uudelleen."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3967,6 +4633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koodi ei saanud saata. Proovi uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ارسال کد ممکن نشد. دوباره امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koodin lähetys epäonnistui. Yritä uudelleen."
           }
         },
         "bg" : {
@@ -4076,6 +4760,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kood on aegunud. Küsi uus kood."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کد منقضی شده است. کد جدیدی درخواست کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koodi on vanhentunut. Pyydä uusi."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4181,6 +4883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liiga palju katseid. Küsi uus kood."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعداد تلاش‌ها بیش از حد است. کد جدیدی درخواست کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liian monta yritystä. Pyydä uusi koodi."
           }
         },
         "bg" : {
@@ -4290,6 +5010,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koodi ei saanud kinnitada. Proovi uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تأیید کد ممکن نشد. دوباره امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koodin vahvistus epäonnistui. Yritä uudelleen."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4395,6 +5133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilve sisselogimine ebaõnnestus. Proovi uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ورود به فضای ابری ناموفق بود. دوباره امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilvipalveluun kirjautuminen epäonnistui. Yritä uudelleen."
           }
         },
         "bg" : {
@@ -4504,6 +5260,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ühendus katkes koodi saatmisel. Kontrolli oma e-posti ja vajadusel proovi uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هنگام ارسال کد، اتصال قطع شد. ایمیل خود را بررسی کنید و در صورت نیاز دوباره امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhteys katkesi koodia lähetettäessä. Tarkista sähköpostisi ja yritä tarvittaessa uudelleen."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4609,6 +5383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ühendus katkes koodi kinnitamisel. Proovi uuesti või küsi vajadusel uus kood."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هنگام تأیید کد، اتصال قطع شد. دوباره امتحان کنید یا در صورت نیاز کد جدیدی درخواست کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhteys katkesi koodia vahvistettaessa. Yritä uudelleen tai pyydä tarvittaessa uusi koodi."
           }
         },
         "bg" : {
@@ -4718,6 +5510,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamise edetabelit ei saanud värskendada. Uuesti proovimiseks tõmba alla."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "به‌روزرسانی جدول رتبه‌بندی مرور ممکن نشد. برای تلاش دوباره به پایین بکشید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertauksen tulostaulukkoa ei voitu päivittää. Yritä uudelleen vetämällä alas."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4823,6 +5633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamisgraafikut ei saanud värskendada. Uuesti proovimiseks tõmba alla."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "به‌روزرسانی برنامهٔ مرور ممکن نشد. برای تلاش دوباره به پایین بکشید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertausaikataulua ei voitu päivittää. Yritä uudelleen vetämällä alas."
           }
         },
         "bg" : {
@@ -4932,6 +5760,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamisgraafikut ei saanud näidata. Uuesti proovimiseks tõmba alla."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نمایش برنامهٔ مرور ممکن نشد. برای تلاش دوباره به پایین بکشید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertausaikataulua ei voitu näyttää. Yritä uudelleen vetämällä alas."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5037,6 +5883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edenemisgraafikut ei saanud värskendada. Uuesti proovimiseks tõmba alla."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "به‌روزرسانی نمودار پیشرفت ممکن نشد. برای تلاش دوباره به پایین بکشید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edistymiskaaviota ei voitu päivittää. Yritä uudelleen vetämällä alas."
           }
         },
         "bg" : {
@@ -5146,6 +6010,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Järjestikuste päevade edetabelit ei saanud värskendada. Uuesti proovimiseks tõmba alla."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "به‌روزرسانی جدول رتبه‌بندی روزهای پیاپی ممکن نشد. برای تلاش دوباره به پایین بکشید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päiväputkien tulostaulukkoa ei voitu päivittää. Yritä uudelleen vetämällä alas."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5251,6 +6133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edenemise kokkuvõtet ei saanud värskendada. Uuesti proovimiseks tõmba alla."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "به‌روزرسانی خلاصهٔ پیشرفت ممکن نشد. برای تلاش دوباره به پایین بکشید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edistymisen yhteenvetoa ei voitu päivittää. Yritä uudelleen vetämällä alas."
           }
         },
         "bg" : {
@@ -5360,6 +6260,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edenemine pole saadaval. Värskendamiseks ja uuesti proovimiseks tõmba alla."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیشرفت در دسترس نیست. برای به‌روزرسانی و تلاش دوباره به پایین بکشید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edistyminen ei ole saatavilla. Päivitä ja yritä uudelleen vetämällä alas."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5465,6 +6383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Külmutusi saadaval: %@/%@."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ذخیرهٔ محافظت: %@ از %@ در دسترس است."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suojia käytettävissä: %@/%@."
           }
         },
         "bg" : {
@@ -5574,6 +6510,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näitab, kuidas järjestikuste päevade külmutused toimivad."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نحوهٔ عملکرد محافظت از روزهای پیاپی را نشان می‌دهد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näyttää, miten päiväputken suojat toimivat."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5679,6 +6633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saadaval: %@/%@. Taastumine: %@/%@. Külmutused kaitsevad vahelejäänud päevi ja taastuvad sinu päevade jada jätkudes."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "در دسترس: %@/%@. شارژ مجدد: %@/%@. محافظت‌ها روزهای ازدست‌رفته را پوشش می‌دهند و با ادامهٔ روزهای پیاپی دوباره شارژ می‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käytettävissä: %@/%@. Latautuminen: %@/%@. Suojat turvaavat väliin jääneet päivät ja latautuvat päiväputken jatkuessa."
           }
         },
         "bg" : {
@@ -5788,6 +6760,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päevade jada külmutused"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محافظت از روزهای پیاپی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päiväputken suojat"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5893,6 +6883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loo link"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ساخت پیوند"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luo linkki"
           }
         },
         "bg" : {
@@ -6002,6 +7010,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta saab selle avada, sisse logida või registreeruda ning seejärel näete teineteist rakenduses. Kutselingid aeguvad 2 päeva pärast."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوستتان می‌تواند پیوند را باز کند، وارد شود یا ثبت‌نام کند و سپس یکدیگر را در برنامه خواهید دید. پیوندهای دعوت پس از ۲ روز منقضی می‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ystäväsi voi avata linkin ja kirjautua tai rekisteröityä. Sen jälkeen näette toisenne sovelluksessa. Kutsulinkit vanhenevat 2 päivässä."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6107,6 +7133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saada see link oma sõbrale"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "این پیوند را برای دوستتان بفرستید"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lähetä tämä linkki ystävällesi"
           }
         },
         "bg" : {
@@ -6216,6 +7260,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loomine..."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "در حال ساخت..."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luodaan..."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6321,6 +7383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loo privaatne sõbralink edetabeli jaoks."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "یک پیوند خصوصی دوستی برای جدول رتبه‌بندی بسازید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luo yksityinen ystävälinkki tulostaulukkoa varten."
           }
         },
         "bg" : {
@@ -6430,6 +7510,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainult sina näed seda nime oma edetabelis. Sõber valib kutse vastuvõtmisel, kuidas sind nimetada. Kutselingid aeguvad 2 päeva pärast."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فقط شما این نام را در جدول رتبه‌بندی خود می‌بینید. دوستتان هنگام پذیرش دعوت، نامی برای شما انتخاب می‌کند. پیوندهای دعوت پس از ۲ روز منقضی می‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vain sinä näet tämän nimen tulostaulukossasi. Ystäväsi valitsee sinulle nimen hyväksyessään kutsun. Kutsulinkit vanhenevat 2 päivässä."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6535,6 +7633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sõbra nimi sinu edetabelis"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نام دوست در جدول رتبه‌بندی شما"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ystävän nimi tulostaulukossasi"
           }
         },
         "bg" : {
@@ -6644,6 +7760,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinu sõbra nimi"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نام دوستتان"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ystäväsi nimi"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6749,6 +7883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmis"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انجام شد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmis"
           }
         },
         "bg" : {
@@ -6858,6 +8010,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saada kutselink"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ارسال پیوند دعوت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lähetä kutsulinkki"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6963,6 +8133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ava see Nibomo kutse, logi sisse või registreeru ning näeme teineteist rakenduses."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "این دعوت Nibomo را باز کنید، وارد شوید یا ثبت‌نام کنید تا یکدیگر را در برنامه ببینیم."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avaa tämä Nibomo-kutsu ja kirjaudu tai rekisteröidy, niin näemme toisemme sovelluksessa."
           }
         },
         "bg" : {
@@ -7072,6 +8260,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo sõbrakutse"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دعوت دوستی Nibomo"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon ystäväkutsu"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7177,6 +8383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisa sõber"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افزودن دوست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisää ystävä"
           }
         },
         "bg" : {
@@ -7286,6 +8510,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reavahetused ja juhtmärgid pole lubatud."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استفاده از خط جدید و نویسه‌های کنترلی مجاز نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rivinvaihdot ja ohjausmerkit eivät ole sallittuja."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7391,6 +8633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sisesta 1–30 märki."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۱ تا ۳۰ نویسه وارد کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anna 1–30 merkkiä."
           }
         },
         "bg" : {
@@ -7500,6 +8760,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamistegevus"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فعالیت مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertaustoiminta"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7605,6 +8883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuupäev"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تاریخ"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päivämäärä"
           }
         },
         "bg" : {
@@ -7714,6 +9010,24 @@
             "value" : "المراجعات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamised"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مرورها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertaukset"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7819,6 +9133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viimased 30 päeva."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۳۰ روز گذشته."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viimeiset 30 päivää."
           }
         },
         "bg" : {
@@ -7928,6 +9260,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kordamine"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۱ مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kertaus"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8033,6 +9383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kordamist"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kertausta"
           }
         },
         "bg" : {
@@ -8142,6 +9510,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamistegevus"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فعالیت مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertaustoiminta"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8247,6 +9633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld في %2$@"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld kategoorias %2$@"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رتبهٔ %1$lld در %2$@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld: %2$@"
           }
         },
         "bg" : {
@@ -8356,6 +9760,24 @@
             "value" : "أفضل تصنيف"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parim koht"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بهترین رتبه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paras sijoitus"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8461,6 +9883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد تصنيف بعد"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koht veel puudub"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هنوز رتبه‌ای ندارید"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei vielä sijoitusta"
           }
         },
         "bg" : {
@@ -8570,6 +10010,24 @@
             "value" : "بطاقة واحدة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kaart"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۱ کارت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kortti"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8675,6 +10133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld بطاقات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kaarti"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld کارت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld korttia"
           }
         },
         "bg" : {
@@ -8784,6 +10260,24 @@
             "value" : "البطاقات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaardid"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کارت‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kortit"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8889,6 +10383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة الحالية"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Praegune päevade jada"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روزهای پیاپی فعلی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nykyinen päiväputki"
           }
         },
         "bg" : {
@@ -8998,6 +10510,24 @@
             "value" : "تم"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmis"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انجام شد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valmis"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9103,6 +10633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontrolli ühendust ja proovi uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اتصال خود را بررسی و دوباره امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarkista yhteys ja yritä uudelleen."
           }
         },
         "bg" : {
@@ -9212,6 +10760,24 @@
             "value" : "تعذر تحميل الملف الشخصي"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiili ei saanud laadida"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بارگیری نمایه ممکن نشد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiilia ei voitu ladata"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9317,6 +10883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "صديق"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sõber"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ystävä"
           }
         },
         "bg" : {
@@ -9426,6 +11010,24 @@
             "value" : "تاريخ الانضمام"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liitunud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تاریخ عضویت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liittynyt"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9531,6 +11133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جارٍ تحميل الملف الشخصي..."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiili laadimine..."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "در حال بارگیری نمایه..."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ladataan profiilia..."
           }
         },
         "bg" : {
@@ -9640,6 +11260,24 @@
             "value" : "المقاييس"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näitajad"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شاخص‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mittarit"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9745,6 +11383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proovi uuesti"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تلاش دوباره"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yritä uudelleen"
           }
         },
         "bg" : {
@@ -9854,6 +11510,24 @@
             "value" : "الإحصاءات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistika"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آمار"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilastot"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9959,6 +11633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edetabeli profiilide vaatamiseks logi sisse e-postiga."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برای دیدن نمایه‌های جدول رتبه‌بندی، با ایمیل وارد شوید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjaudu sähköpostilla nähdäksesi tulostaulukon profiilit."
           }
         },
         "bg" : {
@@ -10068,6 +11760,24 @@
             "value" : "يلزم تسجيل الدخول"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sisselogimine on vajalik"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ورود لازم است"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjautuminen vaaditaan"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10173,6 +11883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiilid on nähtavad ainult siis, kui osaled kordamise edetabelis."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نمایه‌ها فقط زمانی دیده می‌شوند که شرکت در جدول رتبه‌بندی مرور فعال باشد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiilit näkyvät vain, kun osallistut kertauksen tulostaulukkoon."
           }
         },
         "bg" : {
@@ -10282,6 +12010,24 @@
             "value" : "المشاركة متوقفة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Osalemine on välja lülitatud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شرکت غیرفعال است"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Osallistuminen on pois käytöstä"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10387,6 +12133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seda edetabeli profiili ei saa praegu näidata."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "این نمایهٔ جدول رتبه‌بندی اکنون قابل نمایش نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tätä tulostaulukon profiilia ei voi näyttää juuri nyt."
           }
         },
         "bg" : {
@@ -10496,6 +12260,24 @@
             "value" : "الملف الشخصي غير متاح"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiil pole saadaval"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نمایه در دسترس نیست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiili ei saatavilla"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10601,6 +12383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة التقييمات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamise edetabelist"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دربارهٔ جدول رتبه‌بندی مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tietoja kertauksen tulostaulukosta"
           }
         },
         "bg" : {
@@ -10710,6 +12510,24 @@
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinnangud „Raske”, „Hea” ja „Lihtne” lähevad edetabelis arvesse. „Uuesti” ei lähe."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مرورهای «سخت»، «خوب» و «آسان» در رتبهٔ شما حساب می‌شوند. «دوباره» حساب نمی‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arviot Vaikea, Hyvä ja Helppo lasketaan sijoitukseesi. Uudelleen-arviota ei lasketa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10815,6 +12633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisa sõber"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افزودن دوست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisää ystävä"
           }
         },
         "bg" : {
@@ -10924,6 +12760,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisa sõber"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افزودن دوست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisää ystävä"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11029,6 +12883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proovi hiljem uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بعداً دوباره امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yritä myöhemmin uudelleen."
           }
         },
         "bg" : {
@@ -11138,6 +13010,24 @@
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamise edetabelit ei saanud laadida"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بارگیری جدول رتبه‌بندی مرور ممکن نشد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertauksen tulostaulukkoa ei voitu ladata"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11243,6 +13133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamise edetabeli laadimiseks loo internetiühendus."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برای بارگیری جدول رتبه‌بندی مرور به اینترنت متصل شوید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhdistä internetiin ladataksesi kertauksen tulostaulukon."
           }
         },
         "bg" : {
@@ -11352,6 +13260,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oled võrguühenduseta"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آفلاین هستید"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olet offline-tilassa"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11457,6 +13383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ava kordamise edetabeli seaded"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "باز کردن تنظیمات جدول رتبه‌بندی مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avaa kertauksen tulostaulukon asetukset"
           }
         },
         "bg" : {
@@ -11566,6 +13510,24 @@
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edetabeli kohad on nähtavad ainult siis, kui osaled kordamise edetabelis."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رتبه‌ها فقط هنگام شرکت شما در جدول رتبه‌بندی مرور دیده می‌شوند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sijoitukset näkyvät vain, kun osallistut kertauksen tulostaulukkoon."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11671,6 +13633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة في التقييمات متوقفة"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamise edetabelis osalemine on välja lülitatud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شرکت در رتبه‌بندی مرور غیرفعال است"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertauksen tulostaulukkoon osallistuminen on pois käytöstä"
           }
         },
         "bg" : {
@@ -11780,6 +13760,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koht %1$lld, %2$lld kordamist"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رتبهٔ %1$lld، %2$lld مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sijoitus %1$lld, %2$lld kertausta"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11885,6 +13883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sina"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شما"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinä"
           }
         },
         "bg" : {
@@ -11994,6 +14010,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamise edetabel"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جدول رتبه‌بندی مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertauksen tulostaulukko"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12099,6 +14133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logi sisse või registreeru"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ورود یا ثبت‌نام"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjaudu tai rekisteröidy"
           }
         },
         "bg" : {
@@ -12208,6 +14260,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logi sisse e-postiga, et näha oma kordamiste kohta edetabelis."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "با ایمیل وارد شوید تا رتبهٔ مرورهای خود را در جدول رتبه‌بندی مرور ببینید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjaudu sähköpostilla nähdäksesi kertaustesi sijoituksen tulostaulukossa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12313,6 +14383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liitu kordamise edetabeliga"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیوستن به جدول رتبه‌بندی مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liity kertauksen tulostaulukkoon"
           }
         },
         "bg" : {
@@ -12422,6 +14510,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamise edetabelit valmistatakse ette. Vaata varsti uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جدول رتبه‌بندی مرور در حال آماده‌سازی است. به‌زودی دوباره سر بزنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertauksen tulostaulukkoa valmistellaan. Tarkista pian uudelleen."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12527,6 +14633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pole veel valmis"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هنوز آماده نیست"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei vielä valmis"
           }
         },
         "bg" : {
@@ -12636,6 +14760,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Värskendatud %@ tagasi"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ پیش به‌روزرسانی شد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päivitetty %@ sitten"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12741,6 +14883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "bg" : {
@@ -12850,6 +15010,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 tund"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۱ ساعت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 tunti"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12955,6 +15133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld ساعة"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld tundi"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ساعت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld tuntia"
           }
         },
         "bg" : {
@@ -13064,6 +15260,24 @@
             "value" : "دقيقة واحدة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minut"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۱ دقیقه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minuutti"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13169,6 +15383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld دقيقة"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutit"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld دقیقه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minuuttia"
           }
         },
         "bg" : {
@@ -13278,6 +15510,24 @@
             "value" : "الفترة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajavahemik"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بازه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajanjakso"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13383,6 +15633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "كل الأوقات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kogu aeg"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "همهٔ زمان‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koko ajalta"
           }
         },
         "bg" : {
@@ -13492,6 +15760,24 @@
             "value" : "3 ي"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 p"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۳ روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 pv"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13597,6 +15883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 ي"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 p"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۷ روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 pv"
           }
         },
         "bg" : {
@@ -13706,6 +16010,24 @@
             "value" : "24 س"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 t"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۲۴ ساعت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 t"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13811,6 +16133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 ي"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 p"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۳۰ روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 pv"
           }
         },
         "bg" : {
@@ -13920,6 +16260,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kaarti, %@"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld کارت، %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld korttia, %@"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14025,6 +16383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 päeva"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۱ تا ۷ روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 päivää"
           }
         },
         "bg" : {
@@ -14134,6 +16510,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 päeva"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۸ تا ۳۰ روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 päivää"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14239,6 +16633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 päeva"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۳۱ تا ۹۰ روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 päivää"
           }
         },
         "bg" : {
@@ -14348,6 +16760,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 päeva"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۹۱ تا ۳۶۰ روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 päivää"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14453,6 +16883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiljem"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بعداً"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Myöhemmin"
           }
         },
         "bg" : {
@@ -14562,6 +17010,24 @@
             "value" : "جديدة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uus"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جدید"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uusi"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14667,6 +17133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Täna"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "امروز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tänään"
           }
         },
         "bg" : {
@@ -14776,6 +17260,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 aastat"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۱ تا ۲ سال"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 vuotta"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14881,6 +17383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiivseid kaarte veel pole."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هنوز کارت فعالی وجود ندارد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei vielä aktiivisia kortteja."
           }
         },
         "bg" : {
@@ -14990,6 +17510,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamisgraafik"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برنامهٔ مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertausaikataulu"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15095,6 +17633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kordamist"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kertausta"
           }
         },
         "bg" : {
@@ -15204,6 +17760,24 @@
             "value" : "الأسبوع التالي"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Järgmine nädal"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هفتهٔ بعد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seuraava viikko"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15309,6 +17883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع السابق"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eelmine nädal"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هفتهٔ قبل"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edellinen viikko"
           }
         },
         "bg" : {
@@ -15418,6 +18010,24 @@
             "value" : "المراجعات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kordamised"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مرورها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertaukset"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15523,6 +18133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم واحد"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 päev"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "۱ روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 päivä"
           }
         },
         "bg" : {
@@ -15632,6 +18260,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld päeva"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld روز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld päivää"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15737,6 +18383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Järjestikuste päevade edetabelist"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دربارهٔ جدول رتبه‌بندی روزهای پیاپی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tietoja päiväputkien tulostaulukosta"
           }
         },
         "bg" : {
@@ -15846,6 +18510,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinu koha määrab praegune järjestikuste päevade arv. Päev läheb arvesse, kui hindad sel kohalikul kalendripäeval vähemalt ühe kaardi hinnanguga %1$@, %2$@, %3$@ või %4$@."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعداد روزهای پیاپی فعلی رتبهٔ شما را تعیین می‌کند. هر روز محلی که در آن دست‌کم یک کارت را با %1$@، %2$@، %3$@ یا %4$@ مرور کنید، یک روز پیاپی محسوب می‌شود."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nykyisen päiväputken pituus määrää sijoituksesi. Putkeen lasketaan jokainen paikallinen päivä, jona vähintään yksi kortti saa arvion %1$@, %2$@, %3$@ tai %4$@."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15951,6 +18633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proovi hiljem uuesti."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بعداً دوباره امتحان کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yritä myöhemmin uudelleen."
           }
         },
         "bg" : {
@@ -16060,6 +18760,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Järjestikuste päevade edetabelit ei saanud laadida"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بارگیری جدول رتبه‌بندی روزهای پیاپی ممکن نشد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päiväputkien tulostaulukkoa ei voitu ladata"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16165,6 +18883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Järjestikuste päevade edetabeli laadimiseks loo internetiühendus."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "برای بارگیری جدول رتبه‌بندی روزهای پیاپی به اینترنت متصل شوید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yhdistä internetiin ladataksesi päiväputkien tulostaulukon."
           }
         },
         "bg" : {
@@ -16274,6 +19010,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oled võrguühenduseta"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آفلاین هستید"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olet offline-tilassa"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16379,6 +19133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koht %1$lld, %2$@"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رتبهٔ %1$lld، %2$@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sijoitus %1$lld, %2$@"
           }
         },
         "bg" : {
@@ -16488,6 +19260,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Järjestikuste päevade edetabel"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جدول رتبه‌بندی روزهای پیاپی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päiväputkien tulostaulukko"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16593,6 +19383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Külmutatud päev"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روز محافظت‌شده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suojattu päivä"
           }
         },
         "bg" : {
@@ -16702,6 +19510,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tulevane päev"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روز آینده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuleva päivä"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16807,6 +19633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päevade jada"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روزهای پیاپی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Päiväputki"
           }
         },
         "bg" : {
@@ -16916,6 +19760,24 @@
             "value" : "التقدم"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edenemine"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیشرفت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edistyminen"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17021,6 +19883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Täna"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "امروز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tänään"
           }
         },
         "bg" : {
@@ -17130,6 +20010,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Luba teavitused"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اجازهٔ اعلان‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salli ilmoitukset"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17235,6 +20133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lubatud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مجاز"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sallittu"
           }
         },
         "bg" : {
@@ -17344,6 +20260,24 @@
             "value" : "محظور"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blokeeritud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسدود"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estetty"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17449,6 +20383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pole küsitud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درخواست نشده"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei pyydetty"
           }
         },
         "bg" : {
@@ -17558,6 +20510,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jätka õppimist Nibomos."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جلسهٔ مطالعهٔ خود را در Nibomo ادامه دهید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jatka opiskelua Nibomossa."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17663,6 +20633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kord päevas"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روزی یک بار"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kerran päivässä"
           }
         },
         "bg" : {
@@ -17772,6 +20760,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pärast pausi"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پس از وقفه"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tauon jälkeen"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17877,6 +20883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uuesti"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوباره"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uudelleen"
           }
         },
         "bg" : {
@@ -17986,6 +21010,24 @@
             "value" : "سهل"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lihtne"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آسان"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helppo"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18091,6 +21133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hea"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خوب"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hyvä"
           }
         },
         "bg" : {
@@ -18200,6 +21260,24 @@
             "value" : "صعب"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raske"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سخت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vaikea"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18305,6 +21383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto kustutatud"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حساب حذف شد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tili poistettu"
           }
         },
         "bg" : {
@@ -18414,6 +21510,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TI"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هوش مصنوعی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekoäly"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18519,6 +21633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaardid"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کارت‌ها"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kortit"
           }
         },
         "bg" : {
@@ -18628,6 +21760,24 @@
             "value" : "لاحقًا"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiljem"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بعداً"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Myöhemmin"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18733,6 +21883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logi sisse e-postiga, et need kaardid ja kordamise edenemine ei läheks kaotsi."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "با ایمیل وارد شوید تا این کارت‌ها و پیشرفت مرور از دست نروند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjaudu sähköpostilla, jotta nämä kortit ja kertausedistyminen eivät katoa."
           }
         },
         "bg" : {
@@ -18842,6 +22010,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logi sisse"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ورود"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirjaudu"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18947,6 +22133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvesta oma edenemine"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ذخیرهٔ پیشرفت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tallenna edistymisesi"
           }
         },
         "bg" : {
@@ -19056,6 +22260,24 @@
             "value" : "التقدم"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edenemine"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیشرفت"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edistyminen"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19161,6 +22383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Korda"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مرور"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kertaa"
           }
         },
         "bg" : {
@@ -19270,6 +22510,24 @@
             "value" : "الإعدادات"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seaded"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تنظیمات"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asetukset"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19375,6 +22633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ava seaded"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "باز کردن تنظیمات"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avaa asetukset"
           }
         },
         "bg" : {
@@ -19484,6 +22760,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taotle juurdepääsu"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درخواست دسترسی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pyydä käyttöoikeutta"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19589,6 +22883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تأیید"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         },
         "bg" : {
@@ -19698,6 +23010,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoia oma päevade jada. Korda enne südaööd. Aega on 2 tundi."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روزهای پیاپی خود را حفظ کنید. پیش از نیمه‌شب مرور کنید. ۲ ساعت باقی مانده است."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säilytä päiväputkesi tänään. Kertaa ennen keskiyötä. Aikaa on 2 tuntia."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19803,6 +23133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoia oma päevade jada. Korda enne südaööd. Aega on 3 tundi."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روزهای پیاپی خود را حفظ کنید. پیش از نیمه‌شب مرور کنید. ۳ ساعت باقی مانده است."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säilytä päiväputkesi tänään. Kertaa ennen keskiyötä. Aikaa on 3 tuntia."
           }
         },
         "bg" : {
@@ -19912,6 +23260,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoia oma päevade jada. Korda enne südaööd. Aega on 4 tundi."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روزهای پیاپی خود را حفظ کنید. پیش از نیمه‌شب مرور کنید. ۴ ساعت باقی مانده است."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Säilytä päiväputkesi tänään. Kertaa ennen keskiyötä. Aikaa on 4 tuntia."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20017,6 +23383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proovi uuesti. Kui viga kordub, jaga tehnilisi üksikasju kasutajatoega."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوباره امتحان کنید. اگر مشکل ادامه داشت، جزئیات فنی را با پشتیبانی به اشتراک بگذارید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yritä uudelleen. Jos ongelma jatkuu, jaa tekniset tiedot tuen kanssa."
           }
         },
         "bg" : {
@@ -20126,6 +23510,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Midagi läks valesti"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مشکلی پیش آمد"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jokin meni pieleen"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20231,6 +23633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sulge"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بستن"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sulje"
           }
         },
         "bg" : {
@@ -20340,6 +23760,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopeeri üksikasjad"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کپی جزئیات"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopioi tiedot"
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20445,6 +23883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tehnilised üksikasjad"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جزئیات فنی"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekniset tiedot"
           }
         },
         "bg" : {
@@ -20554,6 +24010,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vastus on juba koostamisel. Enne uue sõnumi saatmist oota selle valmimist või peata see."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "یک پاسخ در حال تولید است. پیش از ارسال پیام دیگر، منتظر پایان آن بمانید یا آن را متوقف کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vastausta muodostetaan jo. Odota sen valmistumista tai pysäytä se ennen uuden viestin lähettämistä."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20659,6 +24133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Internetiühendus puudub. Tehisintellekti vestlus vajab internetiühendust."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اتصال اینترنت وجود ندارد. گفت‌وگوی هوش مصنوعی به اینترنت نیاز دارد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei internetyhteyttä. Tekoälykeskustelu vaatii internetyhteyden."
           }
         },
         "bg" : {
@@ -20768,6 +24260,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaardid värskendati pilvest."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کارت‌ها از فضای ابری به‌روزرسانی شدند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kortit päivitettiin pilvestä."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20873,6 +24383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kõne pole selles seadmes saadaval."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "گفتار در این دستگاه در دسترس نیست."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puhe ei ole käytettävissä tällä laitteella."
           }
         },
         "bg" : {
@@ -20982,6 +24510,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seda kordamist värskendati teises seadmes."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "این مرور در دستگاه دیگری به‌روزرسانی شد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tämä kertaus päivitettiin toisella laitteella."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21087,6 +24633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testversioon välja lülitatud."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نسخهٔ آزمایشی غیرفعال شد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testiversio poistettu käytöstä."
           }
         },
         "bg" : {
@@ -21196,6 +24760,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testversioon sisse lülitatud."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نسخهٔ آزمایشی فعال شد."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testiversio otettu käyttöön."
+          }
+        },
         "bg" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21301,6 +24883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tööruumi saab muuta alles pärast konto loomist."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تغییرات فضای کاری فقط پس از ساخت حساب در دسترس‌اند."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Työtilaa voi muuttaa vasta tilin luomisen jälkeen."
           }
         },
         "bg" : {

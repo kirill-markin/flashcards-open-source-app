@@ -28,6 +28,9 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `cs`
 - `da`
 - `el`
+- `et`
+- `fa`
+- `fi`
 - `zh-Hans`
 - `de`
 - `fr`
