@@ -82,7 +82,7 @@ Xcode Cloud builds now fail in `ci_post_clone.sh` before `xcodebuild` starts if 
 
 `SENTRY_CLI_EXPECTED_SHA256` is an optional non-secret override for the pinned `sentry-cli` binary checksum. Set it only when intentionally bumping the pinned CLI version.
 
-The human-operated iOS release gate is documented in [`docs/ios-ci-cd.md`](ios-ci-cd.md).
+The iOS release procedure is documented in [Platform Release Procedures](manual-production-release.md#ios).
 
 If Xcode Cloud should pin the live smoke flow to the standard review account explicitly, also set:
 
