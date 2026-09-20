@@ -134,8 +134,8 @@ extension AIChatView {
                     .autocorrectionDisabled(true)
                     .focused(self.$isComposerFocused)
                     .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
+                        ToolbarSpacer(.flexible, placement: .keyboard)
+                        ToolbarItem(placement: .keyboard) {
                             Button(String(
                                 localized: "ai.composer.dismiss_keyboard",
                                 defaultValue: "Done",
