@@ -257,6 +257,24 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             index: 1,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        let firstCardRow = self.app.buttons.matching(identifier: LiveSmokeIdentifier.cardsCardRow)
+            .element(boundBy: 0)
+        let expectedPrompt = try self.marketingLocaleFixture().reviewCard.frontText
+        if try self.waitForElementValueContaining(
+            firstCardRow,
+            identifier: "\(LiveSmokeIdentifier.cardsCardRow)[0]",
+            expectedValue: expectedPrompt,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: "\(LiveSmokeIdentifier.cardsCardRow)[0]",
+                expectedValue: expectedPrompt,
+                actualValue: self.elementValue(element: firstCardRow),
+                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 
     @MainActor

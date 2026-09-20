@@ -2418,9 +2418,32 @@ extension FlashcardsStore {
             context: context
         )
 
-        // Save the review card last so it remains first in review and at the top of the cards list
-        // after the support-card history updates rewrite their timestamps.
-        try self.createUITestCard(card: localeFixture.reviewCard, context: context)
+        let reviewCard = try context.database.saveCard(
+            workspaceId: context.workspaceId,
+            input: self.cardEditorInput(card: localeFixture.reviewCard),
+            cardId: nil,
+            mediaAssetIdsReadyForUpload: []
+        )
+        let cardsSnapshot = try context.database.cardStore.loadCardsListSnapshot(
+            workspaceId: context.workspaceId,
+            searchText: "",
+            filter: nil
+        )
+        guard let newestCard = cardsSnapshot.cards.first,
+              let latestUpdatedAt = parseIsoTimestamp(value: newestCard.updatedAt) else {
+            throw LocalStoreError.validation("Marketing cards require a valid latest updatedAt timestamp")
+        }
+
+        // Millisecond ties fall back to random card IDs. Give the review fixture a
+        // distinct local timestamp; guest bootstrap preserves these local rows.
+        try context.database.core.execute(
+            sql: "UPDATE cards SET updated_at = ? WHERE workspace_id = ? AND card_id = ?",
+            values: [
+                .text(formatIsoTimestamp(date: latestUpdatedAt.addingTimeInterval(1))),
+                .text(context.workspaceId),
+                .text(reviewCard.cardId)
+            ]
+        )
     }
 
     private func createUITestCards(
