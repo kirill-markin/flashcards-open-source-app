@@ -1,0 +1,67 @@
+{
+  "localePrefix": "pl-PL",
+  "appLocaleTag": "pl",
+  "reviewAiDraftMessage": "Utwórz 6 nowych kart na ten sam temat z ekonomii, uwzględniając powiązane pojęcia, których jeszcze nie mamy.",
+  "uiText": {
+    "emptyCardsMessage": "Nie ma jeszcze kart. Dotknij przycisku dodawania, aby utworzyć pierwszą.",
+    "cardsTabTitle": "Karty",
+    "reviewTabTitle": "Powtórki",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Szukaj kart",
+    "addCardContentDescription": "Dodaj kartę",
+    "frontFieldTitle": "Przód",
+    "backFieldTitle": "Tył",
+    "tagsFieldTitle": "Tagi",
+    "addTagFieldTitle": "Wpisz tag",
+    "addTagButtonTitle": "Dodaj tag",
+    "saveButtonTitle": "Zapisz",
+    "ratingAgainTitle": "Ponownie",
+    "ratingHardTitle": "Trudno",
+    "ratingGoodTitle": "Dobrze",
+    "ratingEasyTitle": "Łatwo"
+  },
+  "reviewCard": {
+    "frontText": "Czym jest koszt alternatywny?",
+    "backText": "Wartością najlepszej możliwości, z której rezygnujesz, wybierając jedną opcję zamiast innej.\n\nPrzykład egzaminacyjny: jeśli w sobotę uczysz się mikroekonomii zamiast pracować na płatnej zmianie, utracone wynagrodzenie jest częścią kosztu alternatywnego.",
+    "tags": [
+      "ekonomia"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "Czym jest koszt alternatywny?",
+      "backText": "Wartością najlepszej możliwości, z której rezygnujesz, wybierając jedną opcję zamiast innej.",
+      "subjectTag": "ekonomia"
+    },
+    {
+      "frontText": "Czym jest osmoza w biologii?",
+      "backText": "Przemieszczaniem się wody przez błonę od niższego do wyższego stężenia substancji rozpuszczonych.",
+      "subjectTag": "biologia"
+    },
+    {
+      "frontText": "Czym jest odchylenie standardowe w statystyce?",
+      "backText": "Miarą rozproszenia wartości wokół średniej.",
+      "subjectTag": "statystyka"
+    },
+    {
+      "frontText": "Czym jest katalizator w chemii?",
+      "backText": "Substancją przyspieszającą reakcję chemiczną, która sama nie jest w niej zużywana.",
+      "subjectTag": "chemia"
+    },
+    {
+      "frontText": "Czym jest błąd poznawczy w psychologii?",
+      "backText": "Systematycznym wzorcem myślenia, który może zniekształcać oceny i decyzje.",
+      "subjectTag": "psychologia"
+    },
+    {
+      "frontText": "Czym jest prędkość w fizyce?",
+      "backText": "Wielkością określającą szybkość ciała wraz z kierunkiem jego ruchu.",
+      "subjectTag": "fizyka"
+    },
+    {
+      "frontText": "Czym jest rekurencja w informatyce?",
+      "backText": "Metodą, w której funkcja rozwiązuje problem, wywołując samą siebie dla mniejszych wersji tego problemu.",
+      "subjectTag": "informatyka"
+    }
+  ]
+}

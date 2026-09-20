@@ -662,7 +662,7 @@
 "settings.workspace.export.package.includedTags.section" = "Merki sem fylgja með";
 "settings.workspace.export.package.includedTags.empty" = "Engin pakkamerki til að láta fylgja með.";
 "settings.workspace.export.package.tag.oneCard" = "%d spjald";
-"settings.workspace.export.package.tag.multipleCards" = "%d spjöld";
+"settings.workspace.export.package.tag.multipleCards" = "Fjöldi spjalda: %d";
 "settings.workspace.export.package.includeTag" = "Láta %@ fylgja með";
 "settings.workspace.export.package.generatedImportTagNotIncluded" = "Sjálfgerð innflutningsmerki fylgja ekki útfluttum pökkum.";
 "settings.workspace.export.package.exporting" = "Flyt út...";
@@ -677,8 +677,8 @@
 "settings.workspace.import.fileTooLarge" = "Veldu ZIP-pakka sem er allt að %d MB.";
 "settings.workspace.import.missingImportTag" = "Sláðu inn innflutningsmerki áður en þú flytur inn.";
 "settings.workspace.import.warningWithPath" = "%@: %@";
-"settings.workspace.import.successWithTag" = "Flutti inn %d spjöld með merkinu %@.";
-"settings.workspace.import.success" = "Flutti inn %d spjöld.";
+"settings.workspace.import.successWithTag" = "Fjöldi innfluttra spjalda: %d. Merki: %@.";
+"settings.workspace.import.success" = "Fjöldi innfluttra spjalda: %d.";
 "settings.workspace.import.section.package" = "Pakki";
 "settings.workspace.import.choosePackage" = "Velja ZIP-pakka";
 "settings.workspace.import.previewing" = "Undirbý forskoðun...";
@@ -707,7 +707,7 @@
 "settings.workspace.import.warnings.empty" = "Engar viðvaranir.";
 "settings.workspace.import.confirm" = "Flytja inn pakka";
 "settings.workspace.import.tag.oneCard" = "%d spjald";
-"settings.workspace.import.tag.multipleCards" = "%d spjöld";
+"settings.workspace.import.tag.multipleCards" = "Fjöldi spjalda: %d";
 "settings.workspace.import.noFileSelected" = "Engin pakkaskrá var valin.";
 "settings.workspace.import.previewRequired" = "Forskoðaðu pakka áður en þú flytur hann inn.";
 "settings.workspace.decks.description" = "Stokkar eru snjallsíur sem innihalda spjöld sem passa við merkin sem þú velur.";
@@ -720,9 +720,9 @@
 "settings.workspace.decks.searchPrompt" = "Leita að stokkum";
 "settings.workspace.decks.newDeck" = "Nýr stokkur";
 "settings.workspace.decks.dueCount" = "%d á dagskrá";
-"settings.workspace.decks.totalCards" = "%d spjöld";
-"settings.workspace.decks.newCount" = "%d ný";
-"settings.workspace.decks.reviewedCount" = "%d upprifjuð";
+"settings.workspace.decks.totalCards" = "Fjöldi spjalda: %d";
+"settings.workspace.decks.newCount" = "Ný spjöld: %d";
+"settings.workspace.decks.reviewedCount" = "Upprifjuð spjöld: %d";
 "settings.workspace.decks.emptyAllCards" = "Þú hefur ekki búið til nein spjöld enn.";
 "settings.workspace.decks.emptyDeck" = "Þessi stokkur hefur engin samsvarandi spjöld enn.";
 "settings.workspace.decks.section.deckRules" = "Reglur stokks";
@@ -743,7 +743,7 @@
 "settings.workspace.tags.noMatching" = "Engin samsvarandi merki";
 "settings.workspace.tags.searchPrompt" = "Leita að merkjum";
 "settings.workspace.tags.oneCard" = "%d spjald";
-"settings.workspace.tags.multipleCards" = "%d spjöld";
+"settings.workspace.tags.multipleCards" = "Fjöldi spjalda: %d";
 "settings.workspace.tags.totalCards" = "Spjöld alls";
 "settings.workspace.tags.totalCardsDescription" = "Þessi fjöldi nær yfir allt vinnusvæðið og tvítelur ekki spjöld sem deila merkjum.";
 "settings.row.sendFeedback" = "Senda ábendingu";
@@ -804,3 +804,12 @@
 "settings.language.supported.slovak" = "Slóvakíska";
 "settings.language.supported.slovenian" = "Slóvenska";
 "settings.language.supported.swedish" = "Sænska";
+"settings.language.supported.swahili" = "Svahílí";
+"settings.language.supported.tamil" = "Tamílska";
+"settings.language.supported.telugu" = "Telúgú";
+"settings.language.supported.thai" = "Taílenska";
+"settings.language.supported.turkish" = "Tyrkneska";
+"settings.language.supported.ukrainian" = "Úkraínska";
+"settings.language.supported.urdu" = "Úrdú";
+"settings.language.supported.vietnamese" = "Víetnamska";
+"settings.language.supported.zulu" = "Súlú";

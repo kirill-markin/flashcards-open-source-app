@@ -1,0 +1,67 @@
+{
+  "localePrefix": "lv",
+  "appLocaleTag": "lv",
+  "reviewAiDraftMessage": "Izveido 6 jaunas kartītes par šo ekonomikas tēmu ar saistītiem jēdzieniem, kuru mums vēl nav.",
+  "uiText": {
+    "emptyCardsMessage": "Vēl nav kartīšu. Pieskarieties pievienošanas pogai, lai izveidotu pirmo.",
+    "cardsTabTitle": "Kartītes",
+    "reviewTabTitle": "Atkārtošana",
+    "aiTabTitle": "MI",
+    "searchCardsPlaceholder": "Meklēt kartītes",
+    "addCardContentDescription": "Pievienot kartīti",
+    "frontFieldTitle": "Priekšpuse",
+    "backFieldTitle": "Aizmugure",
+    "tagsFieldTitle": "Birkas",
+    "addTagFieldTitle": "Ievadīt birku",
+    "addTagButtonTitle": "Pievienot birku",
+    "saveButtonTitle": "Saglabāt",
+    "ratingAgainTitle": "Vēlreiz",
+    "ratingHardTitle": "Grūti",
+    "ratingGoodTitle": "Labi",
+    "ratingEasyTitle": "Viegli"
+  },
+  "reviewCard": {
+    "frontText": "Kas ir alternatīvās izmaksas?",
+    "backText": "Labākās noraidītās alternatīvas vērtība, izvēloties vienu iespēju citas vietā.\n\nEksāmena piemērs: ja sestdien mācāties mikroekonomiku, nevis strādājat apmaksātu maiņu, neiegūtā alga ir daļa no alternatīvajām izmaksām.",
+    "tags": [
+      "ekonomika"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "Kas ir alternatīvās izmaksas?",
+      "backText": "Labākās noraidītās alternatīvas vērtība, izvēloties vienu iespēju citas vietā.",
+      "subjectTag": "ekonomika"
+    },
+    {
+      "frontText": "Kas bioloģijā ir osmoze?",
+      "backText": "Ūdens pārvietošanās caur membrānu no zemākas izšķīdušo vielu koncentrācijas uz augstāku.",
+      "subjectTag": "bioloģija"
+    },
+    {
+      "frontText": "Kas statistikā ir standartnovirze?",
+      "backText": "Mērs, kas raksturo vērtību izkliedi ap vidējo.",
+      "subjectTag": "statistika"
+    },
+    {
+      "frontText": "Kas ķīmijā ir katalizators?",
+      "backText": "Viela, kas paātrina ķīmisku reakciju, pati tajā netiekot patērēta.",
+      "subjectTag": "ķīmija"
+    },
+    {
+      "frontText": "Kas psiholoģijā ir kognitīvais aizspriedums?",
+      "backText": "Sistemātisks domāšanas modelis, kas var izkropļot vērtējumus un lēmumus.",
+      "subjectTag": "psiholoģija"
+    },
+    {
+      "frontText": "Kas fizikā ir ātruma vektors?",
+      "backText": "Lielums, kas raksturo ķermeņa kustības ātrumu un virzienu.",
+      "subjectTag": "fizika"
+    },
+    {
+      "frontText": "Kas datorzinātnē ir rekursija?",
+      "backText": "Metode, kurā funkcija atrisina uzdevumu, izsaucot sevi mazākām tā paša uzdevuma versijām.",
+      "subjectTag": "datorzinātne"
+    }
+  ]
+}

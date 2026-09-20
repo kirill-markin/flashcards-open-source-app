@@ -804,3 +804,12 @@
 "settings.language.supported.slovak" = "Slovacco";
 "settings.language.supported.slovenian" = "Sloveno";
 "settings.language.supported.swedish" = "Svedese";
+"settings.language.supported.swahili" = "Swahili";
+"settings.language.supported.tamil" = "Tamil";
+"settings.language.supported.telugu" = "Telugu";
+"settings.language.supported.thai" = "Thailandese";
+"settings.language.supported.turkish" = "Turco";
+"settings.language.supported.ukrainian" = "Ucraino";
+"settings.language.supported.urdu" = "Urdu";
+"settings.language.supported.vietnamese" = "Vietnamita";
+"settings.language.supported.zulu" = "Zulu";

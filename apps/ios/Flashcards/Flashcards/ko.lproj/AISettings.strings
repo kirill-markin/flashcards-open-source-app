@@ -804,3 +804,12 @@
 "settings.language.supported.slovak" = "슬로바키아어";
 "settings.language.supported.slovenian" = "슬로베니아어";
 "settings.language.supported.swedish" = "스웨덴어";
+"settings.language.supported.swahili" = "스와힐리어";
+"settings.language.supported.tamil" = "타밀어";
+"settings.language.supported.telugu" = "텔루구어";
+"settings.language.supported.thai" = "태국어";
+"settings.language.supported.turkish" = "튀르키예어";
+"settings.language.supported.ukrainian" = "우크라이나어";
+"settings.language.supported.urdu" = "우르두어";
+"settings.language.supported.vietnamese" = "베트남어";
+"settings.language.supported.zulu" = "줄루어";

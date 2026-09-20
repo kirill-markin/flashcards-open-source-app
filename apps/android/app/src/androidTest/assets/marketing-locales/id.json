@@ -1,0 +1,67 @@
+{
+  "localePrefix": "id",
+  "appLocaleTag": "id",
+  "reviewAiDraftMessage": "Buat 6 kartu baru tentang topik ekonomi yang sama, mencakup konsep terkait yang belum ada.",
+  "uiText": {
+    "emptyCardsMessage": "Belum ada kartu. Ketuk tombol tambah untuk membuat kartu pertama.",
+    "cardsTabTitle": "Kartu",
+    "reviewTabTitle": "Ulangi",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Cari kartu",
+    "addCardContentDescription": "Tambah kartu",
+    "frontFieldTitle": "Depan",
+    "backFieldTitle": "Belakang",
+    "tagsFieldTitle": "Tag",
+    "addTagFieldTitle": "Tambahkan tag",
+    "addTagButtonTitle": "Tambah tag",
+    "saveButtonTitle": "Simpan",
+    "ratingAgainTitle": "Lagi",
+    "ratingHardTitle": "Sulit",
+    "ratingGoodTitle": "Baik",
+    "ratingEasyTitle": "Mudah"
+  },
+  "reviewCard": {
+    "frontText": "Apa itu biaya peluang?",
+    "backText": "Nilai alternatif terbaik yang dilepas ketika Anda memilih satu pilihan daripada pilihan lain.\n\nContoh ujian: Jika Anda belajar untuk ujian mikroekonomi pada hari Sabtu alih-alih bekerja dengan upah, upah yang hilang menjadi bagian dari biaya peluang.",
+    "tags": [
+      "ekonomi"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "Apa itu biaya peluang?",
+      "backText": "Nilai alternatif terbaik yang dilepas ketika Anda memilih satu pilihan daripada pilihan lain.",
+      "subjectTag": "ekonomi"
+    },
+    {
+      "frontText": "Dalam biologi, apa itu osmosis?",
+      "backText": "Perpindahan air melalui membran dari konsentrasi zat terlarut rendah ke konsentrasi tinggi.",
+      "subjectTag": "biologi"
+    },
+    {
+      "frontText": "Dalam statistika, apa itu simpangan baku?",
+      "backText": "Ukuran seberapa tersebar nilai-nilai di sekitar rata-rata.",
+      "subjectTag": "statistika"
+    },
+    {
+      "frontText": "Dalam kimia, apa itu katalis?",
+      "backText": "Zat yang mempercepat reaksi kimia tanpa ikut habis dalam reaksi.",
+      "subjectTag": "kimia"
+    },
+    {
+      "frontText": "Dalam psikologi, apa itu bias kognitif?",
+      "backText": "Pola berpikir sistematis yang dapat menyimpangkan penilaian dan pengambilan keputusan.",
+      "subjectTag": "psikologi"
+    },
+    {
+      "frontText": "Dalam fisika, apa itu kecepatan?",
+      "backText": "Laju suatu benda beserta arah geraknya.",
+      "subjectTag": "fisika"
+    },
+    {
+      "frontText": "Dalam ilmu komputer, apa itu rekursi?",
+      "backText": "Cara suatu fungsi menyelesaikan masalah dengan memanggil dirinya sendiri untuk masalah yang lebih kecil.",
+      "subjectTag": "ilmu komputer"
+    }
+  ]
+}
