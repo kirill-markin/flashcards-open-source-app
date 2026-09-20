@@ -171,8 +171,6 @@ distribution.
 ## Local Testing Rules
 
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
-Running iOS simulator-backed tests and local smoke flows is resource-heavy in this repository, so do not run `xcodebuild test`, XCUITest, screenshot-generation, or local smoke flows reflexively after every edit.
-When a simulator-backed run genuinely helps validate a change, run it: choose the narrowest iOS simulator run that validates the change, and avoid broad iOS test runs without a clear reason.
 iOS full test runs can take a bit more than 2 minutes locally, and that is normal.
 Run on one specific iPhone simulator runtime that is already downloaded locally.
 Prefer an already booted local iPhone simulator on the final supported iOS runtime. Reuse that exact device instead of booting a different one when possible.

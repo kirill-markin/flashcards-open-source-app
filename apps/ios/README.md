@@ -73,7 +73,6 @@ Only test the app against the final supported iOS target.
 - Do not try to cover the iOS app exhaustively with tests
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, or UI tests when they validate a real module boundary or user flow
-- Do not run iOS simulator-backed tests, UI tests, screenshot-generation, or local smoke flows reflexively after every edit; run them when they genuinely help validate a change
 - Do not spend time validating older iOS versions
 - Do not add compatibility code for older iOS versions unless explicitly requested
 - Use one locally available iPhone simulator runtime only
