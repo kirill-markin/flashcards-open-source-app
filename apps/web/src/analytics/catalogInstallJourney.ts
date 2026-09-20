@@ -4,7 +4,7 @@ import { getAppConfig } from "../config";
 import { isAnalyticsEnabledForCurrentRuntime } from "./client";
 import { analyticsUuidPattern } from "./events";
 import { createAnalyticsUuidV7 } from "./identity";
-import { readAnalyticsUiLocale } from "./wire";
+import { readAnalyticsDeviceLocale, readAnalyticsUiLocale } from "./wire";
 
 export type CatalogInstallFailureStage =
   | "landing"
@@ -47,20 +47,6 @@ type CatalogInstallJourneyProperties = Readonly<Record<string, string>>;
 const installJourneyParameterName = "install_journey_id";
 const onceKeyPrefix = "catalog-install-analytics:";
 const emittedOnceKeys = new Set<string>();
-
-function readDeviceLocale(): string | null {
-  const value = navigator.language.trim();
-  if (value === "" || value.length > 64) {
-    return null;
-  }
-
-  try {
-    const normalizedLocale = new Intl.Locale(value).toString();
-    return normalizedLocale.length <= 64 ? normalizedLocale : null;
-  } catch {
-    return null;
-  }
-}
 
 function buildProperties(
   installJourneyId: string,
@@ -114,6 +100,15 @@ function warnCatalogInstallAnalyticsDelivery(
   });
 }
 
+/**
+ * These rows deliberately carry no `anonymousId`, even though the collector now accepts the shared
+ * visitor id on every other event. The journey UUID is what the backend then stores as
+ * `anonymous_id` (apps/backend/src/productAnalytics/anonymousEvent.ts), and that is the attempt key
+ * the funnel's reporting contract reads: one person installing two decks is two attempts, and a
+ * browser identity in that column would collapse them into one. It is also what the admin funnel's
+ * exclusion bridge assumes when it insists on `authenticated_client` rows. Both are stated in
+ * docs/catalog-install-funnel.md.
+ */
 async function sendCatalogInstallJourneyEvent(
   installJourneyId: string,
   packageVersionId: string,
@@ -136,7 +131,7 @@ async function sendCatalogInstallJourneyEvent(
         clientOccurredAt,
         uiLocale: readAnalyticsUiLocale(),
         clientSentAt: new Date().toISOString(),
-        deviceLocale: readDeviceLocale(),
+        deviceLocale: readAnalyticsDeviceLocale(),
         properties: buildProperties(installJourneyId, packageVersionId, event),
       }),
     });

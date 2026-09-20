@@ -1,10 +1,9 @@
 export {
   flush,
   readAnalyticsSessionOwnerId,
-  registerAnalyticsGuestCredentialRefusalHandler,
+  registerAnalyticsSessionOwnerPublisher,
   reset,
   setAnalyticsConfirmedOwner,
-  setAnalyticsGuestOwnerId,
   setEnabled,
   track,
   trackCatalogDeckInstallStarted,

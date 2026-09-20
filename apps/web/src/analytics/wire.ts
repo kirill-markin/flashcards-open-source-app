@@ -7,11 +7,14 @@ import {
   type AnalyticsSurface,
   type AnalyticsWireContext,
   type AnalyticsWireEvent,
+  type AnonymousAnalyticsWireEvent,
 } from "./events";
-import { createAnalyticsUuidV7 } from "./identity";
+import { createAnalyticsUuidV7, readAnalyticsAnonymousId } from "./identity";
 
 /** `context` string fields are capped at 200 characters by the ingest endpoint. */
 const contextStringMaxLength = 200;
+/** The credential-free collector rejects a longer or non-canonical language tag. */
+const deviceLocaleMaxLength = 64;
 const wireEventTextEncoder = new TextEncoder();
 
 type NetworkInformation = Readonly<{
@@ -81,6 +84,24 @@ export function buildAnalyticsWireContext(): AnalyticsWireContext {
   };
 }
 
+/**
+ * The device language in the canonical form the credential-free collector accepts: it normalizes the
+ * tag itself and refuses anything it cannot place, so an unparseable one is sent as no locale.
+ */
+export function readAnalyticsDeviceLocale(): string | null {
+  const value = navigator.language.trim();
+  if (value === "" || value.length > deviceLocaleMaxLength) {
+    return null;
+  }
+
+  try {
+    const normalizedLocale = new Intl.Locale(value).toString();
+    return normalizedLocale.length <= deviceLocaleMaxLength ? normalizedLocale : null;
+  } catch {
+    return null;
+  }
+}
+
 export function readAnalyticsUiLocale(): Locale | null {
   // I18nProvider publishes the committed translation locale before passive analytics effects.
   return normalizeSupportedLocale(document.documentElement.lang);
@@ -104,6 +125,28 @@ export function toAnalyticsWireEvent(
       : currentSurface,
     properties: buildAnalyticsEventProperties(event),
     experimentAssignments: null,
+  };
+}
+
+/**
+ * The same queued event in the shape the credential-free collector accepts. The identity on the row
+ * is the shared visitor id and nothing else, and it is read at send time rather than at track time
+ * so an event queued before the cookie arrived still carries it.
+ */
+export function toAnonymousAnalyticsWireEvent(
+  wireEvent: AnalyticsWireEvent,
+  sentAtMs: number,
+): AnonymousAnalyticsWireEvent {
+  return {
+    eventId: wireEvent.eventId,
+    eventName: wireEvent.eventName,
+    clientOccurredAt: wireEvent.clientOccurredAt,
+    clientSentAt: toAnalyticsTimestamp(sentAtMs),
+    anonymousId: readAnalyticsAnonymousId(),
+    uiLocale: wireEvent.uiLocale ?? null,
+    deviceLocale: readAnalyticsDeviceLocale(),
+    screen: wireEvent.screen,
+    properties: wireEvent.properties,
   };
 }
 

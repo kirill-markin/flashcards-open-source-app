@@ -18,7 +18,8 @@ import {
 
 /**
  * Hands the guest identity this browser measured under to the account that has just signed in, so
- * the visitor's analytics history follows them into it.
+ * the visitor's analytics history follows them into it. Only a browser that obtained one from an
+ * earlier build still holds such an identity; `webGuestSession.ts` says why none are created now.
  *
  * Nothing here may block, delay or fail sign-in: the caller starts it and walks away, and every
  * failure ends as one report and a swallowed error. What it may not do is give up quietly on a
@@ -153,9 +154,10 @@ async function runGuestIdentityLink(
 
     try {
       await linkWebGuestIdentity(guestToken);
-      // The route revoked the guest session, so the envelope is now a dead credential. Dropping it
-      // here rather than at the identity boundary is what stops a later signed-out load from
-      // republishing it as the analytics owner and posting batches nothing will accept.
+      // The route revoked the guest session, so the envelope is now a dead credential, and it is
+      // also spent: a guest binds to exactly one account, once. Dropping it here rather than at the
+      // identity boundary is what stops a later load from reading it back out of storage and
+      // offering it to somebody else (`webGuestSession.ts`).
       dropStoredWebGuestSession(guestToken);
       return;
     } catch (error) {
@@ -240,13 +242,13 @@ export function linkWebGuestIdentityInBackground(
   capturedIdentityGeneration: number,
   accountUserId: string,
 ): void {
-  // The same opt-out that stops `resolveWebGuestSession` before it mints an identity stops this
-  // before it spends one. The link writes an append-only, first-link-wins row with no repair path,
-  // so it is the most permanent backend write on this path and the least defensible one to make for
-  // somebody who declined measurement — and the switch outlives every local data wipe, so the
-  // visitor who minted a guest and only then opted out still arrives here. The envelope and its
-  // stamp are left alone rather than dropped: `resolveWebGuestSession` refuses to republish or mint
-  // while the switch is off, so the envelope sits inert, and keeping it is what lets the tail still
+  // The opt-out stops this before it spends the guest identity a browser is still carrying. The
+  // link writes an append-only, first-link-wins row with no repair path, so it is the most permanent
+  // backend write on this path and the least defensible one to make for somebody who declined
+  // measurement — and the switch outlives every local data wipe, so the visitor who minted a guest
+  // under an earlier build and only then opted out still arrives here. The envelope and its stamp
+  // are left alone rather than dropped: nothing mints or republishes a web guest any more
+  // (`webGuestSession.ts`), so the envelope sits inert, and keeping it is what lets the tail still
   // be linked if analytics is turned back on before the next identity boundary.
   if (readStoredAnalyticsEnabled() === false) {
     return;

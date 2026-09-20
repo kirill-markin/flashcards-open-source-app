@@ -1,4 +1,3 @@
-import type { AnalyticsRequestCredential } from "../api";
 import { createAnalyticsDeliveryRuntime } from "./deliveryRuntime";
 import {
   analyticsCatalogSlugPattern,
@@ -19,19 +18,12 @@ export function isAnalyticsEnabledForCurrentRuntime(): boolean {
   return deliveryRuntime.isAnalyticsEnabledForCurrentRuntime();
 }
 
-export function registerAnalyticsGuestCredentialRefusalHandler(handler: () => void): () => void {
-  return deliveryRuntime.registerAnalyticsGuestCredentialRefusalHandler(handler);
+export function registerAnalyticsSessionOwnerPublisher(): () => void {
+  return deliveryRuntime.registerAnalyticsSessionOwnerPublisher();
 }
 
-export function setAnalyticsGuestOwnerId(nextGuestOwnerId: string | null): void {
-  deliveryRuntime.setAnalyticsGuestOwnerId(nextGuestOwnerId);
-}
-
-export function setAnalyticsConfirmedOwner(
-  userId: string,
-  credential: AnalyticsRequestCredential,
-): void {
-  deliveryRuntime.setAnalyticsConfirmedOwner(userId, credential);
+export function setAnalyticsConfirmedOwner(userId: string): void {
+  deliveryRuntime.setAnalyticsConfirmedOwner(userId);
 }
 
 export function readAnalyticsSessionOwnerId(): string | null {
@@ -150,8 +142,8 @@ export function reset(): void {
   // The open visit belongs to the person leaving, and this runs inside a live app rather than at a
   // page load, so the pointer is set. Carrying it over would make the dedupe swallow the next
   // person's first `screen_viewed` whenever they land on the same surface — which is the common
-  // case, the route rarely changes across an account switch — leaving their rotated `anonymous_id`
-  // with no entry into the screen they are on, permanently.
+  // case, the route rarely changes across an account switch — leaving their first session with no
+  // entry into the screen they are on, permanently.
   endAnalyticsScreenVisit();
   deliveryRuntime.reset();
 }

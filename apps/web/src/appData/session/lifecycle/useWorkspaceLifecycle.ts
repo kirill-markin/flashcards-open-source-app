@@ -18,7 +18,7 @@ import {
   setAccountDeletionPending,
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
-import { setAnalyticsConfirmedOwner } from "../../../analytics";
+import { registerAnalyticsSessionOwnerPublisher, setAnalyticsConfirmedOwner } from "../../../analytics";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
 import { isIndexedDbUnavailableError } from "../../../localDb/core/indexedDbAvailability";
@@ -36,7 +36,6 @@ import { linkWebGuestIdentityInBackground } from "../guest/webGuestIdentityLink"
 import {
   readStoredWebGuestSession,
   readWebGuestIdentityGeneration,
-  registerWebSessionOwnerPublisher,
 } from "../guest/webGuestSession";
 import {
   createSessionAccountSwitchError,
@@ -261,10 +260,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       // account it was filled under, so this is what lets analytics compare the two and either ship
       // or discard; until it is published nothing is sent, which is why it is only reached once the
       // session is verified and any user-scoped cleanup has already run.
-      setAnalyticsConfirmedOwner(currentSession.userId, { kind: "session" });
-      // Started after the owner publish above, and never awaited: the queue claim reads this
-      // browser's guest id to decide whether `anonymous_id` survives the sign-in, and no user action
-      // may be blocked, delayed or failed by an analytics call. `getSession()` above is also the
+      setAnalyticsConfirmedOwner(currentSession.userId);
+      // Started after the owner publish above, and never awaited: no user action may be blocked,
+      // delayed or failed by an analytics call. `getSession()` above is also the
       // request-context call the route requires to have run first, and the account it verified is
       // passed along so the link can assert, on every attempt and on every later load, that it is
       // still binding the envelope to the account it started for.
@@ -348,13 +346,12 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   }, [initialize]);
 
   // Announces, for as long as this layer is mounted, that an account owner can still be published on
-  // this page load. The web guest identity stands down while that holds and the browser's own
-  // `logged_in` cookie names an account, so an interaction during a session refresh cannot let a
-  // guest claim the analytics queue ahead of the account that is about to arrive. The public
-  // catalog, invite and share routes mount no session layer, and a signed-out visitor there is
-  // measured as one instead of being silenced by a cookie nothing on those routes will ever clear.
+  // this page load. Analytics reports nothing credential-free while that holds, so a signed-in
+  // person's events wait for their session rather than going out as a visitor's. The public catalog,
+  // invite and share routes mount no session layer, so a visitor there is measured as one unless
+  // this browser's own `logged_in` cookie says an account owns it.
   useEffect(() => {
-    return registerWebSessionOwnerPublisher();
+    return registerAnalyticsSessionOwnerPublisher();
   }, []);
 
   useEffect(() => {
@@ -402,7 +399,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           // envelope still stored was the previous person's: `clearConfirmedUserScopedState` above
           // dropped it and advanced the guest identity generation, which also stops a link started
           // by `initialize` from binding it to the account being published on this line.
-          setAnalyticsConfirmedOwner(currentSession.userId, { kind: "session" });
+          setAnalyticsConfirmedOwner(currentSession.userId);
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");

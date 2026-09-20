@@ -349,5 +349,17 @@ owned by the source it names, else by a comment in `apps/auth/src/server/analyti
   next — always what a sign-out leaves, since no link runs there, and reachable past a sign-in too.
 - `signin_failed` carries no `screen`; a funnel filtered on `screen = 'signin'` reads it as zero.
 - Web session counts include auth-origin sessions; a visitor whose posts run slow adds one per event.
+  The discriminator for the two distortions that follow is the live `logged_in` cookie, not whether an
+  account has ever been confirmed on the browser: `clearBrowserSessionCookies` in
+  `apps/auth/src/server/browserSession.ts` deletes that cookie on every logout route, and the web
+  `reset()` releases the stored queue owner on the same path. They miss a signed-out visit made while
+  no `logged_in` cookie is present, including every visit after a logout: those rows go out
+  credential-free as `anonymous_client`, whose shape constraint requires `session_id IS NULL`, so
+  such a visit contributes no session at all. While the cookie is set the distortion runs the other
+  way: `canDeliverWithoutCredential` in `apps/web/src/analytics/deliveryRuntime.ts` refuses the
+  credential-free transport there, so a visit made outside the app shell — a public route, while the
+  person does hold a live session — keeps the `session_id` stamped while it happened, waits in the
+  queue, and is delivered under whichever account is confirmed next. Correcting web session counts
+  has to handle both.
 - A conversion computed from `signin_succeeded` is a lower bound rather than a rate.
 - `signin_failed` with `reason = 'server_error'` is a floor rather than the whole.
