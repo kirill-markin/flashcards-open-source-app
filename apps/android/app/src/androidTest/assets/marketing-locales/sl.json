@@ -1,0 +1,67 @@
+{
+  "localePrefix": "sl",
+  "appLocaleTag": "sl",
+  "uiText": {
+    "emptyCardsMessage": "Kartic še ni. Tapni gumb za dodajanje in ustvari prvo kartico.",
+    "cardsTabTitle": "Kartice",
+    "reviewTabTitle": "Ponavljanje",
+    "aiTabTitle": "UI",
+    "searchCardsPlaceholder": "Išči kartice",
+    "addCardContentDescription": "Dodaj kartico",
+    "frontFieldTitle": "Sprednja stran",
+    "backFieldTitle": "Zadnja stran",
+    "tagsFieldTitle": "Oznake",
+    "addTagFieldTitle": "Dodaj oznako",
+    "addTagButtonTitle": "Dodaj oznako",
+    "saveButtonTitle": "Shrani",
+    "ratingAgainTitle": "Znova",
+    "ratingHardTitle": "Težko",
+    "ratingGoodTitle": "Dobro",
+    "ratingEasyTitle": "Lahko"
+  },
+  "reviewCard": {
+    "frontText": "Kaj so oportunitetni stroški?",
+    "backText": "Vrednost najboljše alternative, ki se ji odpoveš, ko izbereš eno možnost namesto druge.\n\nPrimer za izpit: Če se v soboto učiš za izpit iz mikroekonomije namesto opravljanja plačane izmene, je izgubljeni zaslužek del oportunitetnih stroškov.",
+    "tags": [
+      "ekonomija"
+    ]
+  },
+  "reviewAiDraftMessage": "Ustvari 6 novih kartic o isti ekonomski temi s tesno povezanimi pojmi, ki jih še nimamo.",
+  "cards": [
+    {
+      "frontText": "Kaj so oportunitetni stroški?",
+      "backText": "Vrednost najboljše alternative, ki se ji odpoveš, ko izbereš eno možnost namesto druge.",
+      "subjectTag": "ekonomija"
+    },
+    {
+      "frontText": "Kaj je v biologiji osmoza?",
+      "backText": "Prehajanje vode skozi membrano iz območja z nižjo koncentracijo topljenca v območje z višjo koncentracijo.",
+      "subjectTag": "biologija"
+    },
+    {
+      "frontText": "Kaj je v statistiki standardni odklon?",
+      "backText": "Mera razpršenosti vrednosti okoli povprečja.",
+      "subjectTag": "statistika"
+    },
+    {
+      "frontText": "Kaj je v kemiji katalizator?",
+      "backText": "Snov, ki pospeši kemijsko reakcijo, ne da bi se pri tem porabila.",
+      "subjectTag": "kemija"
+    },
+    {
+      "frontText": "Kaj je v psihologiji kognitivna pristranskost?",
+      "backText": "Sistematičen vzorec mišljenja, ki lahko izkrivlja presojo in odločanje.",
+      "subjectTag": "psihologija"
+    },
+    {
+      "frontText": "Kaj je v fiziki vektor hitrosti?",
+      "backText": "Velikost hitrosti predmeta skupaj s smerjo njegovega gibanja.",
+      "subjectTag": "fizika"
+    },
+    {
+      "frontText": "Kaj je v računalništvu rekurzija?",
+      "backText": "Metoda, pri kateri funkcija rešuje problem tako, da kliče samo sebe za manjše različice istega problema.",
+      "subjectTag": "računalništvo"
+    }
+  ]
+}

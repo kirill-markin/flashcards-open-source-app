@@ -1,0 +1,67 @@
+{
+  "localePrefix": "zu",
+  "appLocaleTag": "zu",
+  "uiText": {
+    "emptyCardsMessage": "Awekho amakhadi okwamanje. Thepha inkinobho yokwengeza ukuze wakhe ikhadi lokuqala.",
+    "cardsTabTitle": "Amakhadi",
+    "reviewTabTitle": "Buyekeza",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Sesha amakhadi",
+    "addCardContentDescription": "Engeza ikhadi",
+    "frontFieldTitle": "Ngaphambili",
+    "backFieldTitle": "Ngemuva",
+    "tagsFieldTitle": "Amathegi",
+    "addTagFieldTitle": "Engeza ithegi",
+    "addTagButtonTitle": "Engeza ithegi",
+    "saveButtonTitle": "Londoloza",
+    "ratingAgainTitle": "Phinda",
+    "ratingHardTitle": "Kunzima",
+    "ratingGoodTitle": "Kuhle",
+    "ratingEasyTitle": "Kulula"
+  },
+  "reviewCard": {
+    "frontText": "Ziyini izindleko zethuba elilahlekile?",
+    "backText": "Inani lenye indlela engcono kakhulu oyidelayo lapho ukhetha indlela eyodwa esikhundleni senye.\n\nIsibonelo sesivivinyo: Uma uchitha uMgqibelo ufundela isivivinyo somnotho omncane kunokusebenza ishifu ekhokhelwayo, iholo olilahlekele liyingxenye yezindleko zethuba elilahlekile.",
+    "tags": [
+      "ezomnotho"
+    ]
+  },
+  "reviewAiDraftMessage": "Dala amakhadi amasha angu-6 ngesihloko esifanayo sezomnotho, ahlanganise imiqondo ehlobene esingakabi nayo.",
+  "cards": [
+    {
+      "frontText": "Ziyini izindleko zethuba elilahlekile?",
+      "backText": "Inani lenye indlela engcono kakhulu oyidelayo lapho ukhetha indlela eyodwa esikhundleni senye.",
+      "subjectTag": "ezomnotho"
+    },
+    {
+      "frontText": "Kusayensi yezinto eziphilayo, yini i-osmosis?",
+      "backText": "Ukuhamba kwamanzi ngolwelwesi esuka endaweni enesilinganiso esincane sezinto ezincibilikile eya endaweni enesilinganiso esikhulu.",
+      "subjectTag": "isayensi yezinto eziphilayo"
+    },
+    {
+      "frontText": "Kwezibalo zemininingwane, kuyini ukuchezuka okujwayelekile?",
+      "backText": "Isilinganiso sokuthi amanani asakazeke kangakanani ezungeze isilinganiso esimaphakathi.",
+      "subjectTag": "izibalo zemininingwane"
+    },
+    {
+      "frontText": "Kukhemistri, yini i-catalyst?",
+      "backText": "Into esheshisa ukusabela kwamakhemikhali ngaphandle kokusetshenziswa iphele kulokho kusabela.",
+      "subjectTag": "ikhemistri"
+    },
+    {
+      "frontText": "Kusayensi yengqondo, kuyini ukuchema kokucabanga?",
+      "backText": "Indlela yokucabanga ephindaphindekayo engaphambukisa ukwahlulela nokuthatha izinqumo.",
+      "subjectTag": "isayensi yengqondo"
+    },
+    {
+      "frontText": "Kufiziksi, siyini isivinini esihlanganisa isiqondiso?",
+      "backText": "Isivinini sento kanye nesiqondiso sokuhamba kwayo.",
+      "subjectTag": "ifiziksi"
+    },
+    {
+      "frontText": "Kusayensi yamakhompyutha, kuyini ukuzibiza komsebenzi?",
+      "backText": "Indlela lapho umsebenzi uxazulula inkinga ngokuzibiza ukuze uxazulule izingxenye ezincane zaleyo nkinga.",
+      "subjectTag": "isayensi yamakhompyutha"
+    }
+  ]
+}
