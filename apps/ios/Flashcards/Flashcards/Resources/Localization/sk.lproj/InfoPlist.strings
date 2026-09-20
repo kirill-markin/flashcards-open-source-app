@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,učebné kartičky,kartičky na učenie,pamäťové karty";
+"NSCameraUsageDescription" = "Povoľte prístup k fotoaparátu na fotografovanie príloh do AI chatu.";
+"NSMicrophoneUsageDescription" = "Povoľte prístup k mikrofónu na diktovanie textu do AI chatu.";
+"NSPhotoLibraryUsageDescription" = "Povoľte prístup ku knižnici fotiek na výber fotiek ako príloh AI chatu.";
