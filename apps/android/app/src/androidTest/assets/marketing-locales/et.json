@@ -1,0 +1,67 @@
+{
+  "localePrefix": "et",
+  "appLocaleTag": "et",
+  "uiText": {
+    "emptyCardsMessage": "Kaarte pole veel. Esimese kaardi loomiseks puuduta lisamisnuppu.",
+    "cardsTabTitle": "Kaardid",
+    "reviewTabTitle": "Kordamine",
+    "aiTabTitle": "TI",
+    "searchCardsPlaceholder": "Otsi kaarte",
+    "addCardContentDescription": "Lisa kaart",
+    "frontFieldTitle": "Esikülg",
+    "backFieldTitle": "Tagakülg",
+    "tagsFieldTitle": "Sildid",
+    "addTagFieldTitle": "Lisa uus silt",
+    "addTagButtonTitle": "Lisa silt",
+    "saveButtonTitle": "Salvesta",
+    "ratingAgainTitle": "Uuesti",
+    "ratingHardTitle": "Raske",
+    "ratingGoodTitle": "Hea",
+    "ratingEasyTitle": "Lihtne"
+  },
+  "reviewCard": {
+    "frontText": "Mis on alternatiivkulu?",
+    "backText": "Parima alternatiivi väärtus, millest loobud, kui valid ühe võimaluse teise asemel.\n\nEksaminäide: Kui õpid laupäeval mikroökonoomika eksamiks tasustatud vahetuses töötamise asemel, on saamata jäänud palk osa alternatiivkulust.",
+    "tags": [
+      "majandus"
+    ]
+  },
+  "reviewAiDraftMessage": "Loo samal majandusteemal 6 uut kaarti lähedaste mõistete kohta, mida meil veel pole.",
+  "cards": [
+    {
+      "frontText": "Mis on alternatiivkulu?",
+      "backText": "Parima alternatiivi väärtus, millest loobud, kui valid ühe võimaluse teise asemel.",
+      "subjectTag": "majandus"
+    },
+    {
+      "frontText": "Mis on bioloogias osmoos?",
+      "backText": "Vee liikumine läbi membraani lahustunud aine madalama kontsentratsiooniga alalt kõrgema kontsentratsiooniga alale.",
+      "subjectTag": "bioloogia"
+    },
+    {
+      "frontText": "Mis on statistikas standardhälve?",
+      "backText": "Mõõdik, mis näitab väärtuste hajuvust keskmise ümber.",
+      "subjectTag": "statistika"
+    },
+    {
+      "frontText": "Mis on keemias katalüsaator?",
+      "backText": "Aine, mis kiirendab keemilist reaktsiooni, ilma et see ise ära kuluks.",
+      "subjectTag": "keemia"
+    },
+    {
+      "frontText": "Mis on psühholoogias kognitiivne kallutatus?",
+      "backText": "Süstemaatiline mõttemuster, mis võib moonutada hinnanguid ja otsuseid.",
+      "subjectTag": "psühholoogia"
+    },
+    {
+      "frontText": "Mis on füüsikas kiirusvektor?",
+      "backText": "Suurus, mis kirjeldab keha liikumise kiirust ja suunda.",
+      "subjectTag": "füüsika"
+    },
+    {
+      "frontText": "Mis on informaatikas rekursioon?",
+      "backText": "Meetod, kus funktsioon lahendab probleemi, kutsudes ennast välja sama probleemi väiksemate variantide jaoks.",
+      "subjectTag": "informaatika"
+    }
+  ]
+}

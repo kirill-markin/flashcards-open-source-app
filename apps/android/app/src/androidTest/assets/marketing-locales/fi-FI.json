@@ -1,0 +1,67 @@
+{
+  "localePrefix": "fi-FI",
+  "appLocaleTag": "fi",
+  "uiText": {
+    "emptyCardsMessage": "Kortteja ei vielä ole. Luo ensimmäinen kortti napauttamalla lisäyspainiketta.",
+    "cardsTabTitle": "Kortit",
+    "reviewTabTitle": "Kertaus",
+    "aiTabTitle": "Tekoäly",
+    "searchCardsPlaceholder": "Hae kortteja",
+    "addCardContentDescription": "Lisää kortti",
+    "frontFieldTitle": "Etupuoli",
+    "backFieldTitle": "Kääntöpuoli",
+    "tagsFieldTitle": "Tunnisteet",
+    "addTagFieldTitle": "Kirjoita tunniste",
+    "addTagButtonTitle": "Lisää tunniste",
+    "saveButtonTitle": "Tallenna",
+    "ratingAgainTitle": "Uudelleen",
+    "ratingHardTitle": "Vaikea",
+    "ratingGoodTitle": "Hyvä",
+    "ratingEasyTitle": "Helppo"
+  },
+  "reviewCard": {
+    "frontText": "Mikä on vaihtoehtoiskustannus?",
+    "backText": "Parhaan hylätyn vaihtoehdon arvo, kun valitset yhden vaihtoehdon toisen sijasta.\n\nEsimerkki kokeeseen: Jos opiskelet lauantaina mikrotaloustieteen kokeeseen palkallisen työvuoron sijaan, menetetty palkka on osa vaihtoehtoiskustannusta.",
+    "tags": [
+      "taloustiede"
+    ]
+  },
+  "reviewAiDraftMessage": "Luo samasta taloustieteen aiheesta 6 uutta korttia, jotka käsittelevät läheisiä käsitteitä, joita meillä ei vielä ole.",
+  "cards": [
+    {
+      "frontText": "Mikä on vaihtoehtoiskustannus?",
+      "backText": "Parhaan hylätyn vaihtoehdon arvo, kun valitset yhden vaihtoehdon toisen sijasta.",
+      "subjectTag": "taloustiede"
+    },
+    {
+      "frontText": "Mitä osmoosi tarkoittaa biologiassa?",
+      "backText": "Veden liikkumista kalvon läpi pienemmästä liuenneen aineen pitoisuudesta suurempaan.",
+      "subjectTag": "biologia"
+    },
+    {
+      "frontText": "Mitä keskihajonta tarkoittaa tilastotieteessä?",
+      "backText": "Mittaria, joka kuvaa arvojen hajontaa keskiarvon ympärillä.",
+      "subjectTag": "tilastotiede"
+    },
+    {
+      "frontText": "Mikä on katalyytti kemiassa?",
+      "backText": "Aine, joka nopeuttaa kemiallista reaktiota kulumatta siinä itse.",
+      "subjectTag": "kemia"
+    },
+    {
+      "frontText": "Mitä kognitiivinen vinouma tarkoittaa psykologiassa?",
+      "backText": "Järjestelmällistä ajattelumallia, joka voi vääristää arviointia ja päätöksentekoa.",
+      "subjectTag": "psykologia"
+    },
+    {
+      "frontText": "Mitä nopeusvektori tarkoittaa fysiikassa?",
+      "backText": "Kappaleen vauhtia yhdessä sen liikkeen suunnan kanssa.",
+      "subjectTag": "fysiikka"
+    },
+    {
+      "frontText": "Mitä rekursio tarkoittaa tietojenkäsittelytieteessä?",
+      "backText": "Menetelmää, jossa funktio ratkaisee ongelman kutsumalla itseään saman ongelman pienemmillä versioilla.",
+      "subjectTag": "tietojenkäsittely"
+    }
+  ]
+}
