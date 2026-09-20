@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮುಗಿದಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -169,6 +187,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Impostazioni per disattivare questo accesso."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಪ್ರವೇಶವನ್ನು ನಿಲ್ಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 접근을 끄려면 설정을 여세요."
           }
         },
         "hu" : {
@@ -332,6 +368,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiedi l’accesso ora oppure apri Impostazioni in seguito per gestirlo manualmente."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈಗ ಪ್ರವೇಶವನ್ನು ವಿನಂತಿಸಿ ಅಥವಾ ನಂತರ ಕೈಯಾರೆ ನಿರ್ವಹಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금 접근을 요청하거나 나중에 설정에서 직접 관리하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -491,6 +545,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso alla fotocamera è disattivato per Nibomo. Apri Impostazioni > Privacy e sicurezza > Fotocamera per modificarlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಕ್ಯಾಮೆರಾ ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 카메라 접근이 꺼져 있습니다. 설정 > 개인정보 보호 및 보안 > 카메라에서 변경하세요."
           }
         },
         "hu" : {
@@ -654,6 +726,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Impostazioni per controllare o ampliare questo accesso."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಪ್ರವೇಶವನ್ನು ಪರಿಶೀಲಿಸಲು ಅಥವಾ ವಿಸ್ತರಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 접근을 확인하거나 확대하려면 설정을 여세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -813,6 +903,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso al microfono è disattivato per Nibomo. Apri Impostazioni > Privacy e sicurezza > Microfono per modificarlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಮೈಕ್ರೊಫೋನ್ ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 마이크 접근이 꺼져 있습니다. 설정 > 개인정보 보호 및 보안 > 마이크에서 변경하세요."
           }
         },
         "hu" : {
@@ -976,6 +1084,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso alle foto è disattivato per Nibomo. Apri Impostazioni > Privacy e sicurezza > Foto per modificarlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಫೋಟೋ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಫೋಟೋಗಳು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 사진 접근이 꺼져 있습니다. 설정 > 개인정보 보호 및 보안 > 사진에서 변경하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1135,6 +1261,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sono disponibili solo le foto che hai già condiviso con Nibomo. Apri Impostazioni per consentire l’accesso ad altre foto."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನೀವು ಈಗಾಗಲೇ Nibomo ಜೊತೆ ಹಂಚಿಕೊಂಡ ಫೋಟೋಗಳು ಮಾತ್ರ ಲಭ್ಯವಿವೆ. ಹೆಚ್ಚಿನ ಫೋಟೋಗಳಿಗೆ ಪ್ರವೇಶ ನೀಡಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo와 이미 공유한 사진만 사용할 수 있습니다. 더 많은 사진에 접근하도록 허용하려면 설정을 여세요."
           }
         },
         "hu" : {
@@ -1298,6 +1442,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo accesso non è disponibile sul dispositivo attuale."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಸಾಧನದಲ್ಲಿ ಈ ಪ್ರವೇಶ ಲಭ್ಯವಿಲ್ಲ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 기기에서는 이 접근을 사용할 수 없습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1457,6 +1619,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentito"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಅನುಮತಿಸಲಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "허용됨"
           }
         },
         "hu" : {
@@ -1620,6 +1800,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiedi ogni volta"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರತಿ ಬಾರಿ ಕೇಳಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매번 묻기"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1779,6 +1977,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloccato"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "차단됨"
           }
         },
         "hu" : {
@@ -1942,6 +2158,24 @@
             "value" : "محدود"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitato"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೀಮಿತ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "제한됨"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2101,6 +2335,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non disponibile"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಲಭ್ಯವಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용할 수 없음"
           }
         },
         "hu" : {
@@ -2264,6 +2516,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scatta foto direttamente dalla chat IA."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ಚಾಟ್‌ನಿಂದ ನೇರವಾಗಿ ಫೋಟೋ ತೆಗೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 채팅에서 바로 사진을 찍으세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2423,6 +2693,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotocamera"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕ್ಯಾಮೆರಾ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카메라"
           }
         },
         "hu" : {
@@ -2586,6 +2874,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detta il testo nella chat IA."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ಚಾಟ್‌ನಲ್ಲಿ ಹೇಳಿ ಪಠ್ಯ ನಮೂದಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 채팅에 음성으로 텍스트를 입력하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2745,6 +3051,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfono"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮೈಕ್ರೊಫೋನ್"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마이크"
           }
         },
         "hu" : {
@@ -2908,6 +3232,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli le foto da allegare alla chat IA."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ಚಾಟ್‌ಗೆ ಲಗತ್ತಿಸಲು ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 채팅에 첨부할 사진을 선택하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3067,6 +3409,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಫೋಟೋಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진"
           }
         },
         "hu" : {
@@ -3230,6 +3590,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso al microfono è disattivato per Nibomo. Apri Impostazioni per consentirlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಅನುಮತಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 마이크 접근이 꺼져 있습니다. 설정에서 허용하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3389,6 +3767,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso al microfono necessario"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶ ಬೇಕು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마이크 접근 필요"
           }
         },
         "hu" : {
@@ -3552,6 +3948,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso alla fotocamera è disattivato per Nibomo. Apri Impostazioni per consentirlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಅನುಮತಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 카메라 접근이 꺼져 있습니다. 설정에서 허용하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3711,6 +4125,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso alla fotocamera necessario"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ಬೇಕು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카메라 접근 필요"
           }
         },
         "hu" : {
@@ -3874,6 +4306,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso ai file è disattivato per Nibomo. Apri Impostazioni per consentirlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಫೈಲ್ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಅನುಮತಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 파일 접근이 꺼져 있습니다. 설정에서 허용하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4033,6 +4483,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso ai file necessario"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಫೈಲ್ ಪ್ರವೇಶ ಬೇಕು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "파일 접근 필요"
           }
         },
         "hu" : {
@@ -4196,6 +4664,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso alle foto è disattivato per Nibomo. Apri Impostazioni per consentirlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಫೋಟೋ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಅನುಮತಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 사진 접근이 꺼져 있습니다. 설정에서 허용하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4355,6 +4841,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso alle foto necessario"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಫೋಟೋ ಪ್ರವೇಶ ಬೇಕು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진 접근 필요"
           }
         },
         "hu" : {
@@ -4518,6 +5022,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutte le schede"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಎಲ್ಲ ಕಾರ್ಡ್‌ಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 카드"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4677,6 +5199,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnesso"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸಂಪರ್ಕ ಕಡಿತಗೊಂಡಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결 해제됨"
           }
         },
         "hu" : {
@@ -4840,6 +5380,24 @@
             "value" : "ضيف"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ospite"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಅತಿಥಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "게스트"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4999,6 +5557,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collegato"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಲಿಂಕ್ ಆಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결됨"
           }
         },
         "hu" : {
@@ -5162,6 +5738,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto per il collegamento"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಲಿಂಕ್ ಮಾಡಲು ಸಿದ್ಧವಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결 준비됨"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5321,6 +5915,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso al cloud non è disponibile. Controlla la configurazione dell’app."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕ್ಲೌಡ್ ಸೈನ್ ಇನ್ ಲಭ್ಯವಿಲ್ಲ. ಆ್ಯಪ್ ಸಂರಚನೆಯನ್ನು ಪರಿಶೀಲಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라우드 로그인을 사용할 수 없습니다. 앱 구성을 확인하세요."
           }
         },
         "hu" : {
@@ -5484,6 +6096,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci un indirizzo email valido."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮಾನ್ಯ ಇಮೇಲ್ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "올바른 이메일 주소를 입력하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5643,6 +6273,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice già utilizzato. Richiedine uno nuovo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕೋಡ್ ಈಗಾಗಲೇ ಬಳಸಲಾಗಿದೆ. ಹೊಸದನ್ನು ವಿನಂತಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이미 사용한 코드입니다. 새 코드를 요청하세요."
           }
         },
         "hu" : {
@@ -5806,6 +6454,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice non valido. Riprova."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕೋಡ್ ಅಮಾನ್ಯವಾಗಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드가 올바르지 않습니다. 다시 시도하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5965,6 +6631,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile inviare un codice. Riprova."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕೋಡ್ ಕಳುಹಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드를 보내지 못했습니다. 다시 시도하세요."
           }
         },
         "hu" : {
@@ -6128,6 +6812,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codice scaduto. Richiedine uno nuovo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕೋಡ್ ಅವಧಿ ಮುಗಿದಿದೆ. ಹೊಸದನ್ನು ವಿನಂತಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드가 만료되었습니다. 새 코드를 요청하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6287,6 +6989,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Troppi tentativi. Richiedi un nuovo codice."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ತುಂಬಾ ಪ್ರಯತ್ನಗಳಾಗಿವೆ. ಹೊಸ ಕೋಡ್ ವಿನಂತಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시도 횟수가 너무 많습니다. 새 코드를 요청하세요."
           }
         },
         "hu" : {
@@ -6450,6 +7170,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile verificare il codice. Riprova."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕೋಡ್ ಪರಿಶೀಲಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드를 확인하지 못했습니다. 다시 시도하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6609,6 +7347,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso al cloud non riuscito. Riprova."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕ್ಲೌಡ್ ಸೈನ್ ಇನ್ ವಿಫಲವಾಗಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라우드 로그인에 실패했습니다. 다시 시도하세요."
           }
         },
         "hu" : {
@@ -6772,6 +7528,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connessione si è interrotta durante l’invio del codice. Controlla l’email, poi riprova se necessario."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕೋಡ್ ಕಳುಹಿಸುವಾಗ ಸಂಪರ್ಕ ಕಡಿತಗೊಂಡಿತು. ಇಮೇಲ್ ಪರಿಶೀಲಿಸಿ, ಅಗತ್ಯವಿದ್ದರೆ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드를 보내는 중 연결이 끊어졌습니다. 이메일을 확인한 후 필요하면 다시 시도하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6931,6 +7705,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La connessione si è interrotta durante la verifica del codice. Riprova oppure richiedi un nuovo codice se necessario."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕೋಡ್ ಪರಿಶೀಲಿಸುವಾಗ ಸಂಪರ್ಕ ಕಡಿತಗೊಂಡಿತು. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಅಗತ್ಯವಿದ್ದರೆ ಹೊಸ ಕೋಡ್ ವಿನಂತಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드를 확인하는 중 연결이 끊어졌습니다. 다시 시도하거나 필요하면 새 코드를 요청하세요."
           }
         },
         "hu" : {
@@ -7094,6 +7886,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aggiornare la classifica dei ripassi. Trascina verso il basso per riprovare."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ನವೀಕರಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು ಕೆಳಗೆ ಎಳೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표를 새로 고치지 못했습니다. 아래로 당겨 다시 시도하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7253,6 +8063,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aggiornare il programma dei ripassi. Trascina verso il basso per riprovare."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ವೇಳಾಪಟ್ಟಿ ನವೀಕರಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು ಕೆಳಗೆ ಎಳೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 일정을 새로 고치지 못했습니다. 아래로 당겨 다시 시도하세요."
           }
         },
         "hu" : {
@@ -7416,6 +8244,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile mostrare il programma dei ripassi. Trascina verso il basso per riprovare."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ವೇಳಾಪಟ್ಟಿ ತೋರಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು ಕೆಳಗೆ ಎಳೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 일정을 표시하지 못했습니다. 아래로 당겨 다시 시도하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7575,6 +8421,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aggiornare il grafico dei progressi. Trascina verso il basso per riprovare."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರಗತಿ ನಕ್ಷೆ ನವೀಕರಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು ಕೆಳಗೆ ಎಳೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진행 상황 차트를 새로 고치지 못했습니다. 아래로 당겨 다시 시도하세요."
           }
         },
         "hu" : {
@@ -7738,6 +8602,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aggiornare la classifica delle serie. Trascina verso il basso per riprovare."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರ ದಿನಗಳ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ನವೀಕರಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು ಕೆಳಗೆ ಎಳೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습 순위표를 새로 고치지 못했습니다. 아래로 당겨 다시 시도하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7897,6 +8779,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aggiornare il riepilogo dei progressi. Trascina verso il basso per riprovare."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರಗತಿಯ ಸಾರಾಂಶ ನವೀಕರಿಸಲಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು ಕೆಳಗೆ ಎಳೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진행 상황 요약을 새로 고치지 못했습니다. 아래로 당겨 다시 시도하세요."
           }
         },
         "hu" : {
@@ -8060,6 +8960,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progressi non disponibili. Trascina verso il basso per aggiornare e riprova."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರಗತಿ ಲಭ್ಯವಿಲ್ಲ. ನವೀಕರಿಸಲು ಕೆಳಗೆ ಎಳೆದು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진행 상황을 사용할 수 없습니다. 아래로 당겨 새로 고친 후 다시 시도하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8219,6 +9137,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvaserie disponibili: %@ su %@."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರತೆ ರಕ್ಷಣೆಗಳು %@ / %@ ಲಭ್ಯವಿವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습 보호권: %@ / %@개 사용 가능."
           }
         },
         "hu" : {
@@ -8382,6 +9318,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra come funzionano i salvaserie."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರತೆ ರಕ್ಷಣೆಗಳು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತವೆ ಎಂಬುದನ್ನು ತೋರಿಸುತ್ತದೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습 보호권의 작동 방식을 보여줍니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8541,6 +9495,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibili: %@/%@. Ricarica: %@/%@. I salvaserie proteggono i giorni saltati e si ricaricano mentre continui la serie."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಲಭ್ಯ: %@/%@. ಮರುಭರ್ತಿ: %@/%@. ರಕ್ಷಣೆಗಳು ತಪ್ಪಿದ ದಿನಗಳಲ್ಲೂ ನಿರಂತರತೆಯನ್ನು ಉಳಿಸುತ್ತವೆ ಮತ್ತು ನಿರಂತರತೆ ಮುಂದುವರಿದಂತೆ ಮರುಭರ್ತಿಯಾಗುತ್ತವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사용 가능: %@/%@. 충전: %@/%@. 보호권은 빠뜨린 날에도 연속 학습을 유지해 주며, 연속 학습을 이어가면 충전됩니다."
           }
         },
         "hu" : {
@@ -8704,6 +9676,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvaserie"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರತೆ ರಕ್ಷಣೆಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습 보호권"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8863,6 +9853,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea link"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಲಿಂಕ್ ರಚಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "링크 만들기"
           }
         },
         "hu" : {
@@ -9026,6 +10034,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo amico potrà aprirlo, accedere o registrarsi e poi vi vedrete nell’app. I link d’invito scadono dopo 2 giorni."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಸ್ನೇಹಿತರು ಇದನ್ನು ತೆರೆದು ಸೈನ್ ಇನ್ ಅಥವಾ ನೋಂದಣಿ ಮಾಡಬಹುದು. ನಂತರ ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಸ್ಪರ ಕಾಣುತ್ತೀರಿ. ಆಹ್ವಾನ ಲಿಂಕ್‌ಗಳು 2 ದಿನಗಳಲ್ಲಿ ಅವಧಿ ಮೀರುತ್ತವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구가 링크를 열어 로그인하거나 가입하면 앱에서 서로 볼 수 있습니다. 초대 링크는 2일 후 만료됩니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9185,6 +10211,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia questo link al tuo amico"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಲಿಂಕ್ ನಿಮ್ಮ ಸ್ನೇಹಿತರಿಗೆ ಕಳುಹಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구에게 이 링크 보내기"
           }
         },
         "hu" : {
@@ -9348,6 +10392,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creazione..."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ರಚಿಸಲಾಗುತ್ತಿದೆ..."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "만드는 중..."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9507,6 +10569,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea un link d’invito privato per la classifica."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಶ್ರೇಯಾಂಕಪಟ್ಟಿಗಾಗಿ ಖಾಸಗಿ ಸ್ನೇಹ ಆಹ್ವಾನ ಲಿಂಕ್ ರಚಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "순위표에 친구를 초대할 비공개 링크를 만드세요."
           }
         },
         "hu" : {
@@ -9670,6 +10750,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo tu vedi questo nome nella tua classifica. Il tuo amico sceglierà come chiamarti quando accetterà. I link d’invito scadono dopo 2 giorni."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯಲ್ಲಿ ಈ ಹೆಸರು ನಿಮಗೆ ಮಾತ್ರ ಕಾಣುತ್ತದೆ. ಆಹ್ವಾನ ಸ್ವೀಕರಿಸುವಾಗ ಸ್ನೇಹಿತರು ನಿಮಗೆ ಯಾವ ಹೆಸರು ಕೊಡಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡುತ್ತಾರೆ. ಆಹ್ವಾನ ಲಿಂಕ್‌ಗಳು 2 ದಿನಗಳಲ್ಲಿ ಅವಧಿ ಮೀರುತ್ತವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 이름은 내 순위표에서 나에게만 보입니다. 친구는 초대를 수락할 때 내 이름을 정합니다. 초대 링크는 2일 후 만료됩니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9829,6 +10927,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome dell’amico nella tua classifica"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯಲ್ಲಿ ಸ್ನೇಹಿತರ ಹೆಸರು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 순위표에 표시할 친구 이름"
           }
         },
         "hu" : {
@@ -9992,6 +11108,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome del tuo amico"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಸ್ನೇಹಿತರ ಹೆಸರು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구 이름"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10151,6 +11285,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮುಗಿದಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
           }
         },
         "hu" : {
@@ -10314,6 +11466,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia link d’invito"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಆಹ್ವಾನ ಲಿಂಕ್ ಕಳುಹಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "초대 링크 보내기"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10473,6 +11643,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri questo invito Nibomo, accedi o registrati e ci vedremo nell’app."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ Nibomo ಆಹ್ವಾನ ತೆರೆಯಿರಿ, ಸೈನ್ ಇನ್ ಅಥವಾ ನೋಂದಣಿ ಮಾಡಿ; ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಸ್ಪರ ಕಾಣಬಹುದು."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 Nibomo 초대를 열고 로그인하거나 가입하면 앱에서 서로 볼 수 있어요."
           }
         },
         "hu" : {
@@ -10636,6 +11824,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invito di amicizia Nibomo"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ಸ್ನೇಹ ಆಹ್ವಾನ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo 친구 초대"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10795,6 +12001,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi amico"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸ್ನೇಹಿತರನ್ನು ಸೇರಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구 추가"
           }
         },
         "hu" : {
@@ -10958,6 +12182,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A capo e caratteri di controllo non sono consentiti."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಹೊಸ ಸಾಲುಗಳು ಮತ್ತು ನಿಯಂತ್ರಣ ಅಕ್ಷರಗಳಿಗೆ ಅನುಮತಿಯಿಲ್ಲ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "줄 바꿈과 제어 문자는 사용할 수 없습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11117,6 +12359,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci da 1 a 30 caratteri."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-30 ಅಕ್ಷರಗಳನ್ನು ನಮೂದಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1~30자를 입력하세요."
           }
         },
         "hu" : {
@@ -11280,6 +12540,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attività di ripasso"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಚಟುವಟಿಕೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 활동"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11439,6 +12717,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ದಿನಾಂಕ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "날짜"
           }
         },
         "hu" : {
@@ -11602,6 +12898,24 @@
             "value" : "المراجعات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11761,6 +13075,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimi 30 giorni."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕಳೆದ 30 ದಿನಗಳು."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 30일."
           }
         },
         "hu" : {
@@ -11924,6 +13256,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ripasso"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ಪುನರಾವರ್ತನೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 1회"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12083,6 +13433,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ಪುನರಾವರ್ತನೆಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 %lld회"
           }
         },
         "hu" : {
@@ -12246,6 +13614,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attività di ripasso"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಚಟುವಟಿಕೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 활동"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12405,6 +13791,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld في %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "N. %1$lld in %2$@"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ನಲ್ಲಿ #%1$lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@에서 %1$lld위"
           }
         },
         "hu" : {
@@ -12568,6 +13972,24 @@
             "value" : "أفضل تصنيف"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miglior piazzamento"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಅತ್ಯುತ್ತಮ ಸ್ಥಾನ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최고 순위"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12727,6 +14149,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد تصنيف بعد"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessun piazzamento"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇನ್ನೂ ಸ್ಥಾನವಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 순위 없음"
           }
         },
         "hu" : {
@@ -12890,6 +14330,24 @@
             "value" : "بطاقة واحدة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 scheda"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ಕಾರ್ಡ್"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드 1개"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13049,6 +14507,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld بطاقات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld schede"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ಕಾರ್ಡ್‌ಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드 %lld개"
           }
         },
         "hu" : {
@@ -13212,6 +14688,24 @@
             "value" : "البطاقات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schede"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕಾರ್ಡ್‌ಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13371,6 +14865,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة الحالية"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serie attuale"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರಸ್ತುತ ನಿರಂತರತೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 연속 학습"
           }
         },
         "hu" : {
@@ -13534,6 +15046,24 @@
             "value" : "تم"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮುಗಿದಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13693,6 +15223,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla la connessione e riprova."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연결을 확인하고 다시 시도하세요."
           }
         },
         "hu" : {
@@ -13856,6 +15404,24 @@
             "value" : "تعذر تحميل الملف الشخصي"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare il profilo"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로필을 불러오지 못함"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14015,6 +15581,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "صديق"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amico"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸ್ನೇಹಿತರು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구"
           }
         },
         "hu" : {
@@ -14178,6 +15762,24 @@
             "value" : "تاريخ الانضمام"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iscrizione"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೇರಿದ ದಿನಾಂಕ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가입일"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14337,6 +15939,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جارٍ تحميل الملف الشخصي..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento del profilo..."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಆಗುತ್ತಿದೆ..."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로필 불러오는 중..."
           }
         },
         "hu" : {
@@ -14500,6 +16120,24 @@
             "value" : "المقاييس"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metriche"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮಾಪನಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지표"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14659,6 +16297,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 시도"
           }
         },
         "hu" : {
@@ -14822,6 +16478,24 @@
             "value" : "الإحصاءات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistiche"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಅಂಕಿಅಂಶಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "통계"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14981,6 +16655,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi con l’email per vedere i profili della classifica."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯ ಪ್ರೊಫೈಲ್‌ಗಳನ್ನು ನೋಡಲು ಇಮೇಲ್ ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "순위표 프로필을 보려면 이메일로 로그인하세요."
           }
         },
         "hu" : {
@@ -15144,6 +16836,24 @@
             "value" : "يلزم تسجيل الدخول"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso necessario"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೈನ್ ಇನ್ ಅಗತ್ಯವಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인 필요"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15303,6 +17013,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I profili sono visibili solo quando partecipi alla classifica dei ripassi."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯಲ್ಲಿ ಭಾಗವಹಿಸುವಿಕೆ ಸಕ್ರಿಯವಾಗಿದ್ದಾಗ ಮಾತ್ರ ಪ್ರೊಫೈಲ್‌ಗಳು ಕಾಣುತ್ತವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표 참여가 켜져 있을 때만 프로필이 표시됩니다."
           }
         },
         "hu" : {
@@ -15466,6 +17194,24 @@
             "value" : "المشاركة متوقفة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partecipazione disattivata"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಭಾಗವಹಿಸುವಿಕೆ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "참여 꺼짐"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15625,6 +17371,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo profilo della classifica non può essere mostrato al momento."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಪ್ರೊಫೈಲ್ ಈಗ ತೋರಿಸಲಾಗುವುದಿಲ್ಲ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지금은 이 순위표 프로필을 표시할 수 없습니다."
           }
         },
         "hu" : {
@@ -15788,6 +17552,24 @@
             "value" : "الملف الشخصي غير متاح"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilo non disponibile"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರೊಫೈಲ್ ಲಭ್ಯವಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로필 사용 불가"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15947,6 +17729,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة التقييمات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informazioni sulla classifica dei ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯ ಬಗ್ಗೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표 안내"
           }
         },
         "hu" : {
@@ -16110,6 +17910,24 @@
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I ripassi Difficile, Bene e Facile contano per la classifica. Di nuovo non conta."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕಷ್ಟ, ಚೆನ್ನಾಗಿದೆ ಮತ್ತು ಸುಲಭ ಎಂದು ಮೌಲ್ಯಮಾಪನ ಮಾಡಿದ ಪುನರಾವರ್ತನೆಗಳು ಶ್ರೇಯಾಂಕಕ್ಕೆ ಸೇರುತ್ತವೆ. ಮತ್ತೆ ಎನ್ನುವುದು ಸೇರುವುದಿಲ್ಲ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어려움, 알맞음, 쉬움으로 평가한 복습은 순위에 반영됩니다. 다시는 반영되지 않습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16269,6 +18087,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi un amico"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸ್ನೇಹಿತರನ್ನು ಸೇರಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구 추가"
           }
         },
         "hu" : {
@@ -16432,6 +18268,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi amico"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸ್ನೇಹಿತರನ್ನು ಸೇರಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구 추가"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16591,6 +18445,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova più tardi."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "나중에 다시 시도하세요."
           }
         },
         "hu" : {
@@ -16754,6 +18626,24 @@
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare la classifica dei ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표를 불러오지 못함"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16913,6 +18803,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connettiti a internet per caricare la classifica dei ripassi."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಲೋಡ್ ಮಾಡಲು ಇಂಟರ್ನೆಟ್‌ಗೆ ಸಂಪರ್ಕಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표를 불러오려면 인터넷에 연결하세요."
           }
         },
         "hu" : {
@@ -17076,6 +18984,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sei offline"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನೀವು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿದ್ದೀರಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오프라인 상태"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17235,6 +19161,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri le impostazioni della classifica dei ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표 설정 열기"
           }
         },
         "hu" : {
@@ -17398,6 +19342,24 @@
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le posizioni sono visibili solo mentre partecipi alla classifica dei ripassi."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯಲ್ಲಿ ಭಾಗವಹಿಸುವಾಗ ಮಾತ್ರ ಸ್ಥಾನಗಳು ಕಾಣುತ್ತವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표에 참여하는 동안에만 순위를 볼 수 있습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17557,6 +19519,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة في التقييمات متوقفة"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partecipazione alla classifica disattivata"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಶ್ರೇಯಾಂಕದಲ್ಲಿ ಭಾಗವಹಿಸುವಿಕೆ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "순위표 참여 꺼짐"
           }
         },
         "hu" : {
@@ -17720,6 +19700,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posizione %1$lld, %2$lld ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸ್ಥಾನ %1$lld, %2$lld ಪುನರಾವರ್ತನೆಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld위, 복습 %2$lld회"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17879,6 +19877,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನೀವು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "나"
           }
         },
         "hu" : {
@@ -18042,6 +20058,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classifica dei ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18201,6 +20235,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi o registrati"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೈನ್ ಇನ್ ಅಥವಾ ನೋಂದಣಿ ಮಾಡಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인 또는 가입"
           }
         },
         "hu" : {
@@ -18364,6 +20416,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi con l’email per vedere la tua posizione nella classifica dei ripassi."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಪುನರಾವರ್ತನೆಗಳ ಶ್ರೇಯಾಂಕ ನೋಡಲು ಇಮೇಲ್ ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위를 확인하려면 이메일로 로그인하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18523,6 +20593,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partecipa alla classifica dei ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿಗೆ ಸೇರಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표 참여하기"
           }
         },
         "hu" : {
@@ -18686,6 +20774,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La classifica dei ripassi è in preparazione. Torna tra poco."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಸಿದ್ಧವಾಗುತ್ತಿದೆ. ಸ್ವಲ್ಪ ಹೊತ್ತಿನ ನಂತರ ನೋಡಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 순위표를 준비 중입니다. 잠시 후 다시 확인하세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18845,6 +20951,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ancora pronto"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇನ್ನೂ ಸಿದ್ಧವಾಗಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 준비되지 않음"
           }
         },
         "hu" : {
@@ -19008,6 +21132,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornato %@ fa"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ಹಿಂದೆ ನವೀಕರಿಸಲಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 전 업데이트됨"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19167,6 +21309,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "hu" : {
@@ -19330,6 +21490,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ora"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ಗಂಟೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1시간"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19489,6 +21667,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld ساعة"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ore"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ಗಂಟೆಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld시간"
           }
         },
         "hu" : {
@@ -19652,6 +21848,24 @@
             "value" : "دقيقة واحدة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minuto"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ನಿಮಿಷ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1분"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19811,6 +22025,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld دقيقة"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minuti"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ನಿಮಿಷಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld분"
           }
         },
         "hu" : {
@@ -19974,6 +22206,24 @@
             "value" : "الفترة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periodo"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಅವಧಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기간"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20133,6 +22383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "كل الأوقات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sempre"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಎಲ್ಲ ಸಮಯ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전체 기간"
           }
         },
         "hu" : {
@@ -20296,6 +22564,24 @@
             "value" : "3 ي"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 g"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 ದಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3일"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20455,6 +22741,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 ي"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 g"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 ದಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7일"
           }
         },
         "hu" : {
@@ -20618,6 +22922,24 @@
             "value" : "24 س"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 h"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 ಗಂ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24시간"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20777,6 +23099,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 ي"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 g"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 ದಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30일"
           }
         },
         "hu" : {
@@ -20940,6 +23280,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld schede, %@"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ಕಾರ್ಡ್‌ಗಳು, %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드 %lld개, %@"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21099,6 +23457,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 giorni"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 ದಿನಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1~7일"
           }
         },
         "hu" : {
@@ -21262,6 +23638,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 giorni"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 ದಿನಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8~30일"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21421,6 +23815,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 giorni"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 ದಿನಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31~90일"
           }
         },
         "hu" : {
@@ -21584,6 +23996,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 giorni"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 ದಿನಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91~360일"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21743,6 +24173,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Più avanti"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಂತರ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이후"
           }
         },
         "hu" : {
@@ -21906,6 +24354,24 @@
             "value" : "جديدة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuove"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಹೊಸದು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새 카드"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22065,6 +24531,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oggi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇಂದು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘"
           }
         },
         "hu" : {
@@ -22228,6 +24712,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 anni"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 ವರ್ಷಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1~2년"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22387,6 +24889,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessuna scheda attiva."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇನ್ನೂ ಸಕ್ರಿಯ ಕಾರ್ಡ್‌ಗಳಿಲ್ಲ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아직 활성 카드가 없습니다."
           }
         },
         "hu" : {
@@ -22550,6 +25070,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Programma dei ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ ವೇಳಾಪಟ್ಟಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 일정"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22709,6 +25247,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ಪುನರಾವರ್ತನೆಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습 %lld회"
           }
         },
         "hu" : {
@@ -22872,6 +25428,24 @@
             "value" : "الأسبوع التالي"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settimana successiva"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮುಂದಿನ ವಾರ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다음 주"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23031,6 +25605,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع السابق"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settimana precedente"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಹಿಂದಿನ ವಾರ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이전 주"
           }
         },
         "hu" : {
@@ -23194,6 +25786,24 @@
             "value" : "المراجعات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripassi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23353,6 +25963,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم واحد"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 giorno"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ದಿನ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1일"
           }
         },
         "hu" : {
@@ -23516,6 +26144,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld giorni"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ದಿನಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld일"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23675,6 +26321,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informazioni sulla classifica delle serie"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರ ದಿನಗಳ ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯ ಬಗ್ಗೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습 순위표 안내"
           }
         },
         "hu" : {
@@ -23838,6 +26502,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I giorni della serie attuale determinano la tua posizione. Un giorno di serie è un giorno locale con almeno una scheda ripassata e valutata %1$@, %2$@, %3$@ o %4$@."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರಸ್ತುತ ನಿರಂತರ ದಿನಗಳು ನಿಮ್ಮ ಸ್ಥಾನವನ್ನು ನಿರ್ಧರಿಸುತ್ತವೆ. ಸ್ಥಳೀಯ ಸಮಯದ ಒಂದು ದಿನದಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಕಾರ್ಡ್‌ಗೆ %1$@, %2$@, %3$@ ಅಥವಾ %4$@ ಮೌಲ್ಯಮಾಪನ ನೀಡಿದರೆ ಅದು ನಿರಂತರತೆಯ ದಿನವಾಗುತ್ತದೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 연속 학습 일수로 순위가 정해집니다. 현지 날짜 기준으로 카드를 하나 이상 복습하고 %1$@, %2$@, %3$@ 또는 %4$@으로 평가하면 연속 학습일로 인정됩니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23997,6 +26679,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova più tardi."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "나중에 다시 시도하세요."
           }
         },
         "hu" : {
@@ -24160,6 +26860,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare la classifica delle serie"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರ ದಿನಗಳ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಲೋಡ್ ಮಾಡಲಾಗಲಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습 순위표를 불러오지 못함"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24319,6 +27037,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connettiti a internet per caricare la classifica delle serie."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರ ದಿನಗಳ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಲೋಡ್ ಮಾಡಲು ಇಂಟರ್ನೆಟ್‌ಗೆ ಸಂಪರ್ಕಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습 순위표를 불러오려면 인터넷에 연결하세요."
           }
         },
         "hu" : {
@@ -24482,6 +27218,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sei offline"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನೀವು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿದ್ದೀರಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오프라인 상태"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24641,6 +27395,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posizione %1$lld, %2$@"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸ್ಥಾನ %1$lld, %2$@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld위, %2$@"
           }
         },
         "hu" : {
@@ -24804,6 +27576,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classifica delle serie"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರ ದಿನಗಳ ಶ್ರೇಯಾಂಕಪಟ್ಟಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습 순위표"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24963,6 +27753,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giorno protetto"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ರಕ್ಷಿತ ದಿನ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보호된 날"
           }
         },
         "hu" : {
@@ -25126,6 +27934,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giorno futuro"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮುಂದಿನ ದಿನ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "미래 날짜"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25285,6 +28111,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serie"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರಂತರತೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 학습"
           }
         },
         "hu" : {
@@ -25448,6 +28292,24 @@
             "value" : "التقدم"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progressi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರಗತಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진행 상황"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25607,6 +28469,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oggi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇಂದು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘"
           }
         },
         "hu" : {
@@ -25770,6 +28650,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti notifiche"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಅಧಿಸೂಚನೆಗಳನ್ನು ಅನುಮತಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알림 허용"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25929,6 +28827,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consentito"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಅನುಮತಿಸಲಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "허용됨"
           }
         },
         "hu" : {
@@ -26092,6 +29008,24 @@
             "value" : "محظور"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloccato"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "차단됨"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26251,6 +29185,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non richiesto"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ವಿನಂತಿಸಿಲ್ಲ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "요청하지 않음"
           }
         },
         "hu" : {
@@ -26414,6 +29366,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua la tua sessione di studio in Nibomo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoದಲ್ಲಿ ನಿಮ್ಮ ಅಧ್ಯಯನವನ್ನು ಮುಂದುವರಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo에서 학습을 이어가세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26573,6 +29543,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una volta al giorno"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ದಿನಕ್ಕೆ ಒಮ್ಮೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하루 한 번"
           }
         },
         "hu" : {
@@ -26736,6 +29724,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dopo una pausa"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ವಿರಾಮದ ನಂತರ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "잠시 쉬었다가"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26895,6 +29901,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di nuovo"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮತ್ತೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시"
           }
         },
         "hu" : {
@@ -27058,6 +30082,24 @@
             "value" : "سهل"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facile"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸುಲಭ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "쉬움"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27217,6 +30259,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bene"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಚೆನ್ನಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알맞음"
           }
         },
         "hu" : {
@@ -27380,6 +30440,24 @@
             "value" : "صعب"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difficile"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕಷ್ಟ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어려움"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27539,6 +30617,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account eliminato"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಖಾತೆ ಅಳಿಸಲಾಗಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계정 삭제됨"
           }
         },
         "hu" : {
@@ -27702,6 +30798,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IA"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27861,6 +30975,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schede"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕಾರ್ಡ್‌ಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드"
           }
         },
         "hu" : {
@@ -28024,6 +31156,24 @@
             "value" : "لاحقًا"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Più avanti"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಂತರ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이후"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28183,6 +31333,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi con l’email per non perdere queste schede e i progressi dei ripassi."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಕಾರ್ಡ್‌ಗಳು ಮತ್ತು ಪುನರಾವರ್ತನೆಯ ಪ್ರಗತಿ ಕಳೆದುಹೋಗದಂತೆ ಇಮೇಲ್ ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드와 복습 진행 상황을 잃지 않도록 이메일로 로그인하세요."
           }
         },
         "hu" : {
@@ -28346,6 +31514,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೈನ್ ಇನ್ ಮಾಡಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로그인"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28505,6 +31691,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva i tuoi progressi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ನಿಮ್ಮ ಪ್ರಗತಿ ಉಳಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진행 상황 저장"
           }
         },
         "hu" : {
@@ -28668,6 +31872,24 @@
             "value" : "التقدم"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progressi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರಗತಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진행 상황"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28827,6 +32049,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripasso"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪುನರಾವರ್ತನೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복습"
           }
         },
         "hu" : {
@@ -28990,6 +32230,24 @@
             "value" : "الإعدادات"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೆಟ್ಟಿಂಗ್‌ಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29149,6 +32407,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Impostazioni"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 열기"
           }
         },
         "hu" : {
@@ -29312,6 +32588,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiedi accesso"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪ್ರವೇಶ ವಿನಂತಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "접근 요청"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29471,6 +32765,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸರಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "확인"
           }
         },
         "hu" : {
@@ -29634,6 +32946,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni la serie oggi. Ripassa prima di mezzanotte. Restano 2 ore."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇಂದಿನ ನಿರಂತರತೆ ಉಳಿಸಿ. ಮಧ್ಯರಾತ್ರಿಯ ಮೊದಲು ಪುನರಾವರ್ತಿಸಿ. ಇನ್ನೂ 2 ಗಂಟೆಗಳಿವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘도 연속 학습을 이어가세요. 자정 전에 복습하세요. 2시간 남았습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29793,6 +33123,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni la serie oggi. Ripassa prima di mezzanotte. Restano 3 ore."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇಂದಿನ ನಿರಂತರತೆ ಉಳಿಸಿ. ಮಧ್ಯರಾತ್ರಿಯ ಮೊದಲು ಪುನರಾವರ್ತಿಸಿ. ಇನ್ನೂ 3 ಗಂಟೆಗಳಿವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘도 연속 학습을 이어가세요. 자정 전에 복습하세요. 3시간 남았습니다."
           }
         },
         "hu" : {
@@ -29956,6 +33304,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni la serie oggi. Ripassa prima di mezzanotte. Restano 4 ore."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇಂದಿನ ನಿರಂತರತೆ ಉಳಿಸಿ. ಮಧ್ಯರಾತ್ರಿಯ ಮೊದಲು ಪುನರಾವರ್ತಿಸಿ. ಇನ್ನೂ 4 ಗಂಟೆಗಳಿವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘도 연속 학습을 이어가세요. 자정 전에 복습하세요. 4시간 남았습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30115,6 +33481,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova. Se il problema persiste, condividi i dettagli tecnici con l’assistenza."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ. ಸಮಸ್ಯೆ ಮುಂದುವರಿದರೆ ತಾಂತ್ರಿಕ ವಿವರಗಳನ್ನು ಬೆಂಬಲ ತಂಡದೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 시도하세요. 문제가 계속되면 지원팀에 기술 세부 정보를 보내 주세요."
           }
         },
         "hu" : {
@@ -30278,6 +33662,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si è verificato un errore"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ದೋಷ ಸಂಭವಿಸಿದೆ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오류 발생"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30437,6 +33839,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiudi"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಮುಚ್ಚಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "닫기"
           }
         },
         "hu" : {
@@ -30600,6 +34020,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia dettagli"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ವಿವರಗಳನ್ನು ನಕಲಿಸಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "세부 정보 복사"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30759,6 +34197,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dettagli tecnici"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ತಾಂತ್ರಿಕ ವಿವರಗಳು"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기술 세부 정보"
           }
         },
         "hu" : {
@@ -30922,6 +34378,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "È già in corso una risposta. Attendi che termini o interrompila prima di inviare un altro messaggio."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈಗಾಗಲೇ ಉತ್ತರ ಸಿದ್ಧವಾಗುತ್ತಿದೆ. ಮತ್ತೊಂದು ಸಂದೇಶ ಕಳುಹಿಸುವ ಮೊದಲು ಅದು ಮುಗಿಯಲು ಕಾಯಿರಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이미 응답이 진행 중입니다. 완료될 때까지 기다리거나 중지한 후 새 메시지를 보내세요."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31081,6 +34555,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna connessione internet. La chat IA richiede l’accesso a internet."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕವಿಲ್ಲ. AI ಚಾಟ್‌ಗೆ ಇಂಟರ್ನೆಟ್ ಪ್ರವೇಶ ಬೇಕು."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "인터넷에 연결되어 있지 않습니다. AI 채팅에는 인터넷 연결이 필요합니다."
           }
         },
         "hu" : {
@@ -31244,6 +34736,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schede aggiornate dal cloud."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಕಾರ್ಡ್‌ಗಳನ್ನು ಕ್ಲೌಡ್‌ನಿಂದ ನವೀಕರಿಸಲಾಗಿದೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "클라우드에서 카드를 업데이트했습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31403,6 +34913,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lettura vocale non è disponibile su questo dispositivo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಸಾಧನದಲ್ಲಿ ಧ್ವನಿ ಓದುವಿಕೆ ಲಭ್ಯವಿಲ್ಲ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 기기에서는 음성 읽기를 사용할 수 없습니다."
           }
         },
         "hu" : {
@@ -31566,6 +35094,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo ripasso è stato aggiornato su un altro dispositivo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಈ ಪುನರಾವರ್ತನೆ ಮತ್ತೊಂದು ಸಾಧನದಲ್ಲಿ ನವೀಕರಿಸಲಾಗಿದೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 기기에서 이 복습이 업데이트되었습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31725,6 +35271,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione di test disattivata."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪರೀಕ್ಷಾ ಆವೃತ್ತಿ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "테스트 버전이 꺼졌습니다."
           }
         },
         "hu" : {
@@ -31888,6 +35452,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versione di test attivata."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಪರೀಕ್ಷಾ ಆವೃತ್ತಿ ಸಕ್ರಿಯವಾಗಿದೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "테스트 버전이 켜졌습니다."
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32047,6 +35629,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puoi modificare lo spazio di lavoro solo dopo aver creato un account."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಖಾತೆ ರಚಿಸಿದ ನಂತರವೇ ಕಾರ್ಯಸ್ಥಳದಲ್ಲಿ ಬದಲಾವಣೆಗಳು ಲಭ್ಯವಾಗುತ್ತವೆ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계정을 만든 후에만 작업 공간을 변경할 수 있습니다."
           }
         },
         "hu" : {

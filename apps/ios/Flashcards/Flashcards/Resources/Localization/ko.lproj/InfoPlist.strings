@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,플래시카드,플래시 카드,암기 카드";
+"NSCameraUsageDescription" = "AI 채팅에 첨부할 사진을 찍도록 카메라 접근을 허용하세요.";
+"NSMicrophoneUsageDescription" = "AI 채팅에 음성으로 텍스트를 입력하도록 마이크 접근을 허용하세요.";
+"NSPhotoLibraryUsageDescription" = "AI 채팅에 첨부할 사진을 선택하도록 사진 보관함 접근을 허용하세요.";
