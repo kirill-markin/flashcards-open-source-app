@@ -37,6 +37,11 @@ running the wrapper with the exact Play code, for example
 `FLASHCARDS_MARKETING_LOCALE_PREFIX=bn-BD`. Missing or malformed fixtures fail
 explicitly. The default remains `en`.
 
+The [device locale helper](../../../scripts/android/android-set-device-locale.sh)
+maps Play codes to Android device tags where needed, such as `bg` to `bg-BG`
+and `iw-IL` to `he-IL`. These device-only mappings do not change fixture or output
+prefixes, or the pack's `appLocaleTag`.
+
 After the wrapper scripts run, the expected generated output files are:
 
 - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
