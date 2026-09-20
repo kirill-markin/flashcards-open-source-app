@@ -18,7 +18,11 @@ import {
   setAccountDeletionPending,
   type LocalBrowserDataCleanupReason,
 } from "../../../accountDeletion";
-import { registerAnalyticsSessionOwnerPublisher, setAnalyticsConfirmedOwner } from "../../../analytics";
+import {
+  registerAnalyticsSessionOwnerPublisher,
+  setAnalyticsConfirmedOwner,
+  syncAnalyticsConsentWithAccount,
+} from "../../../analytics";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
 import { isIndexedDbUnavailableError } from "../../../localDb/core/indexedDbAvailability";
@@ -261,6 +265,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       // or discard; until it is published nothing is sent, which is why it is only reached once the
       // session is verified and any user-scoped cleanup has already run.
       setAnalyticsConfirmedOwner(currentSession.userId);
+      // Reconciles this browser's consent answer with the account's, which wins where both exist.
+      // Never awaited, like the link below: no sign-in may wait on analytics.
+      syncAnalyticsConsentWithAccount(currentSession.preferences.analyticsConsent);
       // Started after the owner publish above, and never awaited: no user action may be blocked,
       // delayed or failed by an analytics call. `getSession()` above is also the
       // request-context call the route requires to have run first, and the account it verified is
@@ -400,6 +407,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           // dropped it and advanced the guest identity generation, which also stops a link started
           // by `initialize` from binding it to the account being published on this line.
           setAnalyticsConfirmedOwner(currentSession.userId);
+          syncAnalyticsConsentWithAccount(currentSession.preferences.analyticsConsent);
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");

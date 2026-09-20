@@ -1,5 +1,20 @@
+/** A recorded analytics consent decision. No decision at all is null, never a third choice value. */
+export type AnalyticsConsentChoice = "granted" | "declined";
+
 export type AccountPreferences = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
+  analyticsConsent: AnalyticsConsentChoice | null;
+}>;
+
+/**
+ * One `PATCH /me/preferences` body. A field this type leaves out is a field the request does not
+ * write, which is why it cannot be a loaded `AccountPreferences`: null means "no decision recorded"
+ * there and the route refuses it rather than reading it as "leave alone", so every caller names the
+ * one field it is changing.
+ */
+export type AccountPreferencesUpdate = Readonly<{
+  reviewReactionAnimationsEnabled?: boolean;
+  analyticsConsent?: AnalyticsConsentChoice;
 }>;
 
 export type AccountPreferencesEnvelope = Readonly<{

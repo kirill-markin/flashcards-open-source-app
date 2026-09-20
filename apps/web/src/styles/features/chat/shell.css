@@ -218,7 +218,11 @@
 
 .chat-toggle-floating {
   position: fixed;
-  bottom: var(--shell-frame-gap);
+  /* Lifted clear of the consent strip while it is up. The strip is fixed to the same edge and
+     deliberately below this button's layer, and `#root`'s padding can only move in-flow content, so
+     this is the one bottom-anchored control that has to read the published height itself. The
+     fallback is 0px, which is every moment there is no strip. */
+  bottom: calc(var(--shell-frame-gap) + var(--analytics-consent-banner-height, 0px));
   inset-inline-start: var(--shell-frame-gap);
   z-index: 60;
   min-height: 52px;

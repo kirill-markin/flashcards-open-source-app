@@ -1,6 +1,11 @@
 import type { AnalyticsWireBatch, AnonymousAnalyticsWireEvent } from "../../analytics/events";
 import { webAppVersion } from "../../clientIdentity";
-import { requestCredentialFreeJson, requestJson, type RequestOptions } from "../transport/transport";
+import {
+  requestBrowserCookieJson,
+  requestCredentialFreeJson,
+  requestJson,
+  type RequestOptions,
+} from "../transport/transport";
 
 export type AnalyticsIngestResult = Readonly<{
   acceptedCount: number;
@@ -77,6 +82,36 @@ export async function sendAnalyticsEventsBatch(
  */
 export async function requestAnalyticsVisitor(): Promise<AnalyticsVisitorEnvelope> {
   const payload = await requestJson("/analytics/visitor", { method: "GET" }, analyticsRequestOptions);
+  if (typeof payload.value !== "object" || payload.value === null || Array.isArray(payload.value)) {
+    return { consentRequired: true, visitorId: null };
+  }
+
+  const { consentRequired, visitorId } = payload.value as Readonly<{
+    consentRequired?: unknown;
+    visitorId?: unknown;
+  }>;
+  return {
+    consentRequired: consentRequired !== false,
+    visitorId: typeof visitorId === "string" && visitorId !== "" ? visitorId : null,
+  };
+}
+
+/**
+ * Records this browser's answer to the consent banner, which is the only call that may mint an
+ * identity where consent is required and the only one that clears it on a refusal.
+ *
+ * The `consentRequired` field of the answer reports the jurisdiction rather than whether this
+ * browser still has to be asked, so a granting European browser is answered `true` beside the id it
+ * was just given: the grant succeeded exactly when the answer carries a `visitorId`
+ * (docs/analytics-visitor-identity.md).
+ */
+export async function submitAnalyticsVisitorConsent(granted: boolean): Promise<AnalyticsVisitorEnvelope> {
+  // Cookies but no session credential: this is the call that mints or clears the visitor cookie, and
+  // the browser answering it is usually signed out, with no session CSRF token to send.
+  const payload = await requestBrowserCookieJson("/analytics/visitor", {
+    method: "POST",
+    body: JSON.stringify({ granted }),
+  }, analyticsRequestOptions);
   if (typeof payload.value !== "object" || payload.value === null || Array.isArray(payload.value)) {
     return { consentRequired: true, visitorId: null };
   }

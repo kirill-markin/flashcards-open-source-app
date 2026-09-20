@@ -208,6 +208,35 @@ async function performCredentialFreeFetch(
   }
 }
 
+/**
+ * Sends this browser's cookies and nothing else: no CSRF token, no bearer, no auth recovery.
+ *
+ * The analytics visitor route needs exactly that. Its whole effect is a first-party cookie it sets
+ * and clears, so the request cannot omit credentials the way the collector does, and it is
+ * origin-restricted rather than authenticated (docs/analytics-visitor-identity.md) — while an unsafe
+ * method on the authenticated pipeline demands a loaded session CSRF token, which a signed-out
+ * visitor answering the consent banner has none of.
+ */
+async function performBrowserCookieFetch(
+  pathname: string,
+  init: RequestInit,
+  attemptCount: number,
+): Promise<Response> {
+  const config = getAppConfig();
+  const headers = createBaseHeaders(init);
+
+  try {
+    return await fetch(`${config.apiBaseUrl}${pathname}`, {
+      ...init,
+      credentials: "include",
+      headers,
+    });
+  } catch (error) {
+    sessionRecovery.throwIfRequestAborted(init.signal ?? null);
+    throw createFetchApiNetworkError(pathname, init, error, attemptCount);
+  }
+}
+
 async function performWithNetworkRetry<Result>(
   endpoint: string,
   init: RequestInit,
@@ -326,6 +355,42 @@ export async function requestCredentialFreeJson(
     const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
     return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
       const response = await performCredentialFreeFetch(pathname, requestInit, attemptCount);
+      return parseJsonPayload(
+        response,
+        buildRequestEndpoint(pathname, requestInit),
+        {
+          attemptCount,
+          endpoint,
+        },
+      );
+    });
+  } finally {
+    disposeRequestSignal();
+  }
+}
+
+/**
+ * The one route this transport may be used for. It is a literal rather than a `string` on purpose:
+ * the request carries the session cookie with no CSRF token of any kind, so its safety is not a
+ * property of this function at all — it comes from `enforceAllowedBrowserOrigin`, which refuses
+ * every non-allowlisted `Origin` and `Referer` on the analytics visitor route, on every method
+ * (apps/backend/src/routes/analyticsVisitor.ts). A second caller would silently leave the CSRF
+ * pipeline, so adding one has to be a deliberate change to this type and a check that the new route
+ * enforces its own origin the same way.
+ */
+export type BrowserCookieRequestPath = "/analytics/visitor";
+
+/** One request on `performBrowserCookieFetch`, through the shared pipeline every other call uses. */
+export async function requestBrowserCookieJson(
+  pathname: BrowserCookieRequestPath,
+  init: RequestInit,
+  options: RequestOptions,
+): Promise<ParsedResponsePayload> {
+  const { requestInit, dispose: disposeRequestSignal } = sessionRecovery.attachRecoverySignal(init);
+  try {
+    const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
+    return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
+      const response = await performBrowserCookieFetch(pathname, requestInit, attemptCount);
       return parseJsonPayload(
         response,
         buildRequestEndpoint(pathname, requestInit),

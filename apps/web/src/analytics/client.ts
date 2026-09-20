@@ -4,6 +4,7 @@ import {
   analyticsUuidPattern,
   type AnalyticsEvent,
   type AnalyticsSurface,
+  type IdentityFreeAnalyticsEventName,
 } from "./events";
 
 let currentSurface: AnalyticsSurface | null = null;
@@ -132,6 +133,33 @@ export function trackCatalogDeckInstallStarted(
   }
 
   track({ name: "catalog_deck_install_started", packageSlug, installJourneyId, packageVersionId });
+}
+
+/**
+ * Records the person's consent answer for this browser and releases, or withholds, everything that
+ * depends on it. The caller reports the decision itself: these two only carry it out, so a decision
+ * arriving from an account is not counted as one somebody just made.
+ *
+ * The grant resolves `false` when the server recorded none, which leaves the banner up.
+ */
+export function grantAnalyticsConsent(): Promise<boolean> {
+  return deliveryRuntime.applyAnalyticsConsentGrant();
+}
+
+export function declineAnalyticsConsent(): Promise<void> {
+  return deliveryRuntime.applyAnalyticsConsentDecline();
+}
+
+/**
+ * Reports one of the two consent facts the catalog allows no identity at all. It never enters the
+ * queue, so unlike `track` it is sent rather than collected.
+ */
+export function reportIdentityFreeAnalyticsEvent(eventName: IdentityFreeAnalyticsEventName): void {
+  try {
+    deliveryRuntime.reportIdentityFreeEvent(eventName);
+  } catch {
+    // A failure inside analytics is swallowed on purpose, exactly as in `track`.
+  }
 }
 
 export function flush(): void {

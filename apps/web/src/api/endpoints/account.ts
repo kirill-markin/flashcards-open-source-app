@@ -7,8 +7,8 @@ import {
   parseDeleteAccountResponse,
 } from "../../apiContracts/account";
 import type {
-  AccountPreferences,
   AccountPreferencesEnvelope,
+  AccountPreferencesUpdate,
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
   AgentApiKeyCreateResponse,
@@ -69,8 +69,9 @@ export async function revokeAgentApiKey(connectionId: string): Promise<AgentApiK
   );
 }
 
+/** Writes only the fields the caller names; anything it leaves out keeps its stored value. */
 export async function updateAccountPreferences(
-  request: AccountPreferences,
+  request: AccountPreferencesUpdate,
 ): Promise<AccountPreferencesEnvelope> {
   return parseContractResponse(await requestJson("/me/preferences", {
     method: "PATCH",

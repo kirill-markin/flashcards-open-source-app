@@ -11,6 +11,11 @@
   gap: 16px;
   overflow-y: auto;
   padding: 24px;
+  /* This page sizes itself to the viewport rather than to the shell, so `#root`'s bottom padding
+     does not lift it clear of the consent strip (features/analytics-consent.css). It is its own
+     scroller, so it reserves the strip's published height here instead, and its content — the
+     primary button included — scrolls clear of the strip instead of under it. */
+  padding-bottom: calc(24px + var(--analytics-consent-banner-height, 0px));
 }
 
 .invite-panel {
@@ -186,6 +191,8 @@
 @media (max-width: 640px) {
   .invite-page {
     padding: 16px;
+    /* Restates the reserve the shorthand above drops. */
+    padding-bottom: calc(16px + var(--analytics-consent-banner-height, 0px));
     align-content: start;
   }
 
