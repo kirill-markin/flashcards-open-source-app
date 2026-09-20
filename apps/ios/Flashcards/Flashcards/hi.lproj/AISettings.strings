@@ -802,3 +802,6 @@
 "settings.account.status.customGuestPause.retry" = "दोबारा कोशिश करें";
 "settings.account.status.customGuestPause.changeServer" = "सर्वर बदलें";
 "settings.account.status.customGuestPause.retryFailed" = "दोबारा कोशिश विफल हुई। सिंक अभी भी रुका हुआ है। कस्टम सर्वर जाँचें और फिर कोशिश करें।";
+"settings.language.supported.bulgarian" = "बुल्गारियाई";
+"settings.language.supported.bangla" = "बांग्ला";
+"settings.language.supported.catalan" = "कातालान";

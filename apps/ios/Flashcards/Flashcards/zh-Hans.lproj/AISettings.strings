@@ -802,3 +802,6 @@
 "settings.account.status.customGuestPause.retry" = "重试";
 "settings.account.status.customGuestPause.changeServer" = "更换服务器";
 "settings.account.status.customGuestPause.retryFailed" = "重试失败。同步仍处于暂停状态。请检查自定义服务器，然后重试。";
+"settings.language.supported.bulgarian" = "保加利亚语";
+"settings.language.supported.bangla" = "孟加拉语";
+"settings.language.supported.catalan" = "加泰罗尼亚语";

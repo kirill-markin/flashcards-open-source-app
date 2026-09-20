@@ -802,3 +802,6 @@
 "settings.account.status.customGuestPause.retry" = "إعادة المحاولة";
 "settings.account.status.customGuestPause.changeServer" = "تغيير الخادم";
 "settings.account.status.customGuestPause.retryFailed" = "فشلت إعادة المحاولة. لا تزال المزامنة متوقفة مؤقتًا. تحقق من الخادم المخصص وحاول مرة أخرى.";
+"settings.language.supported.bulgarian" = "البلغارية";
+"settings.language.supported.bangla" = "البنغالية";
+"settings.language.supported.catalan" = "الكتالونية";
