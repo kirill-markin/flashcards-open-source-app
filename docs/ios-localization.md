@@ -40,6 +40,9 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `it`
 - `kn`
 - `ko`
+- `lt`
+- `lv`
+- `ml`
 - `zh-Hans`
 - `de`
 - `fr`
