@@ -58,6 +58,9 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `th`
 - `tr`
 - `uk`
+- `ur`
+- `vi`
+- `zu`
 - `zh-Hans`
 - `de`
 - `fr`

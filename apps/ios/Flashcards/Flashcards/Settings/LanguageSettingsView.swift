@@ -160,6 +160,18 @@ private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem]
             title: aiSettingsLocalized("settings.language.supported.ukrainian", "Ukrainian")
         ),
         SupportedLanguageSettingsItem(
+            id: "ur",
+            title: aiSettingsLocalized("settings.language.supported.urdu", "Urdu")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "vi",
+            title: aiSettingsLocalized("settings.language.supported.vietnamese", "Vietnamese")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "zu",
+            title: aiSettingsLocalized("settings.language.supported.zulu", "Zulu")
+        ),
+        SupportedLanguageSettingsItem(
             id: "zh-Hans",
             title: aiSettingsLocalized("settings.language.supported.chineseSimplified", "Chinese Simplified")
         ),
