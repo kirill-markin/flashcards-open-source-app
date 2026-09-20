@@ -459,10 +459,13 @@ export default function App(): JSX.Element {
   }, [filterState, reportRanges, route]);
 
   // Both Retry controls - the one in the failure banner over stale numbers and the one in the error
-  // panel - reach the reports effect only through this revision bump, and the reload it starts waits
-  // out the same debounce a filter click does. So the in-flight mark is raised here rather than when
-  // the request finally leaves: a Retry that ends in the same message it started from would otherwise
-  // be pixel-identical from click to outcome and read as a dead control. Nothing here re-requests on
+  // panel - reach the reports effect only through this revision bump, and the in-flight mark is
+  // raised here rather than when the request finally leaves, for a different reason on each path.
+  // From the banner, because the reload waits out the same debounce a filter click does and nothing
+  // would change on screen for those 400 ms. From the error panel, because `loadReports` raises its
+  // own mark only on the `ready` branch, so without this the panel's button would stay unmarked for
+  // the entire request. Either way a Retry that ends in the same message it started from would be
+  // pixel-identical from click to outcome and read as a dead control. Nothing here re-requests on
   // its own; the effect owns the attempt, and only its outcome lowers the mark again.
   const retryReportLoad = useCallback((): void => {
     setReportState((currentState) => {
