@@ -821,7 +821,7 @@ const ptBrCatalog: TranslationCatalog = {
   },
   analyticsConsentBanner: {
     label: "Cookies de análise",
-    message: "Usamos um cookie e outros armazenamentos do navegador para medir como o app é usado. Até você escolher, nada é guardado neste dispositivo e nada que identifique você é enviado.",
+    message: "Usamos um cookie e outros armazenamentos do navegador para medir como o app é usado. Até você escolher, este app não guarda nada neste dispositivo e não envia nada que identifique você.",
     allow: "Permitir",
     decline: "Recusar",
     privacyPolicy: "Política de Privacidade",
@@ -831,8 +831,9 @@ const ptBrCatalog: TranslationCatalog = {
     title: "Análise de uso",
     subtitle: "Escolha se este navegador pode ser medido.",
     toggleTitle: "Permitir cookies de análise",
-    toggleDescription: "Com isso desligado, este navegador não recebe identificador nenhum e não guarda nada para análise. Enquanto você estiver conectado, o que é medido continua sendo registrado na sua conta.",
+    toggleDescription: "Com isso desligado, este app não dá identificador nenhum a este navegador e não guarda nada para análise. Enquanto você estiver conectado, o que é medido continua sendo registrado na sua conta.",
     error: "Não deu certo. Tente de novo.",
+    unavailable: "A análise está desativada neste aplicativo, então não há nada para permitir ou retirar aqui.",
   },
   leaderboardParticipationSettings: {
     title: "Participação no ranking",

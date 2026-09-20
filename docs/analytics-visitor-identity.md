@@ -103,6 +103,13 @@ reconciled at sign-in by the client rather than by either store: the account ans
 exist, and an account that has none adopts the browser's
 ([web sync](../apps/web/src/analytics/accountConsent.ts)).
 
+The banner is shown only to a browser that has stored no answer of its own, so what a public
+catalog, invite or share route can produce is a first decision and never a change of one. The
+reconciliation already carries that case: the account holding none adopts it at the next sign-in.
+The banner writes the account directly only where a verified session owner is published on the load
+that answered it, which is inside the authenticated app; on the public routes it records the
+browser's answer and nothing else.
+
 That client sync is also what carries a guest's answer through the upgrade to an account. The
 upgrade copies no preference columns and deletes the guest row
 ([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)), so the account arrives with no decision
@@ -125,12 +132,20 @@ Where the answer above comes from, on the web: a strip at the bottom of the app,
 layer. Until it is answered, nothing is written to the device and nothing that names this browser
 leaves it — the events wait in memory rather than in the queue, because obtaining a session id or
 appending to the queue is itself a write. One row does go out before the answer, and only one:
-`consent_prompt_shown`, which is `identityFree` by construction and carries the surface, the locale
-and its date and nothing else. That is the honest reading of the promise on the strip, which says
-that nothing is stored on this device and nothing identifying is sent — not that nothing at all is.
+`consent_prompt_shown`, which is `identityFree` by construction and carries the locale and its date
+and nothing else — not even the surface it was shown on. The promise on the strip covers this origin
+only: it says that this app stores nothing on this device and sends nothing identifying — not that
+nothing at all is sent, and not that every origin under this domain keeps the same promise. The auth
+origin does not, and the paragraph below records it.
 A refusal keeps that shape permanently: the
 browser is given no identifier at all, and what it reports is rows carrying none
 ([anonymous client analytics](anonymous-client-analytics.md)).
+
+This gate covers the app origin only. The auth origin is outside it and mints without asking: the
+`/login` render writes its own host-only `__Host-analytics_visitor` for any browser that carries
+none, with no country check, no banner and no decline path
+([login page](../apps/auth/src/routes/browser/loginPage.ts)). Bringing it under this gate is
+separate, undecided work.
 
 A signed-in person who refuses is the one case where rows still carry a name, and it is the
 account's rather than the browser's: their events go out on their own credential and are stored
@@ -139,15 +154,33 @@ queued and nothing is written to the device, including the analytics database it
 owner claim the session layer would make is deferred until this browser is allowed one, and a
 refusal that finds no store never opens one.
 
+"Finds no store" is the load-bearing part, and it is not the same as "cannot see one". Firefox
+implements no `IDBFactory.databases()`, so on it the question has no answer, and the two readings
+part company: a browser that was never allowed an identity is left alone, because opening the store
+is what creates it and that browser was promised nothing would be written to it; a browser that was
+allowed one — it granted, or it holds the visitor cookie — is opened and emptied, because leaving a
+previous load's identity-bearing queue on disk through a withdrawal keeps exactly what the person
+just asked to be rid of. Creating an empty database on such a browser is the smaller cost of the
+two.
+
 The stored browser answer shares the `flashcards-analytics-enabled` key with the operator kill
 switch rather than sitting beside it, and the switch carries the answer across itself in both
 directions: a browser that refused stays refused when an operator turns analytics off and on again,
 instead of returning to undecided and becoming askable and mintable in between.
 
-The withdrawal control is in the app's settings in every region, not only where the banner is shown,
-because the published privacy policy states withdrawal without a regional qualifier.
+The withdrawal control is the settings screen at `/settings/analytics`, and it is there in every
+region, not only where the banner is shown, because the published privacy policy states withdrawal
+without a regional qualifier. It is the only one: the public catalog, invite and share routes carry
+the banner but no control of their own, and a visitor who answered there and has no account
+withdraws by signing in and opening that screen — which is the route the privacy policy names ("in
+the web app settings"). The settings screen cannot serve those routes itself, because a signed-out
+visitor opening it is redirected to the auth origin.
+
+Consent is not retroactive either way. What a browser collected while a refusal stood is discarded
+when it later grants, rather than adopted into the queue and stamped with the visitor id the grant
+has just minted.
 
 - [Consent state, and what it allows](../apps/web/src/analytics/consent.ts)
 - [Banner](../apps/web/src/analytics/AnalyticsConsentBanner.tsx) and
-  [settings entry](../apps/web/src/screens/settings/AnalyticsSettingsScreen.tsx)
+  [settings withdrawal](../apps/web/src/screens/settings/AnalyticsSettingsScreen.tsx)
 - [The gate the delivery runtime applies](../apps/web/src/analytics/deliveryRuntime.ts)

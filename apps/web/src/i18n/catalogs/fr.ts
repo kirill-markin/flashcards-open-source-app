@@ -821,7 +821,7 @@ const frCatalog: TranslationCatalog = {
   },
   analyticsConsentBanner: {
     label: "Cookies de mesure",
-    message: "Nous utilisons un cookie et d'autres stockages du navigateur pour mesurer l'usage de l'application. Avant votre choix, rien n'est stocké sur cet appareil et rien qui vous identifie n'est envoyé.",
+    message: "Nous utilisons un cookie et d'autres stockages du navigateur pour mesurer l'usage de l'application. Avant votre choix, cette application ne stocke rien sur cet appareil et n'envoie rien qui vous identifie.",
     allow: "Autoriser",
     decline: "Refuser",
     privacyPolicy: "Politique de confidentialité",
@@ -831,8 +831,9 @@ const frCatalog: TranslationCatalog = {
     title: "Mesure d'audience",
     subtitle: "Choisissez si ce navigateur peut être mesuré.",
     toggleTitle: "Autoriser les cookies de mesure",
-    toggleDescription: "Quand c'est désactivé, ce navigateur ne reçoit aucun identifiant et ne stocke rien pour la mesure. Tant que vous êtes connecté, ce qui est mesuré reste enregistré sur votre compte.",
+    toggleDescription: "Quand c'est désactivé, cette application ne donne aucun identifiant à ce navigateur et ne stocke rien pour la mesure. Tant que vous êtes connecté, ce qui est mesuré reste enregistré sur votre compte.",
     error: "Ça n'a pas marché. Réessayez.",
+    unavailable: "Les statistiques sont désactivées pour cette application : il n'y a donc rien à autoriser ni à retirer ici.",
   },
   leaderboardParticipationSettings: {
     title: "Participation au classement",
