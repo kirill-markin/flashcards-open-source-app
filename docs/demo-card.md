@@ -266,9 +266,9 @@ Binding for all three clients:
   `scripts/checks/pr/check-ios-localization-parity.mjs` runs in `Repository static validation`, whose
   result is enforced by the required `Repository static checks` aggregate in
   [.github/workflows/pr-checks.yml](../.github/workflows/pr-checks.yml), and it fails
-  any `.xcstrings` entry whose `ar`, `de`, `es-ES`, `es-MX`, `fr`, `hi`, `ja`, `pt-BR`, `ru`, or
-  `zh-Hans` localization is missing, empty, or not in `state: "translated"`. English-only demo-card
-  entries turn that check red;
+  any translatable `.xcstrings` entry with a missing, empty, or non-`translated` unit in
+  a required locale. The [iOS localization guide](ios-localization.md#supported-app-locales)
+  owns required-locale coverage; English-only demo-card entries turn that check red;
 - on web the four strings must land in every catalog in `apps/web/src/i18n/catalogs/` in the same
   change. `enCatalog` defines the catalog shape and every other catalog is annotated
   `TranslationCatalog` (see [docs/web-localization.md](web-localization.md)), so an English-only

@@ -2,6 +2,9 @@
 
 Related competitor references: [Android competitors](competitor-store-metadata.md#android)
 
+For locale mapping, assets, repository delivery, and Play publication, use the
+[listing localization runbook](../apps/android/docs/play-store-localization-runbook.md).
+
 ## Which languages live in this file
 
 This file holds authored Play listing copy for 51 locales, including regional Spanish listings. Each section owns its app name, short description, and full description. Play locale codes can differ from app locale codes: for example, `es-419` maps to `es-MX`, and `iw-IL` maps to `he`. The `es-US` listing has no matching product locale.
