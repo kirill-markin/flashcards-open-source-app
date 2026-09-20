@@ -838,3 +838,6 @@
 "settings.language.supported.thai" = "Тайский";
 "settings.language.supported.turkish" = "Турецкий";
 "settings.language.supported.ukrainian" = "Украинский";
+"settings.language.supported.urdu" = "Урду";
+"settings.language.supported.vietnamese" = "Вьетнамский";
+"settings.language.supported.zulu" = "Зулусский";
