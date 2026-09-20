@@ -109,6 +109,11 @@ const deCatalog: TranslationCatalog = {
       reload: "Seite neu laden",
       later: "Später",
     },
+    storageUnavailable: {
+      title: "Browserspeicher nicht verfügbar",
+      message: "Diese App braucht den Browserspeicher, und dieser Browser blockiert ihn.",
+      guidance: "Öffne die App in einem normalen Fenster (nicht privat) oder in einem anderen Browser.",
+    },
   },
   filters: {
     allCards: "Alle Karten",

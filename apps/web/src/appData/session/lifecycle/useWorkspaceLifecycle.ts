@@ -21,6 +21,7 @@ import {
 import { setAnalyticsConfirmedOwner } from "../../../analytics";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
+import { isIndexedDbUnavailableError } from "../../../localDb/core/indexedDbAvailability";
 import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import { normalizeCaughtError, setWebObservabilityUser } from "../../../observability/webObservability";
@@ -291,6 +292,16 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         setAvailableWorkspaces([]);
         setCloudSettings(null);
         setSessionLoadState("redirecting");
+        return;
+      }
+
+      if (isIndexedDbUnavailableError(normalizedError)) {
+        // This browser exposes no IndexedDB at all. It is not a fault of this app and retrying
+        // cannot change it, so the gate below must not report it or offer a retry.
+        setSessionLoadState("storage_unavailable");
+        setSessionErrorMessage(t("appError.storageUnavailable.message"));
+        setSessionTechnicalError(null);
+        setTechnicalError(null);
         return;
       }
 

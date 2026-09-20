@@ -1,3 +1,4 @@
+import { createIndexedDbUnavailableError, getIndexedDbFactory } from "../localDb/core/indexedDbAvailability";
 import type { AnalyticsWireEvent } from "./events";
 
 /**
@@ -93,7 +94,15 @@ function readErrorName(cause: unknown): string | null {
 
 function openAnalyticsDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(databaseName, databaseVersion);
+    const indexedDbFactory = getIndexedDbFactory();
+    if (indexedDbFactory === null) {
+      // A browser without IndexedDB has nowhere to queue events; fail like any other open failure
+      // so the queue degrades quietly instead of crashing the caller.
+      reject(new AnalyticsQueueError("open", createIndexedDbUnavailableError()));
+      return;
+    }
+
+    const request = indexedDbFactory.open(databaseName, databaseVersion);
 
     request.onerror = (): void => {
       reject(new AnalyticsQueueError("open", request.error));
