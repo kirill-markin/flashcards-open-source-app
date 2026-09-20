@@ -1,6 +1,11 @@
-import type { AnalyticsWireBatch } from "../../analytics/events";
+import type { AnalyticsWireBatch, AnonymousAnalyticsWireEvent } from "../../analytics/events";
 import { webAppVersion } from "../../clientIdentity";
-import { requestGuestJson, requestJson, type RequestOptions } from "../transport/transport";
+import {
+  requestBrowserCookieJson,
+  requestCredentialFreeJson,
+  requestJson,
+  type RequestOptions,
+} from "../transport/transport";
 
 export type AnalyticsIngestResult = Readonly<{
   acceptedCount: number;
@@ -8,13 +13,15 @@ export type AnalyticsIngestResult = Readonly<{
 }>;
 
 /**
- * Which credential a batch is authenticated with. The ingest endpoint always requires one, and it
- * accepts both: a signed-in browser posts on its shared session cookie, and a signed-out visitor who
- * has interacted posts on the guest token issued for this browser.
+ * The answer of `GET /v1/analytics/visitor` (docs/analytics-visitor-identity.md). `consentRequired`
+ * means "must this browser be asked before it may be given an identity" on this method only, and
+ * `visitorId` is returned whether or not the browser stored the cookie that came with it, so a
+ * caller that needs to know whether the identity exists reads the cookie instead of this field.
  */
-export type AnalyticsRequestCredential =
-  | Readonly<{ kind: "session" }>
-  | Readonly<{ kind: "guest"; guestToken: string }>;
+export type AnalyticsVisitorEnvelope = Readonly<{
+  consentRequired: boolean;
+  visitorId: string | null;
+}>;
 
 /**
  * Analytics runs entirely in the background, so it never joins auth recovery: a batch that meets an
@@ -46,7 +53,6 @@ function readRejectedCount(value: unknown): number {
  */
 export async function sendAnalyticsEventsBatch(
   batch: AnalyticsWireBatch,
-  credential: AnalyticsRequestCredential,
 ): Promise<AnalyticsIngestResult> {
   const requestInit: RequestInit = {
     method: "POST",
@@ -56,9 +62,7 @@ export async function sendAnalyticsEventsBatch(
     },
     body: JSON.stringify(batch),
   };
-  const payload = credential.kind === "guest"
-    ? await requestGuestJson("/analytics/events", requestInit, credential.guestToken, analyticsRequestOptions)
-    : await requestJson("/analytics/events", requestInit, analyticsRequestOptions);
+  const payload = await requestJson("/analytics/events", requestInit, analyticsRequestOptions);
 
   if (typeof payload.value !== "object" || payload.value === null || Array.isArray(payload.value)) {
     return { acceptedCount: 0, rejectedCount: 0 };
@@ -69,4 +73,74 @@ export async function sendAnalyticsEventsBatch(
     acceptedCount: readEventCount(accepted),
     rejectedCount: readRejectedCount(rejected),
   };
+}
+
+/**
+ * Asks the backend for this browser's shared analytics visitor identity, whose whole effect is the
+ * cookie the answer may carry. An unreadable body is read as consent-required and no identity, the
+ * same way the route itself fails closed when it cannot place the caller.
+ */
+export async function requestAnalyticsVisitor(): Promise<AnalyticsVisitorEnvelope> {
+  const payload = await requestJson("/analytics/visitor", { method: "GET" }, analyticsRequestOptions);
+  if (typeof payload.value !== "object" || payload.value === null || Array.isArray(payload.value)) {
+    return { consentRequired: true, visitorId: null };
+  }
+
+  const { consentRequired, visitorId } = payload.value as Readonly<{
+    consentRequired?: unknown;
+    visitorId?: unknown;
+  }>;
+  return {
+    consentRequired: consentRequired !== false,
+    visitorId: typeof visitorId === "string" && visitorId !== "" ? visitorId : null,
+  };
+}
+
+/**
+ * Records this browser's answer to the consent banner, which is the only call that may mint an
+ * identity where consent is required and the only one that clears it on a refusal.
+ *
+ * The `consentRequired` field of the answer reports the jurisdiction rather than whether this
+ * browser still has to be asked, so a granting European browser is answered `true` beside the id it
+ * was just given: the grant succeeded exactly when the answer carries a `visitorId`
+ * (docs/analytics-visitor-identity.md).
+ */
+export async function submitAnalyticsVisitorConsent(granted: boolean): Promise<AnalyticsVisitorEnvelope> {
+  // Cookies but no session credential: this is the call that mints or clears the visitor cookie, and
+  // the browser answering it is usually signed out, with no session CSRF token to send.
+  const payload = await requestBrowserCookieJson("/analytics/visitor", {
+    method: "POST",
+    body: JSON.stringify({ granted }),
+  }, analyticsRequestOptions);
+  if (typeof payload.value !== "object" || payload.value === null || Array.isArray(payload.value)) {
+    return { consentRequired: true, visitorId: null };
+  }
+
+  const { consentRequired, visitorId } = payload.value as Readonly<{
+    consentRequired?: unknown;
+    visitorId?: unknown;
+  }>;
+  return {
+    consentRequired: consentRequired !== false,
+    visitorId: typeof visitorId === "string" && visitorId !== "" ? visitorId : null,
+  };
+}
+
+/**
+ * Posts one event to the credential-free collector, which takes one event per request and is
+ * origin-restricted rather than authenticated (docs/anonymous-client-analytics.md). A repeated
+ * `eventId` is accepted and stores nothing new, so the caller's retry is safe.
+ *
+ * `keepalive` for the same reason the catalog install journey sets it: a signed-out browser's flush
+ * is a serial loop of one request per event, so the page-hide flush — where the closing events of a
+ * visit are — would otherwise lose everything still in the loop when the document goes away. One
+ * event is far below the 64 KB the browser allows a keepalive body, since the queue itself refuses
+ * an event above 4 KB.
+ */
+export async function sendAnonymousAnalyticsEvent(event: AnonymousAnalyticsWireEvent): Promise<void> {
+  await requestCredentialFreeJson("/analytics/anonymous-events", {
+    method: "POST",
+    keepalive: true,
+    body: JSON.stringify(event),
+  }, analyticsRequestOptions);
 }

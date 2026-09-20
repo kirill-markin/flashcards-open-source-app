@@ -17,7 +17,6 @@ import {
   allowAuthRecoveryWithTransientNetworkRetry,
   createSessionRecovery,
   skipAuthRecoveryWithTransientNetworkRetry,
-  skipAuthRecoveryWithoutNetworkRetry,
   type AuthRecoveryMode,
   type NetworkRetryMode,
   type RequestOptions,
@@ -36,7 +35,6 @@ export {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
   skipAuthRecoveryWithTransientNetworkRetry,
-  skipAuthRecoveryWithoutNetworkRetry,
 };
 export type {
   AuthRecoveryMode,
@@ -188,25 +186,49 @@ async function performFetch(
   }
 }
 
-async function performGuestFetch(
+async function performCredentialFreeFetch(
   pathname: string,
   init: RequestInit,
-  guestToken: string | null,
   attemptCount: number,
 ): Promise<Response> {
   const config = getAppConfig();
   const headers = createBaseHeaders(init);
-  if (guestToken !== null) {
-    headers.set("Authorization", `Guest ${guestToken}`);
-  }
 
   try {
-    // "omit" keeps the guest token the only credential on the request. A session cookie riding along
-    // would be ignored by the backend, which reads the Authorization header first, but leaving the
-    // request with exactly one credential is what makes the identity it is attributed to obvious.
+    // "omit" rather than a session cookie the route would ignore: a request that carries no
+    // credential at all is what makes the identity it is attributed to obvious.
     return await fetch(`${config.apiBaseUrl}${pathname}`, {
       ...init,
       credentials: "omit",
+      headers,
+    });
+  } catch (error) {
+    sessionRecovery.throwIfRequestAborted(init.signal ?? null);
+    throw createFetchApiNetworkError(pathname, init, error, attemptCount);
+  }
+}
+
+/**
+ * Sends this browser's cookies and nothing else: no CSRF token, no bearer, no auth recovery.
+ *
+ * The analytics visitor route needs exactly that. Its whole effect is a first-party cookie it sets
+ * and clears, so the request cannot omit credentials the way the collector does, and it is
+ * origin-restricted rather than authenticated (docs/analytics-visitor-identity.md) — while an unsafe
+ * method on the authenticated pipeline demands a loaded session CSRF token, which a signed-out
+ * visitor answering the consent banner has none of.
+ */
+async function performBrowserCookieFetch(
+  pathname: string,
+  init: RequestInit,
+  attemptCount: number,
+): Promise<Response> {
+  const config = getAppConfig();
+  const headers = createBaseHeaders(init);
+
+  try {
+    return await fetch(`${config.apiBaseUrl}${pathname}`, {
+      ...init,
+      credentials: "include",
       headers,
     });
   } catch (error) {
@@ -316,28 +338,59 @@ export async function requestPublicJson(pathname: string): Promise<ParsedRespons
 }
 
 /**
- * Sends one request authenticated by a guest token instead of the shared browser session.
+ * Sends one request that carries no credential at all: no session cookie, no CSRF token, no bearer.
  *
- * The guest token is the whole credential, so the session cookie is deliberately not attached and
- * the session CSRF token — which the backend derives from that cookie — does not apply. This mirrors
- * `apps/backend/src/auth/requestSecurity.ts`, where `enforceSessionCsrfProtection` runs only for the
- * session transport: a header the browser has to be told to send is not an ambient credential a
- * cross-site page could ride on. It is the same shared pipeline as every other call — same base URL,
- * same network retry, same error parsing — rather than a second token mechanism beside it.
- *
- * `guestToken` is null only when creating the guest session itself, which carries no credential yet.
+ * It is what the credential-free analytics collector needs, which is origin-restricted rather than
+ * authenticated (docs/anonymous-client-analytics.md). It is the same shared pipeline as every other
+ * call — same base URL, same network retry, same error parsing — rather than a second mechanism
+ * beside it, and unlike `requestPublicJson` it is not limited to `GET`.
  */
-export async function requestGuestJson(
+export async function requestCredentialFreeJson(
   pathname: string,
   init: RequestInit,
-  guestToken: string | null,
   options: RequestOptions,
 ): Promise<ParsedResponsePayload> {
   const { requestInit, dispose: disposeRequestSignal } = sessionRecovery.attachRecoverySignal(init);
   try {
     const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
     return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
-      const response = await performGuestFetch(pathname, requestInit, guestToken, attemptCount);
+      const response = await performCredentialFreeFetch(pathname, requestInit, attemptCount);
+      return parseJsonPayload(
+        response,
+        buildRequestEndpoint(pathname, requestInit),
+        {
+          attemptCount,
+          endpoint,
+        },
+      );
+    });
+  } finally {
+    disposeRequestSignal();
+  }
+}
+
+/**
+ * The one route this transport may be used for. It is a literal rather than a `string` on purpose:
+ * the request carries the session cookie with no CSRF token of any kind, so its safety is not a
+ * property of this function at all — it comes from `enforceAllowedBrowserOrigin`, which refuses
+ * every non-allowlisted `Origin` and `Referer` on the analytics visitor route, on every method
+ * (apps/backend/src/routes/analyticsVisitor.ts). A second caller would silently leave the CSRF
+ * pipeline, so adding one has to be a deliberate change to this type and a check that the new route
+ * enforces its own origin the same way.
+ */
+export type BrowserCookieRequestPath = "/analytics/visitor";
+
+/** One request on `performBrowserCookieFetch`, through the shared pipeline every other call uses. */
+export async function requestBrowserCookieJson(
+  pathname: BrowserCookieRequestPath,
+  init: RequestInit,
+  options: RequestOptions,
+): Promise<ParsedResponsePayload> {
+  const { requestInit, dispose: disposeRequestSignal } = sessionRecovery.attachRecoverySignal(init);
+  try {
+    const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
+    return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
+      const response = await performBrowserCookieFetch(pathname, requestInit, attemptCount);
       return parseJsonPayload(
         response,
         buildRequestEndpoint(pathname, requestInit),

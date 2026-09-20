@@ -18,6 +18,35 @@ The top-level product scope matches the other clients:
 When adding a new web language, follow [docs/web-localization.md](../../docs/web-localization.md).
 That guide covers the real source-of-truth files, browser-local language override behavior, support/error-path audit points, auth locale coordination, and smoke-test expectations.
 
+## Analytics Identity
+
+The web app does not own an anonymous identity of its own. `anonymous_id` is the `analytics_visitor`
+cookie the backend mints for the product domain, so this app measures a person from the first page
+view and across a logout: [analytics visitor identity](../../docs/analytics-visitor-identity.md).
+
+The auth origin is not on that id today, and is not under the consent gate. It mints its own
+host-only `__Host-analytics_visitor` with a separate anonymous id on the `/login` render for any
+browser that carries none — no country check, no banner, no decline path — so `app.` and `auth.`
+measure the same person as two visitors. Bringing the auth origin under this gate is separate,
+undecided work.
+
+Where the law requires consent first, a bottom strip asks for it, and until the person answers this
+app writes nothing to the device and sends nothing carrying an identifier — the app origin only, not
+the auth origin above. Withdrawal lives in one
+place only, the settings screen at `/settings/analytics`; the banner also asks on the public catalog,
+invite and share routes, and a visitor who answered there and has no account withdraws by signing in
+and opening that screen. Read
+[analytics visitor identity](../../docs/analytics-visitor-identity.md) before touching the banner,
+the settings withdrawal entry, or anything in `src/analytics/` that runs before a decision exists.
+
+Which transport an event leaves on follows from whether a credential exists. A signed-in browser
+batches through the authenticated ingest; a signed-out one reports one event per request through the
+credential-free collector, [anonymous client analytics](../../docs/anonymous-client-analytics.md).
+Events collected under an account never leave credential-free, and neither does anything while this
+browser says an account owns it: a signed-in person reporting `app_opened` only through the collector
+would be read as an actor with no `app_opened` at all, and auto-excluded from every person-level
+report until a human restores them.
+
 ## Native Test Stack
 
 The web app uses the browser-native test stack already present in this package:

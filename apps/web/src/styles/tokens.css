@@ -43,5 +43,13 @@
   --desktop-shell-gutter: var(--shell-frame-gap);
   --content-width: 1240px;
   --shell-width: 1320px;
+  /* The rule: the consent strip stays below every layer that can cover the viewport. `#root`'s
+     bottom padding lifts in-flow content clear of the strip, but an overlay is not in flow, so a
+     strip painted above one covers the bottom of it and swallows the clicks there — and the bottom
+     of a dialog is where its actions are. The app's overlays do not form one tier this could sit
+     under, so the strip goes below the lowest of them instead, leaving only ordinary page content
+     beneath it. Being covered costs the strip nothing: it is not modal, and the question is still
+     there when the overlay closes. */
+  --z-index-consent-banner: 25;
   --z-index-app-modal-top: 300;
 }

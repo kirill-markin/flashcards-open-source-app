@@ -86,6 +86,7 @@ const session: SessionInfo = {
   csrfToken: "csrf-token-1",
   preferences: {
     reviewReactionAnimationsEnabled: true,
+    analyticsConsent: null,
   },
   profile: {
     email: "user@example.com",

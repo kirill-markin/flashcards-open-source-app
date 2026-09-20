@@ -50,12 +50,6 @@ export type AnalyticsQueueOwnerClaim = Readonly<{
   /** The queue held another account's events; they were discarded by the claim. */
   didReplaceForeignOwner: boolean;
   discardedEventCount: number;
-  /**
-   * The owner the claim replaced, or `null` when the queue was unclaimed. The caller needs the
-   * identity behind it, not only the fact that it changed: a guest issued on this browser and then
-   * signed in is the same person, while any other replaced owner is a different one.
-   */
-  replacedOwnerId: string | null;
 }>;
 
 type AnalyticsQueueTotals = {
@@ -252,6 +246,54 @@ export function appendAnalyticsEvents(
   });
 }
 
+export type StoredAnalyticsQueuePresence = "present" | "absent" | "unknown";
+
+/**
+ * Whether this browser already holds the analytics database, answered without opening it: every
+ * open creates it, so the refusal path — the one path that has to look inside a store it is
+ * forbidden to create (docs/analytics-visitor-identity.md) — asks here first.
+ *
+ * A factory that cannot enumerate databases answers `"unknown"`, and so does one that refuses to.
+ * That is deliberately not `"absent"`: Firefox implements no `IDBFactory.databases()` at all, and
+ * reading its silence as "nothing is stored here" would let a withdrawal leave a previous load's
+ * identity-bearing queue on disk. What to do with `"unknown"` belongs to the caller, because only
+ * the caller knows whether this browser was ever allowed a queue. An engine with no IndexedDB at
+ * all is `"absent"` rather than unknown: nothing could have been stored.
+ */
+export async function readStoredAnalyticsQueuePresence(): Promise<StoredAnalyticsQueuePresence> {
+  const indexedDbFactory = getIndexedDbFactory();
+  if (indexedDbFactory === null) {
+    return "absent";
+  }
+
+  if (typeof indexedDbFactory.databases !== "function") {
+    return "unknown";
+  }
+
+  try {
+    const databases = await indexedDbFactory.databases();
+    return databases.some((database): boolean => database.name === databaseName) ? "present" : "absent";
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
+ * Reads the stored owner alone. `readOldestAnalyticsEvents` returns it too, but it deletes expired
+ * records and counts them in the same transaction, so a caller that only needs the owner asks here
+ * rather than running that pass a second time in the same flush and re-counting the expiry.
+ */
+export function readAnalyticsQueueOwner(): Promise<string | null> {
+  return runAnalyticsQueueTransaction<string | null>("read", (transaction, resolveResult) => {
+    const metaStore = transaction.objectStore(metaStoreName);
+    const ownerRequest = metaStore.get(ownerRecordKey);
+
+    ownerRequest.onsuccess = (): void => {
+      resolveResult(toOwnerId(ownerRequest.result));
+    };
+  });
+}
+
 /**
  * Reads the oldest events, dropping any that outlived the queue TTL on the way. Expired records are
  * removed here rather than on a timer so every flush attempt keeps the queue bounded.
@@ -383,11 +425,7 @@ export function claimAnalyticsQueueOwner(ownerId: string): Promise<AnalyticsQueu
       // An unclaimed queue holds events created before any credential existed. Those belong to the
       // account signing in now, so it adopts them rather than discarding them.
       if (storedOwnerId === null || storedOwnerId === ownerId) {
-        resolveResult({
-          didReplaceForeignOwner: false,
-          discardedEventCount: 0,
-          replacedOwnerId: storedOwnerId,
-        });
+        resolveResult({ didReplaceForeignOwner: false, discardedEventCount: 0 });
         return;
       }
 
@@ -396,11 +434,7 @@ export function claimAnalyticsQueueOwner(ownerId: string): Promise<AnalyticsQueu
         const discardedEventCount = toTotals(totalsRequest.result).eventCount;
         eventsStore.clear();
         metaStore.put(createEmptyTotals());
-        resolveResult({
-          didReplaceForeignOwner: true,
-          discardedEventCount,
-          replacedOwnerId: storedOwnerId,
-        });
+        resolveResult({ didReplaceForeignOwner: true, discardedEventCount });
       };
     };
   });

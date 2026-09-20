@@ -126,6 +126,7 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     const targetUserId = session.userId;
     const previousPreferences = session.preferences;
     const nextPreferences: AccountPreferences = {
+      ...previousPreferences,
       reviewReactionAnimationsEnabled: nextEnabled,
     };
 
@@ -134,7 +135,9 @@ export function ReviewAnimationsSettingsScreen(): ReactElement {
     setAccountPreferences(targetUserId, nextPreferences);
 
     try {
-      const response = await updateAccountPreferences(nextPreferences);
+      // Only the field this screen owns is written: a whole preferences object would carry the
+      // stored analytics consent back as a value the route refuses.
+      const response = await updateAccountPreferences({ reviewReactionAnimationsEnabled: nextEnabled });
       indexedDbOpenRecoveryState.throwIfFailed();
       setAccountPreferences(targetUserId, response.preferences);
       await refreshPreferencesAfterPatch();

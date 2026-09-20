@@ -23,6 +23,7 @@ import {
   accountSupportRoute,
   settingsAccessRoute,
   settingsAIChatSuggestionsRoute,
+  settingsAnalyticsRoute,
   settingsCurrentWorkspaceRoute,
   settingsDecksRoute,
   settingsDeleteCurrentWorkspaceRoute,
@@ -296,6 +297,13 @@ export function SettingsScreen(): ReactElement {
             value={null}
             to={settingsLeaderboardParticipationRoute}
             testId="settings-row-leaderboard-participation"
+          />
+          <SettingsNavigationCard
+            title={t("analyticsSettings.title")}
+            description={t("analyticsSettings.subtitle")}
+            value={null}
+            to={settingsAnalyticsRoute}
+            testId="settings-row-analytics"
           />
           <SettingsNavigationCard
             title={t("settingsHome.language.title")}

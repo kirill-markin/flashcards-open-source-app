@@ -1,10 +1,13 @@
 export {
+  declineAnalyticsConsent,
   flush,
+  grantAnalyticsConsent,
+  isAnalyticsEnabledForCurrentRuntime,
   readAnalyticsSessionOwnerId,
-  registerAnalyticsGuestCredentialRefusalHandler,
+  registerAnalyticsSessionOwnerPublisher,
+  reportIdentityFreeAnalyticsEvent,
   reset,
   setAnalyticsConfirmedOwner,
-  setAnalyticsGuestOwnerId,
   setEnabled,
   track,
   trackCatalogDeckInstallStarted,
@@ -18,16 +21,19 @@ export {
 } from "./failureReasons";
 export {
   buildCatalogInstallAuthReturnUrl,
-  readOrCreateCatalogInstallJourneyId,
   reportCatalogInstallFailure,
   reportCatalogInstallLanded,
   reportCatalogInstallPreviewReady,
   reportCatalogInstallSigninStarted,
   toCatalogInstallFailureReason,
+  useCatalogInstallJourneyId,
 } from "./catalogInstallJourney";
 export type {
   CatalogInstallFailureReason,
   CatalogInstallFailureStage,
 } from "./catalogInstallJourney";
+export { syncAnalyticsConsentWithAccount } from "./accountConsent";
+export { AnalyticsConsentBanner } from "./AnalyticsConsentBanner";
 export { AnalyticsLifecycle } from "./AnalyticsLifecycle";
+export { readAnalyticsConsentDecision, subscribeToAnalyticsConsent } from "./consent";
 export { useAnalyticsScreenView } from "./useAnalyticsScreenView";

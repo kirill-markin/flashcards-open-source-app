@@ -414,7 +414,9 @@ function buildEventWindowSql(from: string, to: string): ReadonlyArray<string> {
  * `trust_level = 'authenticated_client'` on the install-intent bridge is load-bearing rather than
  * tidiness: an `anonymous_client` row carries no `user_id`, so its resolved `actor_id` falls back to
  * the `anonymous_id`, which is the journey UUID itself, and an unrestricted check would compare
- * journey ids against the exclusion list.
+ * journey ids against the exclusion list. That the column holds the journey UUID rather than the
+ * browser's shared visitor id is a decision rather than an accident - the acquisition producer sends
+ * no visitor id precisely so this stays true (docs/catalog-install-funnel.md).
  *
  * Both bridges anchor on `candidate.anchor_at`, which is the click in the funnel and the landing in
  * the no-click diagnostic, so the conversion window shifts with whichever candidate row applies.

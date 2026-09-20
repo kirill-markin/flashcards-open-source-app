@@ -4,8 +4,8 @@ import {
   linkWebGuestIdentity,
   type WebGuestSessionEnvelope,
 } from "../../../api";
-import { readAnalyticsSessionOwnerId } from "../../../analytics";
-import { readStoredAnalyticsEnabled } from "../../../analytics/identity";
+import { isAnalyticsEnabledForCurrentRuntime, readAnalyticsSessionOwnerId } from "../../../analytics";
+import { isAnalyticsIdentityConsented } from "../../../analytics/consent";
 import { reportAnalyticsGuestIdentityLinkFailure } from "../../../analytics/observation";
 import { waitForDelay } from "../lifecycle/workspaceLifecycleHelpers";
 import {
@@ -18,7 +18,8 @@ import {
 
 /**
  * Hands the guest identity this browser measured under to the account that has just signed in, so
- * the visitor's analytics history follows them into it.
+ * the visitor's analytics history follows them into it. Only a browser that obtained one from an
+ * earlier build still holds such an identity; `webGuestSession.ts` says why none are created now.
  *
  * Nothing here may block, delay or fail sign-in: the caller starts it and walks away, and every
  * failure ends as one report and a swallowed error. What it may not do is give up quietly on a
@@ -153,9 +154,10 @@ async function runGuestIdentityLink(
 
     try {
       await linkWebGuestIdentity(guestToken);
-      // The route revoked the guest session, so the envelope is now a dead credential. Dropping it
-      // here rather than at the identity boundary is what stops a later signed-out load from
-      // republishing it as the analytics owner and posting batches nothing will accept.
+      // The route revoked the guest session, so the envelope is now a dead credential, and it is
+      // also spent: a guest binds to exactly one account, once. Dropping it here rather than at the
+      // identity boundary is what stops a later load from reading it back out of storage and
+      // offering it to somebody else (`webGuestSession.ts`).
       dropStoredWebGuestSession(guestToken);
       return;
     } catch (error) {
@@ -234,25 +236,52 @@ async function runGuestIdentityLink(
  * loses it while keeping `localStorage` — the store both the envelope and this stamp live in — sees
  * no boundary at all. So the account the envelope was offered to is stored beside it, and an
  * envelope offered to somebody else is dropped here rather than re-offered.
+ *
+ * Pass the consent sync started beside this call as well. It is what the gate inside waits for.
  */
 export function linkWebGuestIdentityInBackground(
   guestSession: WebGuestSessionEnvelope | null,
   capturedIdentityGeneration: number,
   accountUserId: string,
+  analyticsConsentSync: Promise<void>,
 ): void {
-  // The same opt-out that stops `resolveWebGuestSession` before it mints an identity stops this
-  // before it spends one. The link writes an append-only, first-link-wins row with no repair path,
-  // so it is the most permanent backend write on this path and the least defensible one to make for
-  // somebody who declined measurement — and the switch outlives every local data wipe, so the
-  // visitor who minted a guest and only then opted out still arrives here. The envelope and its
-  // stamp are left alone rather than dropped: `resolveWebGuestSession` refuses to republish or mint
-  // while the switch is off, so the envelope sits inert, and keeping it is what lets the tail still
-  // be linked if analytics is turned back on before the next identity boundary.
-  if (readStoredAnalyticsEnabled() === false) {
+  if (guestSession === null) {
     return;
   }
 
-  if (guestSession === null) {
+  // The account's own consent answer has to reach this browser before the gate below reads one.
+  // The sync is started unawaited on the line above this call and the account wins wherever both
+  // records exist, so a gate run first would read the browser's pre-sync answer — and a browser
+  // holding `granted` under an account holding `declined` would spend the guest identity on a
+  // decision the account is about to overrule, permanently. The sync swallows its own failures, so
+  // this settles either way, and it is a background task like the link itself: nothing in the
+  // sign-in path waits on it.
+  void analyticsConsentSync.then((): void => {
+    startGuestIdentityLink(guestSession, capturedIdentityGeneration, accountUserId);
+  });
+}
+
+function startGuestIdentityLink(
+  guestSession: WebGuestSessionEnvelope,
+  capturedIdentityGeneration: number,
+  accountUserId: string,
+): void {
+  // The opt-out, a refused consent banner, and a banner still waiting to be answered all stop this
+  // before it spends the guest identity a browser is still carrying. The link writes an
+  // append-only, first-link-wins row with no repair path, so it is the most permanent backend write
+  // on this path and the least defensible one to make for somebody who has not agreed to
+  // measurement — and it routinely runs before `GET /v1/analytics/visitor` has even said whether
+  // this browser has to be asked, because that call can pay a GeoLite download. The switch outlives
+  // every local data wipe, so the visitor who minted a guest under an earlier build and only then
+  // opted out still arrives here. On those two — the opt-out, and a banner still open — the
+  // envelope and its stamp are left alone rather than dropped: nothing mints or republishes a web
+  // guest any more (`webGuestSession.ts`), so the envelope sits inert, and keeping it is what lets
+  // the tail still be linked on the load that answers the banner or turns analytics back on, as
+  // long as it arrives before the next identity boundary. A refusal is the case where nothing is
+  // kept: it drops the envelope outright as it retires every other identifier on the device
+  // (`applyAnalyticsConsentDecline` in `deliveryRuntime.ts`), so a browser that refused reaches
+  // this gate with nothing left to spend.
+  if (isAnalyticsEnabledForCurrentRuntime() === false || isAnalyticsIdentityConsented() === false) {
     return;
   }
 
