@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Foto auswählen";
 "ai.composer.attachment.chooseFile" = "Wählen Sie Datei";
 "ai.composer.attachment.unsupported" = "Nicht unterstützter Anhang (%@)";
+"ai.attachment.card.title" = "Karte";
+"ai.attachment.card.withSnippet" = "Karte · %@";
 "ai.attachment.error.unsupportedType" = "Nicht unterstützter Dateityp: .%@";
 "ai.attachment.error.cameraUnavailable" = "Die Kamera ist auf diesem Gerät nicht verfügbar.";
 "ai.attachment.error.photoUnavailable" = "Der Zugriff auf Fotos ist auf diesem Gerät nicht verfügbar.";

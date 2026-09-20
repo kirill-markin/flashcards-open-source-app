@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Izvēlēties fotoattēlu";
 "ai.composer.attachment.chooseFile" = "Izvēlēties failu";
 "ai.composer.attachment.unsupported" = "Neatbalstīts pielikums (%@)";
+"ai.attachment.card.title" = "Kartīte";
+"ai.attachment.card.withSnippet" = "Kartīte · %@";
 "ai.attachment.error.unsupportedType" = "Neatbalstīts faila tips: .%@";
 "ai.attachment.error.cameraUnavailable" = "Šajā ierīcē kamera nav pieejama.";
 "ai.attachment.error.photoUnavailable" = "Šajā ierīcē piekļuve fotoattēliem nav pieejama.";

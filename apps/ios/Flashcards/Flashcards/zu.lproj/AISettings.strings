@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Khetha isithombe";
 "ai.composer.attachment.chooseFile" = "Khetha ifayela";
 "ai.composer.attachment.unsupported" = "Okunamathiselwe akusekelwe (%@)";
+"ai.attachment.card.title" = "Ikhadi";
+"ai.attachment.card.withSnippet" = "Ikhadi · %@";
 "ai.attachment.error.unsupportedType" = "Uhlobo lwefayela alusekelwe: .%@";
 "ai.attachment.error.cameraUnavailable" = "Ikhamera ayitholakali kule divayisi.";
 "ai.attachment.error.photoUnavailable" = "Ukufinyelela ezithombeni akutholakali kule divayisi.";
