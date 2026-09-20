@@ -16,6 +16,102 @@ private func supportedLanguageSettingsItems() -> [SupportedLanguageSettingsItem]
             title: aiSettingsLocalized("settings.language.supported.arabic", "Arabic")
         ),
         SupportedLanguageSettingsItem(
+            id: "bg",
+            title: aiSettingsLocalized("settings.language.supported.bulgarian", "Bulgarian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "bn",
+            title: aiSettingsLocalized("settings.language.supported.bangla", "Bangla")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "ca",
+            title: aiSettingsLocalized("settings.language.supported.catalan", "Catalan")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "cs",
+            title: aiSettingsLocalized("settings.language.supported.czech", "Czech")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "da",
+            title: aiSettingsLocalized("settings.language.supported.danish", "Danish")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "el",
+            title: aiSettingsLocalized("settings.language.supported.greek", "Greek")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "et",
+            title: aiSettingsLocalized("settings.language.supported.estonian", "Estonian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "fa",
+            title: aiSettingsLocalized("settings.language.supported.persian", "Persian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "fi",
+            title: aiSettingsLocalized("settings.language.supported.finnish", "Finnish")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "gu",
+            title: aiSettingsLocalized("settings.language.supported.gujarati", "Gujarati")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "he",
+            title: aiSettingsLocalized("settings.language.supported.hebrew", "Hebrew")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "hr",
+            title: aiSettingsLocalized("settings.language.supported.croatian", "Croatian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "hu",
+            title: aiSettingsLocalized("settings.language.supported.hungarian", "Hungarian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "id",
+            title: aiSettingsLocalized("settings.language.supported.indonesian", "Indonesian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "is",
+            title: aiSettingsLocalized("settings.language.supported.icelandic", "Icelandic")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "it",
+            title: aiSettingsLocalized("settings.language.supported.italian", "Italian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "kn",
+            title: aiSettingsLocalized("settings.language.supported.kannada", "Kannada")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "ko",
+            title: aiSettingsLocalized("settings.language.supported.korean", "Korean")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "lt",
+            title: aiSettingsLocalized("settings.language.supported.lithuanian", "Lithuanian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "lv",
+            title: aiSettingsLocalized("settings.language.supported.latvian", "Latvian")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "ml",
+            title: aiSettingsLocalized("settings.language.supported.malayalam", "Malayalam")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "mr",
+            title: aiSettingsLocalized("settings.language.supported.marathi", "Marathi")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "nb",
+            title: aiSettingsLocalized("settings.language.supported.norwegianBokmal", "Norwegian Bokmål")
+        ),
+        SupportedLanguageSettingsItem(
+            id: "nl",
+            title: aiSettingsLocalized("settings.language.supported.dutch", "Dutch")
+        ),
+        SupportedLanguageSettingsItem(
             id: "zh-Hans",
             title: aiSettingsLocalized("settings.language.supported.chineseSimplified", "Chinese Simplified")
         ),

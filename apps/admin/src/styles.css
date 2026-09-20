@@ -184,6 +184,71 @@ h2 {
   margin-top: 6px;
 }
 
+/* A General reload that failed while numbers were already on screen. It sticks to the top of the
+   viewport so scrolling down to the charts cannot leave it behind, and its `z-index` clears
+   `.filter-popover`'s `20` so an open filter popover cannot hang over it. The background is opaque on
+   purpose: the charts scroll underneath it. */
+.report-reload-banner {
+  position: sticky;
+  top: 12px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding: 16px 18px;
+  border: 1px solid rgba(214, 90, 56, 0.62);
+  border-radius: 18px;
+  background: #2a1613;
+  color: #ffb6a6;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+.report-reload-banner-text {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* A backend statement timeout is a long single line, and the banner stands for as long as the failure
+   does, so the message is clamped to three lines: the pinned banner cannot grow to own a short
+   viewport. The element carries the whole text in `title` for the operator who needs all of it. */
+.report-reload-banner-text span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* The numbers the failed reload left behind: the block is washed in the warning colour and every
+   section header carries the mark, so no chart can be read as an answer to the current selection at
+   a glance. Deliberately no `opacity`, `filter` or `transform` here: the chart tooltips are
+   `position: fixed` inside these sections, and any of those would make this element their containing
+   block and place every tooltip against it instead of the viewport. */
+.report-sections-stale .dashboard-section {
+  border-top-color: rgba(214, 90, 56, 0.55);
+  background: rgba(196, 75, 45, 0.07);
+}
+
+.report-sections-stale .dashboard-section-header::before {
+  content: "Stale - last successful load";
+  justify-self: start;
+  padding: 6px 12px;
+  border: 1px dashed rgba(214, 90, 56, 0.75);
+  border-radius: 999px;
+  color: #ffb6a6;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .funnel-main-panel {
   display: grid;
   grid-template-columns: minmax(180px, 0.55fr) minmax(420px, 1.45fr);
@@ -270,6 +335,34 @@ h2 {
 .funnel-detail-row strong {
   color: var(--text);
   text-align: right;
+}
+
+.funnel-engagement-row {
+  display: grid;
+  /* Every track shrinks to zero rather than to a hard minimum: the detail grid can settle on a
+     track narrower than this row's content, and a `minmax(px, ...)` floor would spill the row out of
+     its card instead of wrapping inside it. */
+  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--panel-border);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.funnel-engagement-row strong {
+  color: var(--text);
+}
+
+.funnel-engagement-row > :not(:first-child) {
+  text-align: right;
+}
+
+.funnel-engagement-heading {
+  color: var(--muted-soft);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .funnel-disclosure {
@@ -1066,10 +1159,13 @@ h2 {
   cursor: pointer;
 }
 
+/* Above both `.filter-popover`'s `20` and `.report-reload-banner`'s `30`: the tooltip is transient
+   and `pointer-events: none`, so it can never swallow a click on either, while a hover in the top of
+   the viewport would otherwise be painted behind the full-width sticky banner with no way around it. */
 .tooltip {
   position: fixed;
   pointer-events: none;
-  z-index: 10;
+  z-index: 40;
   min-width: 220px;
   max-width: 320px;
   padding: 12px 14px;

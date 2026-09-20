@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,targetes d’estudi,targetes de memòria,fitxes d’estudi";
+"NSCameraUsageDescription" = "Permet l’accés a la càmera per fer fotos i adjuntar-les al xat amb IA.";
+"NSMicrophoneUsageDescription" = "Permet l’accés al micròfon per dictar text al xat amb IA.";
+"NSPhotoLibraryUsageDescription" = "Permet l’accés a la fototeca per triar fotos i adjuntar-les al xat amb IA.";

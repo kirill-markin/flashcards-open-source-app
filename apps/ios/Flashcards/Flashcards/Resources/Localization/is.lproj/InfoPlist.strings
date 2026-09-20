@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,minnisspjöld,námsspjöld,spurningarspjöld";
+"NSCameraUsageDescription" = "Leyfðu aðgang að myndavél til að taka myndir fyrir viðhengi í gervigreindarspjalli.";
+"NSMicrophoneUsageDescription" = "Leyfðu aðgang að hljóðnema til að lesa inn texta í gervigreindarspjallið.";
+"NSPhotoLibraryUsageDescription" = "Leyfðu aðgang að myndasafni til að velja myndir fyrir viðhengi í gervigreindarspjalli.";

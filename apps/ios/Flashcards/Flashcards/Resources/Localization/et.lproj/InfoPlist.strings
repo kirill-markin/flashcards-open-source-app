@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,õpikaardid,mälukaardid,õppimine,kordamine";
+"NSCameraUsageDescription" = "Luba juurdepääs kaamerale, et pildistada tehisintellekti vestluse manuste jaoks.";
+"NSMicrophoneUsageDescription" = "Luba juurdepääs mikrofonile, et dikteerida teksti tehisintellekti vestlusesse.";
+"NSPhotoLibraryUsageDescription" = "Luba juurdepääs fotokogule, et valida fotosid tehisintellekti vestluse manusteks.";

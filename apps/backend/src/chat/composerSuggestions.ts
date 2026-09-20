@@ -1,5 +1,4 @@
 /**
- * Shared domain rules for AI chat composer suggestions.
  * Session rows expose only the active suggestion set, while history is stored
  * separately as append-only generations.
  */
@@ -279,6 +278,7 @@ const CHAT_COMPOSER_SUGGESTION_LANGUAGE_FALLBACKS: Readonly<Record<string, ChatC
   lv: "lv",
   ml: "ml",
   mr: "mr",
+  nb: "no",
   nl: "nl",
   no: "no",
   pa: "pa",
@@ -552,10 +552,6 @@ export function emptyChatComposerSuggestions(): ReadonlyArray<ChatComposerSugges
   return [];
 }
 
-/**
- * Normalizes persisted suggestion payloads so the runtime always sees the same
- * capped, de-duplicated structure regardless of how the JSON was stored.
- */
 export function parsePersistedChatComposerSuggestions(
   value: unknown,
   context: string,
@@ -585,9 +581,6 @@ export function parsePersistedChatComposerSuggestions(
   });
 }
 
-/**
- * Generates follow-up suggestions from the latest completed assistant reply.
- */
 export async function generateFollowUpChatComposerSuggestions(
   userId: string,
   userContent: ReadonlyArray<ContentPart>,

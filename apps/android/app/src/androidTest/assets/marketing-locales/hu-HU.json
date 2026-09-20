@@ -1,0 +1,67 @@
+{
+  "localePrefix": "hu-HU",
+  "appLocaleTag": "hu",
+  "uiText": {
+    "emptyCardsMessage": "Még nincsenek kártyák. Az első létrehozásához koppints a hozzáadás gombra.",
+    "cardsTabTitle": "Kártyák",
+    "reviewTabTitle": "Ismétlés",
+    "aiTabTitle": "MI",
+    "searchCardsPlaceholder": "Kártyák keresése",
+    "addCardContentDescription": "Kártya hozzáadása",
+    "frontFieldTitle": "Előlap",
+    "backFieldTitle": "Hátlap",
+    "tagsFieldTitle": "Címkék",
+    "addTagFieldTitle": "Adj meg egy címkét",
+    "addTagButtonTitle": "Címke hozzáadása",
+    "saveButtonTitle": "Mentés",
+    "ratingAgainTitle": "Újra",
+    "ratingHardTitle": "Nehéz",
+    "ratingGoodTitle": "Jó",
+    "ratingEasyTitle": "Könnyű"
+  },
+  "reviewCard": {
+    "frontText": "Mi az alternatív költség?",
+    "backText": "Annak a legjobb alternatívának az értéke, amelyről lemondasz, amikor egy lehetőséget választasz egy másik helyett.\n\nVizsgapélda: Ha szombaton fizetett műszak helyett a mikroökonómia-vizsgára tanulsz, az elmaradt munkabér az alternatív költség része.",
+    "tags": [
+      "közgazdaságtan"
+    ]
+  },
+  "reviewAiDraftMessage": "Készíts 6 új kártyát ugyanerről a közgazdasági témáról, olyan kapcsolódó fogalmakkal, amelyek még nincsenek meg.",
+  "cards": [
+    {
+      "frontText": "Mi az alternatív költség?",
+      "backText": "Annak a legjobb alternatívának az értéke, amelyről lemondasz, amikor egy lehetőséget választasz egy másik helyett.",
+      "subjectTag": "közgazdaságtan"
+    },
+    {
+      "frontText": "Mi az ozmózis a biológiában?",
+      "backText": "A víz áramlása egy membránon át az alacsonyabb oldottanyag-koncentrációjú helyről a magasabb felé.",
+      "subjectTag": "biológia"
+    },
+    {
+      "frontText": "Mi a szórás a statisztikában?",
+      "backText": "Annak mértéke, hogy az értékek mennyire szóródnak az átlag körül.",
+      "subjectTag": "statisztika"
+    },
+    {
+      "frontText": "Mi a katalizátor a kémiában?",
+      "backText": "Olyan anyag, amely felgyorsít egy kémiai reakciót anélkül, hogy elfogyna benne.",
+      "subjectTag": "kémia"
+    },
+    {
+      "frontText": "Mi a kognitív torzítás a pszichológiában?",
+      "backText": "Rendszeres gondolkodási minta, amely torzíthatja az ítéletalkotást és a döntéshozatalt.",
+      "subjectTag": "pszichológia"
+    },
+    {
+      "frontText": "Mi a sebességvektor a fizikában?",
+      "backText": "Egy test sebességének nagysága és mozgásának iránya együtt.",
+      "subjectTag": "fizika"
+    },
+    {
+      "frontText": "Mi a rekurzió az informatikában?",
+      "backText": "Olyan módszer, amelyben egy függvény úgy old meg egy problémát, hogy önmagát hívja meg annak kisebb változataira.",
+      "subjectTag": "informatika"
+    }
+  ]
+}

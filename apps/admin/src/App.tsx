@@ -323,6 +323,7 @@ export default function App(): JSX.Element {
         setReportState({
           status: "error",
           message: getErrorMessage(error),
+          isRetrying: false,
         });
       }
     }
@@ -363,6 +364,9 @@ export default function App(): JSX.Element {
     let isSuperseded = false;
 
     async function loadReports(): Promise<void> {
+      // `reloadError` is deliberately left standing while this attempt runs: clearing it here would
+      // let a failure blink away the moment the next request leaves and put the operator back in
+      // front of confidently rendered stale numbers. Only an outcome clears it.
       setReportState((currentState) => (currentState.status === "ready"
         ? { ...currentState, isReportLoading: true, dateRangeError: "" }
         : currentState));
@@ -391,6 +395,7 @@ export default function App(): JSX.Element {
           },
           isReportLoading: false,
           dateRangeError: "",
+          reloadError: "",
         });
       } catch (error) {
         if (isSuperseded) {
@@ -401,11 +406,13 @@ export default function App(): JSX.Element {
           return;
         }
 
-        // A selection that fails keeps the numbers it replaced, with the failure shown in the filter
-        // row; only a view that has nothing on screen yet falls back to the retryable error state.
+        // A selection that fails keeps the numbers it replaced, and the failure goes into
+        // `reloadError`, which the dashboard shows as a sticky banner over the reports and uses to
+        // mark those numbers stale; only a view that has nothing on screen yet falls back to the
+        // retryable error state.
         setReportState((currentState) => (currentState.status === "ready"
-          ? { ...currentState, isReportLoading: false, dateRangeError: getErrorMessage(error) }
-          : { status: "error", message: getErrorMessage(error) }));
+          ? { ...currentState, isReportLoading: false, reloadError: getErrorMessage(error) }
+          : { status: "error", message: getErrorMessage(error), isRetrying: false }));
       }
     }
 
@@ -451,7 +458,27 @@ export default function App(): JSX.Element {
     );
   }, [filterState, reportRanges, route]);
 
+  // Both Retry controls - the one in the failure banner over stale numbers and the one in the error
+  // panel - reach the reports effect only through this revision bump, and the in-flight mark is
+  // raised here rather than when the request finally leaves, for a different reason on each path.
+  // From the banner, because the reload waits out the same debounce a filter click does and nothing
+  // would change on screen for those 400 ms. From the error panel, because `loadReports` raises its
+  // own mark only on the `ready` branch, so without this the panel's button would stay unmarked for
+  // the entire request. Either way a Retry that ends in the same message it started from would be
+  // pixel-identical from click to outcome and read as a dead control. Nothing here re-requests on
+  // its own; the effect owns the attempt, and only its outcome lowers the mark again.
   const retryReportLoad = useCallback((): void => {
+    setReportState((currentState) => {
+      if (currentState.status === "ready") {
+        return { ...currentState, isReportLoading: true };
+      }
+
+      if (currentState.status === "error") {
+        return { ...currentState, isRetrying: true };
+      }
+
+      return currentState;
+    });
     setReportLoadRevision((revision) => revision + 1);
   }, []);
 
@@ -481,7 +508,9 @@ export default function App(): JSX.Element {
     }
 
     // The reload waits out the debounce, so the indicator is raised here rather than when the request
-    // finally leaves: a selection that shows nothing for 400 ms reads as a dead control.
+    // finally leaves: a selection that shows nothing for 400 ms reads as a dead control. Only the
+    // range-validation message is cleared; an unresolved reload failure and its stale numbers stay on
+    // screen until this new attempt has an outcome of its own.
     setReportState((currentState) => (currentState.status === "ready"
       ? { ...currentState, isReportLoading: true, dateRangeError: "" }
       : currentState));

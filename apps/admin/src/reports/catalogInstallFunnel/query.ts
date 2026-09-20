@@ -9,6 +9,7 @@ import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildActorIsExcludedSql,
   buildEventPlatformsFilterSql,
+  buildExcludedActorsFilterSql,
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
@@ -85,6 +86,18 @@ export type CatalogInstallFunnelAttempt = Readonly<{
   previewReadyAt: string | null;
   installStartedAt: string | null;
   installedAt: string | null;
+  /**
+   * The three post-install engagement facts, all null together exactly when the attempt has no
+   * server install, because only that row names the person whose reviews they measure.
+   *
+   * `installReviewCount` counts the install actor's `review_answered` rows from the install to the
+   * click's seven-day bound, anywhere in the product rather than in the installed deck.
+   * `installHasReturnDay` is one of those reviews on a later UTC day than the install.
+   * `installActorIsNew` is that actor having no event at all before the click.
+   */
+  installReviewCount: number | null;
+  installHasReturnDay: boolean | null;
+  installActorIsNew: boolean | null;
   signedOutLandedAt: string | null;
   signInStartedAt: string | null;
   codeRequestedAt: string | null;
@@ -104,6 +117,13 @@ export type CatalogInstallFunnelReport = Readonly<{
   to: string;
   attempts: ReadonlyArray<CatalogInstallFunnelAttempt>;
   missingClickCounts: ReadonlyArray<CatalogInstallMissingClickCount>;
+  /**
+   * Server installs on a selected UTC day carrying no `install_journey_id`, so no attempt row can
+   * hold them. It is one slice of the gap between real installs and the funnel rather than all of
+   * it: an install that does carry a journey is equally unheld whenever that journey's click fell
+   * outside the selected dates, was dropped by a filter, or has a broken step chain.
+   */
+  installsWithoutJourneyCount: number;
 }>;
 
 export type CatalogInstallFunnelRange = Readonly<{
@@ -139,6 +159,26 @@ function assertNullableTimestamp(value: AdminQueryValue, fieldName: string): str
   }
 
   return assertTimestamp(value, fieldName);
+}
+
+function assertNullableInteger(value: AdminQueryValue, fieldName: string): number | null {
+  if (value === null) {
+    return null;
+  }
+
+  return toInteger(value, catalogInstallFunnelReportLabel, fieldName);
+}
+
+function assertNullableBoolean(value: AdminQueryValue, fieldName: string): boolean | null {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== "boolean") {
+    throw new Error(`${catalogInstallFunnelReportLabel} field "${fieldName}" must be a boolean.`);
+  }
+
+  return value;
 }
 
 function assertQueryObject(value: AdminQueryValue, fieldName: string): AdminQueryObject {
@@ -201,6 +241,9 @@ function parseAttemptRow(row: Readonly<Record<string, AdminQueryValue>>): Catalo
     previewReadyAt: assertNullableTimestamp(row.preview_ready_at ?? null, "preview_ready_at"),
     installStartedAt: assertNullableTimestamp(row.install_started_at ?? null, "install_started_at"),
     installedAt: assertNullableTimestamp(row.installed_at ?? null, "installed_at"),
+    installReviewCount: assertNullableInteger(row.install_review_count ?? null, "install_review_count"),
+    installHasReturnDay: assertNullableBoolean(row.install_has_return_day ?? null, "install_has_return_day"),
+    installActorIsNew: assertNullableBoolean(row.install_actor_is_new ?? null, "install_actor_is_new"),
     signedOutLandedAt: assertNullableTimestamp(row.signed_out_landed_at ?? null, "signed_out_landed_at"),
     signInStartedAt: assertNullableTimestamp(row.signin_started_at ?? null, "signin_started_at"),
     codeRequestedAt: assertNullableTimestamp(row.code_requested_at ?? null, "code_requested_at"),
@@ -230,6 +273,17 @@ function parseMissingClickCounts(
   }));
 }
 
+function parseInstallsWithoutJourneyCount(resultSet: AdminQueryResultSet): number {
+  const row = resultSet.rows[0];
+  if (row === undefined) {
+    throw new Error(
+      `${catalogInstallFunnelReportLabel} installs-without-journey result set must return one row. Got ${resultSet.rows.length}.`,
+    );
+  }
+
+  return toInteger(row.install_count ?? null, catalogInstallFunnelReportLabel, "install_count");
+}
+
 export function buildCatalogInstallFunnelAvailableRangeSql(): string {
   return [
     "SELECT",
@@ -245,7 +299,7 @@ export function buildCatalogInstallFunnelAvailableRangeSql(): string {
   ].join("\n");
 }
 
-/** One dimension of the row's own click, as a predicate; picking nothing keeps every value. */
+/** One dimension of the row's own properties, as a predicate; picking nothing keeps every value. */
 function buildAttemptDimensionFilterSqlLines(
   columnSqlExpression: string,
   values: ReadonlyArray<string>,
@@ -403,6 +457,29 @@ function buildExcludedJourneyActorFilterSqlLines(): ReadonlyArray<string> {
   ];
 }
 
+/**
+ * The install actors, as an uncorrelated membership test rather than a correlation.
+ *
+ * `analytics.product_events_resolved.actor_id` is
+ * `COALESCE(first_guest_upgrade_link.user_id, product_events.user_id, first_anonymous_link.user_id,
+ * product_events.anonymous_id)` over two `LEFT JOIN`ed `DISTINCT ON` subqueries
+ * (`db/migrations/0137_audience_context.sql`), so an equality on it can never become an index qual and
+ * can never be pushed below those joins: one comparison against it is one full pass of that view. So
+ * the engagement facts must never be computed per attempt row. This is the same `= ANY (ARRAY(...))`
+ * that `buildSubqueryMembershipSql` in `apps/admin/src/filters/filterSql.ts` uses and for the same
+ * reason - the subquery is uncorrelated, so the planner evaluates it once as an InitPlan instead of
+ * re-running it per row of a CTE it has no statistics for, which is what takes a report past the 30s
+ * `reporting_readonly` statement timeout and fails every statement of the page with it.
+ */
+function buildInstallActorMembershipSql(actorIdSqlExpression: string): string {
+  return [
+    `${actorIdSqlExpression} = ANY (ARRAY(`,
+    "  SELECT install_actors.actor_id",
+    "  FROM install_actors",
+    "))",
+  ].join("\n");
+}
+
 export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): string {
   const { from, to } = assertValidDateRange(filters.dateRange, catalogInstallFunnelReportLabel);
 
@@ -448,7 +525,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  )",
     ...buildExcludedJourneyActorFilterSqlLines(),
     ...buildFunnelClickFilterSqlLines(filters),
-    ")",
+    "), attempt_rows AS MATERIALIZED (",
     "SELECT",
     "  click.install_journey_id AS journey_id,",
     "  click.package_version_id,",
@@ -461,6 +538,9 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  preview.occurred_at AS preview_ready_at,",
     "  install_started.occurred_at AS install_started_at,",
     "  installed.occurred_at AS installed_at,",
+    // Carried out of the chain so the engagement relations below can key on it. It is the only place
+    // a journey names a person, and it is NULL exactly when the attempt has no server install.
+    "  installed.actor_id AS install_actor_id,",
     "  signed_out_landed.occurred_at AS signed_out_landed_at,",
     "  signin_started.occurred_at AS signin_started_at,",
     "  code_requested.occurred_at AS code_requested_at,",
@@ -504,7 +584,10 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  LIMIT 1",
     ") AS install_started ON TRUE",
     "LEFT JOIN LATERAL (",
-    "  SELECT installed_event.occurred_at",
+    "  SELECT",
+    "    installed_event.occurred_at,",
+    // The one place a journey names a person. Every later engagement column is measured on it.
+    "    installed_event.actor_id",
     "  FROM events AS installed_event",
     "  WHERE installed_event.event_name = 'catalog_deck_installed'",
     "    AND installed_event.origin = 'server'",
@@ -588,7 +671,118 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     `      AND failure_event.occurred_at <= click.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
     "  ) AS distinct_failures",
     ") AS failures ON TRUE",
-    "ORDER BY click.anchor_at, click.install_journey_id",
+    // Post-install engagement, in three uncorrelated passes keyed by the install actor rather than
+    // per attempt row. Every attempt without a server install names nobody, so it is absent from all
+    // three and its columns arrive null together rather than as a zero that would read as a drop-off.
+    "), install_actors AS (",
+    "  SELECT DISTINCT attempt.install_actor_id AS actor_id",
+    "  FROM attempt_rows AS attempt",
+    "  WHERE attempt.installed_at IS NOT NULL",
+    "    AND attempt.install_actor_id IS NOT NULL",
+    // THE REVIEWS ARE THE PERSON'S, NOT THE DECK'S. `review_answered` carries only `rating` and
+    // `source`, so no deck or card identity exists to narrow them by, and this reads every review
+    // those actors answered. It cannot reuse the `events` CTE: that one is restricted to the nine
+    // catalog event names, and `review_answered` is not among them.
+    //
+    // The bounds are the widest any attempt can ask for, so one pass serves all of them: no review
+    // counts before the install, and no install is earlier than the range's first instant, while the
+    // per-attempt bound below reaches at most a click on the last selected day plus the window.
+    "), install_actor_reviews AS MATERIALIZED (",
+    "  SELECT",
+    "    review_event.actor_id,",
+    "    review_event.occurred_at",
+    "  FROM analytics.product_events_resolved AS review_event",
+    "  WHERE review_event.event_name = 'review_answered'",
+    `    AND ${buildInstallActorMembershipSql("review_event.actor_id")}`,
+    "    AND review_event.occurred_at >= (",
+    `      (${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`,
+    "    )",
+    "    AND review_event.occurred_at < (",
+    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`,
+    "    )",
+    // New is the absence of any event before the click, over that actor's whole history, so this
+    // carries NO LOWER BOUND AND NO EVENT-NAME RESTRICTION - reusing a bounded or catalog-only
+    // relation here would silently make every actor look new. It reads that history as one grouped
+    // `MIN(occurred_at)` per actor, the way `apps/backend/src/productAnalytics/syntheticActorDetector.ts`
+    // and the `history` CTE of `apps/admin/src/reports/audience/query.ts` read an actor's first day.
+    //
+    // The upper bound is the only thing added, and it removes nothing the test can see: every click
+    // in this cohort is before it, so an event at or after it can never precede one. An actor with no
+    // row at all under it produced no event before any click here and is therefore new.
+    "), install_actor_first_event AS MATERIALIZED (",
+    "  SELECT",
+    "    prior_event.actor_id,",
+    "    MIN(prior_event.occurred_at) AS first_event_at",
+    "  FROM analytics.product_events_resolved AS prior_event",
+    `  WHERE ${buildInstallActorMembershipSql("prior_event.actor_id")}`,
+    "    AND prior_event.occurred_at < (",
+    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
+    "    )",
+    "  GROUP BY prior_event.actor_id",
+    // The count and the return day come from one grouped pass over the same review rows rather than
+    // two scans of them. The window runs from the install - a review before it cannot be a
+    // consequence of it - to the same seven-day bound on the click every other step here uses, so a
+    // late install leaves less of it. The return day is a UTC calendar day strictly after the
+    // install's, the same UTC day every other admin report reads, and it is reported only together
+    // with the review threshold, never on its own, because two independent conditions would let a
+    // later step exceed an earlier one.
+    //
+    // The join is on an attempt rather than on an actor, which is what keeps one person who installs
+    // two decks in range counted as the two attempts they are: each row carries that actor's reviews
+    // for its own window. `docs/catalog-install-funnel.md` already calls the journey an attempt key
+    // and not a unique-person measure, and the card says so on screen.
+    "), attempt_engagement AS (",
+    "  SELECT",
+    "    attempt.journey_id,",
+    "    COUNT(review.occurred_at)::int AS review_count,",
+    "    COALESCE(",
+    "      bool_or(",
+    "        (review.occurred_at AT TIME ZONE 'UTC')::date",
+    "          > (attempt.installed_at AT TIME ZONE 'UTC')::date",
+    "      ),",
+    "      FALSE",
+    "    ) AS has_return_day",
+    "  FROM attempt_rows AS attempt",
+    "  LEFT JOIN install_actor_reviews AS review",
+    "    ON review.actor_id = attempt.install_actor_id",
+    "    AND review.occurred_at >= attempt.installed_at",
+    `    AND review.occurred_at <= attempt.clicked_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
+    "  WHERE attempt.installed_at IS NOT NULL",
+    "  GROUP BY attempt.journey_id",
+    ")",
+    "SELECT",
+    "  attempt.journey_id,",
+    "  attempt.package_version_id,",
+    "  attempt.clicked_at,",
+    "  attempt.placement,",
+    "  attempt.source,",
+    "  attempt.device_category,",
+    "  attempt.landed_at,",
+    "  attempt.landed_auth_state,",
+    "  attempt.preview_ready_at,",
+    "  attempt.install_started_at,",
+    "  attempt.installed_at,",
+    "  engagement.review_count AS install_review_count,",
+    "  engagement.has_return_day AS install_has_return_day,",
+    "  CASE",
+    "    WHEN attempt.installed_at IS NULL THEN NULL",
+    "    ELSE (",
+    "      first_event.first_event_at IS NULL",
+    "      OR first_event.first_event_at >= attempt.clicked_at",
+    "    )",
+    "  END AS install_actor_is_new,",
+    "  attempt.signed_out_landed_at,",
+    "  attempt.signin_started_at,",
+    "  attempt.code_requested_at,",
+    "  attempt.signin_succeeded_at,",
+    "  attempt.signed_out_preview_ready_at,",
+    "  attempt.failure_buckets",
+    "FROM attempt_rows AS attempt",
+    "LEFT JOIN attempt_engagement AS engagement",
+    "  ON engagement.journey_id = attempt.journey_id",
+    "LEFT JOIN install_actor_first_event AS first_event",
+    "  ON first_event.actor_id = attempt.install_actor_id",
+    "ORDER BY attempt.clicked_at, attempt.journey_id",
   ].join("\n");
 
   const missingClickQuery = [
@@ -645,7 +839,58 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "ORDER BY attempt_count DESC, eligible_landings.package_version_id",
   ].join("\n");
 
-  return [cohortQuery, missingClickQuery].join(";\n");
+  // Server installs the funnel can never place. A journey is bridged to its install by
+  // `install_journey_id`, so an install without one is invisible to every stage above, and its
+  // absence is legitimate: `docs/catalog-install-funnel.md` keeps a confirm that omits
+  // `installJourneyId` valid. This counts them so part of the gap is a number rather than a
+  // suspicion.
+  //
+  // IT IS A LOWER BOUND ON THAT GAP, NOT THE WHOLE OF IT, and the card and the doc say so. An
+  // install that does carry a journey id is just as unheld by any attempt row when that journey's
+  // `catalog_install_clicked` fell outside the selected cohort dates - which this line does not
+  // share, since it takes installs by their own UTC day - when the click was dropped by a placement,
+  // source, device-category or browser-language selection, or when the landed/preview/started/
+  // installed chain is broken. Nothing here can count those, because they are absences.
+  //
+  // It narrows itself the way the no-click diagnostic does, on what the row can answer alone: the
+  // selected UTC days, the installed deck, the client platform and the actor exclusions, read off
+  // the install row directly because it names its actor without any bridge. Nothing else reaches it
+  // - a row with no journey holds no placement, source, device category or browser language - and
+  // the platform on a server fact is always NULL, so picking any device platform empties this line.
+  const installWithoutJourneyQuery = [
+    "SELECT COUNT(*)::int AS install_count",
+    "FROM analytics.product_events_resolved AS orphan_install",
+    "LEFT JOIN org.user_settings AS orphan_user_settings",
+    "  ON pg_catalog.lower(orphan_user_settings.user_id) = orphan_install.actor_id::text",
+    "WHERE orphan_install.event_name = 'catalog_deck_installed'",
+    "  AND orphan_install.origin = 'server'",
+    "  AND orphan_install.event_properties ->> 'install_journey_id' IS NULL",
+    "  AND orphan_install.occurred_at >= (",
+    `    (${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`,
+    "  )",
+    "  AND orphan_install.occurred_at < (",
+    `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
+    "  )",
+    "  AND orphan_install.event_properties ->> 'package_slug' <> 'test'",
+    "  AND (",
+    "    orphan_user_settings.email IS NULL",
+    "    OR LOWER(btrim(orphan_user_settings.email)) NOT LIKE '%@example.com'",
+    "  )",
+    "  AND NOT EXISTS (",
+    "    SELECT 1",
+    "    FROM auth.admin_users AS orphan_admin",
+    "    WHERE orphan_admin.email = LOWER(btrim(orphan_user_settings.email))",
+    "      AND orphan_admin.revoked_at IS NULL",
+    "  )",
+    `  AND ${buildExcludedActorsFilterSql("orphan_install.actor_id::text")}`,
+    `  AND ${buildEventPlatformsFilterSql("COALESCE(orphan_install.platform, 'unattributed')", filters.eventPlatforms)}`,
+    ...buildAttemptDimensionFilterSqlLines(
+      "orphan_install.event_properties ->> 'package_version_id'",
+      filters.installedDecks,
+    ),
+  ].join("\n");
+
+  return [cohortQuery, missingClickQuery, installWithoutJourneyQuery].join(";\n");
 }
 
 export async function loadCatalogInstallFunnelAvailableRange(
@@ -681,15 +926,20 @@ export async function loadCatalogInstallFunnelReport(
   filters: AnalyticsFilterState,
 ): Promise<CatalogInstallFunnelReport> {
   const response = await runAdminQuery(config, buildCatalogInstallFunnelSql(filters));
-  if (response.resultSets.length !== 2) {
+  if (response.resultSets.length !== 3) {
     throw new Error(
-      `${catalogInstallFunnelReportLabel} must return exactly two result sets. Got ${response.resultSets.length}.`,
+      `${catalogInstallFunnelReportLabel} must return exactly three result sets. Got ${response.resultSets.length}.`,
     );
   }
 
   const attemptsResultSet = response.resultSets[0];
   const missingClicksResultSet = response.resultSets[1];
-  if (attemptsResultSet === undefined || missingClicksResultSet === undefined) {
+  const installsWithoutJourneyResultSet = response.resultSets[2];
+  if (
+    attemptsResultSet === undefined
+    || missingClicksResultSet === undefined
+    || installsWithoutJourneyResultSet === undefined
+  ) {
     throw new Error(`${catalogInstallFunnelReportLabel} result sets are missing.`);
   }
 
@@ -699,5 +949,6 @@ export async function loadCatalogInstallFunnelReport(
     to: filters.dateRange.to,
     attempts: attemptsResultSet.rows.map(parseAttemptRow),
     missingClickCounts: parseMissingClickCounts(missingClicksResultSet),
+    installsWithoutJourneyCount: parseInstallsWithoutJourneyCount(installsWithoutJourneyResultSet),
   };
 }
