@@ -1,0 +1,67 @@
+{
+  "localePrefix": "cs-CZ",
+  "appLocaleTag": "cs",
+  "uiText": {
+    "emptyCardsMessage": "Zatím tu nejsou žádné kartičky. Klepnutím na tlačítko přidání vytvoříte první.",
+    "cardsTabTitle": "Kartičky",
+    "reviewTabTitle": "Opakování",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Hledat kartičky",
+    "addCardContentDescription": "Přidat kartičku",
+    "frontFieldTitle": "Přední strana",
+    "backFieldTitle": "Zadní strana",
+    "tagsFieldTitle": "Štítky",
+    "addTagFieldTitle": "Zadejte štítek",
+    "addTagButtonTitle": "Přidat štítek",
+    "saveButtonTitle": "Uložit",
+    "ratingAgainTitle": "Znovu",
+    "ratingHardTitle": "Těžké",
+    "ratingGoodTitle": "Dobré",
+    "ratingEasyTitle": "Snadné"
+  },
+  "reviewCard": {
+    "frontText": "Co jsou náklady obětované příležitosti?",
+    "backText": "Hodnota nejlepší alternativy, které se vzdáte, když zvolíte jednu možnost místo jiné.\n\nPříklad ke zkoušce: Když v sobotu studujete na zkoušku z mikroekonomie místo placené směny, ušlá mzda je součástí nákladů obětované příležitosti.",
+    "tags": [
+      "ekonomie"
+    ]
+  },
+  "reviewAiDraftMessage": "Vytvoř 6 nových kartiček na stejné ekonomické téma se souvisejícími pojmy, které ještě nemáme.",
+  "cards": [
+    {
+      "frontText": "Co jsou náklady obětované příležitosti?",
+      "backText": "Hodnota nejlepší alternativy, které se vzdáte, když zvolíte jednu možnost místo jiné.",
+      "subjectTag": "ekonomie"
+    },
+    {
+      "frontText": "Co je v biologii osmóza?",
+      "backText": "Pohyb vody přes membránu z prostředí s nižší koncentrací rozpuštěných látek do prostředí s vyšší koncentrací.",
+      "subjectTag": "biologie"
+    },
+    {
+      "frontText": "Co je ve statistice směrodatná odchylka?",
+      "backText": "Míra rozptýlení hodnot kolem průměru.",
+      "subjectTag": "statistika"
+    },
+    {
+      "frontText": "Co je v chemii katalyzátor?",
+      "backText": "Látka, která urychluje chemickou reakci, aniž by se při ní spotřebovávala.",
+      "subjectTag": "chemie"
+    },
+    {
+      "frontText": "Co je v psychologii kognitivní zkreslení?",
+      "backText": "Systematický vzorec myšlení, který může zkreslit úsudek a rozhodování.",
+      "subjectTag": "psychologie"
+    },
+    {
+      "frontText": "Co je ve fyzice vektorová rychlost?",
+      "backText": "Velikost rychlosti tělesa spolu se směrem jeho pohybu.",
+      "subjectTag": "fyzika"
+    },
+    {
+      "frontText": "Co je v informatice rekurze?",
+      "backText": "Metoda, při které funkce řeší problém tím, že volá sama sebe pro menší verze stejného problému.",
+      "subjectTag": "informatika"
+    }
+  ]
+}
