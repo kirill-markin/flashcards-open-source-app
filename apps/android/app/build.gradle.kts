@@ -123,7 +123,10 @@ val marketingScreenshotLocales: List<String> = listOf(
     "ru-RU",
     "es-419",
     "es-ES",
-    "es-US"
+    "es-US",
+    "bg", "bn", "ca", "cs", "da", "el", "et", "fa", "fi", "gu", "he", "hr", "hu",
+    "id", "is", "it", "kn", "ko", "lt", "lv", "ml", "mr", "nl", "no", "pa", "pl",
+    "ro", "sk", "sl", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi", "zu"
 )
 val marketingScreenshotLocaleFilters: List<String> =
     marketingScreenshotLocales.flatMap(::toAndroidLocaleFilters).distinct()
@@ -197,7 +200,7 @@ android {
         minSdk = androidMinSdk
         targetSdk = 37
         versionCode = androidVersionCode ?: 1
-        versionName = "1.26.0"
+        versionName = "1.27.0"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         // Every Gradle-driven instrumentation run is automation, so nothing it syncs becomes
