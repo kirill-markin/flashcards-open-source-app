@@ -114,7 +114,7 @@ export function AudienceSection(props: Readonly<{
     <div className="funnel-filter-panel">
       <span>{props.filters.dateRange.from} to {props.filters.dateRange.to}, inclusive</span>
     </div>
-    <p className="funnel-disclosure">Every filter in the shared bar applies here, including the per-user event thresholds. New means activity on that person’s first recorded app-open day. A user may qualify as both new and returning during a range. Language describes that cohort’s events across selected platforms in the range, not only its app opens. Older clients and old queued events can have unknown UI language.</p>
+    <p className="funnel-disclosure">Every filter in the shared bar applies here, including the per-user event thresholds. New means activity on that person’s first recorded app-open day, where an app open the credential-free public collector wrote is not recorded as anybody’s. A user may qualify as both new and returning during a range. Language describes that cohort’s events across selected platforms in the range, not only its app opens. Older clients and old queued events can have unknown UI language.</p>
     {props.isRangeLoading || loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading Audience…</p> : null}
     {!props.isRangeLoading && loadState.status === "error" ? <div className="report-state report-state-error">
       <strong>Audience query failed.</strong><span>{loadState.message}</span>

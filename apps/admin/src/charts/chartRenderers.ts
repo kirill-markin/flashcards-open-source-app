@@ -440,8 +440,9 @@ export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartP
   });
 }
 
-// New versus returning is the actor's first `app_opened` day over all history, which is the report's
-// own cohort definition and not the review report's first review day.
+// New versus returning is the report's own cohort definition and not the review report's first review
+// day. `apps/admin/src/reports/dailyActiveUsers/query.ts` states which `app_opened` rows that first
+// day is derived from; this renderer only draws the cohorts it is handed.
 export function renderDailyActiveUsersChart(params: RenderDailyActiveUsersChartParams): void {
   renderUniqueUserCohortChart({
     svgElement: params.svgElement,
