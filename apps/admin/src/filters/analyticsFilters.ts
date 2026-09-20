@@ -186,37 +186,84 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
 // and the same: the click that carries these values happens before sign-in, so it names nobody, and
 // only a completed install bridges it to a person. The installed deck is not one of them - that is
 // read from the install event itself, which needs no click at all.
+//
+// Cut from the on-screen text and kept here: narrowing a second of these click-based fields asks for
+// one install whose own click carried every value picked, rather than for a user who matches each
+// value somewhere in their history.
 const catalogClickAttributionExplanationTail =
-  "A click that never became an install names nobody, because the click happens before sign-in, so it can never match here, and an install whose click was never recorded carries no click values at all; narrowing a second of these click-based fields asks for one install whose own click carried every value you picked.";
+  "Attribution covers completed installs only, so a click that never became an install can never match here, and an install whose click was never recorded carries no click values at all.";
 
 // Shown next to each filter, so it has to be readable by someone who never opens this code. These are
 // the wordings of the user-scoped areas, where a row is a person or an event of a person; `funnels`
 // overrides the ones whose meaning genuinely changes there.
+//
+// Two or three sentences each, on purpose: what the field counts, then the one thing that would
+// mislead a reader who never saw the SQL. Everything else learned about a field lives in the comment
+// above its entry, written for the next person editing this file rather than for a dashboard reader.
 const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, string>> = {
   dateRange:
-    "Counts only events whose UTC calendar day falls inside this range, with the first and the last day both included.",
+    "Counts only events whose UTC calendar day falls inside this range. Both the first and the last day are included, and the day is the UTC day rather than the reader's own.",
   users:
-    "Keeps only events produced by the people you pick, matched on the resolved actor id so a guest and the account that guest became stay one person; picking nobody keeps every user.",
+    "Keeps only events produced by the people you pick. The match is on the resolved actor id, so a guest and the account that guest became stay one person; picking nobody keeps every user.",
+  // The on-screen sentence now carries the split rule itself, including the review-chart exception.
+  // The rule it states is owned elsewhere and is deliberately not restated here: the catalog side of
+  // it, the NULL cohort and the both-sides-only rule for an installer with no app open day in range
+  // live in `apps/admin/src/reports/catalogInstalls/query.ts`, which also explains why that section
+  // borrows the daily active users definition instead of having one of its own. The other rows with
+  // no cohort of their own are the community rows of the review charts, which a narrowed selection
+  // restricts to the actors that still have review events in range; that one is owned by
+  // `isCohortOrPlatformNarrowed` in `apps/admin/src/filters/filterSql.ts`. Re-read the sentence
+  // below against both whenever the cohort rule changes there.
   userCohorts:
-    "Splits activity day by day: an event is new when its UTC day is that person's first ever day of the activity the chart counts, so the first day they opened the app on the active user charts and the first day they answered a card on the review charts, and returning on every later day, which is why one person shows up as new once and as returning on the other days of the same range; catalog installs are the exception, where an install takes the side of the installer's first app open day and an installer with no app open day inside the range belongs to neither side and is kept only while both sides are selected; both sides are selected by default.",
+    "Splits activity day by day: an event is new on that person's first ever app open day and returning on every later day, except on the review charts, which measure against their first answered card day instead. One person therefore shows up as new once and as returning on the other days of the same range. Both sides are selected by default, and narrowing to one of them also drops the rows that carry no cohort of their own, so New and Returning need not add up to the unfiltered total.",
+  // Cut from the on-screen text: the catalog install event is always unattributed rather than merely
+  // often, so no device platform selection can ever keep one, while every other section keeps its
+  // data because its events are judged by the platform their own row carries.
   eventPlatforms:
-    "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform and is always unattributed, so picking any device platform empties the Catalog deck installs section while every other section keeps its data.",
+    "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform, so picking any device platform empties the Catalog deck installs section.",
+  // Cut from the on-screen text, and the expensive part of this field:
+  // - app opens are counted as stored event rows, and reconstructed history adds at most one
+  //   synthetic app open per person per UTC day, written only where the live client series holds
+  //   nothing for that person-day;
+  // - there is no calendar rollout date after which a range is clean, because the reconstruction was
+  //   replayed onto days the clients were already reporting, so even a recent range mixes people
+  //   whose every launch is counted with people on a build that does not emit the event, who reach
+  //   one app open a day at most and are systematically dropped by any threshold above their number
+  //   of active days;
+  // - that last claim has an expiry the file cannot see: the "EXPECT A THIRD RUN" section of
+  //   `db/migrations/0126_backfill_app_opened_rollout_gap.sql` expects one more replay once the store
+  //   rollout has settled, and once it has run a recent-only range can be clean, so the third replay
+  //   is the event after which the on-screen sentence about under-counted launches must be re-read;
+  // - a threshold is a person-level property and is deliberately not narrowed by the platform
+  //   selection, so somebody with one app open on iOS and two on the web clears a threshold of three
+  //   while only iOS is picked;
+  // - catalog deck installs are counted here exactly as the Catalog deck installs section counts
+  //   them, so the delisted test deck and installs made by an active admin are left out here too.
   minimumEventCounts:
-    "Keeps only users who produced at least the given number of each listed event inside the selected date range, and a user has to clear every listed threshold at once. It judges the person rather than the rows on screen and is deliberately not narrowed by the platform field, so somebody with one app open on iOS and two on the web still clears a threshold of three app opens while only iOS is picked. App opens are counted as stored event rows, and reconstructed history adds at most one synthetic app open per person per UTC day, written only for a person-day the live client series does not already hold. The boundary is per person rather than a calendar date after which everything is live: the reconstruction has been replayed onto days the clients were already reporting, so even a recent range mixes people whose every launch is counted with people still on a build that does not emit the event, who can reach one app open a day at most and are systematically dropped by any threshold above their number of active days. Catalog deck installs are counted exactly as the Catalog deck installs section counts them, so the delisted test deck and installs made by an active admin are left out here too.",
+    "Keeps only users who produced at least the given number of each listed event inside the selected date range, and a user has to clear every listed threshold at once. It judges the person rather than the rows on screen and ignores the platform filter, so one app open on iOS and two on the web still clear a threshold of three app opens while only iOS is picked. App open counts mix live events with reconstructed history, so no range is free of people whose launches are under-counted.",
+  // Cut from the on-screen text: a country is read from a retained connection sample matched to the
+  // events uploaded in the same accepted batch, taken across every client platform whatever the
+  // platform filter says, and one retained sample is enough for a user to match a country. The
+  // Audience country charts stay narrowed to the platforms picked, so somebody this field keeps can
+  // still be counted as unknown there.
   connectionCountries:
-    "Keeps only users seen connecting from the countries you pick, so it is connection geography rather than residence or nationality: a country is read from a retained connection sample matched to the events uploaded in the same accepted batch, taken across every client platform whatever the platform filter says, and a user matches a country as soon as one retained sample says so. Detailed country history is kept for 90 days only, so a user with no retained sample in range matches no country at all and narrowing this field drops those people systematically, the more of them the longer the range. The Audience country charts stay narrowed to the platforms you picked, so somebody this field keeps can still be counted as unknown there; picking nothing keeps every country.",
+    "Keeps only users seen connecting from the countries you pick, so it is connection geography rather than residence or nationality. Detailed country history is kept for 90 days only, so a user with no retained sample in range matches no country at all and is dropped whenever this field is narrowed. Picking nothing keeps every country.",
+  // Cut from the on-screen text: the locale is the one the client wrote on the event before queuing
+  // it and is never inferred from the device language or the account, and it is read across every
+  // client platform whatever the platform filter says. The Audience language charts stay narrowed to
+  // the platforms picked, so somebody this field keeps can still be counted as unknown there.
   appUiLanguages:
-    "Keeps only users whose events inside the selected date range recorded one of the app interface languages you pick, read from the UI locale the client wrote on the event before queuing it and never inferred from the device language or the account, and taken across every client platform whatever the platform filter says; old clients and old queued events carry no locale at all, so a user whose events in range carry none matches no language and is dropped whenever this field is narrowed. The Audience language charts stay narrowed to the platforms you picked, so somebody this field keeps can still be counted as unknown there; picking nothing keeps every language.",
+    "Keeps only users whose events inside the selected date range recorded one of the app interface languages you pick, read from the UI locale the client wrote on the event. Old clients and old queued events carry no locale at all, so those users match no language and are dropped whenever this field is narrowed. Picking nothing keeps every language.",
   installedDecks:
-    "Keeps only users who ever completed an install of one of the catalog deck versions you pick, counted over their whole history rather than only inside the selected date range, and read from the install itself so an install whose catalog click was never recorded still counts.",
+    "Keeps only users who ever completed an install of one of the catalog deck versions you pick, counted over their whole history rather than only the selected date range. The version is read from the install itself, so an install whose catalog click was never recorded still counts.",
   catalogPlacements:
-    "Keeps only users who completed a catalog install whose originating click came from one of the page placements you pick, counted over their whole history rather than only inside the selected date range."
+    "Keeps only users who completed a catalog install whose originating click came from one of the page placements you pick, counted over their whole history rather than only the selected date range."
     + ` ${catalogClickAttributionExplanationTail}`,
   catalogSources:
-    "Keeps only users who completed a catalog install whose originating click was attributed to one of the traffic sources you pick, counted over their whole history rather than only inside the selected date range."
+    "Keeps only users who completed a catalog install whose originating click was attributed to one of the traffic sources you pick, counted over their whole history rather than only the selected date range."
     + ` ${catalogClickAttributionExplanationTail}`,
   catalogDeviceCategories:
-    "Keeps only users who completed a catalog install whose originating click came from one of the device categories you pick, counted over their whole history rather than only inside the selected date range."
+    "Keeps only users who completed a catalog install whose originating click came from one of the device categories you pick, counted over their whole history rather than only the selected date range."
     + ` ${catalogClickAttributionExplanationTail}`,
   catalogClickBrowserLanguages:
     "Keeps only users who completed a catalog install whose originating click reported one of the browser languages you pick, counted over their whole history; it is the browser setting at click time rather than the language the app is used in."
@@ -228,7 +275,7 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
 // clicks that did become installs, because that is all the user-scoped areas can match. The installed
 // deck is not one of them, because its list is read from the install alone and says so itself.
 const funnelsCatalogOptionCoverageTail =
-  "The values on offer are the ones carried by clicks that became installs, so a value only abandoned clicks ever recorded is not listed here even though picking it would match attempts.";
+  "The values on offer come from clicks that became installs, so a value only abandoned clicks ever recorded is not listed even though picking it would match attempts.";
 
 // Funnels counts one anonymous catalog click attempt per row, so the five catalog fields read off the
 // attempt's own click inside the selected range instead of a person's lifetime install history, and
@@ -238,12 +285,25 @@ const funnelsCatalogOptionCoverageTail =
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
+  // Cut from the on-screen text: the no-click diagnostic places a landing by its own day the same
+  // way, and the seven-day tail is exactly what the "Attempts still inside 7-day window" line under
+  // the funnel counts, so a short recent window reads as a drop-off when it is only immature.
   dateRange:
-    "Selects an attempt by the click that opens it rather than bounding every event counted here: an attempt belongs to this range when its own catalog click falls on a UTC calendar day inside it, with the first and the last day both included, and the no-click diagnostic places a landing the same way. Every later milestone still counts for seven days after that opening step, so Landed, Preview ready, Install started and Installed can each have happened up to seven days past the last selected day. A range ending near today is therefore still filling rather than finished, which is what the 'Attempts still inside 7-day window' line under the funnel counts, and a short recent window reads as a drop-off when it is only immature.",
+    "Selects an attempt by the click that opens it rather than bounding every event counted here: an attempt belongs to this range when its own catalog click falls on a UTC calendar day inside it, with the first and the last day both included. Every later milestone still counts for seven days after that opening click, so Landed, Preview ready, Install started and Installed can each have happened past the last selected day. A range ending near today is therefore still filling rather than finished.",
+  // Cut from the on-screen text: the no-click diagnostic keeps landings by the landing row's own
+  // platform the same way, and it empties together with the rest of the area when a platform other
+  // than web is picked on its own.
   eventPlatforms:
-    "Keeps only the catalog click attempts whose own click row carries one of the client platforms you pick, and the no-click diagnostic keeps landings by the landing row's own platform the same way; a journey's later steps are never judged by it, so an install finished on another device still counts. The public collector stamps every anonymous catalog click and every landing as web itself and no client can override it, so picking any other platform on its own empties this whole area, the no-click line included.",
+    "Keeps only the catalog click attempts whose own click row carries one of the client platforms you pick; a journey's later steps are never judged by it, so an install finished on another device still counts. The public collector stamps every anonymous catalog click as web itself and no client can override it, so picking any other platform on its own empties this whole area.",
+  // Cut from the on-screen text, in full, because it is the reason the option list and the matching
+  // disagree: the list is built from deck versions somebody completed an install of, so three kinds
+  // of version are missing from it while a click on them is still counted here - a version nobody
+  // ever finished installing, a version whose only completed installs came from a test account or an
+  // excluded actor, and the delisted `test` fixture, which is dropped from the list outright while an
+  // attempt aimed at it is excluded only when a matching install start inside the conversion window
+  // named that slug, so a test click that never reached install start is still counted.
   installedDecks:
-    "Keeps only the catalog click attempts aimed at one of the deck versions you pick, read from the attempt's own click inside the selected date range. The values on offer are the deck versions somebody ever completed an install of, whether or not that install had a recorded click, so a version can be missing from this list even though picking it would match attempts here: a version nobody ever finished installing is one such case, a version whose only completed installs came from a test account or an excluded actor is another, and the delisted `test` fixture is a third, dropped from the list outright while an attempt aimed at it is excluded here only when a matching install start inside the conversion window named that slug, so a test click that never got that far is still counted.",
+    "Keeps only the catalog click attempts aimed at one of the deck versions you pick, read from the attempt's own click inside the selected date range. The versions on offer are the ones somebody completed an install of, so a version can be missing from the list and still match attempts here.",
   catalogPlacements:
     "Keeps only the catalog click attempts whose own click came from one of the page placements you pick, inside the selected date range."
     + ` ${funnelsCatalogOptionCoverageTail}`,
@@ -264,8 +324,10 @@ const funnelsAnalyticsFilterFieldExplanations: Readonly<
 const audienceAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
+  // Cut from the on-screen text, as in the base wording: every other event is still judged by the
+  // platform its own row carries, and only the catalog install event can never be kept.
   eventPlatforms:
-    "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform and is always unattributed, so picking any device platform drops every catalog install row from anything that counts one, while every other event is still judged by the platform its own row carries.",
+    "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform, so picking any device platform drops every catalog install row from anything that counts one.",
 };
 
 const analyticsFilterFieldExplanationOverridesByArea: Readonly<
@@ -289,7 +351,7 @@ export function getAnalyticsFilterFieldExplanation(
 // subject genuinely changes in an area is renamed here rather than neutralised into a name that fits
 // everywhere and says nothing. The date range is that field: on the user-scoped areas it bounds the
 // events being counted, while on `funnels` it only places an attempt by its opening click and the
-// later steps run past it, which is what the explanation above says at length.
+// later steps run past it, which is what the explanation above says.
 const funnelsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
