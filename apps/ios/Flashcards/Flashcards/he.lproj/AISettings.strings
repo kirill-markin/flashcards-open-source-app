@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "בחירת תמונה";
 "ai.composer.attachment.chooseFile" = "בחירת קובץ";
 "ai.composer.attachment.unsupported" = "קובץ מצורף לא נתמך (%@)";
+"ai.attachment.card.title" = "כרטיסייה";
+"ai.attachment.card.withSnippet" = "כרטיסייה · %@";
 "ai.attachment.error.unsupportedType" = "סוג קובץ לא נתמך: .%@";
 "ai.attachment.error.cameraUnavailable" = "המצלמה אינה זמינה במכשיר הזה.";
 "ai.attachment.error.photoUnavailable" = "הגישה לתמונות אינה זמינה במכשיר הזה.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "תאית";
 "settings.language.supported.turkish" = "טורקית";
 "settings.language.supported.ukrainian" = "אוקראינית";
+"settings.language.supported.urdu" = "אורדו";
+"settings.language.supported.vietnamese" = "וייטנאמית";
+"settings.language.supported.zulu" = "זולו";

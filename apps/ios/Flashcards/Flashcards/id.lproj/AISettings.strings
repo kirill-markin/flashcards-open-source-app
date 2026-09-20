@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Pilih Foto";
 "ai.composer.attachment.chooseFile" = "Pilih File";
 "ai.composer.attachment.unsupported" = "Lampiran tidak didukung (%@)";
+"ai.attachment.card.title" = "Kartu";
+"ai.attachment.card.withSnippet" = "Kartu · %@";
 "ai.attachment.error.unsupportedType" = "Jenis file tidak didukung: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kamera tidak tersedia di perangkat ini.";
 "ai.attachment.error.photoUnavailable" = "Akses foto tidak tersedia di perangkat ini.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Thai";
 "settings.language.supported.turkish" = "Turki";
 "settings.language.supported.ukrainian" = "Ukraina";
+"settings.language.supported.urdu" = "Urdu";
+"settings.language.supported.vietnamese" = "Vietnam";
+"settings.language.supported.zulu" = "Zulu";

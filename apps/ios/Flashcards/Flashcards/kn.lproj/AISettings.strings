@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "ಫೋಟೋ ಆಯ್ಕೆಮಾಡಿ";
 "ai.composer.attachment.chooseFile" = "ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ";
 "ai.composer.attachment.unsupported" = "ಬೆಂಬಲವಿಲ್ಲದ ಲಗತ್ತು (%@)";
+"ai.attachment.card.title" = "ಕಾರ್ಡ್";
+"ai.attachment.card.withSnippet" = "ಕಾರ್ಡ್ · %@";
 "ai.attachment.error.unsupportedType" = "ಬೆಂಬಲವಿಲ್ಲದ ಫೈಲ್ ಪ್ರಕಾರ: .%@";
 "ai.attachment.error.cameraUnavailable" = "ಈ ಸಾಧನದಲ್ಲಿ ಕ್ಯಾಮೆರಾ ಲಭ್ಯವಿಲ್ಲ.";
 "ai.attachment.error.photoUnavailable" = "ಈ ಸಾಧನದಲ್ಲಿ ಫೋಟೋ ಪ್ರವೇಶ ಲಭ್ಯವಿಲ್ಲ.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "ಥಾಯ್";
 "settings.language.supported.turkish" = "ಟರ್ಕಿಶ್";
 "settings.language.supported.ukrainian" = "ಉಕ್ರೇನಿಯನ್";
+"settings.language.supported.urdu" = "ಉರ್ದು";
+"settings.language.supported.vietnamese" = "ವಿಯೆಟ್ನಾಮೀಸ್";
+"settings.language.supported.zulu" = "ಜುಲು";

@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Изберете Снимка";
 "ai.composer.attachment.chooseFile" = "Изберете Файл";
 "ai.composer.attachment.unsupported" = "Неподдържан прикачен файл (%@)";
+"ai.attachment.card.title" = "Карта";
+"ai.attachment.card.withSnippet" = "Карта · %@";
 "ai.attachment.error.unsupportedType" = "Неподдържан файлов тип: .%@";
 "ai.attachment.error.cameraUnavailable" = "Камерата не е налична на това устройство.";
 "ai.attachment.error.photoUnavailable" = "Достъпът до снимки не е наличен на това устройство.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Тайски";
 "settings.language.supported.turkish" = "Турски";
 "settings.language.supported.ukrainian" = "Украински";
+"settings.language.supported.urdu" = "Урду";
+"settings.language.supported.vietnamese" = "Виетнамски";
+"settings.language.supported.zulu" = "Зулуски";

@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Fotó kiválasztása";
 "ai.composer.attachment.chooseFile" = "Fájl kiválasztása";
 "ai.composer.attachment.unsupported" = "Nem támogatott melléklet (%@)";
+"ai.attachment.card.title" = "Kártya";
+"ai.attachment.card.withSnippet" = "Kártya · %@";
 "ai.attachment.error.unsupportedType" = "Nem támogatott fájltípus: .%@";
 "ai.attachment.error.cameraUnavailable" = "A kamera ezen az eszközön nem érhető el.";
 "ai.attachment.error.photoUnavailable" = "A fotóhozzáférés ezen az eszközön nem érhető el.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Thai";
 "settings.language.supported.turkish" = "Török";
 "settings.language.supported.ukrainian" = "Ukrán";
+"settings.language.supported.urdu" = "Urdu";
+"settings.language.supported.vietnamese" = "Vietnámi";
+"settings.language.supported.zulu" = "Zulu";

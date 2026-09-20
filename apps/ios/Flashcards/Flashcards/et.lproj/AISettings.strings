@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Vali foto";
 "ai.composer.attachment.chooseFile" = "Vali fail";
 "ai.composer.attachment.unsupported" = "Toetamata manus (%@)";
+"ai.attachment.card.title" = "Kaart";
+"ai.attachment.card.withSnippet" = "Kaart · %@";
 "ai.attachment.error.unsupportedType" = "Toetamata failitüüp: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kaamera pole selles seadmes saadaval.";
 "ai.attachment.error.photoUnavailable" = "Juurdepääs fotodele pole selles seadmes saadaval.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Tai";
 "settings.language.supported.turkish" = "Türgi";
 "settings.language.supported.ukrainian" = "Ukraina";
+"settings.language.supported.urdu" = "Urdu";
+"settings.language.supported.vietnamese" = "Vietnami";
+"settings.language.supported.zulu" = "Suulu";

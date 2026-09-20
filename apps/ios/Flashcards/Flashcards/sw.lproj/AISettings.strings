@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Chagua Picha";
 "ai.composer.attachment.chooseFile" = "Chagua Faili";
 "ai.composer.attachment.unsupported" = "Kiambatisho kisichotumika (%@)";
+"ai.attachment.card.title" = "Kadi";
+"ai.attachment.card.withSnippet" = "Kadi · %@";
 "ai.attachment.error.unsupportedType" = "Aina ya faili isiyotumika: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kamera haipatikani kwenye kifaa hiki.";
 "ai.attachment.error.photoUnavailable" = "Ufikiaji wa picha haupatikani kwenye kifaa hiki.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Kithai";
 "settings.language.supported.turkish" = "Kituruki";
 "settings.language.supported.ukrainian" = "Kiukraini";
+"settings.language.supported.urdu" = "Kiurdu";
+"settings.language.supported.vietnamese" = "Kivietinamu";
+"settings.language.supported.zulu" = "Kizulu";

@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Foto auswählen";
 "ai.composer.attachment.chooseFile" = "Wählen Sie Datei";
 "ai.composer.attachment.unsupported" = "Nicht unterstützter Anhang (%@)";
+"ai.attachment.card.title" = "Karte";
+"ai.attachment.card.withSnippet" = "Karte · %@";
 "ai.attachment.error.unsupportedType" = "Nicht unterstützter Dateityp: .%@";
 "ai.attachment.error.cameraUnavailable" = "Die Kamera ist auf diesem Gerät nicht verfügbar.";
 "ai.attachment.error.photoUnavailable" = "Der Zugriff auf Fotos ist auf diesem Gerät nicht verfügbar.";
@@ -838,3 +840,6 @@
 "settings.language.supported.thai" = "Thailändisch";
 "settings.language.supported.turkish" = "Türkisch";
 "settings.language.supported.ukrainian" = "Ukrainisch";
+"settings.language.supported.urdu" = "Urdu";
+"settings.language.supported.vietnamese" = "Vietnamesisch";
+"settings.language.supported.zulu" = "Zulu";

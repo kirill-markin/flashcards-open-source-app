@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Alege o poză";
 "ai.composer.attachment.chooseFile" = "Alege un fișier";
 "ai.composer.attachment.unsupported" = "Atașament neacceptat (%@)";
+"ai.attachment.card.title" = "Fișă";
+"ai.attachment.card.withSnippet" = "Fișă · %@";
 "ai.attachment.error.unsupportedType" = "Tip de fișier neacceptat: .%@";
 "ai.attachment.error.cameraUnavailable" = "Camera nu este disponibilă pe acest dispozitiv.";
 "ai.attachment.error.photoUnavailable" = "Accesul la poze nu este disponibil pe acest dispozitiv.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Thailandeză";
 "settings.language.supported.turkish" = "Turcă";
 "settings.language.supported.ukrainian" = "Ucraineană";
+"settings.language.supported.urdu" = "Urdu";
+"settings.language.supported.vietnamese" = "Vietnameză";
+"settings.language.supported.zulu" = "Zulu";

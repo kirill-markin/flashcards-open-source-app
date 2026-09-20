@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,thẻ ghi nhớ,thẻ học";
+"NSCameraUsageDescription" = "Cho phép truy cập camera để chụp ảnh đính kèm vào trò chuyện AI.";
+"NSMicrophoneUsageDescription" = "Cho phép truy cập micrô để đọc chính tả vào trò chuyện AI.";
+"NSPhotoLibraryUsageDescription" = "Cho phép truy cập thư viện ảnh để chọn ảnh đính kèm vào trò chuyện AI.";
