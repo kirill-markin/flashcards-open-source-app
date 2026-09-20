@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,bilgi kartları,kelime kartları,çalışma kartları";
+"NSCameraUsageDescription" = "AI sohbetine eklemek üzere fotoğraf çekmek için kamera erişimine izin verin.";
+"NSMicrophoneUsageDescription" = "AI sohbetine metin dikte etmek için mikrofon erişimine izin verin.";
+"NSPhotoLibraryUsageDescription" = "AI sohbetine eklemek üzere fotoğraf seçmek için fotoğraf arşivine erişime izin verin.";
