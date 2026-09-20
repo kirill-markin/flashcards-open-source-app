@@ -77,6 +77,11 @@ Use `occurred_at`, never the client clock columns, for time ranges. Join steps b
 `event_properties ->> 'install_journey_id'` and verify that
 `event_properties ->> 'package_version_id'` agrees across the journey. The anonymous acquisition
 rows use the journey UUID as `anonymous_id`; it is an attempt key, not a unique-person measure.
+That holds by decision: every other client event now carries the browser's shared visitor id
+([analytics visitor identity](analytics-visitor-identity.md)), and the acquisition producer
+([`catalogInstallJourney.ts`](../apps/web/src/analytics/catalogInstallJourney.ts)) sends none, because
+a browser identity in that column would collapse one person's two install attempts into one and would
+put visitor ids where the admin funnel's exclusion bridge expects journey ids.
 
 Post-install engagement is reportable only for a journey whose server `catalog_deck_installed` row
 exists, because that row is the only place a journey names a person. Measure it on that actor, from

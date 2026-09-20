@@ -4,7 +4,6 @@ import { AccountMenu } from "./AccountMenu";
 import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
 import { AnalyticsLifecycle, useAnalyticsScreenView, type AnalyticsSurface } from "./analytics";
 import { AppDataProvider, useAppData, type SessionLoadState } from "./appData";
-import { WebGuestSessionLifecycle } from "./appData/session/guest/WebGuestSessionLifecycle";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
 import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
@@ -853,7 +852,6 @@ export default function App(): ReactElement {
     <AppErrorBoundary fallback={<AppCrashFallback />}>
       <BrowserRouter>
         <AnalyticsLifecycle />
-        <WebGuestSessionLifecycle />
         <AppErrorDialogProvider>
           <TestModeProvider>
             <SentryRoutes>

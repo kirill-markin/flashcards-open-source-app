@@ -80,17 +80,19 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   ): Promise<void> {
     indexedDbOpenRecoveryState.throwIfFailed();
 
-    // Rotates `anonymous_id` and drops queued analytics events so a second person on this browser
-    // cannot inherit the first person's analytics identity or their unsent events. Do not flush
-    // first: this runs after the previous credential is gone or after `getSession()` already
-    // returned somebody else's session, so a batch sent here would post the previous account's
-    // events on the new account's credential. The discarded events are counted and reported inside
-    // `reset()`.
+    // Starts a fresh analytics session and drops the queued events so a second person on this
+    // browser cannot inherit the first person's unsent ones. The identity behind them is
+    // deliberately kept: it is the shared visitor cookie, which belongs to the browser rather than
+    // to whoever was signed in, and it survives this boundary like every other. Do not flush first:
+    // this runs after the previous credential is gone or after `getSession()` already returned
+    // somebody else's session, so a batch sent here would post the previous account's events on the
+    // new account's credential. The discarded events are counted and reported inside `reset()`.
     resetAnalytics();
     // Removed here, synchronously, rather than by the `flashcards-` prefix sweep inside
     // `clearAllLocalBrowserData` below: that sweep is several awaits away and does not run at all
-    // when the IndexedDB recovery guard fires first, and a stored guest session left readable in
-    // that window would be published as the confirmed analytics owner by the next interaction.
+    // when the IndexedDB recovery guard fires first, and until the key is gone the link started for
+    // the outgoing person could still read the envelope back out of storage and bind that guest to
+    // whoever signs in next (`webGuestSession.ts`).
     resetWebGuestSession();
     workspaceBootstrapGenerationRef.current += 1;
     deferredBootstrapWorkspaceRef.current = null;

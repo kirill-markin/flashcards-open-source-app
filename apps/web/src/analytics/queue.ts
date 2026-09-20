@@ -253,6 +253,22 @@ export function appendAnalyticsEvents(
 }
 
 /**
+ * Reads the stored owner alone. `readOldestAnalyticsEvents` returns it too, but it deletes expired
+ * records and counts them in the same transaction, so a caller that only needs the owner asks here
+ * rather than running that pass a second time in the same flush and re-counting the expiry.
+ */
+export function readAnalyticsQueueOwner(): Promise<string | null> {
+  return runAnalyticsQueueTransaction<string | null>("read", (transaction, resolveResult) => {
+    const metaStore = transaction.objectStore(metaStoreName);
+    const ownerRequest = metaStore.get(ownerRecordKey);
+
+    ownerRequest.onsuccess = (): void => {
+      resolveResult(toOwnerId(ownerRequest.result));
+    };
+  });
+}
+
+/**
  * Reads the oldest events, dropping any that outlived the queue TTL on the way. Expired records are
  * removed here rather than on a timer so every flush attempt keeps the queue bounded.
  */

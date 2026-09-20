@@ -191,6 +191,23 @@ export type AnalyticsWireEvent = Readonly<{
   experimentAssignments: null;
 }>;
 
+/**
+ * One event on the credential-free collector (docs/anonymous-client-analytics.md). That route is
+ * strict, and carries no session, platform, network state or experiment field, because none of them
+ * belong to a row no credential stands behind.
+ */
+export type AnonymousAnalyticsWireEvent = Readonly<{
+  eventId: string;
+  eventName: AnalyticsEvent["name"];
+  clientOccurredAt: string;
+  clientSentAt: string;
+  anonymousId: string | null;
+  uiLocale: string | null;
+  deviceLocale: string | null;
+  screen: AnalyticsSurface | null;
+  properties: AnalyticsEventProperties | null;
+}>;
+
 export type AnalyticsWireContext = Readonly<{
   osVersion: string | null;
   deviceModel: string | null;
