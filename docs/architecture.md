@@ -176,7 +176,9 @@ The Postgres schema is split by responsibility:
 
 Important tables and responsibilities:
 
-- `org.user_settings`: human profile metadata and selected workspace
+- `org.user_settings`: human profile metadata, selected workspace, and account preferences,
+  including the analytics consent decision read on `GET /v1/me` and written on
+  `PATCH /v1/me/preferences`
 - `org.workspaces`: workspace metadata and persisted FSRS scheduler settings
 - `org.workspace_memberships`: workspace access control
 - `content.cards`: card state, including persisted FSRS fields

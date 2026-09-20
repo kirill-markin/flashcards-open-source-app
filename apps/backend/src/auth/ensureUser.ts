@@ -16,8 +16,12 @@ import {
   lockCognitoIdentityLifecycleInExecutor,
 } from "./userIdentities";
 
+/** A recorded analytics consent decision. No decision is null, never a third choice value. */
+export type AnalyticsConsentChoice = "granted" | "declined";
+
 export type AccountPreferences = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
+  analyticsConsent: AnalyticsConsentChoice | null;
 }>;
 
 export type UserProfile = Readonly<{
@@ -34,6 +38,7 @@ type UserSettingsRow = Readonly<{
   email: string | null;
   locale: string;
   review_reaction_animations_enabled: boolean;
+  analytics_consent: AnalyticsConsentChoice | null;
   created_at: Date | string;
 }>;
 
@@ -62,7 +67,7 @@ export async function ensureUserProfileInExecutor(
 
   const existing = await executor.query<UserSettingsRow>(
     [
-      "SELECT workspace_id, email, locale, review_reaction_animations_enabled, created_at",
+      "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent, created_at",
       "FROM org.user_settings",
       "WHERE user_id = $1",
       "FOR UPDATE",
@@ -89,6 +94,7 @@ export async function ensureUserProfileInExecutor(
     createdAt: toIsoString(settings.created_at),
     preferences: {
       reviewReactionAnimationsEnabled: settings.review_reaction_animations_enabled,
+      analyticsConsent: settings.analytics_consent,
     },
   };
 }

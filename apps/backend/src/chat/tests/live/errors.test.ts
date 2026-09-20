@@ -144,6 +144,7 @@ test("handleLiveRequest uses the authoritative Cognito profile for downstream ac
           createdAt: "2026-03-30T00:00:00.000Z",
           preferences: {
             reviewReactionAnimationsEnabled: true,
+            analyticsConsent: null,
           },
         };
       },

@@ -20,7 +20,7 @@ Clarify which surface needs localization:
 
 - Android app-internal UI strings belong to the Play-first flow below.
 - Google Play listing text, screenshots, and marketing assets are store-localization work, not Android app-string source changes.
-- If the request is only for Play listing localization, do not touch the Android app locale plumbing.
+- For listing-only work, use the [Play listing localization runbook](play-store-localization-runbook.md); do not touch Android app locale plumbing.
 
 Likely failure modes:
 
@@ -228,11 +228,9 @@ That local sanity build only validates repository-owned English resources and bu
 
 ## 9. Finish the store-side follow-up separately
 
-Shipping an Android app language may also require Play listing work:
-
-- Add or update the matching Google Play listing language in Play Console.
-- Decide whether the Play screenshots should also be localized for that listing.
-- If localized Android marketing assets are needed, keep them under `apps/android/docs/media/`.
+Shipping an Android app language may also require Play listing work. Follow the
+[Play listing localization runbook](play-store-localization-runbook.md) for authored
+copy, localized graphics, repository delivery, and Console review/publication.
 
 Likely failure mode:
 

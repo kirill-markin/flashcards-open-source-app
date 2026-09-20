@@ -27,14 +27,14 @@ import type { AppEnv } from "../../server/app";
 import type { RequestContext } from "../../server/requestContext";
 import { HttpError } from "../../shared/errors";
 import { createSystemRoutes } from "./index";
-import type { LoadReviewPlatformSummaryFn } from "./types";
+import type { AccountPreferencesUpdate, LoadReviewPlatformSummaryFn } from "./types";
 
 type SystemTestAppOptions = Readonly<{
   transport: RequestContext["transport"];
   locale?: string;
   enforceSessionCsrf?: boolean;
   getAccountPreferencesFn?: () => AccountPreferences;
-  updateAccountPreferencesFn?: (userId: string, preferences: AccountPreferences) => Promise<AccountPreferences>;
+  updateAccountPreferencesFn?: (userId: string, update: AccountPreferencesUpdate) => Promise<AccountPreferences>;
   ensurePublicProfileForUserFn?: (userId: string, localeHint: string) => Promise<PublicProfile>;
   updateLeaderboardParticipationFn?: (
     userId: string,
@@ -56,6 +56,7 @@ type SystemTestAppOptions = Readonly<{
 export function createDefaultAccountPreferences(): AccountPreferences {
   return {
     reviewReactionAnimationsEnabled: true,
+    analyticsConsent: null,
   };
 }
 

@@ -40,7 +40,9 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
   }
 
   if (
-    text.startsWith("SELECT workspace_id, email, locale, review_reaction_animations_enabled, created_at")
+    text.startsWith(
+      "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent, created_at",
+    )
     && text.includes("FROM org.user_settings")
     && text.includes("FOR UPDATE")
   ) {
@@ -52,6 +54,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       email: row.email,
       locale: "en",
       review_reaction_animations_enabled: true,
+      analytics_consent: null,
       created_at: "2026-04-02T13:00:00.000Z",
     } as unknown as Row]);
   }
