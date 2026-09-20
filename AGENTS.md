@@ -50,6 +50,7 @@ Local Gradle, `xcodebuild`, simulator, and emulator runs are unrestricted, so ru
 Release and check workflows use independent AWS/web, Android, and iOS streams.
 Pull-request checks stay deliberately light and fast: do not add heavy mobile build or test jobs to pull-request workflows.
 Android jobs inside `.github/workflows/pr-checks.yml` are an accepted exception: build, unit tests, and lint run for every Android-impacting pull request, and the GitHub-hosted `data:local` emulator instrumentation runs only when the Android data layer or shared Android Gradle configuration changes. `Repository static checks` is the strict required aggregate PR gate; Firebase Test Lab stays out of pull requests.
+Auto-merge is enabled but never updates a `BEHIND` branch, so it cannot rescue a pull request on its own: update the branch once server-side, then queue `gh pr merge --auto` so the merge lands unattended once the gate passes instead of racing `main` with repeated updates, and still watch the post-merge deploy to completion.
 Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
@@ -58,11 +59,12 @@ Details, rollback rules, and live smoke references: [docs/release-gates.md](docs
 
 ## Data Sources for Analysis
 
+- Website search traffic and SEO: Google Search Console exports in BigQuery; read [Data Sources for Analysis](https://github.com/kirill-markin/flashcards-open-source-app-website/blob/main/AGENTS.md#data-sources-for-analysis) in the separate `kirill-markin/flashcards-open-source-app-website` repository for access, datasets across the domain move, and links to internal admin event reports. It is usually checked out on the same machine in a neighboring directory; verify its local path.
 - Backend and auth runtime logs: CloudWatch Lambda log groups, read with the `flashcards-open-source-app` AWS profile; the default profile resolves to a different account and answers with an empty list instead of an error. Agent SQL executions emit one structured record per run on every surface, and every authenticated `/mcp` request emits one more; the record fields and the queries live in [docs/agent-sql-telemetry.md](docs/agent-sql-telemetry.md).
 - Errors and crashes: Sentry, one project per surface (`SENTRY_BACKEND_PROJECT`, `SENTRY_WEB_PROJECT`, `SENTRY_ANDROID_PROJECT`, `SENTRY_IOS_PROJECT`) inside `SENTRY_ORG`. When resolving a fixed Sentry issue, default to `Resolved in current release` for backend/web/MCP and `Resolved in next release` for iOS/Android; use the actual shipped release when known. iOS `WatchdogTermination` events carry no stack trace by design; read [docs/ios-memory-diagnostics.md](docs/ios-memory-diagnostics.md) before interpreting one.
 - AI chat and dictation traces: Langfuse when enabled, [docs/langfuse-operations.md](docs/langfuse-operations.md).
 - Direct SQL over product data: the read-only `reporting_readonly` role, [docs/analytics-db-access.md](docs/analytics-db-access.md).
-- Ready-made admin reports in the browser: [docs/admin-app.md](docs/admin-app.md).
+- Internal admin reports on product events, audience, and catalog-install funnels: [docs/admin-app.md](docs/admin-app.md).
 - Product-wide aggregates: the daily snapshot behind `GET /v1/global/snapshot`, [docs/global-metrics.md](docs/global-metrics.md).
 - iOS cloud build and test runs, per-test timings, and `.xcresult` bundles: [docs/xcode-cloud-data-access.md](docs/xcode-cloud-data-access.md).
 

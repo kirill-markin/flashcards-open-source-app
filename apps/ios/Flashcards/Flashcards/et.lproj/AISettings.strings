@@ -798,3 +798,12 @@
 "settings.language.supported.marathi" = "Marati";
 "settings.language.supported.norwegianBokmal" = "Norra bokmål";
 "settings.language.supported.dutch" = "Hollandi";
+"settings.language.supported.punjabi" = "Pandžabi";
+"settings.language.supported.polish" = "Poola";
+"settings.language.supported.romanian" = "Rumeenia";
+"settings.language.supported.slovak" = "Slovaki";
+"settings.language.supported.slovenian" = "Sloveeni";
+"settings.language.supported.swedish" = "Rootsi";
+"settings.language.supported.swahili" = "Suahiili";
+"settings.language.supported.tamil" = "Tamili";
+"settings.language.supported.telugu" = "Telugu";

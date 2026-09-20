@@ -826,3 +826,12 @@
 "settings.language.supported.marathi" = "Marathi";
 "settings.language.supported.norwegianBokmal" = "Norwegisch (Bokmål)";
 "settings.language.supported.dutch" = "Niederländisch";
+"settings.language.supported.punjabi" = "Punjabi";
+"settings.language.supported.polish" = "Polnisch";
+"settings.language.supported.romanian" = "Rumänisch";
+"settings.language.supported.slovak" = "Slowakisch";
+"settings.language.supported.slovenian" = "Slowenisch";
+"settings.language.supported.swedish" = "Schwedisch";
+"settings.language.supported.swahili" = "Suaheli";
+"settings.language.supported.tamil" = "Tamil";
+"settings.language.supported.telugu" = "Telugu";

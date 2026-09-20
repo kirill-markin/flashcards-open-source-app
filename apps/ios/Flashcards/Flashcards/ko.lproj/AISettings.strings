@@ -798,3 +798,12 @@
 "settings.language.supported.marathi" = "마라티어";
 "settings.language.supported.norwegianBokmal" = "노르웨이어 보크몰";
 "settings.language.supported.dutch" = "네덜란드어";
+"settings.language.supported.punjabi" = "펀자브어";
+"settings.language.supported.polish" = "폴란드어";
+"settings.language.supported.romanian" = "루마니아어";
+"settings.language.supported.slovak" = "슬로바키아어";
+"settings.language.supported.slovenian" = "슬로베니아어";
+"settings.language.supported.swedish" = "스웨덴어";
+"settings.language.supported.swahili" = "스와힐리어";
+"settings.language.supported.tamil" = "타밀어";
+"settings.language.supported.telugu" = "텔루구어";
