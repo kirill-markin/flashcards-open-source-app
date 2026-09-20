@@ -3,17 +3,27 @@ import {
   getCachedSessionCsrfToken,
   sendAnalyticsEventsBatch,
   sendAnonymousAnalyticsEvent,
+  submitAnalyticsVisitorConsent,
   type AnalyticsIngestResult,
 } from "../api";
 import { hasLoggedInCookie } from "../appData/session/activation/warmStart";
 import { readStoredWebGuestSession } from "../appData/session/guest/webGuestSession";
+import { isAuthenticatedAppPath } from "../routes";
+import {
+  isAwaitingAnalyticsConsentDecision,
+  readAnalyticsConsentDecision,
+  recordAnalyticsConsentDecision,
+} from "./consent";
 import type {
   AnalyticsDropReason,
   AnalyticsEvent,
   AnalyticsSurface,
   AnalyticsWireBatch,
+  AnalyticsWireEvent,
+  IdentityFreeAnalyticsEventName,
 } from "./events";
 import {
+  clearAnalyticsVisitorCookie,
   readAnalyticsAnonymousId,
   readAnalyticsSessionId,
   readStoredAnalyticsEnabled,
@@ -41,6 +51,7 @@ import {
 import {
   hasResolvedAnalyticsVisitorIdentity,
   resolveAnalyticsVisitorIdentity,
+  resolveAnalyticsVisitorIdentityAfterConsentGrant,
 } from "./visitorIdentity";
 import {
   buildAnalyticsWireContext,
@@ -48,6 +59,7 @@ import {
   toAnalyticsTimestamp,
   toAnalyticsWireEvent,
   toAnonymousAnalyticsWireEvent,
+  toIdentityFreeAnalyticsWireEvent,
 } from "./wire";
 
 /** Shared with iOS and Android. */
@@ -65,6 +77,12 @@ const periodicFlushIntervalMs = 60 * 1000;
  * fifty events — or a split could stop before dropping anything and never converge.
  */
 const flushRequestBudget = 12;
+/**
+ * How many events one load may hold in memory while this browser may write nothing to the device.
+ * It bounds a tab left open on a banner nobody answers; what it drops is reported as a loss like any
+ * other, on the first flush the browser is allowed.
+ */
+const heldEventLimit = 200;
 
 function readInitialEnabled(): boolean {
   try {
@@ -74,9 +92,24 @@ function readInitialEnabled(): boolean {
   }
 }
 
+/**
+ * What one discard covers. Named rather than positional because the three answers differ per caller
+ * and none of them follows from the others: a refusal keeps what it holds in memory and reports
+ * nothing, an identity boundary takes everything and reports it, and the kill switch takes
+ * everything silently.
+ */
+type QueuedWorkDiscardOptions = Readonly<{
+  shouldReportDiscard: boolean;
+  shouldReleaseOwner: boolean;
+  shouldDiscardHeldEvents: boolean;
+}>;
+
 type AnalyticsDeliveryRuntime = Readonly<{
   isAnalyticsEnabledForCurrentRuntime: () => boolean;
   enqueue: (event: AnalyticsEvent, surface: AnalyticsSurface | null) => void;
+  reportIdentityFreeEvent: (eventName: IdentityFreeAnalyticsEventName) => void;
+  applyAnalyticsConsentGrant: () => Promise<boolean>;
+  applyAnalyticsConsentDecline: () => Promise<void>;
   flush: () => void;
   reset: () => void;
   setEnabled: (enabled: boolean) => void;
@@ -92,6 +125,13 @@ export function createAnalyticsDeliveryRuntime(
 ): AnalyticsDeliveryRuntime {
   let isEnabled = readInitialEnabled();
   let pendingRecords: Array<AnalyticsQueueRecord> = [];
+  /**
+   * What this browser collected while it could write nothing to the device: before it knew whether
+   * it had to ask for consent, while it was waiting for the answer, and for the rest of the load
+   * when the answer was a refusal. They carry no session id, because obtaining one is itself a
+   * write, and they leave on whichever transport the refusal allows.
+   */
+  let heldWireEvents: Array<AnalyticsWireEvent> = [];
   let pendingDropCounts = new Map<AnalyticsDropReason, number>();
   let persistTask: Promise<void> = Promise.resolve();
   let persistTimerId: number | null = null;
@@ -161,6 +201,21 @@ export function createAnalyticsDeliveryRuntime(
    * already recording into that queue destroys records nothing reported as lost.
    */
   let hasPersistedUnderUnsettledQueueOwner = false;
+  /**
+   * Whether this load has opened the analytics database at all. Opening it creates it, so a browser
+   * that has never been allowed storage on this load has no store to discard — and a decline that
+   * "emptied" one would create the very database the banner promised not to write
+   * (docs/analytics-visitor-identity.md). Every path that reaches the store sets it: the append, the
+   * owner claim, and the flush that reads.
+   */
+  let hasOpenedAnalyticsQueue = false;
+  /**
+   * An owner the session layer published while this browser could be written to nothing. The account
+   * is held in memory either way, so the claim waits rather than being lost, and `runFlush` re-arms
+   * it on the first flush this browser is allowed — without which a signed-in person who has just
+   * granted would keep `isQueueOwnerReconciled` false and park their events until the next load.
+   */
+  let isQueueOwnerClaimDeferred = false;
 
   function isAnalyticsEnabledForCurrentRuntime(): boolean {
     return isEnabled;
@@ -194,6 +249,76 @@ export function createAnalyticsDeliveryRuntime(
     });
   }
 
+  /**
+   * Keeps one event in memory, for a browser nothing analytics collects may be written to. The
+   * session id is deliberately not read here: `readAnalyticsSessionId` persists the session it
+   * returns, so asking for one would be the write this path exists to avoid.
+   */
+  function holdEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): void {
+    const wireEvent = toAnalyticsWireEvent(event, Date.now(), surface);
+    if (measureAnalyticsWireEventBytes(wireEvent) > analyticsEventByteLimit) {
+      countDropped("rejected", 1);
+      return;
+    }
+
+    if (heldWireEvents.length >= heldEventLimit) {
+      countDropped("queue_overflow", 1);
+      return;
+    }
+
+    heldWireEvents.push(wireEvent);
+  }
+
+  /**
+   * Whether anything analytics collects may be written to this device right now.
+   *
+   * A browser that has not answered the banner it is being shown, or that does not yet know whether
+   * it has to be asked at all, may store nothing. Neither may one that refused, and holding an
+   * account credential does not change that: the refusal is about this device, so a signed-in
+   * person's events are reported under their own credential straight out of memory
+   * (`deliverHeldEventsUnderAccount`) rather than queued on a device that said no.
+   */
+  function isAnalyticsDeviceStorageAllowed(): boolean {
+    return isAwaitingAnalyticsConsentDecision() === false
+      && readAnalyticsConsentDecision() !== "declined";
+  }
+
+  /** The one routing decision every collected event takes, from `track` and from drop reporting. */
+  function collectEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): void {
+    if (isAnalyticsDeviceStorageAllowed()) {
+      enqueueEvent(event, surface);
+      return;
+    }
+
+    holdEvent(event, surface);
+  }
+
+  /**
+   * Moves what was held in memory into the queue, for a browser that may write to this device
+   * again — which is the load that granted, and nothing else: a refusal is permanent for this
+   * browser and its events never touch the queue at all. One session id is read for all of them:
+   * they were all collected inside this document, so they belong to the session it is in when it is
+   * finally allowed to have one.
+   */
+  function adoptHeldEvents(): void {
+    if (heldWireEvents.length === 0) {
+      return;
+    }
+
+    const adoptedWireEvents = heldWireEvents;
+    heldWireEvents = [];
+    const sessionId = readAnalyticsSessionId(Date.now());
+    for (const wireEvent of adoptedWireEvents) {
+      pendingRecords.push({
+        eventId: wireEvent.eventId,
+        sessionId,
+        createdAtMs: Date.parse(wireEvent.clientOccurredAt),
+        byteSize: measureAnalyticsWireEventBytes(wireEvent),
+        wireEvent,
+      });
+    }
+  }
+
   function persistPendingRecords(): Promise<void> {
     persistTask = persistTask.then(async (): Promise<void> => {
       if (pendingRecords.length === 0) {
@@ -202,6 +327,7 @@ export function createAnalyticsDeliveryRuntime(
 
       const records = pendingRecords;
       pendingRecords = [];
+      hasOpenedAnalyticsQueue = true;
       // The one place anything this load tracked reaches the stored queue — `appendAnalyticsEvents`
       // has no other caller — and it runs on the same `persistTask` chain as the release, so a
       // release either sees this append or is ordered before it. Latched before the append is
@@ -282,7 +408,7 @@ export function createAnalyticsDeliveryRuntime(
     const dropCounts = [...pendingDropCounts.entries()];
     pendingDropCounts = new Map<AnalyticsDropReason, number>();
     for (const [reason, count] of dropCounts) {
-      enqueueEvent({ name: "analytics_events_dropped", reason, count }, readCurrentSurface());
+      collectEvent({ name: "analytics_events_dropped", reason, count }, readCurrentSurface());
     }
   }
 
@@ -298,15 +424,24 @@ export function createAnalyticsDeliveryRuntime(
     return boundaryIndex === -1 ? events : events.slice(0, boundaryIndex);
   }
 
-  function buildWireBatch(events: ReadonlyArray<QueuedAnalyticsEvent>): AnalyticsWireBatch {
+  /**
+   * The session id is a parameter rather than a read, because the one batch shape serves two
+   * sources: the queue, whose records carry the session they were created in, and the held events of
+   * a browser that refused, which carry none — obtaining a session id is itself a write to the
+   * device, and the envelope accepts a null.
+   */
+  function buildWireBatch(
+    wireEvents: ReadonlyArray<AnalyticsWireEvent>,
+    sessionId: string | null,
+  ): AnalyticsWireBatch {
     return {
       // Stamped at request time, not at event time: the server derives every stored `occurred_at` from
       // the interval between this and each event's `clientOccurredAt`.
       clientSentAt: toAnalyticsTimestamp(Date.now()),
       anonymousId: readAnalyticsAnonymousId(),
-      sessionId: events[0].sessionId,
+      sessionId,
       context: buildAnalyticsWireContext(),
-      events: events.map((event) => event.wireEvent),
+      events: wireEvents,
     };
   }
 
@@ -344,8 +479,12 @@ export function createAnalyticsDeliveryRuntime(
    * forever at whatever rate its loop allows. The whole-batch and the per-event refusal paths share
    * this one rule so neither can be closed without the other.
    */
-  function isDropOnlyBatch(events: ReadonlyArray<QueuedAnalyticsEvent>): boolean {
-    return events.every((event) => event.wireEvent.eventName === "analytics_events_dropped");
+  function isDropOnlyBatch(wireEvents: ReadonlyArray<AnalyticsWireEvent>): boolean {
+    return wireEvents.every((wireEvent) => wireEvent.eventName === "analytics_events_dropped");
+  }
+
+  function toWireEvents(events: ReadonlyArray<QueuedAnalyticsEvent>): ReadonlyArray<AnalyticsWireEvent> {
+    return events.map((event) => event.wireEvent);
   }
 
   async function handleDeliveryFailure(
@@ -370,7 +509,7 @@ export function createAnalyticsDeliveryRuntime(
         // A refused drop event must not regenerate itself. Only this one rejection goes uncounted:
         // losses counted elsewhere in the same flush are untouched, so a real `queue_overflow` or
         // `ttl_expired` count is still carried into the next drop event.
-        if (isDropOnlyBatch(events) === false) {
+        if (isDropOnlyBatch(toWireEvents(events)) === false) {
           countDropped("rejected", 1);
         }
 
@@ -385,6 +524,15 @@ export function createAnalyticsDeliveryRuntime(
 
     // Everything else keeps the events queued: 429 and 5xx are transient, and 401, 403 and 410 wait
     // for a future valid credential rather than spinning.
+    armDeliveryBackoff(error, statusCode);
+  }
+
+  /**
+   * Holds delivery off after a failure that is not a permanent refusal, and schedules the retry the
+   * events are waiting for. Shared by both transports so one of them cannot drift into retrying at a
+   * rate the other does not.
+   */
+  function armDeliveryBackoff(error: unknown, statusCode: number): void {
     if (statusCode === 429 || statusCode >= 500) {
       trackSustainedDeliveryFailure(statusCode);
     }
@@ -443,10 +591,33 @@ export function createAnalyticsDeliveryRuntime(
    * open question itself.
    */
   function isQueueOwnerReleaseDeferred(): boolean {
+    return hasAccountCredentialOnThisLoad();
+  }
+
+  /**
+   * Whether an account credential exists on this browser, or can still arrive on this page load.
+   * None of the four facts is stable within a document, so every caller reads it live.
+   */
+  function hasAccountCredentialOnThisLoad(): boolean {
     return confirmedOwnerId !== null
       || sessionOwnerPublisherCount !== 0
       || hasLoggedInCookie()
       || getCachedSessionCsrfToken() !== null;
+  }
+
+  /**
+   * Whether a confirmed account owner can still arrive on this load, which is what an authenticated
+   * send waits for. The publisher lives in the app data provider, and only `AuthenticatedApp` mounts
+   * it: on the public routes rendered above it — the catalog import, the friend invite, the share
+   * page — a browser carrying `logged_in` never gets one, so waiting there is waiting forever.
+   *
+   * Read live from the address bar rather than latched, because a client-side navigation reaches the
+   * authenticated routes without a reload, and a publisher that has mounted answers for itself.
+   */
+  function canPublishSessionOwnerOnThisRoute(): boolean {
+    return confirmedOwnerId !== null
+      || sessionOwnerPublisherCount !== 0
+      || isAuthenticatedAppPath(window.location.pathname);
   }
 
   /**
@@ -603,7 +774,7 @@ export function createAnalyticsDeliveryRuntime(
 
     let result: AnalyticsIngestResult;
     try {
-      result = await sendAnalyticsEventsBatch(buildWireBatch(events));
+      result = await sendAnalyticsEventsBatch(buildWireBatch(toWireEvents(events), events[0].sessionId));
     } catch (error) {
       await handleDeliveryFailure(error, events, flushGeneration);
       return;
@@ -627,7 +798,7 @@ export function createAnalyticsDeliveryRuntime(
     // would otherwise purge one drop event and emit another for a net-zero queue, turning a silent
     // client into one request per periodic tick forever. Suppressing only this batch's count leaves a
     // `queue_overflow` or `ttl_expired` accrued elsewhere in the same flush intact.
-    if (isDropOnlyBatch(events) === false) {
+    if (isDropOnlyBatch(toWireEvents(events)) === false) {
       countDropped("rejected", result.rejectedCount);
     }
   }
@@ -683,8 +854,297 @@ export function createAnalyticsDeliveryRuntime(
     }
   }
 
+  /**
+   * Whether what this browser is holding may go out with no identity on it. That is the refusal's
+   * own reading: the person said no to being identified, not to the product knowing a page was
+   * opened, so the rows keep the surface, the locale and their date and carry nothing that names a
+   * visitor (docs/anonymous-client-analytics.md).
+   *
+   * An account credential closes this path rather than widening it, while one can still be used. A
+   * signed-in person's events are the account's, reported under their `user_id` on the authenticated
+   * ingest, and an actor whose `app_opened` rows all came from the collector reads as an actor with
+   * no `app_opened` at all. Where no credential can ever become sendable — a browser carrying
+   * `logged_in` on a route the session layer never mounts on — the choice is not between the two
+   * transports but between the collector and losing the events with the document, because a refused
+   * browser holds them in memory and has no queue to leave them in. The collector wins that: the
+   * person refused being identified, which is exactly what an identity-free row is.
+   *
+   * "Can ever become sendable" is true of those routes only because every link out of the public
+   * screens is a full-document `<a href>`, so no client-side navigation reaches `AuthenticatedApp`
+   * within one document. Add a react-router `<Link>` from `/share`, `/invite/:token` or
+   * `/catalog/import/:id` into the app and that stops holding: a flush taken on the public route
+   * spends a signed-in refused person's `app_opened` on the collector irreversibly, where waiting a
+   * moment would have shipped it under their account. Either keep those links full-document, or
+   * narrow this branch before adding one.
+   */
+  function canDeliverHeldEventsWithoutIdentity(): boolean {
+    if (readAnalyticsConsentDecision() !== "declined") {
+      return false;
+    }
+
+    return hasAccountCredentialOnThisLoad() === false || canPublishSessionOwnerOnThisRoute() === false;
+  }
+
+  /**
+   * Ships the held events one request at a time, with no identifier and without ever storing them.
+   * A permanently refused event is dropped here instead of being isolated by a batch split: one
+   * request already carries one event, and there is no queue behind it to split.
+   */
+  async function deliverHeldEventsWithoutIdentity(flushGeneration: number): Promise<void> {
+    while (heldWireEvents.length > 0) {
+      // The same three preconditions every request in `deliverBatch` rechecks, for the same reasons.
+      if (flushGeneration !== analyticsGeneration || Date.now() < retryNotBeforeMs) {
+        return;
+      }
+
+      if (remainingFlushRequestCount <= 0) {
+        scheduleFlush(0);
+        return;
+      }
+
+      const wireEvent = heldWireEvents[0];
+      remainingFlushRequestCount -= 1;
+      try {
+        await sendAnonymousAnalyticsEvent(toAnonymousAnalyticsWireEvent(wireEvent, Date.now()));
+      } catch (error) {
+        if (flushGeneration !== analyticsGeneration) {
+          return;
+        }
+
+        const statusCode = error instanceof ApiError ? error.statusCode : 0;
+        if (statusCode !== 400 && statusCode !== 413) {
+          armDeliveryBackoff(error, statusCode);
+          return;
+        }
+
+        // Resending the same bytes fails identically forever.
+        reportAnalyticsInvalidBatch(statusCode);
+        heldWireEvents = heldWireEvents.slice(1);
+        // A refused drop event must not regenerate itself, exactly as on the queued transports.
+        if (wireEvent.eventName !== "analytics_events_dropped") {
+          countDropped("rejected", 1);
+        }
+
+        continue;
+      }
+
+      consecutiveFailureCount = 0;
+      firstDeliveryFailureAtMs = null;
+      lastFailureStatusCode = null;
+      retryNotBeforeMs = 0;
+      if (flushGeneration !== analyticsGeneration) {
+        return;
+      }
+
+      heldWireEvents = heldWireEvents.slice(1);
+    }
+  }
+
+  /** Releases the held events a request has settled, delivered or refused for good. */
+  function releaseHeldEvents(wireEvents: ReadonlyArray<AnalyticsWireEvent>): void {
+    const settledEventIds = new Set(wireEvents.map((wireEvent) => wireEvent.eventId));
+    heldWireEvents = heldWireEvents.filter(
+      (wireEvent) => settledEventIds.has(wireEvent.eventId) === false,
+    );
+  }
+
+  /**
+   * Ships one batch of held events on the account's own credential, and nothing else: no
+   * `anonymousId`, because `readAnalyticsAnonymousId` gives a refused browser none, and no session
+   * id, because obtaining one is a write to a device that said no. What the rows keep is the
+   * `user_id` the credential gives them, which is the account's own measurement rather than the
+   * browser's — and it is what keeps a signed-in person from reading as an actor with no
+   * `app_opened` at all (apps/backend/src/productAnalytics/syntheticActorDetector.ts).
+   *
+   * A permanently refused batch is split until the single event that caused it is isolated and
+   * dropped, the same rule `deliverBatch` applies to the queue, with the held array standing in for
+   * it. Returns whether the batch was settled; a transient failure leaves everything held for the
+   * retry the backoff schedules.
+   */
+  async function deliverHeldBatchUnderAccount(
+    wireEvents: ReadonlyArray<AnalyticsWireEvent>,
+    flushGeneration: number,
+  ): Promise<boolean> {
+    // Rechecked here rather than only by the caller, exactly as `deliverBatch` does it: the second
+    // half of a split is posted after the first half's request resolved, and a
+    // `setAnalyticsConfirmedOwner` or a `reset()` that landed during that await would otherwise put
+    // the previous identity's events on the next one's credential.
+    if (flushGeneration !== analyticsGeneration) {
+      return false;
+    }
+
+    if (remainingFlushRequestCount <= 0) {
+      scheduleFlush(0);
+      return false;
+    }
+
+    remainingFlushRequestCount -= 1;
+    let result: AnalyticsIngestResult;
+    try {
+      result = await sendAnalyticsEventsBatch(buildWireBatch(wireEvents, null));
+    } catch (error) {
+      if (flushGeneration !== analyticsGeneration) {
+        return false;
+      }
+
+      const statusCode = error instanceof ApiError ? error.statusCode : 0;
+      if (statusCode !== 400 && statusCode !== 413) {
+        armDeliveryBackoff(error, statusCode);
+        return false;
+      }
+
+      // Resending the same bytes fails identically forever.
+      reportAnalyticsInvalidBatch(statusCode);
+      if (wireEvents.length === 1) {
+        releaseHeldEvents(wireEvents);
+        // A refused drop event must not regenerate itself, exactly as on the queued transports.
+        if (isDropOnlyBatch(wireEvents) === false) {
+          countDropped("rejected", 1);
+        }
+
+        return true;
+      }
+
+      const midpoint = Math.ceil(wireEvents.length / 2);
+      const wasFirstHalfSettled = await deliverHeldBatchUnderAccount(
+        wireEvents.slice(0, midpoint),
+        flushGeneration,
+      );
+      if (wasFirstHalfSettled === false) {
+        return false;
+      }
+
+      return await deliverHeldBatchUnderAccount(wireEvents.slice(midpoint), flushGeneration);
+    }
+
+    consecutiveFailureCount = 0;
+    firstDeliveryFailureAtMs = null;
+    lastFailureStatusCode = null;
+    retryNotBeforeMs = 0;
+    if (flushGeneration !== analyticsGeneration) {
+      return false;
+    }
+
+    releaseHeldEvents(wireEvents);
+    if (isDropOnlyBatch(wireEvents) === false) {
+      countDropped("rejected", result.rejectedCount);
+    }
+
+    return true;
+  }
+
+  /**
+   * Drains what a signed-in browser that refused consent is holding, batch by batch. It waits rather
+   * than falling back to the collector when the credential is not sendable yet: those events are the
+   * account's, and reporting them identity-free would file a signed-in person's activity as a
+   * visitor's. The wait is bounded by the route — where no owner can be published at all,
+   * `canDeliverHeldEventsWithoutIdentity` routes them to the collector instead of here.
+   */
+  async function deliverHeldEventsUnderAccount(flushGeneration: number): Promise<void> {
+    while (heldWireEvents.length > 0) {
+      // The same preconditions every request in `deliverBatch` rechecks, for the same reasons.
+      if (flushGeneration !== analyticsGeneration || Date.now() < retryNotBeforeMs) {
+        return;
+      }
+
+      if (hasSendableSessionCredential() === false) {
+        return;
+      }
+
+      const wasSettled = await deliverHeldBatchUnderAccount(
+        heldWireEvents.slice(0, batchEventLimit),
+        flushGeneration,
+      );
+      if (wasSettled === false) {
+        return;
+      }
+    }
+  }
+
+  /**
+   * Reports one of the two consent facts the catalog allows no identity at all. It goes out on its
+   * own, immediately, and is never queued: the browser it describes may have nothing written to it,
+   * and every queued event is stamped with an `anonymousId` the collector refuses on these names.
+   *
+   * A failed send loses the event. There is nowhere to keep it that the person has agreed to, and
+   * nothing analytics does may surface to the user or block the banner they are answering.
+   */
+  function reportIdentityFreeEvent(eventName: IdentityFreeAnalyticsEventName): void {
+    if (isEnabled === false) {
+      return;
+    }
+
+    void sendAnonymousAnalyticsEvent(toIdentityFreeAnalyticsWireEvent(eventName, Date.now()))
+      .catch((): void => undefined);
+  }
+
+  /**
+   * Records a consent grant for this browser and releases everything that was waiting on it.
+   *
+   * The grant succeeded exactly when the answer carries a `visitorId`; the `consentRequired` field
+   * reports the jurisdiction on this method and says nothing about whether this browser still has to
+   * be asked (docs/analytics-visitor-identity.md). Nothing is recorded locally unless the server
+   * recorded it, so a failed call leaves the banner up rather than silently swallowing the answer.
+   *
+   * It reports no event of its own: the surface the person answered on reports the decision, so a
+   * decision carried over from an account does not look like one somebody just made.
+   */
+  async function applyAnalyticsConsentGrant(): Promise<boolean> {
+    // The kill switch outranks a grant, and this is the one call that would mint a 13-month cookie
+    // for a browser nothing is ever tracked from. Refusing it is also what keeps the settings screen
+    // honest: it reads the stored decision, so a grant stored under a switched-off runtime would
+    // render "on" over a runtime that reports nothing. The refusal is deliberately not symmetric —
+    // `applyAnalyticsConsentDecline` runs either way, because a withdrawal must never be blocked.
+    if (isEnabled === false) {
+      return false;
+    }
+
+    const visitor = await submitAnalyticsVisitorConsent(true);
+    if (visitor.visitorId === null) {
+      return false;
+    }
+
+    recordAnalyticsConsentDecision("granted");
+    await resolveAnalyticsVisitorIdentityAfterConsentGrant();
+    flush();
+    return true;
+  }
+
+  /**
+   * Records a refusal for this browser. The server clears any visitor cookie it carries and mints
+   * nothing; what this adds is local: the stored decision, which is what stops this browser asking
+   * for an identity again, and the discard of everything collected under the consent being
+   * withdrawn. The events held in memory stay held — they carry no identity, which is the one thing
+   * the refusal is about, and they go out on the next flush.
+   */
+  async function applyAnalyticsConsentDecline(): Promise<void> {
+    await submitAnalyticsVisitorConsent(false);
+    recordAnalyticsConsentDecision("declined");
+    // The server's own answer clears the cookie; this closes the window after it, where a `GET` that
+    // was already in flight lands its own `Set-Cookie` on a browser that has just refused.
+    clearAnalyticsVisitorCookie();
+    // Not reported as a loss: discarding what was collected before a refusal is the refusal's
+    // documented effect rather than something anybody needs to be told about. It touches the store
+    // only where this load already opened it, so a refusal never creates one. What is held in memory
+    // is deliberately kept: it carries no identity, which is the one thing the refusal is about.
+    discardQueuedWork({
+      shouldReportDiscard: false,
+      shouldReleaseOwner: false,
+      shouldDiscardHeldEvents: false,
+    });
+    resetAnalyticsSession();
+    flush();
+  }
+
   async function runFlush(): Promise<void> {
     if (isEnabled === false || isFlushing) {
+      return;
+    }
+
+    // Nothing this browser collected may leave it while the consent question is open: it has not
+    // been asked yet where it has to be, or it does not know yet whether it has to be. What was
+    // tracked meanwhile is held in memory and goes out on the flush the answer releases.
+    if (isAwaitingAnalyticsConsentDecision()) {
       return;
     }
 
@@ -697,6 +1157,30 @@ export function createAnalyticsDeliveryRuntime(
     isFlushing = true;
     trackedSinceFlushCount = 0;
     try {
+      // A browser that refused consent never reaches the queue at all: its rows go straight out of
+      // memory, so neither queued transport below has anything to read and the stored queue is left
+      // exactly as the refusal discarded it. Which transport carries them is the only thing an
+      // account credential decides — the account's own ingest, or the identity-free collector.
+      if (readAnalyticsConsentDecision() === "declined") {
+        remainingFlushRequestCount = flushRequestBudget;
+        drainDropReports();
+        if (canDeliverHeldEventsWithoutIdentity()) {
+          await deliverHeldEventsWithoutIdentity(analyticsGeneration);
+        } else {
+          await deliverHeldEventsUnderAccount(analyticsGeneration);
+        }
+
+        return;
+      }
+
+      // Past this line this browser may be written to, so a claim the session layer published while
+      // it could not be is run now. Without it `isQueueOwnerReconciled` would stay false for the
+      // rest of the load and park a signed-in person's events until the next one.
+      claimDeferredQueueOwner();
+      hasOpenedAnalyticsQueue = true;
+      // Everything held while this browser could write nothing to itself belongs in the queue now.
+      adoptHeldEvents();
+
       // Ahead of the appends this flush goes on to make, which take their place on `persistTask`
       // behind the link this takes. A queue owner nothing can confirm again is retired here, so the
       // records appended below land in a cleared, unowned queue rather than in the dead guest's.
@@ -772,9 +1256,21 @@ export function createAnalyticsDeliveryRuntime(
    * shared visitor cookie, one browser's id across accounts and across a sign-in.
    */
   function claimQueueOwner(userId: string): void {
+    // The claim writes the owner record, and writing it is what creates the analytics database. It
+    // is therefore storage like any other and takes the same gate: a signed-in visitor looking at an
+    // unanswered banner, and one who refused, must not be given an analytics store they never agreed
+    // to. Nothing is lost by waiting — the account is held in memory — so the claim is deferred and
+    // `claimDeferredQueueOwner` runs it on the first flush this browser is allowed.
+    if (isAnalyticsDeviceStorageAllowed() === false) {
+      isQueueOwnerClaimDeferred = true;
+      return;
+    }
+
+    isQueueOwnerClaimDeferred = false;
     // Chained onto the persist task like every other queue operation, so a claim can neither interleave
     // with a write nor leave the chain rejected for the writes behind it.
     persistTask = persistTask.then(async (): Promise<void> => {
+      hasOpenedAnalyticsQueue = true;
       try {
         const claim = await claimAnalyticsQueueOwner(userId);
         if (claim.didReplaceForeignOwner && claim.discardedEventCount > 0) {
@@ -793,6 +1289,19 @@ export function createAnalyticsDeliveryRuntime(
         reportAnalyticsQueueFailure(error);
       }
     });
+  }
+
+  /**
+   * Runs a claim that was deferred because this browser could be written to nothing at the time.
+   * Called from the flush, which is the first thing that happens once the answer allows storage —
+   * the grant flushes, and so does every periodic tick.
+   */
+  function claimDeferredQueueOwner(): void {
+    if (isQueueOwnerClaimDeferred === false || confirmedOwnerId === null) {
+      return;
+    }
+
+    claimQueueOwner(confirmedOwnerId);
   }
 
   /**
@@ -860,8 +1369,10 @@ export function createAnalyticsDeliveryRuntime(
       return;
     }
 
-    enqueueEvent(event, surface);
+    collectEvent(event, surface);
     trackedSinceFlushCount += 1;
+    // A held event persists nothing, because `pendingRecords` is empty; the flush the threshold
+    // schedules is what a browser reporting without an identity drains its held events on.
     schedulePersist();
   }
 
@@ -875,12 +1386,18 @@ export function createAnalyticsDeliveryRuntime(
    * answer is asked for once; `resolveAnalyticsVisitorIdentity` re-asks only after a call that threw
    * and only under its own bounds, so calling this on every connectivity change and every periodic
    * tick costs nothing once the identity has settled. Never awaited and never on a render path,
-   * because a first visit can pay a GeoLite download inside the request. The kill switch is an
-   * explicit opt-out and this call can set a 13-month cookie, so an opted-out browser asks for
-   * nothing.
+   * because a first visit can pay a GeoLite download inside the request. The kill switch and a
+   * refused banner are both explicit opt-outs and this call can set a 13-month cookie, so neither
+   * browser asks for anything.
    */
   function startVisitorIdentityResolution(): void {
     if (isEnabled === false) {
+      return;
+    }
+
+    // A browser that refused is never asked again. The route mints for any country that requires no
+    // consent, so one more `GET` would hand back the identity the refusal had just cleared.
+    if (readAnalyticsConsentDecision() === "declined") {
       return;
     }
 
@@ -916,18 +1433,37 @@ export function createAnalyticsDeliveryRuntime(
     return total;
   }
 
-  function discardQueuedWork(shouldReportDiscard: boolean, shouldReleaseOwner: boolean): void {
+  function discardQueuedWork(options: QueuedWorkDiscardOptions): void {
+    const { shouldReportDiscard, shouldReleaseOwner, shouldDiscardHeldEvents } = options;
     // Invalidates any flush already in flight before a single record is touched, so it can neither
     // send the discarded events under the next identity nor delete records belonging to it.
     analyticsGeneration += 1;
     // Counted before the queue is emptied: an unreported drop is itself a silent loss.
-    const unreportedLossCount = pendingRecords.length + sumPendingDropCounts();
+    const unreportedLossCount = pendingRecords.length
+      + sumPendingDropCounts()
+      + (shouldDiscardHeldEvents ? heldWireEvents.length : 0);
     pendingRecords = [];
+    if (shouldDiscardHeldEvents) {
+      heldWireEvents = [];
+    }
+
     pendingDropCounts = new Map<AnalyticsDropReason, number>();
     consecutiveFailureCount = 0;
     firstDeliveryFailureAtMs = null;
     lastFailureStatusCode = null;
     retryNotBeforeMs = 0;
+    // Nothing on this load ever opened the analytics database, so there is nothing stored to
+    // discard — and `clearAnalyticsQueue` would open it, which creates it. On the refusal path that
+    // is precisely the write the banner promised not to make: a browser that answered `Decline`
+    // before anything was allowed to touch it must end the load with no analytics store at all.
+    if (hasOpenedAnalyticsQueue === false) {
+      if (shouldReportDiscard && unreportedLossCount > 0) {
+        reportAnalyticsQueueDiscardedOnReset(unreportedLossCount);
+      }
+
+      return;
+    }
+
     persistTask = persistTask.then(async (): Promise<void> => {
       try {
         const clearedEventCount = await clearAnalyticsQueue(shouldReleaseOwner);
@@ -958,7 +1494,15 @@ export function createAnalyticsDeliveryRuntime(
       // browser rather than to whoever was signed in.
       confirmedOwnerId = null;
       isQueueOwnerReconciled = false;
-      discardQueuedWork(true, true);
+      isQueueOwnerClaimDeferred = false;
+      // Including what is only held in memory: on a browser that refused consent that is everything
+      // this document collected, and leaving it behind would post the previous account's events on
+      // the next one's credential — the crossing this whole path exists to prevent.
+      discardQueuedWork({
+        shouldReportDiscard: true,
+        shouldReleaseOwner: true,
+        shouldDiscardHeldEvents: true,
+      });
       resetAnalyticsSession();
     } catch {
       // Logout cleanup must not fail because analytics could not reset.
@@ -974,8 +1518,13 @@ export function createAnalyticsDeliveryRuntime(
         // Not reported: turning analytics off is a deliberate operator action, and the discard is its
         // documented effect rather than a loss anybody needs to be told about. The stored queue owner
         // is kept, because the queue is emptied rather than handed to somebody else, so turning
-        // analytics back on does not have to wait for another verification to publish one.
-        discardQueuedWork(false, false);
+        // analytics back on does not have to wait for another verification to publish one. What is
+        // held in memory goes with it: analytics being off means nothing collected under it ships.
+        discardQueuedWork({
+          shouldReportDiscard: false,
+          shouldReleaseOwner: false,
+          shouldDiscardHeldEvents: true,
+        });
         return;
       }
 
@@ -1051,6 +1600,9 @@ export function createAnalyticsDeliveryRuntime(
   return {
     isAnalyticsEnabledForCurrentRuntime,
     enqueue,
+    reportIdentityFreeEvent,
+    applyAnalyticsConsentGrant,
+    applyAnalyticsConsentDecline,
     flush,
     reset,
     setEnabled,

@@ -7,6 +7,7 @@
  * 30-minute rule, which is what this module still owns locally.
  */
 import { getAppConfig } from "../config";
+import type { AnalyticsConsentChoice } from "../types";
 
 const visitorCookieName = "analytics_visitor";
 /**
@@ -134,7 +135,8 @@ export function readAnalyticsVisitorId(): string | null {
 
 /**
  * The id every reported event is attributed to: the shared visitor cookie, and where the browser
- * kept none, a per-tab id held in memory.
+ * kept none, a per-tab id held in memory. Null where this browser refused consent and so may be
+ * given no identifier at all.
  *
  * The mint answer's own `visitorId` is deliberately never adopted here. It is returned whether or
  * not the browser accepted the `Set-Cookie`, so a browser that blocks cookies would otherwise be
@@ -144,7 +146,16 @@ export function readAnalyticsVisitorId(): string | null {
  * resets every visitor id on that day. That is knowingly accepted: no anonymous identity is carried
  * across the domain move.
  */
-export function readAnalyticsAnonymousId(): string {
+export function readAnalyticsAnonymousId(): string | null {
+  // Read before the cookie rather than after it, because a refusal does not guarantee the cookie is
+  // gone: a `GET /v1/analytics/visitor` already in flight when the decline `POST` cleared it lands
+  // its own `Set-Cookie` afterwards. A browser that refused is given no identifier at all, so a late
+  // mint is ignored here and expired by `clearAnalyticsVisitorCookie` below. The kill switch is read
+  // with it, because an operator opt-out withholds every identity in exactly the same way.
+  if (isAnalyticsIdentityAllowed() === false) {
+    return null;
+  }
+
   const visitorId = readAnalyticsVisitorId();
   if (visitorId !== null) {
     return visitorId;
@@ -165,6 +176,20 @@ function readSharedVisitorCookieDomain(): string | null {
   const separatorIndex = apiHostname.indexOf(".");
   const baseDomain = separatorIndex === -1 ? "" : apiHostname.slice(separatorIndex + 1);
   return baseDomain.includes(".") ? baseDomain : null;
+}
+
+/**
+ * Expires the shared visitor cookie from the browser side, for a browser that has just refused.
+ *
+ * The refusal's own `POST` already clears it, and this is what closes the window after it: a `GET`
+ * that was in flight when the answer landed carries its own `Set-Cookie`, and a refused browser must
+ * end up without the identifier rather than merely ignoring it. Written with the attributes the
+ * backend mints it with, because a cookie is only replaced by one naming the same domain and path.
+ */
+export function clearAnalyticsVisitorCookie(): void {
+  const cookieDomain = readSharedVisitorCookieDomain();
+  const domainAttribute = cookieDomain === null ? "" : ` Domain=${cookieDomain};`;
+  document.cookie = `${visitorCookieName}=;${domainAttribute} Path=/; Max-Age=0; Secure; SameSite=Lax`;
 }
 
 /** Retires the stored key, for a browser whose shared identity has replaced what it described. */
@@ -288,15 +313,95 @@ export function resetAnalyticsSession(): void {
   removeBrowserStorageItem(sessionStorageKey);
 }
 
-export function readStoredAnalyticsEnabled(): boolean {
-  return readBrowserStorageItem(analyticsEnabledStorageKey) !== "0";
+/**
+ * The one key carries two facts, and they are stored together rather than beside each other: the
+ * kill switch, and this browser's answer to the consent banner.
+ *
+ * - absent — the switch is on and nobody has answered
+ * - `"granted"` / `"declined"` — the switch is on and this is the answer
+ * - `"0"` — the legacy operator opt-out, which reads as the refusal it always was
+ * - `"0:"`, `"0:granted"`, `"0:declined"` — the switch is off, carrying the answer it found
+ *
+ * The prefixed forms exist so the switch cannot destroy a decision. An operator toggling it off and
+ * on again must not return a browser that refused to "undecided", because that browser would then be
+ * asked once more and is re-mintable in between — a withdrawal undone by an operator action nobody
+ * asked the person about.
+ */
+const analyticsDisabledValue = "0";
+const analyticsDisabledPrefix = "0:";
+
+type StoredAnalyticsSwitch = Readonly<{
+  isEnabled: boolean;
+  decision: AnalyticsConsentChoice | null;
+}>;
+
+function toStoredConsentChoice(value: string): AnalyticsConsentChoice | null {
+  if (value === "granted") {
+    return "granted";
+  }
+
+  return value === "declined" ? "declined" : null;
 }
 
+function readStoredAnalyticsSwitch(): StoredAnalyticsSwitch {
+  const storedValue = readBrowserStorageItem(analyticsEnabledStorageKey);
+  if (storedValue === null) {
+    return { isEnabled: true, decision: null };
+  }
+
+  if (storedValue === analyticsDisabledValue) {
+    return { isEnabled: false, decision: "declined" };
+  }
+
+  if (storedValue.startsWith(analyticsDisabledPrefix)) {
+    return {
+      isEnabled: false,
+      decision: toStoredConsentChoice(storedValue.slice(analyticsDisabledPrefix.length)),
+    };
+  }
+
+  return { isEnabled: true, decision: toStoredConsentChoice(storedValue) };
+}
+
+/** The kill switch, the only thing that turns analytics off entirely. */
+export function readStoredAnalyticsEnabled(): boolean {
+  return readStoredAnalyticsSwitch().isEnabled;
+}
+
+/** Moves the switch and carries whatever answer the person had given across it, in both directions. */
 export function writeStoredAnalyticsEnabled(enabled: boolean): void {
-  if (enabled) {
+  const { decision } = readStoredAnalyticsSwitch();
+  if (enabled === false) {
+    writeBrowserStorageItem(analyticsEnabledStorageKey, `${analyticsDisabledPrefix}${decision ?? ""}`);
+    return;
+  }
+
+  if (decision === null) {
     removeBrowserStorageItem(analyticsEnabledStorageKey);
     return;
   }
 
-  writeBrowserStorageItem(analyticsEnabledStorageKey, "0");
+  writeBrowserStorageItem(analyticsEnabledStorageKey, decision);
+}
+
+/** This browser's answer to the consent banner, or null while it has given none. */
+export function readStoredAnalyticsConsentDecision(): AnalyticsConsentChoice | null {
+  return readStoredAnalyticsSwitch().decision;
+}
+
+export function writeStoredAnalyticsConsentDecision(decision: AnalyticsConsentChoice): void {
+  const { isEnabled } = readStoredAnalyticsSwitch();
+  writeBrowserStorageItem(
+    analyticsEnabledStorageKey,
+    isEnabled ? decision : `${analyticsDisabledPrefix}${decision}`,
+  );
+}
+
+/**
+ * Whether this browser may be given, or linked to, an analytics identity at all. The one place both
+ * halves of the stored switch are read together: an operator opt-out and a refusal each withhold
+ * every identity, and they are the same answer to anything about to spend one.
+ */
+export function isAnalyticsIdentityAllowed(): boolean {
+  return readStoredAnalyticsEnabled() && readStoredAnalyticsConsentDecision() !== "declined";
 }

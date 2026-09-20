@@ -98,8 +98,17 @@ which is why it stays on `POST`.
 A signed-in person's own answer is kept on the account in `org.user_settings.analytics_consent`,
 read on `GET /v1/me` and written on `PATCH /v1/me/preferences`
 ([route](../apps/backend/src/routes/system/account/accountPreferences.ts)), so it travels with the
-person to another browser or device. The cookie stays the per-browser record and neither side is
-derived from the other.
+person to another browser or device. The cookie stays the per-browser record, and the two are
+reconciled at sign-in by the client rather than by either store: the account answer wins where both
+exist, and an account that has none adopts the browser's
+([web sync](../apps/web/src/analytics/accountConsent.ts)).
+
+That client sync is also what carries a guest's answer through the upgrade to an account. The
+upgrade copies no preference columns and deletes the guest row
+([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)), so the account arrives with no decision
+and adopts the one the browser is still holding. It is decided there rather than in the upgrade
+because the browser's own answer is the record that survives every account boundary, including the
+one a person crosses by signing in somewhere they never were a guest.
 
 A caller whose country cannot be resolved is treated as consent-required, so a browser reaching the
 API without an API Gateway source address — the local dev server, for instance — is never minted
@@ -108,3 +117,37 @@ fallback. The mint answer still carries a fresh id each time, because the server
 the browser accepted its `Set-Cookie`. A caller that finds the returned id absent from
 `document.cookie` afterwards must therefore treat the identity as unavailable rather than count a
 new visitor on every page load.
+
+## The banner
+
+Where the answer above comes from, on the web: a strip at the bottom of the app, shown only where
+`GET` says this browser has to be asked, with `Allow` and `Decline` one click apart on the same
+layer. Until it is answered, nothing is written to the device and nothing that names this browser
+leaves it — the events wait in memory rather than in the queue, because obtaining a session id or
+appending to the queue is itself a write. One row does go out before the answer, and only one:
+`consent_prompt_shown`, which is `identityFree` by construction and carries the surface, the locale
+and its date and nothing else. That is the honest reading of the promise on the strip, which says
+that nothing is stored on this device and nothing identifying is sent — not that nothing at all is.
+A refusal keeps that shape permanently: the
+browser is given no identifier at all, and what it reports is rows carrying none
+([anonymous client analytics](anonymous-client-analytics.md)).
+
+A signed-in person who refuses is the one case where rows still carry a name, and it is the
+account's rather than the browser's: their events go out on their own credential and are stored
+under their `user_id`, with no `anonymous_id` and no session id, straight from memory. Nothing is
+queued and nothing is written to the device, including the analytics database itself — the queue
+owner claim the session layer would make is deferred until this browser is allowed one, and a
+refusal that finds no store never opens one.
+
+The stored browser answer shares the `flashcards-analytics-enabled` key with the operator kill
+switch rather than sitting beside it, and the switch carries the answer across itself in both
+directions: a browser that refused stays refused when an operator turns analytics off and on again,
+instead of returning to undecided and becoming askable and mintable in between.
+
+The withdrawal control is in the app's settings in every region, not only where the banner is shown,
+because the published privacy policy states withdrawal without a regional qualifier.
+
+- [Consent state, and what it allows](../apps/web/src/analytics/consent.ts)
+- [Banner](../apps/web/src/analytics/AnalyticsConsentBanner.tsx) and
+  [settings entry](../apps/web/src/screens/settings/AnalyticsSettingsScreen.tsx)
+- [The gate the delivery runtime applies](../apps/web/src/analytics/deliveryRuntime.ts)

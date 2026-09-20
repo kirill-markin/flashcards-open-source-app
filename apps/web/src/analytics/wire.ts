@@ -8,6 +8,7 @@ import {
   type AnalyticsWireContext,
   type AnalyticsWireEvent,
   type AnonymousAnalyticsWireEvent,
+  type IdentityFreeAnalyticsEventName,
 } from "./events";
 import { createAnalyticsUuidV7, readAnalyticsAnonymousId } from "./identity";
 
@@ -131,7 +132,8 @@ export function toAnalyticsWireEvent(
 /**
  * The same queued event in the shape the credential-free collector accepts. The identity on the row
  * is the shared visitor id and nothing else, and it is read at send time rather than at track time
- * so an event queued before the cookie arrived still carries it.
+ * so an event queued before the cookie arrived still carries it — and so an event collected by a
+ * browser that refused consent carries none, which is what leaves its rows identity-free.
  */
 export function toAnonymousAnalyticsWireEvent(
   wireEvent: AnalyticsWireEvent,
@@ -147,6 +149,35 @@ export function toAnonymousAnalyticsWireEvent(
     deviceLocale: readAnalyticsDeviceLocale(),
     screen: wireEvent.screen,
     properties: wireEvent.properties,
+  };
+}
+
+/**
+ * One event in the shape the collector accepts for a catalog entry that may be stored beside no
+ * identity at all (docs/anonymous-client-analytics.md). Everything an identifier could be carried in
+ * is absent by construction rather than by a caller remembering to leave it out: no `anonymousId`,
+ * no surface, no properties. The row keeps the two facts the consent record is read by, the locale
+ * and its own date.
+ *
+ * It is built here rather than from a queued event because a queued one is always stamped with an
+ * `anonymousId`, which the collector refuses on these names with a `400` the delivery runtime drops
+ * permanently — and because queueing it would be a write to a device that has not agreed to one.
+ */
+export function toIdentityFreeAnalyticsWireEvent(
+  eventName: IdentityFreeAnalyticsEventName,
+  atMs: number,
+): AnonymousAnalyticsWireEvent {
+  const occurredAt = toAnalyticsTimestamp(atMs);
+  return {
+    eventId: createAnalyticsUuidV7(),
+    eventName,
+    clientOccurredAt: occurredAt,
+    clientSentAt: occurredAt,
+    anonymousId: null,
+    uiLocale: readAnalyticsUiLocale(),
+    deviceLocale: readAnalyticsDeviceLocale(),
+    screen: null,
+    properties: null,
   };
 }
 

@@ -5,7 +5,7 @@ import {
   type WebGuestSessionEnvelope,
 } from "../../../api";
 import { readAnalyticsSessionOwnerId } from "../../../analytics";
-import { readStoredAnalyticsEnabled } from "../../../analytics/identity";
+import { isAnalyticsIdentityAllowed } from "../../../analytics/identity";
 import { reportAnalyticsGuestIdentityLinkFailure } from "../../../analytics/observation";
 import { waitForDelay } from "../lifecycle/workspaceLifecycleHelpers";
 import {
@@ -242,15 +242,16 @@ export function linkWebGuestIdentityInBackground(
   capturedIdentityGeneration: number,
   accountUserId: string,
 ): void {
-  // The opt-out stops this before it spends the guest identity a browser is still carrying. The
-  // link writes an append-only, first-link-wins row with no repair path, so it is the most permanent
-  // backend write on this path and the least defensible one to make for somebody who declined
-  // measurement — and the switch outlives every local data wipe, so the visitor who minted a guest
-  // under an earlier build and only then opted out still arrives here. The envelope and its stamp
-  // are left alone rather than dropped: nothing mints or republishes a web guest any more
-  // (`webGuestSession.ts`), so the envelope sits inert, and keeping it is what lets the tail still
-  // be linked if analytics is turned back on before the next identity boundary.
-  if (readStoredAnalyticsEnabled() === false) {
+  // The opt-out, and a refused consent banner, stop this before it spends the guest identity a
+  // browser is still carrying. The link writes an append-only, first-link-wins row with no repair
+  // path, so it is the most permanent backend write on this path and the least defensible one to
+  // make for somebody who declined measurement — and the switch outlives every local data wipe, so
+  // the visitor who minted a guest under an earlier build and only then opted out still arrives
+  // here. The envelope and its stamp are left alone rather than dropped: nothing mints or
+  // republishes a web guest any more (`webGuestSession.ts`), so the envelope sits inert, and keeping
+  // it is what lets the tail still be linked if analytics is turned back on before the next identity
+  // boundary.
+  if (isAnalyticsIdentityAllowed() === false) {
     return;
   }
 
