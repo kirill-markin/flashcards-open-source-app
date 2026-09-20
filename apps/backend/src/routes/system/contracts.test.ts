@@ -76,6 +76,7 @@ const testApiKeyRequestContext: RequestContext = {
   userSettingsCreatedAt: "2026-03-11T08:50:55.898Z",
   preferences: {
     reviewReactionAnimationsEnabled: true,
+    analyticsConsent: null,
   },
   transport: "api_key",
   connectionId: "connection-1",

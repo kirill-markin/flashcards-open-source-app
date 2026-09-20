@@ -87,6 +87,12 @@ forcing the decline branch and wiping the id of one who did, is the origin check
 reachable through a safe method would additionally sit one link or redirect away from any page,
 which is why it stays on `POST`.
 
+A signed-in person's own answer is kept on the account in `org.user_settings.analytics_consent`,
+read on `GET /v1/me` and written on `PATCH /v1/me/preferences`
+([route](../apps/backend/src/routes/system/account/accountPreferences.ts)), so it travels with the
+person to another browser or device. The cookie stays the per-browser record and neither side is
+derived from the other.
+
 A caller whose country cannot be resolved is treated as consent-required, so a browser reaching the
 API without an API Gateway source address — the local dev server, for instance — is never minted
 without an explicit grant. A browser that blocks cookies gets no persistent identity and no

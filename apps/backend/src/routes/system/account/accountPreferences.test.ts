@@ -28,6 +28,7 @@ test("GET /me includes account preferences", async () => {
     },
     preferences: {
       reviewReactionAnimationsEnabled: true,
+      analyticsConsent: null,
     },
   });
 });
@@ -51,9 +52,13 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   const app = createSystemTestApp({
     transport: "bearer",
     getAccountPreferencesFn: () => persistedPreferences,
-    updateAccountPreferencesFn: async (userId, preferences) => {
+    updateAccountPreferencesFn: async (userId, update) => {
       assert.equal(userId, "user-1");
-      persistedPreferences = preferences;
+      persistedPreferences = {
+        reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled
+          ?? persistedPreferences.reviewReactionAnimationsEnabled,
+        analyticsConsent: update.analyticsConsent ?? persistedPreferences.analyticsConsent,
+      };
       return persistedPreferences;
     },
   });
@@ -62,6 +67,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.equal(initialResponse.status, 200);
   assert.deepEqual((await initialResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
     reviewReactionAnimationsEnabled: true,
+    analyticsConsent: null,
   });
 
   const patchResponse = await app.request("http://localhost/me/preferences", {
@@ -77,6 +83,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.deepEqual(await patchResponse.json(), {
     preferences: {
       reviewReactionAnimationsEnabled: false,
+      analyticsConsent: null,
     },
   });
 
@@ -84,6 +91,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.equal(updatedResponse.status, 200);
   assert.deepEqual((await updatedResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
     reviewReactionAnimationsEnabled: false,
+    analyticsConsent: null,
   });
 });
 
@@ -92,9 +100,9 @@ test("PATCH /me/preferences rejects session requests without valid CSRF", async 
   const app = createSystemTestApp({
     transport: "session",
     enforceSessionCsrf: true,
-    updateAccountPreferencesFn: async (_userId, preferences) => {
+    updateAccountPreferencesFn: async () => {
       updateCalled = true;
-      return preferences;
+      return createDefaultAccountPreferences();
     },
   });
   const response = await app.request("http://localhost/me/preferences", {
@@ -120,9 +128,9 @@ test("PATCH /me/preferences rejects ApiKey authentication", async () => {
   let updateCalled = false;
   const app = createSystemTestApp({
     transport: "api_key",
-    updateAccountPreferencesFn: async (_userId, preferences) => {
+    updateAccountPreferencesFn: async () => {
       updateCalled = true;
-      return preferences;
+      return createDefaultAccountPreferences();
     },
   });
   const response = await app.request("http://localhost/me/preferences", {
