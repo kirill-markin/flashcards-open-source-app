@@ -127,6 +127,7 @@ Details and key files: [docs/auth-service.md](docs/auth-service.md).
 - We align the functional contract across iOS and Android, but we do not synchronize the designs between them. The iOS UI should stay maximally native to iOS, and the Android UI should stay maximally native to Android and Material 3.
 - In the iOS app, every user tap should trigger immediate Apple-standard UI feedback, with background loading shown in place or on the next surface, failed actions restoring the previous state, and successful actions clearly exposing the next step.
 - In the iOS app and the web app, user actions should feel instantaneous. In key flows we proactively prepare the most likely next states, and where that is not possible or too expensive, we react immediately and show in-place loading feedback such as a spinner or small partial-loading spinners while data arrives.
+- Analytics events store facts; funnels, cohorts, and groupings are produced by queries over those facts at analysis time, so never add an event or event property that exists only to assemble one specific report.
 - Always mention the schema explicitly in migrations.
 - When adding, removing, or renaming backend HTTP routes, update `infra/aws/lib/gateways/api-gateway.ts` in the same change so API Gateway stays in sync.
 - AWS CLI access is available in this environment. When debugging backend, AI, or SSE issues, prefer checking the exact Lambda log group first instead of inferring only from client symptoms.
