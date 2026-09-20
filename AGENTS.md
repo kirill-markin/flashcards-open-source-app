@@ -66,11 +66,12 @@ Details, rollback rules, and live smoke references: [docs/release-gates.md](docs
 - Direct SQL over product data: the read-only `reporting_readonly` role, [docs/analytics-db-access.md](docs/analytics-db-access.md).
 - Internal admin reports on product events, audience, and catalog-install funnels: [docs/admin-app.md](docs/admin-app.md).
 - Product-wide aggregates: the daily snapshot behind `GET /v1/global/snapshot`, [docs/global-metrics.md](docs/global-metrics.md).
+- App Store discovery, downloads, usage, sales, and subscriptions: App Store Connect Analytics Reports API, [docs/app-store-analytics.md](docs/app-store-analytics.md).
 - iOS cloud build and test runs, per-test timings, and `.xcresult` bundles: [docs/xcode-cloud-data-access.md](docs/xcode-cloud-data-access.md).
 
 Reach the database through an SSM port-forward: `bash scripts/setup/get-analytics-db-access.sh` prints the current instance id, endpoint, and password, `aws ssm start-session --document-name AWS-StartPortForwardingSessionToRemoteHost` opens the tunnel, and a local Postgres client connects on the forwarded port. There is no SSH path and the bastion has no ingress rules. Never reuse a previously noted instance id, because a deploy can change it. The role is read-only at session level, so writes fail with SQLSTATE `25006`. Close the tunnel with `aws ssm terminate-session`; killing the CLI leaves the plugin process and the session running.
 
-The Langfuse and App Store Connect credentials live in the repository-root `.env`, which exists only in the main checkout. Load it by path when working from a worktree.
+The Langfuse and App Store Connect credentials live in the repository-root `.env`, which exists only in the main checkout. Load it by path when working from a worktree. For App Store Connect, check these local credentials and use the API first for supported operations; use the browser only when the API is insufficient or access remains blocked after diagnosis. See [credential setup and checks](docs/xcode-cloud-data-access.md#required-local-secrets).
 
 ## Repository Strategy
 
