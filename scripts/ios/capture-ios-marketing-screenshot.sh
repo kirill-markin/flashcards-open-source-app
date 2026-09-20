@@ -14,6 +14,37 @@ supported_locales=(
     "ru"
     "es-MX"
     "es-ES"
+    "bn"
+    "ca"
+    "cs"
+    "da"
+    "el"
+    "fi"
+    "gu"
+    "he"
+    "hr"
+    "hu"
+    "id"
+    "it"
+    "kn"
+    "ko"
+    "ml"
+    "mr"
+    "nb"
+    "nl"
+    "pa"
+    "pl"
+    "ro"
+    "sk"
+    "sl"
+    "sv"
+    "ta"
+    "te"
+    "th"
+    "tr"
+    "uk"
+    "ur"
+    "vi"
 )
 
 print_usage() {
@@ -34,6 +65,37 @@ Supported locales:
   ru
   es-MX
   es-ES
+  bn
+  ca
+  cs
+  da
+  el
+  fi
+  gu
+  he
+  hr
+  hu
+  id
+  it
+  kn
+  ko
+  ml
+  mr
+  nb
+  nl
+  pa
+  pl
+  ro
+  sk
+  sl
+  sv
+  ta
+  te
+  th
+  tr
+  uk
+  ur
+  vi
 
 Environment:
   FLASHCARDS_MARKETING_SCREENSHOT_LOCALE   Canonical locale code or supported alias.
@@ -52,7 +114,7 @@ canonicalize_locale() {
         en | en-US)
             echo "en-US"
             ;;
-        ar)
+        ar | ar-SA)
             echo "ar"
             ;;
         zh-CN | zh-Hans)
@@ -81,6 +143,99 @@ canonicalize_locale() {
             ;;
         es-ES)
             echo "es-ES"
+            ;;
+        bn | bn-BD)
+            echo "bn"
+            ;;
+        ca)
+            echo "ca"
+            ;;
+        cs)
+            echo "cs"
+            ;;
+        da)
+            echo "da"
+            ;;
+        el)
+            echo "el"
+            ;;
+        fi)
+            echo "fi"
+            ;;
+        gu | gu-IN)
+            echo "gu"
+            ;;
+        he)
+            echo "he"
+            ;;
+        hr)
+            echo "hr"
+            ;;
+        hu)
+            echo "hu"
+            ;;
+        id)
+            echo "id"
+            ;;
+        it)
+            echo "it"
+            ;;
+        kn | kn-IN)
+            echo "kn"
+            ;;
+        ko)
+            echo "ko"
+            ;;
+        ml | ml-IN)
+            echo "ml"
+            ;;
+        mr | mr-IN)
+            echo "mr"
+            ;;
+        nb | no)
+            echo "nb"
+            ;;
+        nl | nl-NL)
+            echo "nl"
+            ;;
+        pa | pa-IN)
+            echo "pa"
+            ;;
+        pl)
+            echo "pl"
+            ;;
+        ro)
+            echo "ro"
+            ;;
+        sk)
+            echo "sk"
+            ;;
+        sl | sl-SI)
+            echo "sl"
+            ;;
+        sv)
+            echo "sv"
+            ;;
+        ta | ta-IN)
+            echo "ta"
+            ;;
+        te | te-IN)
+            echo "te"
+            ;;
+        th)
+            echo "th"
+            ;;
+        tr)
+            echo "tr"
+            ;;
+        uk)
+            echo "uk"
+            ;;
+        ur | ur-PK)
+            echo "ur"
+            ;;
+        vi)
+            echo "vi"
             ;;
         *)
             return 1
