@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Velja mynd";
 "ai.composer.attachment.chooseFile" = "Velja skrá";
 "ai.composer.attachment.unsupported" = "Óstutt viðhengi (%@)";
+"ai.attachment.card.title" = "Spjald";
+"ai.attachment.card.withSnippet" = "Spjald · %@";
 "ai.attachment.error.unsupportedType" = "Óstudd skráartegund: .%@";
 "ai.attachment.error.cameraUnavailable" = "Myndavél er ekki tiltæk á þessu tæki.";
 "ai.attachment.error.photoUnavailable" = "Aðgangur að myndum er ekki tiltækur á þessu tæki.";

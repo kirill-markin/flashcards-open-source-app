@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "ફોટો પસંદ કરો";
 "ai.composer.attachment.chooseFile" = "ફાઇલ પસંદ કરો";
 "ai.composer.attachment.unsupported" = "જોડાણ સમર્થિત નથી (%@)";
+"ai.attachment.card.title" = "કાર્ડ";
+"ai.attachment.card.withSnippet" = "કાર્ડ · %@";
 "ai.attachment.error.unsupportedType" = "ફાઇલનો પ્રકાર સમર્થિત નથી: .%@";
 "ai.attachment.error.cameraUnavailable" = "આ ઉપકરણ પર કૅમેરા ઉપલબ્ધ નથી.";
 "ai.attachment.error.photoUnavailable" = "આ ઉપકરણ પર ફોટાની ઍક્સેસ ઉપલબ્ધ નથી.";

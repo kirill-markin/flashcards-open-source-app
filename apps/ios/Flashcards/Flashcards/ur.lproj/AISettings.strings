@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "تصویر چنیں";
 "ai.composer.attachment.chooseFile" = "فائل چنیں";
 "ai.composer.attachment.unsupported" = "غیر معاون منسلکہ (%@)";
+"ai.attachment.card.title" = "کارڈ";
+"ai.attachment.card.withSnippet" = "کارڈ · %@";
 "ai.attachment.error.unsupportedType" = "فائل کی قسم معاون نہیں: .%@";
 "ai.attachment.error.cameraUnavailable" = "اس آلے پر کیمرا دستیاب نہیں ہے۔";
 "ai.attachment.error.photoUnavailable" = "اس آلے پر تصاویر کی رسائی دستیاب نہیں ہے۔";

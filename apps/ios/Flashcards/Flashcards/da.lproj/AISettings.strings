@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Vælg foto";
 "ai.composer.attachment.chooseFile" = "Vælg fil";
 "ai.composer.attachment.unsupported" = "Ikke-understøttet vedhæftning (%@)";
+"ai.attachment.card.title" = "Kort";
+"ai.attachment.card.withSnippet" = "Kort · %@";
 "ai.attachment.error.unsupportedType" = "Filtypen understøttes ikke: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kameraet er ikke tilgængeligt på denne enhed.";
 "ai.attachment.error.photoUnavailable" = "Fotoadgang er ikke tilgængelig på denne enhed.";
