@@ -884,9 +884,7 @@ private fun marketingScreenshotLocaleConfigForPrefix(
 ): MarketingScreenshotLocaleConfig {
     return marketingScreenshotLocaleConfigs.firstOrNull { config ->
         config.localePrefix == localePrefix
-    } ?: throw IllegalArgumentException(
-        "Unsupported marketing screenshot locale prefix '$localePrefix'."
-    )
+    } ?: loadMarketingScreenshotLocaleConfig(localePrefix = localePrefix)
 }
 
 internal fun configuredMarketingScreenshotLocaleConfigOrNull(): MarketingScreenshotLocaleConfig? {

@@ -123,7 +123,10 @@ val marketingScreenshotLocales: List<String> = listOf(
     "ru-RU",
     "es-419",
     "es-ES",
-    "es-US"
+    "es-US",
+    "bg", "bn", "ca", "cs", "da", "el", "et", "fa", "fi", "gu", "he", "hr", "hu",
+    "id", "is", "it", "kn", "ko", "lt", "lv", "ml", "mr", "nl", "no", "pa", "pl",
+    "ro", "sk", "sl", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi", "zu"
 )
 val marketingScreenshotLocaleFilters: List<String> =
     marketingScreenshotLocales.flatMap(::toAndroidLocaleFilters).distinct()

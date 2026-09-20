@@ -4,7 +4,7 @@ This document tracks repeatable Android screenshot scripts for marketing assets.
 
 For the operational capture procedure, clean-emulator workflow, and verification checklist, use [`marketing-screenshot-runbook.md`](marketing-screenshot-runbook.md).
 
-The locale-specific screenshot texts, file-name prefixes, and UI labels currently live in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotCatalog.kt`.
+The existing locale configurations live in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotCatalog.kt`; additional locales use the JSON packs described below.
 Screenshot-only translated app resources belong in `apps/android/app/src/marketingScreenshot/res` and are packaged only in the dedicated `marketingScreenshot` build type used by the wrapper scripts.
 
 ## Current inventory
@@ -12,7 +12,7 @@ Screenshot-only translated app resources belong in `apps/android/app/src/marketi
 There is currently one supported Android manual capture flow and five expected generated output PNG targets.
 Existing repository media can still contain the previous split-run assets or older cards-list numbering until the unified generator is run and the regenerated PNGs are reviewed.
 
-The screenshot catalog currently defines these locale prefixes:
+The Kotlin screenshot catalog defines these locale prefixes:
 
 - `en`
 - `en-US`
@@ -74,6 +74,40 @@ The wrapper verifies initial guest cleanup, capture, and final guest cleanup sep
 The screenshot reset flow remains as an in-test defense: it deletes the guest cloud session remotely before it clears local screenshot state so the seeded guest workspace does not remain on the backend after the run.
 
 The unified wrapper script runs one manual-only entrypoint, seeds one guest workspace, saves screenshots 1, 2, 3, 4, and 5 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the committed marketing media directory.
+
+## JSON locale packs
+
+Additional Play locales load UTF-8 fixtures from
+`apps/android/app/src/androidTest/assets/marketing-locales/<Play-code>.json`.
+`MarketingScreenshotLocaleLoader.kt` lists accepted Play codes and their exact
+`appLocaleTag` mappings. Existing Kotlin configurations take precedence; the
+default remains `en`. A requested pack that is missing or malformed fails capture.
+
+Each fixture is an object with these required fields. Strings must be nonblank;
+arrays must be nonempty. Unrelated extra fields are ignored.
+
+| Field | Value |
+| --- | --- |
+| `localePrefix` | Exact Play code used in the filename and wrapper argument |
+| `appLocaleTag` | Generic app language from the loader mapping, such as `bn`, `he`, or `id` |
+| `uiText` | Object with all 16 string fields from `MarketingScreenshotUiText` in the catalog |
+| `reviewCard` | Object with `frontText`, `backText`, and a string array `tags` |
+| `reviewAiDraftMessage` | Unsent AI request text |
+| `cards` | Array of objects with `frontText`, `backText`, and `subjectTag` |
+
+Keep the seven concept cards in the existing scenario order.
+`cards[0].frontText` must exactly match `reviewCard.frontText`, later cards must
+not repeat that prompt, and `reviewCard.tags` must equal
+`[cards[0].subjectTag]`. Prompts belong on the front and answers on the back.
+
+Each new pack also needs translated UI overlays in
+`apps/android/app/src/marketingScreenshot/res/values-<appLocaleTag>/strings.xml`.
+Use Android's `values-iw` for Hebrew and `values-in` for Indonesian; Norwegian
+uses `values-no`. Keep UI labels consistent with the fixture. Generic screenshot
+language filters and their Android aliases are retained by
+`app/build.gradle.kts` only when a marketing screenshot task is requested.
+These packs and overlays do not change shipping translations or the advertised
+app language list.
 
 ## Pattern for future flows
 
