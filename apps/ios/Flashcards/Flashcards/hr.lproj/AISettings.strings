@@ -638,7 +638,7 @@
 "settings.notifications.to" = "Do";
 "settings.notifications.repeatEvery" = "Ponovi svakih";
 "settings.notifications.duration.oneHour" = "1 sat";
-"settings.notifications.duration.hours" = "%d sati";
+"settings.notifications.duration.hours" = "Sati: %d";
 "settings.notifications.duration.minutes" = "%d minuta";
 "settings.workspace.export.fileUnavailable" = "Izvezena datoteka nije dostupna.";
 "settings.workspace.export.cloudRequired" = "Izvoz medijskog paketa u ovoj verziji zahtijeva račun u oblaku.";
@@ -662,7 +662,7 @@
 "settings.workspace.export.package.includedTags.section" = "Uključene oznake";
 "settings.workspace.export.package.includedTags.empty" = "Nema oznaka paketa za uključivanje.";
 "settings.workspace.export.package.tag.oneCard" = "%d kartica";
-"settings.workspace.export.package.tag.multipleCards" = "%d kartica";
+"settings.workspace.export.package.tag.multipleCards" = "Kartice: %d";
 "settings.workspace.export.package.includeTag" = "Uključi %@";
 "settings.workspace.export.package.generatedImportTagNotIncluded" = "Generirane oznake uvoza nisu uključene u izvoz paketa.";
 "settings.workspace.export.package.exporting" = "Izvoz...";
@@ -707,7 +707,7 @@
 "settings.workspace.import.warnings.empty" = "Nema upozorenja.";
 "settings.workspace.import.confirm" = "Uvezi paket";
 "settings.workspace.import.tag.oneCard" = "%d kartica";
-"settings.workspace.import.tag.multipleCards" = "%d kartica";
+"settings.workspace.import.tag.multipleCards" = "Kartice: %d";
 "settings.workspace.import.noFileSelected" = "Nije odabrana datoteka paketa.";
 "settings.workspace.import.previewRequired" = "Pregledajte paket prije uvoza.";
 "settings.workspace.decks.description" = "Špilovi su pametni filtri koji uključuju kartice s odabranim oznakama.";
@@ -743,7 +743,7 @@
 "settings.workspace.tags.noMatching" = "Nema odgovarajućih oznaka";
 "settings.workspace.tags.searchPrompt" = "Pretraži oznake";
 "settings.workspace.tags.oneCard" = "%d kartica";
-"settings.workspace.tags.multipleCards" = "%d kartica";
+"settings.workspace.tags.multipleCards" = "Kartice: %d";
 "settings.workspace.tags.totalCards" = "Ukupno kartica";
 "settings.workspace.tags.totalCardsDescription" = "Ovaj se broj odnosi na cijeli radni prostor i ne broji dvaput kartice koje dijele oznake.";
 "settings.row.sendFeedback" = "Pošalji povratne informacije";

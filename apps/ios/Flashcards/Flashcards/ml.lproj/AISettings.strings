@@ -570,7 +570,7 @@
 "settings.workspace.overview.deleteWorkspace" = "വർക്ക്‌സ്‌പേസ് ഇല്ലാതാക്കുക";
 "settings.workspace.overview.deleteAlertTitle" = "ഈ വർക്ക്‌സ്‌പേസ് ഇല്ലാതാക്കണോ?";
 "settings.workspace.overview.deleteAlertMessage" = "ഇത് നിലവിലെ വർക്ക്‌സ്‌പേസ് ശാശ്വതമായി ഇല്ലാതാക്കും.";
-"settings.workspace.overview.deleteAlertMessageWithCount" = "ഈ വർക്ക്‌സ്‌പേസിൽ നിന്ന് %d സജീവ കാർഡുകൾ ശാശ്വതമായി ഇല്ലാതാക്കും.";
+"settings.workspace.overview.deleteAlertMessageWithCount" = "ഈ വർക്ക്‌സ്‌പേസിൽ നിന്ന് ശാശ്വതമായി ഇല്ലാതാക്കുന്ന സജീവ കാർഡുകളുടെ എണ്ണം: %d.";
 "settings.workspace.deleteConfirmation.title" = "വർക്ക്‌സ്‌പേസ് ഇല്ലാതാക്കുക";
 "settings.workspace.deleteConfirmation.warning" = "മുന്നറിയിപ്പ്! ഈ പ്രവർത്തനം ശാശ്വതമാണ്. ഇല്ലാതാക്കുന്ന സജീവ കാർഡുകൾ: %d; വർക്ക്‌സ്‌പേസ്: %@.";
 "settings.workspace.deleteConfirmation.lastWorkspace" = "ഇല്ലാതാക്കിയ ഉടൻ പുതിയ ശൂന്യമായ വ്യക്തിഗത വർക്ക്‌സ്‌പേസ് സൃഷ്ടിക്കും.";
@@ -678,7 +678,7 @@
 "settings.workspace.import.missingImportTag" = "ഇംപോർട്ട് ചെയ്യുന്നതിന് മുമ്പ് ഇംപോർട്ട് ടാഗ് നൽകുക.";
 "settings.workspace.import.warningWithPath" = "%@: %@";
 "settings.workspace.import.successWithTag" = "ഇംപോർട്ട് ചെയ്ത കാർഡുകൾ: %d; ടാഗ്: %@.";
-"settings.workspace.import.success" = "%d കാർഡുകൾ ഇംപോർട്ട് ചെയ്തു.";
+"settings.workspace.import.success" = "ഇംപോർട്ട് ചെയ്ത കാർഡുകൾ: %d.";
 "settings.workspace.import.section.package" = "പാക്കേജ്";
 "settings.workspace.import.choosePackage" = "ZIP പാക്കേജ് തിരഞ്ഞെടുക്കുക";
 "settings.workspace.import.previewing" = "പ്രിവ്യൂ തയ്യാറാക്കുന്നു...";
@@ -720,7 +720,7 @@
 "settings.workspace.decks.searchPrompt" = "ഡെക്കുകൾ തിരയുക";
 "settings.workspace.decks.newDeck" = "പുതിയ ഡെക്ക്";
 "settings.workspace.decks.dueCount" = "ആവർത്തിക്കേണ്ടത്: %d";
-"settings.workspace.decks.totalCards" = "%d കാർഡുകൾ";
+"settings.workspace.decks.totalCards" = "കാർഡുകൾ: %d";
 "settings.workspace.decks.newCount" = "പുതിയത്: %d";
 "settings.workspace.decks.reviewedCount" = "ആവർത്തിച്ചത്: %d";
 "settings.workspace.decks.emptyAllCards" = "നിങ്ങൾ ഇതുവരെ കാർഡുകളൊന്നും സൃഷ്ടിച്ചിട്ടില്ല.";
