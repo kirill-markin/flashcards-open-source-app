@@ -94,14 +94,6 @@ export const allowAuthRecoveryWithTransientNetworkRetry: RequestOptions = {
 
 export const skipAuthRecoveryWithTransientNetworkRetry: RequestOptions = createSkipAuthRecoveryOptions("transient");
 
-/**
- * For a request that must not be repeated. A dropped connection tells the client nothing about
- * whether the server acted, so retrying a write with no idempotency key can produce a second
- * permanent effect from a single caller attempt. Such a call fails on the first network error and
- * leaves retrying to whoever knows it is safe.
- */
-export const skipAuthRecoveryWithoutNetworkRetry: RequestOptions = createSkipAuthRecoveryOptions("none");
-
 function createSkipAuthRecoveryOptions(networkRetryMode: NetworkRetryMode): RequestOptions {
   return {
     authRecoveryMode: "skip",

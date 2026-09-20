@@ -17,7 +17,6 @@ import {
   allowAuthRecoveryWithTransientNetworkRetry,
   createSessionRecovery,
   skipAuthRecoveryWithTransientNetworkRetry,
-  skipAuthRecoveryWithoutNetworkRetry,
   type AuthRecoveryMode,
   type NetworkRetryMode,
   type RequestOptions,
@@ -36,7 +35,6 @@ export {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
   skipAuthRecoveryWithTransientNetworkRetry,
-  skipAuthRecoveryWithoutNetworkRetry,
 };
 export type {
   AuthRecoveryMode,
@@ -188,22 +186,17 @@ async function performFetch(
   }
 }
 
-async function performGuestFetch(
+async function performCredentialFreeFetch(
   pathname: string,
   init: RequestInit,
-  guestToken: string | null,
   attemptCount: number,
 ): Promise<Response> {
   const config = getAppConfig();
   const headers = createBaseHeaders(init);
-  if (guestToken !== null) {
-    headers.set("Authorization", `Guest ${guestToken}`);
-  }
 
   try {
-    // "omit" keeps the guest token the only credential on the request. A session cookie riding along
-    // would be ignored by the backend, which reads the Authorization header first, but leaving the
-    // request with exactly one credential is what makes the identity it is attributed to obvious.
+    // "omit" rather than a session cookie the route would ignore: a request that carries no
+    // credential at all is what makes the identity it is attributed to obvious.
     return await fetch(`${config.apiBaseUrl}${pathname}`, {
       ...init,
       credentials: "omit",
@@ -316,28 +309,23 @@ export async function requestPublicJson(pathname: string): Promise<ParsedRespons
 }
 
 /**
- * Sends one request authenticated by a guest token instead of the shared browser session.
+ * Sends one request that carries no credential at all: no session cookie, no CSRF token, no bearer.
  *
- * The guest token is the whole credential, so the session cookie is deliberately not attached and
- * the session CSRF token — which the backend derives from that cookie — does not apply. This mirrors
- * `apps/backend/src/auth/requestSecurity.ts`, where `enforceSessionCsrfProtection` runs only for the
- * session transport: a header the browser has to be told to send is not an ambient credential a
- * cross-site page could ride on. It is the same shared pipeline as every other call — same base URL,
- * same network retry, same error parsing — rather than a second token mechanism beside it.
- *
- * `guestToken` is null only when creating the guest session itself, which carries no credential yet.
+ * It is what the credential-free analytics collector needs, which is origin-restricted rather than
+ * authenticated (docs/anonymous-client-analytics.md). It is the same shared pipeline as every other
+ * call — same base URL, same network retry, same error parsing — rather than a second mechanism
+ * beside it, and unlike `requestPublicJson` it is not limited to `GET`.
  */
-export async function requestGuestJson(
+export async function requestCredentialFreeJson(
   pathname: string,
   init: RequestInit,
-  guestToken: string | null,
   options: RequestOptions,
 ): Promise<ParsedResponsePayload> {
   const { requestInit, dispose: disposeRequestSignal } = sessionRecovery.attachRecoverySignal(init);
   try {
     const endpoint = buildSanitizedRequestEndpoint(pathname, requestInit);
     return await performWithNetworkRetry(endpoint, requestInit, options, async (attemptCount: number) => {
-      const response = await performGuestFetch(pathname, requestInit, guestToken, attemptCount);
+      const response = await performCredentialFreeFetch(pathname, requestInit, attemptCount);
       return parseJsonPayload(
         response,
         buildRequestEndpoint(pathname, requestInit),
