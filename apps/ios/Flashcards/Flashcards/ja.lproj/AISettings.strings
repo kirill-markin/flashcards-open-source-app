@@ -802,3 +802,6 @@
 "settings.account.status.customGuestPause.retry" = "再試行";
 "settings.account.status.customGuestPause.changeServer" = "サーバーを変更";
 "settings.account.status.customGuestPause.retryFailed" = "再試行に失敗しました。同期は引き続き一時停止されています。カスタムサーバーを確認して、もう一度お試しください。";
+"settings.language.supported.bulgarian" = "ブルガリア語";
+"settings.language.supported.bangla" = "ベンガル語";
+"settings.language.supported.catalan" = "カタルーニャ語";
