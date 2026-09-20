@@ -104,13 +104,10 @@ verifies nothing about beyond its shape.
 
 `daily-active-users` and `Audience` apply it through
 [`buildTrustedActorRowsFilterSql`](../apps/admin/src/filters/filterSql.ts), which is where any
-further report must take it from; both are documented in [Admin app](admin-app.md). It also applies
-to the two actor-level derivations those two reports read: the per-user event threshold of the shared
-filter bar, and the `Users` option list the bar offers. Those four are not the whole of the
-dashboard, and what is left splits two ways rather than one: some actor-level derivations over the
-same view cannot be reached by this collector at all, because every event they read is server-derived
-or because they carry a trust predicate of their own, while others do not apply the rule yet and are
-tracked separately. The helper's own comment carries the full list and says which of the two each
+further report must take it from; both are documented in [Admin app](admin-app.md). Every other
+actor-level derivation over the same view either applies it as well or cannot be reached by this
+collector at all, because every event it reads is server-derived or because it carries a trust
+predicate of its own. The helper's own comment carries the full list and says which of the two each
 entry is, and a remediation is scoped from there rather than from this page. Without the rule, the
 collector accepting `app_opened` like every other client-reportable name would make an ordinary
 signed-out marketing-site visitor a daily active user, on an append-only table that cannot be

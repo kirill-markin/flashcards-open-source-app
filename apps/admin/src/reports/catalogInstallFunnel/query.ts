@@ -10,6 +10,7 @@ import {
   buildActorIsExcludedSql,
   buildEventPlatformsFilterSql,
   buildExcludedActorsFilterSql,
+  buildTrustedActorRowsFilterSql,
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
@@ -93,7 +94,8 @@ export type CatalogInstallFunnelAttempt = Readonly<{
    * `installReviewCount` counts the install actor's `review_answered` rows from the install to the
    * click's seven-day bound, anywhere in the product rather than in the installed deck.
    * `installHasReturnDay` is one of those reviews on a later UTC day than the install.
-   * `installActorIsNew` is that actor having no event at all before the click.
+   * `installActorIsNew` is that actor having no trusted row at all before the click, over every
+   * event name, trusted as `buildTrustedActorRowsFilterSql` defines it.
    */
   installReviewCount: number | null;
   installHasReturnDay: boolean | null;
@@ -700,21 +702,27 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    AND review_event.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
-    // New is the absence of any event before the click, over that actor's whole history, so this
-    // carries NO LOWER BOUND AND NO EVENT-NAME RESTRICTION - reusing a bounded or catalog-only
+    // New is the absence of any trusted event before the click, over that actor's whole history, so
+    // this carries NO LOWER BOUND AND NO EVENT-NAME RESTRICTION - reusing a bounded or catalog-only
     // relation here would silently make every actor look new. It reads that history as one grouped
     // `MIN(occurred_at)` per actor, the way `apps/backend/src/productAnalytics/syntheticActorDetector.ts`
     // and the `history` CTE of `apps/admin/src/reports/audience/query.ts` read an actor's first day.
     //
     // The upper bound is the only thing added, and it removes nothing the test can see: every click
     // in this cohort is before it, so an event at or after it can never precede one. An actor with no
-    // row at all under it produced no event before any click here and is therefore new.
+    // row at all under it produced no trusted event before any click here and is therefore new.
+    //
+    // The trust rule is the second thing this reads the history through, and it is what the absent
+    // event-name restriction makes load-bearing: this sees every name the credential-free collector
+    // accepts, so without it a row nobody stands behind could be an actor's earliest event and make
+    // a genuinely new installer read as returning. See `buildTrustedActorRowsFilterSql`.
     "), install_actor_first_event AS MATERIALIZED (",
     "  SELECT",
     "    prior_event.actor_id,",
     "    MIN(prior_event.occurred_at) AS first_event_at",
     "  FROM analytics.product_events_resolved AS prior_event",
     `  WHERE ${buildInstallActorMembershipSql("prior_event.actor_id")}`,
+    `    AND ${buildTrustedActorRowsFilterSql("prior_event.trust_level")}`,
     "    AND prior_event.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
