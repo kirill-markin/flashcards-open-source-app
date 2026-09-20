@@ -1,0 +1,67 @@
+{
+  "localePrefix": "ca",
+  "appLocaleTag": "ca",
+  "uiText": {
+    "emptyCardsMessage": "Encara no hi ha targetes. Toca el botó d'afegir per crear la primera.",
+    "cardsTabTitle": "Targetes",
+    "reviewTabTitle": "Repàs",
+    "aiTabTitle": "IA",
+    "searchCardsPlaceholder": "Cerca targetes",
+    "addCardContentDescription": "Afegeix una targeta",
+    "frontFieldTitle": "Anvers",
+    "backFieldTitle": "Revers",
+    "tagsFieldTitle": "Etiquetes",
+    "addTagFieldTitle": "Afegeix una etiqueta",
+    "addTagButtonTitle": "Afegeix etiqueta",
+    "saveButtonTitle": "Desa",
+    "ratingAgainTitle": "Un altre cop",
+    "ratingHardTitle": "Difícil",
+    "ratingGoodTitle": "Bé",
+    "ratingEasyTitle": "Fàcil"
+  },
+  "reviewCard": {
+    "frontText": "Què és el cost d'oportunitat?",
+    "backText": "El valor de la millor alternativa a la qual renuncies quan tries una opció en lloc d'una altra.\n\nExemple d'examen: Si dissabte estudies per a un examen de microeconomia en lloc de fer un torn remunerat, el sou que deixes de cobrar forma part del cost d'oportunitat.",
+    "tags": [
+      "economia"
+    ]
+  },
+  "reviewAiDraftMessage": "Crea 6 targetes noves sobre el mateix tema d'economia amb conceptes relacionats que encara no tinguem.",
+  "cards": [
+    {
+      "frontText": "Què és el cost d'oportunitat?",
+      "backText": "El valor de la millor alternativa a la qual renuncies quan tries una opció en lloc d'una altra.",
+      "subjectTag": "economia"
+    },
+    {
+      "frontText": "En biologia, què és l'osmosi?",
+      "backText": "El moviment de l'aigua a través d'una membrana des d'una concentració més baixa de solut cap a una de més alta.",
+      "subjectTag": "biologia"
+    },
+    {
+      "frontText": "En estadística, què és la desviació estàndard?",
+      "backText": "Una mesura de la dispersió dels valors al voltant de la mitjana.",
+      "subjectTag": "estadística"
+    },
+    {
+      "frontText": "En química, què és un catalitzador?",
+      "backText": "Una substància que accelera una reacció química sense consumir-se en el procés.",
+      "subjectTag": "química"
+    },
+    {
+      "frontText": "En psicologia, què és un biaix cognitiu?",
+      "backText": "Un patró sistemàtic de pensament que pot distorsionar el judici i la presa de decisions.",
+      "subjectTag": "psicologia"
+    },
+    {
+      "frontText": "En física, què és la velocitat?",
+      "backText": "La rapidesa d'un objecte juntament amb la direcció del seu moviment.",
+      "subjectTag": "física"
+    },
+    {
+      "frontText": "En informàtica, què és la recursivitat?",
+      "backText": "Un mètode en què una funció resol un problema cridant-se a si mateixa amb versions més petites del problema.",
+      "subjectTag": "informàtica"
+    }
+  ]
+}

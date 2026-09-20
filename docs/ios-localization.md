@@ -34,6 +34,9 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `gu`
 - `he`
 - `hr`
+- `hu`
+- `id`
+- `is`
 - `zh-Hans`
 - `de`
 - `fr`
