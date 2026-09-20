@@ -518,8 +518,11 @@ export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): strin
 // platform field is narrowed, so on every unnarrowed selection the outer predicate is the only place
 // the user filter exists at all; deleting it would silently drop the filter from the whole community
 // panel. Applying both where both exist costs nothing, because the two intersect to the same set.
-// Every other field stays with the callers, because the two statements apply them to different
-// expressions.
+// Every other field stays with the callers, for two different reasons. The person-level fields,
+// because the two statements bind them to different actor expressions. The cohort and the platform,
+// because they are derived from the CTE's own rows - the cohort from `actor_first_review_date`,
+// computed over the whole history this CTE must keep - so pushing either in would change the first
+// review day it exists to compute.
 function buildReviewAnswersCteSql(to: string, users: ReadonlyArray<string>): string {
   return [
     "review_answers AS (",
