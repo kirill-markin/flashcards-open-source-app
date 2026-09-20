@@ -27,6 +27,69 @@ case "$locale_prefix" in
     es-419)
         device_locale="es-MX"
         ;;
+    bg)
+        device_locale="bg-BG"
+        ;;
+    ca)
+        device_locale="ca-ES"
+        ;;
+    et)
+        device_locale="et-EE"
+        ;;
+    fa)
+        device_locale="fa-IR"
+        ;;
+    gu)
+        device_locale="gu-IN"
+        ;;
+    iw-IL)
+        device_locale="he-IL"
+        ;;
+    hr)
+        device_locale="hr-HR"
+        ;;
+    id)
+        device_locale="id-ID"
+        ;;
+    lt)
+        device_locale="lt-LT"
+        ;;
+    lv)
+        device_locale="lv-LV"
+        ;;
+    no-NO)
+        device_locale="nb-NO"
+        ;;
+    pa)
+        device_locale="pa-Guru-IN"
+        ;;
+    ro)
+        device_locale="ro-RO"
+        ;;
+    sk)
+        device_locale="sk-SK"
+        ;;
+    sl)
+        device_locale="sl-SI"
+        ;;
+    sw)
+        device_locale="sw-KE"
+        ;;
+    th)
+        device_locale="th-TH"
+        ;;
+    uk)
+        device_locale="uk-UA"
+        ;;
+    ur)
+        device_locale="ur-PK"
+        ;;
+    vi)
+        device_locale="vi-VN"
+        ;;
+    zu)
+        device_locale="zu-ZA"
+        ;;
     *)
         device_locale="$locale_prefix"
         ;;
