@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "사진 선택";
 "ai.composer.attachment.chooseFile" = "파일 선택";
 "ai.composer.attachment.unsupported" = "지원하지 않는 첨부 파일(%@)";
+"ai.attachment.card.title" = "카드";
+"ai.attachment.card.withSnippet" = "카드 · %@";
 "ai.attachment.error.unsupportedType" = "지원하지 않는 파일 형식: .%@";
 "ai.attachment.error.cameraUnavailable" = "이 기기에서는 카메라를 사용할 수 없습니다.";
 "ai.attachment.error.photoUnavailable" = "이 기기에서는 사진 접근을 사용할 수 없습니다.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "태국어";
 "settings.language.supported.turkish" = "튀르키예어";
 "settings.language.supported.ukrainian" = "우크라이나어";
+"settings.language.supported.urdu" = "우르두어";
+"settings.language.supported.vietnamese" = "베트남어";
+"settings.language.supported.zulu" = "줄루어";

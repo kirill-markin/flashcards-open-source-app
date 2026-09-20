@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "اختر صورة";
 "ai.composer.attachment.chooseFile" = "اختر ملف";
 "ai.composer.attachment.unsupported" = "مرفق غير مدعوم (%@)";
+"ai.attachment.card.title" = "بطاقة";
+"ai.attachment.card.withSnippet" = "بطاقة · %@";
 "ai.attachment.error.unsupportedType" = "نوع الملف غير مدعوم: .%@";
 "ai.attachment.error.cameraUnavailable" = "الكاميرا غير متوفرة على هذا الجهاز.";
 "ai.attachment.error.photoUnavailable" = "الوصول إلى الصور غير متاح على هذا الجهاز.";
@@ -838,3 +840,6 @@
 "settings.language.supported.thai" = "التايلاندية";
 "settings.language.supported.turkish" = "التركية";
 "settings.language.supported.ukrainian" = "الأوكرانية";
+"settings.language.supported.urdu" = "الأردية";
+"settings.language.supported.vietnamese" = "الفيتنامية";
+"settings.language.supported.zulu" = "الزولو";

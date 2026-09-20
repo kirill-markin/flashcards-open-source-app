@@ -1,0 +1,67 @@
+{
+  "localePrefix": "no-NO",
+  "appLocaleTag": "no",
+  "reviewAiDraftMessage": "Lag 6 nye kort om det samme økonomitemaet, med beslektede begreper vi ikke har ennå.",
+  "uiText": {
+    "emptyCardsMessage": "Ingen kort ennå. Trykk på plussknappen for å lage det første kortet.",
+    "cardsTabTitle": "Kort",
+    "reviewTabTitle": "Repetisjon",
+    "aiTabTitle": "KI",
+    "searchCardsPlaceholder": "Søk i kort",
+    "addCardContentDescription": "Legg til kort",
+    "frontFieldTitle": "Forside",
+    "backFieldTitle": "Bakside",
+    "tagsFieldTitle": "Etiketter",
+    "addTagFieldTitle": "Skriv en etikett",
+    "addTagButtonTitle": "Legg til etikett",
+    "saveButtonTitle": "Lagre",
+    "ratingAgainTitle": "Igjen",
+    "ratingHardTitle": "Vanskelig",
+    "ratingGoodTitle": "Bra",
+    "ratingEasyTitle": "Lett"
+  },
+  "reviewCard": {
+    "frontText": "Hva er alternativkostnad?",
+    "backText": "Verdien av det beste alternativet du gir avkall på når du velger ett alternativ fremfor et annet.\n\nEksamenseksempel: Hvis du bruker lørdagen på å lese mikroøkonomi i stedet for å jobbe en betalt vakt, er den tapte lønnen en del av alternativkostnaden.",
+    "tags": [
+      "økonomi"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "Hva er alternativkostnad?",
+      "backText": "Verdien av det beste alternativet du gir avkall på når du velger ett alternativ fremfor et annet.",
+      "subjectTag": "økonomi"
+    },
+    {
+      "frontText": "Hva er osmose i biologi?",
+      "backText": "Vannets bevegelse gjennom en membran fra lavere til høyere konsentrasjon av oppløste stoffer.",
+      "subjectTag": "biologi"
+    },
+    {
+      "frontText": "Hva er standardavvik i statistikk?",
+      "backText": "Et mål på hvor spredt verdiene ligger rundt gjennomsnittet.",
+      "subjectTag": "statistikk"
+    },
+    {
+      "frontText": "Hva er en katalysator i kjemi?",
+      "backText": "Et stoff som øker farten på en kjemisk reaksjon uten selv å bli brukt opp.",
+      "subjectTag": "kjemi"
+    },
+    {
+      "frontText": "Hva er en kognitiv skjevhet i psykologi?",
+      "backText": "Et systematisk tankemønster som kan påvirke vurderinger og beslutninger skjevt.",
+      "subjectTag": "psykologi"
+    },
+    {
+      "frontText": "Hva er hastighet i fysikk?",
+      "backText": "Farten til en gjenstand sammen med retningen den beveger seg i.",
+      "subjectTag": "fysikk"
+    },
+    {
+      "frontText": "Hva er rekursjon i informatikk?",
+      "backText": "En metode der en funksjon løser et problem ved å kalle seg selv for mindre utgaver av problemet.",
+      "subjectTag": "informatikk"
+    }
+  ]
+}

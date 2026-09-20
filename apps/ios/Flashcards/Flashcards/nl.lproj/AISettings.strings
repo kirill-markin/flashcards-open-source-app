@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Foto kiezen";
 "ai.composer.attachment.chooseFile" = "Bestand kiezen";
 "ai.composer.attachment.unsupported" = "Niet-ondersteunde bijlage (%@)";
+"ai.attachment.card.title" = "Kaart";
+"ai.attachment.card.withSnippet" = "Kaart · %@";
 "ai.attachment.error.unsupportedType" = "Niet-ondersteund bestandstype: .%@";
 "ai.attachment.error.cameraUnavailable" = "Camera is niet beschikbaar op dit apparaat.";
 "ai.attachment.error.photoUnavailable" = "Fototoegang is niet beschikbaar op dit apparaat.";
@@ -720,7 +722,7 @@
 "settings.workspace.decks.searchPrompt" = "Kaartensets zoeken";
 "settings.workspace.decks.newDeck" = "Nieuwe kaartenset";
 "settings.workspace.decks.dueCount" = "Te herhalen: %d";
-"settings.workspace.decks.totalCards" = "%d kaarten";
+"settings.workspace.decks.totalCards" = "Kaarten: %d";
 "settings.workspace.decks.newCount" = "Nieuw: %d";
 "settings.workspace.decks.reviewedCount" = "Herhaald: %d";
 "settings.workspace.decks.emptyAllCards" = "Je hebt nog geen kaarten gemaakt.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Thais";
 "settings.language.supported.turkish" = "Turks";
 "settings.language.supported.ukrainian" = "Oekraïens";
+"settings.language.supported.urdu" = "Urdu";
+"settings.language.supported.vietnamese" = "Vietnamees";
+"settings.language.supported.zulu" = "Zoeloe";

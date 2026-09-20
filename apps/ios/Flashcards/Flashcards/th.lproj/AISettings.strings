@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "เลือกรูปภาพ";
 "ai.composer.attachment.chooseFile" = "เลือกไฟล์";
 "ai.composer.attachment.unsupported" = "ไม่รองรับไฟล์แนบ (%@)";
+"ai.attachment.card.title" = "การ์ด";
+"ai.attachment.card.withSnippet" = "การ์ด · %@";
 "ai.attachment.error.unsupportedType" = "ไม่รองรับประเภทไฟล์: .%@";
 "ai.attachment.error.cameraUnavailable" = "อุปกรณ์นี้ไม่มีกล้องให้ใช้งาน";
 "ai.attachment.error.photoUnavailable" = "อุปกรณ์นี้ไม่รองรับการเข้าถึงรูปภาพ";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "ไทย";
 "settings.language.supported.turkish" = "ตุรกี";
 "settings.language.supported.ukrainian" = "ยูเครน";
+"settings.language.supported.urdu" = "อูรดู";
+"settings.language.supported.vietnamese" = "เวียดนาม";
+"settings.language.supported.zulu" = "ซูลู";

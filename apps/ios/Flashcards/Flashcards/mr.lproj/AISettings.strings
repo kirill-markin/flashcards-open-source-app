@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "फोटो निवडा";
 "ai.composer.attachment.chooseFile" = "फाइल निवडा";
 "ai.composer.attachment.unsupported" = "असमर्थित जोडलेली फाइल (%@)";
+"ai.attachment.card.title" = "कार्ड";
+"ai.attachment.card.withSnippet" = "कार्ड · %@";
 "ai.attachment.error.unsupportedType" = "असमर्थित फाइल प्रकार: .%@";
 "ai.attachment.error.cameraUnavailable" = "या उपकरणावर कॅमेरा उपलब्ध नाही.";
 "ai.attachment.error.photoUnavailable" = "या उपकरणावर फोटोंचा प्रवेश उपलब्ध नाही.";
@@ -720,7 +722,7 @@
 "settings.workspace.decks.searchPrompt" = "संच शोधा";
 "settings.workspace.decks.newDeck" = "नवीन संच";
 "settings.workspace.decks.dueCount" = "उजळणी बाकी: %d";
-"settings.workspace.decks.totalCards" = "%d कार्डे";
+"settings.workspace.decks.totalCards" = "कार्डे: %d";
 "settings.workspace.decks.newCount" = "नवीन: %d";
 "settings.workspace.decks.reviewedCount" = "उजळणी केलेली: %d";
 "settings.workspace.decks.emptyAllCards" = "तुम्ही अद्याप कोणतीही कार्डे तयार केलेली नाहीत.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "थाई";
 "settings.language.supported.turkish" = "तुर्की";
 "settings.language.supported.ukrainian" = "युक्रेनियन";
+"settings.language.supported.urdu" = "उर्दू";
+"settings.language.supported.vietnamese" = "व्हिएतनामी";
+"settings.language.supported.zulu" = "झुलू";

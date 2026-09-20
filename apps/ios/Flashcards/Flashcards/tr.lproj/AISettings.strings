@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Fotoğraf Seç";
 "ai.composer.attachment.chooseFile" = "Dosya Seç";
 "ai.composer.attachment.unsupported" = "Desteklenmeyen ek (%@)";
+"ai.attachment.card.title" = "Kart";
+"ai.attachment.card.withSnippet" = "Kart · %@";
 "ai.attachment.error.unsupportedType" = "Desteklenmeyen dosya türü: .%@";
 "ai.attachment.error.cameraUnavailable" = "Bu aygıtta kamera kullanılamıyor.";
 "ai.attachment.error.photoUnavailable" = "Bu aygıtta fotoğraf erişimi kullanılamıyor.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Tayca";
 "settings.language.supported.turkish" = "Türkçe";
 "settings.language.supported.ukrainian" = "Ukraynaca";
+"settings.language.supported.urdu" = "Urduca";
+"settings.language.supported.vietnamese" = "Vietnamca";
+"settings.language.supported.zulu" = "Zuluca";

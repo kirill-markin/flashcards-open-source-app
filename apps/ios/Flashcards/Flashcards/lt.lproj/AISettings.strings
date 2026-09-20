@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Pasirinkti nuotrauką";
 "ai.composer.attachment.chooseFile" = "Pasirinkti failą";
 "ai.composer.attachment.unsupported" = "Nepalaikomas priedas (%@)";
+"ai.attachment.card.title" = "Kortelė";
+"ai.attachment.card.withSnippet" = "Kortelė · %@";
 "ai.attachment.error.unsupportedType" = "Nepalaikomas failo tipas: .%@";
 "ai.attachment.error.cameraUnavailable" = "Šiame įrenginyje kamera nepasiekiama.";
 "ai.attachment.error.photoUnavailable" = "Šiame įrenginyje prieiga prie nuotraukų nepasiekiama.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Tajų";
 "settings.language.supported.turkish" = "Turkų";
 "settings.language.supported.ukrainian" = "Ukrainiečių";
+"settings.language.supported.urdu" = "Urdų";
+"settings.language.supported.vietnamese" = "Vietnamiečių";
+"settings.language.supported.zulu" = "Zulų";

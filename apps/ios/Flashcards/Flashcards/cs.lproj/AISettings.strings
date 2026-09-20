@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Vybrat fotku";
 "ai.composer.attachment.chooseFile" = "Vybrat soubor";
 "ai.composer.attachment.unsupported" = "Nepodporovaná příloha (%@)";
+"ai.attachment.card.title" = "Kartička";
+"ai.attachment.card.withSnippet" = "Kartička · %@";
 "ai.attachment.error.unsupportedType" = "Nepodporovaný typ souboru: .%@";
 "ai.attachment.error.cameraUnavailable" = "Fotoaparát není na tomto zařízení dostupný.";
 "ai.attachment.error.photoUnavailable" = "Přístup k fotkám není na tomto zařízení dostupný.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Thajština";
 "settings.language.supported.turkish" = "Turečtina";
 "settings.language.supported.ukrainian" = "Ukrajinština";
+"settings.language.supported.urdu" = "Urdština";
+"settings.language.supported.vietnamese" = "Vietnamština";
+"settings.language.supported.zulu" = "Zuluština";

@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "انتخاب عکس";
 "ai.composer.attachment.chooseFile" = "انتخاب فایل";
 "ai.composer.attachment.unsupported" = "پیوست پشتیبانی‌نشده (%@)";
+"ai.attachment.card.title" = "کارت";
+"ai.attachment.card.withSnippet" = "کارت · %@";
 "ai.attachment.error.unsupportedType" = "نوع فایل پشتیبانی‌نشده: .%@";
 "ai.attachment.error.cameraUnavailable" = "دوربین در این دستگاه در دسترس نیست.";
 "ai.attachment.error.photoUnavailable" = "دسترسی به عکس‌ها در این دستگاه در دسترس نیست.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "تایلندی";
 "settings.language.supported.turkish" = "ترکی";
 "settings.language.supported.ukrainian" = "اوکراینی";
+"settings.language.supported.urdu" = "اردو";
+"settings.language.supported.vietnamese" = "ویتنامی";
+"settings.language.supported.zulu" = "زولو";

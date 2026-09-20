@@ -42,7 +42,8 @@ open,source,spaced,repetition,vocab,language,exam,prep,medical,memorize,fsrs,dec
 
 ### What's New
 
-The app is now called Nibomo (formerly Flashcards Open Source App).
+- Nibomo's interface now supports 49 languages.
+- Sign-in pages are now available in the same languages.
 
 ## Arabic
 
@@ -82,7 +83,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-أصبح اسم التطبيق Nibomo (كان سابقا بطاقات تعليم مفتوحة المصدر).
+- أصبحت واجهة Nibomo تدعم 49 لغة.
+- تتوفر صفحات تسجيل الدخول الآن باللغات نفسها.
 
 ## Chinese (Simplified)
 
@@ -122,7 +124,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-应用现已更名为 Nibomo（原名开源闪卡）。
+- Nibomo 界面现已支持 49 种语言。
+- 登录页面也支持这些语言。
 
 ## French
 
@@ -162,7 +165,8 @@ open,source,cartes,mémo,répétition,espacée,bac,brevet,médecine,vocabulaire,
 
 ### What's New
 
-Nibomo est maintenant disponible en français, de l'interface au chat IA.
+- L'interface de Nibomo est désormais disponible en 49 langues.
+- Les pages de connexion sont aussi disponibles dans ces langues.
 
 ## German
 
@@ -202,7 +206,8 @@ open,source,lernen,spaced,repetition,vokabeln,sprachen,prüfungen,medizin,merken
 
 ### What's New
 
-Die App heißt jetzt Nibomo (früher Open-Source-Karteikarten).
+- Die Oberfläche von Nibomo unterstützt jetzt 49 Sprachen.
+- Die Anmeldeseiten sind jetzt ebenfalls in diesen Sprachen verfügbar.
 
 ## Hindi
 
@@ -242,7 +247,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-ऐप का नाम अब Nibomo है (पहले ओपन सोर्स फ्लैशकार्ड)।
+- Nibomo का इंटरफ़ेस अब 49 भाषाओं में उपलब्ध है।
+- साइन-इन पेज भी अब इन्हीं भाषाओं में उपलब्ध हैं।
 
 ## Japanese
 
@@ -282,7 +288,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-アプリ名が Nibomo になりました（旧「オープンソース暗記カード」）。
+- Nibomo の画面表示が49言語に対応しました。
+- ログインページも同じ言語に対応しました。
 
 ## Portuguese (Brazil)
 
@@ -322,7 +329,8 @@ open,source,fichas,repetição,espaçada,enem,vestibular,concurso,oab,medicina,m
 
 ### What's New
 
-O Nibomo agora está disponível em português do Brasil, da interface ao chat com IA.
+- A interface do Nibomo agora está disponível em 49 idiomas.
+- As páginas de login também estão disponíveis nesses idiomas.
 
 ## Russian
 
@@ -362,7 +370,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-Приложение теперь называется Nibomo (раньше «Флешкарты с открытым кодом»).
+- Интерфейс Nibomo теперь доступен на 49 языках.
+- Страницы входа теперь поддерживают те же языки.
 
 ## Spanish (Mexico)
 
@@ -402,7 +411,8 @@ open,source,estudio,repetición,espaciada,vocabulario,idiomas,exámenes,medicina
 
 ### What's New
 
-La app ahora se llama Nibomo (antes Flashcards de código abierto).
+- La interfaz de Nibomo ahora está disponible en 49 idiomas.
+- Las páginas de inicio de sesión también están disponibles en esos idiomas.
 
 ## Spanish (Spain)
 
@@ -442,7 +452,8 @@ open,source,estudio,repetición,espaciada,vocabulario,idiomas,exámenes,medicina
 
 ### What's New
 
-La app ahora se llama Nibomo (antes Flashcards de código abierto).
+- La interfaz de Nibomo ya está disponible en 49 idiomas.
+- Las páginas de inicio de sesión también están disponibles en esos idiomas.
 
 ## Bangla
 
@@ -484,7 +495,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-Nibomo এখন বাংলায় ব্যবহার করা যায়।
+- Nibomo-এর ইন্টারফেস এখন 49টি ভাষায় ব্যবহার করা যায়।
+- সাইন-ইন পৃষ্ঠাগুলোও এখন একই ভাষাগুলোতে ব্যবহার করা যায়।
 
 ## Catalan
 
@@ -526,7 +538,8 @@ memòria,repetició,espaiada,vocabulari,idiomes,exàmens,medicina,baralles,etiqu
 
 ### What's New
 
-Ara pots fer servir Nibomo en català.
+- La interfície de Nibomo ja està disponible en 49 idiomes.
+- Les pàgines d'inici de sessió també estan disponibles en aquests idiomes.
 
 ## Czech
 
@@ -568,7 +581,8 @@ učení,opakování,slovíčka,jazyky,zkoušky,medicína,paměť,balíčky,ští
 
 ### What's New
 
-Nibomo teď můžete používat v češtině.
+- Rozhraní Nibomo je nyní dostupné ve 49 jazycích.
+- Přihlašovací stránky jsou nyní dostupné ve stejných jazycích.
 
 ## Danish
 
@@ -610,7 +624,8 @@ repetition,ordforråd,sprog,eksamen,medicin,hukommelse,kortsæt,tags,open,source
 
 ### What's New
 
-Du kan nu bruge Nibomo på dansk.
+- Nibomos brugerflade er nu tilgængelig på 49 sprog.
+- Loginsiderne er nu også tilgængelige på de samme sprog.
 
 ## Greek
 
@@ -652,7 +667,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-Το Nibomo είναι πλέον διαθέσιμο στα ελληνικά.
+- Το περιβάλλον του Nibomo είναι πλέον διαθέσιμο σε 49 γλώσσες.
+- Οι σελίδες σύνδεσης είναι πλέον διαθέσιμες στις ίδιες γλώσσες.
 
 ## Finnish
 
@@ -694,7 +710,8 @@ kertaus,sanasto,kielet,koe,opiskelu,lääketiede,muisti,pakat,tunnisteet,avoin,l
 
 ### What's New
 
-Nibomo on nyt saatavilla suomeksi.
+- Nibomon käyttöliittymä on nyt saatavilla 49 kielellä.
+- Myös kirjautumissivut ovat nyt saatavilla samoilla kielillä.
 
 ## Gujarati
 
@@ -736,7 +753,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-હવે Nibomo ગુજરાતીમાં વાપરી શકાય છે.
+- Nibomoનું ઇન્ટરફેસ હવે 49 ભાષાઓમાં ઉપલબ્ધ છે.
+- સાઇન-ઇન પૃષ્ઠો પણ હવે એ જ ભાષાઓમાં ઉપલબ્ધ છે.
 
 ## Hebrew
 
@@ -778,7 +796,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-עכשיו אפשר להשתמש ב-Nibomo בעברית.
+- הממשק של Nibomo זמין עכשיו ב-49 שפות.
+- גם דפי הכניסה זמינים עכשיו באותן שפות.
 
 ## Croatian
 
@@ -820,7 +839,8 @@ učenje,ponavljanje,vokabular,jezici,ispiti,medicina,pamćenje,špilovi,oznake,f
 
 ### What's New
 
-Nibomo je sada dostupan na hrvatskom.
+- Sučelje aplikacije Nibomo sada je dostupno na 49 jezika.
+- Stranice za prijavu sada su dostupne na istim jezicima.
 
 ## Hungarian
 
@@ -862,7 +882,8 @@ ismétlés,szókincs,nyelv,vizsga,orvosi,memória,pakli,címke,nyílt,forráskó
 
 ### What's New
 
-A Nibomo mostantól magyarul is használható.
+- A Nibomo felülete mostantól 49 nyelven érhető el.
+- A bejelentkezési oldalak is elérhetők ezeken a nyelveken.
 
 ## Indonesian
 
@@ -904,7 +925,8 @@ pengulangan,berjarak,kosakata,bahasa,ujian,kedokteran,ingatan,dek,tag,sumber,ter
 
 ### What's New
 
-Nibomo kini tersedia dalam bahasa Indonesia.
+- Antarmuka Nibomo kini tersedia dalam 49 bahasa.
+- Halaman masuk kini juga tersedia dalam bahasa-bahasa tersebut.
 
 ## Italian
 
@@ -946,7 +968,8 @@ ripetizione,dilazionata,vocabolario,lingue,esami,medicina,memoria,mazzi,etichett
 
 ### What's New
 
-Ora puoi usare Nibomo in italiano.
+- L'interfaccia di Nibomo è ora disponibile in 49 lingue.
+- Anche le pagine di accesso sono disponibili nelle stesse lingue.
 
 ## Kannada
 
@@ -988,7 +1011,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-ಈಗ Nibomoವನ್ನು ಕನ್ನಡದಲ್ಲಿ ಬಳಸಬಹುದು.
+- Nibomoದ ಇಂಟರ್ಫೇಸ್ ಈಗ 49 ಭಾಷೆಗಳಲ್ಲಿ ಲಭ್ಯವಿದೆ.
+- ಸೈನ್-ಇನ್ ಪುಟಗಳು ಕೂಡ ಈಗ ಅದೇ ಭಾಷೆಗಳಲ್ಲಿ ಲಭ್ಯವಿವೆ.
 
 ## Korean
 
@@ -1030,7 +1054,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-이제 Nibomo를 한국어로 사용할 수 있습니다.
+- Nibomo의 화면이 이제 49개 언어를 지원합니다.
+- 로그인 페이지도 같은 언어를 지원합니다.
 
 ## Malayalam
 
@@ -1072,7 +1097,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-ഇനി Nibomo മലയാളത്തിൽ ഉപയോഗിക്കാം.
+- Nibomoയുടെ ഇന്റർഫേസ് ഇപ്പോൾ 49 ഭാഷകളിൽ ലഭ്യമാണ്.
+- സൈൻ-ഇൻ പേജുകളും ഇപ്പോൾ ഇതേ ഭാഷകളിൽ ലഭ്യമാണ്.
 
 ## Marathi
 
@@ -1114,7 +1140,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-आता Nibomo मराठीत वापरता येते.
+- Nibomoचा इंटरफेस आता 49 भाषांमध्ये उपलब्ध आहे.
+- साइन-इन पृष्ठेही आता याच भाषांमध्ये उपलब्ध आहेत.
 
 ## Norwegian
 
@@ -1156,7 +1183,8 @@ repetisjon,ordforråd,språk,eksamen,medisin,hukommelse,kortstokker,etiketter,å
 
 ### What's New
 
-Du kan nå bruke Nibomo på norsk bokmål.
+- Nibomos grensesnitt er nå tilgjengelig på 49 språk.
+- Innloggingssidene er nå også tilgjengelige på de samme språkene.
 
 ## Dutch
 
@@ -1198,7 +1226,8 @@ herhaling,woordenschat,talen,examen,geneeskunde,geheugen,kaartensets,tags,open,s
 
 ### What's New
 
-Je kunt Nibomo nu in het Nederlands gebruiken.
+- De interface van Nibomo is nu beschikbaar in 49 talen.
+- De inlogpagina's zijn nu ook beschikbaar in dezelfde talen.
 
 ## Punjabi
 
@@ -1240,7 +1269,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-ਹੁਣ Nibomo ਪੰਜਾਬੀ ਵਿੱਚ ਵਰਤਿਆ ਜਾ ਸਕਦਾ ਹੈ।
+- Nibomo ਦਾ ਇੰਟਰਫੇਸ ਹੁਣ 49 ਭਾਸ਼ਾਵਾਂ ਵਿੱਚ ਉਪਲਬਧ ਹੈ।
+- ਸਾਈਨ-ਇਨ ਪੰਨੇ ਵੀ ਹੁਣ ਇਨ੍ਹਾਂ ਹੀ ਭਾਸ਼ਾਵਾਂ ਵਿੱਚ ਉਪਲਬਧ ਹਨ।
 
 ## Polish
 
@@ -1282,7 +1312,8 @@ powtórki,słownictwo,języki,egzaminy,medycyna,pamięć,talie,tagi,nauka,otwart
 
 ### What's New
 
-Nibomo jest teraz dostępne po polsku.
+- Interfejs Nibomo jest teraz dostępny w 49 językach.
+- Strony logowania są teraz dostępne w tych samych językach.
 
 ## Romanian
 
@@ -1324,7 +1355,8 @@ repetiție,vocabular,limbi,examene,medicină,memorie,pachete,etichete,cod,deschi
 
 ### What's New
 
-Acum poți folosi Nibomo în limba română.
+- Interfața Nibomo este acum disponibilă în 49 de limbi.
+- Paginile de conectare sunt acum disponibile în aceleași limbi.
 
 ## Slovak
 
@@ -1366,7 +1398,8 @@ učenie,opakovanie,slovíčka,jazyky,skúšky,medicína,pamäť,balíčky,štít
 
 ### What's New
 
-Nibomo je teraz dostupné v slovenčine.
+- Rozhranie Nibomo je teraz dostupné v 49 jazykoch.
+- Prihlasovacie stránky sú teraz dostupné v rovnakých jazykoch.
 
 ## Slovenian
 
@@ -1408,7 +1441,8 @@ ponavljanje,besedišče,jeziki,izpiti,medicina,spomin,kompleti,oznake,odprta,kod
 
 ### What's New
 
-Nibomo je zdaj na voljo v slovenščini.
+- Vmesnik aplikacije Nibomo je zdaj na voljo v 49 jezikih.
+- Strani za prijavo so zdaj na voljo v istih jezikih.
 
 ## Swedish
 
@@ -1450,7 +1484,8 @@ repetition,ordförråd,språk,prov,medicin,minne,kortlekar,taggar,öppen,källko
 
 ### What's New
 
-Du kan nu använda Nibomo på svenska.
+- Nibomos gränssnitt finns nu på 49 språk.
+- Inloggningssidorna finns nu också på samma språk.
 
 ## Tamil
 
@@ -1492,7 +1527,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-இப்போது Nibomoவைத் தமிழில் பயன்படுத்தலாம்.
+- Nibomoவின் இடைமுகம் இப்போது 49 மொழிகளில் கிடைக்கிறது.
+- உள்நுழைவுப் பக்கங்களும் இப்போது அதே மொழிகளில் கிடைக்கின்றன.
 
 ## Telugu
 
@@ -1534,7 +1570,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-ఇప్పుడు Nibomoను తెలుగులో వాడవచ్చు.
+- Nibomo ఇంటర్‌ఫేస్ ఇప్పుడు 49 భాషల్లో అందుబాటులో ఉంది.
+- సైన్-ఇన్ పేజీలు కూడా ఇప్పుడు అవే భాషల్లో అందుబాటులో ఉన్నాయి.
 
 ## Thai
 
@@ -1576,7 +1613,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-ตอนนี้ใช้ Nibomo เป็นภาษาไทยได้แล้ว
+- อินเทอร์เฟซของ Nibomo รองรับ 49 ภาษาแล้ว
+- หน้าเข้าสู่ระบบก็รองรับภาษาเหล่านี้แล้วเช่นกัน
 
 ## Turkish
 
@@ -1618,7 +1656,8 @@ aralıklı,tekrar,kelime,dil,sınav,tıp,ezber,deste,etiket,açık,kaynak,fsrs
 
 ### What's New
 
-Nibomo'yu artık Türkçe kullanabilirsiniz.
+- Nibomo'nun arayüzü artık 49 dili destekliyor.
+- Giriş sayfaları da artık aynı dillerde kullanılabiliyor.
 
 ## Ukrainian
 
@@ -1660,7 +1699,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-Тепер Nibomo можна використовувати українською.
+- Інтерфейс Nibomo тепер доступний 49 мовами.
+- Сторінки входу тепер підтримують ті самі мови.
 
 ## Urdu
 
@@ -1702,7 +1742,8 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-اب Nibomo اردو میں استعمال کیا جا سکتا ہے۔
+- Nibomo کا انٹرفیس اب 49 زبانوں میں دستیاب ہے۔
+- سائن اِن کے صفحات بھی اب انہی زبانوں میں دستیاب ہیں۔
 
 ## Vietnamese
 
@@ -1744,4 +1785,5 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 ### What's New
 
-Giờ đây bạn có thể dùng Nibomo bằng tiếng Việt.
+- Giao diện Nibomo hiện hỗ trợ 49 ngôn ngữ.
+- Các trang đăng nhập cũng đã hỗ trợ những ngôn ngữ này.

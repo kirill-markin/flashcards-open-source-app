@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Scegli foto";
 "ai.composer.attachment.chooseFile" = "Scegli file";
 "ai.composer.attachment.unsupported" = "Allegato non supportato (%@)";
+"ai.attachment.card.title" = "Scheda";
+"ai.attachment.card.withSnippet" = "Scheda · %@";
 "ai.attachment.error.unsupportedType" = "Tipo di file non supportato: .%@";
 "ai.attachment.error.cameraUnavailable" = "La fotocamera non è disponibile su questo dispositivo.";
 "ai.attachment.error.photoUnavailable" = "L’accesso alle foto non è disponibile su questo dispositivo.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Thailandese";
 "settings.language.supported.turkish" = "Turco";
 "settings.language.supported.ukrainian" = "Ucraino";
+"settings.language.supported.urdu" = "Urdu";
+"settings.language.supported.vietnamese" = "Vietnamita";
+"settings.language.supported.zulu" = "Zulu";

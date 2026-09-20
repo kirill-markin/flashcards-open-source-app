@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Выбрать фото";
 "ai.composer.attachment.chooseFile" = "Выберите файл";
 "ai.composer.attachment.unsupported" = "Неподдерживаемое вложение (%@)";
+"ai.attachment.card.title" = "Карточка";
+"ai.attachment.card.withSnippet" = "Карточка · %@";
 "ai.attachment.error.unsupportedType" = "Неподдерживаемый тип файла: .%@";
 "ai.attachment.error.cameraUnavailable" = "Камера недоступна на этом устройстве.";
 "ai.attachment.error.photoUnavailable" = "Доступ к фотографиям недоступен на этом устройстве.";
@@ -838,3 +840,6 @@
 "settings.language.supported.thai" = "Тайский";
 "settings.language.supported.turkish" = "Турецкий";
 "settings.language.supported.ukrainian" = "Украинский";
+"settings.language.supported.urdu" = "Урду";
+"settings.language.supported.vietnamese" = "Вьетнамский";
+"settings.language.supported.zulu" = "Зулусский";

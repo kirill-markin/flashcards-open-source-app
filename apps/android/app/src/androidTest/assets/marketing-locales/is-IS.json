@@ -1,0 +1,67 @@
+{
+  "localePrefix": "is-IS",
+  "appLocaleTag": "is",
+  "reviewAiDraftMessage": "Búðu til 6 ný spjöld um sama hagfræðiefni með skyldum hugtökum sem vantar enn.",
+  "uiText": {
+    "emptyCardsMessage": "Engin spjöld enn. Ýttu á plúsinn til að búa til fyrsta spjaldið.",
+    "cardsTabTitle": "Spjöld",
+    "reviewTabTitle": "Upprifjun",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Leita í spjöldum",
+    "addCardContentDescription": "Bæta við spjaldi",
+    "frontFieldTitle": "Framhlið",
+    "backFieldTitle": "Bakhlið",
+    "tagsFieldTitle": "Merki",
+    "addTagFieldTitle": "Bæta við merki",
+    "addTagButtonTitle": "Bæta við merki",
+    "saveButtonTitle": "Vista",
+    "ratingAgainTitle": "Aftur",
+    "ratingHardTitle": "Erfitt",
+    "ratingGoodTitle": "Gott",
+    "ratingEasyTitle": "Auðvelt"
+  },
+  "reviewCard": {
+    "frontText": "Hvað er fórnarkostnaður?",
+    "backText": "Verðmæti besta valkostarins sem þú fórnar þegar þú velur einn kost fram yfir annan.\n\nPrófdæmi: Ef þú lærir undir próf í rekstrarhagfræði á laugardegi í stað þess að vinna launaða vakt eru töpuð laun hluti fórnarkostnaðarins.",
+    "tags": [
+      "hagfræði"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "Hvað er fórnarkostnaður?",
+      "backText": "Verðmæti besta valkostarins sem þú fórnar þegar þú velur einn kost fram yfir annan.",
+      "subjectTag": "hagfræði"
+    },
+    {
+      "frontText": "Hvað er osmósa í líffræði?",
+      "backText": "Flæði vatns um himnu frá minni styrk uppleystra efna til meiri styrks.",
+      "subjectTag": "líffræði"
+    },
+    {
+      "frontText": "Hvað er staðalfrávik í tölfræði?",
+      "backText": "Mælikvarði á dreifingu gilda í kringum meðaltalið.",
+      "subjectTag": "tölfræði"
+    },
+    {
+      "frontText": "Hvað er hvati í efnafræði?",
+      "backText": "Efni sem hraðar efnahvarfi án þess að eyðast við það.",
+      "subjectTag": "efnafræði"
+    },
+    {
+      "frontText": "Hvað er hugræn skekkja í sálfræði?",
+      "backText": "Kerfisbundið hugsunarmynstur sem getur skekkt mat og ákvarðanir.",
+      "subjectTag": "sálfræði"
+    },
+    {
+      "frontText": "Hvað er hraði í eðlisfræði?",
+      "backText": "Ferð hlutar ásamt stefnu hreyfingar hans.",
+      "subjectTag": "eðlisfræði"
+    },
+    {
+      "frontText": "Hvað er endurkvæmni í tölvunarfræði?",
+      "backText": "Aðferð þar sem fall leysir vandamál með því að kalla á sjálft sig fyrir smærri útgáfur þess.",
+      "subjectTag": "tölvunarfræði"
+    }
+  ]
+}

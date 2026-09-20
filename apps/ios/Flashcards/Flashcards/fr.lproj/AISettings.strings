@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Choisir une photo";
 "ai.composer.attachment.chooseFile" = "Choisir un fichier";
 "ai.composer.attachment.unsupported" = "Pièce jointe non prise en charge (%@)";
+"ai.attachment.card.title" = "Carte";
+"ai.attachment.card.withSnippet" = "Carte · %@";
 "ai.attachment.error.unsupportedType" = "Type de fichier non pris en charge : .%@";
 "ai.attachment.error.cameraUnavailable" = "L’appareil photo n’est pas disponible sur cet appareil.";
 "ai.attachment.error.photoUnavailable" = "L’accès aux photos n’est pas disponible sur cet appareil.";
@@ -838,3 +840,6 @@
 "settings.language.supported.thai" = "Thaï";
 "settings.language.supported.turkish" = "Turc";
 "settings.language.supported.ukrainian" = "Ukrainien";
+"settings.language.supported.urdu" = "Ourdou";
+"settings.language.supported.vietnamese" = "Vietnamien";
+"settings.language.supported.zulu" = "Zoulou";

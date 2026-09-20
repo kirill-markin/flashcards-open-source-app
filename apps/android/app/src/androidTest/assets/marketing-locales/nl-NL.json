@@ -1,0 +1,67 @@
+{
+  "localePrefix": "nl-NL",
+  "appLocaleTag": "nl",
+  "reviewAiDraftMessage": "Maak 6 nieuwe kaarten over hetzelfde economische onderwerp, met verwante begrippen die we nog niet hebben.",
+  "uiText": {
+    "emptyCardsMessage": "Nog geen kaarten. Tik op toevoegen om je eerste kaart te maken.",
+    "cardsTabTitle": "Kaarten",
+    "reviewTabTitle": "Herhalen",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Kaarten zoeken",
+    "addCardContentDescription": "Kaart toevoegen",
+    "frontFieldTitle": "Voorkant",
+    "backFieldTitle": "Achterkant",
+    "tagsFieldTitle": "Tags",
+    "addTagFieldTitle": "Voer een tag in",
+    "addTagButtonTitle": "Tag toevoegen",
+    "saveButtonTitle": "Opslaan",
+    "ratingAgainTitle": "Opnieuw",
+    "ratingHardTitle": "Moeilijk",
+    "ratingGoodTitle": "Goed",
+    "ratingEasyTitle": "Makkelijk"
+  },
+  "reviewCard": {
+    "frontText": "Wat zijn opportuniteitskosten?",
+    "backText": "De waarde van het beste alternatief dat je opgeeft wanneer je de ene optie boven de andere kiest.\n\nTentamenvoorbeeld: als je zaterdag voor micro-economie studeert in plaats van een betaalde dienst te werken, is het misgelopen loon een deel van de opportuniteitskosten.",
+    "tags": [
+      "economie"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "Wat zijn opportuniteitskosten?",
+      "backText": "De waarde van het beste alternatief dat je opgeeft wanneer je de ene optie boven de andere kiest.",
+      "subjectTag": "economie"
+    },
+    {
+      "frontText": "Wat is osmose in de biologie?",
+      "backText": "De verplaatsing van water door een membraan van een lagere naar een hogere concentratie opgeloste stoffen.",
+      "subjectTag": "biologie"
+    },
+    {
+      "frontText": "Wat is de standaardafwijking in de statistiek?",
+      "backText": "Een maat voor de spreiding van waarden rond het gemiddelde.",
+      "subjectTag": "statistiek"
+    },
+    {
+      "frontText": "Wat is een katalysator in de scheikunde?",
+      "backText": "Een stof die een chemische reactie versnelt zonder daarbij te worden verbruikt.",
+      "subjectTag": "scheikunde"
+    },
+    {
+      "frontText": "Wat is een cognitieve vertekening in de psychologie?",
+      "backText": "Een systematisch denkpatroon dat oordelen en beslissingen kan vertekenen.",
+      "subjectTag": "psychologie"
+    },
+    {
+      "frontText": "Wat is snelheid als vector in de natuurkunde?",
+      "backText": "De snelheid van een voorwerp samen met de richting waarin het beweegt.",
+      "subjectTag": "natuurkunde"
+    },
+    {
+      "frontText": "Wat is recursie in de informatica?",
+      "backText": "Een methode waarbij een functie een probleem oplost door zichzelf aan te roepen voor kleinere versies ervan.",
+      "subjectTag": "informatica"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "localePrefix": "lt",
+  "appLocaleTag": "lt",
+  "reviewAiDraftMessage": "Sukurk 6 naujas korteles ta pačia ekonomikos tema apie susijusias sąvokas, kurių dar neturime.",
+  "uiText": {
+    "emptyCardsMessage": "Kortelių dar nėra. Bakstelėkite pridėjimo mygtuką ir sukurkite pirmąją.",
+    "cardsTabTitle": "Kortelės",
+    "reviewTabTitle": "Kartojimas",
+    "aiTabTitle": "DI",
+    "searchCardsPlaceholder": "Ieškoti kortelių",
+    "addCardContentDescription": "Pridėti kortelę",
+    "frontFieldTitle": "Priekis",
+    "backFieldTitle": "Nugarėlė",
+    "tagsFieldTitle": "Žymos",
+    "addTagFieldTitle": "Įvesti žymą",
+    "addTagButtonTitle": "Pridėti žymą",
+    "saveButtonTitle": "Išsaugoti",
+    "ratingAgainTitle": "Dar kartą",
+    "ratingHardTitle": "Sunku",
+    "ratingGoodTitle": "Gerai",
+    "ratingEasyTitle": "Lengva"
+  },
+  "reviewCard": {
+    "frontText": "Kas yra alternatyvieji kaštai?",
+    "backText": "Geriausios atsisakytos alternatyvos vertė, kai pasirenkate vieną variantą vietoj kito.\n\nEgzamino pavyzdys: jei šeštadienį mokotės mikroekonomikos, užuot dirbę mokamą pamainą, negautas atlygis yra alternatyviųjų kaštų dalis.",
+    "tags": [
+      "ekonomika"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "Kas yra alternatyvieji kaštai?",
+      "backText": "Geriausios atsisakytos alternatyvos vertė, kai pasirenkate vieną variantą vietoj kito.",
+      "subjectTag": "ekonomika"
+    },
+    {
+      "frontText": "Kas biologijoje yra osmosas?",
+      "backText": "Vandens judėjimas per membraną iš mažesnės ištirpusių medžiagų koncentracijos į didesnę.",
+      "subjectTag": "biologija"
+    },
+    {
+      "frontText": "Kas statistikoje yra standartinis nuokrypis?",
+      "backText": "Rodiklis, parodantis verčių sklaidą apie vidurkį.",
+      "subjectTag": "statistika"
+    },
+    {
+      "frontText": "Kas chemijoje yra katalizatorius?",
+      "backText": "Medžiaga, kuri pagreitina cheminę reakciją ir pati nėra sunaudojama.",
+      "subjectTag": "chemija"
+    },
+    {
+      "frontText": "Kas psichologijoje yra kognityvinis šališkumas?",
+      "backText": "Sistemingas mąstymo modelis, galintis iškreipti vertinimą ir sprendimus.",
+      "subjectTag": "psichologija"
+    },
+    {
+      "frontText": "Kas fizikoje yra greičio vektorius?",
+      "backText": "Dydis, nusakantis kūno judėjimo spartą ir kryptį.",
+      "subjectTag": "fizika"
+    },
+    {
+      "frontText": "Kas informatikoje yra rekursija?",
+      "backText": "Būdas, kai funkcija sprendžia uždavinį iškviesdama save mažesnėms to paties uždavinio versijoms.",
+      "subjectTag": "informatika"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 "ai.title" = "ШІ";
-"ai.newChat" = "Нові";
+"ai.newChat" = "Новий чат";
 "ai.consent.title" = "Перед використанням ШІ";
 "ai.consent.warning" = "ШІ може помилятися. Перевіряйте важливі результати, перш ніж покладатися на них.";
 "ai.consent.disclosure.prompts" = "Введені запити та необхідний для них контекст із карток можуть надсилатися до розміщеного на сервері сервісу ШІ.";
@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Вибрати фото";
 "ai.composer.attachment.chooseFile" = "Вибрати файл";
 "ai.composer.attachment.unsupported" = "Непідтримуване вкладення (%@)";
+"ai.attachment.card.title" = "Картка";
+"ai.attachment.card.withSnippet" = "Картка · %@";
 "ai.attachment.error.unsupportedType" = "Непідтримуваний тип файлу: .%@";
 "ai.attachment.error.cameraUnavailable" = "Камера недоступна на цьому пристрої.";
 "ai.attachment.error.photoUnavailable" = "Доступ до фото недоступний на цьому пристрої.";
@@ -810,3 +812,6 @@
 "settings.language.supported.thai" = "Тайська";
 "settings.language.supported.turkish" = "Турецька";
 "settings.language.supported.ukrainian" = "Українська";
+"settings.language.supported.urdu" = "Урду";
+"settings.language.supported.vietnamese" = "В’єтнамська";
+"settings.language.supported.zulu" = "Зулуська";
