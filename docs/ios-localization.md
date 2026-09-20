@@ -43,6 +43,9 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `lt`
 - `lv`
 - `ml`
+- `mr`
+- `nb`
+- `nl`
 - `zh-Hans`
 - `de`
 - `fr`
@@ -55,6 +58,7 @@ The iOS app currently declares support for these Apple locale identifiers:
 
 Do not register or ship generic `es` for app localization.
 Spanish support is split explicitly between `es-MX` and `es-ES`.
+Norwegian Bokmål uses `nb` in the iOS bundle; Android and App Store use `no`.
 
 ## Current Localization Layout
 
