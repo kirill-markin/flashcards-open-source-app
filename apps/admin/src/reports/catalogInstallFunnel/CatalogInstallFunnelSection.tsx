@@ -17,6 +17,18 @@ type FunnelLoadState =
 type FunnelStage = Readonly<{ label: string; count: number }>;
 type FailureTotal = CatalogInstallFailureBucket & Readonly<{ count: number }>;
 
+/** One installed attempt reduced to what the engagement card reads, so no step needs a null branch. */
+type InstallEngagement = Readonly<{
+  actorIsNew: boolean;
+  reviewCount: number;
+  hasReturnDay: boolean;
+}>;
+
+type EngagementStep = Readonly<{ label: string; newAccounts: number; existingAccounts: number }>;
+
+/** Where "studied it properly" is drawn, rather than merely opened the deck once. */
+const engagedReviewThreshold = 20;
+
 /** One identity for every render without a report, so the derived counts below are memoized once. */
 const noAttempts: ReadonlyArray<CatalogInstallFunnelAttempt> = [];
 
@@ -92,6 +104,59 @@ function buildAuthStages(attempts: ReadonlyArray<CatalogInstallFunnelAttempt>): 
   ];
 }
 
+function collectInstallEngagements(
+  attempts: ReadonlyArray<CatalogInstallFunnelAttempt>,
+): ReadonlyArray<InstallEngagement> {
+  const engagements: Array<InstallEngagement> = [];
+  for (const attempt of attempts) {
+    if (
+      attempt.installActorIsNew === null
+      || attempt.installReviewCount === null
+      || attempt.installHasReturnDay === null
+    ) {
+      continue;
+    }
+
+    engagements.push({
+      actorIsNew: attempt.installActorIsNew,
+      reviewCount: attempt.installReviewCount,
+      hasReturnDay: attempt.installHasReturnDay,
+    });
+  }
+
+  return engagements;
+}
+
+/**
+ * The four nested steps of the engagement card, each split by whether the installing account is new.
+ *
+ * The last one carries both conditions on purpose: a return day reported beside the review threshold
+ * rather than under it would be two independent tests, and a later step could then exceed an earlier
+ * one.
+ */
+function buildEngagementSteps(
+  engagements: ReadonlyArray<InstallEngagement>,
+): ReadonlyArray<EngagementStep> {
+  const buildStep = (
+    label: string,
+    matches: (engagement: InstallEngagement) => boolean,
+  ): EngagementStep => ({
+    label,
+    newAccounts: engagements.filter((engagement) => engagement.actorIsNew && matches(engagement)).length,
+    existingAccounts: engagements.filter((engagement) => engagement.actorIsNew === false && matches(engagement)).length,
+  });
+
+  return [
+    buildStep("Server installs", () => true),
+    buildStep("1+ review", (engagement) => engagement.reviewCount >= 1),
+    buildStep(`${engagedReviewThreshold}+ reviews`, (engagement) => engagement.reviewCount >= engagedReviewThreshold),
+    buildStep(
+      `${engagedReviewThreshold}+ reviews with a return day`,
+      (engagement) => engagement.reviewCount >= engagedReviewThreshold && engagement.hasReturnDay,
+    ),
+  ];
+}
+
 function buildFailureTotals(attempts: ReadonlyArray<CatalogInstallFunnelAttempt>): ReadonlyArray<FailureTotal> {
   const totals = new Map<string, FailureTotal>();
   for (const attempt of attempts) {
@@ -152,6 +217,28 @@ function FunnelStageTable(props: Readonly<{ stages: ReadonlyArray<FunnelStage> }
   );
 }
 
+function EngagementStepTable(props: Readonly<{ steps: ReadonlyArray<EngagementStep> }>): JSX.Element {
+  const newDenominator = props.steps[0]?.newAccounts ?? 0;
+  const existingDenominator = props.steps[0]?.existingAccounts ?? 0;
+
+  return (
+    <div role="table" aria-label="Post-install engagement by account age">
+      <div className="funnel-engagement-row funnel-engagement-heading" role="row">
+        <span role="columnheader">Step</span>
+        <span role="columnheader">New accounts</span>
+        <span role="columnheader">Existing accounts</span>
+      </div>
+      {props.steps.map((step) => (
+        <div className="funnel-engagement-row" role="row" key={step.label}>
+          <span role="cell">{step.label}</span>
+          <strong role="cell">{step.newAccounts.toLocaleString("en-US")} · {formatPercentage(step.newAccounts, newDenominator)}</strong>
+          <strong role="cell">{step.existingAccounts.toLocaleString("en-US")} · {formatPercentage(step.existingAccounts, existingDenominator)}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function CatalogInstallFunnelSection(
   props: Readonly<{
     config: AdminAppConfig;
@@ -194,6 +281,10 @@ export function CatalogInstallFunnelSection(
   const mainStages = useMemo(() => buildMainStages(attempts), [attempts]);
   const authStages = useMemo(() => buildAuthStages(attempts), [attempts]);
   const failureTotals = useMemo(() => buildFailureTotals(attempts), [attempts]);
+  const engagementSteps = useMemo(
+    () => buildEngagementSteps(collectInstallEngagements(attempts)),
+    [attempts],
+  );
 
   const installedCount = mainStages.at(-1)?.count ?? 0;
   const directClickCount = attempts.filter((attempt) => attempt.source === "direct").length;
@@ -208,6 +299,7 @@ export function CatalogInstallFunnelSection(
   )).length;
   const missingClickCount = report === null ? 0 : report.missingClickCounts
     .reduce((total, row) => total + row.attemptCount, 0);
+  const installsWithoutJourneyCount = report === null ? 0 : report.installsWithoutJourneyCount;
 
   return (
     <section className="dashboard-section funnel-report">
@@ -248,11 +340,17 @@ export function CatalogInstallFunnelSection(
             <div className="funnel-detail-row"><span>Success without earlier code request</span><strong>{bypassCount.toLocaleString("en-US")}</strong></div>
           </section>
           <section className="funnel-detail-card">
+            <h3>Post-install engagement</h3>
+            <p>Every row counts install attempts, not distinct people: one person who installs two decks in range is two attempts, each carrying that person's own reviews, so &ldquo;20+ reviews&rdquo; is a count of attempts that reached it. Denominator: each column's own server installs, split by whether the installing account is new, meaning it had produced no event at all before the click. Reviews are the installing person's reviews anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck or card. They are counted from the install to seven days after the click, so a late install leaves less of that window, and the return day is a later UTC day than the install's. Every step is a subset of the one above it. An attempt still inside the seven-day window is not a confirmed drop-off.</p>
+            <EngagementStepTable steps={engagementSteps} />
+          </section>
+          <section className="funnel-detail-card">
             <h3>Diagnostics</h3>
             <div className="funnel-detail-row"><span>Direct-source click attempts (inside denominator)</span><strong>{directClickCount.toLocaleString("en-US")}</strong></div>
             <div className="funnel-detail-row"><span>Landings without a selected-range prior click (outside denominator)</span><strong>{missingClickCount.toLocaleString("en-US")}</strong></div>
+            <div className="funnel-detail-row"><span>Server installs carrying no journey (outside denominator)</span><strong>{installsWithoutJourneyCount.toLocaleString("en-US")}</strong></div>
             <div className="funnel-detail-row"><span>Attempts still inside 7-day window</span><strong>{maturingCount.toLocaleString("en-US")}</strong></div>
-            <p>The no-click diagnostic can use only the date range, the installed deck and the client platform, because a landing with no click carries none of the click dimensions; narrowing placement, source, device category or browser language therefore leaves this line wider than the funnel above it. A still-maturing attempt is not a confirmed drop-off.</p>
+            <p>The no-click diagnostic can use only the date range, the installed deck and the client platform, because a landing with no click carries none of the click dimensions; narrowing placement, source, device category or browser language therefore leaves this line wider than the funnel above it. The no-journey install line reads the same three fields plus the actor exclusions off the install row itself, and counts only installs carrying no <code>install_journey_id</code> at all. It is therefore a lower bound on what the funnel cannot hold rather than the whole of it: an install that does carry a journey is equally unheld when that journey's click fell outside the selected dates, was dropped by a placement, source, device category or browser language selection, or has a broken step chain. It also cannot say which click, placement or source these came from, and because a server install carries no platform, selecting any device platform empties it. A still-maturing attempt is not a confirmed drop-off.</p>
           </section>
           <section className="funnel-detail-card">
             <h3>Observed failures</h3>

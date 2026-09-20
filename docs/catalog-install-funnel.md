@@ -82,6 +82,19 @@ Use `occurred_at`, never the client clock columns, for time ranges. Join steps b
 `event_properties ->> 'package_version_id'` agrees across the journey. The anonymous acquisition
 rows use the journey UUID as `anonymous_id`; it is an attempt key, not a unique-person measure.
 
+Post-install engagement is reportable only for a journey whose server `catalog_deck_installed` row
+exists, because that row is the only place a journey names a person. Measure it on that actor, from
+the install's `occurred_at` to the same seven-day bound on the click the rest of the funnel uses, in
+UTC days. `review_answered` carries no deck or card identity, so those reviews are the person's
+reviews anywhere in the product and never deck-level retention; say so wherever they are shown.
+Report a return day only together with a review threshold, so the steps stay nested. Whether the
+installing account is new is that actor having no `analytics.product_events_resolved` row at all
+before the click, read with no lower bound.
+
+A server `catalog_deck_installed` without `install_journey_id` is a real install that belongs to no
+journey, since a confirm may omit `installJourneyId`. It is reportable only as its own count, never
+inside a journey denominator.
+
 Only `origin = 'server' AND event_name = 'catalog_deck_installed'` is a completed installation.
 Client `catalog_deck_install_started` is intent, not success. Acquisition device context comes from
 `catalog_install_clicked` (`device_category`, `device_locale`, and `platform = 'web'`), not from the
