@@ -2,6 +2,8 @@
 
 Related competitor references: [iOS competitors](competitor-store-metadata.md#ios)
 
+Upload an editable draft with [the localization command](../scripts/ios/upload-app-store-localizations.mts) (`node scripts/ios/upload-app-store-localizations.mts --help`).
+
 ## English (U.S.)
 
 ### Name
