@@ -46,6 +46,9 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `mr`
 - `nb`
 - `nl`
+- `pa`
+- `pl`
+- `ro`
 - `zh-Hans`
 - `de`
 - `fr`
