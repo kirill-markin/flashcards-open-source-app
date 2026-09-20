@@ -299,23 +299,23 @@ h2 {
   gap: 16px;
 }
 
+/* Empty while idle, so it draws nothing but holds its height and the header cannot jump when a
+   commit prints `Updating` in it. */
 .filter-status {
   display: inline-flex;
   align-items: center;
   min-height: 34px;
-  padding: 7px 11px;
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
 }
 
 .filter-status.active {
-  color: var(--text);
-  border-color: rgba(214, 90, 56, 0.42);
+  padding: 7px 11px;
+  border: 1px solid rgba(214, 90, 56, 0.42);
+  border-radius: 999px;
   background: rgba(196, 75, 45, 0.16);
+  color: var(--text);
 }
 
 .filter-bar {
@@ -335,6 +335,7 @@ h2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   min-height: 42px;
   max-width: min(100%, 460px);
   padding: 0 15px;
@@ -356,6 +357,16 @@ h2 {
   background: rgba(196, 75, 45, 0.14);
 }
 
+/* The one mark a closed button carries besides its name: it says the field is filtered, and its
+   colour is the same accent the filtered button and its checked options already use. */
+.filter-menu-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--accent-strong);
+}
+
 .filter-menu-button.active {
   border-color: rgba(255, 255, 255, 0.24);
 }
@@ -370,19 +381,30 @@ h2 {
   transform: translateY(-1px);
 }
 
+/* Its height is its content's up to the cap, and what scrolls at the cap is `.filter-popover-content`
+   rather than this box: the explanation is anchored to the header, which stays outside that scroll
+   box, so it can be read whole however tall it is. */
 .filter-popover {
   position: absolute;
   z-index: 20;
   top: calc(100% + 8px);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   width: min(360px, calc(100vw - 48px));
   max-width: calc(100vw - 48px);
   max-height: min(560px, calc(100vh - 180px));
   padding: 14px;
-  overflow: auto;
   border-radius: 16px;
   background: var(--panel);
+}
+
+/* The picker alone scrolls, so reading an explanation moves nothing under it. */
+.filter-popover-content {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .filter-popover-anchor-wide .filter-popover {
@@ -403,7 +425,9 @@ h2 {
 }
 
 .filter-popover-header {
+  position: relative;
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -413,13 +437,69 @@ h2 {
   text-transform: uppercase;
 }
 
-/* Every filter says what it means and how it is counted in its own popover, so the wording carries
-   sentences rather than a caption. */
-.filter-popover-explanation {
-  margin: 0;
+.filter-popover-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.filter-explanation {
+  display: inline-flex;
+}
+
+.filter-explanation-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: none;
+}
+
+/* Anchored to the header rather than to the `(i)`, so a long explanation opens down the popover's own
+   width instead of past its right edge, and capped so it cannot stretch the popover either. The
+   header is outside the popover's scroll box, so this box is clipped by neither: it overlays the
+   picker, and reaches past the popover's own bottom edge when it is taller than what is under it.
+   Hidden by `display` rather than by opacity, so it takes no space and no hit area while it is away;
+   a screen reader still reads it, because `aria-describedby` names it directly. `pointer-events:
+   none` leaves the picker underneath clickable and lets the wheel scroll it while a pinned
+   explanation stays put and whole. */
+.filter-explanation-text {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  display: none;
+  max-width: 320px;
+  padding: 10px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
   font-size: 12px;
+  font-weight: 600;
   line-height: 1.55;
+  pointer-events: none;
+  text-transform: none;
+}
+
+/* The `open` class is the only thing that shows it. Hover is answered in the component that owns the
+   class rather than by a `:hover` rule here, because the button's `aria-expanded` reads the same one
+   state: a rule that could show the text on its own would be a way for the screen and the screen
+   reader to disagree, and it is what used to keep a tooltip up under the pointer that had just been
+   clicked shut. */
+.filter-explanation.open .filter-explanation-text {
+  display: block;
 }
 
 .filter-popover-actions {
@@ -822,8 +902,7 @@ h2 {
   opacity: 0.68;
 }
 
-.user-filter-swatch,
-.active-filter-swatch {
+.user-filter-swatch {
   width: 10px;
   height: 10px;
   border-radius: 999px;
@@ -866,71 +945,6 @@ h2 {
   color: var(--muted-soft);
   font-size: 12px;
   font-weight: 700;
-}
-
-.active-filter-chips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.active-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  min-height: 34px;
-  padding: 5px 6px 5px 10px;
-  border: 1px solid rgba(214, 90, 56, 0.48);
-  border-radius: 999px;
-  background: rgba(196, 75, 45, 0.14);
-  color: var(--text);
-}
-
-.active-filter-text {
-  display: grid;
-  min-width: 0;
-  max-width: 360px;
-}
-
-.active-filter-text span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.active-filter-text span:first-child {
-  font-size: 12px;
-  font-weight: 800;
-}
-
-/* Only a chip that carries a second line dims it; a one-line chip keeps the primary style. */
-.active-filter-text span:first-child + span {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.active-filter-remove {
-  display: inline-grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.active-filter-remove:disabled {
-  cursor: wait;
-  opacity: 0.62;
 }
 
 .metric-card,

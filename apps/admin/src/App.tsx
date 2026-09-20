@@ -465,7 +465,8 @@ export default function App(): JSX.Element {
     }
 
     // Canonical here rather than only where it is serialized, so a value the URL codec would drop or
-    // reorder cannot stay on screen as a chip and then change on the next reload.
+    // reorder cannot stay on screen as a checked option and a popover header and then change on the
+    // next reload.
     const filters = normalizeAnalyticsFilterState(nextFilters);
 
     // Every selection is judged against the available data, including one that only changes another

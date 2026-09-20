@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import {
   reviewEventCohorts,
   reviewEventPlatforms,
@@ -42,6 +42,7 @@ import {
   getNormalizedSearchValue,
   getUserFilterLabel,
   visibleUserFilterOptionLimit,
+  type ActiveUserFilter,
   type SearchableUserFilterOption,
 } from "./userFilters";
 
@@ -50,22 +51,25 @@ import {
 // than by editing this layout, and a field that does not apply to the area is absent rather than
 // shown disabled.
 //
-// Every field reads the same way: its full label, its explanation in plain words as visible text
-// rather than only as a hover title, the current selection as removable chips, a picker, and a reset
-// to its default. The selection is committed on every click, so there is no draft to be overwritten
-// by an arriving report.
+// Every field reads the same way: its full label alone on the closed button, colour and a dot once
+// its selection differs from the default, and a popover carrying the selection in words, its
+// explanation behind an `(i)`, a picker and a reset to its default. The selection is committed on
+// every click, so there is no draft to be overwritten by an arriving report.
 
+// A selected user the range no longer offers names no series any chart gave a colour to, so its
+// option in the users list takes this neutral swatch instead.
 const unknownUserSwatchColor = "rgba(255, 255, 255, 0.36)";
-// A threshold, a country and a locale tag name no value a chart gives a colour to, so their chips and
-// options take the accent every filtered control in the bar already uses.
+// A threshold, a country and a locale tag name no value a chart gives a colour to, so their options
+// take the accent every filtered control in the bar already uses.
 const filterValueSwatchColor = "var(--accent-strong)";
-// Above this many picked values the button prints a count instead, which is where the values stop
-// fitting on one line of it.
+// Above this many picked values the popover header prints a count instead, which is where the values
+// stop fitting on its one line.
 const optionSummaryValueLimit = 3;
 // Above this many values an option list stops being scannable in a popover and is searched instead.
 const searchableFilterOptionCount = 15;
 // The leading group of a deck version UUID, which is what tells two picked versions of one deck apart
-// on the closed button without printing an id that would not fit there. The chips carry the whole id.
+// in the popover header without printing an id that would not fit on its one line. The option list
+// carries the whole id.
 const deckVersionDiscriminatorLength = 8;
 
 type AnalyticsFilterBarProps = Readonly<{
@@ -102,13 +106,6 @@ type AnalyticsFilterBarProps = Readonly<{
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
 }>;
 
-type FilterChip = Readonly<{
-  value: string;
-  label: string;
-  secondaryLabel: string;
-  swatchColor: string;
-}>;
-
 type FilterOption<Value extends string> = Readonly<{
   value: Value;
   label: string;
@@ -118,15 +115,15 @@ type FilterOption<Value extends string> = Readonly<{
 /** One pickable value of a field whose values carry no colour of their own. */
 type FilterOptionChoice<Value extends string> = Readonly<{
   value: Value;
-  /** What the checkbox and the chip print, where there is room for the whole value. */
+  /** What the checkbox prints, where there is room for the whole value. */
   label: string;
-  /** What the field button prints, where a deck version's full label would not fit. */
+  /** What the popover header prints, where a deck version's full label would not fit. */
   summaryLabel: string;
 }>;
 
 /** What one field contributes to the bar; the shared shell around it is the same for every field. */
 type FilterFieldView = Readonly<{
-  /** The current selection in a few words, printed on the button and in the popover header. */
+  /** The current selection in a few words, printed in the popover header and named on the button. */
   summary: string;
   isFiltered: boolean;
   /** The 620px popover, which is what the two-month calendar and the user list need to fit. */
@@ -232,40 +229,6 @@ function withMinimumEventCount(
   });
 }
 
-function FilterChipRow(
-  props: Readonly<{
-    fieldLabel: string;
-    chips: ReadonlyArray<FilterChip>;
-    onRemove: (value: string) => void;
-  }>,
-): JSX.Element | null {
-  if (props.chips.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="active-filter-chips" aria-label={`Selected: ${props.fieldLabel}`}>
-      {props.chips.map((chip) => (
-        <span key={chip.value} className="active-filter-chip">
-          <span className="active-filter-swatch" style={{ backgroundColor: chip.swatchColor }} />
-          <span className="active-filter-text">
-            <span>{chip.label}</span>
-            {chip.secondaryLabel === "" ? null : <span>{chip.secondaryLabel}</span>}
-          </span>
-          <button
-            className="active-filter-remove"
-            type="button"
-            aria-label={`Remove ${chip.label}`}
-            onClick={() => props.onRemove(chip.value)}
-          >
-            x
-          </button>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 // One checkbox per value, and a search once a list is too long to scan - decks and locale tags can be
 // numerous, so they get what the users field already has: the search narrows what is rendered, only
 // the first matches are rendered, and the count line says how many more the search still matches. A
@@ -283,9 +246,23 @@ function FilterOptionList<Value extends string>(
   const matchingOptions = props.options.filter(
     (option) => getNormalizedSearchValue(option.label).includes(normalizedSearchValue),
   );
-  // The users list' own limit, because these lists render the same way and one number is what keeps
-  // them from drifting apart; the count line below says how many more the search still matches.
-  const visibleOptions = matchingOptions.slice(0, visibleUserFilterOptionLimit);
+  // Every matching value that is picked is rendered, and the limit governs the unpicked ones alone:
+  // a picked value the limit hid would stay applied with no control to remove it, which is the same
+  // hole a value that stopped being offered would fall into. The limit is the users list' own,
+  // because these lists render the same way and one number is what keeps them from drifting apart;
+  // the count line below says how many more the search still matches. Being picked decides only
+  // whether a value may show and never where: the rows keep the order the options are declared in, so
+  // ticking a box moves no row out from under the pointer and the list reads in the same order as the
+  // summary above it.
+  const visibleUnpickedValues: ReadonlySet<Value> = new Set<Value>(
+    matchingOptions
+      .filter((option) => props.selectedValues.has(option.value) === false)
+      .slice(0, visibleUserFilterOptionLimit)
+      .map((option) => option.value),
+  );
+  const visibleOptions = matchingOptions.filter((option) => (
+    props.selectedValues.has(option.value) || visibleUnpickedValues.has(option.value)
+  ));
   const hiddenOptionCount = matchingOptions.length - visibleOptions.length;
 
   return (
@@ -333,10 +310,13 @@ function FilterOptionList<Value extends string>(
 // Users are an open-ended list of thousands, so this one is searched rather than listed, and only
 // the first matches are rendered; the count line says how many more the search still matches. The
 // search index is built by the bar rather than here, because this component is mounted only while
-// its popover is open and would otherwise re-index every user on every open.
+// its popover is open and would otherwise re-index every user on every open. A selected user the
+// range no longer offers has no option of its own, so it is listed first, checked, rather than being
+// applied with no control for it.
 function UserFilterOptions(
   props: Readonly<{
     searchableOptions: ReadonlyArray<SearchableUserFilterOption>;
+    selectedUsersOutsideOptions: ReadonlyArray<ActiveUserFilter>;
     selectedUserIds: ReadonlySet<string>;
     searchValue: string;
     userColorScale: UserColorScale;
@@ -355,10 +335,46 @@ function UserFilterOptions(
       .map((option) => option.user),
     [normalizedSearchValue, searchableOptions],
   );
-  const visibleOptions = matchingOptions.slice(0, visibleUserFilterOptionLimit);
-  const hiddenOptionCount = matchingOptions.length - visibleOptions.length;
+  const selectedUserIds = props.selectedUserIds;
+  // Every matching user that is picked is rendered, and the limit governs the unpicked ones alone.
+  // The offered users arrive ordered by their id, so the limit would otherwise decide by an arbitrary
+  // ordering which selections keep a checkbox, and a hidden one would stay applied with nothing on
+  // screen naming it. Being picked decides whether a user may show and never where: the rows stay in
+  // the order the report offers them in, so ticking a box moves nothing under the pointer.
+  const visibleOptions = useMemo(
+    () => {
+      const visibleUnpickedUserIds: ReadonlySet<string> = new Set<string>(
+        matchingOptions
+          .filter((user) => selectedUserIds.has(user.userId) === false)
+          .slice(0, visibleUserFilterOptionLimit)
+          .map((user) => user.userId),
+      );
 
-  if (searchableOptions.length === 0) {
+      return matchingOptions.filter((user) => (
+        selectedUserIds.has(user.userId) || visibleUnpickedUserIds.has(user.userId)
+      ));
+    },
+    [matchingOptions, selectedUserIds],
+  );
+  // What the limit still holds back: offered users the search matches and this list does not render.
+  // A selected-but-unoffered row is never held back, so it cannot be part of this count.
+  const hiddenOptionCount = matchingOptions.length - visibleOptions.length;
+  const selectedUsersOutsideOptions = props.selectedUsersOutsideOptions;
+  // Searched by the same text as the offered users, so one search narrows the whole list.
+  const matchingUsersOutsideOptions = useMemo(
+    () => selectedUsersOutsideOptions.filter((userFilter) => (
+      getNormalizedSearchValue(`${userFilter.label} ${userFilter.userId}`)
+        .includes(normalizedSearchValue)
+    )),
+    [normalizedSearchValue, selectedUsersOutsideOptions],
+  );
+  // Both numbers on the count line count the same rows, so the line can be checked against what is on
+  // screen: every row this list renders, against every user the search matches. The selected-but-
+  // unoffered rows are rendered and are matches of that same search, so they belong on both sides.
+  const renderedUserCount = visibleOptions.length + matchingUsersOutsideOptions.length;
+  const matchingUserCount = matchingOptions.length + matchingUsersOutsideOptions.length;
+
+  if (searchableOptions.length === 0 && selectedUsersOutsideOptions.length === 0) {
     return <p className="user-filter-empty">No users with activity in this range.</p>;
   }
 
@@ -373,17 +389,35 @@ function UserFilterOptions(
           onChange={(event) => props.onSearchChange(event.currentTarget.value)}
         />
       </label>
-      {visibleOptions.length > 0 ? (
+      {visibleOptions.length + matchingUsersOutsideOptions.length > 0 ? (
         <div className="user-filter-options">
+          {matchingUsersOutsideOptions.map((userFilter) => (
+            <label key={userFilter.userId} className="user-filter-option selected">
+              <input
+                type="checkbox"
+                value={userFilter.userId}
+                checked
+                onChange={(event) => props.onToggle(userFilter.userId, event.currentTarget.checked)}
+              />
+              <span
+                className="user-filter-swatch"
+                style={{ backgroundColor: unknownUserSwatchColor }}
+              />
+              <span className="user-filter-option-text">
+                <span className="user-filter-option-primary">{userFilter.label}</span>
+                <span className="user-filter-option-secondary">{userFilter.secondaryLabel}</span>
+              </span>
+            </label>
+          ))}
           {visibleOptions.map((user) => (
             <label
               key={user.userId}
-              className={`user-filter-option${props.selectedUserIds.has(user.userId) ? " selected" : ""}`}
+              className={`user-filter-option${selectedUserIds.has(user.userId) ? " selected" : ""}`}
             >
               <input
                 type="checkbox"
                 value={user.userId}
-                checked={props.selectedUserIds.has(user.userId)}
+                checked={selectedUserIds.has(user.userId)}
                 onChange={(event) => props.onToggle(user.userId, event.currentTarget.checked)}
               />
               <span
@@ -404,14 +438,14 @@ function UserFilterOptions(
       )}
       {hiddenOptionCount > 0 ? (
         <p className="user-filter-limit">
-          Showing {visibleOptions.length.toLocaleString("en-US")} of {matchingOptions.length.toLocaleString("en-US")} matching users.
+          Showing {renderedUserCount.toLocaleString("en-US")} of {matchingUserCount.toLocaleString("en-US")} matching users.
         </p>
       ) : null}
     </>
   );
 }
 
-/** The picked labels while they still fit on the button, and a count once they do not. */
+/** The picked labels while they still fit on the popover header, and a count once they do not. */
 function getOptionSelectionSummary(
   selectedLabels: ReadonlyArray<string>,
   everyValueSummary: string,
@@ -426,13 +460,12 @@ function getOptionSelectionSummary(
 }
 
 // Every field whose values name no chart series reads the same way, whether its values are an open set
-// like countries and locale tags or a closed one like the catalog placements: chips for the selection,
-// one checkbox per offered value, and a reset that clears the field. The options are deliberately
-// independent of the selection, so a picked value that stopped being offered still shows as a chip and
-// can still be removed, rather than sitting applied with no control for it - which is also why a value
-// with no option to read a label from prints as itself.
+// like countries and locale tags or a closed one like the catalog placements: one checkbox per value,
+// and a reset that clears the field. The offered options are built independently of the selection, so a
+// picked value that stopped being offered is listed as a checked option of its own rather than sitting
+// applied with no control for it - which is also why a value with no option to read a label from prints
+// as itself.
 function buildOptionFieldView<Value extends string>(props: Readonly<{
-  fieldLabel: string;
   selectedValues: ReadonlyArray<Value>;
   options: ReadonlyArray<FilterOptionChoice<Value>>;
   defaultValues: ReadonlyArray<Value>;
@@ -449,6 +482,15 @@ function buildOptionFieldView<Value extends string>(props: Readonly<{
   const selectedSummaryLabels = props.selectedValues.map(
     (value) => optionsByValue.get(value)?.summaryLabel ?? value,
   );
+  // A selection outlives the list that offered it: a country can leave the range and a deck version can
+  // leave the catalog while the URL still carries the value. Such a value is listed first, checked, so
+  // the one place that shows a selection is also the one place that can remove it.
+  const listedOptions: ReadonlyArray<FilterOptionChoice<Value>> = [
+    ...props.selectedValues
+      .filter((value) => optionsByValue.has(value) === false)
+      .map(toPlainOptionChoice),
+    ...props.options,
+  ];
 
   return {
     summary: getOptionSelectionSummary(selectedSummaryLabels, props.everyValueSummary),
@@ -456,23 +498,11 @@ function buildOptionFieldView<Value extends string>(props: Readonly<{
     isWide: false,
     content: (
       <>
-        <FilterChipRow
-          fieldLabel={props.fieldLabel}
-          chips={props.selectedValues.map((value) => ({
-            value,
-            label: optionsByValue.get(value)?.label ?? value,
-            secondaryLabel: "",
-            swatchColor: filterValueSwatchColor,
-          }))}
-          onRemove={(value) => props.onSelectionChange(
-            props.selectedValues.filter((selectedValue) => selectedValue !== value),
-          )}
-        />
-        {props.options.length === 0 ? (
+        {listedOptions.length === 0 ? (
           <p className="filter-option-empty">{props.emptyOptionsMessage}</p>
         ) : (
           <FilterOptionList
-            options={props.options.map((option) => ({
+            options={listedOptions.map((option) => ({
               value: option.value,
               label: option.label,
               swatchColor: filterValueSwatchColor,
@@ -499,9 +529,9 @@ function toPlainOptionChoice<Value extends string>(value: Value): FilterOptionCh
   return { value, label: value, summaryLabel: value };
 }
 
-// Only the slug fits on the closed deck button, so two picked versions of one deck would read there
-// as the same word twice. The slugs that more than one picked version shares are the ones that have
-// to carry a discriminator; every other slug stays a bare word.
+// Only the slug fits on the one line of the deck popover's header, so two picked versions of one deck
+// would read there as the same word twice. The slugs that more than one picked version shares are the
+// ones that have to carry a discriminator; every other slug stays a bare word.
 function buildAmbiguousDeckSlugs(
   deckOptions: ReadonlyArray<CatalogDeckOption>,
   selectedPackageVersionIds: ReadonlyArray<string>,
@@ -524,6 +554,61 @@ function buildAmbiguousDeckSlugs(
 // for a filter the URL can still carry, so it is a compile error here rather than a silent omission.
 function assertEveryFilterFieldIsWired(field: never): never {
   throw new Error(`Analytics filter field ${String(field)} has no control in the filter bar.`);
+}
+
+// The explanation waiting behind the popover header's `(i)`. One boolean decides both the class that
+// shows the text and `aria-expanded`, so what a screen reader is told and what is on screen cannot
+// disagree; CSS has no reveal rule of its own for that reason. A mouse reveals it by resting on the
+// button, and a click decides it outright from whatever is currently shown - so a click closes a
+// tooltip the pointer is still holding open, which hover alone could never do, and it is also the one
+// way in that a touch device and the browsers that do not focus a button on click both have. A
+// closing click holds while the pointer is still on the button and lapses once it leaves, so the next
+// hover is a fresh question rather than one already answered. Touch contacts are not hover, or the tap
+// that opens the tooltip would arrive as a click on an already-open one and close it again. The state
+// is local because the popover is mounted only while it is open, so every opening starts with the
+// explanation away.
+function FilterFieldExplanation(
+  props: Readonly<{
+    fieldLabel: string;
+    explanationId: string;
+    explanation: string;
+  }>,
+): JSX.Element {
+  const [clickedState, setClickedState] = useState<"none" | "open" | "closed">("none");
+  const [isPointerOver, setIsPointerOver] = useState<boolean>(false);
+  const isOpen = clickedState === "none" ? isPointerOver : clickedState === "open";
+
+  useEffect(() => {
+    if (clickedState === "closed" && isPointerOver === false) {
+      setClickedState("none");
+    }
+  }, [clickedState, isPointerOver]);
+
+  return (
+    <span
+      className={`filter-explanation${isOpen ? " open" : ""}`}
+      onPointerEnter={(event) => {
+        if (event.pointerType === "mouse") {
+          setIsPointerOver(true);
+        }
+      }}
+      onPointerLeave={() => setIsPointerOver(false)}
+    >
+      <button
+        className="filter-explanation-toggle"
+        type="button"
+        aria-label={`What ${props.fieldLabel} means`}
+        aria-describedby={props.explanationId}
+        aria-expanded={isOpen}
+        onClick={() => setClickedState(isOpen ? "closed" : "open")}
+      >
+        i
+      </button>
+      <span id={props.explanationId} className="filter-explanation-text" role="tooltip">
+        {props.explanation}
+      </span>
+    </span>
+  );
 }
 
 function FilterFieldResetButton(
@@ -620,7 +705,8 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     };
   }, [openField]);
 
-  // The committed thresholds as one string, which is what the field button reads.
+  // The committed thresholds as one string, which is what the popover header prints and the field
+  // button's accessible name carries.
   const committedMinimumEventCountsSummary = getMinimumEventCountsSummary(
     props.filters.minimumEventCounts,
   );
@@ -629,6 +715,18 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
   // so there is nothing left for the text to be finished in.
   useEffect(() => {
     setMinimumCountDrafts((drafts) => (drafts.size === 0 ? drafts : new Map()));
+  }, [openField]);
+
+  // Every opening of the users popover starts with an empty search. That search lives on the bar
+  // rather than in the popover it is typed in, because the popover is mounted only while it is open,
+  // so a term left behind by an earlier opening would otherwise still be narrowing the list - and
+  // could hide a selected user from the one place that can uncheck them. It is cleared before the
+  // browser paints rather than after, so the opening cannot show the previous opening's term and its
+  // narrowed list for a frame first.
+  useLayoutEffect(() => {
+    if (openField === "users") {
+      setUserSearchValue("");
+    }
   }, [openField]);
 
   const defaultFilters = buildDefaultAnalyticsFilterState(props.defaultRange);
@@ -649,9 +747,9 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
   >(minimumCountByEventType);
 
   // The other thing that ends a draft is the committed count under it changing, which covers
-  // `Reset all`, `Clear every threshold`, a removed chip and the user's own accepted keystroke. It
-  // ends the draft on that event type alone: an accepted count typed into one input must not erase
-  // text still being edited in another, untouched one. The previous counts are held in a ref because
+  // `Reset all`, `Clear every threshold` and the user's own accepted keystroke. It ends the draft on
+  // that event type alone: an accepted count typed into one input must not erase text still being
+  // edited in another, untouched one. The previous counts are held in a ref because
   // `props.filters` arrives as a fresh object on every commit, so only its contents can tell a real
   // change from a repeat.
   useEffect(() => {
@@ -687,8 +785,11 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     () => buildSearchableUserFilterOptions(props.userOptions),
     [props.userOptions],
   );
-  const selectedUserFilters = useMemo(
-    () => buildActiveUserFilters(props.filters.users, userOptionById),
+  // A selected user the range no longer offers has no option of its own in the list, so the list is
+  // given one for them: every selection stays visible, and removable, in the one place that shows it.
+  const selectedUsersOutsideOptions = useMemo(
+    () => buildActiveUserFilters(props.filters.users, userOptionById)
+      .filter((userFilter) => userFilter.hasUserInReport === false),
     [props.filters.users, userOptionById],
   );
 
@@ -714,13 +815,13 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     });
   }
 
-  // An empty input is no threshold on that event type, which is how this input clears one; removing
-  // its chip and `Clear every threshold` clear one too. Text that does not name a whole count of at
-  // least one is not a threshold this filter can hold: it is kept as a draft and named as not
-  // applied, so the selection it failed to change stays exactly what the chips and the summary say it
-  // is, rather than being silently dropped or reread into a different one. A keystroke that lands on
-  // the count already applied commits nothing, because every commit repaints the bar as `Updating`
-  // and refetches every report in the area.
+  // An empty input is no threshold on that event type, which is how this input clears one;
+  // `Clear every threshold` and `Reset all` clear them too. Text that does not name a whole count of
+  // at least one is not a threshold this filter can hold: it is kept as a draft and named as not
+  // applied, so the selection it failed to change stays exactly what the other inputs and the popover
+  // header say it is, rather than being silently dropped or reread into a different one. A keystroke
+  // that lands on the count already applied commits nothing, because every commit repaints the bar as
+  // `Updating` and refetches every report in the area.
   function handleMinimumEventCountChange(
     eventType: AnalyticsThresholdEventType,
     rawMinimumCount: string,
@@ -811,23 +912,9 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         isWide: true,
         content: (
           <>
-            <FilterChipRow
-              fieldLabel={getAnalyticsFilterFieldLabel(props.area, "users")}
-              chips={selectedUserFilters.map((userFilter) => ({
-                value: userFilter.userId,
-                label: userFilter.label,
-                secondaryLabel: userFilter.secondaryLabel,
-                swatchColor: userFilter.hasUserInReport
-                  ? props.userColorScale(userFilter.userId)
-                  : unknownUserSwatchColor,
-              }))}
-              onRemove={(userId) => props.onFiltersChange({
-                ...props.filters,
-                users: props.filters.users.filter((selectedUserId) => selectedUserId !== userId),
-              })}
-            />
             <UserFilterOptions
               searchableOptions={searchableUserOptions}
+              selectedUsersOutsideOptions={selectedUsersOutsideOptions}
               selectedUserIds={selectedUserIds}
               searchValue={userSearchValue}
               userColorScale={props.userColorScale}
@@ -859,23 +946,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         isWide: false,
         content: (
           <>
-            <FilterChipRow
-              fieldLabel={getAnalyticsFilterFieldLabel(props.area, "userCohorts")}
-              chips={reviewEventCohorts
-                .filter((cohort) => selectedCohorts.has(cohort))
-                .map((cohort) => ({
-                  value: cohort,
-                  label: uniqueUserCohortLabels[cohort],
-                  secondaryLabel: "",
-                  swatchColor: uniqueUserCohortColors[cohort],
-                }))}
-              onRemove={(cohort) => props.onFiltersChange({
-                ...props.filters,
-                userCohorts: props.filters.userCohorts.filter(
-                  (selectedCohort) => selectedCohort !== cohort,
-                ),
-              })}
-            />
             <FilterOptionList
               options={reviewEventCohorts.map((cohort) => ({
                 value: cohort,
@@ -913,23 +983,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         isWide: false,
         content: (
           <>
-            <FilterChipRow
-              fieldLabel={getAnalyticsFilterFieldLabel(props.area, "eventPlatforms")}
-              chips={reviewEventPlatforms
-                .filter((platform) => selectedPlatforms.has(platform))
-                .map((platform) => ({
-                  value: platform,
-                  label: platformLabels[platform],
-                  secondaryLabel: "",
-                  swatchColor: getPlatformColor(platform),
-                }))}
-              onRemove={(platform) => props.onFiltersChange({
-                ...props.filters,
-                eventPlatforms: props.filters.eventPlatforms.filter(
-                  (selectedPlatform) => selectedPlatform !== platform,
-                ),
-              })}
-            />
             <FilterOptionList
               options={reviewEventPlatforms.map((platform) => ({
                 value: platform,
@@ -958,7 +1011,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "minimumEventCounts") {
       // Named rather than only marked on the input, because a rejected count stays where it was typed
-      // while the chips keep showing the selection it failed to change.
+      // while the popover header keeps showing the selection it failed to change.
       const rejectedMinimumCountLabels = analyticsThresholdEventTypes
         .filter((eventType) => minimumCountDrafts.has(eventType))
         .map((eventType) => analyticsThresholdEventTypeLabels[eventType]);
@@ -969,21 +1022,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         isWide: false,
         content: (
           <>
-            <FilterChipRow
-              fieldLabel={getAnalyticsFilterFieldLabel(props.area, "minimumEventCounts")}
-              chips={props.filters.minimumEventCounts.map((entry) => ({
-                value: entry.eventType,
-                label: formatMinimumEventCountLabel(entry),
-                secondaryLabel: "",
-                swatchColor: filterValueSwatchColor,
-              }))}
-              onRemove={(eventType) => props.onFiltersChange({
-                ...props.filters,
-                minimumEventCounts: props.filters.minimumEventCounts.filter(
-                  (entry) => entry.eventType !== eventType,
-                ),
-              })}
-            />
             <div className="filter-threshold-list">
               {analyticsThresholdEventTypes.map((eventType) => {
                 const minimumCount = minimumCountByEventType.get(eventType);
@@ -1039,7 +1077,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "connectionCountries") {
       return buildOptionFieldView({
-        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "connectionCountries"),
         selectedValues: props.filters.connectionCountries,
         options: props.connectionCountryOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.connectionCountries,
@@ -1055,7 +1092,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "appUiLanguages") {
       return buildOptionFieldView({
-        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "appUiLanguages"),
         selectedValues: props.filters.appUiLanguages,
         options: props.appUiLanguageOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.appUiLanguages,
@@ -1080,7 +1116,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
       );
 
       return buildOptionFieldView({
-        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "installedDecks"),
         selectedValues: props.filters.installedDecks,
         options: props.catalogDeckOptions.map((deck) => ({
           value: deck.packageVersionId,
@@ -1102,7 +1137,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "catalogPlacements") {
       return buildOptionFieldView({
-        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "catalogPlacements"),
         selectedValues: props.filters.catalogPlacements,
         options: props.catalogPlacementOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.catalogPlacements,
@@ -1118,7 +1152,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "catalogSources") {
       return buildOptionFieldView({
-        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "catalogSources"),
         selectedValues: props.filters.catalogSources,
         options: props.catalogSourceOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.catalogSources,
@@ -1134,7 +1167,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "catalogDeviceCategories") {
       return buildOptionFieldView({
-        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "catalogDeviceCategories"),
         selectedValues: props.filters.catalogDeviceCategories,
         options: props.catalogDeviceCategoryOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.catalogDeviceCategories,
@@ -1150,7 +1182,6 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
     if (field === "catalogClickBrowserLanguages") {
       return buildOptionFieldView({
-        fieldLabel: getAnalyticsFilterFieldLabel(props.area, "catalogClickBrowserLanguages"),
         selectedValues: props.filters.catalogClickBrowserLanguages,
         options: props.catalogClickBrowserLanguageOptions.map(toPlainOptionChoice),
         defaultValues: defaultFilters.catalogClickBrowserLanguages,
@@ -1177,14 +1208,20 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
           <p className="eyebrow">Filters</p>
           <h2 id="analytics-filters-title">Filters</h2>
         </div>
+        {/*
+          The range is stated by the page header and picked in the date field, so it is not repeated
+          here. What stays is the reload feedback every action owes the user: this keeps its slot while
+          idle and prints nothing, so a commit shows `Updating` in place without moving the header.
+        */}
         <span className={`filter-status${props.isReportLoading ? " active" : ""}`} aria-live="polite">
-          {props.isReportLoading ? "Updating" : `Default ${props.defaultRange.from} to ${props.defaultRange.to}`}
+          {props.isReportLoading ? "Updating" : ""}
         </span>
       </div>
 
       <div className="filter-bar" aria-label={`${analyticsAreaLabels[props.area]} filters`}>
         {fieldViews.map((entry, index) => {
           const popoverId = `analytics-filter-${entry.field}-popover`;
+          const explanationId = `analytics-filter-${entry.field}-explanation`;
           const fieldLabel = getAnalyticsFilterFieldLabel(props.area, entry.field);
 
           return (
@@ -1192,6 +1229,12 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
               key={entry.field}
               className={getPopoverAnchorClassName(index, fieldViews.length, entry.view.isWide)}
             >
+              {/*
+                The button prints the field name alone, so the row stays one line of field names and no
+                value is on screen twice. A filtered field is told apart by its colour and its dot; the
+                selection itself is in the popover header, and reaches a screen reader through the
+                button's accessible name, which keeps the visible label as its first words.
+              */}
               <button
                 ref={(buttonElement) => {
                   if (buttonElement === null) {
@@ -1204,24 +1247,43 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
                 className={getFilterButtonClassName(openField === entry.field, entry.view.isFiltered)}
                 type="button"
                 data-testid={`analytics-filter-${entry.field}`}
+                aria-label={`${fieldLabel}: ${entry.view.summary}`}
                 aria-expanded={openField === entry.field}
                 aria-controls={popoverId}
                 onClick={() => setOpenField(
                   (currentField) => (currentField === entry.field ? null : entry.field),
                 )}
               >
-                {fieldLabel}: {entry.view.summary}
+                {entry.view.isFiltered ? (
+                  <span className="filter-menu-dot" aria-hidden="true" />
+                ) : null}
+                {fieldLabel}
               </button>
               {openField === entry.field ? (
                 <div id={popoverId} className="filter-popover">
                   <div className="filter-popover-header">
-                    <span>{fieldLabel}</span>
+                    <span className="filter-popover-field">
+                      <span>{fieldLabel}</span>
+                      {/*
+                        The explanations run to a paragraph, so one waits behind its `(i)` instead of
+                        standing between the header and the picker. A real button with a described
+                        tooltip rather than a `title`, because it has to be reachable by keyboard and
+                        readable by a screen reader.
+                      */}
+                      <FilterFieldExplanation
+                        fieldLabel={fieldLabel}
+                        explanationId={explanationId}
+                        explanation={getAnalyticsFilterFieldExplanation(props.area, entry.field)}
+                      />
+                    </span>
                     <span>{entry.view.summary}</span>
                   </div>
-                  <p className="filter-popover-explanation">
-                    {getAnalyticsFilterFieldExplanation(props.area, entry.field)}
-                  </p>
-                  {entry.view.content}
+                  {/*
+                    The scroll box is this wrapper rather than the popover, so the explanation
+                    anchored to the header above is not clipped by it and the picker stays still while
+                    the reader opens one.
+                  */}
+                  <div className="filter-popover-content">{entry.view.content}</div>
                 </div>
               ) : null}
             </div>
