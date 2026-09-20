@@ -2,6 +2,7 @@ export {
   declineAnalyticsConsent,
   flush,
   grantAnalyticsConsent,
+  isAnalyticsEnabledForCurrentRuntime,
   readAnalyticsSessionOwnerId,
   registerAnalyticsSessionOwnerPublisher,
   reportIdentityFreeAnalyticsEvent,

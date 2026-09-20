@@ -266,8 +266,11 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       // session is verified and any user-scoped cleanup has already run.
       setAnalyticsConfirmedOwner(currentSession.userId);
       // Reconciles this browser's consent answer with the account's, which wins where both exist.
-      // Never awaited, like the link below: no sign-in may wait on analytics.
-      syncAnalyticsConsentWithAccount(currentSession.preferences.analyticsConsent);
+      // Not awaited here, like the link below: no sign-in may wait on analytics. The link does wait
+      // for it, because it must not spend the guest identity on an answer this is about to replace.
+      const analyticsConsentSync = syncAnalyticsConsentWithAccount(
+        currentSession.preferences.analyticsConsent,
+      );
       // Started after the owner publish above, and never awaited: no user action may be blocked,
       // delayed or failed by an analytics call. `getSession()` above is also the
       // request-context call the route requires to have run first, and the account it verified is
@@ -277,6 +280,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         storedGuestSession,
         storedGuestIdentityGeneration,
         currentSession.userId,
+        analyticsConsentSync,
       );
       setSessionVerificationState("verified");
     } catch (error) {
@@ -407,7 +411,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           // dropped it and advanced the guest identity generation, which also stops a link started
           // by `initialize` from binding it to the account being published on this line.
           setAnalyticsConfirmedOwner(currentSession.userId);
-          syncAnalyticsConsentWithAccount(currentSession.preferences.analyticsConsent);
+          void syncAnalyticsConsentWithAccount(currentSession.preferences.analyticsConsent);
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");

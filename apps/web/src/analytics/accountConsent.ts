@@ -4,7 +4,7 @@
  * The account is the durable record and wins wherever both exist: it travels with the person to
  * another browser or device, while the browser's own answer belongs to the browser. Where only the
  * browser has answered, the account adopts that answer, which is what makes a decision taken before
- * signing in survive the next device.
+ * signing in — on a public catalog, invite or share route among them — survive the next device.
  */
 import { updateAccountPreferences } from "../api";
 import type { AnalyticsConsentChoice } from "../types";
@@ -46,8 +46,12 @@ async function runAnalyticsConsentAccountSync(
 /**
  * Reconciles the two records, in the background. Called from the session layer once a session is
  * verified, on the same line the analytics owner is published: no user action may be blocked,
- * delayed or failed by analytics, so nothing here is awaited and a failure costs one sync rather
- * than a sign-in. The next verified session runs it again.
+ * delayed or failed by analytics, so the sign-in path does not await this and a failure costs one
+ * sync rather than a sign-in. The next verified session runs it again.
+ *
+ * The returned promise settles when the reconciliation is done and never rejects, so other
+ * background analytics work that must not act on the browser's pre-sync answer — the guest identity
+ * link, which spends an identity permanently — can wait for it without acquiring a failure path.
  *
  * A guest whose account was upgraded arrives here with `null` on the account — the upgrade copies
  * no preference columns and the guest row is deleted — and the browser's own stored answer is what
@@ -55,6 +59,6 @@ async function runAnalyticsConsentAccountSync(
  */
 export function syncAnalyticsConsentWithAccount(
   accountConsent: AnalyticsConsentChoice | null,
-): void {
-  void runAnalyticsConsentAccountSync(accountConsent).catch((): void => undefined);
+): Promise<void> {
+  return runAnalyticsConsentAccountSync(accountConsent).catch((): void => undefined);
 }
