@@ -120,9 +120,8 @@ struct SchedulerSettingsDetailView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.workspace.scheduler.title", "Scheduler settings"))
         .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-
+            ToolbarSpacer(.flexible, placement: .keyboard)
+            ToolbarItem(placement: .keyboard) {
                 Button(aiSettingsLocalized("common.done", "Done")) {
                     self.focusedField = nil
                 }

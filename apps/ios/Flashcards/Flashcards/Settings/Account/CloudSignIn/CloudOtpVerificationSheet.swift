@@ -130,9 +130,8 @@ struct CloudOtpVerificationSheet: View {
                     .disabled(self.isRequestInFlight || self.currentChallenge == nil)
                 }
 
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-
+                ToolbarSpacer(.flexible, placement: .keyboard)
+                ToolbarItem(placement: .keyboard) {
                     Button(aiSettingsLocalized("common.done", "Done")) {
                         self.isCodeFieldFocused = false
                     }
