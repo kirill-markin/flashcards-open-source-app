@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nimemaliza"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முடிந்தது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పూర్తయింది"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -259,6 +277,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fungua Mipangilio ikiwa unataka kuzima ufikiaji huu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்த அணுகலை முடக்க விரும்பினால் அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ అనుమతిని ఆఫ్ చేయాలంటే సెట్టింగ్‌లను తెరవండి."
           }
         },
         "sk" : {
@@ -512,6 +548,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omba ufikiaji sasa, au fungua Mipangilio baadaye ili kuudhibiti mwenyewe."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இப்போது அணுகலைக் கோரவும் அல்லது பின்னர் நீங்களே நிர்வகிக்க அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఇప్పుడే అనుమతి కోరండి లేదా తర్వాత స్వయంగా నిర్వహించడానికి సెట్టింగ్‌లను తెరవండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -761,6 +815,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa kamera umezimwa kwa Nibomo. Fungua Mipangilio > Faragha na Usalama > Kamera ili kuubadilisha."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு கேமரா அணுகல் முடக்கப்பட்டுள்ளது. மாற்ற அமைப்புகள் > தனியுரிமை மற்றும் பாதுகாப்பு > கேமராவைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం కెమెరా అనుమతి ఆఫ్‌లో ఉంది. మార్చడానికి సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > కెమెరాను తెరవండి."
           }
         },
         "sk" : {
@@ -1014,6 +1086,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fungua Mipangilio ili kukagua au kupanua ufikiaji huu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்த அணுகலைப் பார்க்க அல்லது விரிவாக்க அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ అనుమతిని పరిశీలించడానికి లేదా విస్తరించడానికి సెట్టింగ్‌లను తెరవండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1263,6 +1353,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa maikrofoni umezimwa kwa Nibomo. Fungua Mipangilio > Faragha na Usalama > Maikrofoni ili kuubadilisha."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு மைக்ரோஃபோன் அணுகல் முடக்கப்பட்டுள்ளது. மாற்ற அமைப்புகள் > தனியுரிமை மற்றும் பாதுகாப்பு > மைக்ரோஃபோனைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం మైక్రోఫోన్ అనుమతి ఆఫ్‌లో ఉంది. మార్చడానికి సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > మైక్రోఫోన్‌ను తెరవండి."
           }
         },
         "sk" : {
@@ -1516,6 +1624,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa picha umezimwa kwa Nibomo. Fungua Mipangilio > Faragha na Usalama > Picha ili kuubadilisha."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு புகைப்பட அணுகல் முடக்கப்பட்டுள்ளது. மாற்ற அமைப்புகள் > தனியுரிமை மற்றும் பாதுகாப்பு > புகைப்படங்களைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం ఫొటోల అనుమతి ఆఫ్‌లో ఉంది. మార్చడానికి సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > ఫొటోలను తెరవండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1765,6 +1891,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picha ulizoshiriki tayari na Nibomo pekee ndizo zinapatikana. Fungua Mipangilio ili kuruhusu ufikiaji wa picha zaidi."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-வுடன் ஏற்கனவே பகிர்ந்த புகைப்படங்கள் மட்டுமே கிடைக்கும். கூடுதல் புகைப்பட அணுகலை வழங்க அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీరు ఇప్పటికే Nibomoతో పంచుకున్న ఫొటోలు మాత్రమే అందుబాటులో ఉన్నాయి. మరిన్ని ఫొటోలకు అనుమతి ఇవ్వడానికి సెట్టింగ్‌లను తెరవండి."
           }
         },
         "sk" : {
@@ -2018,6 +2162,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji huu haupatikani kwenye kifaa hiki."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்தச் சாதனத்தில் இந்த அணுகல் கிடைக்கவில்லை."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ పరికరంలో ఈ అనుమతి అందుబాటులో లేదు."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2267,6 +2429,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imeruhusiwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அனுமதிக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అనుమతించబడింది"
           }
         },
         "sk" : {
@@ -2520,6 +2700,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uliza kila mara"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ஒவ்வொரு முறையும் கேள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ప్రతిసారీ అడుగు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2769,6 +2967,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imezuiwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தடுக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "బ్లాక్ చేయబడింది"
           }
         },
         "sk" : {
@@ -3022,6 +3238,24 @@
             "value" : "محدود"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ina mipaka"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "வரையறுக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పరిమితం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3271,6 +3505,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haipatikani"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கிடைக்கவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అందుబాటులో లేదు"
           }
         },
         "sk" : {
@@ -3524,6 +3776,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piga picha moja kwa moja kwenye gumzo la AI."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI அரட்டையிலிருந்தே புகைப்படம் எடுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI చాట్ నుంచే ఫొటోలు తీయండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3773,6 +4043,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கேமரா"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కెమెరా"
           }
         },
         "sk" : {
@@ -4026,6 +4314,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamka maandishi kwenye gumzo la AI."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI அரட்டையில் பேசித் தட்டச்சு செய்யவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI చాట్‌లో మాట్లాడి వచనం నమోదు చేయండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4275,6 +4581,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maikrofoni"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மைக்ரோஃபோன்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మైక్రోఫోన్"
           }
         },
         "sk" : {
@@ -4528,6 +4852,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chagua picha za kuambatisha kwenye gumzo la AI."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI அரட்டையில் இணைக்க புகைப்படங்களைத் தேர்ந்தெடுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI చాట్ జోడింపుల కోసం ఫొటోలను ఎంచుకోండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4777,6 +5119,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Picha"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "புகைப்படங்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఫొటోలు"
           }
         },
         "sk" : {
@@ -5030,6 +5390,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa maikrofoni umezimwa kwa Nibomo. Fungua Mipangilio ili kuuruhusu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு மைக்ரோஃபோன் அணுகல் முடக்கப்பட்டுள்ளது. அனுமதிக்க அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం మైక్రోఫోన్ అనుమతి ఆఫ్‌లో ఉంది. అనుమతించడానికి సెట్టింగ్‌లను తెరవండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5279,6 +5657,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa Maikrofoni Unahitajika"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மைக்ரோஃபோன் அணுகல் தேவை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మైక్రోఫోన్ అనుమతి అవసరం"
           }
         },
         "sk" : {
@@ -5532,6 +5928,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa kamera umezimwa kwa Nibomo. Fungua Mipangilio ili kuuruhusu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு கேமரா அணுகல் முடக்கப்பட்டுள்ளது. அனுமதிக்க அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం కెమెరా అనుమతి ఆఫ్‌లో ఉంది. అనుమతించడానికి సెట్టింగ్‌లను తెరవండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5781,6 +6195,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa Kamera Unahitajika"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கேமரா அணுகல் தேவை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కెమెరా అనుమతి అవసరం"
           }
         },
         "sk" : {
@@ -6034,6 +6466,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa faili umezimwa kwa Nibomo. Fungua Mipangilio ili kuuruhusu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு கோப்பு அணுகல் முடக்கப்பட்டுள்ளது. அனுமதிக்க அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం ఫైల్ అనుమతి ఆఫ్‌లో ఉంది. అనుమతించడానికి సెట్టింగ్‌లను తెరవండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6283,6 +6733,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa Faili Unahitajika"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கோப்பு அணுகல் தேவை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఫైల్ అనుమతి అవసరం"
           }
         },
         "sk" : {
@@ -6536,6 +7004,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa picha umezimwa kwa Nibomo. Fungua Mipangilio ili kuuruhusu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு புகைப்பட அணுகல் முடக்கப்பட்டுள்ளது. அனுமதிக்க அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం ఫొటోల అనుమతి ఆఫ్‌లో ఉంది. అనుమతించడానికి సెట్టింగ్‌లను తెరవండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6785,6 +7271,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa Picha Unahitajika"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "புகைப்பட அணுகல் தேவை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఫొటోల అనుమతి అవసరం"
           }
         },
         "sk" : {
@@ -7038,6 +7542,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadi zote"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அனைத்து அட்டைகளும்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అన్ని కార్డులు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7287,6 +7809,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muunganisho umekatwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "துண்டிக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అనుసంధానం తెగిపోయింది"
           }
         },
         "sk" : {
@@ -7540,6 +8080,24 @@
             "value" : "ضيف"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mgeni"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "விருந்தினர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అతిథి"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7789,6 +8347,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imeunganishwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అనుసంధానించబడింది"
           }
         },
         "sk" : {
@@ -8042,6 +8618,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tayari kuunganishwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைக்கத் தயார்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అనుసంధానానికి సిద్ధం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8291,6 +8885,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuingia kwenye wingu hakupatikani. Angalia usanidi wa programu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கிளவுட் உள்நுழைவு கிடைக்கவில்லை. செயலியின் உள்ளமைவைச் சரிபார்க்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "క్లౌడ్ సైన్ ఇన్ అందుబాటులో లేదు. యాప్ కాన్ఫిగరేషన్‌ను తనిఖీ చేయండి."
           }
         },
         "sk" : {
@@ -8544,6 +9156,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weka anwani halali ya barua pepe."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சரியான மின்னஞ்சல் முகவரியை உள்ளிடவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "చెల్లుబాటు అయ్యే ఇమెయిల్ చిరునామాను నమోదు చేయండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8793,6 +9423,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Msimbo umetumika tayari. Omba mpya."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "குறியீடு ஏற்கனவே பயன்படுத்தப்பட்டது. புதியதைக் கோரவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కోడ్ ఇప్పటికే ఉపయోగించబడింది. కొత్తది కోరండి."
           }
         },
         "sk" : {
@@ -9046,6 +9694,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Msimbo si sahihi. Jaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "குறியீடு தவறானது. மீண்டும் முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కోడ్ చెల్లదు. మళ్లీ ప్రయత్నించండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9295,6 +9961,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Msimbo haukuweza kutumwa. Jaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "குறியீட்டை அனுப்ப முடியவில்லை. மீண்டும் முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కోడ్‌ను పంపలేకపోయాము. మళ్లీ ప్రయత్నించండి."
           }
         },
         "sk" : {
@@ -9548,6 +10232,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Msimbo umeisha muda. Omba mpya."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "குறியீடு காலாவதியானது. புதியதைக் கோரவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కోడ్ గడువు ముగిసింది. కొత్తది కోరండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9797,6 +10499,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Majaribio mengi sana. Omba msimbo mpya."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முயற்சிகள் அதிகமாகிவிட்டன. புதிய குறியீட்டைக் கோரவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "చాలా సార్లు ప్రయత్నించారు. కొత్త కోడ్ కోరండి."
           }
         },
         "sk" : {
@@ -10050,6 +10770,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Msimbo haukuweza kuthibitishwa. Jaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "குறியீட்டைச் சரிபார்க்க முடியவில்லை. மீண்டும் முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కోడ్‌ను ధృవీకరించలేకపోయాము. మళ్లీ ప్రయత్నించండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10299,6 +11037,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuingia kwenye wingu kumeshindikana. Jaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கிளவுட் உள்நுழைவு தோல்வியடைந்தது. மீண்டும் முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "క్లౌడ్ సైన్ ఇన్ విఫలమైంది. మళ్లీ ప్రయత్నించండి."
           }
         },
         "sk" : {
@@ -10552,6 +11308,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muunganisho ulikatika msimbo ulipokuwa ukitumwa. Angalia barua pepe yako, kisha ujaribu tena ikihitajika."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "குறியீட்டை அனுப்பும்போது இணைப்பு துண்டிக்கப்பட்டது. மின்னஞ்சலைப் பார்த்துவிட்டு, தேவைப்பட்டால் மீண்டும் முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కోడ్ పంపుతున్నప్పుడు కనెక్షన్ తెగిపోయింది. మీ ఇమెయిల్ తనిఖీ చేసి, అవసరమైతే మళ్లీ ప్రయత్నించండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10801,6 +11575,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muunganisho ulikatika msimbo ulipokuwa ukithibitishwa. Jaribu tena, au omba msimbo mpya ikihitajika."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "குறியீட்டைச் சரிபார்க்கும்போது இணைப்பு துண்டிக்கப்பட்டது. மீண்டும் முயலவும் அல்லது தேவைப்பட்டால் புதிய குறியீட்டைக் கோரவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కోడ్‌ను ధృవీకరిస్తున్నప్పుడు కనెక్షన్ తెగిపోయింది. మళ్లీ ప్రయత్నించండి లేదా అవసరమైతే కొత్త కోడ్ కోరండి."
           }
         },
         "sk" : {
@@ -11054,6 +11846,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubao wa viwango haukuweza kuonyeshwa upya. Vuta ili ujaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசையைப் புதுப்பிக்க முடியவில்லை. மீண்டும் முயல கீழே இழுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్‌ను రిఫ్రెష్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించడానికి కిందికి లాగండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11303,6 +12113,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ratiba ya marudio haikuweza kuonyeshwa upya. Vuta ili ujaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சி அட்டவணையைப் புதுப்பிக்க முடியவில்லை. மீண்டும் முயல கீழே இழுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణ షెడ్యూల్‌ను రిఫ్రెష్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించడానికి కిందికి లాగండి."
           }
         },
         "sk" : {
@@ -11556,6 +12384,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ratiba ya marudio haikuweza kuonyeshwa. Vuta ili ujaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சி அட்டவணையைக் காட்ட முடியவில்லை. மீண்டும் முயல கீழே இழுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణ షెడ్యూల్‌ను చూపలేకపోయాము. మళ్లీ ప్రయత్నించడానికి కిందికి లాగండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11805,6 +12651,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chati ya maendeleo haikuweza kuonyeshwa upya. Vuta ili ujaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முன்னேற்ற வரைபடத்தைப் புதுப்பிக்க முடியவில்லை. மீண்டும் முயல கீழே இழுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పురోగతి చార్ట్‌ను రిఫ్రెష్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించడానికి కిందికి లాగండి."
           }
         },
         "sk" : {
@@ -12058,6 +12922,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubao wa mfululizo haukuweza kuonyeshwa upya. Vuta ili ujaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாள் தரவரிசையைப் புதுப்பிக்க முடியவில்லை. மீண்டும் முயல கீழே இழுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజుల లీడర్‌బోర్డ్‌ను రిఫ్రెష్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించడానికి కిందికి లాగండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12307,6 +13189,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muhtasari wa maendeleo haukuweza kuonyeshwa upya. Vuta ili ujaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முன்னேற்றச் சுருக்கத்தைப் புதுப்பிக்க முடியவில்லை. மீண்டும் முயல கீழே இழுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పురోగతి సారాంశాన్ని రిఫ్రెష్ చేయలేకపోయాము. మళ్లీ ప్రయత్నించడానికి కిందికి లాగండి."
           }
         },
         "sk" : {
@@ -12560,6 +13460,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maendeleo hayapatikani. Vuta ili kuonyesha upya na ujaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முன்னேற்றம் கிடைக்கவில்லை. புதுப்பித்து மீண்டும் முயல கீழே இழுக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పురోగతి అందుబాటులో లేదు. రిఫ్రెష్ చేసి మళ్లీ ప్రయత్నించడానికి కిందికి లాగండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12809,6 +13727,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akiba ya kinga: %@ kati ya %@ zinapatikana."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாள் பாதுகாப்பு இருப்பு: %@ / %@ கிடைக்கிறது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజుల రక్షణ నిల్వ: %@ / %@ అందుబాటులో ఉంది."
           }
         },
         "sk" : {
@@ -13062,6 +13998,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inaonyesha jinsi kinga za mfululizo zinavyofanya kazi."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாள் பாதுகாப்புகள் செயல்படும் விதத்தைக் காட்டுகிறது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజుల రక్షణలు ఎలా పనిచేస్తాయో చూపిస్తుంది."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13311,6 +14265,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zinazopatikana: %@/%@. Kujaza tena: %@/%@. Kinga hulinda siku ulizokosa na hujazwa tena mfululizo wako unapoendelea."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கிடைப்பவை: %@/%@. மீள்நிரப்பு: %@/%@. தவறிய நாட்களில் தொடர் நாள் பாதுகாப்புகள் உங்கள் தொடரைப் பாதுகாக்கும்; தொடர் நீளும்போது மீண்டும் நிரம்பும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అందుబాటులో: %@/%@. తిరిగి నింపడం: %@/%@. రక్షణలు తప్పిన రోజుల్లో మీ వరుసను కాపాడతాయి; వరుస కొనసాగుతున్నప్పుడు తిరిగి నిండుతాయి."
           }
         },
         "sk" : {
@@ -13564,6 +14536,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kinga za mfululizo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாள் பாதுகாப்புகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజుల రక్షణలు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13813,6 +14803,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unda Kiungo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைப்பை உருவாக்கு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "లింక్ సృష్టించు"
           }
         },
         "sk" : {
@@ -14066,6 +15074,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anaweza kukifungua, kuingia au kujisajili, kisha mtaonana kwenye programu. Viungo vya mwaliko huisha muda baada ya siku 2."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அவர் அதைத் திறந்து உள்நுழையலாம் அல்லது பதிவு செய்யலாம்; பிறகு செயலியில் ஒருவரையொருவர் காணலாம். அழைப்பு இணைப்புகள் 2 நாட்களில் காலாவதியாகும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వారు దాన్ని తెరిచి సైన్ ఇన్ లేదా సైన్ అప్ చేయవచ్చు. ఆ తర్వాత యాప్‌లో ఒకరినొకరు చూడవచ్చు. ఆహ్వాన లింక్‌ల గడువు 2 రోజుల్లో ముగుస్తుంది."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14315,6 +15341,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mtumie rafiki yako kiungo hiki"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்த இணைப்பை உங்கள் நண்பருக்கு அனுப்பவும்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ లింక్‌ను మీ స్నేహితుడికి పంపండి"
           }
         },
         "sk" : {
@@ -14568,6 +15612,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inaunda..."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உருவாக்குகிறது..."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సృష్టిస్తోంది..."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14817,6 +15879,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unda kiungo cha faragha cha rafiki kwa ubao wa viwango."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தரவரிசைக்கான தனிப்பட்ட நண்பர் இணைப்பை உருவாக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "లీడర్‌బోర్డ్ కోసం ప్రైవేట్ స్నేహిత ఆహ్వాన లింక్‌ను సృష్టించండి."
           }
         },
         "sk" : {
@@ -15070,6 +16150,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wewe tu unaona jina hili kwenye ubao wako wa viwango. Rafiki yako huchagua atakuitaje anapokubali. Viungo vya mwaliko huisha muda baada ya siku 2."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உங்கள் தரவரிசையில் இந்தப் பெயர் உங்களுக்கு மட்டுமே தெரியும். உங்கள் நண்பர் ஏற்கும்போது உங்களை என்ன பெயரில் அழைப்பது எனத் தேர்ந்தெடுப்பார். அழைப்பு இணைப்புகள் 2 நாட்களில் காலாவதியாகும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీ లీడర్‌బోర్డ్‌లో ఈ పేరు మీకు మాత్రమే కనిపిస్తుంది. మీ స్నేహితుడు ఆమోదించేటప్పుడు మీకు ఏ పేరు పెట్టాలో ఎంచుకుంటారు. ఆహ్వాన లింక్‌ల గడువు 2 రోజుల్లో ముగుస్తుంది."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15319,6 +16417,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jina la rafiki kwenye ubao wako wa viwango"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உங்கள் தரவரிசையில் நண்பரின் பெயர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీ లీడర్‌బోర్డ్‌లో స్నేహితుడి పేరు"
           }
         },
         "sk" : {
@@ -15572,6 +16688,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jina la rafiki yako"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உங்கள் நண்பரின் பெயர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీ స్నేహితుడి పేరు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15821,6 +16955,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nimemaliza"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முடிந்தது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పూర్తయింది"
           }
         },
         "sk" : {
@@ -16074,6 +17226,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuma Kiungo cha Mwaliko"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அழைப்பு இணைப்பை அனுப்பு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఆహ్వాన లింక్ పంపు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16323,6 +17493,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fungua mwaliko huu wa Nibomo, ingia au jisajili, kisha tutaonana kwenye programu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்த Nibomo அழைப்பைத் திறந்து உள்நுழையவும் அல்லது பதிவு செய்யவும்; பிறகு செயலியில் ஒருவரையொருவர் காணலாம்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ Nibomo ఆహ్వానాన్ని తెరిచి సైన్ ఇన్ లేదా సైన్ అప్ చేయండి. ఆ తర్వాత యాప్‌లో ఒకరినొకరు చూడవచ్చు."
           }
         },
         "sk" : {
@@ -16576,6 +17764,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mwaliko wa urafiki wa Nibomo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo நண்பர் அழைப்பு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo స్నేహిత ఆహ్వానం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16825,6 +18031,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongeza Rafiki"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "நண்பரைச் சேர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "స్నేహితుడిని చేర్చు"
           }
         },
         "sk" : {
@@ -17078,6 +18302,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mistari mipya na vibambo vya udhibiti haviruhusiwi."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "புதிய வரிகளும் கட்டுப்பாட்டு எழுத்துகளும் அனுமதிக்கப்படாது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కొత్త పంక్తులు, నియంత్రణ అక్షరాలు అనుమతించబడవు."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17327,6 +18569,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weka vibambo 1-30."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-30 எழுத்துகளை உள்ளிடவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-30 అక్షరాలు నమోదు చేయండి."
           }
         },
         "sk" : {
@@ -17580,6 +18840,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shughuli za marudio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சி செயல்பாடு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణ కార్యకలాపం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17829,6 +19107,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarehe"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தேதி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "తేదీ"
           }
         },
         "sk" : {
@@ -18082,6 +19378,24 @@
             "value" : "المراجعات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marudio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சிகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణలు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18331,6 +19645,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 30 zilizopita."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கடந்த 30 நாட்கள்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "గత 30 రోజులు."
           }
         },
         "sk" : {
@@ -18584,6 +19916,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marudio 1"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 மீள்பயிற்சி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 పునశ్చరణ"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18833,6 +20183,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marudio %lld"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld மீள்பயிற்சிகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld పునశ్చరణలు"
           }
         },
         "sk" : {
@@ -19086,6 +20454,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shughuli za marudio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சி செயல்பாடு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణ కార్యకలాపం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19335,6 +20721,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld في %2$@"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld katika %2$@"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld (%2$@)"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld (%2$@)"
           }
         },
         "sk" : {
@@ -19588,6 +20992,24 @@
             "value" : "أفضل تصنيف"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiwango bora"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சிறந்த தரநிலை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఉత్తమ ర్యాంక్"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19837,6 +21259,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد تصنيف بعد"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakuna kiwango bado"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இன்னும் தரநிலை இல்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఇంకా ర్యాంక్ లేదు"
           }
         },
         "sk" : {
@@ -20090,6 +21530,24 @@
             "value" : "بطاقة واحدة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadi 1"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 அட்டை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 కార్డు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20339,6 +21797,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld بطاقات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadi %lld"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld அட்டைகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld కార్డులు"
           }
         },
         "sk" : {
@@ -20592,6 +22068,24 @@
             "value" : "البطاقات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadi"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அட்டைகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కార్డులు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20841,6 +22335,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة الحالية"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mfululizo wa sasa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தற்போதைய தொடர் நாட்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ప్రస్తుత వరుస రోజులు"
           }
         },
         "sk" : {
@@ -21094,6 +22606,24 @@
             "value" : "تم"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nimemaliza"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முடிந்தது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పూర్తయింది"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21343,6 +22873,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angalia muunganisho wako na ujaribu tena."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి."
           }
         },
         "sk" : {
@@ -21596,6 +23144,24 @@
             "value" : "تعذر تحميل الملف الشخصي"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wasifu haukuweza kupakiwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சுயவிவரத்தை ஏற்ற முடியவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ప్రొఫైల్ లోడ్ కాలేదు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21845,6 +23411,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "صديق"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rafiki"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "நண்பர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "స్నేహితుడు"
           }
         },
         "sk" : {
@@ -22098,6 +23682,24 @@
             "value" : "تاريخ الانضمام"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alijiunga"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சேர்ந்த நாள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "చేరిన తేదీ"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22347,6 +23949,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جارٍ تحميل الملف الشخصي..."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inapakia wasifu..."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சுயவிவரத்தை ஏற்றுகிறது..."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ప్రొఫైల్ లోడ్ అవుతోంది..."
           }
         },
         "sk" : {
@@ -22600,6 +24220,24 @@
             "value" : "المقاييس"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vipimo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அளவீடுகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కొలమానాలు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22849,6 +24487,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaribu Tena"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீண்டும் முயல்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మళ్లీ ప్రయత్నించు"
           }
         },
         "sk" : {
@@ -23102,6 +24758,24 @@
             "value" : "الإحصاءات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takwimu"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "புள்ளிவிவரங்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "గణాంకాలు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23351,6 +25025,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingia kwa barua pepe ili kuona wasifu kwenye ubao wa viwango."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தரவரிசைச் சுயவிவரங்களைக் காண மின்னஞ்சல் மூலம் உள்நுழையவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "లీడర్‌బోర్డ్ ప్రొఫైల్‌లను చూడటానికి ఇమెయిల్‌తో సైన్ ఇన్ చేయండి."
           }
         },
         "sk" : {
@@ -23604,6 +25296,24 @@
             "value" : "يلزم تسجيل الدخول"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuingia kunahitajika"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உள்நுழைவு தேவை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సైన్ ఇన్ అవసరం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23853,6 +25563,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wasifu unaonekana tu ukiwa umewasha ushiriki kwenye ubao wa viwango."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசைப் பங்கேற்பு இயக்கப்பட்டிருக்கும்போது மட்டுமே சுயவிவரங்கள் தெரியும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్‌లో భాగస్వామ్యం ఆన్‌లో ఉన్నప్పుడే ప్రొఫైల్‌లు కనిపిస్తాయి."
           }
         },
         "sk" : {
@@ -24106,6 +25834,24 @@
             "value" : "المشاركة متوقفة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ushiriki umezimwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பங்கேற்பு முடக்கப்பட்டுள்ளது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "భాగస్వామ్యం ఆఫ్‌లో ఉంది"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24355,6 +26101,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wasifu huu wa ubao wa viwango hauwezi kuonyeshwa sasa hivi."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்தத் தரவரிசைச் சுயவிவரத்தை இப்போது காட்ட முடியாது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ లీడర్‌బోర్డ్ ప్రొఫైల్‌ను ప్రస్తుతం చూపించలేము."
           }
         },
         "sk" : {
@@ -24608,6 +26372,24 @@
             "value" : "الملف الشخصي غير متاح"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wasifu haupatikani"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சுயவிவரம் கிடைக்கவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ప్రొఫైల్ అందుబాటులో లేదు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24857,6 +26639,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة التقييمات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuhusu ubao wa viwango"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசை பற்றி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్ గురించి"
           }
         },
         "sk" : {
@@ -25110,6 +26910,24 @@
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marudio ya Ngumu, Nzuri na Rahisi huhesabiwa kwenye nafasi yako. Tena haihesabiwi."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கடினம், நன்று, எளிது என மதிப்பிட்ட மீள்பயிற்சிகள் உங்கள் தரநிலையில் கணக்கிடப்படும். மீண்டும் என்பது கணக்கிடப்படாது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కష్టం, బాగుంది, సులభం అని రేట్ చేసిన పునశ్చరణలు మీ ర్యాంక్‌లో లెక్కించబడతాయి. మళ్లీ అనేది లెక్కించబడదు."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25359,6 +27177,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongeza rafiki"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "நண்பரைச் சேர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "స్నేహితుడిని చేర్చు"
           }
         },
         "sk" : {
@@ -25612,6 +27448,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ongeza Rafiki"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "நண்பரைச் சேர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "స్నేహితుడిని చేర్చు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25861,6 +27715,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaribu tena baadaye."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பின்னர் மீண்டும் முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "తర్వాత మళ్లీ ప్రయత్నించండి."
           }
         },
         "sk" : {
@@ -26114,6 +27986,24 @@
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubao wa viwango haukuweza kupakiwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசையை ஏற்ற முடியவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్ లోడ్ కాలేదు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26363,6 +28253,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unganisha kwenye intaneti ili kupakia ubao wa viwango."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசையை ஏற்ற இணையத்துடன் இணையவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్‌ను లోడ్ చేయడానికి ఇంటర్నెట్‌కు కనెక్ట్ అవ్వండి."
           }
         },
         "sk" : {
@@ -26616,6 +28524,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Huna muunganisho wa intaneti"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைய இணைப்பு இல்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీరు ఆఫ్‌లైన్‌లో ఉన్నారు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26865,6 +28791,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fungua mipangilio ya ubao wa viwango"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசை அமைப்புகளைத் திற"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్ సెట్టింగ్‌లను తెరువు"
           }
         },
         "sk" : {
@@ -27118,6 +29062,24 @@
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nafasi zinaonekana tu unaposhiriki kwenye ubao wa viwango."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசையில் நீங்கள் பங்கேற்கும்போது மட்டுமே தரநிலைகள் தெரியும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీరు రేటింగ్ లీడర్‌బోర్డ్‌లో పాల్గొంటున్నప్పుడే ర్యాంక్‌లు కనిపిస్తాయి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27367,6 +29329,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة في التقييمات متوقفة"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ushiriki wa viwango umezimwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுப் பங்கேற்பு முடக்கப்பட்டுள்ளது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ భాగస్వామ్యం ఆఫ్‌లో ఉంది"
           }
         },
         "sk" : {
@@ -27620,6 +29600,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nafasi %1$lld, marudio: %2$lld"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தரநிலை %1$lld, மீள்பயிற்சிகள்: %2$lld"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ర్యాంక్ %1$lld, పునశ్చరణలు: %2$lld"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27869,6 +29867,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wewe"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "நீங்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీరు"
           }
         },
         "sk" : {
@@ -28122,6 +30138,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubao wa viwango"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28371,6 +30405,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingia au jisajili"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உள்நுழை அல்லது பதிவு செய்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సైన్ ఇన్ లేదా సైన్ అప్ చేయండి"
           }
         },
         "sk" : {
@@ -28624,6 +30676,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingia kwa barua pepe ili kuona nafasi ya marudio yako kwenye ubao wa viwango."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உங்கள் மீள்பயிற்சிகள் மதிப்பீட்டுத் தரவரிசையில் பெறும் இடத்தைக் காண மின்னஞ்சல் மூலம் உள்நுழையவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్‌లో మీ పునశ్చరణల ర్యాంక్‌ను చూడటానికి ఇమెయిల్‌తో సైన్ ఇన్ చేయండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28873,6 +30943,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jiunge na ubao wa viwango"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசையில் சேர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్‌లో చేరండి"
           }
         },
         "sk" : {
@@ -29126,6 +31214,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubao wa viwango unaandaliwa. Angalia tena hivi karibuni."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மதிப்பீட்டுத் தரவரிசை தயாராகிறது. விரைவில் மீண்டும் பார்க்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రేటింగ్ లీడర్‌బోర్డ్ సిద్ధమవుతోంది. త్వరలో మళ్లీ చూడండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29375,6 +31481,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bado haujawa tayari"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இன்னும் தயாராகவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఇంకా సిద్ధం కాలేదు"
           }
         },
         "sk" : {
@@ -29628,6 +31752,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imesasishwa %@ zilizopita"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ முன் புதுப்பிக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ క్రితం అప్‌డేట్ అయింది"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29877,6 +32019,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "sk" : {
@@ -30130,6 +32290,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saa 1"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 மணி நேரம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 గంట"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30379,6 +32557,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld ساعة"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saa %lld"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld மணி நேரம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld గంటలు"
           }
         },
         "sk" : {
@@ -30632,6 +32828,24 @@
             "value" : "دقيقة واحدة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dakika 1"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 நிமிடம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 నిమిషం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30881,6 +33095,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld دقيقة"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dakika %lld"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld நிமிடங்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld నిమిషాలు"
           }
         },
         "sk" : {
@@ -31134,6 +33366,24 @@
             "value" : "الفترة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kipindi"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "காலம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కాలవ్యవధి"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31383,6 +33633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "كل الأوقات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muda wote"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "எல்லாக் காலமும்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మొత్తం కాలం"
           }
         },
         "sk" : {
@@ -31636,6 +33904,24 @@
             "value" : "3 ي"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 3"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 நாள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 రోజులు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31885,6 +34171,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 ي"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 7"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 நாள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 రోజులు"
           }
         },
         "sk" : {
@@ -32138,6 +34442,24 @@
             "value" : "24 س"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saa 24"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 மணி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 గంటలు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32387,6 +34709,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 ي"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 30"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 நாள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 రోజులు"
           }
         },
         "sk" : {
@@ -32640,6 +34980,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadi %lld, %@"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அட்டைகள்: %lld, %@"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కార్డులు: %lld, %@"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32889,6 +35247,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 1-7"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 நாட்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 రోజులు"
           }
         },
         "sk" : {
@@ -33142,6 +35518,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 8-30"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 நாட்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 రోజులు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33391,6 +35785,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 31-90"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 நாட்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 రోజులు"
           }
         },
         "sk" : {
@@ -33644,6 +36056,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 91-360"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 நாட்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 రోజులు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33893,6 +36323,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baadaye"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பின்னர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "తర్వాత"
           }
         },
         "sk" : {
@@ -34146,6 +36594,24 @@
             "value" : "جديدة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mpya"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "புதியது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కొత్తవి"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34395,6 +36861,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இன்று"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈరోజు"
           }
         },
         "sk" : {
@@ -34648,6 +37132,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miaka 1-2"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 ஆண்டுகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 సంవత్సరాలు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34897,6 +37399,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakuna kadi zinazotumika bado."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இன்னும் செயலில் உள்ள அட்டைகள் இல்லை."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఇంకా సక్రియ కార్డులు లేవు."
           }
         },
         "sk" : {
@@ -35150,6 +37670,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ratiba ya marudio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சி அட்டவணை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణ షెడ్యూల్"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35399,6 +37937,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idadi ya marudio: %lld"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சிகள்: %lld"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణలు: %lld"
           }
         },
         "sk" : {
@@ -35652,6 +38208,24 @@
             "value" : "الأسبوع التالي"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiki ijayo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அடுத்த வாரம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వచ్చే వారం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35901,6 +38475,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع السابق"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiki iliyopita"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முந்தைய வாரம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "గత వారం"
           }
         },
         "sk" : {
@@ -36154,6 +38746,24 @@
             "value" : "المراجعات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marudio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சிகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణలు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36403,6 +39013,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم واحد"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku 1"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 நாள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 రోజు"
           }
         },
         "sk" : {
@@ -36656,6 +39284,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku %lld"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld நாட்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld రోజులు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36905,6 +39551,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuhusu ubao wa mfululizo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாள் தரவரிசை பற்றி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజుల లీడర్‌బోర్డ్ గురించి"
           }
         },
         "sk" : {
@@ -37158,6 +39822,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku za mfululizo wa sasa huamua nafasi yako. Siku ya mfululizo ni siku yoyote ya eneo lako yenye angalau marudio moja ya kadi yaliyokadiriwa %1$@, %2$@, %3$@, au %4$@."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தற்போதைய தொடர் நாட்கள் உங்கள் தரநிலையை நிர்ணயிக்கின்றன. குறைந்தது ஓர் அட்டைக்காவது %1$@, %2$@, %3$@ அல்லது %4$@ என மதிப்பிட்டு மீள்பயிற்சி செய்த உள்ளூர் நாள் தொடர் நாளாகும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ప్రస్తుత వరుస రోజుల సంఖ్య మీ ర్యాంక్‌ను నిర్ణయిస్తుంది. కనీసం ఒక కార్డునైనా %1$@, %2$@, %3$@ లేదా %4$@గా రేట్ చేసి పునశ్చరణ చేసిన స్థానిక రోజు వరుస రోజుగా లెక్కించబడుతుంది."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37407,6 +40089,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaribu tena baadaye."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பின்னர் மீண்டும் முயலவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "తర్వాత మళ్లీ ప్రయత్నించండి."
           }
         },
         "sk" : {
@@ -37660,6 +40360,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubao wa mfululizo haukuweza kupakiwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாள் தரவரிசையை ஏற்ற முடியவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజుల లీడర్‌బోర్డ్ లోడ్ కాలేదు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37909,6 +40627,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unganisha kwenye intaneti ili kupakia ubao wa mfululizo."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாள் தரவரிசையை ஏற்ற இணையத்துடன் இணையவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజుల లీడర్‌బోర్డ్‌ను లోడ్ చేయడానికి ఇంటర్నెట్‌కు కనెక్ట్ అవ్వండి."
           }
         },
         "sk" : {
@@ -38162,6 +40898,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Huna muunganisho wa intaneti"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைய இணைப்பு இல்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీరు ఆఫ్‌లైన్‌లో ఉన్నారు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38411,6 +41165,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nafasi %1$lld, %2$@"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தரநிலை %1$lld, %2$@"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ర్యాంక్ %1$lld, %2$@"
           }
         },
         "sk" : {
@@ -38664,6 +41436,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubao wa mfululizo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாள் தரவரிசை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజుల లీడర్‌బోర్డ్"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38913,6 +41703,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku iliyolindwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பாதுகாக்கப்பட்ட நாள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రక్షించబడిన రోజు"
           }
         },
         "sk" : {
@@ -39166,6 +41974,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siku ya baadaye"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "வரவிருக்கும் நாள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "భవిష్యత్ రోజు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -39415,6 +42241,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mfululizo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொடர் நாட்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వరుస రోజులు"
           }
         },
         "sk" : {
@@ -39668,6 +42512,24 @@
             "value" : "التقدم"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maendeleo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முன்னேற்றம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పురోగతి"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -39917,6 +42779,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இன்று"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈరోజు"
           }
         },
         "sk" : {
@@ -40170,6 +43050,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruhusu Arifa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அறிவிப்புகளை அனுமதி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "నోటిఫికేషన్‌లను అనుమతించు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -40419,6 +43317,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imeruhusiwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அனுமதிக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అనుమతించబడింది"
           }
         },
         "sk" : {
@@ -40672,6 +43588,24 @@
             "value" : "محظور"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imezuiwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தடுக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "బ్లాక్ చేయబడింది"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -40921,6 +43855,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haijaombwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கோரப்படவில்லை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కోరలేదు"
           }
         },
         "sk" : {
@@ -41174,6 +44126,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endelea na kipindi chako cha kujifunza kwenye Nibomo."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-வில் உங்கள் படிப்பைத் தொடரவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoలో మీ అధ్యయన సెషన్‌ను కొనసాగించండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -41423,6 +44393,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mara moja kwa siku"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தினமும் ஒருமுறை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "రోజుకు ఒకసారి"
           }
         },
         "sk" : {
@@ -41676,6 +44664,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baada ya mapumziko"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இடைவேளைக்குப் பிறகு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "విరామం తర్వాత"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -41925,6 +44931,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tena"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீண்டும்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మళ్లీ"
           }
         },
         "sk" : {
@@ -42178,6 +45202,24 @@
             "value" : "سهل"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rahisi"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "எளிது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సులభం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -42427,6 +45469,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nzuri"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "நன்று"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "బాగుంది"
           }
         },
         "sk" : {
@@ -42680,6 +45740,24 @@
             "value" : "صعب"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngumu"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கடினம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కష్టం"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -42929,6 +46007,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akaunti imefutwa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கணக்கு நீக்கப்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఖాతా తొలగించబడింది"
           }
         },
         "sk" : {
@@ -43182,6 +46278,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -43431,6 +46545,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadi"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அட்டைகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "కార్డులు"
           }
         },
         "sk" : {
@@ -43684,6 +46816,24 @@
             "value" : "لاحقًا"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baadaye"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பின்னர்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "తర్వాత"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -43933,6 +47083,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingia kwa barua pepe ili kadi hizi na maendeleo ya marudio yasipotee."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்த அட்டைகளும் மீள்பயிற்சி முன்னேற்றமும் தொலையாமல் இருக்க மின்னஞ்சல் மூலம் உள்நுழையவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ కార్డులు, పునశ్చరణ పురోగతి కోల్పోకుండా ఇమెయిల్‌తో సైన్ ఇన్ చేయండి."
           }
         },
         "sk" : {
@@ -44186,6 +47354,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingia"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உள்நுழை"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సైన్ ఇన్"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -44435,6 +47621,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hifadhi maendeleo yako"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "உங்கள் முன்னேற்றத்தைச் சேமிக்கவும்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మీ పురోగతిని సేవ్ చేయండి"
           }
         },
         "sk" : {
@@ -44688,6 +47892,24 @@
             "value" : "التقدم"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maendeleo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முன்னேற்றம்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పురోగతి"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -44937,6 +48159,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marudio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீள்பயிற்சி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పునశ్చరణ"
           }
         },
         "sk" : {
@@ -45190,6 +48430,24 @@
             "value" : "الإعدادات"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mipangilio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அமைப்புகள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సెట్టింగ్‌లు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -45439,6 +48697,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fungua Mipangilio"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அமைப்புகளைத் திற"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సెట్టింగ్‌లను తెరువు"
           }
         },
         "sk" : {
@@ -45692,6 +48968,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Omba ufikiaji"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "அணுகலைக் கோரு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "అనుమతి కోరు"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -45941,6 +49235,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sawa"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சரி"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సరే"
           }
         },
         "sk" : {
@@ -46194,6 +49506,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dumisha mfululizo wako leo. Fanya marudio kabla ya saa sita usiku. Zimebaki saa 2."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இன்றும் உங்கள் தொடர் நாட்களைத் தக்கவைக்கவும். நள்ளிரவுக்கு முன் மீள்பயிற்சி செய்யவும். இன்னும் 2 மணி நேரம் உள்ளது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈరోజు మీ వరుసను కొనసాగించండి. అర్ధరాత్రికి ముందు పునశ్చరణ చేయండి. ఇంకా 2 గంటలు ఉన్నాయి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -46443,6 +49773,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dumisha mfululizo wako leo. Fanya marudio kabla ya saa sita usiku. Zimebaki saa 3."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இன்றும் உங்கள் தொடர் நாட்களைத் தக்கவைக்கவும். நள்ளிரவுக்கு முன் மீள்பயிற்சி செய்யவும். இன்னும் 3 மணி நேரம் உள்ளது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈరోజు మీ వరుసను కొనసాగించండి. అర్ధరాత్రికి ముందు పునశ్చరణ చేయండి. ఇంకా 3 గంటలు ఉన్నాయి."
           }
         },
         "sk" : {
@@ -46696,6 +50044,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dumisha mfululizo wako leo. Fanya marudio kabla ya saa sita usiku. Zimebaki saa 4."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இன்றும் உங்கள் தொடர் நாட்களைத் தக்கவைக்கவும். நள்ளிரவுக்கு முன் மீள்பயிற்சி செய்யவும். இன்னும் 4 மணி நேரம் உள்ளது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈరోజు మీ వరుసను కొనసాగించండి. అర్ధరాత్రికి ముందు పునశ్చరణ చేయండి. ఇంకా 4 గంటలు ఉన్నాయి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -46945,6 +50311,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaribu tena. Ikiendelea kutokea, shiriki maelezo ya kiufundi na timu ya usaidizi."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மீண்டும் முயலவும். இது தொடர்ந்தால் தொழில்நுட்ப விவரங்களை ஆதரவுக் குழுவுடன் பகிரவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మళ్లీ ప్రయత్నించండి. ఇలాగే కొనసాగితే సాంకేతిక వివరాలను సహాయ బృందంతో పంచుకోండి."
           }
         },
         "sk" : {
@@ -47198,6 +50582,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hitilafu imetokea"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பிழை ஏற்பட்டது"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఏదో తప్పు జరిగింది"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -47447,6 +50849,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Funga"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "மூடு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "మూసివేయి"
           }
         },
         "sk" : {
@@ -47700,6 +51120,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nakili maelezo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "விவரங்களை நகலெடு"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "వివరాలను కాపీ చేయి"
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -47949,6 +51387,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maelezo ya kiufundi"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "தொழில்நுட்ப விவரங்கள்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సాంకేతిక వివరాలు"
           }
         },
         "sk" : {
@@ -48202,6 +51658,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jibu tayari linaendelea. Subiri limalizike au lisimamishe kabla ya kutuma ujumbe mwingine."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "பதில் ஏற்கனவே உருவாகிறது. மற்றொரு செய்தியை அனுப்பும் முன் அது முடியும் வரை காத்திருக்கவும் அல்லது அதை நிறுத்தவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఒక ప్రతిస్పందన ఇప్పటికే కొనసాగుతోంది. మరో సందేశం పంపే ముందు అది పూర్తయ్యే వరకు వేచి ఉండండి లేదా ఆపండి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -48451,6 +51925,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakuna muunganisho wa intaneti. Gumzo la AI linahitaji intaneti."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இணைய இணைப்பு இல்லை. AI அரட்டைக்கு இணைய அணுகல் தேவை."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఇంటర్నెట్ కనెక్షన్ లేదు. AI చాట్‌కు ఇంటర్నెట్ అవసరం."
           }
         },
         "sk" : {
@@ -48704,6 +52196,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kadi zimesasishwa kutoka winguni."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கிளவுடிலிருந்து அட்டைகள் புதுப்பிக்கப்பட்டன."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "క్లౌడ్ నుంచి కార్డులు అప్‌డేట్ అయ్యాయి."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -48953,6 +52463,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usomaji wa sauti haupatikani kwenye kifaa hiki."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்தச் சாதனத்தில் உரக்க வாசித்தல் கிடைக்கவில்லை."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ పరికరంలో వచనం చదివి వినిపించడం అందుబాటులో లేదు."
           }
         },
         "sk" : {
@@ -49206,6 +52734,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marudio haya yamesasishwa kwenye kifaa kingine."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "இந்த மீள்பயிற்சி மற்றொரு சாதனத்தில் புதுப்பிக்கப்பட்டது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఈ పునశ్చరణ మరో పరికరంలో అప్‌డేట్ అయింది."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -49455,6 +53001,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toleo la majaribio limezimwa."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சோதனைப் பதிப்பு முடக்கப்பட்டது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పరీక్ష వెర్షన్ ఆఫ్ చేయబడింది."
           }
         },
         "sk" : {
@@ -49708,6 +53272,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toleo la majaribio limewashwa."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "சோதனைப் பதிப்பு இயக்கப்பட்டது."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "పరీక్ష వెర్షన్ ఆన్ చేయబడింది."
+          }
+        },
         "sk" : {
           "stringUnit" : {
             "state" : "translated",
@@ -49957,6 +53539,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mabadiliko ya nafasi ya kazi yanapatikana tu baada ya kuunda akaunti."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "கணக்கை உருவாக்கிய பிறகே பணியிட மாற்றங்கள் கிடைக்கும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ఖాతాను సృష్టించిన తర్వాతే వర్క్‌స్పేస్ మార్పులు అందుబాటులో ఉంటాయి."
           }
         },
         "sk" : {
