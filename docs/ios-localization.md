@@ -25,6 +25,9 @@ The iOS app currently declares support for these Apple locale identifiers:
 - `bg`
 - `bn`
 - `ca`
+- `cs`
+- `da`
+- `el`
 - `zh-Hans`
 - `de`
 - `fr`
