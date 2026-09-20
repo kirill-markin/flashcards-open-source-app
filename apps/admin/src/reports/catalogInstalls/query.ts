@@ -17,6 +17,7 @@ import {
   buildEventPlatformsFilterSql,
   buildExcludedActorsFilterSql,
   buildMinimumEventCountsFilterSql,
+  buildTrustedActorRowsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
   isEveryUserCohortSelected,
@@ -169,17 +170,18 @@ const catalogInstallCohortSqlExpression = [
 // query the install CTE is bounded on both sides, because an install's cohort is not derived from a
 // first-install day at all.
 //
-// NEW VERSUS RETURNING IS THE INSTALLER'S FIRST `app_opened` DAY, which is the cohort definition of
-// the daily active users section rather than one of this section's own, so the two sections cannot
-// disagree about which day a person was new on. `installer_first_active_date` recreates exactly what
-// that section exposes: each installer's first `app_opened` day over all history up to the end of the
-// range, kept only for installers that have an `app_opened` day INSIDE the range, because that is the
-// window the other section reports on.
+// NEW VERSUS RETURNING IS THE INSTALLER'S FIRST TRUSTED `app_opened` DAY, which is the cohort
+// definition of the daily active users section rather than one of this section's own, so the two
+// sections cannot disagree about which day a person was new on. `installer_first_active_date`
+// recreates exactly what that section exposes: each installer's first such day over all history up to
+// the end of the range, kept only for installers that have one INSIDE the range, because that is the
+// window the other section reports on. Trusted is what `buildTrustedActorRowsFilterSql` defines, and
+// `installer_app_opens` below is where this query applies it.
 //
-// AN INSTALLER WITH NO `app_opened` DAY INSIDE THE RANGE BELONGS TO NEITHER SIDE. There is no first
-// active day to compare the install against, so the row is kept only while both cohorts are selected,
-// which is the state the filter row treats as "no cohort filter"; any narrowing drops the row rather
-// than guessing a side for it.
+// AN INSTALLER WITH NO TRUSTED `app_opened` DAY INSIDE THE RANGE BELONGS TO NEITHER SIDE. There is
+// no first active day to compare the install against, so the row is kept only while both cohorts are
+// selected, which is the state the filter row treats as "no cohort filter"; any narrowing drops the
+// row rather than guessing a side for it.
 //
 // EVERYTHING THIS SECTION NEEDS IS ON THE EVENT. `catalog_deck_installed` is server-only and carries
 // `package_slug` and `card_count` (`apps/backend/src/productAnalytics/catalog.ts`), emitted after the
@@ -252,6 +254,11 @@ export function buildCatalogInstallsSql(filters: AnalyticsFilterState): string {
     // this section counts at all, and the same actor carries the same email and the same exclusion
     // state here, so this CTE restates neither. Bounded above only, because a first active day may
     // predate the range.
+    //
+    // The trust rule is restated, because unlike those two it is a property of the row rather than
+    // of the actor: the credential-free collector accepts `app_opened`, so without it a row nobody
+    // stands behind could be an installer's first active day and make a returning person read as
+    // new. See `buildTrustedActorRowsFilterSql`.
     "installer_app_opens AS (",
     "  SELECT",
     "    resolved.actor_id::text AS actor_id,",
@@ -261,6 +268,7 @@ export function buildCatalogInstallsSql(filters: AnalyticsFilterState): string {
     "    AND resolved.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
+    `    AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
     "    AND EXISTS (",
     "      SELECT 1",
     "      FROM deck_installs",

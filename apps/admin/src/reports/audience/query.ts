@@ -42,7 +42,10 @@ export type AudienceReport = Readonly<{
 // `buildTrustedActorRowsFilterSql` states: the credential-free collector's `anonymous_id` is an
 // unverified caller-supplied claim, and this report's every number is a share of one distinct-user
 // denominator. The daily active users section applies the same predicate, so the two cohorts stay
-// comparable.
+// comparable. `language_events` below drops it a second time, because it reads every event name
+// rather than `app_opened` alone: it decides the interface language and the `unknown` language
+// coverage of a person the cohort already counted, and a credential-free row resolving onto that
+// person is not evidence of what language that person uses.
 export function buildAudienceSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, "Audience");
   const userSelection = buildUsersFilterSql("history.actor_id::text", filters.users);
@@ -126,6 +129,7 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
     CROSS JOIN bounds
     WHERE events.occurred_at >= bounds.starts_at AND events.occurred_at < bounds.ends_at
       AND ${platformSelection}
+      AND ${buildTrustedActorRowsFilterSql("events.trust_level")}
   ), sampled_events AS MATERIALIZED (
     SELECT country_samples.actor_id, country_samples.country, country_samples.ui_locale
     FROM (
