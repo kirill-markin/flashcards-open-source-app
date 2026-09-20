@@ -65,17 +65,17 @@ beforeEach(() => {
 });
 
 describe("Sentry privacy sanitizer", () => {
-  it("scrubs automatic event message, logentry message, and exception values", () => {
+  it("keeps event message, logentry message, and exception values while redacting sensitive keys", () => {
     const event: SentryPrivacyEvent = {
-      message: `React root render failed while showing: ${sensitiveCardText}`,
+      message: "Can't find variable: indexedDB",
       logentry: {
-        message: `React error boundary captured AI text: ${sensitiveAiText}`,
+        message: "React error boundary captured a render failure",
       },
       exception: {
         values: [
           {
             type: "RootRenderError",
-            value: `Root render leaked card front: ${sensitiveCardText}`,
+            value: "Root render failed for route /review",
             stacktrace: {
               frames: [
                 {
@@ -88,13 +88,13 @@ describe("Sentry privacy sanitizer", () => {
           },
           {
             type: "Error",
-            value: `Completion output leaked: ${sensitiveAiText}`,
+            value: "Chat completion request failed with status 503",
           },
         ],
       },
       breadcrumbs: [
         {
-          message: `User opened card with answer: ${sensitiveCardText}`,
+          message: "Opened card 0192f0c1-0000-7000-8000-000000000001",
         },
       ],
       extra: {
@@ -107,18 +107,18 @@ describe("Sentry privacy sanitizer", () => {
 
     const sanitizedEvent = sanitizeSentryEventForPrivacy(event);
 
-    expect(sanitizedEvent.message).toBe("[Filtered message]");
-    expect(sanitizedEvent.logentry?.message).toBe("[Filtered message]");
-    expect(sanitizedEvent.exception?.values?.[0]?.value).toBe("[Filtered exception value]");
-    expect(sanitizedEvent.exception?.values?.[1]?.value).toBe("[Filtered exception value]");
-    expect(sanitizedEvent.breadcrumbs?.[0]?.message).toBe("[Filtered message]");
+    expect(sanitizedEvent.message).toBe("Can't find variable: indexedDB");
+    expect(sanitizedEvent.logentry?.message).toBe("React error boundary captured a render failure");
+    expect(sanitizedEvent.exception?.values?.[0]?.value).toBe("Root render failed for route /review");
+    expect(sanitizedEvent.exception?.values?.[1]?.value).toBe("Chat completion request failed with status 503");
+    expect(sanitizedEvent.breadcrumbs?.[0]?.message).toBe("Opened card 0192f0c1-0000-7000-8000-000000000001");
     expect(sanitizedEvent.exception?.values?.[0]?.type).toBe("RootRenderError");
     expect(sanitizedEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.function).toBe("App");
     expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveCardText);
     expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveAiText);
   });
 
-  it("scrubs raw console breadcrumb arguments before Sentry stores them", () => {
+  it("scrubs page-derived breadcrumb messages and raw console arguments while keeping the captured event description", () => {
     const breadcrumb: SentryPrivacyBreadcrumb = {
       category: "console",
       level: "warning",
@@ -164,6 +164,37 @@ describe("Sentry privacy sanitizer", () => {
     expect(serializedBreadcrumb).not.toContain(sensitiveAiText);
     expect(serializedBreadcrumb).not.toContain(sensitiveBase64Text);
     expect(serializedBreadcrumb).not.toContain(sensitiveMessageText);
+
+    const domBreadcrumb: SentryPrivacyBreadcrumb = {
+      category: "ui.click",
+      level: "info",
+      message: `div[role="option"][aria-label="${sensitiveCardText}"]`,
+    };
+
+    const sanitizedDomBreadcrumb = sanitizeSentryBreadcrumbForPrivacy(domBreadcrumb);
+
+    if (sanitizedDomBreadcrumb === null) {
+      throw new Error("Expected DOM breadcrumb to be kept after privacy sanitization");
+    }
+
+    expect(sanitizedDomBreadcrumb.message).toBe("[Filtered message]");
+    expect(sanitizedDomBreadcrumb.category).toBe("ui.click");
+    expect(JSON.stringify(sanitizedDomBreadcrumb)).not.toContain(sensitiveCardText);
+
+    const capturedEventBreadcrumb: SentryPrivacyBreadcrumb = {
+      category: "sentry.event",
+      level: "error",
+      message: "TypeError: Can't find variable: indexedDB",
+    };
+
+    const sanitizedCapturedEventBreadcrumb = sanitizeSentryBreadcrumbForPrivacy(capturedEventBreadcrumb);
+
+    if (sanitizedCapturedEventBreadcrumb === null) {
+      throw new Error("Expected captured event breadcrumb to be kept after privacy sanitization");
+    }
+
+    expect(sanitizedCapturedEventBreadcrumb.message).toBe("TypeError: Can't find variable: indexedDB");
+    expect(sanitizedCapturedEventBreadcrumb.category).toBe("sentry.event");
   });
 
   it("keeps safe observability messages for Sentry issue grouping", () => {
@@ -191,13 +222,13 @@ describe("Sentry privacy sanitizer", () => {
     expect(sanitizedEvent.breadcrumbs?.[0]?.message).toBe("web.route_change");
   });
 
-  it("redacts arbitrary TypeError exception values", () => {
+  it("keeps arbitrary TypeError exception values readable", () => {
     const event: SentryPrivacyEvent = {
       exception: {
         values: [
           {
             type: "TypeError",
-            value: `Cannot read private card text: ${sensitiveCardText}`,
+            value: "Cannot read properties of undefined (reading 'reviewState')",
           },
         ],
       },
@@ -205,8 +236,7 @@ describe("Sentry privacy sanitizer", () => {
 
     const sanitizedEvent = sanitizeSentryEventForPrivacy(event);
 
-    expect(sanitizedEvent.exception?.values?.[0]?.value).toBe("[Filtered exception value]");
-    expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveCardText);
+    expect(sanitizedEvent.exception?.values?.[0]?.value).toBe("Cannot read properties of undefined (reading 'reviewState')");
   });
 
   it("keeps structured stale bundle breadcrumb diagnostics", () => {
@@ -256,14 +286,14 @@ describe("Sentry privacy sanitizer", () => {
     expect(sanitizedEvent.extra?.route).toBe("review.search");
   });
 
-  it("redacts message-like context fields while keeping safe web telemetry messages", () => {
+  it("keeps message-like context fields while still redacting sensitive keys", () => {
     const event: SentryPrivacyEvent = {
       message: "web.chat_live_stream_failed",
       extra: {
-        errorMessage: `Request failed with private card text: ${sensitiveCardText}`,
-        statusMessage: `Backend returned private AI text: ${sensitiveAiText}`,
-        message: `Raw message leaked private data: ${sensitiveCardText}`,
-        telemetryMessage: "web.auth_reset_cleanup_deferred",
+        errorMessage: "Request failed with status 502 for POST /v1/chat/live",
+        statusMessage: "Backend returned an empty body",
+        aiText: sensitiveAiText,
+        cardFrontText: sensitiveCardText,
         messageCount: 3,
       },
     };
@@ -271,10 +301,10 @@ describe("Sentry privacy sanitizer", () => {
     const sanitizedEvent = sanitizeSentryEventForPrivacy(event);
 
     expect(sanitizedEvent.message).toBe("web.chat_live_stream_failed");
-    expect(sanitizedEvent.extra?.errorMessage).toBe("[Filtered message]");
-    expect(sanitizedEvent.extra?.statusMessage).toBe("[Filtered message]");
-    expect(sanitizedEvent.extra?.message).toBe("[Filtered message]");
-    expect(sanitizedEvent.extra?.telemetryMessage).toBe("web.auth_reset_cleanup_deferred");
+    expect(sanitizedEvent.extra?.errorMessage).toBe("Request failed with status 502 for POST /v1/chat/live");
+    expect(sanitizedEvent.extra?.statusMessage).toBe("Backend returned an empty body");
+    expect(sanitizedEvent.extra?.aiText).toBe("[Filtered]");
+    expect(sanitizedEvent.extra?.cardFrontText).toBe("[Filtered]");
     expect(sanitizedEvent.extra?.messageCount).toBe(3);
     expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveCardText);
     expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveAiText);
@@ -329,10 +359,13 @@ describe("Sentry privacy sanitizer", () => {
       exception: {
         values: [
           {
-            type: "TypeError",
-            value: `Cannot read private card text: ${sensitiveCardText}`,
+            type: "ReferenceError",
+            value: "Can't find variable: indexedDB",
           },
         ],
+      },
+      extra: {
+        cardFrontText: sensitiveCardText,
       },
     };
 
@@ -342,7 +375,8 @@ describe("Sentry privacy sanitizer", () => {
       throw new Error("Expected unrelated error event to be kept");
     }
 
-    expect(preparedEvent.exception?.values?.[0]?.value).toBe("[Filtered exception value]");
+    expect(preparedEvent.exception?.values?.[0]?.value).toBe("Can't find variable: indexedDB");
+    expect(preparedEvent.extra?.cardFrontText).toBe("[Filtered]");
     expect(serializeEvent(preparedEvent)).not.toContain(sensitiveCardText);
   });
 
