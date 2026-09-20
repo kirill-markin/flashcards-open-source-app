@@ -343,7 +343,10 @@ Each locale must contain `Foundation.strings`, `ReviewCards.strings`, and
 Check all of these on a simulator or device:
 
 1. Launch with the new app language selected in iOS Settings
-2. Review tab
+2. Review tab: read long question and answer paragraphs through their final
+   words, scrolling as needed, on iPhone and iPad at normal and enlarged Dynamic
+   Type sizes. Check LTR and RTL text for unintended ellipses; full accessibility
+   labels and green catalog checks do not prove the full text is drawn.
 3. Cards tab
 4. AI tab, including a card attached from Review and its localized chip label.
    Use long translated labels and long user content on iPhone and iPad, including
