@@ -260,16 +260,18 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         let firstCardRow = self.app.buttons.matching(identifier: LiveSmokeIdentifier.cardsCardRow)
             .element(boundBy: 0)
         let expectedPrompt = try self.marketingLocaleFixture().reviewCard.frontText
-        if try self.waitForElementValueContaining(
-            firstCardRow,
-            identifier: "\(LiveSmokeIdentifier.cardsCardRow)[0]",
-            expectedValue: expectedPrompt,
+        let firstCardPromptExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label CONTAINS %@", expectedPrompt),
+            object: firstCardRow
+        )
+        if XCTWaiter.wait(
+            for: [firstCardPromptExpectation],
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        ) == false {
+        ) != .completed {
             throw LiveSmokeFailure.unexpectedElementValue(
                 identifier: "\(LiveSmokeIdentifier.cardsCardRow)[0]",
                 expectedValue: expectedPrompt,
-                actualValue: self.elementValue(element: firstCardRow),
+                actualValue: firstCardRow.label,
                 timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
