@@ -1,0 +1,67 @@
+{
+  "localePrefix": "hr",
+  "appLocaleTag": "hr",
+  "uiText": {
+    "emptyCardsMessage": "Još nema kartica. Dodirnite gumb za dodavanje da biste izradili prvu.",
+    "cardsTabTitle": "Kartice",
+    "reviewTabTitle": "Ponavljanje",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Pretraži kartice",
+    "addCardContentDescription": "Dodaj karticu",
+    "frontFieldTitle": "Prednja strana",
+    "backFieldTitle": "Stražnja strana",
+    "tagsFieldTitle": "Oznake",
+    "addTagFieldTitle": "Unesite oznaku",
+    "addTagButtonTitle": "Dodaj oznaku",
+    "saveButtonTitle": "Spremi",
+    "ratingAgainTitle": "Ponovno",
+    "ratingHardTitle": "Teško",
+    "ratingGoodTitle": "Dobro",
+    "ratingEasyTitle": "Lako"
+  },
+  "reviewCard": {
+    "frontText": "Što je oportunitetni trošak?",
+    "backText": "Vrijednost najbolje alternative koje se odričete kada odaberete jednu mogućnost umjesto druge.\n\nPrimjer za ispit: Ako subotu provedete učeći za ispit iz mikroekonomije umjesto radeći plaćenu smjenu, izgubljena zarada dio je oportunitetnog troška.",
+    "tags": [
+      "ekonomija"
+    ]
+  },
+  "reviewAiDraftMessage": "Izradi 6 novih kartica na istu ekonomsku temu s bliskim pojmovima koje još nemamo.",
+  "cards": [
+    {
+      "frontText": "Što je oportunitetni trošak?",
+      "backText": "Vrijednost najbolje alternative koje se odričete kada odaberete jednu mogućnost umjesto druge.",
+      "subjectTag": "ekonomija"
+    },
+    {
+      "frontText": "Što je osmoza u biologiji?",
+      "backText": "Kretanje vode kroz membranu iz područja niže koncentracije otopljene tvari u područje više koncentracije.",
+      "subjectTag": "biologija"
+    },
+    {
+      "frontText": "Što je standardna devijacija u statistici?",
+      "backText": "Mjera raspršenosti vrijednosti oko prosjeka.",
+      "subjectTag": "statistika"
+    },
+    {
+      "frontText": "Što je katalizator u kemiji?",
+      "backText": "Tvar koja ubrzava kemijsku reakciju, a da se pritom ne troši.",
+      "subjectTag": "kemija"
+    },
+    {
+      "frontText": "Što je kognitivna pristranost u psihologiji?",
+      "backText": "Sustavan obrazac razmišljanja koji može iskriviti prosudbu i donošenje odluka.",
+      "subjectTag": "psihologija"
+    },
+    {
+      "frontText": "Što je vektorska brzina u fizici?",
+      "backText": "Iznos brzine tijela zajedno sa smjerom njegova gibanja.",
+      "subjectTag": "fizika"
+    },
+    {
+      "frontText": "Što je rekurzija u računarstvu?",
+      "backText": "Metoda u kojoj funkcija rješava problem pozivajući samu sebe za manje inačice istog problema.",
+      "subjectTag": "računarstvo"
+    }
+  ]
+}
