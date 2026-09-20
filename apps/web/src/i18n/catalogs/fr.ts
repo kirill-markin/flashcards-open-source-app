@@ -819,6 +819,21 @@ const frCatalog: TranslationCatalog = {
     toggleTitle: "Afficher les suggestions dans la zone de saisie du chat IA",
     toggleDescription: "Les suggestions apparaissent au-dessus de la zone de saisie lorsque le chat est inactif et prêt.",
   },
+  analyticsConsentBanner: {
+    label: "Cookies de mesure",
+    message: "Nous utilisons un cookie et d'autres stockages du navigateur pour mesurer l'usage de l'application. Avant votre choix, rien n'est stocké sur cet appareil et rien qui vous identifie n'est envoyé.",
+    allow: "Autoriser",
+    decline: "Refuser",
+    privacyPolicy: "Politique de confidentialité",
+    error: "Ça n'a pas marché. Réessayez.",
+  },
+  analyticsSettings: {
+    title: "Mesure d'audience",
+    subtitle: "Choisissez si ce navigateur peut être mesuré.",
+    toggleTitle: "Autoriser les cookies de mesure",
+    toggleDescription: "Quand c'est désactivé, ce navigateur ne reçoit aucun identifiant et ne stocke rien pour la mesure. Tant que vous êtes connecté, ce qui est mesuré reste enregistré sur votre compte.",
+    error: "Ça n'a pas marché. Réessayez.",
+  },
   leaderboardParticipationSettings: {
     title: "Participation au classement",
     subtitle: "Choisissez si vous apparaissez dans les classements de la communauté et si vous pouvez les consulter.",

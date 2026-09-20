@@ -819,6 +819,21 @@ const ptBrCatalog: TranslationCatalog = {
     toggleTitle: "Mostrar sugestões no compositor do chat com IA",
     toggleDescription: "As sugestões de prompt aparecem acima do compositor quando o chat está ocioso e pronto.",
   },
+  analyticsConsentBanner: {
+    label: "Cookies de análise",
+    message: "Usamos um cookie e outros armazenamentos do navegador para medir como o app é usado. Até você escolher, nada é guardado neste dispositivo e nada que identifique você é enviado.",
+    allow: "Permitir",
+    decline: "Recusar",
+    privacyPolicy: "Política de Privacidade",
+    error: "Não deu certo. Tente de novo.",
+  },
+  analyticsSettings: {
+    title: "Análise de uso",
+    subtitle: "Escolha se este navegador pode ser medido.",
+    toggleTitle: "Permitir cookies de análise",
+    toggleDescription: "Com isso desligado, este navegador não recebe identificador nenhum e não guarda nada para análise. Enquanto você estiver conectado, o que é medido continua sendo registrado na sua conta.",
+    error: "Não deu certo. Tente de novo.",
+  },
   leaderboardParticipationSettings: {
     title: "Participação no ranking",
     subtitle: "Controle se você aparece nas classificações da comunidade e pode vê-las.",

@@ -3,6 +3,7 @@ import { act, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { publishAnalyticsConsentJurisdiction } from "../../analytics/consent";
 import { ApiError } from "../../api";
 import type { AppDataContextValue } from "../../appData";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
@@ -84,7 +85,7 @@ function createSession(): SessionInfo {
     selectedWorkspaceId: "workspace-1",
     authTransport: "session",
     csrfToken: "csrf-token-1",
-    preferences: { reviewReactionAnimationsEnabled: true },
+    preferences: { reviewReactionAnimationsEnabled: true, analyticsConsent: null },
     profile: {
       email: "user@example.com",
       locale: "en",
@@ -314,6 +315,11 @@ describe("CatalogImportScreen", () => {
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    // The install journey exists only once this browser knows whether it has to be asked for
+    // consent. Answering "no country requires it" here is what these tests are about: without the
+    // answer the screen holds the journey open and mints nothing, which is its correct behaviour
+    // and not what the return-URL expectations below describe.
+    publishAnalyticsConsentJurisdiction(false);
     window.history.replaceState(null, "", `/catalog/import/${packageVersionId}?source=exact#install`);
     container = document.createElement("div");
     document.body.appendChild(container);

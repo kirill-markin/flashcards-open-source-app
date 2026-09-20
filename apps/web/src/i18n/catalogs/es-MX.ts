@@ -819,6 +819,21 @@ const esMxCatalog: TranslationCatalog = {
     toggleTitle: "Mostrar sugerencias en el compositor del chat de IA",
     toggleDescription: "Las sugerencias aparecen encima del compositor cuando el chat está inactivo y listo.",
   },
+  analyticsConsentBanner: {
+    label: "Cookies de analítica",
+    message: "Usamos una cookie y otro almacenamiento del navegador para medir cómo se usa la app. Hasta que elijas, no se guarda nada en este dispositivo ni se envía nada que te identifique.",
+    allow: "Permitir",
+    decline: "Rechazar",
+    privacyPolicy: "Política de privacidad",
+    error: "No funcionó. Inténtalo de nuevo.",
+  },
+  analyticsSettings: {
+    title: "Analítica",
+    subtitle: "Elige si se puede medir este navegador.",
+    toggleTitle: "Permitir cookies de analítica",
+    toggleDescription: "Con esto apagado, este navegador no recibe ningún identificador ni guarda nada para analítica. Mientras tengas la sesión iniciada, lo que se mide se sigue registrando en tu cuenta.",
+    error: "No funcionó. Inténtalo de nuevo.",
+  },
   leaderboardParticipationSettings: {
     title: "Participación en la tabla",
     subtitle: "Controla si apareces en las posiciones de la comunidad y si puedes verlas.",

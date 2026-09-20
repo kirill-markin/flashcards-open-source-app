@@ -175,7 +175,24 @@ export type AnalyticsEvent =
     name: "analytics_events_dropped";
     reason: AnalyticsDropReason;
     count: number;
+  }>
+  /**
+   * The grant, and the only one of the three consent facts that may be tracked at all: it may carry
+   * the id it produced, so it takes the ordinary queued path like every other event. Its two
+   * siblings are `identityFree` in the catalog and every ingest refuses them beside an identity, so
+   * they are not in this union — `IdentityFreeAnalyticsEventName` below is their only shape.
+   */
+  | Readonly<{
+    name: "consent_granted";
   }>;
+
+/**
+ * The two consent facts the catalog allows no identity at all
+ * (docs/anonymous-client-analytics.md). They never enter the queue: the authenticated ingest
+ * refuses them outright, and the credential-free collector refuses the `anonymousId` every queued
+ * event is stamped with, so the only way to report one is the direct send in `wire.ts`.
+ */
+export type IdentityFreeAnalyticsEventName = "consent_prompt_shown" | "consent_declined";
 
 export type AnalyticsEventProperties = Readonly<Record<string, string | number>>;
 
@@ -198,7 +215,7 @@ export type AnalyticsWireEvent = Readonly<{
  */
 export type AnonymousAnalyticsWireEvent = Readonly<{
   eventId: string;
-  eventName: AnalyticsEvent["name"];
+  eventName: AnalyticsEvent["name"] | IdentityFreeAnalyticsEventName;
   clientOccurredAt: string;
   clientSentAt: string;
   anonymousId: string | null;
@@ -251,5 +268,7 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
       };
     case "analytics_events_dropped":
       return { reason: event.reason, count: event.count };
+    case "consent_granted":
+      return null;
   }
 }

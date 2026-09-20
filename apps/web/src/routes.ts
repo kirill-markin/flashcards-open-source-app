@@ -30,6 +30,7 @@ export const settingsLanguageRoute: string = "/settings/language";
 export const settingsLeaderboardParticipationRoute: string = "/settings/leaderboard-participation";
 export const settingsReviewAnimationsRoute: string = "/settings/review-animations";
 export const settingsAIChatSuggestionsRoute: string = "/settings/ai-chat-suggestions";
+export const settingsAnalyticsRoute: string = "/settings/analytics";
 export const settingsServerRoute: string = "/settings/server";
 export const settingsResetStudyProgressRoute: string = "/settings/reset-study-progress";
 export const settingsDeleteCurrentWorkspaceRoute: string = "/settings/delete-current-workspace";
@@ -71,4 +72,55 @@ export function buildFriendInvitePreviewRoute(state: string): string {
 
 export function buildSettingsAccessDetailRoute(accessKind: "camera" | "microphone" | "photos-and-files"): string {
   return `${settingsAccessRoute}/${accessKind}`;
+}
+
+/**
+ * The paths `App.tsx` serves above `AuthenticatedApp`: the literal ones, and the prefixes each of
+ * whose route patterns takes exactly one dynamic segment. Anything else falls through to `/*`.
+ */
+const unauthenticatedRoutePaths: ReadonlyArray<string> = [shareRoute, friendInvitePreviewIndexRoute];
+const unauthenticatedRoutePrefixes: ReadonlyArray<string> = [
+  friendInviteRoutePrefix,
+  catalogImportRoutePrefix,
+  friendInvitePreviewRoutePrefix,
+];
+
+function hasOneSegmentUnder(prefix: string, path: string): boolean {
+  if (path.startsWith(`${prefix}/`) === false) {
+    return false;
+  }
+
+  const segment = path.slice(prefix.length + 1);
+  return segment !== "" && segment.includes("/") === false;
+}
+
+/**
+ * Normalizes a path the way React Router matches one: `<Route path>` is case-insensitive by
+ * default, and repeated trailing slashes are tolerated. Without both, `/Share` or `/share//` would
+ * read as an authenticated path here while `App.tsx` actually serves `ShareAppScreen`, and the two
+ * definitions of "above `AuthenticatedApp`" would drift on a single capital letter.
+ *
+ * Both halves were read off `compilePath` in the react-router 8.3.1 sources: the pattern regexp is
+ * built with the `i` flag unless a route opts into `caseSensitive`, and an `end` match appends
+ * `\/*$`. This package.json asks for `^8.4.0`, so the installed minor is a step past the one that
+ * could be checked here; treat the two claims as v8 behaviour rather than as pinned facts.
+ *
+ * Exported because the analytics surface classifier (apps/web/src/analytics/surfaces.ts) compares
+ * paths against the same route constants and has to agree with this one.
+ */
+export function normalizeRoutePath(pathname: string): string {
+  const withoutTrailingSlashes = pathname.replace(/\/+$/u, "");
+  return withoutTrailingSlashes === "" ? "/" : withoutTrailingSlashes.toLowerCase();
+}
+
+/**
+ * Whether this path is served by `AuthenticatedApp`, which is the only element that mounts the app
+ * data provider — and with it the analytics session owner publisher. Analytics reads this to tell a
+ * load where that publisher has not mounted yet from one where it never will
+ * (apps/web/src/analytics/deliveryRuntime.ts).
+ */
+export function isAuthenticatedAppPath(pathname: string): boolean {
+  const path = normalizeRoutePath(pathname);
+  return unauthenticatedRoutePaths.includes(path) === false
+    && unauthenticatedRoutePrefixes.some((prefix) => hasOneSegmentUnder(prefix, path)) === false;
 }

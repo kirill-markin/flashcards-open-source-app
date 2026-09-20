@@ -9,5 +9,6 @@ export const liveSmokeEnvironment = resolveE2eEnvironment(process.env);
 
 validateE2eEnvironment(liveSmokeEnvironment);
 
+export const liveSmokeBrowserLocale = "en-US";
 export const reviewEmail = process.env.FLASHCARDS_LIVE_REVIEW_EMAIL ?? "google-review@example.com";
 export const authBaseUrl = liveSmokeEnvironment.authBaseUrl;

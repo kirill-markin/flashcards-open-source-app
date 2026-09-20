@@ -139,6 +139,25 @@ the name is the whole fact, and the row's own date and locale carry the rest.
 `consent_prompt_shown` and `consent_declined` are `identityFree`. An identifier stored beside "this
 visitor was asked" or "this visitor refused" is the processing the refusal withholds.
 
+That is why the web producer never queues those two. Every queued event is stamped with the shared
+visitor id on its way out, so the only shape either of them can leave in is the direct, unstored one
+[`toIdentityFreeAnalyticsWireEvent`](../apps/web/src/analytics/wire.ts) builds. A signed-out browser
+that refused keeps reporting through this collector afterwards, and its ordinary events carry no
+`anonymousId` either, because there is no longer one to carry. A signed-in one reports on its own
+credential instead — those events are the account's — and they carry no `anonymousId` there either
+([visitor identity](analytics-visitor-identity.md)). With one exception: a refused browser holds what
+it collects in memory rather than in the queue, and on the public routes rendered above
+`AuthenticatedApp` — the catalog import, the friend invite, the share page — no session layer ever
+mounts, so no credential can become sendable and waiting for one would drop everything with the
+document. Those events go out on this collector instead, identity-free like the rest of it.
+
+That exception depends on a fact about those screens rather than on a rule: every link out of them
+is a full-document `<a href>`, so no client-side navigation reaches `AuthenticatedApp` within one
+document. A react-router `<Link>` from one of them into the app would make "no credential can ever
+become sendable" false, and a flush taken there would spend a signed-in refused person's events on
+this collector where waiting would have shipped them under their account
+([the branch that reads this](../apps/web/src/analytics/deliveryRuntime.ts)).
+
 `consent_granted` may carry the id the grant produced, and so may every other event.
 
 ## Manual acceptance

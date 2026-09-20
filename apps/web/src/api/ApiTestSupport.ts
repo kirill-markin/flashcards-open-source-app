@@ -11,6 +11,7 @@ type SessionResponseProfile = Readonly<{
 
 type SessionResponsePreferences = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
+  analyticsConsent: "granted" | "declined" | null;
 }>;
 
 // Mirrors backend legacy chatConfig metadata kept for released clients at 1.5.0 and older.
@@ -120,6 +121,7 @@ export function createSessionResponse(overrides: SessionResponseOverrides | null
   };
   const basePreferences: SessionResponsePreferences = {
     reviewReactionAnimationsEnabled: true,
+    analyticsConsent: null,
   };
 
   return new Response(JSON.stringify({

@@ -1,7 +1,13 @@
+import { useEffect, useState } from "react";
 import { ApiContractError } from "../apiContracts/core";
 import { ApiError, ApiNetworkError, AuthRedirectError } from "../api/transport/errors";
 import { getAppConfig } from "../config";
 import { isAnalyticsEnabledForCurrentRuntime } from "./client";
+import {
+  isAnalyticsIdentityConsented,
+  isAwaitingAnalyticsConsentDecision,
+  subscribeToAnalyticsConsent,
+} from "./consent";
 import { analyticsUuidPattern } from "./events";
 import { createAnalyticsUuidV7 } from "./identity";
 import { readAnalyticsDeviceLocale, readAnalyticsUiLocale } from "./wire";
@@ -47,6 +53,16 @@ type CatalogInstallJourneyProperties = Readonly<Record<string, string>>;
 const installJourneyParameterName = "install_journey_id";
 const onceKeyPrefix = "catalog-install-analytics:";
 const emittedOnceKeys = new Set<string>();
+
+/**
+ * The journey id is an identifier of its own, written to this browser and sent as the identity on
+ * every row of this funnel, so it needs what any identifier needs: the kill switch off, and a
+ * consent answer that allows one. A browser still waiting to be asked, or one that refused, runs
+ * this funnel with no journey at all rather than with an unconsented id.
+ */
+function isCatalogInstallJourneyAllowed(): boolean {
+  return isAnalyticsEnabledForCurrentRuntime() && isAnalyticsIdentityConsented();
+}
 
 function buildProperties(
   installJourneyId: string,
@@ -114,7 +130,7 @@ async function sendCatalogInstallJourneyEvent(
   packageVersionId: string,
   event: CatalogInstallJourneyEvent,
 ): Promise<boolean> {
-  if (isAnalyticsEnabledForCurrentRuntime() === false) {
+  if (isCatalogInstallJourneyAllowed() === false) {
     return true;
   }
 
@@ -193,7 +209,7 @@ function reportCatalogInstallJourneyEventOnce(
   packageVersionId: string,
   event: CatalogInstallJourneyEvent,
 ): void {
-  if (installJourneyId === null || isAnalyticsEnabledForCurrentRuntime() === false) {
+  if (installJourneyId === null || isCatalogInstallJourneyAllowed() === false) {
     return;
   }
 
@@ -215,17 +231,34 @@ function reportCatalogInstallJourneyEvent(
   packageVersionId: string,
   event: CatalogInstallJourneyEvent,
 ): void {
-  if (installJourneyId === null || isAnalyticsEnabledForCurrentRuntime() === false) {
+  if (installJourneyId === null || isCatalogInstallJourneyAllowed() === false) {
     return;
   }
 
   void sendCatalogInstallJourneyEvent(installJourneyId, packageVersionId, event);
 }
 
-export function readOrCreateCatalogInstallJourneyId(): string | null {
+/**
+ * Reads the journey id this load was given, or mints one, once it is known what this browser may
+ * hold — and does nothing at all before that.
+ *
+ * Doing nothing is the whole point of the first branch. `isCatalogInstallJourneyAllowed()` is false
+ * both for a browser that refused and for one that has not been told yet whether it has to be asked,
+ * and that second state is where every load starts, everywhere, until `GET /v1/analytics/visitor`
+ * answers. Treating it as a refusal would delete an `install_journey_id` the link carried — including
+ * the one the return from sign-in carries — before anyone had refused anything, in every region.
+ * So an unanswered load neither mints nor strips, and `useCatalogInstallJourneyId` asks again once
+ * the answer exists. That hook is the only entry point on purpose: called directly from a render it
+ * would run before any answer could exist, which is the state this branch has to refuse.
+ */
+function readOrCreateCatalogInstallJourneyId(): string | null {
   try {
+    if (isAwaitingAnalyticsConsentDecision()) {
+      return null;
+    }
+
     const currentUrl = new URL(window.location.href);
-    if (isAnalyticsEnabledForCurrentRuntime() === false) {
+    if (isCatalogInstallJourneyAllowed() === false) {
       if (currentUrl.searchParams.has(installJourneyParameterName)) {
         currentUrl.searchParams.delete(installJourneyParameterName);
         window.history.replaceState(window.history.state, "", currentUrl.toString());
@@ -254,9 +287,50 @@ export function readOrCreateCatalogInstallJourneyId(): string | null {
   }
 }
 
+/**
+ * The journey id for this screen, resolved when the consent answer exists rather than on the first
+ * render — which is strictly before any answer can arrive, and can precede it by seconds while a
+ * cold container downloads GeoLite.
+ *
+ * It stays subscribed after it resolves, so a later refusal drops the id and strips the parameter
+ * through the same one function that grants it.
+ */
+export function useCatalogInstallJourneyId(packageVersionId: string | null): string | null {
+  const [installJourneyId, setInstallJourneyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (packageVersionId === null) {
+      setInstallJourneyId(null);
+      return;
+    }
+
+    function resolveInstallJourneyId(): void {
+      if (isAwaitingAnalyticsConsentDecision()) {
+        return;
+      }
+
+      setInstallJourneyId(readOrCreateCatalogInstallJourneyId());
+    }
+
+    resolveInstallJourneyId();
+    return subscribeToAnalyticsConsent(resolveInstallJourneyId);
+  }, [packageVersionId]);
+
+  return installJourneyId;
+}
+
+/**
+ * The URL to come back to after signing in. While the consent answer is still missing it is returned
+ * untouched: the parameter this page was opened with is the journey, and stripping it on the way out
+ * to the auth origin would end the funnel before anybody refused anything.
+ */
 export function buildCatalogInstallAuthReturnUrl(installJourneyId: string | null): string {
   const returnUrl = new URL(window.location.href);
-  if (installJourneyId === null || isAnalyticsEnabledForCurrentRuntime() === false) {
+  if (isAwaitingAnalyticsConsentDecision()) {
+    return returnUrl.toString();
+  }
+
+  if (installJourneyId === null || isCatalogInstallJourneyAllowed() === false) {
     returnUrl.searchParams.delete(installJourneyParameterName);
   } else {
     returnUrl.searchParams.set(installJourneyParameterName, installJourneyId);
