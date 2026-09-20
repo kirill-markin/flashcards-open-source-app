@@ -4,10 +4,9 @@ How to publish and refresh our entry in the official MCP Registry. The manifest
 lives in the repo root at [`server.json`](../server.json); this doc only covers
 the publish flow.
 
-The registry entry publishes under `com.nibomo/flashcards`. Treat this as the
-maintenance flow for metadata refreshes: validate the manifest, bump
-`server.json` `version` when publishing a changed registry entry, and manually
-run the workflow below to publish the new version.
+The registry entry publishes under `com.nibomo/flashcards`. For a product
+release, follow the [MCP release procedure](manual-production-release.md#mcp).
+This document covers publisher setup and troubleshooting.
 
 ## What is published
 
@@ -85,59 +84,24 @@ The script is idempotent when both the MCP Registry TXT record and
 `MCP_PRIVATE_KEY` already exist. If only one side exists, it fails with an
 explicit recovery message instead of silently rotating the namespace key.
 
+If `MCP_PRIVATE_KEY` exists but the TXT record is missing, check the selected
+Cloudflare zone, explicit `--domain nibomo.com`, and whether the record was
+deleted. Do not remove the existing secret to bypass this error.
+
 ## Publish flow
 
-1. From the repo root, validate `server.json`.
+For a routine release, dispatch the workflow on `main`:
 
-2. Confirm `server.json.version` is the intended shared product release version
-   and has not already been published. MCP Registry versions are immutable; a
-   duplicate version publish fails. The manual workflow checks the exact
-   version endpoint before publishing and stops with an actionable error when
-   the version already exists.
+```sh
+gh workflow run mcp-registry-publish.yml \
+  --repo kirill-markin/flashcards-open-source-app \
+  --ref main
+```
 
-3. Confirm the one-time credential setup is complete, with
-   `CLOUDFLARE_ZONE_ID` pointing at the `nibomo.com` zone:
-
-   ```sh
-   bash scripts/setup/setup-mcp-registry-credential.sh \
-     --domain nibomo.com \
-     --repo kirill-markin/flashcards-open-source-app
-   ```
-
-   The `nibomo.com` credential is provisioned, so this must report that the
-   credential is already configured. An error saying `MCP_PRIVATE_KEY` exists
-   without a TXT record is raised whenever the lookup finds no TXT record while
-   the secret exists. The most likely cause is `CLOUDFLARE_ZONE_ID` still
-   pointing at another zone; it can also mean `--domain` was omitted and fell
-   back to `DOMAIN_NAME`, or that the TXT record was genuinely deleted. Check
-   those three, and do not remove the secret.
-
-   Restore the `flashcards-open-source-app.com` Cloudflare values in `.env`
-   once this check passes.
-
-4. Run the GitHub Actions publisher manually:
-
-   ```sh
-   gh workflow run mcp-registry-publish.yml \
-     --repo kirill-markin/flashcards-open-source-app \
-     --ref main
-   ```
-
-   The workflow validates `server.json`, checks that the exact `server.json`
-   `name` and `version` endpoint is not already published, installs
-   `mcp-publisher`, authenticates with `mcp-publisher login dns --private-key`,
-   publishes the root manifest, and verifies the exact published version
-   endpoint.
-
-5. Check the published version through the official registry API:
-
-   ```sh
-   server_version="$(jq -r '.version' server.json)"
-   curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/com.nibomo%2Fflashcards/versions/${server_version}"
-   ```
-
-   A `404 Server not found` response means that exact version is not published
-   or the publish failed.
+Follow [the MCP release gate](manual-production-release.md#mcp). The workflow
+performs validation, duplicate-version checks, authentication, publication, and
+verification. Do not run local validation or credential bootstrap for every
+release; use the setup sections only when investigating a configuration failure.
 
 ## Local manual publish fallback
 
@@ -155,11 +119,12 @@ The CLI reads `server.json` from the current directory and submits it.
 
 ## Refreshing the entry
 
-Bump `version` in `server.json` (keep it aligned with the shared product
-release version per [version-bump.md](version-bump.md)) and run the manual
-[`MCP Registry Publish`](../.github/workflows/mcp-registry-publish.yml)
-workflow after the version bump is ready on `main`. The remote URL only changes
-if the hosted MCP domain changes.
+Publish the current shared `server.json.version` from `main` during the platform
+release stage of [the full release runbook](release-current-version.md), before
+the GitHub Release and next development version bump. For a separate metadata
+refresh of an already published version, agree on a new shared version before
+publishing; registry versions cannot be overwritten. The remote URL only
+changes if the hosted MCP domain changes.
 
 ## Manual workflow
 

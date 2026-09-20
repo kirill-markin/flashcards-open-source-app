@@ -9,7 +9,7 @@ import {
   submitFeedback,
 } from "./feedback";
 
-// Frozen test input — intentionally not the real app version; do not bump on release (see docs/version-bump.md).
+// Frozen test input — intentionally not the real app version; do not bump on release (see docs/release-current-version.md).
 const TEST_APP_VERSION = "1.0.0";
 
 describe("feedback API endpoints", () => {
