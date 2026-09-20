@@ -11,8 +11,11 @@ func safeDiagnosticIdentifier(_ value: String) -> String {
         return filteredDiagnosticValue
     }
 
+    // Swift type and error descriptions are code-authored and routinely contain spaces,
+    // parentheses, angle brackets and commas, so keep them and leave secret removal to
+    // the sensitive-string pass below.
     let allowedCharacters: CharacterSet = CharacterSet(
-        charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-"
+        charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:- ()<>,"
     )
     guard trimmedValue.rangeOfCharacter(from: allowedCharacters.inverted) == nil else {
         return filteredDiagnosticValue
@@ -391,7 +394,9 @@ private func redactedSensitiveString(_ value: String) -> String {
         withTemplate: "[Filtered email]"
     ) ?? value
 
-    let jwtPattern: String = #"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+"#
+    // A JWT header is base64url of a JSON object, so a real token always starts with "eyJ".
+    // Requiring that prefix keeps hostnames, version strings and dotted type names readable.
+    let jwtPattern: String = #"(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"#
     let jwtRegex: NSRegularExpression? = try? NSRegularExpression(pattern: jwtPattern)
     let jwtRange: NSRange = NSRange(emailRedacted.startIndex..<emailRedacted.endIndex, in: emailRedacted)
     return jwtRegex?.stringByReplacingMatches(

@@ -1,14 +1,13 @@
 # iOS CI/CD
 
-This repository uses Xcode Cloud as the human-operated native iOS release gate and distribution path. The GitHub-side AWS/Web release workflow does not start or wait for Xcode Cloud on `main`.
+This repository uses Xcode Cloud as the explicitly dispatched native iOS release gate and distribution path. The GitHub-side AWS/Web release workflow does not start or wait for Xcode Cloud on `main`.
 We do not aim for exhaustive iOS test coverage in this pipeline. The most trusted automated signal is the native simulator-backed live smoke because it exercises the real app closest to production behavior, while any non-smoke tests should stay targeted to important native contracts.
 
 ## Native release gate
 
-The intended iOS release order is:
-
-1. Native XCUITest grouped live smoke in the grouped `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift` files
-2. Archive and distribution from Xcode Cloud
+Run the separate Xcode Cloud test and archive workflows in parallel for the
+release SHA. Follow the [iOS release procedure](manual-production-release.md#ios)
+for their completion gates, warning handling, and App Review submission.
 
 The live smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Only one grouped smoke signs into the linked review account, creates an isolated linked workspace, verifies relaunch persistence, and deletes that workspace before exit. The remaining grouped smokes stay guest/local and do not perform login.
 
@@ -117,9 +116,10 @@ In a device farm the device is not connected to your machine, so read the same c
 device log inside the run's result bundle, or from the sysdiagnose the farm returns, with the same
 `log show --archive ... --predicate ...` command.
 
-## Human operation
+## Release operation
 
-The Xcode Cloud test and build workflows are manually started and monitored by a human. Agents must not trigger or monitor them unless the user explicitly requests that exact action.
+A human or authorized AI operates Xcode Cloud under the
+[full release runbook](release-current-version.md).
 
 ### Sentry environments
 
