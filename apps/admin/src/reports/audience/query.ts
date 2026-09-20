@@ -9,6 +9,7 @@ import {
   buildEventPlatformsFilterSql,
   buildExcludedActorsFilterSql,
   buildMinimumEventCountsFilterSql,
+  buildTrustedActorRowsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
 } from "../../filters/filterSql";
@@ -36,6 +37,12 @@ export type AudienceReport = Readonly<{
 // Reconciling this section's user count against that one's unique users has to allow for that gap.
 // A narrower population is a threshold rather than a mode: the people who answered at least one card
 // are `review_answered >= 1`.
+//
+// `history` also drops `trust_level = 'anonymous_client'`, for the reason
+// `buildTrustedActorRowsFilterSql` states: the credential-free collector's `anonymous_id` is an
+// unverified caller-supplied claim, and this report's every number is a share of one distinct-user
+// denominator. The daily active users section applies the same predicate, so the two cohorts stay
+// comparable.
 export function buildAudienceSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, "Audience");
   const userSelection = buildUsersFilterSql("history.actor_id::text", filters.users);
@@ -94,6 +101,7 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
       AND events.occurred_at < bounds.ends_at
       AND COALESCE(lower(settings.email), '') NOT LIKE '%@example.com'
       AND ${buildExcludedActorsFilterSql("events.actor_id::text")}
+      AND ${buildTrustedActorRowsFilterSql("events.trust_level")}
       AND NOT EXISTS (
         SELECT 1 FROM auth.admin_users AS admins
         WHERE lower(admins.email) = lower(settings.email) AND admins.revoked_at IS NULL

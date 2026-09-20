@@ -127,7 +127,10 @@ export const publicRestApiDefaultIntegrationTimeoutSeconds = 29;
 const productAnalyticsIngestMethodPath = "/analytics/events/POST";
 const productAnalyticsIngestThrottlingRateLimit = 20;
 const productAnalyticsIngestThrottlingBurstLimit = 40;
-const catalogInstallAnalyticsMethodPath = "/analytics/catalog-install-events/POST";
+const anonymousAnalyticsMethodPath = "/analytics/anonymous-events/POST";
+// The path the same collector answered before it accepted every client-reportable event name.
+// Released web and auth builds still post there, so it keeps its own throttle entry.
+const legacyCatalogInstallAnalyticsMethodPath = "/analytics/catalog-install-events/POST";
 export const directImageIngestionMaximumOnDemandInitSeconds = 10;
 export const directImageIngestionLambdaTimeoutSeconds = 15;
 
@@ -302,7 +305,7 @@ function createPublicCatalogCorsPreflightOptions(allowedOrigins: string[]): apig
   };
 }
 
-function createCatalogInstallAnalyticsCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
+function createAnonymousAnalyticsCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
   return {
     allowOrigins: allowedOrigins,
     allowMethods: ["POST", "OPTIONS"],
@@ -837,7 +840,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     publicAppOrigin,
     "http://localhost:3000",
   ];
-  const catalogInstallAnalyticsAllowedOrigins = [
+  const anonymousAnalyticsAllowedOrigins = [
     publicSiteOrigin,
     publicAppOrigin,
     `https://auth.${props.baseDomain}`,
@@ -1064,7 +1067,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
           throttlingRateLimit: productAnalyticsIngestThrottlingRateLimit,
           throttlingBurstLimit: productAnalyticsIngestThrottlingBurstLimit,
         },
-        [catalogInstallAnalyticsMethodPath]: {
+        [anonymousAnalyticsMethodPath]: {
+          metricsEnabled: true,
+          throttlingRateLimit: productAnalyticsIngestThrottlingRateLimit,
+          throttlingBurstLimit: productAnalyticsIngestThrottlingBurstLimit,
+        },
+        [legacyCatalogInstallAnalyticsMethodPath]: {
           metricsEnabled: true,
           throttlingRateLimit: productAnalyticsIngestThrottlingRateLimit,
           throttlingBurstLimit: productAnalyticsIngestThrottlingBurstLimit,
@@ -1166,9 +1174,19 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   analyticsVisitor.addMethod("ANY", integration);
   analyticsVisitor.addMethod("GET", integration);
   analyticsVisitor.addMethod("POST", integration);
+  // POST /analytics/anonymous-events, the credential-free client event collector
+  // (apps/backend/src/routes/anonymousAnalytics.ts), and the catalog-install-events path the same
+  // collector still answers for released clients.
+  const anonymousAnalyticsEvents = analytics.addResource("anonymous-events", {
+    defaultCorsPreflightOptions: createAnonymousAnalyticsCorsPreflightOptions(
+      anonymousAnalyticsAllowedOrigins,
+    ),
+  });
+  anonymousAnalyticsEvents.addMethod("ANY", integration);
+  anonymousAnalyticsEvents.addMethod("POST", integration);
   const catalogInstallAnalyticsEvents = analytics.addResource("catalog-install-events", {
-    defaultCorsPreflightOptions: createCatalogInstallAnalyticsCorsPreflightOptions(
-      catalogInstallAnalyticsAllowedOrigins,
+    defaultCorsPreflightOptions: createAnonymousAnalyticsCorsPreflightOptions(
+      anonymousAnalyticsAllowedOrigins,
     ),
   });
   catalogInstallAnalyticsEvents.addMethod("ANY", integration);

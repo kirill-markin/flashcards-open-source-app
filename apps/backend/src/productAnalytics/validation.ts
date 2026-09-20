@@ -303,6 +303,15 @@ function validateEvent(
     return reject(event.eventId, "server_only_event");
   }
 
+  // An identity-free event may never be stored beside an identity, and every row this ingest
+  // produces is stamped with the caller's user, subject user, guest session and session, so there is
+  // no shape in which it could be accepted here: it belongs to the credential-free collector alone.
+  // Rejected as invalid_event rather than under a reason of its own, because a released client
+  // parses this enum and none of them can report one of these events in the first place.
+  if (definition.identityFree) {
+    return reject(event.eventId, "invalid_event");
+  }
+
   const screen = event.screen ?? null;
   if (definition.requiresScreen && screen === null) {
     return reject(event.eventId, "missing_screen");
