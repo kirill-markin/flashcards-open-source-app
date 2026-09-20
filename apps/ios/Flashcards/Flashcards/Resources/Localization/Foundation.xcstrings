@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ہو گیا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xong"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kwenziwe"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -295,6 +313,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اگر آپ یہ رسائی بند کرنا چاہتے ہیں تو ترتیبات کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở Cài đặt nếu bạn muốn tắt quyền truy cập này."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vula Izilungiselelo uma ufuna ukuvala le mvume."
           }
         },
         "th" : {
@@ -584,6 +620,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابھی رسائی کی درخواست کریں، یا بعد میں خود انتظام کرنے کے لیے ترتیبات کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yêu cầu quyền truy cập ngay hoặc mở Cài đặt sau để tự quản lý."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cela imvume manje, noma uvule Izilungiselelo kamuva ukuze uzilawulele yona."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -869,6 +923,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے کیمرے کی رسائی بند ہے۔ اسے بدلنے کے لیے ترتیبات > رازداری اور سیکیورٹی > کیمرا کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập camera của Nibomo đang tắt. Mở Cài đặt > Quyền riêng tư & Bảo mật > Camera để thay đổi."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yekhamera ye-Nibomo ivaliwe. Vula Izilungiselelo > Ubumfihlo Nokuphepha > Ikhamera ukuze uyishintshe."
           }
         },
         "th" : {
@@ -1158,6 +1230,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اس رسائی کا جائزہ لینے یا اسے بڑھانے کے لیے ترتیبات کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở Cài đặt để xem lại hoặc mở rộng quyền truy cập này."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vula Izilungiselelo ukuze ubuyekeze noma wandise le mvume."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1443,6 +1533,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے مائیکروفون کی رسائی بند ہے۔ اسے بدلنے کے لیے ترتیبات > رازداری اور سیکیورٹی > مائیکروفون کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập micrô của Nibomo đang tắt. Mở Cài đặt > Quyền riêng tư & Bảo mật > Micrô để thay đổi."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yemakrofoni ye-Nibomo ivaliwe. Vula Izilungiselelo > Ubumfihlo Nokuphepha > Imakrofoni ukuze uyishintshe."
           }
         },
         "th" : {
@@ -1732,6 +1840,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے تصاویر کی رسائی بند ہے۔ اسے بدلنے کے لیے ترتیبات > رازداری اور سیکیورٹی > تصاویر کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập ảnh của Nibomo đang tắt. Mở Cài đặt > Quyền riêng tư & Bảo mật > Ảnh để thay đổi."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yezithombe ye-Nibomo ivaliwe. Vula Izilungiselelo > Ubumfihlo Nokuphepha > Izithombe ukuze uyishintshe."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2017,6 +2143,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صرف وہ تصاویر دستیاب ہیں جو آپ پہلے ہی Nibomo کے ساتھ شیئر کر چکے ہیں۔ مزید تصاویر کی رسائی دینے کے لیے ترتیبات کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ có các ảnh bạn đã chia sẻ với Nibomo. Mở Cài đặt để cấp quyền truy cập thêm ảnh."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kutholakala kuphela izithombe osuvele wabelane ngazo ne-Nibomo. Vula Izilungiselelo ukuze uvumele ukufinyelela ezithombeni ezengeziwe."
           }
         },
         "th" : {
@@ -2306,6 +2450,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اس آلے پر یہ رسائی دستیاب نہیں ہے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập này không khả dụng trên thiết bị hiện tại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le mvume ayitholakali kule divayisi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2591,6 +2753,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اجازت ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã cho phép"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuvunyelwe"
           }
         },
         "th" : {
@@ -2880,6 +3060,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ہر بار پوچھیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hỏi mỗi lần"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buza njalo"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3165,6 +3363,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسدود"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bị chặn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuvinjiwe"
           }
         },
         "th" : {
@@ -3454,6 +3670,24 @@
             "value" : "محدود"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محدود"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giới hạn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunomkhawulo"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3739,6 +3973,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دستیاب نہیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không khả dụng"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akutholakali"
           }
         },
         "th" : {
@@ -4028,6 +4280,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI چیٹ سے براہ راست تصاویر لیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chụp ảnh trực tiếp từ cuộc trò chuyện AI."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thatha izithombe ngqo engxoxweni ye-AI."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4313,6 +4583,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کیمرا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikhamera"
           }
         },
         "th" : {
@@ -4602,6 +4890,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بول کر AI چیٹ میں متن لکھیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đọc chính tả để nhập văn bản vào cuộc trò chuyện AI."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khuluma ukuze ufake umbhalo engxoxweni ye-AI."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4887,6 +5193,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مائیکروفون"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrô"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imakrofoni"
           }
         },
         "th" : {
@@ -5176,6 +5500,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI چیٹ میں منسلک کرنے کے لیے تصاویر منتخب کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chọn ảnh đính kèm vào cuộc trò chuyện AI."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khetha izithombe ozozinamathisela engxoxweni ye-AI."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5461,6 +5803,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصاویر"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ảnh"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izithombe"
           }
         },
         "th" : {
@@ -5750,6 +6110,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے مائیکروفون کی رسائی بند ہے۔ اجازت دینے کے لیے ترتیبات کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập micrô của Nibomo đang tắt. Mở Cài đặt để cho phép."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yemakrofoni ye-Nibomo ivaliwe. Vula Izilungiselelo ukuze uyivumele."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6035,6 +6413,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مائیکروفون کی رسائی درکار ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cần quyền truy cập micrô"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kudingeka imvume yemakrofoni"
           }
         },
         "th" : {
@@ -6324,6 +6720,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے کیمرے کی رسائی بند ہے۔ اجازت دینے کے لیے ترتیبات کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập camera của Nibomo đang tắt. Mở Cài đặt để cho phép."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yekhamera ye-Nibomo ivaliwe. Vula Izilungiselelo ukuze uyivumele."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6609,6 +7023,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کیمرے کی رسائی درکار ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cần quyền truy cập camera"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kudingeka imvume yekhamera"
           }
         },
         "th" : {
@@ -6898,6 +7330,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے فائلوں کی رسائی بند ہے۔ اجازت دینے کے لیے ترتیبات کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập tệp của Nibomo đang tắt. Mở Cài đặt để cho phép."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yamafayela ye-Nibomo ivaliwe. Vula Izilungiselelo ukuze uyivumele."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7183,6 +7633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فائلوں کی رسائی درکار ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cần quyền truy cập tệp"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kudingeka imvume yamafayela"
           }
         },
         "th" : {
@@ -7472,6 +7940,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے تصاویر کی رسائی بند ہے۔ اجازت دینے کے لیے ترتیبات کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập ảnh của Nibomo đang tắt. Mở Cài đặt để cho phép."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yezithombe ye-Nibomo ivaliwe. Vula Izilungiselelo ukuze uyivumele."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7757,6 +8243,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصاویر کی رسائی درکار ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cần quyền truy cập ảnh"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kudingeka imvume yezithombe"
           }
         },
         "th" : {
@@ -8046,6 +8550,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تمام کارڈز"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tất cả thẻ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wonke amakhadi"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8331,6 +8853,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کنکشن منقطع"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã ngắt kết nối"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunqanyuliwe"
           }
         },
         "th" : {
@@ -8620,6 +9160,24 @@
             "value" : "ضيف"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مہمان"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khách"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isivakashi"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8905,6 +9463,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "منسلک"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã liên kết"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuxhunyiwe"
           }
         },
         "th" : {
@@ -9194,6 +9770,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "منسلک کرنے کے لیے تیار"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sẵn sàng liên kết"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kulungele ukuxhuma"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9479,6 +10073,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کلاؤڈ سائن اِن دستیاب نہیں ہے۔ ایپ کی ترتیب چیک کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập đám mây không khả dụng. Kiểm tra cấu hình ứng dụng."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukungena efwini akutholakali. Hlola ukumiswa kohlelo lokusebenza."
           }
         },
         "th" : {
@@ -9768,6 +10380,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درست ای میل پتہ درج کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhập địa chỉ email hợp lệ."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faka ikheli le-imeyili elivumelekile."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10053,6 +10683,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کوڈ پہلے استعمال ہو چکا ہے۔ نیا کوڈ طلب کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mã đã được sử dụng. Hãy yêu cầu mã mới."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikhodi isisetshenzisiwe. Cela entsha."
           }
         },
         "th" : {
@@ -10342,6 +10990,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کوڈ درست نہیں ہے۔ دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mã không hợp lệ. Hãy thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikhodi ayivumelekile. Zama futhi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10627,6 +11293,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کوڈ بھیجا نہیں جا سکا۔ دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể gửi mã. Hãy thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayikwazanga ukuthumela ikhodi. Zama futhi."
           }
         },
         "th" : {
@@ -10916,6 +11600,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کوڈ کی مدت ختم ہو گئی۔ نیا کوڈ طلب کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mã đã hết hạn. Hãy yêu cầu mã mới."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikhodi iphelelwe yisikhathi. Cela entsha."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11201,6 +11903,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بہت زیادہ کوششیں ہو چکی ہیں۔ نیا کوڈ طلب کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã thử quá nhiều lần. Hãy yêu cầu mã mới."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kube nemizamo eminingi kakhulu. Cela ikhodi entsha."
           }
         },
         "th" : {
@@ -11490,6 +12210,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کوڈ کی تصدیق نہیں ہو سکی۔ دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể xác minh mã. Hãy thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayikwazanga ukuqinisekisa ikhodi. Zama futhi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11775,6 +12513,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کلاؤڈ سائن اِن ناکام رہا۔ دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập đám mây thất bại. Hãy thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukungena efwini kuhlulekile. Zama futhi."
           }
         },
         "th" : {
@@ -12064,6 +12820,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کوڈ بھیجتے وقت کنکشن منقطع ہو گیا۔ اپنی ای میل دیکھیں، پھر ضرورت ہو تو دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kết nối bị gián đoạn khi gửi mã. Kiểm tra email rồi thử lại nếu cần."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uxhumano lunqamukile ngesikhathi kuthunyelwa ikhodi. Hlola i-imeyili yakho, bese uzama futhi uma kudingeka."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12349,6 +13123,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کوڈ کی تصدیق کرتے وقت کنکشن منقطع ہو گیا۔ دوبارہ کوشش کریں یا ضرورت ہو تو نیا کوڈ طلب کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kết nối bị gián đoạn khi xác minh mã. Thử lại hoặc yêu cầu mã mới nếu cần."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uxhumano lunqamukile ngesikhathi kuqinisekiswa ikhodi. Zama futhi, noma ucele ikhodi entsha uma kudingeka."
           }
         },
         "th" : {
@@ -12638,6 +13430,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی کی فہرست تازہ نہیں ہو سکی۔ دوبارہ کوشش کے لیے نیچے کھینچیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể làm mới bảng xếp hạng đánh giá. Kéo xuống để thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibhodi labahamba phambili ngokulinganisa alivuselelwanga. Donsela phansi ukuze uzame futhi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12923,6 +13733,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دہرائی کا شیڈول تازہ نہیں ہو سکا۔ دوبارہ کوشش کے لیے نیچے کھینچیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể làm mới lịch ôn tập. Kéo xuống để thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ishejuli yokubukeza ayivuselelwanga. Donsela phansi ukuze uzame futhi."
           }
         },
         "th" : {
@@ -13212,6 +14040,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دہرائی کا شیڈول دکھایا نہیں جا سکا۔ دوبارہ کوشش کے لیے نیچے کھینچیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể hiển thị lịch ôn tập. Kéo xuống để thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ishejuli yokubukeza ayikwazanga ukuboniswa. Donsela phansi ukuze uzame futhi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13497,6 +14343,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیش رفت کا چارٹ تازہ نہیں ہو سکا۔ دوبارہ کوشش کے لیے نیچے کھینچیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể làm mới biểu đồ tiến độ. Kéo xuống để thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ishadi lenqubekelaphambili alivuselelwanga. Donsela phansi ukuze uzame futhi."
           }
         },
         "th" : {
@@ -13786,6 +14650,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دنوں کی درجہ بندی تازہ نہیں ہو سکی۔ دوبارہ کوشش کے لیے نیچے کھینچیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể làm mới bảng xếp hạng chuỗi ngày. Kéo xuống để thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibhodi labahamba phambili ngochungechunge alivuselelwanga. Donsela phansi ukuze uzame futhi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14071,6 +14953,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیش رفت کا خلاصہ تازہ نہیں ہو سکا۔ دوبارہ کوشش کے لیے نیچے کھینچیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể làm mới tổng quan tiến độ. Kéo xuống để thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isifinyezo senqubekelaphambili asivuselelwanga. Donsela phansi ukuze uzame futhi."
           }
         },
         "th" : {
@@ -14360,6 +15260,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیش رفت دستیاب نہیں ہے۔ تازہ کرنے کے لیے نیچے کھینچیں اور دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiến độ không khả dụng. Kéo xuống để làm mới và thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inqubekelaphambili ayitholakali. Donsela phansi ukuze uvuselele bese uzama futhi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14645,6 +15563,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دن بچانے کے ذخیرے میں %@، کل %@ میں سے دستیاب ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kho bảo vệ chuỗi ngày: %@ trên %@ lượt khả dụng."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isilondolozi sochungechunge: kutholakala %@ kokungu-%@."
           }
         },
         "th" : {
@@ -14934,6 +15870,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دنوں کی حفاظت کا طریقہ دکھاتا ہے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiển thị cách hoạt động của lượt bảo vệ chuỗi ngày."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibonisa ukuthi ukuvikela uchungechunge kusebenza kanjani."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15219,6 +16173,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دستیاب: %@/%@۔ بحالی: %@/%@۔ حفاظتی مواقع چھوٹ جانے والے دنوں کی تلافی کرتے ہیں اور مسلسل دہرائی جاری رکھنے سے بحال ہوتے ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khả dụng: %@/%@. Nạp lại: %@/%@. Lượt bảo vệ giữ chuỗi khi bạn bỏ lỡ một ngày và được nạp lại khi bạn tiếp tục chuỗi."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okutholakalayo: %@/%@. Ukugcwaliswa: %@/%@. Izivikelo zigcina uchungechunge ngezinsuku oziphuthelwe futhi zigcwaliswa njengoba uqhubeka nochungechunge."
           }
         },
         "th" : {
@@ -15508,6 +16480,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دنوں کی حفاظت"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bảo vệ chuỗi ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izivikelo zochungechunge"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15793,6 +16783,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لنک بنائیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tạo liên kết"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dala isixhumanisi"
           }
         },
         "th" : {
@@ -16082,6 +17090,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "وہ اسے کھول کر سائن اِن یا اکاؤنٹ بنا سکتے ہیں، پھر آپ ایپ میں ایک دوسرے کو دیکھ سکیں گے۔ دعوتی لنکس 2 دن بعد ختم ہو جاتے ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Họ có thể mở liên kết, đăng nhập hoặc đăng ký, rồi hai bạn sẽ thấy nhau trong ứng dụng. Liên kết mời hết hạn sau 2 ngày."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bangasivula, bangene noma babhalise, bese nibonana ohlelweni lokusebenza. Izixhumanisi zezimemo ziphelelwa yisikhathi ngemva kwezinsuku ezingu-2."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16367,6 +17393,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "یہ لنک اپنے دوست کو بھیجیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gửi liên kết này cho bạn bè"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thumela lesi sixhumanisi kumngane wakho"
           }
         },
         "th" : {
@@ -16656,6 +17700,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بنایا جا رہا ہے..."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang tạo..."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuyadalwa..."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16941,6 +18003,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی کے لیے دوست کا نجی لنک بنائیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tạo liên kết kết bạn riêng tư cho bảng xếp hạng."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dala isixhumanisi sangasese somngane sebhodi labahamba phambili."
           }
         },
         "th" : {
@@ -17230,6 +18310,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اپنی درجہ بندی میں یہ نام صرف آپ کو دکھائی دے گا۔ دعوت قبول کرتے وقت آپ کا دوست آپ کے لیے نام چنتا ہے۔ دعوتی لنکس 2 دن بعد ختم ہو جاتے ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ bạn thấy tên này trên bảng xếp hạng của mình. Bạn bè sẽ chọn tên gọi bạn khi chấp nhận. Liên kết mời hết hạn sau 2 ngày."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nguwe kuphela obona leli gama ebhodini lakho. Umngane wakho ukhetha igama azokubiza ngalo lapho amukela. Izixhumanisi zezimemo ziphelelwa yisikhathi ngemva kwezinsuku ezingu-2."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17515,6 +18613,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آپ کی درجہ بندی میں دوست کا نام"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tên bạn bè trên bảng xếp hạng của bạn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Igama lomngane ebhodini lakho"
           }
         },
         "th" : {
@@ -17804,6 +18920,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آپ کے دوست کا نام"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tên bạn bè"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Igama lomngane wakho"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18089,6 +19223,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ہو گیا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xong"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kwenziwe"
           }
         },
         "th" : {
@@ -18378,6 +19530,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دعوتی لنک بھیجیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gửi liên kết mời"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thumela isixhumanisi sesimemo"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18663,6 +19833,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کی یہ دعوت کھولیں، سائن اِن کریں یا اکاؤنٹ بنائیں، پھر ہم ایپ میں ایک دوسرے کو دیکھ سکیں گے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở lời mời Nibomo này, đăng nhập hoặc đăng ký để chúng ta thấy nhau trong ứng dụng."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vula lesi simemo se-Nibomo, ungene noma ubhalise, bese sibonana ohlelweni lokusebenza."
           }
         },
         "th" : {
@@ -18952,6 +20140,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo پر دوستی کی دعوت"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lời mời kết bạn Nibomo"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isimemo sobungane se-Nibomo"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19237,6 +20443,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوست شامل کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thêm bạn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engeza umngane"
           }
         },
         "th" : {
@@ -19526,6 +20750,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نئی سطریں اور کنٹرول حروف کی اجازت نہیں ہے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không được dùng ký tự xuống dòng và ký tự điều khiển."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imigqa emisha nezinhlamvu zokulawula akuvunyelwe."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19811,6 +21053,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-30 حروف درج کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhập 1–30 ký tự."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faka izinhlamvu ezingu-1–30."
           }
         },
         "th" : {
@@ -20100,6 +21360,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دہرائی کی سرگرمی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoạt động ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umsebenzi wokubukeza"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20385,6 +21663,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تاریخ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuku"
           }
         },
         "th" : {
@@ -20674,6 +21970,24 @@
             "value" : "المراجعات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دہرائیاں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lượt ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukubukeza"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20959,6 +22273,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "گزشتہ 30 دن۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 ngày qua."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku ezingu-30 ezidlule."
           }
         },
         "th" : {
@@ -21248,6 +22580,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 دہرائی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 lượt ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukubukeza oku-1"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21535,6 +22885,24 @@
             "value" : "%lld مراجعات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld دہرائیاں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld lượt ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukubukeza: %lld"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21676,7 +23044,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld upprifjanir"
+            "value" : "Fjöldi upprifjana: %lld"
           }
         },
         "gu" : {
@@ -21820,6 +23188,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "نشاط المراجعة"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دہرائی کی سرگرمی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoạt động ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umsebenzi wokubukeza"
           }
         },
         "th" : {
@@ -22109,6 +23495,24 @@
             "value" : "#%1$lld في %2$@"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ میں #%1$lld"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld trong %2$@"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld ku-%2$@"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22394,6 +23798,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أفضل تصنيف"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بہترین درجہ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thứ hạng cao nhất"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinga elihle kakhulu"
           }
         },
         "th" : {
@@ -22683,6 +24105,24 @@
             "value" : "لا يوجد تصنيف بعد"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابھی کوئی درجہ نہیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chưa có thứ hạng"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alikho izinga okwamanje"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22968,6 +24408,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بطاقة واحدة"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 کارڈ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 thẻ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikhadi eli-1"
           }
         },
         "th" : {
@@ -23257,6 +24715,24 @@
             "value" : "%lld بطاقات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld کارڈز"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld thẻ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amakhadi: %lld"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23398,7 +24874,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld spjöld"
+            "value" : "Fjöldi spjalda: %lld"
           }
         },
         "gu" : {
@@ -23542,6 +25018,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کارڈز"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thẻ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amakhadi"
           }
         },
         "th" : {
@@ -23831,6 +25325,24 @@
             "value" : "السلسلة الحالية"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "موجودہ مسلسل دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chuỗi ngày hiện tại"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uchungechunge lwamanje"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24116,6 +25628,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ہو گیا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xong"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kwenziwe"
           }
         },
         "th" : {
@@ -24405,6 +25935,24 @@
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کنکشن چیک کریں اور دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiểm tra kết nối rồi thử lại."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hlola uxhumano lwakho bese uzama futhi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24690,6 +26238,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحميل الملف الشخصي"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پروفائل لوڈ نہیں ہو سکی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể tải hồ sơ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iphrofayela ayilayishekanga"
           }
         },
         "th" : {
@@ -24979,6 +26545,24 @@
             "value" : "صديق"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوست"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bạn bè"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umngane"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25264,6 +26848,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تاريخ الانضمام"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شمولیت"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngày tham gia"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ujoyine"
           }
         },
         "th" : {
@@ -25553,6 +27155,24 @@
             "value" : "جارٍ تحميل الملف الشخصي..."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پروفائل لوڈ ہو رہی ہے..."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang tải hồ sơ..."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kulayishwa iphrofayela..."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25838,6 +27458,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المقاييس"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیمائشیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ số"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izilinganiso"
           }
         },
         "th" : {
@@ -26127,6 +27765,24 @@
             "value" : "حاول مرة أخرى"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوبارہ کوشش کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thử lại"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zama futhi"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26412,6 +28068,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الإحصاءات"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اعداد و شمار"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thống kê"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izibalo"
           }
         },
         "th" : {
@@ -26701,6 +28375,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی کے پروفائل دیکھنے کے لیے ای میل سے سائن اِن کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập bằng email để xem hồ sơ trên bảng xếp hạng."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngena nge-imeyili ukuze ubone amaphrofayela ebhodi labahamba phambili."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26986,6 +28678,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يلزم تسجيل الدخول"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سائن اِن ضروری ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cần đăng nhập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kudingeka ungene"
           }
         },
         "th" : {
@@ -27275,6 +28985,24 @@
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پروفائل صرف درجہ بندی میں شرکت فعال ہونے پر دکھائی دیتے ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ có thể xem hồ sơ khi bạn bật tham gia bảng xếp hạng đánh giá."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amaphrofayela abonakala kuphela uma ukubamba iqhaza ebhodini lokulinganisa kuvuliwe."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27560,6 +29288,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة متوقفة"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شرکت بند ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã tắt tham gia"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukubamba iqhaza kuvaliwe"
           }
         },
         "th" : {
@@ -27849,6 +29595,24 @@
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی کا یہ پروفائل ابھی دکھایا نہیں جا سکتا۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiện không thể hiển thị hồ sơ bảng xếp hạng này."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le phrofayela yebhodi ayikwazi ukuboniswa okwamanje."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28134,6 +29898,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الملف الشخصي غير متاح"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پروفائل دستیاب نہیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hồ sơ không khả dụng"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iphrofayela ayitholakali"
           }
         },
         "th" : {
@@ -28423,6 +30205,24 @@
             "value" : "حول لوحة صدارة التقييمات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی کے بارے میں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Về bảng xếp hạng đánh giá"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mayelana nebhodi labahamba phambili ngokulinganisa"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28708,6 +30508,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مشکل، اچھا اور آسان کی درجہ بندی والی دہرائیاں آپ کے رتبے میں شمار ہوتی ہیں۔ دوبارہ شمار نہیں ہوتا۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các lượt ôn tập được đánh giá Khó, Tốt và Dễ được tính vào thứ hạng. Lại không được tính."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukubukeza okukalwe ngokuthi Kunzima, Kuhle, noma Kulula kubalwa ezingeni lakho. Futhi akubalwa."
           }
         },
         "th" : {
@@ -28997,6 +30815,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوست شامل کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thêm bạn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engeza umngane"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29282,6 +31118,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوست شامل کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thêm bạn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engeza umngane"
           }
         },
         "th" : {
@@ -29571,6 +31425,24 @@
             "value" : "حاول مرة أخرى لاحقًا."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بعد میں دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hãy thử lại sau."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zama futhi kamuva."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29856,6 +31728,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی لوڈ نہیں ہو سکی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể tải bảng xếp hạng đánh giá"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibhodi labahamba phambili ngokulinganisa alilayishekanga"
           }
         },
         "th" : {
@@ -30145,6 +32035,24 @@
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی لوڈ کرنے کے لیے انٹرنیٹ سے جڑیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kết nối internet để tải bảng xếp hạng đánh giá."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xhuma ku-inthanethi ukuze ulayishe ibhodi labahamba phambili ngokulinganisa."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30430,6 +32338,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت غير متصل"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آپ آف لائن ہیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bạn đang ngoại tuyến"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awuxhumekile ku-inthanethi"
           }
         },
         "th" : {
@@ -30719,6 +32645,24 @@
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی کی ترتیبات کھولیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở cài đặt bảng xếp hạng đánh giá"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vula izilungiselelo zebhodi labahamba phambili ngokulinganisa"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31004,6 +32948,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رتبے صرف درجہ بندی میں شرکت کرنے پر دکھائی دیتے ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ có thể xem thứ hạng khi bạn tham gia bảng xếp hạng đánh giá."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amazinga abonakala kuphela uma ubamba iqhaza ebhodini labahamba phambili ngokulinganisa."
           }
         },
         "th" : {
@@ -31293,6 +33255,24 @@
             "value" : "المشاركة في التقييمات متوقفة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی میں شرکت بند ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã tắt tham gia xếp hạng đánh giá"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukubamba iqhaza ekulinganiseni kuvaliwe"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31580,6 +33560,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رتبہ %1$lld، %2$lld دہرائیاں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hạng %1$lld, %2$lld lượt ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinga: %1$lld, ukubukeza: %2$lld"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31685,7 +33683,7 @@
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "സ്ഥാനം %1$lld, %2$lld ആവർത്തനങ്ങൾ"
+            "value" : "സ്ഥാനം %1$lld, ആവർത്തനങ്ങൾ: %2$lld"
           }
         },
         "it" : {
@@ -31721,7 +33719,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sæti %1$lld, %2$lld upprifjanir"
+            "value" : "Sæti %1$lld, fjöldi upprifjana: %2$lld"
           }
         },
         "gu" : {
@@ -31865,6 +33863,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آپ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bạn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wena"
           }
         },
         "th" : {
@@ -32154,6 +34170,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bảng xếp hạng đánh giá"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibhodi labahamba phambili ngokulinganisa"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32439,6 +34473,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سائن اِن کریں یا اکاؤنٹ بنائیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập hoặc đăng ký"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngena noma ubhalise"
           }
         },
         "th" : {
@@ -32728,6 +34780,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی میں اپنی دہرائیوں کا رتبہ دیکھنے کے لیے ای میل سے سائن اِن کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập bằng email để xem thứ hạng các lượt ôn tập của bạn trên bảng xếp hạng đánh giá."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngena nge-imeyili ukuze ubone izinga lokubukeza kwakho ebhodini labahamba phambili ngokulinganisa."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33013,6 +35083,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی میں شامل ہوں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tham gia bảng xếp hạng đánh giá"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joyina ibhodi labahamba phambili ngokulinganisa"
           }
         },
         "th" : {
@@ -33302,6 +35390,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درجہ بندی تیار کی جا رہی ہے۔ جلد دوبارہ دیکھیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bảng xếp hạng đánh giá đang được chuẩn bị. Hãy quay lại sau ít phút."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibhodi labahamba phambili ngokulinganisa liyalungiswa. Buya maduze."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33587,6 +35693,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابھی تیار نہیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chưa sẵn sàng"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akukalungi"
           }
         },
         "th" : {
@@ -33876,6 +36000,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ پہلے تازہ کیا گیا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cập nhật %@ trước"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kubuyekezwe emuva ngo-%@"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34161,6 +36303,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "th" : {
@@ -34450,6 +36610,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 گھنٹہ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 giờ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ihora eli-1"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34737,6 +36915,24 @@
             "value" : "%lld ساعة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld گھنٹے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld giờ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amahora: %lld"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34878,7 +37074,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld klukkustundir"
+            "value" : "%lld klst."
           }
         },
         "gu" : {
@@ -35022,6 +37218,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "دقيقة واحدة"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 منٹ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 phút"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umzuzu o-1"
           }
         },
         "th" : {
@@ -35311,6 +37525,24 @@
             "value" : "%lld دقيقة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld منٹ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld phút"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imizuzu: %lld"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35452,7 +37684,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld mínútur"
+            "value" : "%lld mín."
           }
         },
         "gu" : {
@@ -35596,6 +37828,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الفترة"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مدت"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khoảng thời gian"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isikhathi"
           }
         },
         "th" : {
@@ -35885,6 +38135,24 @@
             "value" : "كل الأوقات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اب تک"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Từ trước đến nay"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonke isikhathi"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36170,6 +38438,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "3 ي"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku 3"
           }
         },
         "th" : {
@@ -36459,6 +38745,24 @@
             "value" : "7 ي"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku 7"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36744,6 +39048,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "24 س"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 گھنٹے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 giờ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amahora 24"
           }
         },
         "th" : {
@@ -37033,6 +39355,24 @@
             "value" : "30 ي"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku 30"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37320,6 +39660,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld کارڈز، %@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld thẻ, %@"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amakhadi: %lld, %@"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37395,7 +39753,7 @@
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld कार्डे, %@"
+            "value" : "कार्डे: %lld, %@"
           }
         },
         "nb" : {
@@ -37407,7 +39765,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld kaarten, %@"
+            "value" : "Kaarten: %lld, %@"
           }
         },
         "lt" : {
@@ -37425,7 +39783,7 @@
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld കാർഡുകൾ, %@"
+            "value" : "കാർഡുകൾ: %lld, %@"
           }
         },
         "it" : {
@@ -37461,7 +39819,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld spjöld, %@"
+            "value" : "Fjöldi spjalda: %lld, %@"
           }
         },
         "gu" : {
@@ -37605,6 +39963,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-7 دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku 1–7"
           }
         },
         "th" : {
@@ -37894,6 +40270,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8-30 دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku 8–30"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38179,6 +40573,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31-90 دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku 31–90"
           }
         },
         "th" : {
@@ -38468,6 +40880,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91-360 دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku 91–360"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38753,6 +41183,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بعد میں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sau đó"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamuva"
           }
         },
         "th" : {
@@ -39042,6 +41490,24 @@
             "value" : "جديدة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نیا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mới"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okusha"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -39327,6 +41793,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آج"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hôm nay"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Namuhla"
           }
         },
         "th" : {
@@ -39616,6 +42100,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1-2 سال"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 năm"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iminyaka 1–2"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -39901,6 +42403,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ابھی کوئی فعال کارڈ نہیں ہے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chưa có thẻ đang hoạt động."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awekho amakhadi asebenzayo okwamanje."
           }
         },
         "th" : {
@@ -40190,6 +42710,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دہرائی کا شیڈول"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lịch ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ishejuli yokubukeza"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -40477,6 +43015,24 @@
             "value" : "%lld مراجعات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld دہرائیاں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld lượt ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukubukeza: %lld"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -40552,19 +43108,19 @@
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld उजळण्या"
+            "value" : "उजळण्या: %lld"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld repetisjoner"
+            "value" : "Repetisjoner: %lld"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld herhalingen"
+            "value" : "Herhalingen: %lld"
           }
         },
         "lt" : {
@@ -40582,7 +43138,7 @@
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld ആവർത്തനങ്ങൾ"
+            "value" : "ആവർത്തനങ്ങൾ: %lld"
           }
         },
         "it" : {
@@ -40618,7 +43174,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld upprifjanir"
+            "value" : "Fjöldi upprifjana: %lld"
           }
         },
         "gu" : {
@@ -40762,6 +43318,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع التالي"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اگلا ہفتہ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuần sau"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isonto elilandelayo"
           }
         },
         "th" : {
@@ -41051,6 +43625,24 @@
             "value" : "الأسبوع السابق"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پچھلا ہفتہ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tuần trước"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isonto eledlule"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -41336,6 +43928,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعات"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دہرائیاں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lượt ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukubukeza"
           }
         },
         "th" : {
@@ -41625,6 +44235,24 @@
             "value" : "يوم واحد"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuku olu-1"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -41912,6 +44540,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku: %lld"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -42053,7 +44699,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld dagar"
+            "value" : "Fjöldi daga: %lld"
           }
         },
         "gu" : {
@@ -42197,6 +44843,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دنوں کی درجہ بندی کے بارے میں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Về bảng xếp hạng chuỗi ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mayelana nebhodi labahamba phambili ngochungechunge"
           }
         },
         "th" : {
@@ -42486,6 +45150,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "موجودہ مسلسل دن آپ کا رتبہ طے کرتے ہیں۔ مسلسل دن وہ مقامی دن ہے جس میں کم از کم ایک کارڈ کی دہرائی کو %1$@، %2$@، %3$@ یا %4$@ دیا گیا ہو۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Số ngày trong chuỗi hiện tại quyết định thứ hạng của bạn. Một ngày được tính là ngày theo giờ địa phương có ít nhất một lượt ôn thẻ được đánh giá %1$@, %2$@, %3$@ hoặc %4$@."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinsuku zochungechunge lwamanje zinquma izinga lakho. Usuku lochungechunge yinoma yiluphi usuku lwasendaweni olunokubukeza ikhadi okungenani okukodwa okukalwe ngokuthi %1$@, %2$@, %3$@, noma %4$@."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -42771,6 +45453,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بعد میں دوبارہ کوشش کریں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hãy thử lại sau."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zama futhi kamuva."
           }
         },
         "th" : {
@@ -43060,6 +45760,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دنوں کی درجہ بندی لوڈ نہیں ہو سکی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể tải bảng xếp hạng chuỗi ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibhodi labahamba phambili ngochungechunge alilayishekanga"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -43345,6 +46063,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دنوں کی درجہ بندی لوڈ کرنے کے لیے انٹرنیٹ سے جڑیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kết nối internet để tải bảng xếp hạng chuỗi ngày."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xhuma ku-inthanethi ukuze ulayishe ibhodi labahamba phambili ngochungechunge."
           }
         },
         "th" : {
@@ -43634,6 +46370,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آپ آف لائن ہیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bạn đang ngoại tuyến"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Awuxhumekile ku-inthanethi"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -43919,6 +46673,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رتبہ %1$lld، %2$@"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hạng %1$lld, %2$@"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinga: %1$lld, %2$@"
           }
         },
         "th" : {
@@ -44208,6 +46980,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دنوں کی درجہ بندی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bảng xếp hạng chuỗi ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ibhodi labahamba phambili ngochungechunge"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -44493,6 +47283,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محفوظ دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngày được bảo vệ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuku oluvikelwe"
           }
         },
         "th" : {
@@ -44782,6 +47590,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آنے والا دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngày trong tương lai"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuku oluzayo"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -45067,6 +47893,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسلسل دن"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chuỗi ngày"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uchungechunge"
           }
         },
         "th" : {
@@ -45356,6 +48200,24 @@
             "value" : "التقدم"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیش رفت"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiến độ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inqubekelaphambili"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -45641,6 +48503,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آج"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hôm nay"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Namuhla"
           }
         },
         "th" : {
@@ -45930,6 +48810,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اطلاعات کی اجازت دیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cho phép thông báo"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vumela izaziso"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -46215,6 +49113,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اجازت ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã cho phép"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuvunyelwe"
           }
         },
         "th" : {
@@ -46504,6 +49420,24 @@
             "value" : "محظور"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسدود"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bị chặn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuvinjiwe"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -46789,6 +49723,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "درخواست نہیں کی گئی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chưa yêu cầu"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akukacelwa"
           }
         },
         "th" : {
@@ -47078,6 +50030,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo میں اپنا مطالعہ جاری رکھیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiếp tục buổi học trong Nibomo."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qhubeka nesikhathi sakho sokufunda ku-Nibomo."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -47363,6 +50333,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "روزانہ ایک بار"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mỗi ngày một lần"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kanye ngosuku"
           }
         },
         "th" : {
@@ -47652,6 +50640,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "وقفے کے بعد"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sau thời gian nghỉ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngemva kwekhefu"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -47937,6 +50943,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوبارہ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lại"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Futhi"
           }
         },
         "th" : {
@@ -48226,6 +51250,24 @@
             "value" : "سهل"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آسان"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dễ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kulula"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -48511,6 +51553,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اچھا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tốt"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuhle"
           }
         },
         "th" : {
@@ -48800,6 +51860,24 @@
             "value" : "صعب"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مشکل"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khó"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunzima"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -49085,6 +52163,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اکاؤنٹ حذف کر دیا گیا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã xóa tài khoản"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I-akhawunti isusiwe"
           }
         },
         "th" : {
@@ -49374,6 +52470,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -49659,6 +52773,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کارڈز"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thẻ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amakhadi"
           }
         },
         "th" : {
@@ -49948,6 +53080,24 @@
             "value" : "لاحقًا"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بعد میں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sau đó"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamuva"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -50233,6 +53383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ای میل سے سائن اِن کریں تاکہ یہ کارڈز اور دہرائی کی پیش رفت ضائع نہ ہوں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập bằng email để không mất các thẻ và tiến độ ôn tập này."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngena nge-imeyili ukuze la makhadi nenqubekelaphambili yokubukeza kungalahleki."
           }
         },
         "th" : {
@@ -50522,6 +53690,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سائن اِن کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ngena"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -50807,6 +53993,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اپنی پیش رفت محفوظ کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lưu tiến độ của bạn"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Londoloza inqubekelaphambili yakho"
           }
         },
         "th" : {
@@ -51096,6 +54300,24 @@
             "value" : "التقدم"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "پیش رفت"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiến độ"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inqubekelaphambili"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -51381,6 +54603,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دہرائی"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ôn tập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buyekeza"
           }
         },
         "th" : {
@@ -51670,6 +54910,24 @@
             "value" : "الإعدادات"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ترتیبات"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cài đặt"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izilungiselelo"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -51955,6 +55213,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ترتیبات کھولیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở Cài đặt"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vula Izilungiselelo"
           }
         },
         "th" : {
@@ -52244,6 +55520,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "رسائی کی درخواست کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yêu cầu quyền truy cập"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cela imvume"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -52529,6 +55823,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ٹھیک ہے"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kulungile"
           }
         },
         "th" : {
@@ -52818,6 +56130,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آج اپنے مسلسل دن برقرار رکھیں۔ آدھی رات سے پہلے دہرائی کریں۔ 2 گھنٹے باقی ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giữ chuỗi ngày hôm nay. Ôn tập trước nửa đêm. Còn 2 giờ."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gcina uchungechunge lwakho namuhla. Buyekeza ngaphambi kwamabili. Kusele amahora angu-2."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -53103,6 +56433,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آج اپنے مسلسل دن برقرار رکھیں۔ آدھی رات سے پہلے دہرائی کریں۔ 3 گھنٹے باقی ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giữ chuỗi ngày hôm nay. Ôn tập trước nửa đêm. Còn 3 giờ."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gcina uchungechunge lwakho namuhla. Buyekeza ngaphambi kwamabili. Kusele amahora angu-3."
           }
         },
         "th" : {
@@ -53392,6 +56740,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آج اپنے مسلسل دن برقرار رکھیں۔ آدھی رات سے پہلے دہرائی کریں۔ 4 گھنٹے باقی ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Giữ chuỗi ngày hôm nay. Ôn tập trước nửa đêm. Còn 4 giờ."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gcina uchungechunge lwakho namuhla. Buyekeza ngaphambi kwamabili. Kusele amahora angu-4."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -53677,6 +57043,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دوبارہ کوشش کریں۔ اگر مسئلہ برقرار رہے تو تکنیکی تفصیلات معاونت کو بھیجیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thử lại. Nếu lỗi tiếp diễn, hãy chia sẻ thông tin kỹ thuật với bộ phận hỗ trợ."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zama futhi. Uma kuqhubeka, yabelana ngemininingwane yobuchwepheshe nabasekeli."
           }
         },
         "th" : {
@@ -53966,6 +57350,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کچھ غلط ہو گیا"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã xảy ra lỗi"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kukhona okungahambanga kahle"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -54251,6 +57653,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بند کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đóng"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vala"
           }
         },
         "th" : {
@@ -54540,6 +57960,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تفصیلات کاپی کریں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sao chép chi tiết"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopisha imininingwane"
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -54825,6 +58263,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تکنیکی تفصیلات"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thông tin kỹ thuật"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imininingwane yobuchwepheshe"
           }
         },
         "th" : {
@@ -55114,6 +58570,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جواب پہلے ہی جاری ہے۔ نیا پیغام بھیجنے سے پہلے اس کے ختم ہونے کا انتظار کریں یا اسے روک دیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang có phản hồi được tạo. Chờ hoàn tất hoặc dừng lại trước khi gửi tin nhắn khác."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impendulo isiyaqhubeka. Linda ize iqede noma uyimise ngaphambi kokuthumela omunye umyalezo."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -55399,6 +58873,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انٹرنیٹ کنکشن نہیں ہے۔ AI چیٹ کے لیے انٹرنیٹ ضروری ہے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có kết nối internet. Trò chuyện AI cần truy cập internet."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alukho uxhumano lwe-inthanethi. Ingxoxo ye-AI idinga i-inthanethi."
           }
         },
         "th" : {
@@ -55688,6 +59180,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "کارڈز کلاؤڈ سے تازہ کر دیے گئے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã cập nhật thẻ từ đám mây."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amakhadi abuyekeziwe esuka efwini."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -55973,6 +59483,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اس آلے پر متن سنانا دستیاب نہیں ہے۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tính năng đọc văn bản không khả dụng trên thiết bị này."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukufunda umbhalo ngezwi akutholakali kule divayisi."
           }
         },
         "th" : {
@@ -56262,6 +59790,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "یہ دہرائی دوسرے آلے پر اپ ڈیٹ ہوئی۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lượt ôn tập này đã được cập nhật trên thiết bị khác."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokhu kubukeza kubuyekezwe kwenye idivayisi."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -56547,6 +60093,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آزمائشی ورژن بند کر دیا گیا۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã tắt phiên bản thử nghiệm."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inguqulo yokuhlola ivaliwe."
           }
         },
         "th" : {
@@ -56836,6 +60400,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "آزمائشی ورژن فعال کر دیا گیا۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã bật phiên bản thử nghiệm."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inguqulo yokuhlola ivuliwe."
+          }
+        },
         "th" : {
           "stringUnit" : {
             "state" : "translated",
@@ -57121,6 +60703,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ورک اسپیس میں تبدیلیاں اکاؤنٹ بنانے کے بعد ہی دستیاب ہیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ có thể thay đổi không gian làm việc sau khi tạo tài khoản."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinguquko endaweni yokusebenza zitholakala kuphela ngemva kokudala i-akhawunti."
           }
         },
         "th" : {

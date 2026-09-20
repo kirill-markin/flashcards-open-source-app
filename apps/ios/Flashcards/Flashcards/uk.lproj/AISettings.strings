@@ -1,5 +1,5 @@
 "ai.title" = "ШІ";
-"ai.newChat" = "Нові";
+"ai.newChat" = "Новий чат";
 "ai.consent.title" = "Перед використанням ШІ";
 "ai.consent.warning" = "ШІ може помилятися. Перевіряйте важливі результати, перш ніж покладатися на них.";
 "ai.consent.disclosure.prompts" = "Введені запити та необхідний для них контекст із карток можуть надсилатися до розміщеного на сервері сервісу ШІ.";
@@ -810,3 +810,6 @@
 "settings.language.supported.thai" = "Тайська";
 "settings.language.supported.turkish" = "Турецька";
 "settings.language.supported.ukrainian" = "Українська";
+"settings.language.supported.urdu" = "Урду";
+"settings.language.supported.vietnamese" = "В’єтнамська";
+"settings.language.supported.zulu" = "Зулуська";
