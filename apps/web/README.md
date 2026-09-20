@@ -64,6 +64,8 @@ Follow the patterns already present:
 
 If you are unsure how something is done, read two or three existing screens or hooks first. The answer is almost always already there.
 
+Error messages reach Sentry verbatim, so never interpolate user-authored content into one: no card text, deck names, email addresses, or chat messages. Identifiers, endpoints, field names, sizes, and status codes are fine.
+
 ## CI/CD
 
 Web build and deploy details are documented in [`docs/backend-web-deployment.md`](../../docs/backend-web-deployment.md).

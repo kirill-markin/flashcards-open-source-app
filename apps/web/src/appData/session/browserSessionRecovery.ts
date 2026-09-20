@@ -229,9 +229,8 @@ export async function clearAllLocalBrowserData(
       reason,
       indexedDbCleared: false,
       localStorageCleared: browserStorage !== null,
-      // The privacy sanitizer redacts errorMessage; errorName stays readable
-      // in Sentry and carries the underlying IndexedDB error name when the
-      // failure originated in the local database layer.
+      // errorName carries the underlying IndexedDB error name when the failure
+      // originated in the local database layer, next to the raw errorMessage.
       errorName: readCleanupErrorName(indexedDbError),
       errorMessage: indexedDbError.message,
     });

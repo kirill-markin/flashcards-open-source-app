@@ -833,9 +833,8 @@ export function addWebBreadcrumb(event: WebBreadcrumbEvent): void {
   Sentry.addBreadcrumb({
     category: `web.${event.action}`,
     level: "info",
-    // The `web.` prefix marks the message as safe app telemetry for the
-    // privacy sanitizer; unprefixed messages arrive in Sentry as
-    // "[Filtered message]".
+    // Breadcrumb messages stay authored as `web.<event>` so Sentry keeps a
+    // stable, greppable telemetry vocabulary.
     message: `web.${event.details.eventName}`,
     data: {
       ...scopeToContext(event.scope),
@@ -881,7 +880,7 @@ export function captureWebException(event: WebExceptionEvent): void {
     scope.setFingerprint(buildWebExceptionFingerprint(event));
     scope.setContext("web.exception", detailsToContext(event.details));
     scope.setContext("web.error", errorMetadataToContext(readErrorMetadata(event.error)));
-    Sentry.captureException(toSafeCapturedError(event.action, event.error));
+    Sentry.captureException(event.error);
   });
 }
 
@@ -973,24 +972,6 @@ function errorMetadataToContext(metadata: ErrorMetadata): SentryContext {
     indexedDbErrorName: metadata.indexedDbErrorName,
     syncRunId: metadata.syncRunId,
   };
-}
-
-function toSafeErrorName(errorName: string): string {
-  const safeName = errorName.replace(/[^A-Za-z0-9_.-]/gu, "");
-  return safeName === "" ? "Error" : safeName;
-}
-
-function toSafeCapturedError(action: WebExceptionEvent["action"], error: Error): Error {
-  const safeError = new Error(`web.${action}`);
-  safeError.name = toSafeErrorName(error.name);
-  if (typeof error.stack === "string" && error.stack.trim() !== "") {
-    const [, ...stackFrames] = error.stack.split("\n");
-    safeError.stack = stackFrames.length === 0
-      ? `${safeError.name}: ${safeError.message}`
-      : `${safeError.name}: ${safeError.message}\n${stackFrames.join("\n")}`;
-  }
-
-  return safeError;
 }
 
 function applyObservationScope(scope: Scope, observationScope: WebObservationScope, action: string): void {
