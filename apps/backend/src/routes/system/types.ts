@@ -1,4 +1,4 @@
-import type { AccountPreferences } from "../../auth/ensureUser";
+import type { AccountPreferences, AnalyticsConsentChoice } from "../../auth/ensureUser";
 import type {
   FriendInvitationAcceptInput,
   FriendInvitationAcceptResponse,
@@ -47,9 +47,15 @@ export type ProgressRequestedParameters = Readonly<{
   to: string | null;
 }>;
 
+/** One PATCH body: a field the request left out is null here and keeps its stored value. */
+export type AccountPreferencesUpdate = Readonly<{
+  reviewReactionAnimationsEnabled: boolean | null;
+  analyticsConsent: AnalyticsConsentChoice | null;
+}>;
+
 export type UpdateAccountPreferencesFn = (
   userId: string,
-  preferences: AccountPreferences,
+  update: AccountPreferencesUpdate,
 ) => Promise<AccountPreferences>;
 
 export type EnsurePublicProfileForUserFn = (userId: string, localeHint: string) => Promise<PublicProfile>;
