@@ -1,0 +1,67 @@
+{
+  "localePrefix": "sw",
+  "appLocaleTag": "sw",
+  "uiText": {
+    "emptyCardsMessage": "Bado hakuna kadi. Gusa kitufe cha kuongeza ili kuunda kadi ya kwanza.",
+    "cardsTabTitle": "Kadi",
+    "reviewTabTitle": "Marudio",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Tafuta kadi",
+    "addCardContentDescription": "Ongeza kadi",
+    "frontFieldTitle": "Mbele",
+    "backFieldTitle": "Nyuma",
+    "tagsFieldTitle": "Lebo",
+    "addTagFieldTitle": "Ongeza lebo",
+    "addTagButtonTitle": "Ongeza lebo",
+    "saveButtonTitle": "Hifadhi",
+    "ratingAgainTitle": "Tena",
+    "ratingHardTitle": "Ngumu",
+    "ratingGoodTitle": "Vizuri",
+    "ratingEasyTitle": "Rahisi"
+  },
+  "reviewCard": {
+    "frontText": "Gharama ya fursa ni nini?",
+    "backText": "Thamani ya chaguo bora zaidi unaloacha unapochagua jambo moja badala ya jingine.\n\nMfano wa mtihani: Ukitumia Jumamosi kusoma kwa mtihani wa uchumi mdogo badala ya kufanya zamu yenye malipo, mshahara uliokosa ni sehemu ya gharama ya fursa.",
+    "tags": [
+      "uchumi"
+    ]
+  },
+  "reviewAiDraftMessage": "Unda kadi 6 mpya kuhusu mada hii ya uchumi, zikihusu dhana zinazohusiana ambazo bado hatuna.",
+  "cards": [
+    {
+      "frontText": "Gharama ya fursa ni nini?",
+      "backText": "Thamani ya chaguo bora zaidi unaloacha unapochagua jambo moja badala ya jingine.",
+      "subjectTag": "uchumi"
+    },
+    {
+      "frontText": "Katika biolojia, osmosisi ni nini?",
+      "backText": "Mwendo wa maji kupitia utando kutoka sehemu yenye mkusanyiko mdogo wa dutu iliyoyeyushwa kwenda sehemu yenye mkusanyiko mkubwa.",
+      "subjectTag": "biolojia"
+    },
+    {
+      "frontText": "Katika takwimu, mkengeuko sanifu ni nini?",
+      "backText": "Kipimo cha jinsi thamani zinavyotawanyika kuzunguka wastani.",
+      "subjectTag": "takwimu"
+    },
+    {
+      "frontText": "Katika kemia, kichocheo ni nini?",
+      "backText": "Dutu inayoharakisha mmenyuko wa kikemia bila kutumika kabisa katika mmenyuko huo.",
+      "subjectTag": "kemia"
+    },
+    {
+      "frontText": "Katika saikolojia, upendeleo wa kiutambuzi ni nini?",
+      "backText": "Mfumo wa kufikiri unaoweza kupotosha hukumu na maamuzi kwa namna inayojirudia.",
+      "subjectTag": "saikolojia"
+    },
+    {
+      "frontText": "Katika fizikia, kasi yenye mwelekeo ni nini?",
+      "backText": "Kasi ya kitu pamoja na mwelekeo wa mwendo wake.",
+      "subjectTag": "fizikia"
+    },
+    {
+      "frontText": "Katika sayansi ya kompyuta, kujirudia kwa programu ni nini?",
+      "backText": "Njia ambayo kitendakazi hutatua tatizo kwa kujiita chenyewe kushughulikia matoleo madogo ya tatizo hilo.",
+      "subjectTag": "sayansi ya kompyuta"
+    }
+  ]
+}

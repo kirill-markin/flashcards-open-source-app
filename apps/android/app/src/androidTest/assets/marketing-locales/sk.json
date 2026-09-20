@@ -1,0 +1,67 @@
+{
+  "localePrefix": "sk",
+  "appLocaleTag": "sk",
+  "uiText": {
+    "emptyCardsMessage": "Zatiaľ tu nie sú žiadne kartičky. Ťuknutím na tlačidlo pridania vytvoríš prvú.",
+    "cardsTabTitle": "Kartičky",
+    "reviewTabTitle": "Opakovanie",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Hľadať kartičky",
+    "addCardContentDescription": "Pridať kartičku",
+    "frontFieldTitle": "Predná strana",
+    "backFieldTitle": "Zadná strana",
+    "tagsFieldTitle": "Štítky",
+    "addTagFieldTitle": "Pridať štítok",
+    "addTagButtonTitle": "Pridať štítok",
+    "saveButtonTitle": "Uložiť",
+    "ratingAgainTitle": "Znova",
+    "ratingHardTitle": "Ťažké",
+    "ratingGoodTitle": "Dobre",
+    "ratingEasyTitle": "Ľahké"
+  },
+  "reviewCard": {
+    "frontText": "Čo sú náklady obetovanej príležitosti?",
+    "backText": "Hodnota najlepšej alternatívy, ktorej sa vzdáš, keď si vyberieš jednu možnosť namiesto druhej.\n\nPríklad na skúšku: Ak v sobotu študuješ na skúšku z mikroekonómie namiesto platenej zmeny v práci, ušlá mzda je súčasťou nákladov obetovanej príležitosti.",
+    "tags": [
+      "ekonómia"
+    ]
+  },
+  "reviewAiDraftMessage": "Vytvor 6 nových kartičiek na rovnakú ekonomickú tému so súvisiacimi pojmami, ktoré ešte nemáme.",
+  "cards": [
+    {
+      "frontText": "Čo sú náklady obetovanej príležitosti?",
+      "backText": "Hodnota najlepšej alternatívy, ktorej sa vzdáš, keď si vyberieš jednu možnosť namiesto druhej.",
+      "subjectTag": "ekonómia"
+    },
+    {
+      "frontText": "Čo je v biológii osmóza?",
+      "backText": "Pohyb vody cez membránu z prostredia s nižšou koncentráciou rozpustených látok do prostredia s vyššou koncentráciou.",
+      "subjectTag": "biológia"
+    },
+    {
+      "frontText": "Čo je v štatistike smerodajná odchýlka?",
+      "backText": "Miera rozptýlenia hodnôt okolo priemeru.",
+      "subjectTag": "štatistika"
+    },
+    {
+      "frontText": "Čo je v chémii katalyzátor?",
+      "backText": "Látka, ktorá urýchľuje chemickú reakciu bez toho, aby sa pri nej spotrebovala.",
+      "subjectTag": "chémia"
+    },
+    {
+      "frontText": "Čo je v psychológii kognitívne skreslenie?",
+      "backText": "Systematický vzorec myslenia, ktorý môže skresľovať úsudok a rozhodovanie.",
+      "subjectTag": "psychológia"
+    },
+    {
+      "frontText": "Čo je vo fyzike vektor rýchlosti?",
+      "backText": "Veľkosť rýchlosti objektu spolu so smerom jeho pohybu.",
+      "subjectTag": "fyzika"
+    },
+    {
+      "frontText": "Čo je v informatike rekurzia?",
+      "backText": "Metóda, pri ktorej funkcia rieši problém volaním samej seba pre menšie verzie toho istého problému.",
+      "subjectTag": "informatika"
+    }
+  ]
+}

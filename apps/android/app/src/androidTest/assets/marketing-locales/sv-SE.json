@@ -1,0 +1,67 @@
+{
+  "localePrefix": "sv-SE",
+  "appLocaleTag": "sv",
+  "uiText": {
+    "emptyCardsMessage": "Inga kort ännu. Tryck på lägg till-knappen för att skapa det första kortet.",
+    "cardsTabTitle": "Kort",
+    "reviewTabTitle": "Repetition",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Sök kort",
+    "addCardContentDescription": "Lägg till kort",
+    "frontFieldTitle": "Framsida",
+    "backFieldTitle": "Baksida",
+    "tagsFieldTitle": "Taggar",
+    "addTagFieldTitle": "Lägg till en tagg",
+    "addTagButtonTitle": "Lägg till tagg",
+    "saveButtonTitle": "Spara",
+    "ratingAgainTitle": "Igen",
+    "ratingHardTitle": "Svårt",
+    "ratingGoodTitle": "Bra",
+    "ratingEasyTitle": "Lätt"
+  },
+  "reviewCard": {
+    "frontText": "Vad är alternativkostnad?",
+    "backText": "Värdet av det bästa alternativ du avstår från när du väljer ett alternativ framför ett annat.\n\nTentamensexempel: Om du ägnar lördagen åt att plugga inför en tenta i mikroekonomi i stället för att arbeta ett betalt pass är den förlorade lönen en del av alternativkostnaden.",
+    "tags": [
+      "ekonomi"
+    ]
+  },
+  "reviewAiDraftMessage": "Skapa 6 nya kort om samma ekonomiska ämne med närliggande begrepp som vi inte redan har.",
+  "cards": [
+    {
+      "frontText": "Vad är alternativkostnad?",
+      "backText": "Värdet av det bästa alternativ du avstår från när du väljer ett alternativ framför ett annat.",
+      "subjectTag": "ekonomi"
+    },
+    {
+      "frontText": "Vad är osmos inom biologi?",
+      "backText": "Vattnets rörelse genom ett membran från lägre koncentration av lösta ämnen till högre koncentration.",
+      "subjectTag": "biologi"
+    },
+    {
+      "frontText": "Vad är standardavvikelse inom statistik?",
+      "backText": "Ett mått på hur utspridda värdena är kring medelvärdet.",
+      "subjectTag": "statistik"
+    },
+    {
+      "frontText": "Vad är en katalysator inom kemi?",
+      "backText": "Ett ämne som påskyndar en kemisk reaktion utan att förbrukas i den.",
+      "subjectTag": "kemi"
+    },
+    {
+      "frontText": "Vad är en kognitiv bias inom psykologi?",
+      "backText": "Ett systematiskt tankemönster som kan snedvrida omdöme och beslutsfattande.",
+      "subjectTag": "psykologi"
+    },
+    {
+      "frontText": "Vad innebär hastighet som vektor inom fysik?",
+      "backText": "Ett föremåls fart tillsammans med dess rörelseriktning.",
+      "subjectTag": "fysik"
+    },
+    {
+      "frontText": "Vad är rekursion inom datavetenskap?",
+      "backText": "En metod där en funktion löser ett problem genom att anropa sig själv för mindre versioner av samma problem.",
+      "subjectTag": "datavetenskap"
+    }
+  ]
+}

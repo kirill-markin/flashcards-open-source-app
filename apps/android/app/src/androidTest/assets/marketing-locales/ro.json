@@ -1,0 +1,67 @@
+{
+  "localePrefix": "ro",
+  "appLocaleTag": "ro",
+  "uiText": {
+    "emptyCardsMessage": "Nu există încă fișe. Atinge butonul de adăugare pentru a crea prima fișă.",
+    "cardsTabTitle": "Fișe",
+    "reviewTabTitle": "Recapitulare",
+    "aiTabTitle": "IA",
+    "searchCardsPlaceholder": "Caută fișe",
+    "addCardContentDescription": "Adaugă fișă",
+    "frontFieldTitle": "Față",
+    "backFieldTitle": "Verso",
+    "tagsFieldTitle": "Etichete",
+    "addTagFieldTitle": "Adaugă o etichetă",
+    "addTagButtonTitle": "Adaugă etichetă",
+    "saveButtonTitle": "Salvează",
+    "ratingAgainTitle": "Din nou",
+    "ratingHardTitle": "Greu",
+    "ratingGoodTitle": "Bine",
+    "ratingEasyTitle": "Ușor"
+  },
+  "reviewCard": {
+    "frontText": "Ce este costul de oportunitate?",
+    "backText": "Valoarea celei mai bune alternative la care renunți când alegi o opțiune în locul alteia.\n\nExemplu de examen: Dacă sâmbătă înveți pentru un examen de microeconomie în loc să lucrezi într-o tură plătită, salariul pierdut face parte din costul de oportunitate.",
+    "tags": [
+      "economie"
+    ]
+  },
+  "reviewAiDraftMessage": "Creează 6 fișe noi pe aceeași temă de economie, cu idei strâns legate pe care nu le avem deja.",
+  "cards": [
+    {
+      "frontText": "Ce este costul de oportunitate?",
+      "backText": "Valoarea celei mai bune alternative la care renunți când alegi o opțiune în locul alteia.",
+      "subjectTag": "economie"
+    },
+    {
+      "frontText": "În biologie, ce este osmoza?",
+      "backText": "Deplasarea apei printr-o membrană dintr-o zonă cu concentrație mai mică de substanțe dizolvate spre una cu concentrație mai mare.",
+      "subjectTag": "biologie"
+    },
+    {
+      "frontText": "În statistică, ce este abaterea standard?",
+      "backText": "O măsură a dispersiei valorilor în jurul mediei.",
+      "subjectTag": "statistică"
+    },
+    {
+      "frontText": "În chimie, ce este un catalizator?",
+      "backText": "O substanță care accelerează o reacție chimică fără a fi consumată în reacție.",
+      "subjectTag": "chimie"
+    },
+    {
+      "frontText": "În psihologie, ce este o prejudecată cognitivă?",
+      "backText": "Un tipar sistematic de gândire care poate distorsiona judecata și luarea deciziilor.",
+      "subjectTag": "psihologie"
+    },
+    {
+      "frontText": "În fizică, ce este viteza ca mărime vectorială?",
+      "backText": "Rapiditatea mișcării unui obiect împreună cu direcția și sensul mișcării.",
+      "subjectTag": "fizică"
+    },
+    {
+      "frontText": "În informatică, ce este recursivitatea?",
+      "backText": "O metodă prin care o funcție rezolvă o problemă apelându-se pe ea însăși pentru versiuni mai mici ale problemei.",
+      "subjectTag": "informatică"
+    }
+  ]
+}
