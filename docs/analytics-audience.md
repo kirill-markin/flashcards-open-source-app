@@ -9,8 +9,9 @@ backfill or account-global language inference is performed.
 - [Event and installation types](../apps/backend/src/productAnalytics/types.ts)
 - [Authenticated event wire validation](../apps/backend/src/productAnalytics/validation.ts):
   optional per-event `uiLocale`; old queued events remain valid.
-- [Catalog collector wire validation](../apps/backend/src/productAnalytics/catalogJourney.ts):
-  optional `uiLocale`, independent of `deviceLocale`.
+- [Credential-free collector wire validation](../apps/backend/src/productAnalytics/anonymousEvent.ts):
+  optional `uiLocale`, independent of `deviceLocale`. See
+  [anonymous client analytics](anonymous-client-analytics.md).
 - [Request headers and installation identity](../apps/backend/src/routes/productAnalytics.ts):
   batch `anonymousId` plus normalized header platform; catalog journey IDs are excluded.
 - [Atomic persistence and metadata throttling](../apps/backend/src/productAnalytics/writer.ts)

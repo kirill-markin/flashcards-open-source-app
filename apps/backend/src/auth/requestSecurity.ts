@@ -6,6 +6,12 @@ import {
   getBackendCsrfSecretWithAbortSignal,
 } from "../aws/secrets";
 
+/** The origin-bearing headers of a request, trimmed, and empty read as absent. */
+export type RequestOriginHeaders = Readonly<{
+  originHeader: string | undefined;
+  refererHeader: string | undefined;
+}>;
+
 /**
  * Request fields used to authenticate the caller and validate browser-only
  * CSRF protection for shared-domain session cookies.
@@ -53,7 +59,12 @@ function isUnsafeMethod(method: string): boolean {
   return method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
 }
 
-function getRequestOrigin(originHeader: string | undefined, refererHeader: string | undefined): string {
+/**
+ * The origin a browser request names, from `Origin` or, when a navigation sends none, from
+ * `Referer`. A request that names neither is refused rather than treated as originless: a caller
+ * that presents nothing has proved nothing, and every allowlist check below reads this value.
+ */
+export function getRequestOrigin(originHeader: string | undefined, refererHeader: string | undefined): string {
   if (originHeader !== undefined) {
     return originHeader;
   }
@@ -67,6 +78,19 @@ function getRequestOrigin(originHeader: string | undefined, refererHeader: strin
   } catch {
     throw new HttpError(403, "Invalid Referer header");
   }
+}
+
+/**
+ * The two headers `getRequestOrigin` reads, so a route that authenticates nothing can run the origin
+ * check without `extractRequestAuthInputs`, which also parses the caller's `session` cookie. A
+ * credential-free collector must not read a credential at all, and a malformed cookie there would
+ * fail the request before the origin was ever compared.
+ */
+export function extractRequestOriginHeaders(request: Request): RequestOriginHeaders {
+  return {
+    originHeader: getHeaderValue(request, "origin"),
+    refererHeader: getHeaderValue(request, "referer"),
+  };
 }
 
 function createSessionCsrfToken(sessionToken: string, csrfSecret: string): string {

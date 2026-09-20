@@ -27,7 +27,11 @@ import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/global
 import { createMediaAssetsRoutes } from "../routes/mediaAssets";
 import { createProductAnalyticsRoutes } from "../routes/productAnalytics";
 import { createAnalyticsVisitorRoutes } from "../routes/analyticsVisitor";
-import { createCatalogInstallAnalyticsRoutes } from "../routes/catalogInstallAnalytics";
+import {
+  anonymousAnalyticsEventPath,
+  createAnonymousAnalyticsRoutes,
+  legacyCatalogInstallAnalyticsEventPath,
+} from "../routes/anonymousAnalytics";
 import { createWorkspacePackageRoutes } from "../routes/workspacePackages";
 import { createSyncRoutes } from "../routes/sync/index";
 import { createSystemRoutes } from "../routes/system";
@@ -45,7 +49,7 @@ import { getGuestAiWeightedMonthlyTokenCap } from "../guestAiQuota/config";
 import { logRequestError } from "./logging";
 import { getAllowedOrigins } from "./requestContext";
 import {
-  getConfiguredCatalogInstallAnalyticsCorsOrigins,
+  getConfiguredAnonymousAnalyticsCorsOrigins,
   getConfiguredPublicCatalogCorsOrigins,
   validatePublicUrlConfiguration,
 } from "../shared/publicUrls";
@@ -89,7 +93,7 @@ const publicCatalogCorsExposeHeaders = [
 const localPublicCatalogOrigins = [
   "http://localhost:3000",
 ] as const;
-const localCatalogInstallAnalyticsOrigins = [
+const localAnonymousAnalyticsOrigins = [
   "http://localhost:3000",
   "http://localhost:8081",
   "http://localhost:4321",
@@ -190,9 +194,17 @@ function isPublicCatalogPath(path: string): boolean {
     || path.startsWith("/v1/catalog/");
 }
 
-function isCatalogInstallAnalyticsPath(path: string): boolean {
-  return path === "/analytics/catalog-install-events"
-    || path === "/v1/analytics/catalog-install-events";
+// Both mounts of the credential-free collector, on both base paths the API is served under. The
+// paths come from the route module so this predicate cannot name a path the collector does not
+// answer, or miss one it does.
+const anonymousAnalyticsPaths: ReadonlySet<string> = new Set(
+  [anonymousAnalyticsEventPath, legacyCatalogInstallAnalyticsEventPath].flatMap(
+    (path) => [path, `/v1${path}`],
+  ),
+);
+
+function isAnonymousAnalyticsPath(path: string): boolean {
+  return anonymousAnalyticsPaths.has(path);
 }
 
 function getPublicCatalogCorsOrigin(origin: string): string | null {
@@ -207,7 +219,7 @@ function getPublicCatalogCorsOrigin(origin: string): string | null {
   return allowedOrigins.includes(origin) ? origin : null;
 }
 
-function getCatalogInstallAnalyticsCorsOrigin(
+function getAnonymousAnalyticsCorsOrigin(
   origin: string,
   allowedOrigins: ReadonlyArray<string>,
 ): string | null {
@@ -220,9 +232,9 @@ function getCatalogInstallAnalyticsCorsOrigin(
 
 function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
   const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
-  const catalogInstallAnalyticsAllowedOrigins = [
-    ...getConfiguredCatalogInstallAnalyticsCorsOrigins(),
-    ...localCatalogInstallAnalyticsOrigins,
+  const anonymousAnalyticsAllowedOrigins = [
+    ...getConfiguredAnonymousAnalyticsCorsOrigins(),
+    ...localAnonymousAnalyticsOrigins,
   ];
   const publicCatalogCorsMiddleware = cors({
     origin: (origin) => getPublicCatalogCorsOrigin(origin),
@@ -230,10 +242,10 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     allowHeaders: [...publicCatalogCorsAllowHeaders],
     exposeHeaders: [...publicCatalogCorsExposeHeaders],
   });
-  const catalogInstallAnalyticsCorsMiddleware = cors({
-    origin: (origin) => getCatalogInstallAnalyticsCorsOrigin(
+  const anonymousAnalyticsCorsMiddleware = cors({
+    origin: (origin) => getAnonymousAnalyticsCorsOrigin(
       origin,
-      catalogInstallAnalyticsAllowedOrigins,
+      anonymousAnalyticsAllowedOrigins,
     ),
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage"],
@@ -269,8 +281,8 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
       return publicCatalogCorsMiddleware(context, next);
     }
 
-    if (isCatalogInstallAnalyticsPath(context.req.path)) {
-      return catalogInstallAnalyticsCorsMiddleware(context, next);
+    if (isAnonymousAnalyticsPath(context.req.path)) {
+      return anonymousAnalyticsCorsMiddleware(context, next);
     }
 
     await next();
@@ -284,7 +296,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.use("*", async (context, next) => {
     if (
       isPublicCatalogPath(context.req.path)
-      || isCatalogInstallAnalyticsPath(context.req.path)
+      || isAnonymousAnalyticsPath(context.req.path)
     ) {
       await next();
       return;
@@ -466,8 +478,8 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
   app.route("/", createProductAnalyticsRoutes({ allowedOrigins }));
   app.route("/", createAnalyticsVisitorRoutes({ allowedOrigins }));
-  app.route("/", createCatalogInstallAnalyticsRoutes({
-    allowedOrigins: catalogInstallAnalyticsAllowedOrigins,
+  app.route("/", createAnonymousAnalyticsRoutes({
+    allowedOrigins: anonymousAnalyticsAllowedOrigins,
   }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());

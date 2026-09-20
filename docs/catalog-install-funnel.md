@@ -6,8 +6,8 @@ guest users, workspaces, or a durable visitor identity. The canonical rows live 
 
 ## Sources
 
-- Event catalog and collector validation: [`apps/backend/src/productAnalytics/catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts) and [`catalogJourney.ts`](../apps/backend/src/productAnalytics/catalogJourney.ts)
-- Public collector route: [`apps/backend/src/routes/catalogInstallAnalytics.ts`](../apps/backend/src/routes/catalogInstallAnalytics.ts)
+- Event catalog: [`apps/backend/src/productAnalytics/catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)
+- Collector envelope, route and identity rules: [anonymous client analytics](anonymous-client-analytics.md)
 - Server-confirmed install fact: [`apps/backend/src/catalog/distribution/install/index.ts`](../apps/backend/src/catalog/distribution/install/index.ts)
 - Database contract: [`db/migrations/0134_catalog_install_journey_analytics.sql`](../db/migrations/0134_catalog_install_journey_analytics.sql)
 
@@ -17,8 +17,10 @@ Create one UUID `install_journey_id` for each catalog install CTA attempt. Carry
 as the exact `install_journey_id` query parameter. The existing catalog import route UUID is the
 `package_version_id`; do not mint another package identifier.
 
-Send each milestone independently to `POST /v1/analytics/catalog-install-events` with
-`Content-Type: application/json`. Do not send credentials. The body is strict and contains exactly:
+Send each milestone independently to the
+[anonymous client collector](anonymous-client-analytics.md), which owns the envelope, the retry key,
+the clock window and the response. Released producers post to
+`/v1/analytics/catalog-install-events`, and that path keeps answering. One milestone looks like this:
 
 ```json
 {
@@ -35,13 +37,8 @@ Send each milestone independently to `POST /v1/analytics/catalog-install-events`
 }
 ```
 
-`eventId` is a UUIDv7 retry key. Both timestamps are UTC ISO strings; queued events can be at most 30
-days old, and `clientOccurredAt` cannot be later than `clientSentAt`. `deviceLocale` is optional or
-null and, when present, must be a language tag of at most 64 characters. The collector returns
-`{"accepted":true}` for both a new row and a deduplicated retry.
-
-Every event requires UUID `install_journey_id` and `package_version_id` properties; the collector
-normalizes their accepted spelling to lowercase. The remaining exact properties are:
+Every event of this funnel carries UUID `install_journey_id` and `package_version_id` properties,
+which the collector normalizes to lowercase. The remaining exact properties are:
 
 | Event | Additional required properties |
 | --- | --- |
@@ -60,12 +57,11 @@ Failure stages are `landing`, `signin`, `preview`, `preinstall_sync`, `install`,
 `offline`, `timeout`, `network_error`, `unauthorized`, `conflict`, `storage_error`, `contract_error`,
 `server_error`, and `cancelled`.
 
-The collector rejects every other event name, all extra fields, success/server facts, and any
-property outside the selected event's allowlist. Producers must never send a raw URL, referrer,
-email, user or workspace identifier, free text, or identity-link input. Convert acquisition data to
-the `source` enum before sending it. A telemetry timeout or rejection must be logged with only the
-event name, stage/reason when present, response status/code, and request ID; it must never block or
-delay navigation, authentication, preview, synchronization, or installation.
+Producers must never send a raw URL, referrer, email, user or workspace identifier, free text, or
+identity-link input. Convert acquisition data to the `source` enum before sending it. A telemetry
+timeout or rejection must be logged with only the event name, stage/reason when present, response
+status/code, and request ID; it must never block or delay navigation, authentication, preview,
+synchronization, or installation.
 
 The confirm request to
 `POST /v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install` accepts the
