@@ -2436,7 +2436,8 @@ extension MarketingManualScreenshotTestCase {
             .matching(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip)
         guard self.elementValue(element: composer) == draftText,
               attachmentChips.count == 1,
-              attachmentChips.firstMatch.label.hasSuffix(" · \(localeFixture.reviewCard.frontText)"),
+              attachmentChips.firstMatch.label.hasSuffix(" · \(localeFixture.reviewCard.frontText)")
+                || attachmentChips.firstMatch.label.hasSuffix(" · \u{2068}\(localeFixture.reviewCard.frontText)\u{2069}"),
               composer.isHittable,
               attachmentChips.firstMatch.isHittable,
               self.softwareKeyboardIsVisible() == false,
