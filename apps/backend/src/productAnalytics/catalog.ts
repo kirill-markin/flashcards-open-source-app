@@ -207,6 +207,21 @@ type ProductAnalyticsEventSpecProperties = Readonly<{
   properties: Readonly<Record<string, ProductAnalyticsPropertySpec>>;
 }>;
 
+// An event that may never be stored beside any identity at all: no user, subject user, guest
+// session, workspace, session or anonymous id. It is a property of the event rather than of the
+// route that accepted it, because an identifier stored beside "this visitor was asked" or "this
+// visitor refused" is the very processing the refusal withholds, whichever ingest wrote the row,
+// and analytics.product_events is append-only, so the row could never be repaired afterwards. Both
+// ingest paths and every future producer are held to it: client ingest rejects the event outright
+// because it always stamps the caller's identity, the credential-free collector refuses a claimed
+// anonymousId rather than stripping it, and the writer's catalog assertion is the backstop.
+//
+// Optional and never `false`, so an entry that says nothing carries the default: an event may be
+// reported beside an identity.
+type ProductAnalyticsEventSpecIdentity = Readonly<{
+  identityFree?: true;
+}>;
+
 // serverOnly and requiresScreen are mutually exclusive, and the union below is what makes the
 // combination unwritable rather than merely wrong. The backend has no surface of its own to report,
 // so createServerDerivedProductAnalyticsRow stores screen NULL for every server-derived row; a
@@ -215,6 +230,7 @@ type ProductAnalyticsEventSpecProperties = Readonly<{
 // that event would be dropped with nothing visible at ingest. A compile error on the catalog entry
 // is the only form of that failure a person can act on.
 type ProductAnalyticsEventSpec = ProductAnalyticsEventSpecProperties &
+  ProductAnalyticsEventSpecIdentity &
   (
     // Emitted by the backend from its own observation. Client ingest rejects these outright, so a
     // client can never forge an outcome the server never saw, and the server-side emission path is
@@ -268,6 +284,31 @@ export const productAnalyticsEventCatalog = {
       permission: { kind: "enum", values: ["notifications", "photo_library", "camera", "microphone"] },
       outcome: { kind: "enum", values: ["granted", "denied", "dismissed"] },
     },
+  },
+  // The analytics consent decision, which every other event in this catalog depends on having been
+  // taken. They are three names rather than one answer with an outcome property because the shown
+  // fact and the two answers are reported at different moments by different code paths, and because
+  // two of them are `identityFree` above, which one answer carrying an outcome could not be: a
+  // grant may be stored beside the id it produced. They are not `prompt_answered`: that event's
+  // `prompt` enum repeats a surface verbatim so an answer joins to its own screen, and the consent
+  // banner has no surface here because it is answered before a person is anywhere in the product.
+  // They carry no properties for the same reason two of them carry no identity.
+  consent_prompt_shown: {
+    serverOnly: false,
+    requiresScreen: false,
+    identityFree: true,
+    properties: {},
+  },
+  consent_granted: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {},
+  },
+  consent_declined: {
+    serverOnly: false,
+    requiresScreen: false,
+    identityFree: true,
+    properties: {},
   },
   // The two middle steps of the sign-in funnel, read against `signin_failed` below. Neither is
   // server-only, deliberately: the web funnel's producer is apps/auth, which is a server, but it
@@ -561,6 +602,7 @@ export type ProductAnalyticsEventDefinition = Readonly<{
   eventName: ProductAnalyticsEventName;
   serverOnly: boolean;
   requiresScreen: boolean;
+  identityFree: boolean;
   propertyNames: ReadonlySet<string>;
   // Returns null when a declared property is missing or carries a value the catalog does not allow,
   // which includes nested objects and arrays because no property spec accepts them.
@@ -611,6 +653,12 @@ function createPropertiesParser(
   };
 }
 
+// Reads the optional identity rule off an entry that may not declare it, through the spec type so
+// the absent case is the declared default rather than an untyped property access.
+function isIdentityFreeEventSpec(spec: ProductAnalyticsEventSpec): boolean {
+  return spec.identityFree === true;
+}
+
 function createEventDefinitions(): ReadonlyMap<string, ProductAnalyticsEventDefinition> {
   const definitions = new Map<string, ProductAnalyticsEventDefinition>();
   for (const [eventName, spec] of Object.entries(productAnalyticsEventCatalog)) {
@@ -618,6 +666,7 @@ function createEventDefinitions(): ReadonlyMap<string, ProductAnalyticsEventDefi
       eventName: eventName as ProductAnalyticsEventName,
       serverOnly: spec.serverOnly,
       requiresScreen: spec.requiresScreen,
+      identityFree: isIdentityFreeEventSpec(spec),
       propertyNames: new Set(Object.keys(spec.properties)),
       parseProperties: createPropertiesParser(spec),
     });

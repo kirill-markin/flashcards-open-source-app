@@ -18,6 +18,7 @@ import {
   buildCatalogInstalledDeckVersionsSql,
   buildConnectionCountrySamplesSql,
   buildExcludedActorsFilterSql,
+  buildTrustedActorRowsFilterSql,
 } from "./filterSql";
 import { getUserFilterLabel } from "./userFilters";
 import { escapeSqlStringLiteral } from "../sql";
@@ -155,6 +156,11 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
     "      OR LOWER(user_emails.email) NOT LIKE '%@example.com'",
     "    )",
     `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
+    // The popup offers people, so it drops the credential-free collector's rows for the reason
+    // `buildTrustedActorRowsFilterSql` states: that collector accepts `app_opened` like every other
+    // client-reportable name, and an unverified visitor UUID offered here would be a selectable
+    // "user" in the filter bar of the very reports that refuse to count it.
+    `    AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
     ")",
     // One row per actor, and one popup entry per person: `user_emails` holds one row per folded
     // actor key, so the email here is functionally determined by the actor and grouping by the pair

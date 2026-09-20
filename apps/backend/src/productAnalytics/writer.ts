@@ -355,6 +355,30 @@ function assertProductAnalyticsRowMatchesCatalog(row: ProductAnalyticsEventRow):
     );
   }
 
+  // identityFree belongs to the same catalog entry for the same reason requiresScreen does, and it
+  // is checked here so it holds for every producer rather than only for the one route that first
+  // needed it. Both ingest paths refuse such an event earlier and with a usable message; reaching
+  // this throw means a producer built the row directly, and the table is append-only, so the row
+  // must not be stored at all.
+  if (definition.identityFree) {
+    const identityColumns: ReadonlyArray<readonly [string, string | null]> = [
+      ["user_id", row.userId],
+      ["subject_user_id", row.subjectUserId],
+      ["guest_session_id", row.guestSessionId],
+      ["workspace_id", row.workspaceId],
+      ["session_id", row.sessionId],
+      ["anonymous_id", row.anonymousId],
+    ];
+    const carriedColumnNames = identityColumns
+      .filter(([, value]) => value !== null)
+      .map(([columnName]) => columnName);
+    if (carriedColumnNames.length > 0) {
+      throw new Error(
+        `Product analytics row carries an identity its catalog entry forbids. eventId=${row.eventId} eventName=${row.eventName} columns=${carriedColumnNames.join(",")}`,
+      );
+    }
+  }
+
   if (definition.parseProperties(row.eventProperties) === null) {
     throw new Error(
       `Product analytics row carries event properties the catalog does not declare. eventId=${row.eventId} eventName=${row.eventName}`,

@@ -18,6 +18,7 @@ import {
   buildEventPlatformsFilterSql,
   buildExcludedActorsFilterSql,
   buildMinimumEventCountsFilterSql,
+  buildTrustedActorRowsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
 } from "../../filters/filterSql";
@@ -220,6 +221,14 @@ const dailyActiveUsersCohortSqlExpression = "CASE WHEN app_opens.active_date = a
 // being `db/migrations/0126_backfill_app_opened_rollout_gap.sql`. Replays keep running after the
 // clients went live, so `origin = 'backfill'` rows also fall on days a client was already reporting.
 // Reconstructed and live rows are deliberately not distinguished here or anywhere in the UI.
+//
+// ONLY ROWS A CREDENTIAL STANDS BEHIND COUNT AS PEOPLE. `buildTrustedActorRowsFilterSql` drops
+// `trust_level = 'anonymous_client'`, the credential-free collector's rows, whose `anonymous_id` is
+// an unverified caller-supplied UUID that `actor_id` would otherwise resolve to. That collector
+// accepts `app_opened` like every other client-reportable name, so the predicate is what keeps a
+// signed-out marketing-site visitor, or anyone posting to the route, out of this number. It changes
+// nothing about history: no stored `app_opened` row carries that trust level today. See
+// `docs/anonymous-client-analytics.md`.
 export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, reportLabel);
   const from = dateRange.from;
@@ -252,6 +261,7 @@ export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string 
     "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
     "    )",
     `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
+    `    AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
     "),",
     "actor_first_active_date AS (",
     "  SELECT",

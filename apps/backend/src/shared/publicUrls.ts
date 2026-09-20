@@ -132,7 +132,7 @@ export function getConfiguredPublicCatalogCorsOrigins(): ReadonlyArray<string> {
   return origins;
 }
 
-export function getConfiguredCatalogInstallAnalyticsCorsOrigins(): ReadonlyArray<string> {
+export function getConfiguredAnonymousAnalyticsCorsOrigins(): ReadonlyArray<string> {
   const origins = [...getConfiguredPublicCatalogCorsOrigins()];
   const publicAuthBaseUrl = process.env.PUBLIC_AUTH_BASE_URL;
   if (publicAuthBaseUrl !== undefined && publicAuthBaseUrl !== "") {
