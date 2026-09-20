@@ -70,22 +70,51 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0142 adds org.user_settings.analytics_consent, and the shared profile read now names that
+  // column: the SELECT in ensureUserProfileInExecutor (auth/ensureUser.ts), which
+  // loadAuthenticatedRequestContext runs for every authenticated request on every transport.
+  // Boundaries run current backend code against their own older schema, so every test whose path
+  // reaches that read has to be pinned at or after this migration or it fails with
+  // `column "analytics_consent" does not exist`. The one moved here is the complete set:
+  // agent/reviews from 0141, which serves its requests through a real createAgentRoutes app on the
+  // unmocked loadRequestContextFromRequest. Its createMcpServer half is not the reason: that call
+  // takes an already-built AuthenticatedMcpAccessToken and never loads a request context.
+  // Import-reachable but unaffected, re-derived from scratch on each of the four prior re-pins of
+  // this kind, so recorded here once:
+  // - admin/authz: value-imports ensureCognitoUserProfile through authz.ts, but the test only calls
+  //   loadAdminProfileEmail and never enters requireSessionAdminRequest.
+  // - the three mediaAssets/multipart tests: reach requestContext.ts only through
+  //   requestBoundary.ts's `import type { RequestContext }`, which tsx/esbuild erases.
+  // - sync/freshBootstrap: injects its own loadRequestContextFromRequestFn.
+  // - chat/cardImages/promotion/jobsSettlement: no import path to requestContext.ts at all.
+  // - guestAuthTestHarness/handlers/userSettings.ts is a third SQL site naming the column, but no
+  //   pinned test imports it.
+  // Moving a test retires the older-schema coverage it used to give, because each test runs only at
+  // its pinned boundary and there is no full-schema pass.
+  Object.freeze({
+    migrationFileName: "0142_analytics_consent_choice.sql",
+    expectedMigrationCount: 144,
+    testFiles: Object.freeze([
+      "src/agent/reviews.postgres.integration.ts",
+    ]),
+  }),
   // 0141 adds sync.installations.is_automation and recreates sync.claim_installation with it as an
   // extra output column, and the shared replica reads now name that column: the claim SELECT in
   // sync/identity/replica.ts, and the LEFT JOIN behind the product analytics content-creation and
   // review-answer producers. Boundaries run current backend code against their own older schema, so
   // every test whose path reaches one of those reads has to be pinned at or after this migration or
-  // it fails with `column installations.is_automation does not exist`. The three moved here are the
-  // complete set: agent/reviews (processSyncPull, processSyncReviewHistoryPull, and the post-commit
-  // content-creation resolution) from 0138, and freshBootstrap (the /sync/bootstrap replica claim)
-  // plus jobsSettlement (which verifies a promoted asset through a real processSyncPull) from 0107.
-  // Moving them retires the older-schema coverage they used to give, because each test runs only at
-  // its pinned boundary and there is no full-schema pass.
+  // it fails with `column installations.is_automation does not exist`. Three tests reach those
+  // reads and are the complete set: freshBootstrap (the /sync/bootstrap replica claim) and
+  // jobsSettlement (which verifies a promoted asset through a real processSyncPull), both moved
+  // here from 0107, and agent/reviews (processSyncPull, processSyncReviewHistoryPull, and the
+  // post-commit content-creation resolution), which came here from 0138 and which the 0142
+  // boundary above now pins further forward, satisfying this one too. Moving them retires the
+  // older-schema coverage they used to give, because each test runs only at its pinned boundary
+  // and there is no full-schema pass.
   Object.freeze({
     migrationFileName: "0141_sync_installation_automation_marker.sql",
     expectedMigrationCount: 143,
     testFiles: Object.freeze([
-      "src/agent/reviews.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
     ]),
