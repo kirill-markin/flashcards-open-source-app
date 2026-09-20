@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "写真を選択";
 "ai.composer.attachment.chooseFile" = "ファイルを選択";
 "ai.composer.attachment.unsupported" = "サポートされていない添付ファイル (%@)";
+"ai.attachment.card.title" = "カード";
+"ai.attachment.card.withSnippet" = "カード · %@";
 "ai.attachment.error.unsupportedType" = "サポートされていないファイル タイプ: .%@";
 "ai.attachment.error.cameraUnavailable" = "このデバイスではカメラを利用できません。";
 "ai.attachment.error.photoUnavailable" = "このデバイスでは写真にアクセスできません。";

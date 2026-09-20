@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Escolher foto";
 "ai.composer.attachment.chooseFile" = "Escolher arquivo";
 "ai.composer.attachment.unsupported" = "Anexo não compatível (%@)";
+"ai.attachment.card.title" = "Cartão";
+"ai.attachment.card.withSnippet" = "Cartão · %@";
 "ai.attachment.error.unsupportedType" = "Tipo de arquivo não compatível: .%@";
 "ai.attachment.error.cameraUnavailable" = "A câmera não está disponível neste dispositivo.";
 "ai.attachment.error.photoUnavailable" = "O acesso às fotos não está disponível neste dispositivo.";

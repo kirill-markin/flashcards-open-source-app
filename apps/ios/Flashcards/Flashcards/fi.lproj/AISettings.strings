@@ -25,6 +25,8 @@
 "ai.composer.attachment.choosePhoto" = "Valitse kuva";
 "ai.composer.attachment.chooseFile" = "Valitse tiedosto";
 "ai.composer.attachment.unsupported" = "Liitettä ei tueta (%@)";
+"ai.attachment.card.title" = "Kortti";
+"ai.attachment.card.withSnippet" = "Kortti · %@";
 "ai.attachment.error.unsupportedType" = "Tiedostotyyppiä ei tueta: .%@";
 "ai.attachment.error.cameraUnavailable" = "Kamera ei ole käytettävissä tällä laitteella.";
 "ai.attachment.error.photoUnavailable" = "Kuvien käyttö ei ole mahdollista tällä laitteella.";
