@@ -243,14 +243,29 @@ function buildAnalyticsFilterOptionCountriesSql(dateRange: AnalyticsDateRange): 
 // which is how the language filter reads it; the audience report narrows the same locales to the
 // selected platforms, so a locale offered here can still chart as `unknown` there. A NULL locale is
 // not offered: no selection can match it, and a person whose events carry only NULLs is exactly the
-// person a narrowed language filter drops. `%@example.com` and the excluded actors are restated and
-// the active-admin exclusion is not, for the reason the country list above states.
+// person a narrowed language filter drops. `%@example.com`, the excluded actors and the trust rule
+// are restated and the active-admin exclusion is not, for the reason the country list above states.
 function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRange): string {
   return [
     "SELECT DISTINCT resolved.ui_locale AS ui_locale",
     "FROM analytics.product_events_resolved AS resolved",
     "WHERE resolved.ui_locale IS NOT NULL",
     "  AND resolved.actor_id IS NOT NULL",
+    // A non-NULL actor is the only other gate here, and a credential-free row carries one, so
+    // without this a locale only a signed-out visitor ever sent would be offered as a filter value
+    // by the very reports that refuse to count that visitor. See `buildTrustedActorRowsFilterSql`.
+    //
+    // THIS ONE MOVES A NUMBER TODAY, unlike every other place the rule was added. There is no event
+    // name and no actor-membership gate above it, and the credential-free catalog-install collector
+    // has been storing rows with a non-NULL actor since
+    // `db/migrations/0134_catalog_install_journey_analytics.sql`, through the `anonymous_id`
+    // fallback in `db/migrations/0115_product_analytics_resolved_view.sql`, and rows with a supported
+    // `ui_locale` since `db/migrations/0137_audience_context.sql`, which is what adds the column at
+    // all. Rows written between the two carry `ui_locale` NULL and the gate above already skipped
+    // them, so every locale this moves originates at 0137. A locale only such a visitor ever sent
+    // therefore stops being offered here the moment this ships. That is the intended reading: this
+    // list offers filter values for reports that do not count that visitor.
+    `  AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
     "  AND resolved.occurred_at >= (",
     `    (${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC'`,
     "  )",

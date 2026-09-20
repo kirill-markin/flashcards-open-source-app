@@ -84,8 +84,10 @@ the install's `occurred_at` to the same seven-day bound on the click the rest of
 UTC days. `review_answered` carries no deck or card identity, so those reviews are the person's
 reviews anywhere in the product and never deck-level retention; say so wherever they are shown.
 Report a return day only together with a review threshold, so the steps stay nested. Whether the
-installing account is new is that actor having no `analytics.product_events_resolved` row at all
-before the click, read with no lower bound.
+installing account is new is that actor having no trusted `analytics.product_events_resolved` row at
+all before the click, read with no lower bound and over every event name. Trusted is what
+[`buildTrustedActorRowsFilterSql`](../apps/admin/src/filters/filterSql.ts) defines and states in
+full.
 
 A server `catalog_deck_installed` without `install_journey_id` is a real install that belongs to no
 journey, since a confirm may omit `installJourneyId`. It is reportable only as its own count, never

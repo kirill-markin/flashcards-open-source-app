@@ -213,9 +213,12 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   // no cohort of their own are the community rows of the review charts, which a narrowed selection
   // restricts to the actors that still have review events in range; that one is owned by
   // `isCohortOrPlatformNarrowed` in `apps/admin/src/filters/filterSql.ts`. Re-read the sentence
-  // below against both whenever the cohort rule changes there.
+  // below against both whenever the cohort rule changes there. The one part of the rule the sentence
+  // does qualify on screen is which app opens count as a person's at all, because a reader who is
+  // told the cohort is the first app open day would otherwise read it as every stored app open;
+  // `buildTrustedActorRowsFilterSql` owns that qualification.
   userCohorts:
-    "Splits activity day by day: an event is new on that person's first ever app open day and returning on every later day, except on the review charts, which measure against their first answered card day instead. One person therefore shows up as new once and as returning on the other days of the same range. Both sides are selected by default, and narrowing to one of them also drops the rows that carry no cohort of their own, so New and Returning need not add up to the unfiltered total.",
+    "Splits activity day by day: an event is new on that person's first ever app open day and returning on every later day, except on the review charts, which measure against their first answered card day instead. An app open the credential-free public collector wrote is not one of that person's, here or anywhere the dashboard counts people. One person therefore shows up as new once and as returning on the other days of the same range. Both sides are selected by default, and narrowing to one of them also drops the rows that carry no cohort of their own, so New and Returning need not add up to the unfiltered total.",
   // Cut from the on-screen text: the catalog install event is always unattributed rather than merely
   // often, so no device platform selection can ever keep one, while every other section keeps its
   // data because its events are judged by the platform their own row carries.

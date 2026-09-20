@@ -67,8 +67,9 @@ type InsertedExcludedActorRow = Readonly<{ actor_id: string }>;
  * The rule, as one statement.
  *
  * A reviewing actor is synthetic when both signals hold: no `client_installation` workspace replica
- * was ever registered for any id that actor's events name, and no `app_opened` event exists
- * anywhere in that actor's history. Either signal alone is wrong - every actor without a replica
+ * was ever registered for any id that actor's events name, and no `app_opened` event this statement
+ * counts exists anywhere in that actor's history, meaning none outside the credential-free rows the
+ * `trust_level` predicate below drops. Either signal alone is wrong - every actor without a replica
  * that looks human has app opens - so the conjunction is what separates a scripted run from a
  * person whose installation row simply predates the replica the client now registers.
  *
@@ -83,9 +84,23 @@ type InsertedExcludedActorRow = Readonly<{ actor_id: string }>;
  * signal while appearing to narrow the population.
  *
  * `app_opened_events = 0` is evaluated on the actor's whole resolved history with no time bound, so
- * the statement cannot match an actor that has any `app_opened` event: the count is taken over
- * every row `analytics.product_events_resolved` attributes to that actor, and one such row makes it
- * non-zero.
+ * the statement cannot match an actor that has any `app_opened` event outside the credential-free
+ * rows the `trust_level` predicate below drops: the count is taken over every other row
+ * `analytics.product_events_resolved` attributes to that actor, and one such row makes it non-zero.
+ * A `0121`-backfilled `app_opened` row is such a row and does block a detection, the way it counts
+ * everywhere else: the rule keeps the server's own observations and drops only the unverified
+ * claim.
+ *
+ * `trust_level <> 'anonymous_client'` RESTATES RATHER THAN CALLS the rule
+ * `buildTrustedActorRowsFilterSql` in `apps/admin/src/filters/filterSql.ts` owns and states in
+ * full, because the backend cannot import the admin package. The credential-free collector
+ * (`docs/anonymous-client-analytics.md`) writes rows with no credential behind them, and the
+ * caller-supplied `anonymous_id` they carry is what `actor_id` falls back to, so such a row is
+ * evidence that an event happened and not evidence about the person it resolves onto. It reaches
+ * this rule in the weaker direction only: the candidate population is gated on the server-only
+ * `review_answered`, so no collector row can make a candidate, while without this predicate one
+ * collector row carrying `app_opened` would switch off the second safety signal for an actor and
+ * suppress a detection.
  *
  * `person_ids` is why the replica signal is evaluated on more than the analytics actor id. A row of
  * `analytics.product_events_resolved` carries, beside its resolved `actor_id`, the raw `user_id`
@@ -147,6 +162,7 @@ WITH actor_signals AS (
       FILTER (WHERE resolved.subject_user_id IS NOT NULL) AS event_subject_user_ids
   FROM analytics.product_events_resolved AS resolved
   WHERE resolved.actor_id IS NOT NULL
+    AND resolved.trust_level <> 'anonymous_client'
   GROUP BY 1
   HAVING count(*) FILTER (WHERE resolved.event_name = 'review_answered') > 0
 ),
