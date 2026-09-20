@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,fiszki,karty do nauki";
+"NSCameraUsageDescription" = "Zezwól na dostęp do aparatu, aby robić zdjęcia do załączników czatu AI.";
+"NSMicrophoneUsageDescription" = "Zezwól na dostęp do mikrofonu, aby dyktować tekst w czacie AI.";
+"NSPhotoLibraryUsageDescription" = "Zezwól na dostęp do biblioteki zdjęć, aby wybierać zdjęcia do załączników czatu AI.";

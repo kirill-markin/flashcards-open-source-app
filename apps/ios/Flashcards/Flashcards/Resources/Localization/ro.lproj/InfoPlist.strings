@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,fișe de studiu,fise de studiu,cartonașe";
+"NSCameraUsageDescription" = "Permite accesul la cameră pentru a face poze pentru atașamentele din chatul AI.";
+"NSMicrophoneUsageDescription" = "Permite accesul la microfon pentru a dicta text în chatul AI.";
+"NSPhotoLibraryUsageDescription" = "Permite accesul la biblioteca foto pentru a alege poze pentru atașamentele din chatul AI.";
