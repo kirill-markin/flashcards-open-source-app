@@ -105,6 +105,7 @@ struct AIChatView: View {
     @State var isAutoFollowEnabled: Bool
     @State var hasActiveUserScrollGesture: Bool
     @State var composerSelection: TextSelection?
+    @State var composerAttachmentViewportWidth: CGFloat?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
     @FocusState var isComposerFocused: Bool
 
@@ -118,6 +119,7 @@ struct AIChatView: View {
         self.isAutoFollowEnabled = true
         self.hasActiveUserScrollGesture = false
         self.composerSelection = nil
+        self.composerAttachmentViewportWidth = nil
         self.deferredPresentationRequest = nil
     }
 
