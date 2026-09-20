@@ -4,11 +4,11 @@ Every surface a new product language touches, in delivery order. Each step names
 the decision and links to the guide that owns it. Nothing here repeats those
 guides.
 
-Current sets: web, auth, iOS, and the backend name pools each carry 11 locales;
-Android advertises the 49 languages Google Play App strings translates; the
-`flashcards-open-source-app-website` sibling repository carries 10. The sets are
-deliberately different sizes, but a language that appears in one and not the next
-is almost always an unfinished rollout.
+Read the current locale sets from each surface's source below and its linked
+guide. The sets can differ intentionally; reconcile each requested rollout
+against them instead of assuming a shared count. Listing-only Android work uses
+the [Play listing localization runbook](../apps/android/docs/play-store-localization-runbook.md)
+without changing shipping app languages.
 
 ## The locale lists are hand-maintained and mostly not type-checked
 
@@ -45,12 +45,13 @@ which must be changed together with the website's `src/lib/localeConfig.ts`, and
 | 4 | Demo onboarding card | the four strings, translated in the same change on web and iOS | [docs/demo-card.md](demo-card.md) |
 | 5 | iOS | bundle localization, `kMDItemKeywords`, and the Settings language row | [docs/ios-localization.md](ios-localization.md) |
 | 6 | Android | one line in `locales_config.xml`, then enable the language in Play App strings | [apps/android/docs/add-language-checklist.md](../apps/android/docs/add-language-checklist.md) |
-| 7 | Store listings | whether the market earns hand-written copy instead of Play auto-translation | [docs/app-store-connect-metadata.md](app-store-connect-metadata.md), [docs/google-play-store-metadata.md](google-play-store-metadata.md) |
+| 7 | Store listings | authored copy, localized assets, and store publication | [docs/app-store-connect-metadata.md](app-store-connect-metadata.md), [Play listing localization runbook](../apps/android/docs/play-store-localization-runbook.md) |
 | 8 | Screenshots and composites | capture per locale, then build the derived materials | [apps/ios/docs/marketing-screenshots.md](../apps/ios/docs/marketing-screenshots.md), [apps/android/docs/marketing-screenshot-runbook.md](../apps/android/docs/marketing-screenshot-runbook.md) |
 | 9 | Marketing website | the generic tag, its content tree, and the home-page composite | `flashcards-open-source-app-website`, `src/lib/localeConfig.ts` |
 
 Step 4 lands inside the web and iOS changes rather than after them. Step 8
-depends on 5 and 6, and step 9 depends on 8 for its home-page image.
+needs locale-ready capture inputs; Android screenshot-only overlays do not require
+a new shipping app language. Step 9 depends on 8 for its home-page image.
 
 ## Locale tags per surface
 
@@ -94,18 +95,19 @@ Notes that are easy to get wrong:
   metadata through the App Store Connect API, so [docs/app-store-connect-metadata.md](app-store-connect-metadata.md)
   is the source text and a human copies it into App Store Connect.
 
-## Stale marketing screenshots, as of 2026-09
+## Identify stale marketing screenshots
 
-The committed screenshots are two product generations on both platforms. French
-and Brazilian Portuguese were captured 2026-09-19 against the current app. Every
-other locale is from April 2026 — `en-US`, `ar`, `de`, `es-ES`, `es-MX`, `hi`,
-`ja`, `ru`, `zh-Hans`, in iOS spelling; the table above maps each to its Play
-tag, except that English's committed Android set is `en`, not the table's
-`en-US`, so capturing `en-US` on Android adds a second set and leaves the stale
-one in place. Android is stale in those nine too, plus `es-US`, the Play
-listing with no matching product locale and therefore no iOS counterpart. A
-regeneration pass driven by the iOS list alone leaves that tenth Android set
-behind.
+Inspect the committed PNGs against the structural markers below. Android has
+current French and Brazilian Portuguese sets plus the 39 additional locales in
+the [JSON loader map](../apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotLocaleLoader.kt);
+do not classify every other language as April-era content.
+
+The remaining legacy Android sets to check are `en`, `ar`, `de-DE`, `es-ES`,
+`es-419`, `es-US`, `hi-IN`, `ja-JP`, `ru-RU`, and `zh-CN`. The committed English
+prefix is `en`; capturing `en-US` creates a second set instead of replacing it.
+The corresponding legacy iOS sets are `en-US`, `ar`, `de`, `es-ES`, `es-MX`,
+`hi`, `ja`, `ru`, and `zh-Hans`. Android's `es-US` has no iOS counterpart, so a
+regeneration pass driven by the iOS list alone misses it.
 
 Tell the two generations apart by the structure of the progress screen, the only
 marker that holds on both platforms and in every locale:
@@ -127,10 +129,6 @@ streak number is a per-platform fixture value — the current iOS captures read
 number — and the chart's date range follows the locale's week start, so
 Sunday-first locales never show the Monday-first range.
 
-The difference is structural, not cosmetic, and the marketing website is still
-live on this April generation for every locale except `fr` and `pt`.
-
-Both capture flows work again, and
 [scripts/android/pull-marketing-screenshot.sh](../scripts/android/pull-marketing-screenshot.sh)
 rejects a stale, empty, truncated, or non-PNG pull. Still open the PNG: the
 guards prove a fresh file arrived, not that it shows the right thing.
