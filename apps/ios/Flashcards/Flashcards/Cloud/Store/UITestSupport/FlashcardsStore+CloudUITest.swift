@@ -157,7 +157,38 @@ private enum FlashcardsUITestMarketingFixtures {
         "pt-BR",
         "ru",
         "es-MX",
-        "es-ES"
+        "es-ES",
+        "bn",
+        "ca",
+        "cs",
+        "da",
+        "el",
+        "fi",
+        "gu",
+        "he",
+        "hr",
+        "hu",
+        "id",
+        "it",
+        "kn",
+        "ko",
+        "ml",
+        "mr",
+        "nb",
+        "nl",
+        "pa",
+        "pl",
+        "ro",
+        "sk",
+        "sl",
+        "sv",
+        "ta",
+        "te",
+        "th",
+        "tr",
+        "uk",
+        "ur",
+        "vi"
     ]
 
     static let localizationAliases: [String: String] = [
@@ -180,7 +211,51 @@ private enum FlashcardsUITestMarketingFixtures {
         "ru-RU": "ru",
         "es-MX": "es-MX",
         "es-419": "es-MX",
-        "es-ES": "es-ES"
+        "es-ES": "es-ES",
+        "ar-SA": "ar",
+        "bn": "bn",
+        "bn-BD": "bn",
+        "ca": "ca",
+        "cs": "cs",
+        "da": "da",
+        "el": "el",
+        "fi": "fi",
+        "gu": "gu",
+        "gu-IN": "gu",
+        "he": "he",
+        "hr": "hr",
+        "hu": "hu",
+        "id": "id",
+        "it": "it",
+        "kn": "kn",
+        "kn-IN": "kn",
+        "ko": "ko",
+        "ml": "ml",
+        "ml-IN": "ml",
+        "mr": "mr",
+        "mr-IN": "mr",
+        "nb": "nb",
+        "no": "nb",
+        "nl": "nl",
+        "nl-NL": "nl",
+        "pa": "pa",
+        "pa-IN": "pa",
+        "pl": "pl",
+        "ro": "ro",
+        "sk": "sk",
+        "sl": "sl",
+        "sl-SI": "sl",
+        "sv": "sv",
+        "ta": "ta",
+        "ta-IN": "ta",
+        "te": "te",
+        "te-IN": "te",
+        "th": "th",
+        "tr": "tr",
+        "uk": "uk",
+        "ur": "ur",
+        "ur-PK": "ur",
+        "vi": "vi"
     ]
 
     static let fixturesByLocalizationCode: [String: FlashcardsUITestMarketingLocaleFixture] = Dictionary(
@@ -726,6 +801,1525 @@ private enum FlashcardsUITestMarketingFixtures {
                     frontText: "En informática, ¿qué es la recursión?",
                     backText: "Un método en el que una función resuelve un problema llamándose a sí misma sobre versiones más pequeñas del mismo problema.",
                     tags: ["informática"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "bn",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "অর্থনীতিতে সুযোগ ব্যয় কী?",
+                backText: """
+                একটি বিকল্প বেছে নেওয়ার সময় ছেড়ে দেওয়া সেরা বিকল্পটির মূল্য।
+
+                পরীক্ষার উদাহরণ: শনিবার পারিশ্রমিকের বিনিময়ে কাজ না করে ক্ষুদ্র অর্থনীতির পরীক্ষার জন্য পড়লে, হারানো মজুরি সুযোগ ব্যয়ের অংশ।
+                """,
+                tags: ["অর্থনীতি"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "অর্থনীতিতে সুযোগ ব্যয় কী?",
+                    backText: "একটি বিকল্প বেছে নেওয়ার সময় ছেড়ে দেওয়া সেরা বিকল্পটির মূল্য।",
+                    tags: ["অর্থনীতি"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "জীববিজ্ঞানে অভিস্রবণ কী?",
+                    backText: "একটি ঝিল্লির মধ্য দিয়ে কম দ্রব ঘনত্বের অঞ্চল থেকে বেশি দ্রব ঘনত্বের অঞ্চলে জলের চলাচল।",
+                    tags: ["জীববিজ্ঞান"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "পরিসংখ্যানে প্রমিত বিচ্যুতি কী?",
+                    backText: "মানগুলো গড়ের চারপাশে কতটা ছড়িয়ে আছে তার পরিমাপ।",
+                    tags: ["পরিসংখ্যান"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "রসায়নে অনুঘটক কী?",
+                    backText: "যে পদার্থ নিজে ক্ষয় না হয়ে রাসায়নিক বিক্রিয়ার গতি বাড়ায়।",
+                    tags: ["রসায়ন"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "মনোবিজ্ঞানে জ্ঞানগত পক্ষপাত কী?",
+                    backText: "চিন্তার একটি নিয়মিত প্রবণতা যা বিচারবোধ ও সিদ্ধান্তকে বিকৃত করতে পারে।",
+                    tags: ["মনোবিজ্ঞান"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "পদার্থবিজ্ঞানে বেগ কী?",
+                    backText: "কোনো বস্তুর গতির দিকসহ তার দ্রুতি।",
+                    tags: ["পদার্থবিজ্ঞান"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "কম্পিউটার বিজ্ঞানে রিকার্শন কী?",
+                    backText: "এমন একটি পদ্ধতি যেখানে একটি ফাংশন একই সমস্যার ছোট সংস্করণ সমাধান করতে নিজেকেই ডাকে।",
+                    tags: ["কম্পিউটার বিজ্ঞান"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "ca",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "En economia, què és el cost d'oportunitat?",
+                backText: """
+                El valor de la millor alternativa a què renuncies quan tries una altra opció.
+
+                Exemple d'examen: si passes el dissabte estudiant per a un examen de microeconomia en lloc de fer un torn remunerat, el sou que deixes de guanyar forma part del cost d'oportunitat.
+                """,
+                tags: ["economia"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "En economia, què és el cost d'oportunitat?",
+                    backText: "El valor de la millor alternativa a què renuncies quan tries una altra opció.",
+                    tags: ["economia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En biologia, què és l'osmosi?",
+                    backText: "El moviment de l'aigua a través d'una membrana des d'una concentració de solut més baixa cap a una de més alta.",
+                    tags: ["biologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En estadística, què és la desviació estàndard?",
+                    backText: "Una mesura de com es dispersen els valors al voltant de la mitjana.",
+                    tags: ["estadística"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En química, què és un catalitzador?",
+                    backText: "Una substància que accelera una reacció química sense consumir-se.",
+                    tags: ["química"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En psicologia, què és un biaix cognitiu?",
+                    backText: "Un patró sistemàtic de pensament que pot distorsionar el judici i la presa de decisions.",
+                    tags: ["psicologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En física, què és la velocitat?",
+                    backText: "La rapidesa d'un objecte juntament amb la direcció del seu moviment.",
+                    tags: ["física"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "En informàtica, què és la recursivitat?",
+                    backText: "Un mètode en què una funció resol un problema cridant-se a si mateixa per resoldre versions més petites del mateix problema.",
+                    tags: ["informàtica"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "cs",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Co jsou v ekonomii náklady obětované příležitosti?",
+                backText: """
+                Hodnota nejlepší alternativy, které se vzdáte, když si vyberete jinou možnost.
+
+                Příklad ke zkoušce: pokud v sobotu místo placené směny studujete na zkoušku z mikroekonomie, ušlá mzda je součástí nákladů obětované příležitosti.
+                """,
+                tags: ["ekonomie"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Co jsou v ekonomii náklady obětované příležitosti?",
+                    backText: "Hodnota nejlepší alternativy, které se vzdáte, když si vyberete jinou možnost.",
+                    tags: ["ekonomie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Co je v biologii osmóza?",
+                    backText: "Pohyb vody přes membránu z oblasti s nižší koncentrací rozpuštěných látek do oblasti s vyšší koncentrací.",
+                    tags: ["biologie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Co je ve statistice směrodatná odchylka?",
+                    backText: "Míra toho, jak jsou hodnoty rozptýlené kolem průměru.",
+                    tags: ["statistika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Co je v chemii katalyzátor?",
+                    backText: "Látka, která urychluje chemickou reakci, aniž by se při ní spotřebovávala.",
+                    tags: ["chemie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Co je v psychologii kognitivní zkreslení?",
+                    backText: "Systematický vzorec myšlení, který může zkreslovat úsudek a rozhodování.",
+                    tags: ["psychologie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Co je ve fyzice vektor rychlosti?",
+                    backText: "Veličina, která vyjadřuje rychlost pohybu tělesa i jeho směr.",
+                    tags: ["fyzika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Co je v informatice rekurze?",
+                    backText: "Metoda, při které funkce řeší problém tím, že volá sama sebe pro menší verze téhož problému.",
+                    tags: ["informatika"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "da",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Hvad er alternativomkostning i økonomi?",
+                backText: """
+                Værdien af det bedste alternativ, du giver afkald på, når du vælger en anden mulighed.
+
+                Eksamenseksempel: Hvis du bruger lørdagen på at læse til en eksamen i mikroøkonomi i stedet for at tage en betalt vagt, er den mistede løn en del af alternativomkostningen.
+                """,
+                tags: ["økonomi"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hvad er alternativomkostning i økonomi?",
+                    backText: "Værdien af det bedste alternativ, du giver afkald på, når du vælger en anden mulighed.",
+                    tags: ["økonomi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hvad er osmose i biologi?",
+                    backText: "Vandets bevægelse gennem en membran fra lavere til højere koncentration af opløste stoffer.",
+                    tags: ["biologi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hvad er standardafvigelse i statistik?",
+                    backText: "Et mål for, hvor spredte værdierne er omkring gennemsnittet.",
+                    tags: ["statistik"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hvad er en katalysator i kemi?",
+                    backText: "Et stof, der fremskynder en kemisk reaktion uden selv at blive forbrugt.",
+                    tags: ["kemi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hvad er en kognitiv bias i psykologi?",
+                    backText: "Et systematisk tankemønster, der kan forvrænge vurderinger og beslutninger.",
+                    tags: ["psykologi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hvad er hastighed som vektor i fysik?",
+                    backText: "Et objekts fart sammen med retningen af dets bevægelse.",
+                    tags: ["fysik"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hvad er rekursion i datalogi?",
+                    backText: "En metode, hvor en funktion løser et problem ved at kalde sig selv på mindre udgaver af problemet.",
+                    tags: ["datalogi"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "el",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Τι είναι το κόστος ευκαιρίας στα οικονομικά;",
+                backText: """
+                Η αξία της καλύτερης εναλλακτικής που θυσιάζεις όταν επιλέγεις μια άλλη δυνατότητα.
+
+                Παράδειγμα εξέτασης: αν περάσεις το Σάββατο διαβάζοντας για μια εξέταση μικροοικονομίας αντί να εργαστείς σε αμειβόμενη βάρδια, ο χαμένος μισθός αποτελεί μέρος του κόστους ευκαιρίας.
+                """,
+                tags: ["οικονομικά"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Τι είναι το κόστος ευκαιρίας στα οικονομικά;",
+                    backText: "Η αξία της καλύτερης εναλλακτικής που θυσιάζεις όταν επιλέγεις μια άλλη δυνατότητα.",
+                    tags: ["οικονομικά"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Τι είναι η ώσμωση στη βιολογία;",
+                    backText: "Η μετακίνηση νερού μέσα από μια μεμβράνη από χαμηλότερη προς υψηλότερη συγκέντρωση διαλυμένης ουσίας.",
+                    tags: ["βιολογία"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Τι είναι η τυπική απόκλιση στη στατιστική;",
+                    backText: "Ένα μέτρο του πόσο διασκορπισμένες είναι οι τιμές γύρω από τον μέσο όρο.",
+                    tags: ["στατιστική"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Τι είναι ο καταλύτης στη χημεία;",
+                    backText: "Μια ουσία που επιταχύνει μια χημική αντίδραση χωρίς να καταναλώνεται.",
+                    tags: ["χημεία"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Τι είναι η γνωστική προκατάληψη στην ψυχολογία;",
+                    backText: "Ένα συστηματικό μοτίβο σκέψης που μπορεί να διαστρεβλώσει την κρίση και τη λήψη αποφάσεων.",
+                    tags: ["ψυχολογία"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Τι είναι η διανυσματική ταχύτητα στη φυσική;",
+                    backText: "Το μέτρο της ταχύτητας ενός αντικειμένου μαζί με την κατεύθυνση της κίνησής του.",
+                    tags: ["φυσική"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Τι είναι η αναδρομή στην πληροφορική;",
+                    backText: "Μια μέθοδος όπου μια συνάρτηση λύνει ένα πρόβλημα καλώντας τον εαυτό της για μικρότερες εκδοχές του ίδιου προβλήματος.",
+                    tags: ["πληροφορική"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "fi",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Mitä vaihtoehtoiskustannus tarkoittaa taloustieteessä?",
+                backText: """
+                Parhaan sellaisen vaihtoehdon arvo, josta luovut valitessasi toisen vaihtoehdon.
+
+                Tenttiesimerkki: jos käytät lauantain mikrotaloustieteen tenttiin lukemiseen palkallisen työvuoron sijaan, menetetty palkka on osa vaihtoehtoiskustannusta.
+                """,
+                tags: ["taloustiede"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mitä vaihtoehtoiskustannus tarkoittaa taloustieteessä?",
+                    backText: "Parhaan sellaisen vaihtoehdon arvo, josta luovut valitessasi toisen vaihtoehdon.",
+                    tags: ["taloustiede"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mitä osmoosi tarkoittaa biologiassa?",
+                    backText: "Veden liikkumista kalvon läpi pienemmästä liuenneen aineen pitoisuudesta suurempaan.",
+                    tags: ["biologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mitä keskihajonta tarkoittaa tilastotieteessä?",
+                    backText: "Mittaa, joka kuvaa arvojen hajontaa keskiarvon ympärillä.",
+                    tags: ["tilastotiede"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mikä on katalyytti kemiassa?",
+                    backText: "Aine, joka nopeuttaa kemiallista reaktiota kulumatta itse reaktiossa.",
+                    tags: ["kemia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mitä kognitiivinen vinouma tarkoittaa psykologiassa?",
+                    backText: "Järjestelmällistä ajattelumallia, joka voi vääristää arviointia ja päätöksentekoa.",
+                    tags: ["psykologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mitä nopeusvektori tarkoittaa fysiikassa?",
+                    backText: "Suuretta, joka kuvaa kappaleen vauhtia ja liikkeen suuntaa.",
+                    tags: ["fysiikka"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mitä rekursio tarkoittaa tietojenkäsittelytieteessä?",
+                    backText: "Menetelmää, jossa funktio ratkaisee ongelman kutsumalla itseään saman ongelman pienemmille versioille.",
+                    tags: ["tietojenkäsittelytiede"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "gu",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "અર્થશાસ્ત્રમાં તક ખર્ચ શું છે?",
+                backText: """
+                એક વિકલ્પ પસંદ કરતી વખતે તમે છોડી દો છો તે શ્રેષ્ઠ વૈકલ્પિક પસંદગીનું મૂલ્ય.
+
+                પરીક્ષાનું ઉદાહરણ: જો તમે શનિવારે પગારવાળી પાળીમાં કામ કરવાને બદલે સૂક્ષ્મ અર્થશાસ્ત્રની પરીક્ષા માટે અભ્યાસ કરો, તો ગુમાવેલો પગાર તક ખર્ચનો ભાગ છે.
+                """,
+                tags: ["અર્થશાસ્ત્ર"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "અર્થશાસ્ત્રમાં તક ખર્ચ શું છે?",
+                    backText: "એક વિકલ્પ પસંદ કરતી વખતે તમે છોડી દો છો તે શ્રેષ્ઠ વૈકલ્પિક પસંદગીનું મૂલ્ય.",
+                    tags: ["અર્થશાસ્ત્ર"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "જીવવિજ્ઞાનમાં પરાસરણ શું છે?",
+                    backText: "પટલમાંથી પાણીનું ઓછી દ્રાવ્ય સાંદ્રતા ધરાવતા વિસ્તારથી વધુ દ્રાવ્ય સાંદ્રતા ધરાવતા વિસ્તાર તરફ વહન.",
+                    tags: ["જીવવિજ્ઞાન"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "આંકડાશાસ્ત્રમાં પ્રમાણિત વિચલન શું છે?",
+                    backText: "મૂલ્યો સરેરાશની આસપાસ કેટલાં ફેલાયેલાં છે તેનું માપ.",
+                    tags: ["આંકડાશાસ્ત્ર"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "રસાયણશાસ્ત્રમાં ઉત્પ્રેરક શું છે?",
+                    backText: "એવો પદાર્થ જે પોતે વપરાઈ ગયા વિના રાસાયણિક પ્રક્રિયાને ઝડપી બનાવે છે.",
+                    tags: ["રસાયણશાસ્ત્ર"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "મનોવિજ્ઞાનમાં જ્ઞાનાત્મક પૂર્વગ્રહ શું છે?",
+                    backText: "વિચારવાની એક વ્યવસ્થિત ઢબ જે મૂલ્યાંકન અને નિર્ણય લેવાની પ્રક્રિયાને વિકૃત કરી શકે છે.",
+                    tags: ["મનોવિજ્ઞાન"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ભૌતિકશાસ્ત્રમાં વેગ શું છે?",
+                    backText: "વસ્તુની ગતિની દિશા સાથે તેની ઝડપ.",
+                    tags: ["ભૌતિકશાસ્ત્ર"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "કમ્પ્યુટર વિજ્ઞાનમાં રિકર્ઝન શું છે?",
+                    backText: "એવી પદ્ધતિ જેમાં ફંક્શન એ જ સમસ્યાનાં નાનાં સ્વરૂપો ઉકેલવા પોતાને જ બોલાવે છે.",
+                    tags: ["કમ્પ્યુટર વિજ્ઞાન"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "he",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "מהי עלות אלטרנטיבית בכלכלה?",
+                backText: """
+                הערך של החלופה הטובה ביותר שעליה מוותרים כשבוחרים באפשרות אחרת.
+
+                דוגמה לבחינה: אם מקדישים את השבת ללימוד לבחינה במיקרו־כלכלה במקום לעבוד במשמרת בתשלום, השכר שלא התקבל הוא חלק מהעלות האלטרנטיבית.
+                """,
+                tags: ["כלכלה"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "מהי עלות אלטרנטיבית בכלכלה?",
+                    backText: "הערך של החלופה הטובה ביותר שעליה מוותרים כשבוחרים באפשרות אחרת.",
+                    tags: ["כלכלה"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "מהי אוסמוזה בביולוגיה?",
+                    backText: "תנועה של מים דרך קרום מאזור עם ריכוז מומסים נמוך לאזור עם ריכוז מומסים גבוה.",
+                    tags: ["ביולוגיה"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "מהי סטיית תקן בסטטיסטיקה?",
+                    backText: "מדד למידת הפיזור של הערכים סביב הממוצע.",
+                    tags: ["סטטיסטיקה"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "מהו זרז בכימיה?",
+                    backText: "חומר שמאיץ תגובה כימית בלי להיצרך במהלכה.",
+                    tags: ["כימיה"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "מהי הטיה קוגניטיבית בפסיכולוגיה?",
+                    backText: "דפוס חשיבה שיטתי שעלול לעוות שיפוט וקבלת החלטות.",
+                    tags: ["פסיכולוגיה"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "מהי מהירות וקטורית בפיזיקה?",
+                    backText: "גודל המהירות של גוף יחד עם כיוון תנועתו.",
+                    tags: ["פיזיקה"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "מהי רקורסיה במדעי המחשב?",
+                    backText: "שיטה שבה פונקציה פותרת בעיה באמצעות קריאה לעצמה עבור גרסאות קטנות יותר של אותה בעיה.",
+                    tags: ["מדעי המחשב"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "hr",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Što je oportunitetni trošak u ekonomiji?",
+                backText: """
+                Vrijednost najbolje alternative koje se odričete kada odaberete drugu mogućnost.
+
+                Primjer za ispit: ako subotu provedete učeći za ispit iz mikroekonomije umjesto radeći plaćenu smjenu, izgubljena zarada dio je oportunitetnog troška.
+                """,
+                tags: ["ekonomija"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Što je oportunitetni trošak u ekonomiji?",
+                    backText: "Vrijednost najbolje alternative koje se odričete kada odaberete drugu mogućnost.",
+                    tags: ["ekonomija"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Što je osmoza u biologiji?",
+                    backText: "Kretanje vode kroz membranu iz područja niže koncentracije otopljenih tvari prema području više koncentracije.",
+                    tags: ["biologija"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Što je standardna devijacija u statistici?",
+                    backText: "Mjera raspršenosti vrijednosti oko prosjeka.",
+                    tags: ["statistika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Što je katalizator u kemiji?",
+                    backText: "Tvar koja ubrzava kemijsku reakciju, a pritom se ne troši.",
+                    tags: ["kemija"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Što je kognitivna pristranost u psihologiji?",
+                    backText: "Sustavan obrazac razmišljanja koji može iskriviti prosuđivanje i donošenje odluka.",
+                    tags: ["psihologija"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Što je vektor brzine u fizici?",
+                    backText: "Veličina koja opisuje brzinu gibanja tijela i njegov smjer.",
+                    tags: ["fizika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Što je rekurzija u računarstvu?",
+                    backText: "Metoda kojom funkcija rješava problem pozivajući samu sebe za manje inačice istog problema.",
+                    tags: ["računarstvo"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "hu",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Mit jelent az alternatív költség a közgazdaságtanban?",
+                backText: """
+                Annak a legjobb alternatívának az értéke, amelyről lemondasz, amikor egy másik lehetőséget választasz.
+
+                Vizsgapélda: ha szombaton fizetett műszak helyett a mikroökonómia-vizsgára tanulsz, az elmaradt munkabér az alternatív költség része.
+                """,
+                tags: ["közgazdaságtan"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mit jelent az alternatív költség a közgazdaságtanban?",
+                    backText: "Annak a legjobb alternatívának az értéke, amelyről lemondasz, amikor egy másik lehetőséget választasz.",
+                    tags: ["közgazdaságtan"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mi az ozmózis a biológiában?",
+                    backText: "A víz áramlása egy membránon keresztül az alacsonyabb oldottanyag-koncentrációjú helyről a magasabb felé.",
+                    tags: ["biológia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mi a szórás a statisztikában?",
+                    backText: "Annak mértéke, hogy az értékek mennyire szóródnak az átlag körül.",
+                    tags: ["statisztika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mi a katalizátor a kémiában?",
+                    backText: "Olyan anyag, amely felgyorsít egy kémiai reakciót anélkül, hogy közben elfogyna.",
+                    tags: ["kémia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mi a kognitív torzítás a pszichológiában?",
+                    backText: "Rendszeres gondolkodási mintázat, amely torzíthatja az ítéletalkotást és a döntéshozatalt.",
+                    tags: ["pszichológia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mi a sebességvektor a fizikában?",
+                    backText: "Olyan mennyiség, amely a test mozgásának gyorsaságát és irányát is leírja.",
+                    tags: ["fizika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Mi a rekurzió az informatikában?",
+                    backText: "Olyan módszer, amelyben egy függvény önmagát hívja meg ugyanazon probléma kisebb változatainak megoldására.",
+                    tags: ["informatika"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "id",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Dalam ekonomi, apa itu biaya peluang?",
+                backText: """
+                Nilai alternatif terbaik yang kamu korbankan saat memilih opsi lain.
+
+                Contoh ujian: jika kamu menghabiskan hari Sabtu belajar untuk ujian mikroekonomi alih-alih bekerja dalam sif berbayar, upah yang tidak diperoleh termasuk biaya peluang.
+                """,
+                tags: ["ekonomi"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Dalam ekonomi, apa itu biaya peluang?",
+                    backText: "Nilai alternatif terbaik yang kamu korbankan saat memilih opsi lain.",
+                    tags: ["ekonomi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Dalam biologi, apa itu osmosis?",
+                    backText: "Perpindahan air melalui membran dari konsentrasi zat terlarut yang lebih rendah ke yang lebih tinggi.",
+                    tags: ["biologi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Dalam statistika, apa itu simpangan baku?",
+                    backText: "Ukuran seberapa tersebar nilai-nilai di sekitar rata-rata.",
+                    tags: ["statistika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Dalam kimia, apa itu katalis?",
+                    backText: "Zat yang mempercepat reaksi kimia tanpa ikut habis dalam reaksi tersebut.",
+                    tags: ["kimia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Dalam psikologi, apa itu bias kognitif?",
+                    backText: "Pola berpikir sistematis yang dapat menyimpangkan penilaian dan pengambilan keputusan.",
+                    tags: ["psikologi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Dalam fisika, apa itu kecepatan?",
+                    backText: "Kelajuan suatu benda beserta arah geraknya.",
+                    tags: ["fisika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Dalam ilmu komputer, apa itu rekursi?",
+                    backText: "Metode ketika sebuah fungsi memecahkan masalah dengan memanggil dirinya sendiri untuk versi yang lebih kecil dari masalah yang sama.",
+                    tags: ["ilmu komputer"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "it",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "In economia, che cos'è il costo opportunità?",
+                backText: """
+                Il valore della migliore alternativa a cui rinunci quando scegli un'altra opzione.
+
+                Esempio d'esame: se passi il sabato a studiare per un esame di microeconomia invece di fare un turno retribuito, il mancato guadagno fa parte del costo opportunità.
+                """,
+                tags: ["economia"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "In economia, che cos'è il costo opportunità?",
+                    backText: "Il valore della migliore alternativa a cui rinunci quando scegli un'altra opzione.",
+                    tags: ["economia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "In biologia, che cos'è l'osmosi?",
+                    backText: "Il movimento dell'acqua attraverso una membrana da una concentrazione di soluto minore a una maggiore.",
+                    tags: ["biologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "In statistica, che cos'è la deviazione standard?",
+                    backText: "Una misura di quanto i valori sono dispersi intorno alla media.",
+                    tags: ["statistica"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "In chimica, che cos'è un catalizzatore?",
+                    backText: "Una sostanza che accelera una reazione chimica senza essere consumata.",
+                    tags: ["chimica"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "In psicologia, che cos'è un bias cognitivo?",
+                    backText: "Uno schema sistematico di pensiero che può alterare il giudizio e le decisioni.",
+                    tags: ["psicologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "In fisica, che cos'è la velocità vettoriale?",
+                    backText: "Una grandezza che descrive quanto rapidamente si muove un oggetto, insieme alla direzione e al verso del moto.",
+                    tags: ["fisica"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "In informatica, che cos'è la ricorsione?",
+                    backText: "Un metodo in cui una funzione risolve un problema richiamando sé stessa su versioni più piccole dello stesso problema.",
+                    tags: ["informatica"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "kn",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "ಅರ್ಥಶಾಸ್ತ್ರದಲ್ಲಿ ಅವಕಾಶ ವೆಚ್ಚ ಎಂದರೇನು?",
+                backText: """
+                ಒಂದು ಆಯ್ಕೆಯನ್ನು ಮಾಡುವಾಗ ಬಿಟ್ಟುಕೊಡುವ ಅತ್ಯುತ್ತಮ ಪರ್ಯಾಯದ ಮೌಲ್ಯ.
+
+                ಪರೀಕ್ಷೆಯ ಉದಾಹರಣೆ: ಶನಿವಾರ ಸಂಬಳ ಸಿಗುವ ಪಾಳಿಯಲ್ಲಿ ಕೆಲಸ ಮಾಡುವ ಬದಲು ಸೂಕ್ಷ್ಮ ಅರ್ಥಶಾಸ್ತ್ರದ ಪರೀಕ್ಷೆಗೆ ಓದಿದರೆ, ಕಳೆದುಕೊಂಡ ಸಂಬಳವು ಅವಕಾಶ ವೆಚ್ಚದ ಭಾಗವಾಗುತ್ತದೆ.
+                """,
+                tags: ["ಅರ್ಥಶಾಸ್ತ್ರ"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "ಅರ್ಥಶಾಸ್ತ್ರದಲ್ಲಿ ಅವಕಾಶ ವೆಚ್ಚ ಎಂದರೇನು?",
+                    backText: "ಒಂದು ಆಯ್ಕೆಯನ್ನು ಮಾಡುವಾಗ ಬಿಟ್ಟುಕೊಡುವ ಅತ್ಯುತ್ತಮ ಪರ್ಯಾಯದ ಮೌಲ್ಯ.",
+                    tags: ["ಅರ್ಥಶಾಸ್ತ್ರ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ಜೀವಶಾಸ್ತ್ರದಲ್ಲಿ ಆಸ್ಮೋಸಿಸ್ ಎಂದರೇನು?",
+                    backText: "ದ್ರಾವ್ಯದ ಸಾಂದ್ರತೆ ಕಡಿಮೆ ಇರುವ ಪ್ರದೇಶದಿಂದ ಹೆಚ್ಚು ಇರುವ ಪ್ರದೇಶಕ್ಕೆ ಪೊರೆಯ ಮೂಲಕ ನೀರು ಚಲಿಸುವುದು.",
+                    tags: ["ಜೀವಶಾಸ್ತ್ರ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ಸಂಖ್ಯಾಶಾಸ್ತ್ರದಲ್ಲಿ ಪ್ರಮಾಣಿತ ವಿಚಲನ ಎಂದರೇನು?",
+                    backText: "ಮೌಲ್ಯಗಳು ಸರಾಸರಿಯ ಸುತ್ತ ಎಷ್ಟು ಚದುರಿವೆ ಎಂಬುದರ ಅಳತೆ.",
+                    tags: ["ಸಂಖ್ಯಾಶಾಸ್ತ್ರ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ರಸಾಯನಶಾಸ್ತ್ರದಲ್ಲಿ ವೇಗವರ್ಧಕ ಎಂದರೇನು?",
+                    backText: "ತಾನು ಖರ್ಚಾಗದೆ ರಾಸಾಯನಿಕ ಕ್ರಿಯೆಯ ವೇಗವನ್ನು ಹೆಚ್ಚಿಸುವ ವಸ್ತು.",
+                    tags: ["ರಸಾಯನಶಾಸ್ತ್ರ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ಮನೋವಿಜ್ಞಾನದಲ್ಲಿ ಅರಿವಿನ ಪಕ್ಷಪಾತ ಎಂದರೇನು?",
+                    backText: "ತೀರ್ಮಾನಿಸುವಿಕೆ ಮತ್ತು ನಿರ್ಧಾರ ತೆಗೆದುಕೊಳ್ಳುವಿಕೆಯನ್ನು ತಿರುಚಬಹುದಾದ ವ್ಯವಸ್ಥಿತ ಆಲೋಚನಾ ಮಾದರಿ.",
+                    tags: ["ಮನೋವಿಜ್ಞಾನ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ಭೌತಶಾಸ್ತ್ರದಲ್ಲಿ ವೇಗ ಎಂದರೇನು?",
+                    backText: "ವಸ್ತುವಿನ ಚಲನೆಯ ದಿಕ್ಕಿನೊಂದಿಗೆ ಅದರ ಜವ.",
+                    tags: ["ಭೌತಶಾಸ್ತ್ರ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ಕಂಪ್ಯೂಟರ್ ವಿಜ್ಞಾನದಲ್ಲಿ ರಿಕರ್ಷನ್ ಎಂದರೇನು?",
+                    backText: "ಒಂದು ಫಂಕ್ಷನ್ ಅದೇ ಸಮಸ್ಯೆಯ ಸಣ್ಣ ರೂಪಗಳನ್ನು ಪರಿಹರಿಸಲು ತನ್ನನ್ನೇ ಕರೆದುಕೊಳ್ಳುವ ವಿಧಾನ.",
+                    tags: ["ಕಂಪ್ಯೂಟರ್ ವಿಜ್ಞಾನ"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "ko",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "경제학에서 기회비용이란 무엇인가요?",
+                backText: """
+                어떤 선택을 할 때 포기하는 최선의 대안이 지닌 가치입니다.
+
+                시험 예시: 토요일에 유급 근무를 하는 대신 미시경제학 시험공부를 한다면, 받지 못한 임금은 기회비용의 일부입니다.
+                """,
+                tags: ["경제학"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "경제학에서 기회비용이란 무엇인가요?",
+                    backText: "어떤 선택을 할 때 포기하는 최선의 대안이 지닌 가치입니다.",
+                    tags: ["경제학"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "생물학에서 삼투란 무엇인가요?",
+                    backText: "용질 농도가 낮은 쪽에서 높은 쪽으로 물이 막을 통과해 이동하는 현상입니다.",
+                    tags: ["생물학"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "통계학에서 표준편차란 무엇인가요?",
+                    backText: "값들이 평균 주위에 얼마나 퍼져 있는지 나타내는 척도입니다.",
+                    tags: ["통계학"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "화학에서 촉매란 무엇인가요?",
+                    backText: "자신은 소모되지 않으면서 화학 반응의 속도를 높이는 물질입니다.",
+                    tags: ["화학"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "심리학에서 인지 편향이란 무엇인가요?",
+                    backText: "판단과 의사결정을 왜곡할 수 있는 체계적인 사고 경향입니다.",
+                    tags: ["심리학"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "물리학에서 속도란 무엇인가요?",
+                    backText: "물체의 빠르기와 운동 방향을 함께 나타내는 양입니다.",
+                    tags: ["물리학"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "컴퓨터 과학에서 재귀란 무엇인가요?",
+                    backText: "함수가 같은 문제의 더 작은 형태에 대해 자기 자신을 호출하여 문제를 해결하는 방법입니다.",
+                    tags: ["컴퓨터 과학"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "ml",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "സാമ്പത്തികശാസ്ത്രത്തിൽ അവസരച്ചെലവ് എന്താണ്?",
+                backText: """
+                ഒരു മാർഗം തിരഞ്ഞെടുക്കുമ്പോൾ ഉപേക്ഷിക്കുന്ന ഏറ്റവും മികച്ച ബദൽ മാർഗത്തിന്റെ മൂല്യം.
+
+                പരീക്ഷയ്ക്കുള്ള ഉദാഹരണം: ശനിയാഴ്ച വേതനം ലഭിക്കുന്ന ജോലിക്ക് പോകുന്നതിനു പകരം സൂക്ഷ്മ സാമ്പത്തികശാസ്ത്ര പരീക്ഷയ്ക്കായി പഠിച്ചാൽ, നഷ്ടമായ വേതനം അവസരച്ചെലവിന്റെ ഭാഗമാണ്.
+                """,
+                tags: ["സാമ്പത്തികശാസ്ത്രം"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "സാമ്പത്തികശാസ്ത്രത്തിൽ അവസരച്ചെലവ് എന്താണ്?",
+                    backText: "ഒരു മാർഗം തിരഞ്ഞെടുക്കുമ്പോൾ ഉപേക്ഷിക്കുന്ന ഏറ്റവും മികച്ച ബദൽ മാർഗത്തിന്റെ മൂല്യം.",
+                    tags: ["സാമ്പത്തികശാസ്ത്രം"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ജീവശാസ്ത്രത്തിൽ ഓസ്മോസിസ് എന്താണ്?",
+                    backText: "ലീനപദാർഥത്തിന്റെ സാന്ദ്രത കുറഞ്ഞ ഭാഗത്തുനിന്ന് കൂടിയ ഭാഗത്തേക്ക് ഒരു സ്തരത്തിലൂടെ വെള്ളം നീങ്ങുന്നത്.",
+                    tags: ["ജീവശാസ്ത്രം"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "സ്ഥിതിവിവരശാസ്ത്രത്തിൽ മാനക വ്യതിയാനം എന്താണ്?",
+                    backText: "മൂല്യങ്ങൾ ശരാശരിക്ക് ചുറ്റും എത്രത്തോളം ചിതറിക്കിടക്കുന്നു എന്നതിന്റെ അളവ്.",
+                    tags: ["സ്ഥിതിവിവരശാസ്ത്രം"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "രസതന്ത്രത്തിൽ ഉൽപ്രേരകം എന്താണ്?",
+                    backText: "സ്വയം ഉപഭോഗിക്കപ്പെടാതെ രാസപ്രവർത്തനത്തിന്റെ വേഗം കൂട്ടുന്ന പദാർഥം.",
+                    tags: ["രസതന്ത്രം"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "മനഃശാസ്ത്രത്തിൽ ബൗദ്ധിക പക്ഷപാതം എന്താണ്?",
+                    backText: "വിലയിരുത്തലിനെയും തീരുമാനങ്ങളെയും വികലമാക്കാവുന്ന ചിട്ടയായ ചിന്താരീതി.",
+                    tags: ["മനഃശാസ്ത്രം"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ഭൗതികശാസ്ത്രത്തിൽ പ്രവേഗം എന്താണ്?",
+                    backText: "ഒരു വസ്തുവിന്റെ ചലനദിശയും വേഗവും ചേർന്ന അളവ്.",
+                    tags: ["ഭൗതികശാസ്ത്രം"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "കമ്പ്യൂട്ടർ ശാസ്ത്രത്തിൽ റിക്കർഷൻ എന്താണ്?",
+                    backText: "ഒരു പ്രശ്നത്തിന്റെ ചെറിയ രൂപങ്ങൾ പരിഹരിക്കാൻ ഒരു ഫങ്ഷൻ സ്വയം വിളിക്കുന്ന രീതി.",
+                    tags: ["കമ്പ്യൂട്ടർ ശാസ്ത്രം"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "mr",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "अर्थशास्त्रात संधी खर्च म्हणजे काय?",
+                backText: """
+                एखादा पर्याय निवडताना सोडून दिलेल्या सर्वोत्तम पर्यायाचे मूल्य.
+
+                परीक्षेतील उदाहरण: शनिवारी पगाराची पाळी करण्याऐवजी सूक्ष्म अर्थशास्त्राच्या परीक्षेचा अभ्यास केल्यास, बुडालेला पगार हा संधी खर्चाचा भाग असतो.
+                """,
+                tags: ["अर्थशास्त्र"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "अर्थशास्त्रात संधी खर्च म्हणजे काय?",
+                    backText: "एखादा पर्याय निवडताना सोडून दिलेल्या सर्वोत्तम पर्यायाचे मूल्य.",
+                    tags: ["अर्थशास्त्र"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "जीवशास्त्रात परासरण म्हणजे काय?",
+                    backText: "पटलातून कमी द्राव्य सांद्रतेच्या भागाकडून अधिक द्राव्य सांद्रतेच्या भागाकडे पाण्याची हालचाल.",
+                    tags: ["जीवशास्त्र"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "सांख्यिकीमध्ये प्रमाण विचलन म्हणजे काय?",
+                    backText: "मूल्ये सरासरीभोवती किती विखुरलेली आहेत याचे मोजमाप.",
+                    tags: ["सांख्यिकी"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "रसायनशास्त्रात उत्प्रेरक म्हणजे काय?",
+                    backText: "स्वतः खर्च न होता रासायनिक अभिक्रियेचा वेग वाढवणारा पदार्थ.",
+                    tags: ["रसायनशास्त्र"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "मानसशास्त्रात संज्ञानात्मक पूर्वग्रह म्हणजे काय?",
+                    backText: "विचार करण्याची एक पद्धतशीर प्रवृत्ती, जी मूल्यमापन आणि निर्णयप्रक्रियेला विपरीत वळण देऊ शकते.",
+                    tags: ["मानसशास्त्र"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "भौतिकशास्त्रात वेग म्हणजे काय?",
+                    backText: "वस्तूच्या गतीची दिशा आणि तिची चाल यांचा एकत्रित निर्देश करणारी राशी.",
+                    tags: ["भौतिकशास्त्र"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "संगणकशास्त्रात रिकर्शन म्हणजे काय?",
+                    backText: "ज्यात एखादे फंक्शन त्याच समस्येची लहान रूपे सोडवण्यासाठी स्वतःलाच बोलावते अशी पद्धत.",
+                    tags: ["संगणकशास्त्र"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "nb",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Hva er alternativkostnad i økonomi?",
+                backText: """
+                Verdien av det beste alternativet du gir avkall på når du velger en annen mulighet.
+
+                Eksamenseksempel: Hvis du bruker lørdagen på å lese til en eksamen i mikroøkonomi i stedet for å jobbe en betalt vakt, er den tapte lønnen en del av alternativkostnaden.
+                """,
+                tags: ["økonomi"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hva er alternativkostnad i økonomi?",
+                    backText: "Verdien av det beste alternativet du gir avkall på når du velger en annen mulighet.",
+                    tags: ["økonomi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hva er osmose i biologi?",
+                    backText: "Vannets bevegelse gjennom en membran fra lavere til høyere konsentrasjon av oppløste stoffer.",
+                    tags: ["biologi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hva er standardavvik i statistikk?",
+                    backText: "Et mål på hvor spredt verdiene ligger rundt gjennomsnittet.",
+                    tags: ["statistikk"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hva er en katalysator i kjemi?",
+                    backText: "Et stoff som øker farten på en kjemisk reaksjon uten selv å bli brukt opp.",
+                    tags: ["kjemi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hva er en kognitiv skjevhet i psykologi?",
+                    backText: "Et systematisk tankemønster som kan forvrenge vurderinger og beslutninger.",
+                    tags: ["psykologi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hva er hastighet som vektor i fysikk?",
+                    backText: "Farten til et objekt sammen med retningen det beveger seg i.",
+                    tags: ["fysikk"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Hva er rekursjon i informatikk?",
+                    backText: "En metode der en funksjon løser et problem ved å kalle seg selv på mindre utgaver av det samme problemet.",
+                    tags: ["informatikk"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "nl",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Wat zijn opportuniteitskosten in de economie?",
+                backText: """
+                De waarde van het beste alternatief dat je opgeeft wanneer je voor een andere optie kiest.
+
+                Examenvoorbeeld: als je zaterdag voor een tentamen micro-economie studeert in plaats van een betaalde dienst te werken, maakt het misgelopen loon deel uit van de opportuniteitskosten.
+                """,
+                tags: ["economie"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Wat zijn opportuniteitskosten in de economie?",
+                    backText: "De waarde van het beste alternatief dat je opgeeft wanneer je voor een andere optie kiest.",
+                    tags: ["economie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Wat is osmose in de biologie?",
+                    backText: "De verplaatsing van water door een membraan van een lagere naar een hogere concentratie opgeloste stoffen.",
+                    tags: ["biologie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Wat is standaardafwijking in de statistiek?",
+                    backText: "Een maat voor de spreiding van waarden rond het gemiddelde.",
+                    tags: ["statistiek"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Wat is een katalysator in de scheikunde?",
+                    backText: "Een stof die een chemische reactie versnelt zonder daarbij te worden verbruikt.",
+                    tags: ["scheikunde"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Wat is een cognitieve vertekening in de psychologie?",
+                    backText: "Een systematisch denkpatroon dat het oordeel en de besluitvorming kan vertekenen.",
+                    tags: ["psychologie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Wat is de snelheidsvector in de natuurkunde?",
+                    backText: "De snelheid van een voorwerp samen met de richting waarin het beweegt.",
+                    tags: ["natuurkunde"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Wat is recursie in de informatica?",
+                    backText: "Een methode waarbij een functie een probleem oplost door zichzelf aan te roepen voor kleinere versies van hetzelfde probleem.",
+                    tags: ["informatica"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "pa",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "ਅਰਥਸ਼ਾਸਤਰ ਵਿੱਚ ਅਵਸਰ ਲਾਗਤ ਕੀ ਹੈ?",
+                backText: """
+                ਇੱਕ ਵਿਕਲਪ ਚੁਣਨ ਵੇਲੇ ਛੱਡੇ ਗਏ ਸਭ ਤੋਂ ਵਧੀਆ ਬਦਲਵੇਂ ਵਿਕਲਪ ਦਾ ਮੁੱਲ।
+
+                ਇਮਤਿਹਾਨ ਦੀ ਉਦਾਹਰਨ: ਜੇ ਤੁਸੀਂ ਸ਼ਨੀਵਾਰ ਨੂੰ ਤਨਖ਼ਾਹ ਵਾਲੀ ਸ਼ਿਫ਼ਟ ਕਰਨ ਦੀ ਬਜਾਏ ਸੂਖਮ ਅਰਥਸ਼ਾਸਤਰ ਦੇ ਇਮਤਿਹਾਨ ਲਈ ਪੜ੍ਹਦੇ ਹੋ, ਤਾਂ ਗੁਆਈ ਤਨਖ਼ਾਹ ਅਵਸਰ ਲਾਗਤ ਦਾ ਹਿੱਸਾ ਹੈ।
+                """,
+                tags: ["ਅਰਥਸ਼ਾਸਤਰ"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "ਅਰਥਸ਼ਾਸਤਰ ਵਿੱਚ ਅਵਸਰ ਲਾਗਤ ਕੀ ਹੈ?",
+                    backText: "ਇੱਕ ਵਿਕਲਪ ਚੁਣਨ ਵੇਲੇ ਛੱਡੇ ਗਏ ਸਭ ਤੋਂ ਵਧੀਆ ਬਦਲਵੇਂ ਵਿਕਲਪ ਦਾ ਮੁੱਲ।",
+                    tags: ["ਅਰਥਸ਼ਾਸਤਰ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ਜੀਵ ਵਿਗਿਆਨ ਵਿੱਚ ਪਰਾਸਰਣ ਕੀ ਹੈ?",
+                    backText: "ਝਿੱਲੀ ਰਾਹੀਂ ਪਾਣੀ ਦਾ ਘੱਟ ਘੁਲਣਸ਼ੀਲ ਪਦਾਰਥ ਦੀ ਸੰਘਣਤਾ ਵਾਲੇ ਖੇਤਰ ਤੋਂ ਵੱਧ ਸੰਘਣਤਾ ਵਾਲੇ ਖੇਤਰ ਵੱਲ ਜਾਣਾ।",
+                    tags: ["ਜੀਵ ਵਿਗਿਆਨ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ਅੰਕੜਾ ਵਿਗਿਆਨ ਵਿੱਚ ਮਿਆਰੀ ਵਿਛਲਨ ਕੀ ਹੈ?",
+                    backText: "ਮੁੱਲ ਔਸਤ ਦੇ ਆਲੇ-ਦੁਆਲੇ ਕਿੰਨੇ ਖਿੰਡੇ ਹੋਏ ਹਨ, ਇਸ ਦਾ ਮਾਪ।",
+                    tags: ["ਅੰਕੜਾ ਵਿਗਿਆਨ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ਰਸਾਇਣ ਵਿਗਿਆਨ ਵਿੱਚ ਉਤਪ੍ਰੇਰਕ ਕੀ ਹੈ?",
+                    backText: "ਅਜਿਹਾ ਪਦਾਰਥ ਜੋ ਆਪ ਖ਼ਰਚ ਹੋਏ ਬਿਨਾਂ ਰਸਾਇਣਕ ਕਿਰਿਆ ਨੂੰ ਤੇਜ਼ ਕਰਦਾ ਹੈ।",
+                    tags: ["ਰਸਾਇਣ ਵਿਗਿਆਨ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ਮਨੋਵਿਗਿਆਨ ਵਿੱਚ ਬੋਧਾਤਮਕ ਪੱਖਪਾਤ ਕੀ ਹੈ?",
+                    backText: "ਸੋਚਣ ਦਾ ਇੱਕ ਨਿਯਮਤ ਢੰਗ ਜੋ ਪਰਖ ਅਤੇ ਫ਼ੈਸਲੇ ਲੈਣ ਨੂੰ ਵਿਗਾੜ ਸਕਦਾ ਹੈ।",
+                    tags: ["ਮਨੋਵਿਗਿਆਨ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ਭੌਤਿਕ ਵਿਗਿਆਨ ਵਿੱਚ ਵੇਗ ਕੀ ਹੈ?",
+                    backText: "ਕਿਸੇ ਵਸਤੂ ਦੀ ਚਾਲ ਅਤੇ ਉਸ ਦੀ ਗਤੀ ਦੀ ਦਿਸ਼ਾ ਦਾ ਸਾਂਝਾ ਮਾਪ।",
+                    tags: ["ਭੌਤਿਕ ਵਿਗਿਆਨ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ਕੰਪਿਊਟਰ ਵਿਗਿਆਨ ਵਿੱਚ ਰਿਕਰਸ਼ਨ ਕੀ ਹੈ?",
+                    backText: "ਅਜਿਹੀ ਵਿਧੀ ਜਿਸ ਵਿੱਚ ਇੱਕ ਫੰਕਸ਼ਨ ਉਸੇ ਸਮੱਸਿਆ ਦੇ ਛੋਟੇ ਰੂਪ ਹੱਲ ਕਰਨ ਲਈ ਆਪਣੇ ਆਪ ਨੂੰ ਸੱਦਦਾ ਹੈ।",
+                    tags: ["ਕੰਪਿਊਟਰ ਵਿਗਿਆਨ"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "pl",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Czym jest koszt alternatywny w ekonomii?",
+                backText: """
+                Wartością najlepszej alternatywy, z której rezygnujesz, wybierając inną możliwość.
+
+                Przykład egzaminacyjny: jeśli w sobotę uczysz się do egzaminu z mikroekonomii zamiast pracować na płatnej zmianie, utracone wynagrodzenie jest częścią kosztu alternatywnego.
+                """,
+                tags: ["ekonomia"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Czym jest koszt alternatywny w ekonomii?",
+                    backText: "Wartością najlepszej alternatywy, z której rezygnujesz, wybierając inną możliwość.",
+                    tags: ["ekonomia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Czym jest osmoza w biologii?",
+                    backText: "Przemieszczaniem się wody przez błonę z obszaru o niższym stężeniu substancji rozpuszczonych do obszaru o wyższym stężeniu.",
+                    tags: ["biologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Czym jest odchylenie standardowe w statystyce?",
+                    backText: "Miarą rozproszenia wartości wokół średniej.",
+                    tags: ["statystyka"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Czym jest katalizator w chemii?",
+                    backText: "Substancją, która przyspiesza reakcję chemiczną, nie zużywając się w jej trakcie.",
+                    tags: ["chemia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Czym jest błąd poznawczy w psychologii?",
+                    backText: "Systematycznym wzorcem myślenia, który może zniekształcać osąd i podejmowanie decyzji.",
+                    tags: ["psychologia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Czym jest prędkość wektorowa w fizyce?",
+                    backText: "Wielkością opisującą szybkość ruchu obiektu wraz z jego kierunkiem i zwrotem.",
+                    tags: ["fizyka"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Czym jest rekurencja w informatyce?",
+                    backText: "Metodą, w której funkcja rozwiązuje problem, wywołując samą siebie dla mniejszych wersji tego samego problemu.",
+                    tags: ["informatyka"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "ro",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "În economie, ce este costul de oportunitate?",
+                backText: """
+                Valoarea celei mai bune alternative la care renunți când alegi o altă opțiune.
+
+                Exemplu de examen: dacă îți petreci sâmbăta învățând pentru un examen de microeconomie în loc să lucrezi într-o tură plătită, salariul pierdut face parte din costul de oportunitate.
+                """,
+                tags: ["economie"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "În economie, ce este costul de oportunitate?",
+                    backText: "Valoarea celei mai bune alternative la care renunți când alegi o altă opțiune.",
+                    tags: ["economie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "În biologie, ce este osmoza?",
+                    backText: "Deplasarea apei printr-o membrană de la o concentrație mai mică de substanțe dizolvate la una mai mare.",
+                    tags: ["biologie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "În statistică, ce este abaterea standard?",
+                    backText: "O măsură a gradului de dispersie a valorilor în jurul mediei.",
+                    tags: ["statistică"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "În chimie, ce este un catalizator?",
+                    backText: "O substanță care accelerează o reacție chimică fără a fi consumată.",
+                    tags: ["chimie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "În psihologie, ce este o eroare cognitivă?",
+                    backText: "Un tipar sistematic de gândire care poate distorsiona judecata și luarea deciziilor.",
+                    tags: ["psihologie"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "În fizică, ce este viteza vectorială?",
+                    backText: "O mărime care descrie cât de repede se mișcă un obiect, împreună cu direcția și sensul mișcării.",
+                    tags: ["fizică"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "În informatică, ce este recursivitatea?",
+                    backText: "O metodă prin care o funcție rezolvă o problemă apelându-se pe sine pentru versiuni mai mici ale aceleiași probleme.",
+                    tags: ["informatică"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "sk",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Čo sú v ekonómii náklady obetovanej príležitosti?",
+                backText: """
+                Hodnota najlepšej alternatívy, ktorej sa vzdáte, keď si vyberiete inú možnosť.
+
+                Príklad na skúšku: ak v sobotu namiesto platenej zmeny študujete na skúšku z mikroekonómie, ušlá mzda je súčasťou nákladov obetovanej príležitosti.
+                """,
+                tags: ["ekonómia"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Čo sú v ekonómii náklady obetovanej príležitosti?",
+                    backText: "Hodnota najlepšej alternatívy, ktorej sa vzdáte, keď si vyberiete inú možnosť.",
+                    tags: ["ekonómia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Čo je v biológii osmóza?",
+                    backText: "Pohyb vody cez membránu z oblasti s nižšou koncentráciou rozpustených látok do oblasti s vyššou koncentráciou.",
+                    tags: ["biológia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Čo je v štatistike smerodajná odchýlka?",
+                    backText: "Miera toho, ako sú hodnoty rozptýlené okolo priemeru.",
+                    tags: ["štatistika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Čo je v chémii katalyzátor?",
+                    backText: "Látka, ktorá urýchľuje chemickú reakciu bez toho, aby sa pri nej spotrebovala.",
+                    tags: ["chémia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Čo je v psychológii kognitívne skreslenie?",
+                    backText: "Systematický vzorec myslenia, ktorý môže skresľovať úsudok a rozhodovanie.",
+                    tags: ["psychológia"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Čo je vo fyzike vektor rýchlosti?",
+                    backText: "Veličina, ktorá vyjadruje rýchlosť pohybu telesa aj jeho smer.",
+                    tags: ["fyzika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Čo je v informatike rekurzia?",
+                    backText: "Metóda, pri ktorej funkcia rieši problém volaním samej seba pre menšie verzie toho istého problému.",
+                    tags: ["informatika"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "sl",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Kaj so oportunitetni stroški v ekonomiji?",
+                backText: """
+                Vrednost najboljše alternative, ki se ji odpoveste, ko izberete drugo možnost.
+
+                Primer za izpit: če soboto namesto plačanemu delu namenite učenju za izpit iz mikroekonomije, je izgubljeni zaslužek del oportunitetnih stroškov.
+                """,
+                tags: ["ekonomija"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Kaj so oportunitetni stroški v ekonomiji?",
+                    backText: "Vrednost najboljše alternative, ki se ji odpoveste, ko izberete drugo možnost.",
+                    tags: ["ekonomija"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Kaj je osmoza v biologiji?",
+                    backText: "Prehajanje vode skozi membrano iz območja z nižjo koncentracijo raztopljenih snovi v območje z višjo koncentracijo.",
+                    tags: ["biologija"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Kaj je standardni odklon v statistiki?",
+                    backText: "Mera razpršenosti vrednosti okoli povprečja.",
+                    tags: ["statistika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Kaj je katalizator v kemiji?",
+                    backText: "Snov, ki pospeši kemijsko reakcijo, ne da bi se pri tem porabljala.",
+                    tags: ["kemija"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Kaj je kognitivna pristranskost v psihologiji?",
+                    backText: "Sistematičen vzorec razmišljanja, ki lahko izkrivlja presojo in odločanje.",
+                    tags: ["psihologija"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Kaj je vektor hitrosti v fiziki?",
+                    backText: "Količina, ki opisuje hitrost gibanja telesa in njegovo smer.",
+                    tags: ["fizika"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Kaj je rekurzija v računalništvu?",
+                    backText: "Metoda, pri kateri funkcija rešuje problem tako, da kliče samo sebe za manjše različice istega problema.",
+                    tags: ["računalništvo"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "sv",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Vad är alternativkostnad inom ekonomi?",
+                backText: """
+                Värdet av det bästa alternativet du avstår från när du väljer ett annat alternativ.
+
+                Exempel inför tentamen: Om du ägnar lördagen åt att plugga till en tenta i mikroekonomi i stället för att arbeta ett betalt pass, är den förlorade lönen en del av alternativkostnaden.
+                """,
+                tags: ["ekonomi"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Vad är alternativkostnad inom ekonomi?",
+                    backText: "Värdet av det bästa alternativet du avstår från när du väljer ett annat alternativ.",
+                    tags: ["ekonomi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Vad är osmos inom biologi?",
+                    backText: "Vattnets rörelse genom ett membran från lägre till högre koncentration av lösta ämnen.",
+                    tags: ["biologi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Vad är standardavvikelse inom statistik?",
+                    backText: "Ett mått på hur utspridda värdena är kring medelvärdet.",
+                    tags: ["statistik"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Vad är en katalysator inom kemi?",
+                    backText: "Ett ämne som påskyndar en kemisk reaktion utan att självt förbrukas.",
+                    tags: ["kemi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Vad är en kognitiv snedvridning inom psykologi?",
+                    backText: "Ett systematiskt tankemönster som kan förvränga omdömet och beslutsfattandet.",
+                    tags: ["psykologi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Vad är hastighet som vektor inom fysik?",
+                    backText: "Ett föremåls fart tillsammans med rörelsens riktning.",
+                    tags: ["fysik"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Vad är rekursion inom datavetenskap?",
+                    backText: "En metod där en funktion löser ett problem genom att anropa sig själv för mindre versioner av samma problem.",
+                    tags: ["datavetenskap"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "ta",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "பொருளியலில் வாய்ப்புச் செலவு என்றால் என்ன?",
+                backText: """
+                ஒரு விருப்பத்தைத் தேர்ந்தெடுக்கும்போது கைவிடும் சிறந்த மாற்று விருப்பத்தின் மதிப்பு.
+
+                தேர்வுக்கான எடுத்துக்காட்டு: சனிக்கிழமை ஊதியம் தரும் வேலைக்குச் செல்வதற்குப் பதிலாக நுண்பொருளியல் தேர்வுக்குப் படித்தால், இழந்த ஊதியம் வாய்ப்புச் செலவின் ஒரு பகுதியாகும்.
+                """,
+                tags: ["பொருளியல்"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "பொருளியலில் வாய்ப்புச் செலவு என்றால் என்ன?",
+                    backText: "ஒரு விருப்பத்தைத் தேர்ந்தெடுக்கும்போது கைவிடும் சிறந்த மாற்று விருப்பத்தின் மதிப்பு.",
+                    tags: ["பொருளியல்"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "உயிரியலில் சவ்வூடுபரவல் என்றால் என்ன?",
+                    backText: "கரைபொருளின் செறிவு குறைந்த பகுதியிலிருந்து அதிகமான பகுதிக்கு ஒரு சவ்வின் வழியாக நீர் நகர்வது.",
+                    tags: ["உயிரியல்"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "புள்ளியியலில் திட்ட விலக்கம் என்றால் என்ன?",
+                    backText: "மதிப்புகள் சராசரியைச் சுற்றி எவ்வளவு பரவியுள்ளன என்பதற்கான அளவீடு.",
+                    tags: ["புள்ளியியல்"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "வேதியியலில் வினையூக்கி என்றால் என்ன?",
+                    backText: "தான் செலவாகாமல் ஒரு வேதிவினையின் வேகத்தை அதிகரிக்கும் பொருள்.",
+                    tags: ["வேதியியல்"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "உளவியலில் அறிவுசார் சார்பு என்றால் என்ன?",
+                    backText: "மதிப்பீட்டையும் முடிவெடுப்பதையும் திரிக்கக்கூடிய முறையான சிந்தனைப் பாங்கு.",
+                    tags: ["உளவியல்"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "இயற்பியலில் திசைவேகம் என்றால் என்ன?",
+                    backText: "ஒரு பொருளின் இயக்கத் திசையுடன் கூடிய அதன் வேகம்.",
+                    tags: ["இயற்பியல்"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "கணினி அறிவியலில் தற்சுழற்சி என்றால் என்ன?",
+                    backText: "ஒரு சிக்கலின் சிறிய வடிவங்களைத் தீர்க்க ஒரு செயல்கூறு தன்னைத்தானே அழைக்கும் முறை.",
+                    tags: ["கணினி அறிவியல்"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "te",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "ఆర్థికశాస్త్రంలో అవకాశ వ్యయం అంటే ఏమిటి?",
+                backText: """
+                ఒక ఎంపికను చేసుకున్నప్పుడు వదులుకునే ఉత్తమ ప్రత్యామ్నాయం విలువ.
+
+                పరీక్ష ఉదాహరణ: శనివారం జీతం వచ్చే షిఫ్ట్‌లో పని చేయకుండా సూక్ష్మ ఆర్థికశాస్త్ర పరీక్ష కోసం చదివితే, కోల్పోయిన జీతం అవకాశ వ్యయంలో భాగం.
+                """,
+                tags: ["ఆర్థికశాస్త్రం"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "ఆర్థికశాస్త్రంలో అవకాశ వ్యయం అంటే ఏమిటి?",
+                    backText: "ఒక ఎంపికను చేసుకున్నప్పుడు వదులుకునే ఉత్తమ ప్రత్యామ్నాయం విలువ.",
+                    tags: ["ఆర్థికశాస్త్రం"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "జీవశాస్త్రంలో ద్రవాభిసరణం అంటే ఏమిటి?",
+                    backText: "ద్రావిత పదార్థ సాంద్రత తక్కువగా ఉన్న ప్రాంతం నుంచి ఎక్కువగా ఉన్న ప్రాంతానికి పొర ద్వారా నీరు కదలడం.",
+                    tags: ["జీవశాస్త్రం"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "గణాంకశాస్త్రంలో ప్రామాణిక విచలనం అంటే ఏమిటి?",
+                    backText: "విలువలు సగటు చుట్టూ ఎంతగా విస్తరించి ఉన్నాయో తెలిపే కొలత.",
+                    tags: ["గణాంకశాస్త్రం"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "రసాయనశాస్త్రంలో ఉత్ప్రేరకం అంటే ఏమిటి?",
+                    backText: "తాను ఖర్చు కాకుండా రసాయన చర్య వేగాన్ని పెంచే పదార్థం.",
+                    tags: ["రసాయనశాస్త్రం"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "మనోవిజ్ఞానశాస్త్రంలో అభిజ్ఞా పక్షపాతం అంటే ఏమిటి?",
+                    backText: "అంచనాలను, నిర్ణయాలను వక్రీకరించగల క్రమబద్ధమైన ఆలోచనా ధోరణి.",
+                    tags: ["మనోవిజ్ఞానశాస్త్రం"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "భౌతికశాస్త్రంలో వేగం అంటే ఏమిటి?",
+                    backText: "వస్తువు గమన దిశతో కూడిన దాని వడి.",
+                    tags: ["భౌతికశాస్త్రం"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "కంప్యూటర్ శాస్త్రంలో రికర్షన్ అంటే ఏమిటి?",
+                    backText: "ఒక ఫంక్షన్ అదే సమస్యలోని చిన్న రూపాలను పరిష్కరించడానికి తనను తానే పిలుచుకునే పద్ధతి.",
+                    tags: ["కంప్యూటర్ శాస్త్రం"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "th",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "ในวิชาเศรษฐศาสตร์ ต้นทุนค่าเสียโอกาสคืออะไร?",
+                backText: """
+                มูลค่าของทางเลือกที่ดีที่สุดที่คุณสละไปเมื่อเลือกอีกทางหนึ่ง
+
+                ตัวอย่างข้อสอบ: หากคุณใช้วันเสาร์อ่านหนังสือสอบเศรษฐศาสตร์จุลภาคแทนการทำงานเป็นกะที่ได้รับค่าจ้าง ค่าจ้างที่เสียไปเป็นส่วนหนึ่งของต้นทุนค่าเสียโอกาส
+                """,
+                tags: ["เศรษฐศาสตร์"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "ในวิชาเศรษฐศาสตร์ ต้นทุนค่าเสียโอกาสคืออะไร?",
+                    backText: "มูลค่าของทางเลือกที่ดีที่สุดที่คุณสละไปเมื่อเลือกอีกทางหนึ่ง",
+                    tags: ["เศรษฐศาสตร์"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ในวิชาชีววิทยา ออสโมซิสคืออะไร?",
+                    backText: "การเคลื่อนที่ของน้ำผ่านเยื่อจากบริเวณที่มีความเข้มข้นของตัวถูกละลายต่ำไปยังบริเวณที่มีความเข้มข้นสูง",
+                    tags: ["ชีววิทยา"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ในวิชาสถิติ ส่วนเบี่ยงเบนมาตรฐานคืออะไร?",
+                    backText: "ค่าที่วัดว่าข้อมูลกระจายตัวรอบค่าเฉลี่ยมากเพียงใด",
+                    tags: ["สถิติ"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ในวิชาเคมี ตัวเร่งปฏิกิริยาคืออะไร?",
+                    backText: "สารที่เพิ่มอัตราการเกิดปฏิกิริยาเคมีโดยไม่ถูกใช้หมดไปในปฏิกิริยา",
+                    tags: ["เคมี"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ในวิชาจิตวิทยา อคติทางความคิดคืออะไร?",
+                    backText: "รูปแบบการคิดอย่างเป็นระบบที่อาจบิดเบือนการใช้วิจารณญาณและการตัดสินใจ",
+                    tags: ["จิตวิทยา"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ในวิชาฟิสิกส์ ความเร็วคืออะไร?",
+                    backText: "อัตราเร็วของวัตถุพร้อมทิศทางการเคลื่อนที่",
+                    tags: ["ฟิสิกส์"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "ในวิชาวิทยาการคอมพิวเตอร์ การเรียกซ้ำคืออะไร?",
+                    backText: "วิธีที่ฟังก์ชันแก้ปัญหาโดยเรียกตัวเองเพื่อแก้ปัญหาแบบเดียวกันที่มีขนาดเล็กลง",
+                    tags: ["วิทยาการคอมพิวเตอร์"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "tr",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Ekonomide fırsat maliyeti nedir?",
+                backText: """
+                Bir seçeneği tercih ettiğinde vazgeçtiğin en iyi alternatifin değeridir.
+
+                Sınav örneği: Cumartesiyi ücretli bir vardiyada çalışmak yerine mikroekonomi sınavına hazırlanarak geçirirsen, kazanamadığın ücret fırsat maliyetinin bir parçasıdır.
+                """,
+                tags: ["ekonomi"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Ekonomide fırsat maliyeti nedir?",
+                    backText: "Bir seçeneği tercih ettiğinde vazgeçtiğin en iyi alternatifin değeridir.",
+                    tags: ["ekonomi"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Biyolojide ozmoz nedir?",
+                    backText: "Suyun bir zardan, çözünen madde derişiminin düşük olduğu bölgeden yüksek olduğu bölgeye geçmesidir.",
+                    tags: ["biyoloji"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "İstatistikte standart sapma nedir?",
+                    backText: "Değerlerin ortalama etrafında ne kadar yayıldığını gösteren bir ölçüdür.",
+                    tags: ["istatistik"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Kimyada katalizör nedir?",
+                    backText: "Kendisi tüketilmeden kimyasal bir tepkimeyi hızlandıran maddedir.",
+                    tags: ["kimya"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Psikolojide bilişsel yanlılık nedir?",
+                    backText: "Yargıları ve karar vermeyi çarpıtabilecek sistematik bir düşünme örüntüsüdür.",
+                    tags: ["psikoloji"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Fizikte hız nedir?",
+                    backText: "Bir cismin süratini ve hareket yönünü birlikte ifade eden büyüklüktür.",
+                    tags: ["fizik"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Bilgisayar biliminde özyineleme nedir?",
+                    backText: "Bir fonksiyonun, aynı problemin daha küçük biçimleri için kendisini çağırarak çözüm üretmesidir.",
+                    tags: ["bilgisayar bilimi"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "uk",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Що таке альтернативна вартість в економіці?",
+                backText: """
+                Цінність найкращого варіанта, від якого ви відмовляєтеся, обираючи інший.
+
+                Приклад для іспиту: якщо ви витрачаєте суботу на підготовку до іспиту з мікроекономіки замість оплачуваної зміни, втрачена зарплата є частиною альтернативної вартості.
+                """,
+                tags: ["економіка"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Що таке альтернативна вартість в економіці?",
+                    backText: "Цінність найкращого варіанта, від якого ви відмовляєтеся, обираючи інший.",
+                    tags: ["економіка"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Що таке осмос у біології?",
+                    backText: "Рух води крізь мембрану з ділянки з нижчою концентрацією розчинених речовин до ділянки з вищою концентрацією.",
+                    tags: ["біологія"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Що таке стандартне відхилення у статистиці?",
+                    backText: "Міра того, наскільки значення розкидані навколо середнього.",
+                    tags: ["статистика"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Що таке каталізатор у хімії?",
+                    backText: "Речовина, яка прискорює хімічну реакцію і при цьому не витрачається.",
+                    tags: ["хімія"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Що таке когнітивне упередження у психології?",
+                    backText: "Систематичний шаблон мислення, який може спотворювати судження та ухвалення рішень.",
+                    tags: ["психологія"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Що таке векторна швидкість у фізиці?",
+                    backText: "Величина, що описує швидкість руху об’єкта разом із напрямком його руху.",
+                    tags: ["фізика"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Що таке рекурсія в інформатиці?",
+                    backText: "Метод, за якого функція розв’язує задачу, викликаючи саму себе для менших версій тієї самої задачі.",
+                    tags: ["інформатика"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "ur",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "معاشیات میں موقعی لاگت کیا ہے؟",
+                backText: """
+                وہ بہترین متبادل جسے آپ کسی دوسرے انتخاب کی خاطر چھوڑ دیتے ہیں، اس کی قدر۔
+
+                امتحان کی مثال: اگر آپ ہفتے کے دن اجرت والی شفٹ میں کام کرنے کے بجائے خرد معاشیات کے امتحان کی تیاری کریں تو چھوٹ جانے والی اجرت موقعی لاگت کا حصہ ہے۔
+                """,
+                tags: ["معاشیات"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "معاشیات میں موقعی لاگت کیا ہے؟",
+                    backText: "وہ بہترین متبادل جسے آپ کسی دوسرے انتخاب کی خاطر چھوڑ دیتے ہیں، اس کی قدر۔",
+                    tags: ["معاشیات"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "حیاتیات میں اسموسس کیا ہے؟",
+                    backText: "جھلی کے پار پانی کی حرکت، حل شدہ مادے کے کم ارتکاز والے حصے سے زیادہ ارتکاز والے حصے کی طرف۔",
+                    tags: ["حیاتیات"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "شماریات میں معیاری انحراف کیا ہے؟",
+                    backText: "اس بات کی پیمائش کہ قدریں اوسط کے گرد کتنی پھیلی ہوئی ہیں۔",
+                    tags: ["شماریات"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "کیمیا میں عمل انگیز کیا ہے؟",
+                    backText: "ایسا مادہ جو خود صرف ہوئے بغیر کیمیائی تعامل کی رفتار بڑھاتا ہے۔",
+                    tags: ["کیمیا"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "نفسیات میں ادراکی تعصب کیا ہے؟",
+                    backText: "سوچ کا ایک منظم انداز جو رائے قائم کرنے اور فیصلے کرنے میں بگاڑ پیدا کر سکتا ہے۔",
+                    tags: ["نفسیات"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "طبیعیات میں سمتی رفتار کیا ہے؟",
+                    backText: "کسی جسم کی حرکت کی سمت کے ساتھ اس کی تیزی۔",
+                    tags: ["طبیعیات"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "کمپیوٹر سائنس میں ریکرشن کیا ہے؟",
+                    backText: "ایک طریقہ جس میں کوئی فنکشن اسی مسئلے کی چھوٹی صورتیں حل کرنے کے لیے خود کو بلاتا ہے۔",
+                    tags: ["کمپیوٹر سائنس"]
+                )
+            ]
+        ),
+        FlashcardsUITestMarketingLocaleFixture(
+            localizationCode: "vi",
+            reviewCard: FlashcardsUITestFixtureCard(
+                frontText: "Trong kinh tế học, chi phí cơ hội là gì?",
+                backText: """
+                Giá trị của phương án tốt nhất mà bạn từ bỏ khi chọn một phương án khác.
+
+                Ví dụ ôn thi: nếu bạn dành thứ Bảy để ôn thi kinh tế vi mô thay vì làm một ca có trả lương, khoản lương bị bỏ lỡ là một phần của chi phí cơ hội.
+                """,
+                tags: ["kinh tế học"]
+            ),
+            conceptCards: [
+                FlashcardsUITestFixtureCard(
+                    frontText: "Trong kinh tế học, chi phí cơ hội là gì?",
+                    backText: "Giá trị của phương án tốt nhất mà bạn từ bỏ khi chọn một phương án khác.",
+                    tags: ["kinh tế học"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Trong sinh học, thẩm thấu là gì?",
+                    backText: "Sự di chuyển của nước qua màng từ nơi có nồng độ chất tan thấp đến nơi có nồng độ chất tan cao.",
+                    tags: ["sinh học"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Trong thống kê, độ lệch chuẩn là gì?",
+                    backText: "Thước đo mức độ phân tán của các giá trị quanh giá trị trung bình.",
+                    tags: ["thống kê"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Trong hóa học, chất xúc tác là gì?",
+                    backText: "Chất làm tăng tốc độ phản ứng hóa học mà không bị tiêu hao trong phản ứng.",
+                    tags: ["hóa học"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Trong tâm lý học, thiên kiến nhận thức là gì?",
+                    backText: "Một kiểu tư duy có hệ thống có thể làm sai lệch phán đoán và việc ra quyết định.",
+                    tags: ["tâm lý học"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Trong vật lý, vận tốc là gì?",
+                    backText: "Đại lượng mô tả tốc độ của một vật cùng với hướng chuyển động của vật đó.",
+                    tags: ["vật lý"]
+                ),
+                FlashcardsUITestFixtureCard(
+                    frontText: "Trong khoa học máy tính, đệ quy là gì?",
+                    backText: "Phương pháp trong đó một hàm giải bài toán bằng cách tự gọi chính nó để giải các phiên bản nhỏ hơn của cùng bài toán.",
+                    tags: ["khoa học máy tính"]
                 )
             ]
         )
