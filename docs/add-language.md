@@ -152,8 +152,7 @@ do not classify every other language as April-era content.
 The remaining legacy Android sets to check are `en`, `ar`, `de-DE`, `es-ES`,
 `es-419`, `es-US`, `hi-IN`, `ja-JP`, `ru-RU`, and `zh-CN`. The committed English
 prefix is `en`; capturing `en-US` creates a second set instead of replacing it.
-The corresponding legacy iOS sets are `en-US`, `ar`, `de`, `es-ES`, `es-MX`,
-`hi`, `ja`, `ru`, and `zh-Hans`. Android's `es-US` has no iOS counterpart, so a
+Android's `es-US` has no iOS counterpart, so a
 regeneration pass driven by the iOS list alone misses it.
 
 Tell the two generations apart by the structure of the progress screen, the only
