@@ -50,6 +50,7 @@ Local Gradle, `xcodebuild`, simulator, and emulator runs are unrestricted, so ru
 Release and check workflows use independent AWS/web, Android, and iOS streams.
 Pull-request checks stay deliberately light and fast: do not add heavy mobile build or test jobs to pull-request workflows.
 Android jobs inside `.github/workflows/pr-checks.yml` are an accepted exception: build, unit tests, and lint run for every Android-impacting pull request, and the GitHub-hosted `data:local` emulator instrumentation runs only when the Android data layer or shared Android Gradle configuration changes. `Repository static checks` is the strict required aggregate PR gate; Firebase Test Lab stays out of pull requests.
+Auto-merge is enabled: when `main` moves faster than that strict up-to-date gate can settle, queue the merge with `gh pr merge --auto` instead of racing repeated branch updates, and still watch the post-merge deploy to completion.
 Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
