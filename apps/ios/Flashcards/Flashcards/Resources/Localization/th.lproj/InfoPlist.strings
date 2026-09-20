@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,แฟลชการ์ด,บัตรคำ,บัตรช่วยจำ";
+"NSCameraUsageDescription" = "อนุญาตให้ใช้กล้องเพื่อถ่ายภาพแนบในแชต AI";
+"NSMicrophoneUsageDescription" = "อนุญาตให้ใช้ไมโครโฟนเพื่อป้อนข้อความด้วยเสียงในแชต AI";
+"NSPhotoLibraryUsageDescription" = "อนุญาตให้เข้าถึงคลังรูปภาพเพื่อเลือกรูปภาพแนบในแชต AI";
