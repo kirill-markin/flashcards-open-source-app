@@ -18,58 +18,13 @@ The iOS app must follow Apple-native localization behavior:
 
 ## Supported App Locales
 
-The iOS app currently declares support for these Apple locale identifiers:
-
-- `en` as the development and source language
-- `ar`
-- `bg`
-- `bn`
-- `ca`
-- `cs`
-- `da`
-- `el`
-- `et`
-- `fa`
-- `fi`
-- `gu`
-- `he`
-- `hr`
-- `hu`
-- `id`
-- `is`
-- `it`
-- `kn`
-- `ko`
-- `lt`
-- `lv`
-- `ml`
-- `mr`
-- `nb`
-- `nl`
-- `pa`
-- `pl`
-- `ro`
-- `sk`
-- `sl`
-- `sv`
-- `sw`
-- `ta`
-- `te`
-- `th`
-- `tr`
-- `uk`
-- `ur`
-- `vi`
-- `zu`
-- `zh-Hans`
-- `de`
-- `fr`
-- `hi`
-- `ja`
-- `pt-BR`
-- `ru`
-- `es-MX`
-- `es-ES`
+The current bundle declares 50 locales across 49 languages, including English.
+The exact app locale inventory is `CFBundleLocalizations` in
+[Info.plist](../apps/ios/Flashcards/Config/Info.plist); the required translated set
+is `REQUIRED_LOCALES` in the
+[parity checker](../scripts/checks/pr/check-ios-localization-parity.mjs), excluding
+English and Xcode's `Base` pseudo-region. Keep these aligned with `knownRegions`.
+For release-note ordering, follow the bundle array in `Info.plist`.
 
 Do not register or ship generic `es` for app localization.
 Spanish support is split explicitly between `es-MX` and `es-ES`.
@@ -96,7 +51,9 @@ The iOS client currently uses three localization buckets plus localized `InfoPli
 - `apps/ios/Flashcards/Flashcards/Resources/Localization/<locale>.lproj/InfoPlist.strings`
   Localized permission prompts, localized Spotlight keywords, and any future localized Info.plist-facing copy.
 
-English remains the development language.
+English remains the development language. Every supported non-English locale
+needs real translations; do not fill missing copy with silent English defaults.
+Preserved names and technical values follow the rules below.
 For Spanish, supported app locales must use `es-MX.lproj` and `es-ES.lproj`; generic `es.lproj` is legacy migration material only and must not be treated as a supported app locale.
 
 ## Source Of Truth
@@ -111,7 +68,8 @@ When adding a new language, check all of these places:
 6. `<language>.lproj/AISettings.strings`
 7. `<language>.lproj/InfoPlist.strings`
 8. The supported-languages list in [LanguageSettingsView.swift](../apps/ios/Flashcards/Flashcards/Settings/LanguageSettingsView.swift)
-9. Any new user-facing strings introduced in Swift files during the same change
+9. `REQUIRED_LOCALES` in the [parity checker](../scripts/checks/pr/check-ios-localization-parity.mjs)
+10. Any new user-facing strings introduced in Swift files during the same change
 
 If one of these is skipped, the new language can look partially translated even if most screens appear correct.
 
@@ -144,6 +102,8 @@ Update [project.pbxproj](../apps/ios/Flashcards/Flashcards%20Open%20Source%20App
 
 - add the locale to `knownRegions`
 - keep `developmentRegion = en`
+- add the locale to `REQUIRED_LOCALES` in the parity checker in the same change;
+  CI rejects drift from `knownRegions` after excluding `en` and `Base`
 
 Do not change the development language unless there is an explicit product decision to move the app’s source language away from English.
 
@@ -171,6 +131,10 @@ Create a new file:
 - `apps/ios/Flashcards/Flashcards/Resources/Localization/<locale>.lproj/InfoPlist.strings`
 
 Translate every key already present in the existing English file and every key required by the current supported locale set.
+The app target owns the `Flashcards` filesystem-synchronized group in
+`project.pbxproj`; Xcode discovers the `.lproj` resources under that group. Keep
+the new file under `Resources/Localization/<locale>.lproj/` rather than adding
+manual resource-build-phase or variant-group entries.
 Do not add new generic `es.lproj` app resources. Spanish resource files must use `es-MX.lproj` or `es-ES.lproj`.
 
 At minimum, keep these aligned:
@@ -271,7 +235,11 @@ When adding a new language, review these support-heavy areas explicitly:
 - [apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift](../apps/ios/Flashcards/Flashcards/AI/Runtime/AIChatVoiceDictation.swift)
 - [apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift](../apps/ios/Flashcards/Flashcards/AI/Support/AIChatAttachmentSupport.swift)
 
-These are easy to forget because they are not all top-level screens.
+Also inspect labels assembled by Swift helpers, such as the AI attached-card
+chip in [AIChatCardContext.swift](../apps/ios/Flashcards/Flashcards/AI/Support/AIChatCardContext.swift).
+Catalog parity cannot find a user-facing literal that never entered a catalog.
+Check these labels in the new locale while preserving the attached card's user
+content.
 
 ### 11. Keep new user-facing strings in the right bucket
 
@@ -295,6 +263,23 @@ These should usually remain as-is:
 - enum raw values that are part of app logic or protocols
 
 Localize the user-facing labels around them, not the technical values themselves.
+Preserve the bootstrap workspace name `Personal` when copy refers to that exact
+workspace. Preserve executable ASCII confirmation phrases such as
+`delete my account` and `delete workspace`, and any `preview.confirmationText`
+received from the backend; the confirmation views compare those values exactly.
+Keep the scheduler input example `0.90` compatible with its parser.
+
+Preserve format specifiers and unnumbered printf argument order. Inspect each
+count caller before choosing wording: flat `.strings` helpers may select only
+`one`/`other`, or use one format for every count. Use natural count-neutral copy
+when that contract cannot express a language's plural rules; do not assume
+`.xcstrings` plural support applies to those helpers.
+
+Review translations by key and UI context. Navigation Back and a card's back,
+review and preview, and reset and recovery can require different words despite
+shared English fragments. Preserve negation in empty states. For RTL layouts,
+check physical directions against actual placement such as `topBarLeading`, or
+use direction-neutral descriptions.
 
 ### 13. Keep smoke tests deterministic
 
@@ -309,27 +294,33 @@ That means:
 - if you add a dedicated test for the new locale, do it explicitly and separately
 
 Do not remove the forced-English smoke launch behavior unless there is a deliberate decision to migrate smoke tests away from visible English labels.
+For locale-specific captures, select controls through stable accessibility IDs
+and assert the intended content without assuming English label prefixes. Follow
+[the screenshot runbook](../apps/ios/docs/marketing-screenshots.md) for capture
+assertions and visual review.
 
 ## Verification Checklist
 
-Run this checklist every time you add a new language.
+Use this checklist every time you add a new language. Follow the repository
+workflow for where checks run; PR cloud CI owns static validation, and local
+capture/build execution follows the task's authorization.
 
 ### Resource validation
 
-- `jq empty apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings`
-- `jq empty apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings`
-- `plutil -lint apps/ios/Flashcards/Flashcards/Resources/Localization/<locale>.lproj/InfoPlist.strings`
-- `plutil -lint apps/ios/Flashcards/Flashcards/<locale>.lproj/AISettings.strings`
-- `plutil -lint apps/ios/Flashcards/Config/Info.plist`
-- `rg -n 'knownRegions|developmentRegion' "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj/project.pbxproj"`
+The [parity checker](../scripts/checks/pr/check-ios-localization-parity.mjs) runs
+in PR `Repository static validation`, enforced by the required `Repository
+static checks` aggregate. It checks `knownRegions` parity, required `.strings`
+files and matching key sets, and nonempty `translated` units for every required
+locale in translatable `.xcstrings` entries, including nested variants. English
+is the source language and is optional in this check.
 
-If you want to validate the string catalog more directly:
-
-- `xcrun xcstringstool compile --dry-run --output-directory /tmp/ios-localization-check apps/ios/Flashcards/Flashcards/Resources/Localization/Foundation.xcstrings`
+A green parity check does not prove translation quality, placeholder correctness,
+or that flat `.strings` values contain real translations. Review those in context
+and confirm resource bundling in the built app.
 
 ### Bundle/build validation
 
-Preferred build check:
+For an authorized local build check:
 
 ```bash
 xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
@@ -340,12 +331,12 @@ xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
   build
 ```
 
-Then confirm the built app bundle contains the new language resources:
-
-- `<locale>.lproj/Foundation.strings`
-- `<locale>.lproj/ReviewCards.strings` if emitted
-- `<locale>.lproj/InfoPlist.strings`
-- `<locale>.lproj/AISettings.strings` if copied as a plain `.strings` table
+Inspect the built app, not only source registration. Its development region must
+remain `en`, with all 50 `CFBundleLocalizations` and matching `.lproj` directories.
+Each locale must contain `Foundation.strings`, `ReviewCards.strings`, and
+`InfoPlist.strings`; all 49 non-English locales must also contain
+`AISettings.strings`. Catalog plural variants can additionally emit
+`ReviewCards.stringsdict`. Apply the same checks to every newly added locale.
 
 ### Manual runtime validation
 
@@ -354,12 +345,21 @@ Check all of these on a simulator or device:
 1. Launch with the new app language selected in iOS Settings
 2. Review tab
 3. Cards tab
-4. AI tab
+4. AI tab, including a card attached from Review and its localized chip label.
+   Use long translated labels and long user content on iPhone and iPad, including
+   RTL: keep the chip and Remove control inside the viewport and removal usable.
+   Constrain visual presentation without shortening stored or accessible content.
 5. Settings tab
 6. Account and Workspace nested screens
 7. At least one error path in Cloud sign-in
 8. At least one AI error path if practical
 9. Permission prompt copy for camera, photos, and microphone
+10. Localized names in the Supported Languages list and RTL placement where applicable
+11. [Auth sign-in and OAuth consent](add-language.md#auth-and-backend-dependencies)
+
+After the localized binary is released, verify the public App Store Languages
+list against that released bundle. Adding Store metadata alone does not prove
+that its binary advertises those languages.
 
 ### Search-based audit
 
@@ -390,7 +390,7 @@ These are the mistakes most likely to cause a partial localization:
 
 For the iOS client, adding a new language is not complete until all of the following are true:
 
-- the locale is registered in the Xcode project
+- the locale is registered in the Xcode project and parity checker
 - the locale is declared in `CFBundleLocalizations`
 - `InfoPlist.strings` exists for that locale
 - `Foundation.xcstrings` contains that locale
