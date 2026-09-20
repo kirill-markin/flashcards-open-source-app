@@ -84,6 +84,11 @@ type AnalyticsFilterBarProps = Readonly<{
    * disabled by it: every other control stays live, because a click during a reload supersedes it.
    */
   isReportLoading: boolean;
+  /**
+   * The rejection of a requested range, and only that: it belongs beside the control that raised it.
+   * A failed reload is not shown here, because an open popover hangs over this line; it goes to the
+   * dashboard's sticky banner instead.
+   */
   dateRangeError: string;
   /** Every country the range can offer, from the same range-scoped options query as `userOptions`. */
   connectionCountryOptions: ReadonlyArray<string>;
