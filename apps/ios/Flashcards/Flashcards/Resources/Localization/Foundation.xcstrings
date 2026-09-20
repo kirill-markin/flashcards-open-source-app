@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮੁਕੰਮਲ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gata"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -223,6 +241,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਹ ਪਹੁੰਚ ਬੰਦ ਕਰਨ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Ustawienia, jeśli chcesz wyłączyć ten dostęp."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deschide Configurări dacă vrei să dezactivezi acest acces."
           }
         },
         "mr" : {
@@ -440,6 +476,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਹੁਣੇ ਪਹੁੰਚ ਮੰਗੋ ਜਾਂ ਇਸਨੂੰ ਖੁਦ ਸੰਭਾਲਣ ਲਈ ਬਾਅਦ ਵਿੱਚ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poproś o dostęp teraz lub otwórz Ustawienia później, aby zarządzać nim ręcznie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicită acces acum sau deschide Configurări mai târziu pentru a-l gestiona manual."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -653,6 +707,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਕੈਮਰੇ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਕੈਮਰਾ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do aparatu jest wyłączony dla Nibomo. Aby to zmienić, otwórz Ustawienia > Prywatność i ochrona > Aparat."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la cameră este dezactivat pentru Nibomo. Deschide Configurări > Intimitate și securitate > Cameră pentru a-l modifica."
           }
         },
         "mr" : {
@@ -870,6 +942,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਸ ਪਹੁੰਚ ਨੂੰ ਦੇਖਣ ਜਾਂ ਵਧਾਉਣ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Ustawienia, aby sprawdzić lub rozszerzyć ten dostęp."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deschide Configurări pentru a verifica sau extinde acest acces."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1083,6 +1173,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do mikrofonu jest wyłączony dla Nibomo. Aby to zmienić, otwórz Ustawienia > Prywatność i ochrona > Mikrofon."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la microfon este dezactivat pentru Nibomo. Deschide Configurări > Intimitate și securitate > Microfon pentru a-l modifica."
           }
         },
         "mr" : {
@@ -1300,6 +1408,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਫ਼ੋਟੋਆਂ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਫ਼ੋਟੋਆਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do zdjęć jest wyłączony dla Nibomo. Aby to zmienić, otwórz Ustawienia > Prywatność i ochrona > Zdjęcia."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la poze este dezactivat pentru Nibomo. Deschide Configurări > Intimitate și securitate > Poze pentru a-l modifica."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1513,6 +1639,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਿਰਫ਼ ਉਹ ਫ਼ੋਟੋਆਂ ਉਪਲਬਧ ਹਨ ਜੋ ਤੁਸੀਂ ਪਹਿਲਾਂ Nibomo ਨਾਲ ਸਾਂਝੀਆਂ ਕੀਤੀਆਂ ਹਨ। ਹੋਰ ਫ਼ੋਟੋਆਂ ਦੀ ਪਹੁੰਚ ਦੇਣ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostępne są tylko zdjęcia już udostępnione Nibomo. Otwórz Ustawienia, aby udzielić szerszego dostępu do zdjęć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sunt disponibile doar pozele deja partajate cu Nibomo. Deschide Configurări pentru a permite accesul la mai multe poze."
           }
         },
         "mr" : {
@@ -1730,6 +1874,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਇਹ ਪਹੁੰਚ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten dostęp jest niedostępny na tym urządzeniu."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acest acces nu este disponibil pe dispozitivul actual."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1943,6 +2105,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮਨਜ਼ੂਰ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dozwolony"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permis"
           }
         },
         "mr" : {
@@ -2160,6 +2340,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਹਰ ਵਾਰ ਪੁੱਛੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pytaj za każdym razem"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Întreabă de fiecare dată"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2373,6 +2571,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬਲੌਕ ਕੀਤਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zablokowany"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocat"
           }
         },
         "mr" : {
@@ -2590,6 +2806,24 @@
             "value" : "محدود"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸੀਮਿਤ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ograniczony"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitat"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2803,6 +3037,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਉਪਲਬਧ ਨਹੀਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niedostępny"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indisponibil"
           }
         },
         "mr" : {
@@ -3020,6 +3272,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ਚੈਟ ਤੋਂ ਸਿੱਧੀਆਂ ਫ਼ੋਟੋਆਂ ਖਿੱਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rób zdjęcia bezpośrednio w czacie AI."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fă poze direct din chatul AI."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3233,6 +3503,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੈਮਰਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aparat"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cameră"
           }
         },
         "mr" : {
@@ -3450,6 +3738,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ਚੈਟ ਵਿੱਚ ਬੋਲ ਕੇ ਲਿਖੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dyktuj tekst w czacie AI."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictează text în chatul AI."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3663,6 +3969,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮਾਈਕ੍ਰੋਫ਼ੋਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfon"
           }
         },
         "mr" : {
@@ -3880,6 +4204,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ਚੈਟ ਨਾਲ ਨੱਥੀ ਕਰਨ ਲਈ ਫ਼ੋਟੋਆਂ ਚੁਣੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybieraj zdjęcia jako załączniki w czacie AI."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alege poze pentru atașamentele din chatul AI."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4093,6 +4435,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਫ਼ੋਟੋਆਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zdjęcia"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poze"
           }
         },
         "mr" : {
@@ -4310,6 +4670,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਮਨਜ਼ੂਰੀ ਦੇਣ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do mikrofonu jest wyłączony dla Nibomo. Otwórz Ustawienia, aby go włączyć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la microfon este dezactivat pentru Nibomo. Deschide Configurări pentru a-l permite."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4523,6 +4901,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਦੀ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebny dostęp do mikrofonu"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este necesar accesul la microfon"
           }
         },
         "mr" : {
@@ -4740,6 +5136,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਕੈਮਰੇ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਮਨਜ਼ੂਰੀ ਦੇਣ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do aparatu jest wyłączony dla Nibomo. Otwórz Ustawienia, aby go włączyć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la cameră este dezactivat pentru Nibomo. Deschide Configurări pentru a-l permite."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4953,6 +5367,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੈਮਰੇ ਦੀ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebny dostęp do aparatu"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este necesar accesul la cameră"
           }
         },
         "mr" : {
@@ -5170,6 +5602,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਫ਼ਾਈਲਾਂ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਮਨਜ਼ੂਰੀ ਦੇਣ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do plików jest wyłączony dla Nibomo. Otwórz Ustawienia, aby go włączyć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la fișiere este dezactivat pentru Nibomo. Deschide Configurări pentru a-l permite."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5383,6 +5833,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਫ਼ਾਈਲਾਂ ਦੀ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebny dostęp do plików"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este necesar accesul la fișiere"
           }
         },
         "mr" : {
@@ -5600,6 +6068,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਫ਼ੋਟੋਆਂ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਮਨਜ਼ੂਰੀ ਦੇਣ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do zdjęć jest wyłączony dla Nibomo. Otwórz Ustawienia, aby go włączyć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la poze este dezactivat pentru Nibomo. Deschide Configurări pentru a-l permite."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5813,6 +6299,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਫ਼ੋਟੋਆਂ ਦੀ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Potrzebny dostęp do zdjęć"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este necesar accesul la poze"
           }
         },
         "mr" : {
@@ -6030,6 +6534,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਾਰੇ ਕਾਰਡ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystkie fiszki"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toate fișele"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6243,6 +6765,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕਨੈਕਸ਼ਨ ਟੁੱਟਿਆ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozłączono"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deconectat"
           }
         },
         "mr" : {
@@ -6460,6 +7000,24 @@
             "value" : "ضيف"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮਹਿਮਾਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gość"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vizitator"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6673,6 +7231,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲਿੰਕ ਹੋਇਆ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połączono"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asociat"
           }
         },
         "mr" : {
@@ -6890,6 +7466,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲਿੰਕ ਕਰਨ ਲਈ ਤਿਆਰ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe do połączenia"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pregătit pentru asociere"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7103,6 +7697,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕਲਾਊਡ ਵਿੱਚ ਸਾਈਨ ਇਨ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਐਪ ਦੀ ਸੰਰਚਨਾ ਜਾਂਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logowanie do chmury jest niedostępne. Sprawdź konfigurację aplikacji."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autentificarea în cloud nu este disponibilă. Verifică configurația aplicației."
           }
         },
         "mr" : {
@@ -7320,6 +7932,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇੱਕ ਵੈਧ ਈਮੇਲ ਪਤਾ ਦਾਖ਼ਲ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisz prawidłowy adres e-mail."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introdu o adresă de e-mail validă."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7533,6 +8163,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੋਡ ਪਹਿਲਾਂ ਵਰਤਿਆ ਜਾ ਚੁੱਕਾ ਹੈ। ਨਵਾਂ ਕੋਡ ਮੰਗੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kod został już użyty. Poproś o nowy."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codul a fost deja folosit. Solicită unul nou."
           }
         },
         "mr" : {
@@ -7750,6 +8398,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੋਡ ਗਲਤ ਹੈ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kod jest nieprawidłowy. Spróbuj ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codul nu este valid. Încearcă din nou."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7963,6 +8629,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੋਡ ਭੇਜਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wysłać kodu. Spróbuj ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codul nu a putut fi trimis. Încearcă din nou."
           }
         },
         "mr" : {
@@ -8180,6 +8864,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੋਡ ਦੀ ਮਿਆਦ ਪੁੱਗ ਗਈ ਹੈ। ਨਵਾਂ ਕੋਡ ਮੰਗੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kod wygasł. Poproś o nowy."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codul a expirat. Solicită unul nou."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8393,6 +9095,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬਹੁਤ ਜ਼ਿਆਦਾ ਕੋਸ਼ਿਸ਼ਾਂ ਹੋ ਗਈਆਂ ਹਨ। ਨਵਾਂ ਕੋਡ ਮੰਗੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zbyt wiele prób. Poproś o nowy kod."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prea multe încercări. Solicită un cod nou."
           }
         },
         "mr" : {
@@ -8610,6 +9330,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੋਡ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋ ਸਕੀ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się zweryfikować kodu. Spróbuj ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codul nu a putut fi verificat. Încearcă din nou."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8823,6 +9561,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕਲਾਊਡ ਵਿੱਚ ਸਾਈਨ ਇਨ ਅਸਫਲ ਰਿਹਾ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logowanie do chmury nie powiodło się. Spróbuj ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autentificarea în cloud a eșuat. Încearcă din nou."
           }
         },
         "mr" : {
@@ -9040,6 +9796,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੋਡ ਭੇਜਣ ਵੇਲੇ ਕਨੈਕਸ਼ਨ ਟੁੱਟ ਗਿਆ। ਆਪਣੀ ਈਮੇਲ ਦੇਖੋ, ਫਿਰ ਲੋੜ ਪੈਣ ਉੱਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połączenie zostało przerwane podczas wysyłania kodu. Sprawdź pocztę i w razie potrzeby spróbuj ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conexiunea s-a întrerupt în timpul trimiterii codului. Verifică e-mailul, apoi încearcă din nou dacă este necesar."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9253,6 +10027,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੋਡ ਦੀ ਪੁਸ਼ਟੀ ਵੇਲੇ ਕਨੈਕਸ਼ਨ ਟੁੱਟ ਗਿਆ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਲੋੜ ਪੈਣ ਉੱਤੇ ਨਵਾਂ ਕੋਡ ਮੰਗੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połączenie zostało przerwane podczas weryfikacji kodu. Spróbuj ponownie lub w razie potrzeby poproś o nowy kod."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conexiunea s-a întrerupt în timpul verificării codului. Încearcă din nou sau solicită un cod nou dacă este necesar."
           }
         },
         "mr" : {
@@ -9470,6 +10262,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਤਾਜ਼ਾ ਨਹੀਂ ਹੋ ਸਕੀ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਲਈ ਹੇਠਾਂ ਖਿੱਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się odświeżyć rankingu ocen. Pociągnij w dół, aby spróbować ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasamentul evaluărilor nu a putut fi actualizat. Trage în jos pentru a reîncerca."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9683,6 +10493,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਹਰਾਈ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ ਤਾਜ਼ਾ ਨਹੀਂ ਹੋ ਸਕੀ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਲਈ ਹੇਠਾਂ ਖਿੱਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się odświeżyć harmonogramu powtórek. Pociągnij w dół, aby spróbować ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Programul recapitulărilor nu a putut fi actualizat. Trage în jos pentru a reîncerca."
           }
         },
         "mr" : {
@@ -9900,6 +10728,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਹਰਾਈ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ ਦਿਖਾਈ ਨਹੀਂ ਜਾ ਸਕੀ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਲਈ ਹੇਠਾਂ ਖਿੱਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wyświetlić harmonogramu powtórek. Pociągnij w dół, aby spróbować ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Programul recapitulărilor nu a putut fi afișat. Trage în jos pentru a reîncerca."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10113,6 +10959,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਰੱਕੀ ਦਾ ਚਾਰਟ ਤਾਜ਼ਾ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਲਈ ਹੇਠਾਂ ਖਿੱਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się odświeżyć wykresu postępów. Pociągnij w dół, aby spróbować ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Graficul progresului nu a putut fi actualizat. Trage în jos pentru a reîncerca."
           }
         },
         "mr" : {
@@ -10330,6 +11194,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲਗਾਤਾਰ ਦਿਨਾਂ ਦੀ ਦਰਜਾਬੰਦੀ ਤਾਜ਼ਾ ਨਹੀਂ ਹੋ ਸਕੀ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਲਈ ਹੇਠਾਂ ਖਿੱਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się odświeżyć rankingu serii. Pociągnij w dół, aby spróbować ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasamentul seriilor nu a putut fi actualizat. Trage în jos pentru a reîncerca."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10543,6 +11425,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਰੱਕੀ ਦਾ ਸਾਰ ਤਾਜ਼ਾ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਮੁੜ ਕੋਸ਼ਿਸ਼ ਲਈ ਹੇਠਾਂ ਖਿੱਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się odświeżyć podsumowania postępów. Pociągnij w dół, aby spróbować ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rezumatul progresului nu a putut fi actualizat. Trage în jos pentru a reîncerca."
           }
         },
         "mr" : {
@@ -10760,6 +11660,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਰੱਕੀ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਤਾਜ਼ਾ ਕਰਨ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਲਈ ਹੇਠਾਂ ਖਿੱਚੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postępy są niedostępne. Pociągnij w dół, aby odświeżyć i spróbować ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progresul nu este disponibil. Trage în jos pentru a actualiza și a reîncerca."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10973,6 +11891,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਫ੍ਰੀਜ਼ ਭੰਡਾਰ: %@ ਉਪਲਬਧ, ਕੁੱਲ %@।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bank zamrożeń: %@ z %@ dostępnych."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rezerva de înghețări: %@ din %@ disponibile."
           }
         },
         "mr" : {
@@ -11190,6 +12126,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦਿਖਾਉਂਦਾ ਹੈ ਕਿ ਲਗਾਤਾਰ ਦਿਨਾਂ ਦੀ ਲੜੀ ਦੇ ਫ੍ਰੀਜ਼ ਕਿਵੇਂ ਕੰਮ ਕਰਦੇ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyjaśnia działanie zamrożeń serii."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arată cum funcționează înghețările seriei."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11403,6 +12357,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਉਪਲਬਧ: %@/%@। ਮੁੜ ਭਰਾਈ: %@/%@। ਫ੍ਰੀਜ਼ ਛੁੱਟੇ ਦਿਨਾਂ ਦੀ ਰੱਖਿਆ ਕਰਦੇ ਹਨ ਅਤੇ ਲੜੀ ਜਾਰੀ ਰਹਿਣ ਨਾਲ ਮੁੜ ਭਰਦੇ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostępne: %@/%@. Odnowienie: %@/%@. Zamrożenia chronią pominięte dni i odnawiają się, gdy kontynuujesz serię."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibile: %@/%@. Reîncărcare: %@/%@. Înghețările protejează zilele ratate și se reîncarcă pe măsură ce seria continuă."
           }
         },
         "mr" : {
@@ -11620,6 +12592,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲੜੀ ਦੇ ਫ੍ਰੀਜ਼"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamrożenia serii"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Înghețările seriei"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11833,6 +12823,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲਿੰਕ ਬਣਾਓ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utwórz link"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creează link"
           }
         },
         "mr" : {
@@ -12050,6 +13058,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਉਹ ਇਸਨੂੰ ਖੋਲ੍ਹ ਕੇ ਸਾਈਨ ਇਨ ਜਾਂ ਸਾਈਨ ਅੱਪ ਕਰ ਸਕਦੇ ਹਨ, ਫਿਰ ਤੁਸੀਂ ਐਪ ਵਿੱਚ ਇੱਕ-ਦੂਜੇ ਨੂੰ ਵੇਖੋਗੇ। ਸੱਦੇ ਦੇ ਲਿੰਕ 2 ਦਿਨਾਂ ਵਿੱਚ ਮਿਆਦ ਪੁਗਾਉਂਦੇ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znajomy może otworzyć link i zalogować się lub zarejestrować. Wtedy zobaczycie się nawzajem w aplikacji. Linki zaproszeń wygasają po 2 dniach."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poate deschide linkul și se poate autentifica sau înregistra, apoi vă veți vedea reciproc în aplicație. Linkurile de invitație expiră în 2 zile."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12263,6 +13289,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਹ ਲਿੰਕ ਆਪਣੇ ਦੋਸਤ ਨੂੰ ਭੇਜੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyślij ten link znajomemu"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trimite acest link unui prieten"
           }
         },
         "mr" : {
@@ -12480,6 +13524,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬਣਾਇਆ ਜਾ ਰਿਹਾ ਹੈ..."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tworzenie..."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se creează..."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12693,6 +13755,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦਰਜਾਬੰਦੀ ਲਈ ਦੋਸਤ ਦਾ ਨਿੱਜੀ ਲਿੰਕ ਬਣਾਓ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utwórz prywatny link dla znajomego do rankingu."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creează un link privat pentru un prieten în clasament."
           }
         },
         "mr" : {
@@ -12910,6 +13990,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਆਪਣੀ ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਇਹ ਨਾਮ ਸਿਰਫ਼ ਤੁਹਾਨੂੰ ਦਿਸਦਾ ਹੈ। ਸੱਦਾ ਮੰਨਣ ਵੇਲੇ ਤੁਹਾਡਾ ਦੋਸਤ ਤੁਹਾਡੇ ਲਈ ਨਾਮ ਚੁਣਦਾ ਹੈ। ਸੱਦੇ ਦੇ ਲਿੰਕ 2 ਦਿਨਾਂ ਵਿੱਚ ਮਿਆਦ ਪੁਗਾਉਂਦੇ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tylko Ty widzisz tę nazwę w swoim rankingu. Znajomy wybierze nazwę dla Ciebie, gdy przyjmie zaproszenie. Linki zaproszeń wygasają po 2 dniach."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doar tu vezi acest nume în clasamentul tău. Prietenul alege cum să te numească la acceptare. Linkurile de invitație expiră în 2 zile."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13123,6 +14221,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤੁਹਾਡੀ ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਦੋਸਤ ਦਾ ਨਾਮ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa znajomego w Twoim rankingu"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numele prietenului în clasamentul tău"
           }
         },
         "mr" : {
@@ -13340,6 +14456,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤੁਹਾਡੇ ਦੋਸਤ ਦਾ ਨਾਮ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nazwa znajomego"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numele prietenului tău"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13553,6 +14687,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮੁਕੰਮਲ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gata"
           }
         },
         "mr" : {
@@ -13770,6 +14922,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸੱਦੇ ਦਾ ਲਿੰਕ ਭੇਜੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyślij link zaproszenia"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trimite linkul de invitație"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13983,6 +15153,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਹ Nibomo ਸੱਦਾ ਖੋਲ੍ਹੋ, ਸਾਈਨ ਇਨ ਜਾਂ ਸਾਈਨ ਅੱਪ ਕਰੋ ਅਤੇ ਅਸੀਂ ਐਪ ਵਿੱਚ ਇੱਕ-ਦੂਜੇ ਨੂੰ ਵੇਖਾਂਗੇ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz to zaproszenie do Nibomo, zaloguj się lub zarejestruj, a zobaczymy się w aplikacji."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deschide această invitație Nibomo, autentifică-te sau înregistrează-te și ne vom vedea în aplicație."
           }
         },
         "mr" : {
@@ -14200,6 +15388,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਦੋਸਤ ਸੱਦਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaproszenie do znajomych w Nibomo"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitație de prietenie Nibomo"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14413,6 +15619,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੋਸਤ ਸ਼ਾਮਲ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj znajomego"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaugă un prieten"
           }
         },
         "mr" : {
@@ -14630,6 +15854,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਨਵੀਆਂ ਲਾਈਨਾਂ ਅਤੇ ਕੰਟਰੋਲ ਅੱਖਰ ਮਨਜ਼ੂਰ ਨਹੀਂ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znaki nowego wiersza i znaki sterujące są niedozwolone."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rândurile noi și caracterele de control nu sunt permise."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14843,6 +16085,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–30 ਅੱਖਰ ਦਾਖ਼ਲ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wpisz od 1 do 30 znaków."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introdu între 1 și 30 de caractere."
           }
         },
         "mr" : {
@@ -15060,6 +16320,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਹਰਾਈ ਦੀ ਸਰਗਰਮੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktywność powtórek"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activitatea recapitulărilor"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15273,6 +16551,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਾਰੀਖ਼"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dată"
           }
         },
         "mr" : {
@@ -15490,6 +16786,24 @@
             "value" : "المراجعات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਹਰਾਈਆਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powtórki"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recapitulări"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15703,6 +17017,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਪਿਛਲੇ 30 ਦਿਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ostatnie 30 dni."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimele 30 de zile."
           }
         },
         "mr" : {
@@ -15920,6 +17252,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ਦੁਹਰਾਈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 powtórka"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 recapitulare"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16133,6 +17483,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ਦੁਹਰਾਈਆਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liczba powtórek: %lld"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recapitulări: %lld"
           }
         },
         "mr" : {
@@ -16350,6 +17718,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਹਰਾਈ ਦੀ ਸਰਗਰਮੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktywność powtórek"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activitatea recapitulărilor"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16563,6 +17949,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld في %2$@"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ ਵਿੱਚ #%1$lld"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld w %2$@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld în %2$@"
           }
         },
         "mr" : {
@@ -16780,6 +18184,24 @@
             "value" : "أفضل تصنيف"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਭ ਤੋਂ ਵਧੀਆ ਰੇਟਿੰਗ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najlepsza ocena"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cea mai bună evaluare"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16993,6 +18415,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد تصنيف بعد"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਹਾਲੇ ਕੋਈ ਰੇਟਿੰਗ ਨਹੀਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak ocen"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Încă nicio evaluare"
           }
         },
         "mr" : {
@@ -17210,6 +18650,24 @@
             "value" : "بطاقة واحدة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ਕਾਰਡ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 fiszka"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 fișă"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17423,6 +18881,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld بطاقات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ਕਾਰਡ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liczba fiszek: %lld"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fișe: %lld"
           }
         },
         "mr" : {
@@ -17640,6 +19116,24 @@
             "value" : "البطاقات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕਾਰਡ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fiszki"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fișe"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17853,6 +19347,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة الحالية"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮੌਜੂਦਾ ਲੜੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bieżąca seria"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seria actuală"
           }
         },
         "mr" : {
@@ -18070,6 +19582,24 @@
             "value" : "تم"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮੁਕੰਮਲ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gata"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18283,6 +19813,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź połączenie i spróbuj ponownie."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifică conexiunea și încearcă din nou."
           }
         },
         "mr" : {
@@ -18500,6 +20048,24 @@
             "value" : "تعذر تحميل الملف الشخصي"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਪ੍ਰੋਫ਼ਾਈਲ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wczytać profilu"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilul nu a putut fi încărcat"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18713,6 +20279,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "صديق"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੋਸਤ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znajomy"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prieten"
           }
         },
         "mr" : {
@@ -18930,6 +20514,24 @@
             "value" : "تاريخ الانضمام"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸ਼ਾਮਲ ਹੋਏ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data dołączenia"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data înscrierii"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19143,6 +20745,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جارٍ تحميل الملف الشخصي..."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਪ੍ਰੋਫ਼ਾਈਲ ਲੋਡ ਹੋ ਰਹੀ ਹੈ..."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wczytywanie profilu..."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se încarcă profilul..."
           }
         },
         "mr" : {
@@ -19360,6 +20980,24 @@
             "value" : "المقاييس"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮਾਪਦੰਡ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wskaźniki"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indicatori"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19573,6 +21211,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Încearcă din nou"
           }
         },
         "mr" : {
@@ -19790,6 +21446,24 @@
             "value" : "الإحصاءات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਅੰਕੜੇ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statystyki"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistici"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20003,6 +21677,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦਰਜਾਬੰਦੀ ਦੀਆਂ ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਵੇਖਣ ਲਈ ਈਮੇਲ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaloguj się przez e-mail, aby przeglądać profile rankingu."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autentifică-te prin e-mail pentru a vedea profilurile din clasament."
           }
         },
         "mr" : {
@@ -20220,6 +21912,24 @@
             "value" : "يلزم تسجيل الدخول"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਾਈਨ ਇਨ ਲੋੜੀਂਦਾ ਹੈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wymagane logowanie"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este necesară autentificarea"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20433,6 +22143,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਪ੍ਰੋਫ਼ਾਈਲਾਂ ਸਿਰਫ਼ ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਭਾਗੀਦਾਰੀ ਚਾਲੂ ਹੋਣ ਵੇਲੇ ਦਿਸਦੀਆਂ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profile są widoczne tylko przy włączonym udziale w rankingu ocen."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilurile sunt vizibile doar când participarea la clasamentul evaluărilor este activată."
           }
         },
         "mr" : {
@@ -20650,6 +22378,24 @@
             "value" : "المشاركة متوقفة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਭਾਗੀਦਾਰੀ ਬੰਦ ਹੈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Udział wyłączony"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participarea este dezactivată"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20863,6 +22609,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਸ ਵੇਲੇ ਇਹ ਦਰਜਾਬੰਦੀ ਪ੍ਰੋਫ਼ਾਈਲ ਦਿਖਾਈ ਨਹੀਂ ਜਾ ਸਕਦੀ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego profilu rankingu nie można teraz wyświetlić."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acest profil din clasament nu poate fi afișat momentan."
           }
         },
         "mr" : {
@@ -21080,6 +22844,24 @@
             "value" : "الملف الشخصي غير متاح"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਪ੍ਰੋਫ਼ਾਈਲ ਉਪਲਬਧ ਨਹੀਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil niedostępny"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil indisponibil"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21293,6 +23075,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة التقييمات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਬਾਰੇ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O rankingu ocen"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Despre clasamentul evaluărilor"
           }
         },
         "mr" : {
@@ -21510,6 +23310,24 @@
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਔਖਾ, ਚੰਗਾ ਅਤੇ ਆਸਾਨ ਰੇਟਿੰਗਾਂ ਵਾਲੀਆਂ ਦੁਹਰਾਈਆਂ ਤੁਹਾਡੇ ਦਰਜੇ ਵਿੱਚ ਗਿਣੀਆਂ ਜਾਂਦੀਆਂ ਹਨ। ਦੁਬਾਰਾ ਵਾਲੀਆਂ ਨਹੀਂ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powtórki z oceną Trudne, Dobrze i Łatwe liczą się do rankingu. Jeszcze raz się nie liczy."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recapitulările evaluate Greu, Bine și Ușor contribuie la poziția ta. Din nou nu contribuie."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21723,6 +23541,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੋਸਤ ਸ਼ਾਮਲ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj znajomego"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaugă un prieten"
           }
         },
         "mr" : {
@@ -21940,6 +23776,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੋਸਤ ਸ਼ਾਮਲ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj znajomego"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adaugă un prieten"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22153,6 +24007,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬਾਅਦ ਵਿੱਚ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie później."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Încearcă din nou mai târziu."
           }
         },
         "mr" : {
@@ -22370,6 +24242,24 @@
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wczytać rankingu ocen"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasamentul evaluărilor nu a putut fi încărcat"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22583,6 +24473,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਲੋਡ ਕਰਨ ਲਈ ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz się z internetem, aby wczytać ranking ocen."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectează-te la internet pentru a încărca clasamentul evaluărilor."
           }
         },
         "mr" : {
@@ -22800,6 +24708,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤੁਸੀਂ ਆਫ਼ਲਾਈਨ ਹੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jesteś offline"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ești offline"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23013,6 +24939,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz ustawienia rankingu ocen"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deschide configurările clasamentului evaluărilor"
           }
         },
         "mr" : {
@@ -23230,6 +25174,24 @@
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦਰਜਾਬੰਦੀ ਸਿਰਫ਼ ਉਸ ਵੇਲੇ ਦਿਸਦੀ ਹੈ ਜਦੋਂ ਤੁਸੀਂ ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਹਿੱਸਾ ਲੈਂਦੇ ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking jest widoczny tylko wtedy, gdy bierzesz w nim udział."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasamentul este vizibil doar cât timp participi la clasamentul evaluărilor."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23443,6 +25405,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة في التقييمات متوقفة"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਵਿੱਚ ਭਾਗੀਦਾਰੀ ਬੰਦ ਹੈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Udział w rankingu ocen wyłączony"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Participarea la evaluări este dezactivată"
           }
         },
         "mr" : {
@@ -23660,6 +25640,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦਰਜਾ %1$lld, %2$lld ਦੁਹਰਾਈਆਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozycja %1$lld, liczba powtórek: %2$lld"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poziția %1$lld, recapitulări: %2$lld"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23873,6 +25871,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤੁਸੀਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ty"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu"
           }
         },
         "mr" : {
@@ -24090,6 +26106,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking ocen"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasamentul evaluărilor"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24303,6 +26337,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਾਈਨ ਇਨ ਜਾਂ ਸਾਈਨ ਅੱਪ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaloguj się lub zarejestruj"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autentifică-te sau înregistrează-te"
           }
         },
         "mr" : {
@@ -24520,6 +26572,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਆਪਣੀਆਂ ਦੁਹਰਾਈਆਂ ਦਾ ਦਰਜਾ ਵੇਖਣ ਲਈ ਈਮੇਲ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaloguj się przez e-mail, aby zobaczyć swoją pozycję w rankingu ocen za powtórki."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autentifică-te prin e-mail pentru a vedea poziția recapitulărilor tale în clasamentul evaluărilor."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24733,6 +26803,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਵੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dołącz do rankingu ocen"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alătură-te clasamentului evaluărilor"
           }
         },
         "mr" : {
@@ -24950,6 +27038,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਰੇਟਿੰਗ ਦਰਜਾਬੰਦੀ ਤਿਆਰ ਹੋ ਰਹੀ ਹੈ। ਜਲਦੀ ਮੁੜ ਵੇਖੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking ocen jest przygotowywany. Zajrzyj ponownie wkrótce."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasamentul evaluărilor este în curs de pregătire. Revino în curând."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25163,6 +27269,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਹਾਲੇ ਤਿਆਰ ਨਹੀਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze niegotowe"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Încă nu este gata"
           }
         },
         "mr" : {
@@ -25380,6 +27504,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ਪਹਿਲਾਂ ਅੱਪਡੇਟ ਹੋਇਆ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaktualizowano %@ temu"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualizat acum %@"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25593,6 +27735,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "mr" : {
@@ -25810,6 +27970,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ਘੰਟਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 godz."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 oră"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26023,6 +28201,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld ساعة"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ਘੰਟੇ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld godz."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld h"
           }
         },
         "mr" : {
@@ -26240,6 +28436,24 @@
             "value" : "دقيقة واحدة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ਮਿੰਟ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 min"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minut"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26453,6 +28667,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld دقيقة"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ਮਿੰਟ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
           }
         },
         "mr" : {
@@ -26670,6 +28902,24 @@
             "value" : "الفترة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮਿਆਦ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Okres"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perioadă"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26883,6 +29133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "كل الأوقات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਹੁਣ ਤੱਕ ਦਾ ਸਾਰਾ ਸਮਾਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cały czas"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toată perioada"
           }
         },
         "mr" : {
@@ -27100,6 +29368,24 @@
             "value" : "3 ي"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 dni"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 z"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27313,6 +29599,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 ي"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 dni"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 z"
           }
         },
         "mr" : {
@@ -27530,6 +29834,24 @@
             "value" : "24 س"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 ਘੰਟੇ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 godz."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 h"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27743,6 +30065,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 ي"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 dni"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 z"
           }
         },
         "mr" : {
@@ -27960,6 +30300,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ਕਾਰਡ, %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liczba fiszek: %lld, %@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fișe: %lld, %@"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28173,6 +30531,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 dni"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 zile"
           }
         },
         "mr" : {
@@ -28390,6 +30766,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 dni"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 de zile"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28603,6 +30997,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 dni"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 de zile"
           }
         },
         "mr" : {
@@ -28820,6 +31232,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 dni"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 de zile"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29033,6 +31463,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬਾਅਦ ਵਿੱਚ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Później"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mai târziu"
           }
         },
         "mr" : {
@@ -29250,6 +31698,24 @@
             "value" : "جديدة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਨਵਾਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowe"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noi"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29463,6 +31929,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਅੱਜ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dzisiaj"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Astăzi"
           }
         },
         "mr" : {
@@ -29680,6 +32164,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 ਸਾਲ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 lata"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 ani"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29893,6 +32395,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਹਾਲੇ ਕੋਈ ਸਰਗਰਮ ਕਾਰਡ ਨਹੀਂ ਹੈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak aktywnych fiszek."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Încă nu există fișe active."
           }
         },
         "mr" : {
@@ -30110,6 +32630,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਹਰਾਈ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Harmonogram powtórek"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Programul recapitulărilor"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30323,6 +32861,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ਦੁਹਰਾਈਆਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liczba powtórek: %lld"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recapitulări: %lld"
           }
         },
         "mr" : {
@@ -30540,6 +33096,24 @@
             "value" : "الأسبوع التالي"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਅਗਲਾ ਹਫ਼ਤਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Następny tydzień"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Săptămâna următoare"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30753,6 +33327,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع السابق"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਪਿਛਲਾ ਹਫ਼ਤਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poprzedni tydzień"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Săptămâna anterioară"
           }
         },
         "mr" : {
@@ -30970,6 +33562,24 @@
             "value" : "المراجعات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਹਰਾਈਆਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powtórki"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recapitulări"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31183,6 +33793,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم واحد"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dzień"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 zi"
           }
         },
         "mr" : {
@@ -31400,6 +34028,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liczba dni: %lld"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zile: %lld"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31613,6 +34259,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲਗਾਤਾਰ ਦਿਨਾਂ ਦੀ ਦਰਜਾਬੰਦੀ ਬਾਰੇ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O rankingu serii"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Despre clasamentul seriilor"
           }
         },
         "mr" : {
@@ -31830,6 +34494,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮੌਜੂਦਾ ਲੜੀ ਦੇ ਦਿਨ ਤੁਹਾਡਾ ਦਰਜਾ ਨਿਰਧਾਰਤ ਕਰਦੇ ਹਨ। ਲੜੀ ਦਾ ਦਿਨ ਉਹ ਸਥਾਨਕ ਦਿਨ ਹੈ ਜਿਸ ਵਿੱਚ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਕਾਰਡ ਦੀ ਦੁਹਰਾਈ ਨੂੰ %1$@, %2$@, %3$@ ਜਾਂ %4$@ ਰੇਟ ਕੀਤਾ ਗਿਆ ਹੋਵੇ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liczba dni bieżącej serii określa Twoją pozycję. Dzień serii to dzień w lokalnej strefie czasowej z co najmniej jedną powtórką ocenioną jako %1$@, %2$@, %3$@ lub %4$@."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zilele seriei actuale determină poziția ta. O zi din serie este orice zi locală cu cel puțin o recapitulare evaluată %1$@, %2$@, %3$@ sau %4$@."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32043,6 +34725,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬਾਅਦ ਵਿੱਚ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie później."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Încearcă din nou mai târziu."
           }
         },
         "mr" : {
@@ -32260,6 +34960,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲਗਾਤਾਰ ਦਿਨਾਂ ਦੀ ਦਰਜਾਬੰਦੀ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się wczytać rankingu serii"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasamentul seriilor nu a putut fi încărcat"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32473,6 +35191,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲਗਾਤਾਰ ਦਿਨਾਂ ਦੀ ਦਰਜਾਬੰਦੀ ਲੋਡ ਕਰਨ ਲਈ ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz się z internetem, aby wczytać ranking serii."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conectează-te la internet pentru a încărca clasamentul seriilor."
           }
         },
         "mr" : {
@@ -32690,6 +35426,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤੁਸੀਂ ਆਫ਼ਲਾਈਨ ਹੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jesteś offline"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ești offline"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32903,6 +35657,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦਰਜਾ %1$lld, %2$@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pozycja %1$lld, %2$@"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poziția %1$lld, %2$@"
           }
         },
         "mr" : {
@@ -33120,6 +35892,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲਗਾਤਾਰ ਦਿਨਾਂ ਦੀ ਦਰਜਾਬੰਦੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ranking serii"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clasamentul seriilor"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33333,6 +36123,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਫ੍ਰੀਜ਼ ਕੀਤਾ ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamrożony dzień"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zi înghețată"
           }
         },
         "mr" : {
@@ -33550,6 +36358,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਆਉਣ ਵਾਲਾ ਦਿਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przyszły dzień"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zi viitoare"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33763,6 +36589,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਲੜੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seria"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serie"
           }
         },
         "mr" : {
@@ -33980,6 +36824,24 @@
             "value" : "التقدم"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਰੱਕੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postępy"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progres"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34193,6 +37055,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਅੱਜ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dzisiaj"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Astăzi"
           }
         },
         "mr" : {
@@ -34410,6 +37290,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸੂਚਨਾਵਾਂ ਦੀ ਇਜਾਜ਼ਤ ਦਿਓ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwól na powiadomienia"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite notificările"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34623,6 +37521,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮਨਜ਼ੂਰ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dozwolony"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permis"
           }
         },
         "mr" : {
@@ -34840,6 +37756,24 @@
             "value" : "محظور"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬਲੌਕ ਕੀਤਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zablokowany"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocat"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35053,6 +37987,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬੇਨਤੀ ਨਹੀਂ ਕੀਤੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie poproszono"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nesolicitat"
           }
         },
         "mr" : {
@@ -35270,6 +38222,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਵਿੱਚ ਆਪਣਾ ਪੜ੍ਹਾਈ ਸੈਸ਼ਨ ਜਾਰੀ ਰੱਖੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontynuuj naukę w Nibomo."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuă sesiunea de studiu în Nibomo."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35483,6 +38453,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦਿਨ ਵਿੱਚ ਇੱਕ ਵਾਰ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raz dziennie"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O dată pe zi"
           }
         },
         "mr" : {
@@ -35700,6 +38688,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਵਿਰਾਮ ਤੋਂ ਬਾਅਦ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Po przerwie"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "După o pauză"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35913,6 +38919,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਬਾਰਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeszcze raz"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Din nou"
           }
         },
         "mr" : {
@@ -36130,6 +39154,24 @@
             "value" : "سهل"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਆਸਾਨ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Łatwe"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ușor"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36343,6 +39385,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਚੰਗਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dobrze"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bine"
           }
         },
         "mr" : {
@@ -36560,6 +39620,24 @@
             "value" : "صعب"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਔਖਾ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trudne"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Greu"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36773,6 +39851,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਖਾਤਾ ਮਿਟਾਇਆ ਗਿਆ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto usunięte"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cont șters"
           }
         },
         "mr" : {
@@ -36990,6 +40086,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37203,6 +40317,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕਾਰਡ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fiszki"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fișe"
           }
         },
         "mr" : {
@@ -37420,6 +40552,24 @@
             "value" : "لاحقًا"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬਾਅਦ ਵਿੱਚ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Później"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mai târziu"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37633,6 +40783,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਈਮੇਲ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ ਤਾਂ ਜੋ ਇਹ ਕਾਰਡ ਅਤੇ ਦੁਹਰਾਈ ਦੀ ਤਰੱਕੀ ਗੁੰਮ ਨਾ ਹੋਣ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaloguj się przez e-mail, aby nie stracić fiszek i postępów w powtórkach."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autentifică-te prin e-mail pentru a nu pierde aceste fișe și progresul recapitulărilor."
           }
         },
         "mr" : {
@@ -37850,6 +41018,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਾਈਨ ਇਨ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaloguj się"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autentifică-te"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38063,6 +41249,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਆਪਣੀ ਤਰੱਕੀ ਸੰਭਾਲੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz swoje postępy"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvează-ți progresul"
           }
         },
         "mr" : {
@@ -38280,6 +41484,24 @@
             "value" : "التقدم"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਰੱਕੀ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Postępy"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progres"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38493,6 +41715,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਦੁਹਰਾਈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powtórki"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recapitulare"
           }
         },
         "mr" : {
@@ -38710,6 +41950,24 @@
             "value" : "الإعدادات"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸੈਟਿੰਗਾਂ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ustawienia"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurări"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38923,6 +42181,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Ustawienia"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deschide Configurări"
           }
         },
         "mr" : {
@@ -39140,6 +42416,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਪਹੁੰਚ ਮੰਗੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poproś o dostęp"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicită acces"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -39353,6 +42647,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਠੀਕ ਹੈ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         },
         "mr" : {
@@ -39570,6 +42882,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਅੱਜ ਆਪਣੀ ਲੜੀ ਜਾਰੀ ਰੱਖੋ। ਅੱਧੀ ਰਾਤ ਤੋਂ ਪਹਿਲਾਂ ਦੁਹਰਾਈ ਕਰੋ। 2 ਘੰਟੇ ਬਾਕੀ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podtrzymaj dziś serię. Zrób powtórkę przed północą. Zostały 2 godziny."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Păstrează-ți seria astăzi. Recapitulează înainte de miezul nopții. Mai sunt 2 ore."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -39783,6 +43113,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਅੱਜ ਆਪਣੀ ਲੜੀ ਜਾਰੀ ਰੱਖੋ। ਅੱਧੀ ਰਾਤ ਤੋਂ ਪਹਿਲਾਂ ਦੁਹਰਾਈ ਕਰੋ। 3 ਘੰਟੇ ਬਾਕੀ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podtrzymaj dziś serię. Zrób powtórkę przed północą. Zostały 3 godziny."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Păstrează-ți seria astăzi. Recapitulează înainte de miezul nopții. Mai sunt 3 ore."
           }
         },
         "mr" : {
@@ -40000,6 +43348,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਅੱਜ ਆਪਣੀ ਲੜੀ ਜਾਰੀ ਰੱਖੋ। ਅੱਧੀ ਰਾਤ ਤੋਂ ਪਹਿਲਾਂ ਦੁਹਰਾਈ ਕਰੋ। 4 ਘੰਟੇ ਬਾਕੀ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podtrzymaj dziś serię. Zrób powtórkę przed północą. Zostały 4 godziny."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Păstrează-ți seria astăzi. Recapitulează înainte de miezul nopții. Mai sunt 4 ore."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -40213,6 +43579,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ। ਜੇ ਇਹ ਹੁੰਦਾ ਰਹੇ ਤਾਂ ਤਕਨੀਕੀ ਵੇਰਵੇ ਸਹਾਇਤਾ ਟੀਮ ਨਾਲ ਸਾਂਝੇ ਕਰੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spróbuj ponownie. Jeśli problem się powtarza, prześlij szczegóły techniczne do pomocy technicznej."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Încearcă din nou. Dacă problema persistă, trimite detaliile tehnice echipei de asistență."
           }
         },
         "mr" : {
@@ -40430,6 +43814,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coś poszło nie tak"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A apărut o problemă"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -40643,6 +44045,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਬੰਦ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zamknij"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Închide"
           }
         },
         "mr" : {
@@ -40860,6 +44280,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਵੇਰਵੇ ਕਾਪੀ ਕਰੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj szczegóły"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiază detaliile"
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -41073,6 +44511,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਤਕਨੀਕੀ ਵੇਰਵੇ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szczegóły techniczne"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalii tehnice"
           }
         },
         "mr" : {
@@ -41290,6 +44746,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇੱਕ ਜਵਾਬ ਪਹਿਲਾਂ ਹੀ ਤਿਆਰ ਹੋ ਰਿਹਾ ਹੈ। ਅਗਲਾ ਸੁਨੇਹਾ ਭੇਜਣ ਤੋਂ ਪਹਿਲਾਂ ਇਸਦੇ ਮੁਕੰਮਲ ਹੋਣ ਦੀ ਉਡੀਕ ਕਰੋ ਜਾਂ ਇਸਨੂੰ ਰੋਕੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odpowiedź jest już generowana. Przed wysłaniem kolejnej wiadomości poczekaj na jej zakończenie lub ją zatrzymaj."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un răspuns este deja în curs. Așteaptă să se termine sau oprește-l înainte de a trimite alt mesaj."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -41503,6 +44977,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ ਨਹੀਂ ਹੈ। AI ਚੈਟ ਲਈ ਇੰਟਰਨੈੱਟ ਪਹੁੰਚ ਲੋੜੀਂਦੀ ਹੈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak połączenia z internetem. Czat AI wymaga dostępu do internetu."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nu există conexiune la internet. Chatul AI necesită acces la internet."
           }
         },
         "mr" : {
@@ -41720,6 +45212,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਕਾਰਡ ਕਲਾਊਡ ਤੋਂ ਅੱਪਡੇਟ ਕੀਤੇ ਗਏ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fiszki zaktualizowano z chmury."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fișele au fost actualizate din cloud."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -41933,6 +45443,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਬੋਲ ਕੇ ਪੜ੍ਹਨਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mowa jest niedostępna na tym urządzeniu."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redarea vocală nu este disponibilă pe acest dispozitiv."
           }
         },
         "mr" : {
@@ -42150,6 +45678,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਇਹ ਦੁਹਰਾਈ ਕਿਸੇ ਹੋਰ ਡਿਵਾਈਸ ਉੱਤੇ ਅੱਪਡੇਟ ਹੋਈ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tę powtórkę zaktualizowano na innym urządzeniu."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Această recapitulare a fost actualizată pe alt dispozitiv."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -42363,6 +45909,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਟੈਸਟ ਵਰਜਨ ਬੰਦ ਕੀਤਾ ਗਿਆ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja testowa wyłączona."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versiunea de test a fost dezactivată."
           }
         },
         "mr" : {
@@ -42580,6 +46144,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਟੈਸਟ ਵਰਜਨ ਚਾਲੂ ਕੀਤਾ ਗਿਆ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wersja testowa włączona."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versiunea de test a fost activată."
+          }
+        },
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
@@ -42793,6 +46375,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਵਰਕਸਪੇਸ ਵਿੱਚ ਬਦਲਾਅ ਖਾਤਾ ਬਣਾਉਣ ਤੋਂ ਬਾਅਦ ਹੀ ਉਪਲਬਧ ਹੁੰਦੇ ਹਨ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmiany obszaru roboczego są dostępne dopiero po utworzeniu konta."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modificările spațiului de lucru sunt disponibile doar după crearea unui cont."
           }
         },
         "mr" : {
