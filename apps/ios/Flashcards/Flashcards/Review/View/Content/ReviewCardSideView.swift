@@ -104,6 +104,7 @@ struct ReviewCardSideView: View {
             Text(text)
                 .font(.body)
                 .lineSpacing(3)
+                .textRenderer(ReviewParagraphTextRenderer())
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
         case .markdown(let markdownContent):
@@ -158,6 +159,15 @@ struct ReviewCardSideView: View {
             return AnyShapeStyle(.thinMaterial)
         case .back:
             return AnyShapeStyle(.regularMaterial)
+        }
+    }
+}
+
+// Draw the same native line layout used for sizing, including its hyphenation.
+private struct ReviewParagraphTextRenderer: TextRenderer {
+    func draw(layout: Text.Layout, in context: inout GraphicsContext) {
+        for line in layout {
+            context.draw(line)
         }
     }
 }
