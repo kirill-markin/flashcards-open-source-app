@@ -832,3 +832,12 @@
 "settings.language.supported.slovak" = "Словацкий";
 "settings.language.supported.slovenian" = "Словенский";
 "settings.language.supported.swedish" = "Шведский";
+"settings.language.supported.swahili" = "Суахили";
+"settings.language.supported.tamil" = "Тамильский";
+"settings.language.supported.telugu" = "Телугу";
+"settings.language.supported.thai" = "Тайский";
+"settings.language.supported.turkish" = "Турецкий";
+"settings.language.supported.ukrainian" = "Украинский";
+"settings.language.supported.urdu" = "Урду";
+"settings.language.supported.vietnamese" = "Вьетнамский";
+"settings.language.supported.zulu" = "Зулусский";

@@ -14,7 +14,7 @@ const PROJECT_FILE = join(
 
 // en is DEVELOPMENT_LANGUAGE in apps/ios/Flashcards/Config/Base.xcconfig, so an en variant is
 // optional everywhere and never required by this check. Base is an Xcode pseudo-region, not a locale.
-const REQUIRED_LOCALES = ["ar", "bg", "bn", "ca", "cs", "da", "de", "el", "es-ES", "es-MX", "et", "fa", "fi", "fr", "gu", "he", "hi", "hr", "hu", "id", "is", "it", "ja", "kn", "ko", "lt", "lv", "ml", "mr", "nb", "nl", "pa", "pl", "pt-BR", "ro", "ru", "sk", "sl", "sv", "zh-Hans"];
+const REQUIRED_LOCALES = ["ar", "bg", "bn", "ca", "cs", "da", "de", "el", "es-ES", "es-MX", "et", "fa", "fi", "fr", "gu", "he", "hi", "hr", "hu", "id", "is", "it", "ja", "kn", "ko", "lt", "lv", "ml", "mr", "nb", "nl", "pa", "pl", "pt-BR", "ro", "ru", "sk", "sl", "sv", "sw", "ta", "te", "th", "tr", "uk", "ur", "vi", "zh-Hans", "zu"];
 const UNTRANSLATED_PROJECT_REGIONS = new Set(["en", "Base"]);
 const TRANSLATED_STATE = "translated";
 const LPROJ_SUFFIX = ".lproj";

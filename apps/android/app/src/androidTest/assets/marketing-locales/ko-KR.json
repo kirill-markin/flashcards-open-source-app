@@ -1,0 +1,67 @@
+{
+  "localePrefix": "ko-KR",
+  "appLocaleTag": "ko",
+  "reviewAiDraftMessage": "같은 경제학 주제로 아직 없는 관련 개념을 다루는 새 카드 6개를 만들어 주세요.",
+  "uiText": {
+    "emptyCardsMessage": "아직 카드가 없습니다. 추가 버튼을 눌러 첫 카드를 만드세요.",
+    "cardsTabTitle": "카드",
+    "reviewTabTitle": "복습",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "카드 검색",
+    "addCardContentDescription": "카드 추가",
+    "frontFieldTitle": "앞면",
+    "backFieldTitle": "뒷면",
+    "tagsFieldTitle": "태그",
+    "addTagFieldTitle": "태그 입력",
+    "addTagButtonTitle": "태그 추가",
+    "saveButtonTitle": "저장",
+    "ratingAgainTitle": "다시",
+    "ratingHardTitle": "어려움",
+    "ratingGoodTitle": "좋음",
+    "ratingEasyTitle": "쉬움"
+  },
+  "reviewCard": {
+    "frontText": "기회비용이란 무엇인가요?",
+    "backText": "하나를 선택할 때 포기하는 대안 중 가장 가치 있는 것의 가치입니다.\n\n시험 예시: 토요일에 유급 근무 대신 미시경제학 시험공부를 한다면, 받지 못한 임금은 기회비용의 일부입니다.",
+    "tags": [
+      "경제학"
+    ]
+  },
+  "cards": [
+    {
+      "frontText": "기회비용이란 무엇인가요?",
+      "backText": "하나를 선택할 때 포기하는 대안 중 가장 가치 있는 것의 가치입니다.",
+      "subjectTag": "경제학"
+    },
+    {
+      "frontText": "생물학에서 삼투란 무엇인가요?",
+      "backText": "물이 막을 통해 용질 농도가 낮은 곳에서 높은 곳으로 이동하는 현상입니다.",
+      "subjectTag": "생물학"
+    },
+    {
+      "frontText": "통계학에서 표준편차란 무엇인가요?",
+      "backText": "값들이 평균 주변에 얼마나 퍼져 있는지 나타내는 척도입니다.",
+      "subjectTag": "통계학"
+    },
+    {
+      "frontText": "화학에서 촉매란 무엇인가요?",
+      "backText": "반응에서 소모되지 않으면서 화학 반응을 빠르게 하는 물질입니다.",
+      "subjectTag": "화학"
+    },
+    {
+      "frontText": "심리학에서 인지 편향이란 무엇인가요?",
+      "backText": "판단과 의사결정을 왜곡할 수 있는 체계적인 사고 패턴입니다.",
+      "subjectTag": "심리학"
+    },
+    {
+      "frontText": "물리학에서 속도란 무엇인가요?",
+      "backText": "물체의 빠르기와 운동 방향을 함께 나타내는 양입니다.",
+      "subjectTag": "물리학"
+    },
+    {
+      "frontText": "컴퓨터 과학에서 재귀란 무엇인가요?",
+      "backText": "함수가 더 작은 형태의 문제에 대해 자신을 호출하여 문제를 해결하는 방법입니다.",
+      "subjectTag": "컴퓨터 과학"
+    }
+  ]
+}
