@@ -821,7 +821,7 @@ const esEsCatalog: TranslationCatalog = {
   },
   analyticsConsentBanner: {
     label: "Cookies de analítica",
-    message: "Usamos una cookie y otro almacenamiento del navegador para medir cómo se usa la aplicación. Hasta que elijas, no se guarda nada en este dispositivo ni se envía nada que te identifique.",
+    message: "Usamos una cookie y otro almacenamiento del navegador para medir cómo se usa la aplicación. Hasta que elijas, esta aplicación no guarda nada en este dispositivo ni envía nada que te identifique.",
     allow: "Permitir",
     decline: "Rechazar",
     privacyPolicy: "Política de privacidad",
@@ -831,8 +831,9 @@ const esEsCatalog: TranslationCatalog = {
     title: "Analítica",
     subtitle: "Elige si se puede medir este navegador.",
     toggleTitle: "Permitir cookies de analítica",
-    toggleDescription: "Con esto desactivado, este navegador no recibe ningún identificador ni guarda nada para analítica. Mientras tengas la sesión iniciada, lo que se mide se sigue registrando en tu cuenta.",
+    toggleDescription: "Con esto desactivado, esta aplicación no da ningún identificador a este navegador ni guarda nada para analítica. Mientras tengas la sesión iniciada, lo que se mide se sigue registrando en tu cuenta.",
     error: "No ha funcionado. Inténtalo de nuevo.",
+    unavailable: "La analítica está desactivada en esta aplicación, así que aquí no hay nada que permitir ni retirar.",
   },
   leaderboardParticipationSettings: {
     title: "Participación en la clasificación",

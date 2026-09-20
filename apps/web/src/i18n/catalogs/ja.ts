@@ -821,7 +821,7 @@ export const jaCatalog = {
   },
   analyticsConsentBanner: {
     label: "分析用Cookie",
-    message: "アプリの使われ方を把握するために、Cookieとブラウザーのその他の保存領域を使います。選ぶまで、この端末には何も保存せず、あなたを特定できるものも送信しません。",
+    message: "アプリの使われ方を把握するために、Cookieとブラウザーのその他の保存領域を使います。選ぶまで、このアプリはこの端末に何も保存せず、あなたを特定できるものも送信しません。",
     allow: "許可",
     decline: "拒否",
     privacyPolicy: "プライバシーポリシー",
@@ -831,8 +831,9 @@ export const jaCatalog = {
     title: "分析",
     subtitle: "このブラウザーを計測してよいかを選びます。",
     toggleTitle: "分析用Cookieを許可する",
-    toggleDescription: "オフのあいだ、このブラウザーには識別子が割り当てられず、分析のための保存も行いません。ただしサインインしている間は、計測した内容はあなたのアカウントに記録されます。",
+    toggleDescription: "オフのあいだ、このアプリはこのブラウザーに識別子を割り当てず、分析のための保存も行いません。ただしサインインしている間は、計測した内容はあなたのアカウントに記録されます。",
     error: "うまくいきませんでした。もう一度お試しください。",
+    unavailable: "このアプリではアナリティクスが無効になっているため、ここで許可したり取り消したりするものはありません。",
   },
   leaderboardParticipationSettings: {
     title: "リーダーボード参加",

@@ -7,7 +7,7 @@ import {
   type AnalyticsIngestResult,
 } from "../api";
 import { hasLoggedInCookie } from "../appData/session/activation/warmStart";
-import { readStoredWebGuestSession } from "../appData/session/guest/webGuestSession";
+import { readStoredWebGuestSession, resetWebGuestSession } from "../appData/session/guest/webGuestSession";
 import { isAuthenticatedAppPath } from "../routes";
 import {
   isAwaitingAnalyticsConsentDecision,
@@ -24,8 +24,10 @@ import type {
 } from "./events";
 import {
   clearAnalyticsVisitorCookie,
+  dropLegacyAnalyticsAnonymousId,
   readAnalyticsAnonymousId,
   readAnalyticsSessionId,
+  readAnalyticsVisitorId,
   readStoredAnalyticsEnabled,
   resetAnalyticsSession,
   writeStoredAnalyticsEnabled,
@@ -44,6 +46,7 @@ import {
   clearAnalyticsQueue,
   readAnalyticsQueueOwner,
   readOldestAnalyticsEvents,
+  readStoredAnalyticsQueuePresence,
   removeAnalyticsEvents,
   type AnalyticsQueueRecord,
   type QueuedAnalyticsEvent,
@@ -295,10 +298,11 @@ export function createAnalyticsDeliveryRuntime(
 
   /**
    * Moves what was held in memory into the queue, for a browser that may write to this device
-   * again — which is the load that granted, and nothing else: a refusal is permanent for this
-   * browser and its events never touch the queue at all. One session id is read for all of them:
-   * they were all collected inside this document, so they belong to the session it is in when it is
-   * finally allowed to have one.
+   * again — which is the load that granted, and nothing else. What was held while a refusal stood
+   * never arrives here: `applyAnalyticsConsentGrant` discards it first, because consent is not
+   * retroactive and adopting it would stamp it with the id that grant has just minted. One session
+   * id is read for all of them: they were all collected inside this document, so they belong to the
+   * session it is in when it is finally allowed to have one.
    */
   function adoptHeldEvents(): void {
     if (heldWireEvents.length === 0) {
@@ -714,7 +718,9 @@ export function createAnalyticsDeliveryRuntime(
         // confirmable account owner. The envelope usually outlives the queue owner it was published
         // as, but not always — a sign-in that drops it can leave its own `claimQueueOwner` rejected
         // — and such a queue keeps the guest owner until an account is confirmed on this browser
-        // again.
+        // again. The one drop that would strand an owner here forever retires it itself instead: a
+        // refusal releases the owner its envelope named in the same pass that drops the envelope
+        // (`applyAnalyticsConsentDecline`), because this comparison could never match afterwards.
         if (queuedOwnerId === null || readStoredWebGuestSession()?.userId !== queuedOwnerId) {
           hasSettledUnconfirmableQueueOwner = true;
           return true;
@@ -1104,6 +1110,14 @@ export function createAnalyticsDeliveryRuntime(
       return false;
     }
 
+    // Consent is not retroactive. Whatever was collected while a refusal stood was collected under
+    // an answer that said this person was not to be measured, so the grant releases what follows it
+    // and nothing before it. Not reported as a loss, for the same reason the refusal's own discard
+    // is not: it is the recorded answer taking effect, not something anybody needs to be told about.
+    if (readAnalyticsConsentDecision() === "declined") {
+      heldWireEvents = [];
+    }
+
     recordAnalyticsConsentDecision("granted");
     await resolveAnalyticsVisitorIdentityAfterConsentGrant();
     flush();
@@ -1111,25 +1125,106 @@ export function createAnalyticsDeliveryRuntime(
   }
 
   /**
+   * Whether this browser was ever allowed an analytics identity, and so may be holding a stored
+   * queue from this load or an earlier one. Read at the top of a refusal, before the server's answer
+   * clears the visitor cookie and before the refusal records itself over the stored answer: both are
+   * the evidence.
+   */
+  function wasAllowedAnalyticsIdentity(): boolean {
+    return readAnalyticsConsentDecision() === "granted" || readAnalyticsVisitorId() !== null;
+  }
+
+  /**
+   * Opens the stored queue for the discard a refusal is about to perform, and answers whether that
+   * discard may retire the queue's owner with it.
+   *
+   * Opening is what creates the store, so a browser that answered `Decline` before anything was ever
+   * written to it is never opened here: it has to end the load with no analytics store at all, which
+   * is what the strip promised it. A browser that was already allowed an identity has no such
+   * promise to keep, so where the engine cannot say whether a store exists — Firefox enumerates no
+   * databases — the refusal opens it rather than leaving a previous load's identity-bearing queue on
+   * disk. Emptying that queue is precisely what the person has just asked for, and an empty database
+   * created on a browser that never filled one is the smaller of the two costs.
+   *
+   * The owner is retired only where the guest envelope this refusal just dropped is the one naming
+   * it. That is the only owner this refusal may retire, and this is the only chance it gets:
+   * `releaseUnconfirmableQueueOwner` recognizes a retired owner by the stored envelope alone, so an
+   * owner whose envelope is gone can never be released again, and everything a later grant queues
+   * sits under it until the TTL takes it. A guest owner whose envelope was already gone when this
+   * ran is therefore not covered either — nothing left on this browser can name it — and that is an
+   * accepted cost rather than something this handles. Any other owner is left in place on purpose: a
+   * signed-in person's queue is owned by their account, which they can still confirm on the next
+   * load, and deleting that record would park a later grant's events behind an owner comparison that
+   * can never match either.
+   */
+  async function openStoredQueueForRefusal(
+    droppedGuestOwnerId: string | null,
+    wasIdentityAllowed: boolean,
+  ): Promise<boolean> {
+    try {
+      const storedQueuePresence = await readStoredAnalyticsQueuePresence();
+      if (storedQueuePresence === "absent") {
+        return false;
+      }
+
+      if (storedQueuePresence === "unknown" && wasIdentityAllowed === false) {
+        return false;
+      }
+
+      // Everything past this line reaches the store, the discard this returns to included: what it
+      // holds was collected under the consent being withdrawn.
+      hasOpenedAnalyticsQueue = true;
+      if (droppedGuestOwnerId === null) {
+        return false;
+      }
+
+      return (await readAnalyticsQueueOwner()) === droppedGuestOwnerId;
+    } catch (error) {
+      reportAnalyticsQueueFailure(error);
+      return false;
+    }
+  }
+
+  /**
    * Records a refusal for this browser. The server clears any visitor cookie it carries and mints
    * nothing; what this adds is local: the stored decision, which is what stops this browser asking
-   * for an identity again, and the discard of everything collected under the consent being
-   * withdrawn. The events held in memory stay held — they carry no identity, which is the one thing
-   * the refusal is about, and they go out on the next flush.
+   * for an identity again, the retirement of every analytics identifier still on the device — the
+   * queue's own guest owner among them, where the envelope this drops is what named it — and the
+   * discard of everything collected under the consent being withdrawn. The events held in memory
+   * stay held — they carry no identity, which is the one thing the refusal is about, and they go out
+   * on the next flush.
    */
   async function applyAnalyticsConsentDecline(): Promise<void> {
+    // Read first: the call below clears the visitor cookie and the line after it records the
+    // refusal over the stored answer, and those two are what say this browser once held an identity
+    // and may be holding a queue to match.
+    const wasIdentityAllowed = wasAllowedAnalyticsIdentity();
     await submitAnalyticsVisitorConsent(false);
     recordAnalyticsConsentDecision("declined");
     // The server's own answer clears the cookie; this closes the window after it, where a `GET` that
     // was already in flight lands its own `Set-Cookie` on a browser that has just refused.
     clearAnalyticsVisitorCookie();
+    // The cookie is not the only identifier a browser upgrading from an earlier build carries. The
+    // stored `anonymous_id` is otherwise retired only by the visitor identity resolution, which a
+    // refusal never runs again, and the guest envelope is otherwise kept for a link the refusal has
+    // just made impermissible. Both would sit in `localStorage` indefinitely after a refusal.
+    dropLegacyAnalyticsAnonymousId();
+    // Read before the drop, because afterwards nothing on this browser can say who the queue's
+    // guest owner was: the envelope is the only record of it.
+    const droppedGuestOwnerId = readStoredWebGuestSession()?.userId ?? null;
+    resetWebGuestSession();
     // Not reported as a loss: discarding what was collected before a refusal is the refusal's
-    // documented effect rather than something anybody needs to be told about. It touches the store
-    // only where this load already opened it, so a refusal never creates one. What is held in memory
-    // is deliberately kept: it carries no identity, which is the one thing the refusal is about.
+    // documented effect rather than something anybody needs to be told about. Whether it may reach
+    // the store at all is decided above, on this browser's own history rather than on this load's.
+    // What is held in memory is deliberately kept: it carries no identity, which is the one thing
+    // the refusal is about. The owner goes with the queue only when the envelope just dropped is
+    // the one naming it.
     discardQueuedWork({
       shouldReportDiscard: false,
-      shouldReleaseOwner: false,
+      shouldReleaseOwner: await openStoredQueueForRefusal(
+        droppedGuestOwnerId,
+        wasIdentityAllowed,
+      ),
       shouldDiscardHeldEvents: false,
     });
     resetAnalyticsSession();

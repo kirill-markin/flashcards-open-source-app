@@ -4,8 +4,8 @@ import {
   linkWebGuestIdentity,
   type WebGuestSessionEnvelope,
 } from "../../../api";
-import { readAnalyticsSessionOwnerId } from "../../../analytics";
-import { isAnalyticsIdentityAllowed } from "../../../analytics/identity";
+import { isAnalyticsEnabledForCurrentRuntime, readAnalyticsSessionOwnerId } from "../../../analytics";
+import { isAnalyticsIdentityConsented } from "../../../analytics/consent";
 import { reportAnalyticsGuestIdentityLinkFailure } from "../../../analytics/observation";
 import { waitForDelay } from "../lifecycle/workspaceLifecycleHelpers";
 import {
@@ -236,26 +236,52 @@ async function runGuestIdentityLink(
  * loses it while keeping `localStorage` — the store both the envelope and this stamp live in — sees
  * no boundary at all. So the account the envelope was offered to is stored beside it, and an
  * envelope offered to somebody else is dropped here rather than re-offered.
+ *
+ * Pass the consent sync started beside this call as well. It is what the gate inside waits for.
  */
 export function linkWebGuestIdentityInBackground(
   guestSession: WebGuestSessionEnvelope | null,
   capturedIdentityGeneration: number,
   accountUserId: string,
+  analyticsConsentSync: Promise<void>,
 ): void {
-  // The opt-out, and a refused consent banner, stop this before it spends the guest identity a
-  // browser is still carrying. The link writes an append-only, first-link-wins row with no repair
-  // path, so it is the most permanent backend write on this path and the least defensible one to
-  // make for somebody who declined measurement — and the switch outlives every local data wipe, so
-  // the visitor who minted a guest under an earlier build and only then opted out still arrives
-  // here. The envelope and its stamp are left alone rather than dropped: nothing mints or
-  // republishes a web guest any more (`webGuestSession.ts`), so the envelope sits inert, and keeping
-  // it is what lets the tail still be linked if analytics is turned back on before the next identity
-  // boundary.
-  if (isAnalyticsIdentityAllowed() === false) {
+  if (guestSession === null) {
     return;
   }
 
-  if (guestSession === null) {
+  // The account's own consent answer has to reach this browser before the gate below reads one.
+  // The sync is started unawaited on the line above this call and the account wins wherever both
+  // records exist, so a gate run first would read the browser's pre-sync answer — and a browser
+  // holding `granted` under an account holding `declined` would spend the guest identity on a
+  // decision the account is about to overrule, permanently. The sync swallows its own failures, so
+  // this settles either way, and it is a background task like the link itself: nothing in the
+  // sign-in path waits on it.
+  void analyticsConsentSync.then((): void => {
+    startGuestIdentityLink(guestSession, capturedIdentityGeneration, accountUserId);
+  });
+}
+
+function startGuestIdentityLink(
+  guestSession: WebGuestSessionEnvelope,
+  capturedIdentityGeneration: number,
+  accountUserId: string,
+): void {
+  // The opt-out, a refused consent banner, and a banner still waiting to be answered all stop this
+  // before it spends the guest identity a browser is still carrying. The link writes an
+  // append-only, first-link-wins row with no repair path, so it is the most permanent backend write
+  // on this path and the least defensible one to make for somebody who has not agreed to
+  // measurement — and it routinely runs before `GET /v1/analytics/visitor` has even said whether
+  // this browser has to be asked, because that call can pay a GeoLite download. The switch outlives
+  // every local data wipe, so the visitor who minted a guest under an earlier build and only then
+  // opted out still arrives here. On those two — the opt-out, and a banner still open — the
+  // envelope and its stamp are left alone rather than dropped: nothing mints or republishes a web
+  // guest any more (`webGuestSession.ts`), so the envelope sits inert, and keeping it is what lets
+  // the tail still be linked on the load that answers the banner or turns analytics back on, as
+  // long as it arrives before the next identity boundary. A refusal is the case where nothing is
+  // kept: it drops the envelope outright as it retires every other identifier on the device
+  // (`applyAnalyticsConsentDecline` in `deliveryRuntime.ts`), so a browser that refused reaches
+  // this gate with nothing left to spend.
+  if (isAnalyticsEnabledForCurrentRuntime() === false || isAnalyticsIdentityConsented() === false) {
     return;
   }
 

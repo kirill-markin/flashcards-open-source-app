@@ -819,7 +819,7 @@ const enCatalog = {
   },
   analyticsConsentBanner: {
     label: "Analytics cookies",
-    message: "We use a cookie and other browser storage to measure how the app gets used. Until you choose, nothing is stored on this device and nothing that identifies you is sent.",
+    message: "We use a cookie and other browser storage to measure how the app gets used. Until you choose, this app stores nothing on this device and sends nothing that identifies you.",
     allow: "Allow",
     decline: "Decline",
     privacyPolicy: "Privacy Policy",
@@ -829,8 +829,9 @@ const enCatalog = {
     title: "Analytics",
     subtitle: "Choose whether this browser may be measured.",
     toggleTitle: "Allow analytics cookies",
-    toggleDescription: "When this is off, this browser is given no identifier and stores nothing for analytics. While you are signed in, what is measured is still recorded against your account.",
+    toggleDescription: "When this is off, this app gives this browser no identifier and stores nothing for analytics. While you are signed in, what is measured is still recorded against your account.",
     error: "That did not go through. Please try again.",
+    unavailable: "Analytics is turned off for this app, so there is nothing to allow or withdraw here.",
   },
   leaderboardParticipationSettings: {
     title: "Leaderboard participation",

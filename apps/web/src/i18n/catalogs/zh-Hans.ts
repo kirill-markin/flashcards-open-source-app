@@ -821,7 +821,7 @@ export const zhHansCatalog = {
   },
   analyticsConsentBanner: {
     label: "分析 Cookie",
-    message: "我们使用一个 Cookie 和浏览器的其他存储来了解应用的使用情况。在你做出选择之前，不会在此设备上存储任何内容，也不会发送任何能识别你的信息。",
+    message: "我们使用一个 Cookie 和浏览器的其他存储来了解应用的使用情况。在你做出选择之前，本应用不会在此设备上存储任何内容，也不会发送任何能识别你的信息。",
     allow: "允许",
     decline: "拒绝",
     privacyPolicy: "隐私政策",
@@ -831,8 +831,9 @@ export const zhHansCatalog = {
     title: "使用分析",
     subtitle: "选择是否可以统计此浏览器。",
     toggleTitle: "允许分析 Cookie",
-    toggleDescription: "关闭后，此浏览器不会获得任何标识符，也不会为统计保存任何内容。但在你登录期间，统计到的内容仍会记录在你的账号下。",
+    toggleDescription: "关闭后，本应用不会给此浏览器任何标识符，也不会为统计保存任何内容。但在你登录期间，统计到的内容仍会记录在你的账号下。",
     error: "没有成功，请再试一次。",
+    unavailable: "本应用已关闭分析统计，因此这里没有可允许或撤回的内容。",
   },
   leaderboardParticipationSettings: {
     title: "排行榜参与",
