@@ -124,6 +124,7 @@ The generator module and `:app` share the `benchmark` version in `gradle/libs.ve
 ## Android Docs
 
 - Add a new app language safely: [`docs/add-language-checklist.md`](docs/add-language-checklist.md)
+- Localize and publish Google Play listings: [`docs/play-store-localization-runbook.md`](docs/play-store-localization-runbook.md)
 - Run Android marketing screenshot captures reliably: [`docs/marketing-screenshot-runbook.md`](docs/marketing-screenshot-runbook.md)
 - Track Android marketing screenshot generator inventory: [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md)
 
