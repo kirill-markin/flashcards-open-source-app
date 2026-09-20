@@ -107,6 +107,11 @@ const enCatalog = {
       reload: "Reload page",
       later: "Later",
     },
+    storageUnavailable: {
+      title: "Browser storage unavailable",
+      message: "This app needs browser storage, and this browser is blocking it.",
+      guidance: "Try a normal (non-private) window, or open the app in another browser.",
+    },
   },
   filters: {
     allCards: "All cards",

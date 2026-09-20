@@ -59,15 +59,18 @@ export function CatalogImportStatePanel(props: Readonly<{
   testId: string;
   title: string;
   message: string;
+  /** A second paragraph telling the user what to do, for panels that have an action to suggest. */
+  guidance: string | null;
   retryLabel: string | null;
   onRetry: (() => void) | null;
 }>): ReactElement {
-  const { testId, title, message, retryLabel, onRetry } = props;
+  const { testId, title, message, guidance, retryLabel, onRetry } = props;
   return (
     <main className="invite-page">
       <section className="content-card invite-panel" data-testid={testId}>
         <h1 className="title">{title}</h1>
         <p className="subtitle">{message}</p>
+        {guidance === null ? null : <p className="subtitle">{guidance}</p>}
         {retryLabel === null || onRetry === null ? null : (
           <button className="primary-btn" type="button" data-testid={`${testId}-retry`} onClick={onRetry}>
             {retryLabel}

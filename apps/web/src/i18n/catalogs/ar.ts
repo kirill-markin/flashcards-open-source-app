@@ -109,6 +109,11 @@ const arCatalog: TranslationCatalog = {
       reload: "إعادة تحميل الصفحة",
       later: "لاحقًا",
     },
+    storageUnavailable: {
+      title: "تخزين المتصفح غير متاح",
+      message: "يحتاج هذا التطبيق إلى مساحة تخزين المتصفح، وهذا المتصفح يحظرها.",
+      guidance: "افتح التطبيق في نافذة عادية (غير خاصة) أو في متصفح آخر.",
+    },
   },
   filters: {
     allCards: "كل البطاقات",

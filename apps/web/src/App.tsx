@@ -374,6 +374,8 @@ function resolveSessionGateSurface(sessionLoadState: SessionLoadState): Analytic
     case "loading":
     case "redirecting":
     case "error":
+    // A browser without storage also has no analytics queue to record a screen view into.
+    case "storage_unavailable":
       return null;
   }
 }
@@ -522,6 +524,20 @@ export function AppShell(): ReactElement {
           <button className="primary-btn" type="button" onClick={() => void initialize()}>
             {t("common.retry")}
           </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (sessionLoadState === "storage_unavailable") {
+    // No retry button: the browser exposes no storage at all, so another attempt fails identically.
+    return (
+      <main className="page-state">
+        <section className="panel panel-center state-panel">
+          <h1 className="title">{t("app.title")}</h1>
+          <h2 className="panel-subtitle">{t("appError.storageUnavailable.title")}</h2>
+          <p className="error-banner">{t("appError.storageUnavailable.message")}</p>
+          <p className="subtitle">{t("appError.storageUnavailable.guidance")}</p>
         </section>
       </main>
     );

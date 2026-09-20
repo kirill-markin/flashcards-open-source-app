@@ -17,7 +17,7 @@ import type {
 } from "../../types";
 import type { SessionVerificationState } from "../session/workspaceSessionTypes";
 
-export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted";
+export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted" | "storage_unavailable";
 
 export type AppDataContextValue = Readonly<{
   sessionLoadState: SessionLoadState;

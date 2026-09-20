@@ -12,6 +12,7 @@ import {
   type WebObservationScope,
 } from "../../observability/webObservability";
 import { upgradeDatabase } from "./databaseMigrations";
+import { createIndexedDbUnavailableError, getIndexedDbFactory } from "./indexedDbAvailability";
 import { isIndexedDbOpenRecoveryError } from "./indexedDbOpenRecovery";
 import { databaseName, databaseVersion } from "./databaseSchema";
 import type { DatabaseStores } from "./databaseSchema";
@@ -205,7 +206,13 @@ export function readIndexedDbOpenLifecycleSnapshotForDiagnostics(): IndexedDbOpe
 
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(databaseName, databaseVersion);
+    const indexedDbFactory = getIndexedDbFactory();
+    if (indexedDbFactory === null) {
+      reject(createIndexedDbUnavailableError());
+      return;
+    }
+
+    const request = indexedDbFactory.open(databaseName, databaseVersion);
     let oldVersionDuringUpgrade: number | null = null;
 
     request.onerror = () => {
@@ -423,14 +430,19 @@ async function wipeAllObjectStores(
 async function databaseExists(
   throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<boolean> {
-  if (typeof indexedDB.databases !== "function") {
+  const indexedDbFactory = getIndexedDbFactory();
+  if (indexedDbFactory === null) {
+    throw createIndexedDbUnavailableError();
+  }
+
+  if (typeof indexedDbFactory.databases !== "function") {
     // Capability missing in older browsers: assume the database exists; the
     // wipe open below creates it when absent, which is harmless.
     return true;
   }
 
   try {
-    const databases = await indexedDB.databases();
+    const databases = await indexedDbFactory.databases();
     throwIfIndexedDbOpenRecoveryFailed();
     return databases.some((databaseInfo) => databaseInfo.name === databaseName);
   } catch (error) {
@@ -482,7 +494,16 @@ function addIndexedDbDeleteOutcomeBreadcrumb(
  */
 function requestDeleteDatabaseBestEffort(): Promise<DeleteDatabaseOutcome> {
   return new Promise((resolve) => {
-    const request = indexedDB.deleteDatabase(databaseName);
+    const indexedDbFactory = getIndexedDbFactory();
+    if (indexedDbFactory === null) {
+      // Nothing can be stored without a factory, so there is nothing to delete either; report it
+      // like any other delete that did not complete instead of throwing from a best-effort path.
+      addIndexedDbDeleteOutcomeBreadcrumb("delete_error", createIndexedDbUnavailableError());
+      resolve("delete_error");
+      return;
+    }
+
+    const request = indexedDbFactory.deleteDatabase(databaseName);
     let blockedWaitTimeoutId: number | null = null;
     let isSettled = false;
 
