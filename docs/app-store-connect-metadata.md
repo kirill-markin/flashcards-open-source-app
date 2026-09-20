@@ -143,6 +143,9 @@ open,source,spaced,repetition,vocab,language,exam,prep,medical,memorize,fsrs,dec
 
 - Nibomo's interface now supports 49 languages.
 - Sign-in pages are now available in the same languages.
+- Improved keyboard dismissal in AI chat, sign-in, and review scheduling settings.
+- Improved AI chat scrolling, dictation, and attachment controls.
+- Fixed long answers being cut off during review.
 
 ## Arabic
 
@@ -184,6 +187,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - أصبحت واجهة Nibomo تدعم 49 لغة.
 - تتوفر صفحات تسجيل الدخول الآن باللغات نفسها.
+- تحسين إخفاء لوحة المفاتيح في محادثة الذكاء الاصطناعي وتسجيل الدخول وإعدادات جدولة المراجعة.
+- تحسين التمرير والإملاء وعناصر التحكم في المرفقات في محادثة الذكاء الاصطناعي.
+- إصلاح اقتطاع الإجابات الطويلة أثناء المراجعة.
 
 ## Chinese (Simplified)
 
@@ -225,6 +231,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomo 界面现已支持 49 种语言。
 - 登录页面也支持这些语言。
+- 优化了 AI 聊天、登录和复习计划设置中的键盘收起操作。
+- 改进了 AI 聊天中的滚动、语音输入和附件控件。
+- 修复了复习时长答案显示不完整的问题。
 
 ## French
 
@@ -266,6 +275,9 @@ open,source,cartes,mémo,répétition,espacée,bac,brevet,médecine,vocabulaire,
 
 - L'interface de Nibomo est désormais disponible en 49 langues.
 - Les pages de connexion sont aussi disponibles dans ces langues.
+- Le clavier est plus facile à masquer dans le chat IA, à la connexion et dans les réglages de planification des révisions.
+- Amélioration du défilement, de la dictée et des commandes des pièces jointes dans le chat IA.
+- Correction des réponses longues qui étaient tronquées pendant les révisions.
 
 ## German
 
@@ -307,6 +319,9 @@ open,source,lernen,spaced,repetition,vokabeln,sprachen,prüfungen,medizin,merken
 
 - Die Oberfläche von Nibomo unterstützt jetzt 49 Sprachen.
 - Die Anmeldeseiten sind jetzt ebenfalls in diesen Sprachen verfügbar.
+- Die Tastatur lässt sich im KI-Chat, bei der Anmeldung und in den Einstellungen zur Wiederholungsplanung leichter ausblenden.
+- Scrollen, Diktieren und die Bedienelemente für Anhänge im KI-Chat wurden verbessert.
+- Lange Antworten werden beim Wiederholen nicht mehr abgeschnitten.
 
 ## Hindi
 
@@ -348,6 +363,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomo का इंटरफ़ेस अब 49 भाषाओं में उपलब्ध है।
 - साइन-इन पेज भी अब इन्हीं भाषाओं में उपलब्ध हैं।
+- AI चैट, साइन-इन और रिव्यू शेड्यूलिंग सेटिंग्स में कीबोर्ड छिपाना बेहतर बनाया गया है।
+- AI चैट में स्क्रॉलिंग, बोलकर लिखने और अटैचमेंट के कंट्रोल बेहतर बनाए गए हैं।
+- रिव्यू के दौरान लंबे जवाब अधूरे दिखने की समस्या ठीक की गई है।
 
 ## Japanese
 
@@ -389,6 +407,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomo の画面表示が49言語に対応しました。
 - ログインページも同じ言語に対応しました。
+- AI チャット、ログイン、復習スケジュール設定でキーボードを閉じやすくしました。
+- AI チャットのスクロール、音声入力、添付ファイルの操作を改善しました。
+- 復習中に長い回答が途中で切れて表示される問題を修正しました。
 
 ## Portuguese (Brazil)
 
@@ -430,6 +451,9 @@ open,source,fichas,repetição,espaçada,enem,vestibular,concurso,oab,medicina,m
 
 - A interface do Nibomo agora está disponível em 49 idiomas.
 - As páginas de login também estão disponíveis nesses idiomas.
+- Ficou mais fácil ocultar o teclado no chat com IA, no login e nas configurações de agendamento das revisões.
+- Melhoramos a rolagem, o ditado e os controles de anexos no chat com IA.
+- Corrigimos o corte de respostas longas durante a revisão.
 
 ## Russian
 
@@ -471,6 +495,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Интерфейс Nibomo теперь доступен на 49 языках.
 - Страницы входа теперь поддерживают те же языки.
+- Стало удобнее скрывать клавиатуру в чате с ИИ, при входе и в настройках расписания повторений.
+- Улучшены прокрутка, голосовой ввод и управление вложениями в чате с ИИ.
+- Исправлено обрезание длинных ответов при повторении.
 
 ## Spanish (Mexico)
 
@@ -512,6 +539,9 @@ open,source,estudio,repetición,espaciada,vocabulario,idiomas,exámenes,medicina
 
 - La interfaz de Nibomo ahora está disponible en 49 idiomas.
 - Las páginas de inicio de sesión también están disponibles en esos idiomas.
+- Ahora es más fácil ocultar el teclado en el chat con IA, al iniciar sesión y en los ajustes de programación de repasos.
+- Mejoramos el desplazamiento, el dictado y los controles de archivos adjuntos en el chat con IA.
+- Corregimos un problema que cortaba las respuestas largas durante el repaso.
 
 ## Spanish (Spain)
 
@@ -553,6 +583,9 @@ open,source,estudio,repetición,espaciada,vocabulario,idiomas,exámenes,medicina
 
 - La interfaz de Nibomo ya está disponible en 49 idiomas.
 - Las páginas de inicio de sesión también están disponibles en esos idiomas.
+- Ahora es más fácil ocultar el teclado en el chat con IA, al iniciar sesión y en los ajustes de programación de repasos.
+- Hemos mejorado el desplazamiento, el dictado y los controles de archivos adjuntos en el chat con IA.
+- Hemos corregido un problema que cortaba las respuestas largas durante el repaso.
 
 ## Bangla
 
@@ -596,6 +629,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomo-এর ইন্টারফেস এখন 49টি ভাষায় ব্যবহার করা যায়।
 - সাইন-ইন পৃষ্ঠাগুলোও এখন একই ভাষাগুলোতে ব্যবহার করা যায়।
+- AI চ্যাট, সাইন-ইন ও পুনরাবৃত্তির সময়সূচির সেটিংসে কিবোর্ড লুকানো আরও সহজ হয়েছে।
+- AI চ্যাটে স্ক্রল করা, বলে লেখা ও সংযুক্তি নিয়ন্ত্রণ উন্নত করা হয়েছে।
+- পুনরাবৃত্তির সময় দীর্ঘ উত্তর কেটে যাওয়ার সমস্যা ঠিক করা হয়েছে।
 
 ## Catalan
 
@@ -639,6 +675,9 @@ memòria,repetició,espaiada,vocabulari,idiomes,exàmens,medicina,baralles,etiqu
 
 - La interfície de Nibomo ja està disponible en 49 idiomes.
 - Les pàgines d'inici de sessió també estan disponibles en aquests idiomes.
+- Ara és més fàcil amagar el teclat al xat amb IA, a l'inici de sessió i als ajustos de programació dels repassos.
+- Hem millorat el desplaçament, el dictat i els controls dels fitxers adjunts al xat amb IA.
+- Hem corregit un problema que tallava les respostes llargues durant el repàs.
 
 ## Czech
 
@@ -682,6 +721,9 @@ učení,opakování,slovíčka,jazyky,zkoušky,medicína,paměť,balíčky,ští
 
 - Rozhraní Nibomo je nyní dostupné ve 49 jazycích.
 - Přihlašovací stránky jsou nyní dostupné ve stejných jazycích.
+- Klávesnici lze snáze skrýt v chatu s AI, při přihlašování a v nastavení plánování opakování.
+- Vylepšili jsme posouvání, diktování a ovládání příloh v chatu s AI.
+- Opravili jsme ořezávání dlouhých odpovědí při opakování.
 
 ## Danish
 
@@ -725,6 +767,9 @@ repetition,ordforråd,sprog,eksamen,medicin,hukommelse,kortsæt,tags,open,source
 
 - Nibomos brugerflade er nu tilgængelig på 49 sprog.
 - Loginsiderne er nu også tilgængelige på de samme sprog.
+- Det er blevet lettere at skjule tastaturet i AI-chatten, ved login og i indstillingerne for planlægning af repetition.
+- Forbedret rulning, diktering og betjening af vedhæftninger i AI-chatten.
+- Rettet en fejl, hvor lange svar blev afkortet under repetition.
 
 ## Greek
 
@@ -768,6 +813,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Το περιβάλλον του Nibomo είναι πλέον διαθέσιμο σε 49 γλώσσες.
 - Οι σελίδες σύνδεσης είναι πλέον διαθέσιμες στις ίδιες γλώσσες.
+- Το πληκτρολόγιο κρύβεται πιο εύκολα στη συνομιλία AI, στη σύνδεση και στις ρυθμίσεις προγραμματισμού επαναλήψεων.
+- Βελτιώθηκαν η κύλιση, η υπαγόρευση και τα στοιχεία ελέγχου συνημμένων στη συνομιλία AI.
+- Διορθώθηκε η αποκοπή μεγάλων απαντήσεων κατά την επανάληψη.
 
 ## Finnish
 
@@ -811,6 +859,9 @@ kertaus,sanasto,kielet,koe,opiskelu,lääketiede,muisti,pakat,tunnisteet,avoin,l
 
 - Nibomon käyttöliittymä on nyt saatavilla 49 kielellä.
 - Myös kirjautumissivut ovat nyt saatavilla samoilla kielillä.
+- Näppäimistön piilottaminen on helpompaa tekoälychatissa, kirjautuessa ja kertauksen ajoitusasetuksissa.
+- Tekoälychatin vieritystä, sanelua ja liitteiden hallintaa on parannettu.
+- Pitkien vastausten katkeaminen kertauksen aikana on korjattu.
 
 ## Gujarati
 
@@ -854,6 +905,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomoનું ઇન્ટરફેસ હવે 49 ભાષાઓમાં ઉપલબ્ધ છે.
 - સાઇન-ઇન પૃષ્ઠો પણ હવે એ જ ભાષાઓમાં ઉપલબ્ધ છે.
+- AI ચેટ, સાઇન-ઇન અને પુનરાવર્તનના સમયપત્રકની સેટિંગ્સમાં કીબોર્ડ છુપાવવાનું વધુ સરળ બનાવ્યું છે.
+- AI ચેટમાં સ્ક્રોલિંગ, બોલીને લખવાની સુવિધા અને જોડાણોના નિયંત્રણો સુધાર્યા છે.
+- પુનરાવર્તન દરમિયાન લાંબા જવાબો અધૂરા દેખાવાની સમસ્યા સુધારી છે.
 
 ## Hebrew
 
@@ -897,6 +951,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - הממשק של Nibomo זמין עכשיו ב-49 שפות.
 - גם דפי הכניסה זמינים עכשיו באותן שפות.
+- קל יותר להסתיר את המקלדת בצ'אט AI, בכניסה לחשבון ובהגדרות תזמון החזרות.
+- שופרו הגלילה, ההכתבה ופקדי הקבצים המצורפים בצ'אט AI.
+- תוקנה בעיה שבה תשובות ארוכות נחתכו בזמן החזרה.
 
 ## Croatian
 
@@ -940,6 +997,9 @@ učenje,ponavljanje,vokabular,jezici,ispiti,medicina,pamćenje,špilovi,oznake,f
 
 - Sučelje aplikacije Nibomo sada je dostupno na 49 jezika.
 - Stranice za prijavu sada su dostupne na istim jezicima.
+- Tipkovnicu je lakše sakriti u AI chatu, pri prijavi i u postavkama rasporeda ponavljanja.
+- Poboljšani su pomicanje, diktiranje i upravljanje privicima u AI chatu.
+- Ispravljeno je odsijecanje dugih odgovora tijekom ponavljanja.
 
 ## Hungarian
 
@@ -983,6 +1043,9 @@ ismétlés,szókincs,nyelv,vizsga,orvosi,memória,pakli,címke,nyílt,forráskó
 
 - A Nibomo felülete mostantól 49 nyelven érhető el.
 - A bejelentkezési oldalak is elérhetők ezeken a nyelveken.
+- Könnyebb elrejteni a billentyűzetet az AI-csevegésben, bejelentkezéskor és az ismétlések ütemezési beállításaiban.
+- Javítottuk a görgetést, a diktálást és a mellékletek kezelését az AI-csevegésben.
+- Javítottuk a hosszú válaszok levágását ismétlés közben.
 
 ## Indonesian
 
@@ -1026,6 +1089,9 @@ pengulangan,berjarak,kosakata,bahasa,ujian,kedokteran,ingatan,dek,tag,sumber,ter
 
 - Antarmuka Nibomo kini tersedia dalam 49 bahasa.
 - Halaman masuk kini juga tersedia dalam bahasa-bahasa tersebut.
+- Keyboard kini lebih mudah disembunyikan di chat AI, saat masuk, dan di pengaturan jadwal ulasan.
+- Pengguliran, dikte, dan kontrol lampiran di chat AI telah ditingkatkan.
+- Memperbaiki jawaban panjang yang terpotong saat mengulas.
 
 ## Italian
 
@@ -1069,6 +1135,9 @@ ripetizione,dilazionata,vocabolario,lingue,esami,medicina,memoria,mazzi,etichett
 
 - L'interfaccia di Nibomo è ora disponibile in 49 lingue.
 - Anche le pagine di accesso sono disponibili nelle stesse lingue.
+- È più facile nascondere la tastiera nella chat IA, durante l'accesso e nelle impostazioni di pianificazione dei ripassi.
+- Abbiamo migliorato lo scorrimento, la dettatura e i controlli degli allegati nella chat IA.
+- Abbiamo corretto il taglio delle risposte lunghe durante il ripasso.
 
 ## Kannada
 
@@ -1112,6 +1181,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomoದ ಇಂಟರ್ಫೇಸ್ ಈಗ 49 ಭಾಷೆಗಳಲ್ಲಿ ಲಭ್ಯವಿದೆ.
 - ಸೈನ್-ಇನ್ ಪುಟಗಳು ಕೂಡ ಈಗ ಅದೇ ಭಾಷೆಗಳಲ್ಲಿ ಲಭ್ಯವಿವೆ.
+- AI ಚಾಟ್, ಸೈನ್-ಇನ್ ಮತ್ತು ಪುನರಾವರ್ತನೆಯ ವೇಳಾಪಟ್ಟಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಕೀಬೋರ್ಡ್ ಮರೆಮಾಡುವುದು ಈಗ ಸುಲಭವಾಗಿದೆ.
+- AI ಚಾಟ್‌ನಲ್ಲಿ ಸ್ಕ್ರೋಲಿಂಗ್, ಧ್ವನಿ ಮೂಲಕ ಬರೆಯುವುದು ಮತ್ತು ಲಗತ್ತುಗಳ ನಿಯಂತ್ರಣಗಳನ್ನು ಸುಧಾರಿಸಲಾಗಿದೆ.
+- ಪುನರಾವರ್ತನೆಯ ಸಮಯದಲ್ಲಿ ಉದ್ದವಾದ ಉತ್ತರಗಳು ಅಪೂರ್ಣವಾಗಿ ಕಾಣುತ್ತಿದ್ದ ಸಮಸ್ಯೆಯನ್ನು ಸರಿಪಡಿಸಲಾಗಿದೆ.
 
 ## Korean
 
@@ -1155,6 +1227,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomo의 화면이 이제 49개 언어를 지원합니다.
 - 로그인 페이지도 같은 언어를 지원합니다.
+- AI 채팅, 로그인, 복습 일정 설정에서 키보드를 더 쉽게 닫을 수 있습니다.
+- AI 채팅의 스크롤, 음성 입력, 첨부 파일 조작을 개선했습니다.
+- 복습 중 긴 답변이 잘려 보이던 문제를 수정했습니다.
 
 ## Malayalam
 
@@ -1198,6 +1273,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomoയുടെ ഇന്റർഫേസ് ഇപ്പോൾ 49 ഭാഷകളിൽ ലഭ്യമാണ്.
 - സൈൻ-ഇൻ പേജുകളും ഇപ്പോൾ ഇതേ ഭാഷകളിൽ ലഭ്യമാണ്.
+- AI ചാറ്റിലും സൈൻ-ഇൻ ചെയ്യുമ്പോഴും പുനഃപഠന സമയക്രമത്തിന്റെ ക്രമീകരണങ്ങളിലും കീബോർഡ് മറയ്ക്കുന്നത് എളുപ്പമാക്കി.
+- AI ചാറ്റിലെ സ്ക്രോളിംഗ്, ശബ്ദം ഉപയോഗിച്ച് എഴുതൽ, അറ്റാച്ച്‌മെന്റ് നിയന്ത്രണങ്ങൾ എന്നിവ മെച്ചപ്പെടുത്തി.
+- പുനഃപഠനത്തിനിടെ നീണ്ട ഉത്തരങ്ങൾ മുറിഞ്ഞുകാണുന്ന പ്രശ്നം പരിഹരിച്ചു.
 
 ## Marathi
 
@@ -1241,6 +1319,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomoचा इंटरफेस आता 49 भाषांमध्ये उपलब्ध आहे.
 - साइन-इन पृष्ठेही आता याच भाषांमध्ये उपलब्ध आहेत.
+- AI चॅट, साइन-इन आणि उजळणीच्या वेळापत्रकाच्या सेटिंग्जमध्ये कीबोर्ड लपवणे आता सोपे झाले आहे.
+- AI चॅटमधील स्क्रोलिंग, बोलून लिहिणे आणि जोडलेल्या फाइल्सची नियंत्रणे सुधारली आहेत.
+- उजळणीदरम्यान लांब उत्तरे अपूर्ण दिसण्याची समस्या सोडवली आहे.
 
 ## Norwegian
 
@@ -1284,6 +1365,9 @@ repetisjon,ordforråd,språk,eksamen,medisin,hukommelse,kortstokker,etiketter,å
 
 - Nibomos grensesnitt er nå tilgjengelig på 49 språk.
 - Innloggingssidene er nå også tilgjengelige på de samme språkene.
+- Det er blitt enklere å skjule tastaturet i KI-chatten, ved innlogging og i innstillingene for repetisjonsplanlegging.
+- Forbedret rulling, diktering og håndtering av vedlegg i KI-chatten.
+- Rettet en feil der lange svar ble kuttet under repetisjon.
 
 ## Dutch
 
@@ -1327,6 +1411,9 @@ herhaling,woordenschat,talen,examen,geneeskunde,geheugen,kaartensets,tags,open,s
 
 - De interface van Nibomo is nu beschikbaar in 49 talen.
 - De inlogpagina's zijn nu ook beschikbaar in dezelfde talen.
+- Het toetsenbord is makkelijker te verbergen in de AI-chat, bij het inloggen en in de instellingen voor het plannen van herhalingen.
+- Scrollen, dicteren en de bediening van bijlagen in de AI-chat zijn verbeterd.
+- Opgelost dat lange antwoorden tijdens het herhalen werden afgekapt.
 
 ## Punjabi
 
@@ -1370,6 +1457,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomo ਦਾ ਇੰਟਰਫੇਸ ਹੁਣ 49 ਭਾਸ਼ਾਵਾਂ ਵਿੱਚ ਉਪਲਬਧ ਹੈ।
 - ਸਾਈਨ-ਇਨ ਪੰਨੇ ਵੀ ਹੁਣ ਇਨ੍ਹਾਂ ਹੀ ਭਾਸ਼ਾਵਾਂ ਵਿੱਚ ਉਪਲਬਧ ਹਨ।
+- AI ਚੈਟ, ਸਾਈਨ-ਇਨ ਅਤੇ ਦੁਹਰਾਈ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਕੀਬੋਰਡ ਲੁਕਾਉਣਾ ਹੁਣ ਸੌਖਾ ਹੋ ਗਿਆ ਹੈ।
+- AI ਚੈਟ ਵਿੱਚ ਸਕ੍ਰੌਲ ਕਰਨ, ਬੋਲ ਕੇ ਲਿਖਣ ਅਤੇ ਨੱਥੀ ਫ਼ਾਈਲਾਂ ਦੇ ਕੰਟਰੋਲ ਸੁਧਾਰੇ ਗਏ ਹਨ।
+- ਦੁਹਰਾਈ ਦੌਰਾਨ ਲੰਬੇ ਜਵਾਬ ਅਧੂਰੇ ਦਿਖਾਈ ਦੇਣ ਦੀ ਸਮੱਸਿਆ ਠੀਕ ਕੀਤੀ ਗਈ ਹੈ।
 
 ## Polish
 
@@ -1413,6 +1503,9 @@ powtórki,słownictwo,języki,egzaminy,medycyna,pamięć,talie,tagi,nauka,otwart
 
 - Interfejs Nibomo jest teraz dostępny w 49 językach.
 - Strony logowania są teraz dostępne w tych samych językach.
+- Łatwiej ukryć klawiaturę w czacie z AI, przy logowaniu i w ustawieniach harmonogramu powtórek.
+- Ulepszyliśmy przewijanie, dyktowanie i obsługę załączników w czacie z AI.
+- Naprawiliśmy ucinanie długich odpowiedzi podczas powtórek.
 
 ## Romanian
 
@@ -1456,6 +1549,9 @@ repetiție,vocabular,limbi,examene,medicină,memorie,pachete,etichete,cod,deschi
 
 - Interfața Nibomo este acum disponibilă în 49 de limbi.
 - Paginile de conectare sunt acum disponibile în aceleași limbi.
+- Tastatura se ascunde mai ușor în chatul AI, la conectare și în setările de programare a recapitulărilor.
+- Am îmbunătățit derularea, dictarea și comenzile pentru atașamente din chatul AI.
+- Am remediat afișarea incompletă a răspunsurilor lungi în timpul recapitulării.
 
 ## Slovak
 
@@ -1499,6 +1595,9 @@ učenie,opakovanie,slovíčka,jazyky,skúšky,medicína,pamäť,balíčky,štít
 
 - Rozhranie Nibomo je teraz dostupné v 49 jazykoch.
 - Prihlasovacie stránky sú teraz dostupné v rovnakých jazykoch.
+- Klávesnicu možno jednoduchšie skryť v chate s AI, pri prihlasovaní a v nastaveniach plánovania opakovania.
+- Vylepšili sme posúvanie, diktovanie a ovládanie príloh v chate s AI.
+- Opravili sme orezávanie dlhých odpovedí pri opakovaní.
 
 ## Slovenian
 
@@ -1542,6 +1641,9 @@ ponavljanje,besedišče,jeziki,izpiti,medicina,spomin,kompleti,oznake,odprta,kod
 
 - Vmesnik aplikacije Nibomo je zdaj na voljo v 49 jezikih.
 - Strani za prijavo so zdaj na voljo v istih jezikih.
+- Tipkovnico je lažje skriti v klepetu z AI, pri prijavi in v nastavitvah urnika ponavljanja.
+- Izboljšali smo pomikanje, narekovanje in upravljanje prilog v klepetu z AI.
+- Odpravili smo težavo z odrezanimi dolgimi odgovori med ponavljanjem.
 
 ## Swedish
 
@@ -1585,6 +1687,9 @@ repetition,ordförråd,språk,prov,medicin,minne,kortlekar,taggar,öppen,källko
 
 - Nibomos gränssnitt finns nu på 49 språk.
 - Inloggningssidorna finns nu också på samma språk.
+- Det är lättare att dölja tangentbordet i AI-chatten, vid inloggning och i inställningarna för repetitionsschemat.
+- Förbättrad rullning, diktering och hantering av bilagor i AI-chatten.
+- Åtgärdat att långa svar klipptes av under repetition.
 
 ## Tamil
 
@@ -1628,6 +1733,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomoவின் இடைமுகம் இப்போது 49 மொழிகளில் கிடைக்கிறது.
 - உள்நுழைவுப் பக்கங்களும் இப்போது அதே மொழிகளில் கிடைக்கின்றன.
+- AI அரட்டை, உள்நுழைவு மற்றும் மீள்பார்வை அட்டவணை அமைப்புகளில் விசைப்பலகையை மறைப்பது எளிதாக்கப்பட்டுள்ளது.
+- AI அரட்டையில் ஸ்க்ரோல் செய்வது, குரல் மூலம் எழுதுவது மற்றும் இணைப்புக் கட்டுப்பாடுகள் மேம்படுத்தப்பட்டுள்ளன.
+- மீள்பார்வையின்போது நீண்ட பதில்கள் முழுமையாகத் தெரியாத சிக்கல் சரிசெய்யப்பட்டுள்ளது.
 
 ## Telugu
 
@@ -1671,6 +1779,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomo ఇంటర్‌ఫేస్ ఇప్పుడు 49 భాషల్లో అందుబాటులో ఉంది.
 - సైన్-ఇన్ పేజీలు కూడా ఇప్పుడు అవే భాషల్లో అందుబాటులో ఉన్నాయి.
+- AI చాట్, సైన్-ఇన్, పునశ్చరణ సమయ ప్రణాళిక సెట్టింగ్‌లలో కీబోర్డ్‌ను దాచడం సులభమైంది.
+- AI చాట్‌లో స్క్రోలింగ్, మాటలతో రాయడం, అటాచ్‌మెంట్ నియంత్రణలు మెరుగుపరిచాం.
+- పునశ్చరణ సమయంలో పొడవైన సమాధానాలు అసంపూర్ణంగా కనిపించే సమస్యను పరిష్కరించాం.
 
 ## Thai
 
@@ -1714,6 +1825,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - อินเทอร์เฟซของ Nibomo รองรับ 49 ภาษาแล้ว
 - หน้าเข้าสู่ระบบก็รองรับภาษาเหล่านี้แล้วเช่นกัน
+- ซ่อนคีย์บอร์ดได้ง่ายขึ้นในแชท AI หน้าเข้าสู่ระบบ และการตั้งค่าตารางทบทวน
+- ปรับปรุงการเลื่อน การพิมพ์ด้วยเสียง และปุ่มควบคุมไฟล์แนบในแชท AI
+- แก้ไขคำตอบยาวที่แสดงไม่ครบระหว่างทบทวน
 
 ## Turkish
 
@@ -1757,6 +1871,9 @@ aralıklı,tekrar,kelime,dil,sınav,tıp,ezber,deste,etiket,açık,kaynak,fsrs
 
 - Nibomo'nun arayüzü artık 49 dili destekliyor.
 - Giriş sayfaları da artık aynı dillerde kullanılabiliyor.
+- AI sohbetinde, giriş yaparken ve tekrar zamanlama ayarlarında klavyeyi gizlemek daha kolay hale geldi.
+- AI sohbetinde kaydırma, dikte ve ek kontrolleri iyileştirildi.
+- Tekrar sırasında uzun yanıtların kesilmesi düzeltildi.
 
 ## Ukrainian
 
@@ -1800,6 +1917,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Інтерфейс Nibomo тепер доступний 49 мовами.
 - Сторінки входу тепер підтримують ті самі мови.
+- Стало зручніше приховувати клавіатуру в чаті з ШІ, під час входу та в налаштуваннях розкладу повторень.
+- Поліпшено прокручування, голосове введення та керування вкладеннями в чаті з ШІ.
+- Виправлено обрізання довгих відповідей під час повторення.
 
 ## Urdu
 
@@ -1843,6 +1963,9 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Nibomo کا انٹرفیس اب 49 زبانوں میں دستیاب ہے۔
 - سائن اِن کے صفحات بھی اب انہی زبانوں میں دستیاب ہیں۔
+- AI چیٹ، سائن اِن اور دہرائی کے شیڈول کی ترتیبات میں کی بورڈ چھپانا آسان بنا دیا گیا ہے۔
+- AI چیٹ میں اسکرولنگ، بول کر لکھنے اور منسلک فائلوں کے کنٹرولز کو بہتر بنایا گیا ہے۔
+- دہرائی کے دوران طویل جوابات ادھورے نظر آنے کا مسئلہ حل کر دیا گیا ہے۔
 
 ## Vietnamese
 
@@ -1886,3 +2009,6 @@ https://github.com/kirill-markin/flashcards-open-source-app
 
 - Giao diện Nibomo hiện hỗ trợ 49 ngôn ngữ.
 - Các trang đăng nhập cũng đã hỗ trợ những ngôn ngữ này.
+- Dễ ẩn bàn phím hơn trong trò chuyện AI, khi đăng nhập và trong phần cài đặt lịch ôn tập.
+- Cải thiện thao tác cuộn, nhập bằng giọng nói và các nút điều khiển tệp đính kèm trong trò chuyện AI.
+- Sửa lỗi câu trả lời dài bị cắt khi ôn tập.
