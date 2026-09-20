@@ -23044,7 +23044,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld upprifjanir"
+            "value" : "Fjöldi upprifjana: %lld"
           }
         },
         "gu" : {
@@ -24874,7 +24874,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld spjöld"
+            "value" : "Fjöldi spjalda: %lld"
           }
         },
         "gu" : {
@@ -33683,7 +33683,7 @@
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "സ്ഥാനം %1$lld, %2$lld ആവർത്തനങ്ങൾ"
+            "value" : "സ്ഥാനം %1$lld, ആവർത്തനങ്ങൾ: %2$lld"
           }
         },
         "it" : {
@@ -33719,7 +33719,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sæti %1$lld, %2$lld upprifjanir"
+            "value" : "Sæti %1$lld, fjöldi upprifjana: %2$lld"
           }
         },
         "gu" : {
@@ -37074,7 +37074,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld klukkustundir"
+            "value" : "%lld klst."
           }
         },
         "gu" : {
@@ -37684,7 +37684,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld mínútur"
+            "value" : "%lld mín."
           }
         },
         "gu" : {
@@ -39753,7 +39753,7 @@
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld कार्डे, %@"
+            "value" : "कार्डे: %lld, %@"
           }
         },
         "nb" : {
@@ -39765,7 +39765,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld kaarten, %@"
+            "value" : "Kaarten: %lld, %@"
           }
         },
         "lt" : {
@@ -39783,7 +39783,7 @@
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld കാർഡുകൾ, %@"
+            "value" : "കാർഡുകൾ: %lld, %@"
           }
         },
         "it" : {
@@ -39819,7 +39819,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld spjöld, %@"
+            "value" : "Fjöldi spjalda: %lld, %@"
           }
         },
         "gu" : {
@@ -43108,19 +43108,19 @@
         "mr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld उजळण्या"
+            "value" : "उजळण्या: %lld"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld repetisjoner"
+            "value" : "Repetisjoner: %lld"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld herhalingen"
+            "value" : "Herhalingen: %lld"
           }
         },
         "lt" : {
@@ -43138,7 +43138,7 @@
         "ml" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld ആവർത്തനങ്ങൾ"
+            "value" : "ആവർത്തനങ്ങൾ: %lld"
           }
         },
         "it" : {
@@ -43174,7 +43174,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld upprifjanir"
+            "value" : "Fjöldi upprifjana: %lld"
           }
         },
         "gu" : {
@@ -44699,7 +44699,7 @@
         "is" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld dagar"
+            "value" : "Fjöldi daga: %lld"
           }
         },
         "gu" : {
