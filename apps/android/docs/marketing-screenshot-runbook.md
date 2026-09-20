@@ -60,15 +60,18 @@ Use this sequence for every screenshot run:
 Run the Android emulator headlessly, without a visible emulator window.
 For marketing screenshot generation, the visible emulator UI is unnecessary and wastes local machine resources; only the final PNG output matters.
 
-1. Stop all Android emulators.
-2. Stop all booted iOS simulators.
+1. Stop only Android emulators owned by this screenshot task. If another task's device is present, stop here and report contention; do not shut it down.
+2. Verify no iOS simulators are booted. If one is present, stop here and report contention; do not shut it down.
 3. Verify `adb devices` is empty before starting a new Android run.
 4. Start exactly one Android API 37 emulator in headless mode, currently `Medium_Phone_API_37.0`. Keep its owning terminal or execution session alive through the complete wrapper run, including final cleanup.
    Recommended local command:
 
    ```bash
+   export ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL=60
    emulator @Medium_Phone_API_37.0 -no-window -no-audio -gpu auto
    ```
+
+   Keep the 60-second shutdown grace for snapshot saving; the default 20 seconds can terminate the emulator before saving finishes.
 
    If the emulator still needs startup diagnosis on a weak machine, keep the same headless shape and add only temporary debug flags:
 
@@ -78,10 +81,20 @@ For marketing screenshot generation, the visible emulator UI is unnecessary and 
 
    Avoid forcing the deprecated `-gpu swiftshader_indirect` mode for this local screenshot flow.
 5. Wait for full device readiness, not just `adb` visibility.
-6. Dismiss any blocking Android system dialog before the run.
-7. Run one screenshot wrapper script at a time.
-8. Open the generated PNG and verify the actual image, not just the green test result.
-9. After the wrapper exits, stop only that emulator with `adb -s <serial> emu kill`. Wait for its owning process/session to exit and for `adb devices` to become empty before starting another locale. `adb emu kill` acknowledges the request before snapshot saving and process shutdown finish.
+6. Set the target Play locale before rebooting the owned emulator. For example, for Finnish (replace `<serial>` with that emulator's serial):
+
+   ```bash
+   export FLASHCARDS_MARKETING_LOCALE_PREFIX=fi-FI
+   bash scripts/android/android-set-device-locale.sh "$FLASHCARDS_MARKETING_LOCALE_PREFIX"
+   adb -s <serial> reboot
+   adb -s <serial> wait-for-device
+   ```
+
+   Repeat every readiness check below after the reboot. A warm API 37 snapshot can retain the previous locale's SystemUI clock digits or separator even when `cmd locale` reports the target tag. Rebooting after setting the locale refreshes that native formatting. The wrapper reapplies the same locale harmlessly.
+7. Dismiss any blocking Android system dialog before the run; use the Bluetooth workaround below only if that failure is observed.
+8. Run one screenshot wrapper script at a time, with the same exported locale prefix.
+9. Open all five generated PNGs and verify the actual images, not just the green test result.
+10. After the wrapper exits, stop only that emulator with `adb -s <serial> emu kill`. Wait for its owning process/session to exit and for `adb devices` to become empty before starting another locale. `adb emu kill` acknowledges the request before snapshot saving and process shutdown finish. If another task's device appears, report contention instead of stopping it.
 
 A shell that owns a background emulator must remain alive until capture, cleanup, emulator shutdown, and `wait "$emulator_pid"` have all finished. Do not leave a previous session shutting down while starting its replacement on the same AVD or serial. Preserve the emulator log and owning process exit status; an offline device alone does not establish whether the emulator crashed, was terminated, or lost its connection.
 
@@ -112,6 +125,16 @@ bash scripts/android/android-dismiss-system-dialogs.sh
 
 The screenshot helpers also defend against recurring system ANR dialogs during the run.
 For the current marketing flows, the intended behavior is to press `Wait`, let Android settle, and continue.
+
+On the Google APIs API 37 image, a Bluetooth service crash with `HCI Hardware Error 0x42` can repeatedly overlay screenshots even when instrumentation passes. When this specific failure is observed, run the following only on the owned emulator:
+
+```bash
+adb -s <serial> shell svc bluetooth disable
+adb -s <serial> shell am force-stop com.google.android.bluetooth
+adb -s <serial> exec-out uiautomator dump /dev/tty
+```
+
+Inspect the native UI dump and close any remaining Bluetooth crash dialog using its `android:id/aerr_close` control, then run the standard dismiss helper above. This is an emulator-image workaround, not routine device setup; the package name applies to the observed Google APIs image. If the dialog recurs, stop and inspect the emulator logs before capturing again.
 
 One more failure mode is common on a freshly booted Play Store emulator, especially on a weak local machine:
 
@@ -162,9 +185,10 @@ Keep normal Android UI localization Play-first, and limit repository-managed scr
 
 After a wrapper finishes:
 
-1. Check that the expected PNG exists in `apps/android/docs/media/play-store-screenshots/`.
-2. Open the actual PNG file.
+1. Check that all five expected PNGs exist in `apps/android/docs/media/play-store-screenshots/`.
+2. Open each actual PNG file.
 3. Verify that there is no system dialog overlay, loading spinner, missing handoff state, or stale content.
+4. Verify the native status-bar clock uses the target locale's digits and separator, not the previous locale's formatting; Finnish should use Latin digits and a dot, for example `13.45`. A successful locale query alone is insufficient.
 
 The screenshot variant suppresses the guest sign-in prompt. The robot rejects any
 Compose dialog before each capture. The wrapper removes the expected device files
@@ -191,7 +215,7 @@ The final check is always the screenshot image itself.
 After verification:
 
 1. Stop the owned Android emulator and wait for its process/session to finish, including snapshot saving.
-2. Shut down any booted iOS simulators.
+2. Leave other tasks' devices and iOS simulators untouched; report any new contention.
 3. Confirm `adb devices` is empty again.
 
 This keeps the next run deterministic and avoids hidden resource contention between screenshot sessions.
