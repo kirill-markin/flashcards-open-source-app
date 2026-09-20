@@ -336,6 +336,7 @@ bash scripts/ios/build-ios-marketing-materials.sh --all-locales
   them as automation so they never become product analytics; see the automation marker section of
   [`docs/ios-ci-cd.md`](../../../docs/ios-ci-cd.md#automation-marker).
 - Device family is inferred from the simulator name, so the booted simulator directly controls whether output lands in `iphone/` or `ipad/`.
+- Preserve `rootTab.*.item` accessibility IDs and query them across native containers: iPhone tabs are in a `TabBar`, while iPad top-tab buttons can be under `Other` containers.
 - Run screenshot wrappers sequentially, not in parallel. The current generator uses one shared runtime configuration file at `/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json`, so overlapping runs can make one flow skip or read the wrong configuration.
 - Prefer running the generator without a visible simulator window. The wrappers do not require interactive simulator UI, and hiding `Simulator.app` avoids unnecessary rendering load on the local machine.
 - The scripts expect every declared screenshot index to resolve to exactly one PNG after the XCUITest finishes and fail if a generated PNG is missing or ambiguous.

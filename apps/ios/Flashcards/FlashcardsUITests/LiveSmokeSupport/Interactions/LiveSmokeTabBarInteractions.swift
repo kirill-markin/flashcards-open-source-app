@@ -138,7 +138,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func tapTabBarItem(identifier: String, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_tab.\(identifier)") {
-            let tabBarItem = self.app.tabBars.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            let tabBarItem = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
             let deadline = Date().addingTimeInterval(timeout)
 
             while Date() < deadline {
@@ -197,7 +197,7 @@ extension LiveSmokeTestCase {
     private func tabBarItemCandidates(lookup: LiveSmokeTabBarItemLookup) -> [LiveSmokeTabBarItemCandidate] {
         return [
             LiveSmokeTabBarItemCandidate(
-                element: self.app.tabBars.buttons.matching(identifier: lookup.identifier).firstMatch,
+                element: self.app.buttons.matching(identifier: lookup.identifier).firstMatch,
                 identifier: lookup.identifier,
                 note: "tab bar button tapped via accessibility identifier"
             ),
