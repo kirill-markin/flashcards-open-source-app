@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atlikta"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatavs"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പൂർത്തിയായി"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -187,6 +205,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Norėdami išjungti šią prieigą, atidarykite nustatymus."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lai izslēgtu šo piekļuvi, atveriet iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ അനുമതി ഓഫാക്കാൻ ക്രമീകരണങ്ങൾ തുറക്കുക."
           }
         },
         "it" : {
@@ -368,6 +404,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prašykite prieigos dabar arba vėliau atidarykite nustatymus ir valdykite ją patys."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pieprasiet piekļuvi tagad vai vēlāk pārvaldiet to iestatījumos."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇപ്പോൾ അനുമതി അഭ്യർത്ഥിക്കുക, അല്ലെങ്കിൽ പിന്നീട് ക്രമീകരണങ്ങളിൽ അത് നിയന്ത്രിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -545,6 +599,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie kameros išjungta. Norėdami ją pakeisti, atidarykite Nustatymai > Privatumas ir sauga > Kamera."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve kamerai ir izslēgta. Lai to mainītu, atveriet Iestatījumi > Privātums un drošība > Kamera."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് ക്യാമറ അനുമതി ഓഫാണ്. മാറ്റാൻ ക്രമീകരണങ്ങൾ > സ്വകാര്യതയും സുരക്ഷയും > ക്യാമറ തുറക്കുക."
           }
         },
         "it" : {
@@ -726,6 +798,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Norėdami peržiūrėti arba išplėsti šią prieigą, atidarykite nustatymus."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lai pārskatītu vai paplašinātu šo piekļuvi, atveriet iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ അനുമതി പരിശോധിക്കാനോ വിപുലീകരിക്കാനോ ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -903,6 +993,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie mikrofono išjungta. Norėdami ją pakeisti, atidarykite Nustatymai > Privatumas ir sauga > Mikrofonas."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve mikrofonam ir izslēgta. Lai to mainītu, atveriet Iestatījumi > Privātums un drošība > Mikrofons."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് മൈക്രോഫോൺ അനുമതി ഓഫാണ്. മാറ്റാൻ ക്രമീകരണങ്ങൾ > സ്വകാര്യതയും സുരക്ഷയും > മൈക്രോഫോൺ തുറക്കുക."
           }
         },
         "it" : {
@@ -1084,6 +1192,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie nuotraukų išjungta. Norėdami ją pakeisti, atidarykite Nustatymai > Privatumas ir sauga > Nuotraukos."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve fotoattēliem ir izslēgta. Lai to mainītu, atveriet Iestatījumi > Privātums un drošība > Fotoattēli."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് ഫോട്ടോ അനുമതി ഓഫാണ്. മാറ്റാൻ ക്രമീകരണങ്ങൾ > സ്വകാര്യതയും സുരക്ഷയും > ഫോട്ടോകൾ തുറക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1261,6 +1387,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasiekiamos tik nuotraukos, kuriomis jau pasidalijote su Nibomo. Norėdami suteikti platesnę prieigą, atidarykite nustatymus."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pieejami tikai fotoattēli, kurus jau kopīgojāt ar Nibomo. Lai piešķirtu plašāku piekļuvi, atveriet iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യുമായി ഇതിനകം പങ്കിട്ട ഫോട്ടോകൾ മാത്രമേ ലഭ്യമാകൂ. കൂടുതൽ ഫോട്ടോകൾക്ക് അനുമതി നൽകാൻ ക്രമീകരണങ്ങൾ തുറക്കുക."
           }
         },
         "it" : {
@@ -1442,6 +1586,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ši prieiga šiame įrenginyje nepasiekiama."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šī piekļuve šajā ierīcē nav pieejama."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ ഉപകരണത്തിൽ ഈ അനുമതി ലഭ്യമല്ല."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1619,6 +1781,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leidžiama"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atļauts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അനുവദിച്ചു"
           }
         },
         "it" : {
@@ -1800,6 +1980,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klausti kaskart"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jautāt katru reizi"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഓരോ തവണയും ചോദിക്കുക"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1977,6 +2175,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Užblokuota"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloķēts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തടഞ്ഞിരിക്കുന്നു"
           }
         },
         "it" : {
@@ -2158,6 +2374,24 @@
             "value" : "محدود"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ribota"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ierobežots"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പരിമിതം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2335,6 +2569,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepasiekiama"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nav pieejams"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ലഭ്യമല്ല"
           }
         },
         "it" : {
@@ -2516,6 +2768,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotografuokite tiesiai DI pokalbyje."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotografējiet tieši MI sarunā."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ചാറ്റിൽ നിന്ന് നേരിട്ട് ഫോട്ടോ എടുക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2693,6 +2963,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്യാമറ"
           }
         },
         "it" : {
@@ -2874,6 +3162,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktuokite tekstą DI pokalbyje."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktējiet tekstu MI sarunā."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ചാറ്റിലേക്ക് പറഞ്ഞ് ടെക്സ്റ്റ് നൽകുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3051,6 +3357,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofons"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "മൈക്രോഫോൺ"
           }
         },
         "it" : {
@@ -3232,6 +3556,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasirinkite nuotraukas DI pokalbio priedams."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izvēlieties fotoattēlus MI sarunas pielikumiem."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI ചാറ്റിലെ അറ്റാച്ച്മെന്റുകൾക്കായി ഫോട്ടോകൾ തിരഞ്ഞെടുക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3409,6 +3751,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuotraukos"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoattēli"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഫോട്ടോകൾ"
           }
         },
         "it" : {
@@ -3590,6 +3950,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie mikrofono išjungta. Atidarykite nustatymus ir ją įjunkite."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve mikrofonam ir izslēgta. Lai to atļautu, atveriet iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് മൈക്രോഫോൺ അനുമതി ഓഫാണ്. അനുവദിക്കാൻ ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3767,6 +4145,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reikia prieigos prie mikrofono"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepieciešama piekļuve mikrofonam"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "മൈക്രോഫോൺ അനുമതി വേണം"
           }
         },
         "it" : {
@@ -3948,6 +4344,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie kameros išjungta. Atidarykite nustatymus ir ją įjunkite."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve kamerai ir izslēgta. Lai to atļautu, atveriet iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് ക്യാമറ അനുമതി ഓഫാണ്. അനുവദിക്കാൻ ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4125,6 +4539,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reikia prieigos prie kameros"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepieciešama piekļuve kamerai"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്യാമറ അനുമതി വേണം"
           }
         },
         "it" : {
@@ -4306,6 +4738,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie failų išjungta. Atidarykite nustatymus ir ją įjunkite."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve failiem ir izslēgta. Lai to atļautu, atveriet iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് ഫയൽ അനുമതി ഓഫാണ്. അനുവദിക്കാൻ ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4483,6 +4933,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reikia prieigos prie failų"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepieciešama piekļuve failiem"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഫയൽ അനുമതി വേണം"
           }
         },
         "it" : {
@@ -4664,6 +5132,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie nuotraukų išjungta. Atidarykite nustatymus ir ją įjunkite."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve fotoattēliem ir izslēgta. Lai to atļautu, atveriet iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് ഫോട്ടോ അനുമതി ഓഫാണ്. അനുവദിക്കാൻ ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4841,6 +5327,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reikia prieigos prie nuotraukų"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepieciešama piekļuve fotoattēliem"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഫോട്ടോ അനുമതി വേണം"
           }
         },
         "it" : {
@@ -5022,6 +5526,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visos kortelės"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visas kartītes"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "എല്ലാ കാർഡുകളും"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5199,6 +5721,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atsijungta"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atvienots"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "വിച്ഛേദിച്ചു"
           }
         },
         "it" : {
@@ -5380,6 +5920,24 @@
             "value" : "ضيف"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Svečias"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viesis"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അതിഥി"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5557,6 +6115,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Susieta"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saistīts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ബന്ധിപ്പിച്ചു"
           }
         },
         "it" : {
@@ -5738,6 +6314,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paruošta susieti"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatavs saistīšanai"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ബന്ധിപ്പിക്കാൻ തയ്യാറാണ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5915,6 +6509,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijungimas prie debesijos nepasiekiamas. Patikrinkite programėlės konfigūraciją."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierakstīšanās mākonī nav pieejama. Pārbaudiet lietotnes konfigurāciju."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്ലൗഡ് സൈൻ ഇൻ ലഭ്യമല്ല. ആപ്പ് കോൺഫിഗറേഷൻ പരിശോധിക്കുക."
           }
         },
         "it" : {
@@ -6096,6 +6708,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Įveskite galiojantį el. pašto adresą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ievadiet derīgu e-pasta adresi."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സാധുവായ ഇമെയിൽ വിലാസം നൽകുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6273,6 +6903,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kodas jau panaudotas. Paprašykite naujo."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kods jau izmantots. Pieprasiet jaunu."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കോഡ് ഇതിനകം ഉപയോഗിച്ചു. പുതിയത് അഭ്യർത്ഥിക്കുക."
           }
         },
         "it" : {
@@ -6454,6 +7102,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kodas neteisingas. Bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kods nav derīgs. Mēģiniet vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കോഡ് അസാധുവാണ്. വീണ്ടും ശ്രമിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6631,6 +7297,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko išsiųsti kodo. Bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās nosūtīt kodu. Mēģiniet vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കോഡ് അയയ്ക്കാനായില്ല. വീണ്ടും ശ്രമിക്കുക."
           }
         },
         "it" : {
@@ -6812,6 +7496,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kodo galiojimas baigėsi. Paprašykite naujo."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koda derīgums beidzies. Pieprasiet jaunu."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കോഡിന്റെ കാലാവധി കഴിഞ്ഞു. പുതിയത് അഭ്യർത്ഥിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6989,6 +7691,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per daug bandymų. Paprašykite naujo kodo."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pārāk daudz mēģinājumu. Pieprasiet jaunu kodu."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "വളരെയധികം ശ്രമങ്ങൾ. പുതിയ കോഡ് അഭ്യർത്ഥിക്കുക."
           }
         },
         "it" : {
@@ -7170,6 +7890,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko patvirtinti kodo. Bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās pārbaudīt kodu. Mēģiniet vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കോഡ് പരിശോധിക്കാനായില്ല. വീണ്ടും ശ്രമിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7347,6 +8085,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko prisijungti prie debesijos. Bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās pierakstīties mākonī. Mēģiniet vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്ലൗഡ് സൈൻ ഇൻ പരാജയപ്പെട്ടു. വീണ്ടും ശ്രമിക്കുക."
           }
         },
         "it" : {
@@ -7528,6 +8284,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siunčiant kodą ryšys nutrūko. Patikrinkite el. paštą ir, jei reikia, bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sūtot kodu, savienojums pārtrūka. Pārbaudiet e-pastu un, ja nepieciešams, mēģiniet vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കോഡ് അയയ്ക്കുമ്പോൾ ബന്ധം തടസ്സപ്പെട്ടു. ഇമെയിൽ പരിശോധിച്ച് ആവശ്യമെങ്കിൽ വീണ്ടും ശ്രമിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7705,6 +8479,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tikrinant kodą ryšys nutrūko. Bandykite dar kartą arba, jei reikia, paprašykite naujo kodo."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pārbaudot kodu, savienojums pārtrūka. Mēģiniet vēlreiz vai, ja nepieciešams, pieprasiet jaunu kodu."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കോഡ് പരിശോധിക്കുമ്പോൾ ബന്ധം തടസ്സപ്പെട്ടു. വീണ്ടും ശ്രമിക്കുക, അല്ലെങ്കിൽ ആവശ്യമെങ്കിൽ പുതിയ കോഡ് അഭ്യർത്ഥിക്കുക."
           }
         },
         "it" : {
@@ -7886,6 +8678,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko atnaujinti įvertinimų lyderių lentelės. Patraukite žemyn ir bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās atjaunināt vērtējumu līderu sarakstu. Pavelciet uz leju, lai mēģinātu vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡ് പുതുക്കാനായില്ല. വീണ്ടും ശ്രമിക്കാൻ താഴേക്ക് വലിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8063,6 +8873,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko atnaujinti kartojimo tvarkaraščio. Patraukite žemyn ir bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās atjaunināt atkārtošanas grafiku. Pavelciet uz leju, lai mēģinātu vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ആവർത്തന സമയക്രമം പുതുക്കാനായില്ല. വീണ്ടും ശ്രമിക്കാൻ താഴേക്ക് വലിക്കുക."
           }
         },
         "it" : {
@@ -8244,6 +9072,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko parodyti kartojimo tvarkaraščio. Patraukite žemyn ir bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās parādīt atkārtošanas grafiku. Pavelciet uz leju, lai mēģinātu vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ആവർത്തന സമയക്രമം കാണിക്കാനായില്ല. വീണ്ടും ശ്രമിക്കാൻ താഴേക്ക് വലിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8421,6 +9267,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko atnaujinti pažangos diagramos. Patraukite žemyn ir bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās atjaunināt progresa diagrammu. Pavelciet uz leju, lai mēģinātu vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പുരോഗതി ചാർട്ട് പുതുക്കാനായില്ല. വീണ്ടും ശ്രമിക്കാൻ താഴേക്ക് വലിക്കുക."
           }
         },
         "it" : {
@@ -8602,6 +9466,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko atnaujinti serijų lyderių lentelės. Patraukite žemyn ir bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās atjaunināt sēriju līderu sarakstu. Pavelciet uz leju, lai mēģinātu vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ചാ ലീഡർബോർഡ് പുതുക്കാനായില്ല. വീണ്ടും ശ്രമിക്കാൻ താഴേക്ക് വലിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8779,6 +9661,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko atnaujinti pažangos santraukos. Patraukite žemyn ir bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās atjaunināt progresa kopsavilkumu. Pavelciet uz leju, lai mēģinātu vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പുരോഗതി സംഗ്രഹം പുതുക്കാനായില്ല. വീണ്ടും ശ്രമിക്കാൻ താഴേക്ക് വലിക്കുക."
           }
         },
         "it" : {
@@ -8960,6 +9860,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pažanga nepasiekiama. Patraukite žemyn, kad atnaujintumėte, ir bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress nav pieejams. Pavelciet uz leju, lai atjauninātu, un mēģiniet vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പുരോഗതി ലഭ്യമല്ല. പുതുക്കാൻ താഴേക്ക് വലിച്ച് വീണ്ടും ശ്രമിക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9137,6 +10055,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serijos apsaugų atsargoje: %@ iš %@."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pieejamās sērijas aizsardzības: %@ no %@."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ചാ സംരക്ഷണ ശേഖരം: %@ / %@ ലഭ്യമാണ്."
           }
         },
         "it" : {
@@ -9318,6 +10254,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parodo, kaip veikia serijos apsaugos."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parāda, kā darbojas sērijas aizsardzība."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ചാ സംരക്ഷണം എങ്ങനെ പ്രവർത്തിക്കുന്നുവെന്ന് കാണിക്കുന്നു."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9495,6 +10449,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yra: %@/%@. Papildymas: %@/%@. Apsaugos padengia praleistas dienas ir pasipildo tęsiant seriją."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pieejams: %@/%@. Papildināšana: %@/%@. Aizsardzība pasargā izlaistās dienas un atjaunojas, turpinot sēriju."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ലഭ്യമായത്: %@/%@. നിറയുന്നത്: %@/%@. വിട്ടുപോയ ദിവസങ്ങളിൽ സംരക്ഷണം തുടർച്ച നിലനിർത്തുന്നു; തുടർച്ച തുടരുമ്പോൾ അത് വീണ്ടും നിറയും."
           }
         },
         "it" : {
@@ -9676,6 +10648,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serijos apsaugos"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sērijas aizsardzība"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ചാ സംരക്ഷണങ്ങൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9853,6 +10843,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sukurti nuorodą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izveidot saiti"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ലിങ്ക് സൃഷ്ടിക്കുക"
           }
         },
         "it" : {
@@ -10034,6 +11042,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draugas gali ją atidaryti, prisijungti arba užsiregistruoti, tada matysite vienas kitą programėlėje. Kvietimo nuorodos galioja 2 dienas."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draugs var to atvērt, pierakstīties vai reģistrēties, un tad redzēsiet viens otru lietotnē. Uzaicinājuma saites derīgas 2 dienas."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അവർ അത് തുറന്ന് സൈൻ ഇൻ ചെയ്യുകയോ അക്കൗണ്ട് സൃഷ്ടിക്കുകയോ ചെയ്താൽ ആപ്പിൽ പരസ്പരം കാണാം. ക്ഷണ ലിങ്കുകൾ 2 ദിവസത്തിൽ കാലഹരണപ്പെടും."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10211,6 +11237,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nusiųskite šią nuorodą draugui"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nosūtiet šo saiti draugam"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ ലിങ്ക് സുഹൃത്തിന് അയയ്ക്കുക"
           }
         },
         "it" : {
@@ -10392,6 +11436,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuriama..."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veido..."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സൃഷ്ടിക്കുന്നു..."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10569,6 +11631,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sukurkite privačią draugo nuorodą lyderių lentelei."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izveidojiet privātu drauga saiti līderu sarakstam."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ലീഡർബോർഡിനായി സ്വകാര്യ സുഹൃത്ത് ലിങ്ക് സൃഷ്ടിക്കുക."
           }
         },
         "it" : {
@@ -10750,6 +11830,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šį vardą savo lyderių lentelėje matote tik jūs. Priimdamas kvietimą draugas pasirenka, kaip jus vadinti. Kvietimo nuorodos galioja 2 dienas."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šo vārdu savā līderu sarakstā redzat tikai jūs. Pieņemot uzaicinājumu, draugs izvēlas, kā jūs saukt. Uzaicinājuma saites derīgas 2 dienas."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ലീഡർബോർഡിലെ ഈ പേര് നിങ്ങൾക്ക് മാത്രം കാണാം. ക്ഷണം സ്വീകരിക്കുമ്പോൾ നിങ്ങളെ എന്ത് വിളിക്കണമെന്ന് സുഹൃത്ത് തിരഞ്ഞെടുക്കും. ക്ഷണ ലിങ്കുകൾ 2 ദിവസത്തിൽ കാലഹരണപ്പെടും."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10927,6 +12025,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draugo vardas jūsų lyderių lentelėje"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drauga vārds jūsu līderu sarakstā"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിങ്ങളുടെ ലീഡർബോർഡിലെ സുഹൃത്തിന്റെ പേര്"
           }
         },
         "it" : {
@@ -11108,6 +12224,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūsų draugo vardas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūsu drauga vārds"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സുഹൃത്തിന്റെ പേര്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11285,6 +12419,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atlikta"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatavs"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പൂർത്തിയായി"
           }
         },
         "it" : {
@@ -11466,6 +12618,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siųsti kvietimo nuorodą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nosūtīt uzaicinājuma saiti"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്ഷണ ലിങ്ക് അയയ്ക്കുക"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11643,6 +12813,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atidaryk šį Nibomo kvietimą, prisijunk arba užsiregistruok ir matysime vienas kitą programėlėje."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atver šo Nibomo uzaicinājumu, pieraksties vai reģistrējies, un redzēsim viens otru lietotnē."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ Nibomo ക്ഷണം തുറന്ന് സൈൻ ഇൻ ചെയ്യൂ, അല്ലെങ്കിൽ അക്കൗണ്ട് സൃഷ്ടിക്കൂ; നമുക്ക് ആപ്പിൽ പരസ്പരം കാണാം."
           }
         },
         "it" : {
@@ -11824,6 +13012,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo draugo kvietimas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo drauga uzaicinājums"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo സുഹൃത്ത് ക്ഷണം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12001,6 +13207,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pridėti draugą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pievienot draugu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സുഹൃത്തിനെ ചേർക്കുക"
           }
         },
         "it" : {
@@ -12182,6 +13406,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naujos eilutės ir valdymo simboliai neleidžiami."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rindas pārtraukumi un vadības rakstzīmes nav atļautas."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പുതിയ വരികളും നിയന്ത്രണ അക്ഷരങ്ങളും അനുവദനീയമല്ല."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12359,6 +13601,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Įveskite 1–30 simbolių."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ievadiet 1–30 rakstzīmes."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–30 അക്ഷരങ്ങൾ നൽകുക."
           }
         },
         "it" : {
@@ -12540,6 +13800,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartojimo veikla"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atkārtošanas aktivitāte"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ആവർത്തന പ്രവർത്തനം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12717,6 +13995,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datums"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തീയതി"
           }
         },
         "it" : {
@@ -12898,6 +14194,24 @@
             "value" : "المراجعات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartojimai"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atkārtojumi"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ആവർത്തനങ്ങൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13075,6 +14389,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pastarosios 30 dienų."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pēdējās 30 dienas."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കഴിഞ്ഞ 30 ദിവസങ്ങൾ."
           }
         },
         "it" : {
@@ -13256,6 +14588,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kartojimas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 atkārtojums"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ആവർത്തനം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13433,6 +14783,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartojimų: %lld"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atkārtojumu skaits: %lld"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ആവർത്തനങ്ങൾ"
           }
         },
         "it" : {
@@ -13614,6 +14982,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartojimo veikla"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atkārtošanas aktivitāte"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ആവർത്തന പ്രവർത്തനം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13791,6 +15177,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld في %2$@"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld tarp %2$@"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld grupā %2$@"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@-ൽ #%1$lld"
           }
         },
         "it" : {
@@ -13972,6 +15376,24 @@
             "value" : "أفضل تصنيف"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geriausias įvertinimas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Labākais vērtējums"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "മികച്ച റേറ്റിംഗ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14149,6 +15571,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد تصنيف بعد"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dar nėra įvertinimo"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vērtējuma vēl nav"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇതുവരെ റേറ്റിംഗ് ഇല്ല"
           }
         },
         "it" : {
@@ -14330,6 +15770,24 @@
             "value" : "بطاقة واحدة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kortelė"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kartīte"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 കാർഡ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14507,6 +15965,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld بطاقات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kortelių: %lld"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartīšu skaits: %lld"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld കാർഡുകൾ"
           }
         },
         "it" : {
@@ -14688,6 +16164,24 @@
             "value" : "البطاقات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kortelės"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartītes"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കാർഡുകൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14865,6 +16359,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة الحالية"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dabartinė serija"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pašreizējā sērija"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിലവിലെ തുടർച്ച"
           }
         },
         "it" : {
@@ -15046,6 +16558,24 @@
             "value" : "تم"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atlikta"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gatavs"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പൂർത്തിയായി"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15223,6 +16753,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Patikrinkite ryšį ir bandykite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pārbaudiet savienojumu un mēģiniet vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ബന്ധം പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക."
           }
         },
         "it" : {
@@ -15404,6 +16952,24 @@
             "value" : "تعذر تحميل الملف الشخصي"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko įkelti profilio"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās ielādēt profilu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പ്രൊഫൈൽ ലോഡ് ചെയ്യാനായില്ല"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15581,6 +17147,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "صديق"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draugas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draugs"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സുഹൃത്ത്"
           }
         },
         "it" : {
@@ -15762,6 +17346,24 @@
             "value" : "تاريخ الانضمام"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijungė"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pievienojās"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ചേർന്നത്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15939,6 +17541,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جارٍ تحميل الملف الشخصي..."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilis įkeliamas..."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ielādē profilu..."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പ്രൊഫൈൽ ലോഡ് ചെയ്യുന്നു..."
           }
         },
         "it" : {
@@ -16120,6 +17740,24 @@
             "value" : "المقاييس"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rodikliai"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rādītāji"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അളവുകൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16297,6 +17935,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandyti dar kartą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mēģināt vēlreiz"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "വീണ്ടും ശ്രമിക്കുക"
           }
         },
         "it" : {
@@ -16478,6 +18134,24 @@
             "value" : "الإحصاءات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistika"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistika"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സ്ഥിതിവിവരക്കണക്കുകൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16655,6 +18329,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijunkite el. paštu, kad matytumėte lyderių lentelės profilius."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierakstieties ar e-pastu, lai skatītu līderu saraksta profilus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ലീഡർബോർഡ് പ്രൊഫൈലുകൾ കാണാൻ ഇമെയിൽ ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യുക."
           }
         },
         "it" : {
@@ -16836,6 +18528,24 @@
             "value" : "يلزم تسجيل الدخول"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reikia prisijungti"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jāpierakstās"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സൈൻ ഇൻ ചെയ്യണം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17013,6 +18723,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiliai matomi tik dalyvaujant įvertinimų lyderių lentelėje."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profili redzami tikai tad, ja ir ieslēgta dalība vērtējumu līderu sarakstā."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡ് പങ്കാളിത്തം ഓണായിരിക്കുമ്പോൾ മാത്രം പ്രൊഫൈലുകൾ കാണാം."
           }
         },
         "it" : {
@@ -17194,6 +18922,24 @@
             "value" : "المشاركة متوقفة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalyvavimas išjungtas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalība ir izslēgta"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പങ്കാളിത്തം ഓഫാണ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17371,6 +19117,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šio lyderių lentelės profilio dabar parodyti negalima."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šo līderu saraksta profilu pašlaik nevar parādīt."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ ലീഡർബോർഡ് പ്രൊഫൈൽ ഇപ്പോൾ കാണിക്കാനാവില്ല."
           }
         },
         "it" : {
@@ -17552,6 +19316,24 @@
             "value" : "الملف الشخصي غير متاح"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profilis nepasiekiamas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profils nav pieejams"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പ്രൊഫൈൽ ലഭ്യമല്ല"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17729,6 +19511,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة التقييمات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apie įvertinimų lyderių lentelę"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par vērtējumu līderu sarakstu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡിനെക്കുറിച്ച്"
           }
         },
         "it" : {
@@ -17910,6 +19710,24 @@
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Įvertinimai „Sunku“, „Gerai“ ir „Lengva“ prisideda prie jūsų vietos. „Dar kartą“ neįskaičiuojamas."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vērtējumi “Grūti”, “Labi” un “Viegli” ietekmē jūsu vietu. “Vēlreiz” netiek ieskaitīts."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പ്രയാസം, നന്നായി, എളുപ്പം എന്നീ റേറ്റിംഗുകൾ നിങ്ങളുടെ സ്ഥാനത്തിൽ കണക്കാക്കും. വീണ്ടും എന്നത് കണക്കാക്കില്ല."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18087,6 +19905,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pridėti draugą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pievienot draugu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സുഹൃത്തിനെ ചേർക്കുക"
           }
         },
         "it" : {
@@ -18268,6 +20104,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pridėti draugą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pievienot draugu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സുഹൃത്തിനെ ചേർക്കുക"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18445,6 +20299,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandykite vėliau."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mēģiniet vēlāk."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പിന്നീട് വീണ്ടും ശ്രമിക്കുക."
           }
         },
         "it" : {
@@ -18626,6 +20498,24 @@
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko įkelti įvertinimų lyderių lentelės"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās ielādēt vērtējumu līderu sarakstu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡ് ലോഡ് ചെയ്യാനായില്ല"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18803,6 +20693,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijunkite prie interneto, kad įkeltumėte įvertinimų lyderių lentelę."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izveidojiet savienojumu ar internetu, lai ielādētu vērtējumu līderu sarakstu."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡ് ലോഡ് ചെയ്യാൻ ഇന്റർനെറ്റിൽ ബന്ധിപ്പിക്കുക."
           }
         },
         "it" : {
@@ -18984,6 +20892,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esate neprisijungę"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūs esat bezsaistē"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിങ്ങൾ ഓഫ്‌ലൈനിലാണ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19161,6 +21087,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atidaryti įvertinimų lyderių lentelės nustatymus"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atvērt vērtējumu līderu saraksta iestatījumus"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡ് ക്രമീകരണങ്ങൾ തുറക്കുക"
           }
         },
         "it" : {
@@ -19342,6 +21286,24 @@
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vietos matomos tik dalyvaujant įvertinimų lyderių lentelėje."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vietas ir redzamas tikai tad, ja piedalāties vērtējumu līderu sarakstā."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡിൽ പങ്കെടുക്കുമ്പോൾ മാത്രം സ്ഥാനങ്ങൾ കാണാം."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19519,6 +21481,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة في التقييمات متوقفة"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalyvavimas įvertinimų lentelėje išjungtas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalība vērtējumu sarakstā ir izslēgta"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് പങ്കാളിത്തം ഓഫാണ്"
           }
         },
         "it" : {
@@ -19700,6 +21680,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vieta %1$lld, kartojimų: %2$lld"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vieta %1$lld, atkārtojumu skaits: %2$lld"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സ്ഥാനം %1$lld, %2$lld ആവർത്തനങ്ങൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19877,6 +21875,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūs"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūs"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിങ്ങൾ"
           }
         },
         "it" : {
@@ -20058,6 +22074,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Įvertinimų lyderių lentelė"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vērtējumu līderu saraksts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20235,6 +22269,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijungti arba užsiregistruoti"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierakstīties vai reģistrēties"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സൈൻ ഇൻ ചെയ്യുക അല്ലെങ്കിൽ അക്കൗണ്ട് സൃഷ്ടിക്കുക"
           }
         },
         "it" : {
@@ -20416,6 +22468,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijunkite el. paštu, kad matytumėte savo kartojimų vietą įvertinimų lyderių lentelėje."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierakstieties ar e-pastu, lai redzētu savu atkārtojumu vietu vērtējumu līderu sarakstā."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിങ്ങളുടെ ആവർത്തനങ്ങളുടെ റേറ്റിംഗ് ലീഡർബോർഡ് സ്ഥാനം കാണാൻ ഇമെയിൽ ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20593,6 +22663,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijunkite prie įvertinimų lyderių lentelės"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pievienojieties vērtējumu līderu sarakstam"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡിൽ ചേരുക"
           }
         },
         "it" : {
@@ -20774,6 +22862,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Įvertinimų lyderių lentelė ruošiama. Netrukus patikrinkite dar kartą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vērtējumu līderu saraksts tiek gatavots. Drīzumā pārbaudiet vēlreiz."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "റേറ്റിംഗ് ലീഡർബോർഡ് തയ്യാറാക്കുകയാണ്. അൽപ്പസമയത്തിന് ശേഷം നോക്കുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20951,6 +23057,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dar neparuošta"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vēl nav gatavs"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇനിയും തയ്യാറായിട്ടില്ല"
           }
         },
         "it" : {
@@ -21132,6 +23256,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atnaujinta prieš %@"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atjaunināts pirms %@"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ മുമ്പ് പുതുക്കി"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21309,6 +23451,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "it" : {
@@ -21490,6 +23650,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 val."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 st."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 മണിക്കൂർ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21667,6 +23845,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld ساعة"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld val."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld st."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld മണിക്കൂർ"
           }
         },
         "it" : {
@@ -21848,6 +24044,24 @@
             "value" : "دقيقة واحدة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 min."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 min."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 മിനിറ്റ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22025,6 +24239,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld دقيقة"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld മിനിറ്റ്"
           }
         },
         "it" : {
@@ -22206,6 +24438,24 @@
             "value" : "الفترة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laikotarpis"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periods"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കാലയളവ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22383,6 +24633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "كل الأوقات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visas laikas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visu laiku"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "എക്കാലവും"
           }
         },
         "it" : {
@@ -22564,6 +24832,24 @@
             "value" : "3 ي"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 ദി."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22741,6 +25027,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 ي"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 ദി."
           }
         },
         "it" : {
@@ -22922,6 +25226,24 @@
             "value" : "24 س"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 val."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 st."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 മ."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23099,6 +25421,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 ي"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 ദി."
           }
         },
         "it" : {
@@ -23280,6 +25620,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kortelių: %lld, %@"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartīšu skaits: %lld, %@"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld കാർഡുകൾ, %@"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23457,6 +25815,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 dienos"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 dienas"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 ദിവസങ്ങൾ"
           }
         },
         "it" : {
@@ -23638,6 +26014,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 dienų"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 dienas"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 ദിവസങ്ങൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23815,6 +26209,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 dienų"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 dienas"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 ദിവസങ്ങൾ"
           }
         },
         "it" : {
@@ -23996,6 +26408,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 dienų"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 dienas"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 ദിവസങ്ങൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24173,6 +26603,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vėliau"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vēlāk"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പിന്നീട്"
           }
         },
         "it" : {
@@ -24354,6 +26802,24 @@
             "value" : "جديدة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nauja"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jauns"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പുതിയത്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24531,6 +26997,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šiandien"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šodien"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇന്ന്"
           }
         },
         "it" : {
@@ -24712,6 +27196,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 metai"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 gadi"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 വർഷം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24889,6 +27391,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktyvių kortelių dar nėra."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktīvu kartīšu vēl nav."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സജീവ കാർഡുകൾ ഇതുവരെയില്ല."
           }
         },
         "it" : {
@@ -25070,6 +27590,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartojimo tvarkaraštis"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atkārtošanas grafiks"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ആവർത്തന സമയക്രമം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25247,6 +27785,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartojimų: %lld"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atkārtojumu skaits: %lld"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ആവർത്തനങ്ങൾ"
           }
         },
         "it" : {
@@ -25428,6 +27984,24 @@
             "value" : "الأسبوع التالي"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kita savaitė"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nākamā nedēļa"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അടുത്ത ആഴ്ച"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25605,6 +28179,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع السابق"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ankstesnė savaitė"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iepriekšējā nedēļa"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "മുൻ ആഴ്ച"
           }
         },
         "it" : {
@@ -25786,6 +28378,24 @@
             "value" : "المراجعات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartojimai"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atkārtojumi"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ആവർത്തനങ്ങൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25963,6 +28573,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم واحد"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 d."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 d."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ദിവസം"
           }
         },
         "it" : {
@@ -26144,6 +28772,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld d."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld d."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ദിവസങ്ങൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26321,6 +28967,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apie serijų lyderių lentelę"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par sēriju līderu sarakstu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ചാ ലീഡർബോർഡിനെക്കുറിച്ച്"
           }
         },
         "it" : {
@@ -26502,6 +29166,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūsų vietą lemia dabartinės serijos dienos. Serijos diena – bet kuri vietinė diena, kai bent vieną kortelę įvertinate %1$@, %2$@, %3$@ arba %4$@."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūsu vietu nosaka pašreizējās sērijas dienas. Sērijas diena ir jebkura vietējā diena, kad vismaz vienu kartīti novērtējat ar %1$@, %2$@, %3$@ vai %4$@."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിലവിലെ തുടർച്ചയിലെ ദിവസങ്ങളാണ് നിങ്ങളുടെ സ്ഥാനം നിർണ്ണയിക്കുന്നത്. കുറഞ്ഞത് ഒരു കാർഡെങ്കിലും %1$@, %2$@, %3$@ അല്ലെങ്കിൽ %4$@ എന്ന് റേറ്റ് ചെയ്ത പ്രാദേശിക ദിവസമാണ് തുടർച്ചാ ദിവസം."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26679,6 +29361,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandykite vėliau."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mēģiniet vēlāk."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പിന്നീട് വീണ്ടും ശ്രമിക്കുക."
           }
         },
         "it" : {
@@ -26860,6 +29560,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nepavyko įkelti serijų lyderių lentelės"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neizdevās ielādēt sēriju līderu sarakstu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ചാ ലീഡർബോർഡ് ലോഡ് ചെയ്യാനായില്ല"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27037,6 +29755,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijunkite prie interneto, kad įkeltumėte serijų lyderių lentelę."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izveidojiet savienojumu ar internetu, lai ielādētu sēriju līderu sarakstu."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ചാ ലീഡർബോർഡ് ലോഡ് ചെയ്യാൻ ഇന്റർനെറ്റിൽ ബന്ധിപ്പിക്കുക."
           }
         },
         "it" : {
@@ -27218,6 +29954,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esate neprisijungę"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jūs esat bezsaistē"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നിങ്ങൾ ഓഫ്‌ലൈനിലാണ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27395,6 +30149,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vieta %1$lld, %2$@"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vieta %1$lld, %2$@"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സ്ഥാനം %1$lld, %2$@"
           }
         },
         "it" : {
@@ -27576,6 +30348,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serijų lyderių lentelė"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sēriju līderu saraksts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ചാ ലീഡർബോർഡ്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27753,6 +30543,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apsaugota diena"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aizsargāta diena"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സംരക്ഷിച്ച ദിവസം"
           }
         },
         "it" : {
@@ -27934,6 +30742,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Būsima diena"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nākotnes diena"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഭാവിയിലെ ദിവസം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28111,6 +30937,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serija"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sērija"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തുടർച്ച"
           }
         },
         "it" : {
@@ -28292,6 +31136,24 @@
             "value" : "التقدم"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pažanga"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പുരോഗതി"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28469,6 +31331,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šiandien"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šodien"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇന്ന്"
           }
         },
         "it" : {
@@ -28650,6 +31530,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leisti pranešimus"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atļaut paziņojumus"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അറിയിപ്പുകൾ അനുവദിക്കുക"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28827,6 +31725,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leidžiama"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atļauts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അനുവദിച്ചു"
           }
         },
         "it" : {
@@ -29008,6 +31924,24 @@
             "value" : "محظور"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Užblokuota"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloķēts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "തടഞ്ഞിരിക്കുന്നു"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29185,6 +32119,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neprašyta"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nav pieprasīts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അഭ്യർത്ഥിച്ചിട്ടില്ല"
           }
         },
         "it" : {
@@ -29366,6 +32318,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tęskite mokymosi sesiją Nibomo."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turpiniet mācību sesiju Nibomo."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യിൽ പഠന സെഷൻ തുടരുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29543,6 +32513,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartą per dieną"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reizi dienā"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ദിവസത്തിൽ ഒരിക്കൽ"
           }
         },
         "it" : {
@@ -29724,6 +32712,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Po pertraukos"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pēc pārtraukuma"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇടവേളയ്ക്ക് ശേഷം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29901,6 +32907,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dar kartą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vēlreiz"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "വീണ്ടും"
           }
         },
         "it" : {
@@ -30082,6 +33106,24 @@
             "value" : "سهل"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lengva"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viegli"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "എളുപ്പം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30259,6 +33301,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerai"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Labi"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "നന്നായി"
           }
         },
         "it" : {
@@ -30440,6 +33500,24 @@
             "value" : "صعب"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sunku"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grūti"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പ്രയാസം"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30617,6 +33695,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paskyra ištrinta"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konts izdzēsts"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അക്കൗണ്ട് ഇല്ലാതാക്കി"
           }
         },
         "it" : {
@@ -30798,6 +33894,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DI"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MI"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30975,6 +34089,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kortelės"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartītes"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "കാർഡുകൾ"
           }
         },
         "it" : {
@@ -31156,6 +34288,24 @@
             "value" : "لاحقًا"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vėliau"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vēlāk"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പിന്നീട്"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31333,6 +34483,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijunkite el. paštu, kad neprarastumėte šių kortelių ir kartojimo pažangos."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierakstieties ar e-pastu, lai nezaudētu šīs kartītes un atkārtošanas progresu."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ കാർഡുകളും ആവർത്തന പുരോഗതിയും നഷ്ടപ്പെടാതിരിക്കാൻ ഇമെയിൽ ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യുക."
           }
         },
         "it" : {
@@ -31514,6 +34682,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prisijungti"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pierakstīties"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സൈൻ ഇൻ ചെയ്യുക"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31691,6 +34877,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Išsaugokite pažangą"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saglabājiet progresu"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പുരോഗതി സംരക്ഷിക്കുക"
           }
         },
         "it" : {
@@ -31872,6 +35076,24 @@
             "value" : "التقدم"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pažanga"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പുരോഗതി"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32049,6 +35271,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartojimas"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atkārtošana"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ആവർത്തനം"
           }
         },
         "it" : {
@@ -32230,6 +35470,24 @@
             "value" : "الإعدادات"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nustatymai"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iestatījumi"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്രമീകരണങ്ങൾ"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32407,6 +35665,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atidaryti nustatymus"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atvērt iestatījumus"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്രമീകരണങ്ങൾ തുറക്കുക"
           }
         },
         "it" : {
@@ -32588,6 +35864,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prašyti prieigos"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pieprasīt piekļuvi"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അനുമതി അഭ്യർത്ഥിക്കുക"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32765,6 +36059,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gerai"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Labi"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ശരി"
           }
         },
         "it" : {
@@ -32946,6 +36258,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Išlaikykite seriją šiandien. Pakartokite iki vidurnakčio. Liko 2 valandos."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saglabājiet sēriju šodien. Atkārtojiet pirms pusnakts. Atlikušas 2 stundas."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇന്നത്തെ തുടർച്ച നിലനിർത്തുക. അർദ്ധരാത്രിക്ക് മുമ്പ് ആവർത്തിക്കുക. 2 മണിക്കൂർ ബാക്കി."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33123,6 +36453,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Išlaikykite seriją šiandien. Pakartokite iki vidurnakčio. Liko 3 valandos."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saglabājiet sēriju šodien. Atkārtojiet pirms pusnakts. Atlikušas 3 stundas."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇന്നത്തെ തുടർച്ച നിലനിർത്തുക. അർദ്ധരാത്രിക്ക് മുമ്പ് ആവർത്തിക്കുക. 3 മണിക്കൂർ ബാക്കി."
           }
         },
         "it" : {
@@ -33304,6 +36652,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Išlaikykite seriją šiandien. Pakartokite iki vidurnakčio. Liko 4 valandos."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saglabājiet sēriju šodien. Atkārtojiet pirms pusnakts. Atlikušas 4 stundas."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇന്നത്തെ തുടർച്ച നിലനിർത്തുക. അർദ്ധരാത്രിക്ക് മുമ്പ് ആവർത്തിക്കുക. 4 മണിക്കൂർ ബാക്കി."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33481,6 +36847,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandykite dar kartą. Jei tai kartojasi, pasidalykite technine informacija su pagalbos tarnyba."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mēģiniet vēlreiz. Ja problēma atkārtojas, nosūtiet tehnisko informāciju atbalsta dienestam."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "വീണ്ടും ശ്രമിക്കുക. ഇത് തുടരുകയാണെങ്കിൽ സാങ്കേതിക വിവരങ്ങൾ പിന്തുണാ സംഘവുമായി പങ്കിടുക."
           }
         },
         "it" : {
@@ -33662,6 +37046,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Įvyko klaida"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Radās kļūda"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "എന്തോ പിശക് സംഭവിച്ചു"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33839,6 +37241,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uždaryti"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aizvērt"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അടയ്ക്കുക"
           }
         },
         "it" : {
@@ -34020,6 +37440,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopijuoti informaciją"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopēt informāciju"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "വിവരങ്ങൾ പകർത്തുക"
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34197,6 +37635,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Techninė informacija"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tehniskā informācija"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സാങ്കേതിക വിവരങ്ങൾ"
           }
         },
         "it" : {
@@ -34378,6 +37834,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atsakymas jau kuriamas. Prieš siųsdami kitą žinutę, palaukite, kol jis bus baigtas, arba sustabdykite jį."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atbilde jau tiek veidota. Pirms citas ziņas sūtīšanas pagaidiet, līdz tā ir pabeigta, vai apturiet to."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഒരു മറുപടി തയ്യാറാക്കിക്കൊണ്ടിരിക്കുന്നു. മറ്റൊരു സന്ദേശം അയയ്ക്കുന്നതിന് മുമ്പ് അത് പൂർത്തിയാകാൻ കാത്തിരിക്കുക അല്ലെങ്കിൽ നിർത്തുക."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34555,6 +38029,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nėra interneto ryšio. DI pokalbiui reikia interneto."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nav interneta savienojuma. MI sarunai nepieciešams internets."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഇന്റർനെറ്റ് ബന്ധമില്ല. AI ചാറ്റിന് ഇന്റർനെറ്റ് വേണം."
           }
         },
         "it" : {
@@ -34736,6 +38228,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kortelės atnaujintos iš debesijos."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartītes atjauninātas no mākoņa."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ക്ലൗഡിൽ നിന്ന് കാർഡുകൾ പുതുക്കി."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34913,6 +38423,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šiame įrenginyje skaitymas balsu nepasiekiamas."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šajā ierīcē nolasīšana nav pieejama."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ ഉപകരണത്തിൽ ശബ്ദവായന ലഭ്യമല്ല."
           }
         },
         "it" : {
@@ -35094,6 +38622,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šis kartojimas atnaujintas kitame įrenginyje."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Šis atkārtojums atjaunināts citā ierīcē."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ഈ ആവർത്തനം മറ്റൊരു ഉപകരണത്തിൽ പുതുക്കി."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35271,6 +38817,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandomoji versija išjungta."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testa versija izslēgta."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പരീക്ഷണ പതിപ്പ് ഓഫാക്കി."
           }
         },
         "it" : {
@@ -35452,6 +39016,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bandomoji versija įjungta."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testa versija ieslēgta."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "പരീക്ഷണ പതിപ്പ് ഓണാക്കി."
+          }
+        },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35629,6 +39211,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darbo srities pakeitimai galimi tik sukūrus paskyrą."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darbvietas izmaiņas pieejamas tikai pēc konta izveides."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "അക്കൗണ്ട് സൃഷ്ടിച്ച ശേഷം മാത്രമേ വർക്ക്‌സ്‌പേസ് മാറ്റാനാകൂ."
           }
         },
         "it" : {
