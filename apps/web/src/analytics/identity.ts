@@ -1,7 +1,13 @@
 /**
- * Analytics identity. `anonymous_id` is the shared `analytics_visitor` cookie the backend mints for
- * the whole product domain (docs/analytics-visitor-identity.md), so `app.` and `auth.` measure one
- * person under one id, from the first page view rather than from the first interaction.
+ * Analytics identity. `anonymous_id` is the `analytics_visitor` cookie the backend mints for the
+ * product domain (docs/analytics-visitor-identity.md), so this app measures a person from the first
+ * page view rather than from the first interaction.
+ *
+ * The auth origin is not on that id today. `apps/auth/src/server/analytics/visitorSession.ts` mints
+ * its own host-only `__Host-analytics_visitor` with a separate anonymous id, on the `/login` render
+ * for any browser that carries none, with no country check, no banner and no decline path — so
+ * `app.` and `auth.` measure the same person as two visitors, and the consent gate in this
+ * directory does not reach the auth origin at all.
  *
  * Sessions are deliberately not in that cookie: every client rotates its own under the shared
  * 30-minute rule, which is what this module still owns locally.
@@ -398,10 +404,14 @@ export function writeStoredAnalyticsConsentDecision(decision: AnalyticsConsentCh
 }
 
 /**
- * Whether this browser may be given, or linked to, an analytics identity at all. The one place both
- * halves of the stored switch are read together: an operator opt-out and a refusal each withhold
- * every identity, and they are the same answer to anything about to spend one.
+ * Whether the stored switch withholds an analytics identity outright: an operator opt-out and a
+ * refusal each do, and this is the one place both halves are read together.
+ *
+ * It says nothing about a browser still waiting to answer the banner, which reads as allowed here.
+ * Anything that spends an identity permanently — the guest identity link, the catalog install
+ * journey — composes `isAnalyticsEnabledForCurrentRuntime()` with `isAnalyticsIdentityConsented()`
+ * instead, so an unanswered load defers rather than spends.
  */
-export function isAnalyticsIdentityAllowed(): boolean {
+function isAnalyticsIdentityAllowed(): boolean {
   return readStoredAnalyticsEnabled() && readStoredAnalyticsConsentDecision() !== "declined";
 }

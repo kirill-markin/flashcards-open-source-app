@@ -20,13 +20,22 @@ That guide covers the real source-of-truth files, browser-local language overrid
 
 ## Analytics Identity
 
-The web app does not own an anonymous identity of its own. `anonymous_id` is the shared
-`analytics_visitor` cookie the backend mints for the whole product domain, so `app.` and `auth.`
-measure one person under one id, from the first page view and across a logout:
-[analytics visitor identity](../../docs/analytics-visitor-identity.md).
+The web app does not own an anonymous identity of its own. `anonymous_id` is the `analytics_visitor`
+cookie the backend mints for the product domain, so this app measures a person from the first page
+view and across a logout: [analytics visitor identity](../../docs/analytics-visitor-identity.md).
 
-Where the law requires consent first, a bottom strip asks for it, and until the person answers
-nothing is written to the device and nothing carrying an identifier is sent. Read
+The auth origin is not on that id today, and is not under the consent gate. It mints its own
+host-only `__Host-analytics_visitor` with a separate anonymous id on the `/login` render for any
+browser that carries none — no country check, no banner, no decline path — so `app.` and `auth.`
+measure the same person as two visitors. Bringing the auth origin under this gate is separate,
+undecided work.
+
+Where the law requires consent first, a bottom strip asks for it, and until the person answers this
+app writes nothing to the device and sends nothing carrying an identifier — the app origin only, not
+the auth origin above. Withdrawal lives in one
+place only, the settings screen at `/settings/analytics`; the banner also asks on the public catalog,
+invite and share routes, and a visitor who answered there and has no account withdraws by signing in
+and opening that screen. Read
 [analytics visitor identity](../../docs/analytics-visitor-identity.md) before touching the banner,
 the settings withdrawal entry, or anything in `src/analytics/` that runs before a decision exists.
 
