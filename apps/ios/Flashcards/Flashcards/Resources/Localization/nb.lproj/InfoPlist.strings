@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,læringskort,puggekort,huskekort";
+"NSCameraUsageDescription" = "Tillat kameratilgang for å ta bilder som vedlegg i AI-chatten.";
+"NSMicrophoneUsageDescription" = "Tillat mikrofontilgang for å diktere tekst i AI-chatten.";
+"NSPhotoLibraryUsageDescription" = "Tillat tilgang til bildebiblioteket for å velge bilder som vedlegg i AI-chatten.";
