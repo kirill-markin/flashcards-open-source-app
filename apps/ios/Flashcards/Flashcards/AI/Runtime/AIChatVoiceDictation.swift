@@ -124,6 +124,7 @@ enum AIChatTranscriptionError: LocalizedError {
 final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
     private var recorder: AVAudioRecorder?
     private var currentFileUrl: URL?
+    private var isAudioSessionActive: Bool = false
 
     func startRecording() async throws {
         if AVAudioApplication.shared.recordPermission == .denied {
@@ -140,6 +141,7 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
         let audioSession = AVAudioSession.sharedInstance()
         try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
         try audioSession.setActive(true)
+        self.isAudioSessionActive = true
 
         let fileUrl = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString.lowercased())
@@ -168,7 +170,7 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
         recorder.stop()
         self.recorder = nil
         self.currentFileUrl = nil
-        try? AVAudioSession.sharedInstance().setActive(false)
+        self.deactivateAudioSession()
 
         let attributes = try FileManager.default.attributesOfItem(atPath: fileUrl.path)
         let fileSize = attributes[.size] as? NSNumber
@@ -191,7 +193,16 @@ final class AIChatVoiceRecorder: NSObject, AIChatVoiceRecording {
             try? FileManager.default.removeItem(at: currentFileUrl)
         }
         self.currentFileUrl = nil
+        self.deactivateAudioSession()
+    }
+
+    private func deactivateAudioSession() {
+        guard self.isAudioSessionActive else {
+            return
+        }
+
         try? AVAudioSession.sharedInstance().setActive(false)
+        self.isAudioSessionActive = false
     }
 }
 

@@ -6,9 +6,6 @@ enum AIChatTranscriptScrollTarget: Hashable {
 
 extension AIChatView {
     var chatScrollSurface: some View {
-        // Keep programmatic navigation tied to stable native List row IDs through
-        // ScrollViewReader; ScrollPosition reopened physical-iPhone transcripts at
-        // the top instead of resolving the tail.
         ScrollViewReader { proxy in
             self.chatScrollContent
                 .defaultScrollAnchor(.bottom, for: .initialOffset)
@@ -18,10 +15,6 @@ extension AIChatView {
                 .contentMargins(.top, 12, for: .scrollContent)
                 .contentMargins(.bottom, 0, for: .scrollContent)
                 .contentMargins(.horizontal, 0, for: .scrollIndicators)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    self.dismissComposerFocus()
-                }
                 .onScrollPhaseChange { _, nextPhase, context in
                     let nextScrollState: AIChatScrollState = aiChatScrollState(
                         scrollPhase: nextPhase,
@@ -58,6 +51,16 @@ extension AIChatView {
                         }
                         return
                     }
+                }
+                .overlay {
+                    // Keep the empty state's internal scroll view outside transcript tracking.
+                    if self.chatStore.messages.isEmpty {
+                        self.emptyChatState
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    self.dismissComposerFocus()
                 }
                 .onAppear {
                     self.isAutoFollowEnabled = true
@@ -124,8 +127,6 @@ extension AIChatView {
 
     @ViewBuilder
     var chatScrollContent: some View {
-        // Keep List: LazyVStack produced blank transcript content during keyboard-driven
-        // relayout, while non-lazy VStack could not virtualize long transcripts.
         List {
             Section {
                 if self.chatStore.messages.isEmpty == false {
@@ -176,12 +177,5 @@ extension AIChatView {
         .listRowSpacing(12)
         .environment(\.defaultMinListRowHeight, 0)
         .scrollContentBackground(.hidden)
-        .overlay {
-            // Keep the empty state in the full List viewport: placing it in a row clipped
-            // its description on a physical iPhone.
-            if self.chatStore.messages.isEmpty {
-                self.emptyChatState
-            }
-        }
     }
 }
