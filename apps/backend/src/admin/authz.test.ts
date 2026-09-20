@@ -285,6 +285,7 @@ test("requireCatalogAdminRequestWithDependencies preserves session profile recon
           createdAt: "2026-07-11T00:00:00.000Z",
           preferences: {
             reviewReactionAnimationsEnabled: true,
+            analyticsConsent: null,
           },
         };
       },
@@ -435,6 +436,7 @@ test("requireAdminRequestWithDependencies accepts signed-in admins and normalize
           createdAt: "2026-07-11T00:00:00.000Z",
           preferences: {
             reviewReactionAnimationsEnabled: true,
+            analyticsConsent: null,
           },
         };
       },

@@ -46,6 +46,7 @@ function createRequestContext(): RequestContext {
     userSettingsCreatedAt: "2026-03-30T00:00:00.000Z",
     preferences: {
       reviewReactionAnimationsEnabled: true,
+      analyticsConsent: null,
     },
     transport: "bearer",
     connectionId: null,
