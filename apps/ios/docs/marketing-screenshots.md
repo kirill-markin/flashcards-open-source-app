@@ -292,6 +292,10 @@ The builder intentionally keeps PNG as the output format. These assets are UI-he
 
 ## Generate for multiple locales
 
+Before a bulk capture, generate representative English, RTL, and long-translation
+sets on both canonical device families. Visually inspect them using the checklist
+below and resolve any issues before starting the full locale loops.
+
 For a clean multi-locale run, keep one simulator family booted and loop through the locales:
 
 ```bash
