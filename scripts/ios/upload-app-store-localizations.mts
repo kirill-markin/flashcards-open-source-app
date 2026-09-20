@@ -17,8 +17,9 @@ node scripts/ios/upload-app-store-localizations.mts \\
   --screenshots apps/ios/docs/media/app-store-screenshots
 
 Requires Node 24 and the main checkout's .env credentials documented in
-docs/xcode-cloud-data-access.md. Only PREPARE_FOR_SUBMISSION is accepted for
-both the explicit iOS version and app info. Creates no version, submits no review.
+docs/xcode-cloud-data-access.md. Only PREPARE_FOR_SUBMISSION and DEVELOPER_REJECTED
+are accepted for both the explicit iOS version and app info.
+Never creates, renames, withdraws, or submits a version.
 All 42 locale texts and 420 PNGs must exist before this command contacts Apple.
 New locales inherit only the existing en-US privacy-policy and support URLs.
 Unknown locales, screenshot sizes, and screenshot filenames are preserved.
@@ -42,9 +43,13 @@ function relationship(name: string, type: string, id: string): JsonObject {
   return { [name]: { data: { type, id } } };
 }
 
+function isEditableState(state: string): boolean {
+  return state === "PREPARE_FOR_SUBMISSION" || state === "DEVELOPER_REJECTED";
+}
+
 function requireDraft(actual: Resource, stateField: string): void {
   const state = text(actual, stateField);
-  if (state !== "PREPARE_FOR_SUBMISSION") throw new Error(`${actual.type}/${actual.id} is ${state}; only PREPARE_FOR_SUBMISSION drafts can be changed`);
+  if (!isEditableState(state)) throw new Error(`${actual.type}/${actual.id} is ${state}; only PREPARE_FOR_SUBMISSION or DEVELOPER_REJECTED drafts can be changed`);
 }
 
 function verifyFields(actual: Resource, expected: Record<string, string>): void {
@@ -195,8 +200,8 @@ async function main(): Promise<void> {
   verifyFields(version, { versionString: values.version, platform: "IOS" });
   requireDraft(version, "appVersionState");
   const infos = await client.list(`/v1/apps/${client.appId}/appInfos?limit=200`, "appInfos");
-  const drafts = infos.filter((info) => text(info, "state") === "PREPARE_FOR_SUBMISSION");
-  if (drafts.length !== 1) throw new Error(`Expected one PREPARE_FOR_SUBMISSION app info; found ${drafts.length}. Submitted or published app info must not be edited.`);
+  const drafts = infos.filter((info) => isEditableState(text(info, "state")));
+  if (drafts.length !== 1) throw new Error(`Expected one PREPARE_FOR_SUBMISSION or DEVELOPER_REJECTED app info; found ${drafts.length}. Submitted or published app info must not be edited.`);
   const info = drafts[0];
   const guard = async (): Promise<void> => {
     const currentVersion = await client.read(`/v1/appStoreVersions/${version.id}`, "appStoreVersions");
