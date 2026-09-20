@@ -112,6 +112,26 @@ The five managed images are ordered first and verified by filename, size,
 checksum, and readback; metadata is read back too. A failed run can leave some locales saved
 and others pending, so do not report completion from a per-locale event alone.
 
+**Browser fallback**
+
+If API access is blocked but the authorized App Store Connect UI is usable,
+apply the same reviewed-input preflight, editable-target and version-authorization
+rules above. Preserve existing localized URLs; new locales inherit the English
+support and privacy-policy URLs.
+
+- Edit both locale surfaces: the version owns Description, Keywords, and What's
+  New; App Information owns Name and Subtitle.
+- After each save, wait for the confirmed Saved/success state before changing
+  locale. Reload and read back every field on both surfaces against this file.
+- Batch screenshot uploads can finish out of order and overwrite premature
+  reordering. Wait until every asset finishes processing, then arrange the five
+  canonical images first in order 1–5 for each locale and both display families.
+- Apply the partial-run preservation rules above to owned replacements, unknown
+  filenames, other display families, and other locales. Reload or navigate away
+  and back, then separately verify the actual persisted image order.
+- Report UI readback and persisted-order verification as such; do not claim
+  API checksum verification or an `app_store_upload_verified` event from UI work.
+
 ## English (U.S.)
 
 ### Name
