@@ -68,8 +68,12 @@ checks: [Android CI/CD](android-ci-cd.md).
    follow [App Store metadata](app-store-connect-metadata.md); its editable-draft
    requirements apply. Verify each saved field and required metadata; request
    help for missing declarations or unexpected store requirements.
-4. Wait for both workflows to finish green. Inspect errors and warnings even
-   if the overall run is green. Fix code/build/test issues, merge and deploy
+4. Wait for both workflows to finish green. Inspect the actual passed, failed,
+   and skipped test results, plus errors and warnings even if the overall run
+   is green. Record skipped cases, their reasons, and the resulting coverage
+   limits. Distinguish deliberate [manual marketing exclusions](../apps/ios/docs/marketing-screenshots.md#prerequisites)
+   from unexpected skips; investigate unexpected skips rather than counting
+   them as passed. Fix code/build/test issues, merge and deploy
    through normal CI, then repeat both workflows for the corrected release SHA.
    Do not submit with unresolved errors or warnings; ask for help when they
    cannot be resolved autonomously.
@@ -78,9 +82,12 @@ checks: [Android CI/CD](android-ci-cd.md).
    before submission.
    Attach the latest successful release build from that SHA to the version
    draft, with matching green test evidence. Verify the build number/version,
-   saved localized notes, and required fields; submit the draft for App Review.
-6. Verify the submission was accepted into Apple's review queue. A saved draft
-   or an attached build alone does not complete submission.
+   saved localized notes, and required fields; choose **Add for Review** to
+   place the version in a **Ready for Review** draft submission.
+6. Verify the exact version/build in that submission, then choose **Submit for
+   Review**. Confirm **Waiting for Review** and record the submission identity
+   with its version/build. A **Ready for Review** draft or an attached build
+   alone does not complete submission.
 
 Completion: both workflows passed without unresolved warnings and the matching
 build/version was submitted for App Review. Do not wait for Apple's review
