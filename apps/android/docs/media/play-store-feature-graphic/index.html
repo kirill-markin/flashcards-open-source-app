@@ -352,6 +352,24 @@
     </main>
 
     <script>
+        const additionalLocaleStyle = {
+            "--headline-size": "44px",
+            "--headline-line-height": "1.12",
+            "--headline-letter-spacing": "0",
+            "--summary-size": "16px",
+            "--summary-line-height": "1.5",
+            "--eyebrow-transform": "none",
+            "--eyebrow-letter-spacing": "0",
+            "--chip-font-size": "12px",
+            "--badge-title-size": "12px",
+            "--badge-copy-size": "14px",
+            "--badge-copy-line-height": "1.4",
+            "--badge-letter-spacing": "0",
+            "--badge-transform": "none",
+            "--badge-width": "268px",
+            "--copy-max-width": "462px"
+        };
+
         const localeConfigs = {
             "en-US": {
                 dir: "ltr",
@@ -623,6 +641,396 @@
                     "--badge-width": "248px",
                     "--copy-max-width": "472px"
                 }
+            },
+            "bg": {
+                dir: "ltr",
+                eyebrow: "Флашкарти с AI",
+                headlineHtml: "Флашкарти с <span class=\"accent\">AI</span><br />за учене<br />всеки ден",
+                summary: "Преговаряйте навреме, подобрявайте картите с AI и синхронизирайте при нужда.",
+                chips: ["Преговор", "AI", "Тестета", "Етикети", "Синхр."],
+                badgeTitle: "AI в ученето",
+                badgeCopyLines: ["Разглеждайте и подобрявайте картите. Планирайте ученето."],
+                style: { ...additionalLocaleStyle }
+            },
+            "bn-BD": {
+                dir: "ltr",
+                eyebrow: "AI ফ্ল্যাশকার্ড",
+                headlineHtml: "প্রতিদিন শেখার<br />জন্য <span class=\"accent\">AI</span><br />ফ্ল্যাশকার্ড",
+                summary: "সময়মতো ঝালিয়ে নিন, AI দিয়ে কার্ড উন্নত করুন আর প্রয়োজনে সিঙ্ক করুন।",
+                chips: ["রিভিউ", "AI", "ডেক", "ট্যাগ", "সিঙ্ক"],
+                badgeTitle: "শেখার সঙ্গী AI",
+                badgeCopyLines: ["কার্ড বুঝুন, আরও ভালো করুন আর পড়ার পরিকল্পনা করুন।"],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Bangla Sangam MN\", \"Noto Sans Bengali\", sans-serif", "--headline-font": "\"Bangla Sangam MN\", \"Noto Sans Bengali\", sans-serif", "--headline-size": "44px", "--headline-line-height": "1.22" }
+            },
+            "ca": {
+                dir: "ltr",
+                eyebrow: "Targetes amb IA",
+                headlineHtml: "Targetes amb <span class=\"accent\">IA</span><br />per estudiar<br />cada dia",
+                summary: "Repassa quan toca, millora les targetes amb IA i sincronitza quan calgui.",
+                chips: ["Repàs", "IA", "Baralles", "Etiquetes", "Sinc."],
+                badgeTitle: "IA per estudiar",
+                badgeCopyLines: ["Explora i millora les targetes. Planifica l'estudi."],
+                style: { ...additionalLocaleStyle }
+            },
+            "cs-CZ": {
+                dir: "ltr",
+                eyebrow: "Kartičky s AI",
+                headlineHtml: "Kartičky s <span class=\"accent\">AI</span><br />pro každodenní<br />učení",
+                summary: "Opakujte včas, vylepšujte kartičky s AI a synchronizujte podle potřeby.",
+                chips: ["Opakování", "AI", "Balíčky", "Štítky", "Sync"],
+                badgeTitle: "AI při učení",
+                badgeCopyLines: ["Prozkoumejte a vylepšete kartičky. Naplánujte si učení."],
+                style: { ...additionalLocaleStyle }
+            },
+            "da-DK": {
+                dir: "ltr",
+                eyebrow: "Læringskort med AI",
+                headlineHtml: "Læringskort<br /><span class=\"accent\">med AI</span><br />til hver dag",
+                summary: "Repetér til tiden, forbedr kort med AI, og synkronisér efter behov.",
+                chips: ["Repetition", "AI", "Kortsæt", "Tags", "Sync"],
+                badgeTitle: "AI i din læring",
+                badgeCopyLines: ["Udforsk og forbedr dine kort. Planlæg din læring."],
+                style: { ...additionalLocaleStyle }
+            },
+            "el-GR": {
+                dir: "ltr",
+                eyebrow: "Κάρτες με AI",
+                headlineHtml: "Κάρτες με <span class=\"accent\">AI</span><br />για καθημερινή<br />μελέτη",
+                summary: "Κάντε επανάληψη στην ώρα σας, βελτιώστε τις κάρτες με AI και συγχρονίστε όταν χρειάζεται.",
+                chips: ["Επανάληψη", "AI", "Τράπουλες", "Ετικέτες", "Συγχρ."],
+                badgeTitle: "AI στη μελέτη",
+                badgeCopyLines: ["Εξερευνήστε και βελτιώστε κάρτες. Οργανώστε τη μελέτη."],
+                style: { ...additionalLocaleStyle }
+            },
+            "et": {
+                dir: "ltr",
+                eyebrow: "AI-õpikaardid",
+                headlineHtml: "<span class=\"accent\">AI</span>-õpikaardid<br />igapäevaseks<br />õppimiseks",
+                summary: "Korda õigel ajal, täiusta kaarte AI abil ja sünkrooni vajaduse korral.",
+                chips: ["Kordamine", "AI", "Kaardipakid", "Sildid", "Sünk."],
+                badgeTitle: "AI õppimisel",
+                badgeCopyLines: ["Uuri ja täiusta kaarte. Planeeri õppimist."],
+                style: { ...additionalLocaleStyle }
+            },
+            "fa": {
+                dir: "rtl",
+                eyebrow: "فلش‌کارت با هوش مصنوعی",
+                headlineHtml: "فلش‌کارت برای<br />یادگیری روزانه<br />با <span class=\"accent\">هوش مصنوعی</span>",
+                summary: "به‌موقع مرور کنید، کارت‌ها را با هوش مصنوعی بهتر کنید و هر وقت لازم شد همگام کنید.",
+                chips: ["مرور", "AI", "دسته‌ها", "برچسب‌ها", "همگام‌سازی"],
+                badgeTitle: "هوش مصنوعی در یادگیری",
+                badgeCopyLines: ["کارت‌ها را بررسی و بهتر کنید. برای یادگیری برنامه بریزید."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Geeza Pro\", \"Noto Sans Arabic\", sans-serif", "--headline-font": "\"Geeza Pro\", \"Noto Sans Arabic\", sans-serif", "--headline-size": "42px", "--headline-line-height": "1.22" }
+            },
+            "fi-FI": {
+                dir: "ltr",
+                eyebrow: "Tekoälyä muistikortteihin",
+                headlineHtml: "Muistikortit<br /><span class=\"accent\">tekoälyllä</span><br />joka päivään",
+                summary: "Kertaa ajallaan, paranna kortteja tekoälyllä ja synkronoi tarvittaessa.",
+                chips: ["Kertaus", "AI", "Pakat", "Tunnisteet", "Sync"],
+                badgeTitle: "Tekoäly oppimisessa",
+                badgeCopyLines: ["Tutki ja paranna kortteja. Suunnittele opiskelusi."],
+                style: { ...additionalLocaleStyle }
+            },
+            "gu": {
+                dir: "ltr",
+                eyebrow: "AI ફ્લૅશકાર્ડ",
+                headlineHtml: "દરરોજ શીખવા<br />માટે <span class=\"accent\">AI</span><br />ફ્લૅશકાર્ડ",
+                summary: "સમયસર રિવિઝન કરો, AI વડે કાર્ડ સુધારો અને જરૂર પડે ત્યારે સિંક કરો.",
+                chips: ["રિવિઝન", "AI", "ડેક", "ટૅગ", "સિંક"],
+                badgeTitle: "શીખવામાં AI",
+                badgeCopyLines: ["કાર્ડ સમજો અને સુધારો. અભ્યાસનું આયોજન કરો."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Gujarati Sangam MN\", \"Noto Sans Gujarati\", sans-serif", "--headline-font": "\"Gujarati Sangam MN\", \"Noto Sans Gujarati\", sans-serif", "--headline-size": "44px", "--headline-line-height": "1.22" }
+            },
+            "iw-IL": {
+                dir: "rtl",
+                eyebrow: "כרטיסיות עם AI",
+                headlineHtml: "כרטיסיות עם <span class=\"accent\">AI</span><br />ללמידה<br />בכל יום",
+                summary: "חזרו על החומר בזמן, שפרו כרטיסיות בעזרת AI וסנכרנו כשצריך.",
+                chips: ["חזרה", "AI", "חפיסות", "תגיות", "סנכרון"],
+                badgeTitle: "AI בתהליך הלמידה",
+                badgeCopyLines: ["העמיקו בכרטיסיות, שפרו אותן ותכננו את הלמידה."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Arial Hebrew\", \"Noto Sans Hebrew\", sans-serif", "--headline-font": "\"Arial Hebrew\", \"Noto Sans Hebrew\", sans-serif", "--headline-size": "42px", "--headline-line-height": "1.22" }
+            },
+            "hr": {
+                dir: "ltr",
+                eyebrow: "Kartice uz AI",
+                headlineHtml: "Kartice uz <span class=\"accent\">AI</span><br />za učenje<br />svaki dan",
+                summary: "Ponavljajte na vrijeme, poboljšajte kartice uz AI i sinkronizirajte po potrebi.",
+                chips: ["Ponavljanje", "AI", "Špilovi", "Oznake", "Sync"],
+                badgeTitle: "AI u učenju",
+                badgeCopyLines: ["Istražite i poboljšajte kartice. Planirajte učenje."],
+                style: { ...additionalLocaleStyle }
+            },
+            "hu-HU": {
+                dir: "ltr",
+                eyebrow: "Tanulókártyák AI-val",
+                headlineHtml: "<span class=\"accent\">AI</span>-tanulókártyák<br />a mindennapi<br />tanuláshoz",
+                summary: "Ismételj időben, javítsd a kártyákat AI-val, és szinkronizálj, amikor kell.",
+                chips: ["Ismétlés", "AI", "Paklik", "Címkék", "Szinkr."],
+                badgeTitle: "AI a tanulásban",
+                badgeCopyLines: ["Fedezd fel és javítsd a kártyákat. Tervezd meg a tanulást."],
+                style: { ...additionalLocaleStyle }
+            },
+            "id": {
+                dir: "ltr",
+                eyebrow: "Kartu belajar dengan AI",
+                headlineHtml: "Kartu belajar<br /><span class=\"accent\">dengan AI</span><br />untuk tiap hari",
+                summary: "Ulangi tepat waktu, perbaiki kartu dengan AI, dan sinkronkan saat perlu.",
+                chips: ["Ulangi", "AI", "Dek", "Tag", "Sinkron"],
+                badgeTitle: "AI saat belajar",
+                badgeCopyLines: ["Jelajahi dan perbaiki kartu. Rencanakan belajarmu."],
+                style: { ...additionalLocaleStyle }
+            },
+            "is-IS": {
+                dir: "ltr",
+                eyebrow: "Námskort með AI",
+                headlineHtml: "Námskort<br /><span class=\"accent\">með AI</span><br />fyrir hvern dag",
+                summary: "Rifjaðu upp á réttum tíma, bættu kort með AI og samstilltu eftir þörfum.",
+                chips: ["Upprifjun", "AI", "Stokkar", "Merki", "Samst."],
+                badgeTitle: "AI í náminu",
+                badgeCopyLines: ["Skoðaðu og bættu kortin. Skipuleggðu námið."],
+                style: { ...additionalLocaleStyle }
+            },
+            "it-IT": {
+                dir: "ltr",
+                eyebrow: "Flashcard con IA",
+                headlineHtml: "Flashcard con <span class=\"accent\">IA</span><br />per studiare<br />ogni giorno",
+                summary: "Ripassa al momento giusto, migliora le carte con l'IA e sincronizza quando serve.",
+                chips: ["Ripasso", "IA", "Mazzi", "Tag", "Sync"],
+                badgeTitle: "L'IA nello studio",
+                badgeCopyLines: ["Esplora e migliora le carte. Organizza lo studio."],
+                style: { ...additionalLocaleStyle }
+            },
+            "kn-IN": {
+                dir: "ltr",
+                eyebrow: "AI ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳು",
+                headlineHtml: "ಪ್ರತಿದಿನದ ಕಲಿಕೆಗೆ<br /><span class=\"accent\">AI</span><br />ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್‌ಗಳು",
+                summary: "ಸಮಯಕ್ಕೆ ಸರಿಯಾಗಿ ಪುನರಾವರ್ತಿಸಿ, AI ಮೂಲಕ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸುಧಾರಿಸಿ ಮತ್ತು ಬೇಕಾದಾಗ ಸಿಂಕ್ ಮಾಡಿ.",
+                chips: ["ಅಭ್ಯಾಸ", "AI", "ಡೆಕ್", "ಟ್ಯಾಗ್", "ಸಿಂಕ್"],
+                badgeTitle: "ಕಲಿಕೆಯಲ್ಲಿ AI",
+                badgeCopyLines: ["ಕಾರ್ಡ್‌ಗಳನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಿ, ಸುಧಾರಿಸಿ. ಕಲಿಕೆಗೆ ಯೋಜಿಸಿ."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Kannada Sangam MN\", \"Noto Sans Kannada\", sans-serif", "--headline-font": "\"Kannada Sangam MN\", \"Noto Sans Kannada\", sans-serif", "--headline-size": "38px", "--headline-line-height": "1.22" }
+            },
+            "ko-KR": {
+                dir: "ltr",
+                eyebrow: "AI 플래시카드",
+                headlineHtml: "매일 꾸준히<br />공부하는<br /><span class=\"accent\">AI</span> 플래시카드",
+                summary: "제때 복습하고, AI로 카드를 다듬고, 필요할 때 동기화하세요.",
+                chips: ["복습", "AI", "덱", "태그", "동기화"],
+                badgeTitle: "공부를 돕는 AI",
+                badgeCopyLines: ["카드를 살펴보고 다듬으며 학습 계획을 세워 보세요."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Apple SD Gothic Neo\", \"Noto Sans KR\", sans-serif", "--headline-font": "\"Apple SD Gothic Neo\", \"Noto Sans KR\", sans-serif", "--headline-size": "42px", "--headline-line-height": "1.22" }
+            },
+            "lt": {
+                dir: "ltr",
+                eyebrow: "Mokymosi kortelės su AI",
+                headlineHtml: "Kortelės su <span class=\"accent\">AI</span><br />kasdieniam<br />mokymuisi",
+                summary: "Kartokite laiku, tobulinkite korteles su AI ir sinchronizuokite prireikus.",
+                chips: ["Kartojimas", "AI", "Kaladės", "Žymos", "Sinchr."],
+                badgeTitle: "AI mokantis",
+                badgeCopyLines: ["Tyrinėkite ir tobulinkite korteles. Planuokite mokymąsi."],
+                style: { ...additionalLocaleStyle }
+            },
+            "lv": {
+                dir: "ltr",
+                eyebrow: "Mācību kartītes ar AI",
+                headlineHtml: "Kartītes ar <span class=\"accent\">AI</span><br />ikdienas<br />mācībām",
+                summary: "Atkārto laikus, uzlabo kartītes ar AI un sinhronizē, kad vajag.",
+                chips: ["Atkārtošana", "AI", "Kavas", "Birkas", "Sinhr."],
+                badgeTitle: "AI mācībās",
+                badgeCopyLines: ["Izpēti un uzlabo kartītes. Plāno mācības."],
+                style: { ...additionalLocaleStyle }
+            },
+            "ml-IN": {
+                dir: "ltr",
+                eyebrow: "AI ഫ്ലാഷ്‌കാർഡുകൾ",
+                headlineHtml: "ദിവസവും പഠിക്കാൻ<br /><span class=\"accent\">AI</span><br />ഫ്ലാഷ്‌കാർഡുകൾ",
+                summary: "കൃത്യസമയത്ത് ആവർത്തിക്കുക, AI ഉപയോഗിച്ച് കാർഡുകൾ മെച്ചപ്പെടുത്തുക, ആവശ്യമുള്ളപ്പോൾ സിങ്ക് ചെയ്യുക.",
+                chips: ["ആവർത്തനം", "AI", "ഡെക്കുകൾ", "ടാഗുകൾ", "സിങ്ക്"],
+                badgeTitle: "പഠനത്തിൽ AI",
+                badgeCopyLines: ["കാർഡുകൾ മനസ്സിലാക്കി മെച്ചപ്പെടുത്തുക. പഠനം ആസൂത്രണം ചെയ്യുക."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Malayalam Sangam MN\", \"Noto Sans Malayalam\", sans-serif", "--headline-font": "\"Malayalam Sangam MN\", \"Noto Sans Malayalam\", sans-serif", "--headline-size": "38px", "--headline-line-height": "1.22" }
+            },
+            "mr-IN": {
+                dir: "ltr",
+                eyebrow: "AI फ्लॅशकार्ड",
+                headlineHtml: "रोजच्या अभ्यासासाठी<br /><span class=\"accent\">AI</span><br />फ्लॅशकार्ड",
+                summary: "वेळेवर उजळणी करा, AI वापरून कार्ड सुधारा आणि गरजेनुसार सिंक करा.",
+                chips: ["उजळणी", "AI", "डेक", "टॅग", "सिंक"],
+                badgeTitle: "अभ्यासात AI",
+                badgeCopyLines: ["कार्ड समजून घ्या आणि सुधारा. अभ्यासाचे नियोजन करा."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Kohinoor Devanagari\", \"Noto Sans Devanagari\", sans-serif", "--headline-font": "\"Kohinoor Devanagari\", \"Noto Sans Devanagari\", sans-serif", "--headline-size": "42px", "--headline-line-height": "1.22" }
+            },
+            "nl-NL": {
+                dir: "ltr",
+                eyebrow: "Flashcards met AI",
+                headlineHtml: "Flashcards met <span class=\"accent\">AI</span><br />om elke dag<br />te leren",
+                summary: "Herhaal op tijd, verbeter kaarten met AI en synchroniseer wanneer nodig.",
+                chips: ["Herhalen", "AI", "Sets", "Tags", "Sync"],
+                badgeTitle: "AI bij het leren",
+                badgeCopyLines: ["Verken en verbeter je kaarten. Plan je studie."],
+                style: { ...additionalLocaleStyle }
+            },
+            "no-NO": {
+                dir: "ltr",
+                eyebrow: "Læringskort med AI",
+                headlineHtml: "Læringskort<br /><span class=\"accent\">med AI</span><br />for hver dag",
+                summary: "Repeter til rett tid, forbedre kort med AI og synkroniser ved behov.",
+                chips: ["Repetisjon", "AI", "Kortstokker", "Tagger", "Sync"],
+                badgeTitle: "AI i læringen",
+                badgeCopyLines: ["Utforsk og forbedre kortene. Planlegg læringen."],
+                style: { ...additionalLocaleStyle }
+            },
+            "pa": {
+                dir: "ltr",
+                eyebrow: "AI ਫਲੈਸ਼ਕਾਰਡ",
+                headlineHtml: "ਹਰ ਰੋਜ਼ ਸਿੱਖਣ<br />ਲਈ <span class=\"accent\">AI</span><br />ਫਲੈਸ਼ਕਾਰਡ",
+                summary: "ਸਮੇਂ ਸਿਰ ਦੁਹਰਾਓ, AI ਨਾਲ ਕਾਰਡ ਸੁਧਾਰੋ ਅਤੇ ਲੋੜ ਪੈਣ 'ਤੇ ਸਿੰਕ ਕਰੋ।",
+                chips: ["ਦੁਹਰਾਈ", "AI", "ਡੈੱਕ", "ਟੈਗ", "ਸਿੰਕ"],
+                badgeTitle: "ਸਿੱਖਣ ਵਿੱਚ AI",
+                badgeCopyLines: ["ਕਾਰਡ ਸਮਝੋ ਅਤੇ ਸੁਧਾਰੋ। ਪੜ੍ਹਾਈ ਦੀ ਯੋਜਨਾ ਬਣਾਓ।"],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Gurmukhi Sangam MN\", \"Noto Sans Gurmukhi\", sans-serif", "--headline-font": "\"Gurmukhi Sangam MN\", \"Noto Sans Gurmukhi\", sans-serif", "--headline-size": "44px", "--headline-line-height": "1.22" }
+            },
+            "pl-PL": {
+                dir: "ltr",
+                eyebrow: "Fiszki z AI",
+                headlineHtml: "Fiszki z <span class=\"accent\">AI</span><br />do codziennej<br />nauki",
+                summary: "Powtarzaj na czas, ulepszaj fiszki z AI i synchronizuj, gdy potrzebujesz.",
+                chips: ["Powtórki", "AI", "Talie", "Tagi", "Synchr."],
+                badgeTitle: "AI w nauce",
+                badgeCopyLines: ["Odkrywaj i ulepszaj fiszki. Planuj naukę."],
+                style: { ...additionalLocaleStyle }
+            },
+            "ro": {
+                dir: "ltr",
+                eyebrow: "Fișe de învățare cu AI",
+                headlineHtml: "Fișe cu <span class=\"accent\">AI</span><br />pentru învățare<br />zi de zi",
+                summary: "Repetă la timp, îmbunătățește fișele cu AI și sincronizează la nevoie.",
+                chips: ["Repetare", "AI", "Pachete", "Etichete", "Sincr."],
+                badgeTitle: "AI în învățare",
+                badgeCopyLines: ["Explorează și îmbunătățește fișele. Planifică învățarea."],
+                style: { ...additionalLocaleStyle }
+            },
+            "sk": {
+                dir: "ltr",
+                eyebrow: "Kartičky s AI",
+                headlineHtml: "Kartičky s <span class=\"accent\">AI</span><br />na každodenné<br />učenie",
+                summary: "Opakujte načas, vylepšujte kartičky s AI a synchronizujte podľa potreby.",
+                chips: ["Opakovanie", "AI", "Balíčky", "Štítky", "Sync"],
+                badgeTitle: "AI pri učení",
+                badgeCopyLines: ["Preskúmajte a vylepšite kartičky. Naplánujte si učenie."],
+                style: { ...additionalLocaleStyle }
+            },
+            "sl": {
+                dir: "ltr",
+                eyebrow: "Učne kartice z AI",
+                headlineHtml: "Kartice z <span class=\"accent\">AI</span><br />za vsakodnevno<br />učenje",
+                summary: "Ponavljajte pravočasno, izboljšajte kartice z AI in po potrebi sinhronizirajte.",
+                chips: ["Ponavljanje", "AI", "Kupčki", "Oznake", "Sinh."],
+                badgeTitle: "AI pri učenju",
+                badgeCopyLines: ["Raziščite in izboljšajte kartice. Načrtujte učenje."],
+                style: { ...additionalLocaleStyle }
+            },
+            "sv-SE": {
+                dir: "ltr",
+                eyebrow: "Kunskapskort med AI",
+                headlineHtml: "Kunskapskort<br /><span class=\"accent\">med AI</span><br />för varje dag",
+                summary: "Repetera i tid, förbättra kort med AI och synka när det behövs.",
+                chips: ["Repetition", "AI", "Kortlekar", "Taggar", "Synk"],
+                badgeTitle: "AI i ditt lärande",
+                badgeCopyLines: ["Utforska och förbättra korten. Planera dina studier."],
+                style: { ...additionalLocaleStyle }
+            },
+            "sw": {
+                dir: "ltr",
+                eyebrow: "Kadi za kujifunza na AI",
+                headlineHtml: "Kadi za <span class=\"accent\">AI</span><br />za kujifunza<br />kila siku",
+                summary: "Rudia kwa wakati, boresha kadi kwa AI na usawazishe inapohitajika.",
+                chips: ["Marudio", "AI", "Mafungu", "Lebo", "Usawazishaji"],
+                badgeTitle: "AI katika kujifunza",
+                badgeCopyLines: ["Chunguza na boresha kadi. Panga masomo yako."],
+                style: { ...additionalLocaleStyle }
+            },
+            "ta-IN": {
+                dir: "ltr",
+                eyebrow: "AI கற்றல் அட்டைகள்",
+                headlineHtml: "தினமும் கற்க<br /><span class=\"accent\">AI</span><br />கற்றல் அட்டைகள்",
+                summary: "சரியான நேரத்தில் மீள்பாருங்கள், AI மூலம் அட்டைகளை மேம்படுத்துங்கள், தேவைக்கேற்ப ஒத்திசையுங்கள்.",
+                chips: ["மீள்பார்வை", "AI", "தொகுப்புகள்", "குறிச்சொற்கள்", "ஒத்திசைவு"],
+                badgeTitle: "கற்றலில் AI",
+                badgeCopyLines: ["அட்டைகளைப் புரிந்துகொண்டு மேம்படுத்துங்கள். படிப்பைத் திட்டமிடுங்கள்."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Tamil Sangam MN\", \"Noto Sans Tamil\", sans-serif", "--headline-font": "\"Tamil Sangam MN\", \"Noto Sans Tamil\", sans-serif", "--headline-size": "38px", "--headline-line-height": "1.22" }
+            },
+            "te-IN": {
+                dir: "ltr",
+                eyebrow: "AI ఫ్లాష్‌కార్డులు",
+                headlineHtml: "రోజూ నేర్చుకోవడానికి<br /><span class=\"accent\">AI</span><br />ఫ్లాష్‌కార్డులు",
+                summary: "సమయానికి పునశ్చరణ చేయండి, AIతో కార్డులను మెరుగుపరచండి, అవసరమైనప్పుడు సింక్ చేయండి.",
+                chips: ["పునశ్చరణ", "AI", "డెక్‌లు", "ట్యాగ్‌లు", "సింక్"],
+                badgeTitle: "అభ్యాసంలో AI",
+                badgeCopyLines: ["కార్డులను అర్థం చేసుకుని మెరుగుపరచండి. చదువును ప్లాన్ చేసుకోండి."],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Telugu Sangam MN\", \"Noto Sans Telugu\", sans-serif", "--headline-font": "\"Telugu Sangam MN\", \"Noto Sans Telugu\", sans-serif", "--headline-size": "38px", "--headline-line-height": "1.22" }
+            },
+            "th": {
+                dir: "ltr",
+                eyebrow: "แฟลชการ์ดพร้อม AI",
+                headlineHtml: "เรียนรู้ทุกวัน<br />ด้วยแฟลชการ์ด<br /><span class=\"accent\">AI</span>",
+                summary: "ทบทวนตามกำหนด ปรับปรุงการ์ดด้วย AI และซิงค์เมื่อคุณต้องการ",
+                chips: ["ทบทวน", "AI", "สำรับ", "แท็ก", "ซิงค์"],
+                badgeTitle: "AI ช่วยเรียนรู้",
+                badgeCopyLines: ["สำรวจและปรับปรุงการ์ด พร้อมวางแผนการเรียน"],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Thonburi\", \"Noto Sans Thai\", sans-serif", "--headline-font": "\"Thonburi\", \"Noto Sans Thai\", sans-serif", "--headline-size": "42px", "--headline-line-height": "1.22" }
+            },
+            "tr-TR": {
+                dir: "ltr",
+                eyebrow: "AI destekli bilgi kartları",
+                headlineHtml: "Her gün öğrenmek<br />için <span class=\"accent\">AI</span><br />bilgi kartları",
+                summary: "Zamanında tekrar edin, kartları AI ile geliştirin ve gerektiğinde eşitleyin.",
+                chips: ["Tekrar", "AI", "Desteler", "Etiketler", "Eşitleme"],
+                badgeTitle: "Öğrenirken AI",
+                badgeCopyLines: ["Kartları inceleyip geliştirin. Çalışmanızı planlayın."],
+                style: { ...additionalLocaleStyle }
+            },
+            "uk": {
+                dir: "ltr",
+                eyebrow: "Картки зі ШІ",
+                headlineHtml: "Картки зі <span class=\"accent\">ШІ</span><br />для навчання<br />щодня",
+                summary: "Повторюйте вчасно, покращуйте картки зі ШІ та синхронізуйте за потреби.",
+                chips: ["Повторення", "ШІ", "Колоди", "Теги", "Синхр."],
+                badgeTitle: "ШІ в навчанні",
+                badgeCopyLines: ["Досліджуйте й покращуйте картки. Плануйте навчання."],
+                style: { ...additionalLocaleStyle }
+            },
+            "ur": {
+                dir: "rtl",
+                eyebrow: "AI فلیش کارڈز",
+                headlineHtml: "روزانہ سیکھنے<br />کے لیے <span class=\"accent\">AI</span><br />فلیش کارڈز",
+                summary: "وقت پر دہرائیں، AI سے کارڈز بہتر بنائیں اور ضرورت پر سنک کریں۔",
+                chips: ["دہرائی", "AI", "ڈیکس", "ٹیگز", "سنک"],
+                badgeTitle: "سیکھنے میں AI",
+                badgeCopyLines: ["کارڈز کو سمجھیں اور بہتر بنائیں۔ پڑھائی کا منصوبہ بنائیں۔"],
+                style: { ...additionalLocaleStyle, "--body-font": "\"Geeza Pro\", \"Noto Naskh Arabic\", sans-serif", "--headline-font": "\"Geeza Pro\", \"Noto Naskh Arabic\", sans-serif", "--headline-size": "42px", "--headline-line-height": "1.22" }
+            },
+            "vi": {
+                dir: "ltr",
+                eyebrow: "Thẻ ghi nhớ với AI",
+                headlineHtml: "Thẻ ghi nhớ<br /><span class=\"accent\">với AI</span><br />để học mỗi ngày",
+                summary: "Ôn tập đúng lúc, cải thiện thẻ với AI và đồng bộ khi cần.",
+                chips: ["Ôn tập", "AI", "Bộ thẻ", "Nhãn", "Đồng bộ"],
+                badgeTitle: "AI hỗ trợ học tập",
+                badgeCopyLines: ["Khám phá và cải thiện thẻ. Lên kế hoạch học tập."],
+                style: { ...additionalLocaleStyle }
+            },
+            "zu": {
+                dir: "ltr",
+                eyebrow: "Amakhadi okufunda nge-AI",
+                headlineHtml: "Amakhadi ane-<span class=\"accent\">AI</span><br />okufunda<br />nsuku zonke",
+                summary: "Buyekeza ngesikhathi, thuthukisa amakhadi nge-AI, uvumelanise lapho kudingeka.",
+                chips: ["Buyekeza", "AI", "Amaqoqo", "Omaka", "Vumelanisa"],
+                badgeTitle: "I-AI ekufundeni",
+                badgeCopyLines: ["Hlola futhi uthuthukise amakhadi. Hlela ukufunda kwakho."],
+                style: { ...additionalLocaleStyle }
             }
         };
 
@@ -653,7 +1061,7 @@
                 throw new Error(`Unsupported locale: ${locale}`);
             }
 
-            rootElement.lang = locale;
+            rootElement.lang = locale === "iw-IL" ? "he-IL" : locale;
             rootElement.dir = config.dir;
             document.title = `Flashcards Play Store Feature Graphic - ${locale}`;
             canvasElement.classList.toggle("rtl", config.dir === "rtl");
