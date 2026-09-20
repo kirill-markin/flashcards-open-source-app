@@ -133,20 +133,6 @@ extension AIChatView {
                     .disabled(self.composerTextFieldDisabled)
                     .autocorrectionDisabled(true)
                     .focused(self.$isComposerFocused)
-                    .toolbar {
-                        ToolbarSpacer(.flexible, placement: .keyboard)
-                        ToolbarItem(placement: .keyboard) {
-                            Button(String(
-                                localized: "ai.composer.dismiss_keyboard",
-                                defaultValue: "Done",
-                                table: "Foundation",
-                                comment: "Dismiss the AI composer keyboard"
-                            )) {
-                                self.dismissComposerFocus()
-                            }
-                            .accessibilityIdentifier(UITestIdentifier.aiComposerDismissKeyboardButton)
-                        }
-                    }
                     .lineLimit(1...aiChatComposerMaximumLineCount)
                     .padding(.leading, 12)
                     .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
@@ -200,6 +186,19 @@ extension AIChatView {
                     Spacer()
 
                     HStack(spacing: 8) {
+                        if self.isComposerFocused {
+                            Button(String(
+                                localized: "ai.composer.dismiss_keyboard",
+                                defaultValue: "Done",
+                                table: "Foundation",
+                                comment: "Dismiss the AI composer keyboard"
+                            )) {
+                                self.dismissComposerFocus()
+                            }
+                            .buttonStyle(.glass)
+                            .accessibilityIdentifier(UITestIdentifier.aiComposerDismissKeyboardButton)
+                        }
+
                         if self.chatStore.serverChatConfig.features.attachmentsEnabled {
                             Menu {
                                 ForEach(aiChatAttachmentMenuActions()) { action in
