@@ -13,7 +13,15 @@ cookie and is not part of this one.
 | Value | A plain random UUID, unsigned. No secret is involved and the server validates the shape only |
 | Sessions | Not carried here. Each client rotates its own session under the shared 30-minute rule |
 
-Minted by: the backend API Lambda only.
+Minted by: the backend API Lambda only. The one write a browser makes itself is the web app
+adopting the `anonymous_id` earlier builds kept in `localStorage`, and it makes it only after this
+route has already given that browser an identity on the same call, so what may hold one stays
+decided here.
+
+The lifetime above extends only on a call, and the web app calls only when it finds no readable
+cookie: it never asks again for a browser that already holds one. So a web visitor id expires 13
+months after it was minted, not 13 months after the browser was last seen. The re-stamp exists for
+the clients that do ask on every visit.
 
 - [Cookie mint, read and clear](../apps/backend/src/analyticsVisitor/cookie.ts)
 - [Consent jurisdictions](../apps/backend/src/analyticsVisitor/consentJurisdiction.ts)
@@ -21,7 +29,7 @@ Minted by: the backend API Lambda only.
 - [Caller country lookup](../apps/backend/src/geolocation/requestCountry.ts) and
   [GeoLite operations](geolite-country.md)
 - [Route registration](../infra/aws/lib/gateways/api-gateway.ts)
-- [Client-side session rotation](../apps/web/src/analytics/identity.ts)
+- [Web client identity, session rotation and the one-time adoption](../apps/web/src/analytics/identity.ts)
 
 ## Which origins can obtain it
 

@@ -25,14 +25,15 @@ export {
   updateCommunityProfile,
 } from "./api/endpoints/account";
 export {
+  requestAnalyticsVisitor,
   sendAnalyticsEventsBatch,
+  sendAnonymousAnalyticsEvent,
 } from "./api/endpoints/analytics";
 export type {
   AnalyticsIngestResult,
-  AnalyticsRequestCredential,
+  AnalyticsVisitorEnvelope,
 } from "./api/endpoints/analytics";
 export {
-  createWebGuestSession,
   linkWebGuestIdentity,
 } from "./api/endpoints/guestAuth";
 export type {
