@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,flitskaarten,leerkaarten,woordkaartjes";
+"NSCameraUsageDescription" = "Sta cameratoegang toe om foto's als bijlage voor de AI-chat te maken.";
+"NSMicrophoneUsageDescription" = "Sta microfoontoegang toe om tekst in de AI-chat te dicteren.";
+"NSPhotoLibraryUsageDescription" = "Sta toegang tot je fotobibliotheek toe om foto's als bijlage voor de AI-chat te kiezen.";
