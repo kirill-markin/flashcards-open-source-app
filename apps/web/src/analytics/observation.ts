@@ -1,3 +1,4 @@
+import { indexedDbUnavailableErrorName } from "../localDb/core/indexedDbAvailability";
 import {
   captureWebException,
   captureWebWarning,
@@ -107,8 +108,9 @@ export function reportAnalyticsGuestIdentityLinkFailure(statusCode: number | nul
 /**
  * The local queue failing to open, write, or read back is invisible everywhere else. Keyed by
  * operation so each distinct failure is still reported once, while a store that is unusable for the
- * whole session — a private window, blocked site data, an exhausted quota — reports a handful of
- * exceptions instead of one per periodic flush.
+ * whole session — an exhausted quota, a transaction that keeps failing — reports a handful of
+ * exceptions instead of one per periodic flush. A browser exposing no IndexedDB factory at all is
+ * not one of those: it takes the storage-unavailable branch below and reports a single warning.
  */
 export function reportAnalyticsQueueFailure(error: unknown): void {
   if (error instanceof AnalyticsQueueError === false) {
@@ -116,6 +118,19 @@ export function reportAnalyticsQueueFailure(error: unknown): void {
   }
 
   if (shouldReportOnceInSession(`analytics_queue_failed:${error.operation}`) === false) {
+    return;
+  }
+
+  // A browser that exposes no IndexedDB factory at all — a private window, blocked site data. There
+  // is nowhere to queue events, no client action changes it, and a retry fails identically, so it is
+  // designed degradation rather than a fault: as an exception it would file one permanent,
+  // un-actionable Sentry issue for every affected session.
+  if (error.indexedDbErrorName === indexedDbUnavailableErrorName) {
+    captureWebWarning({
+      action: "analytics_delivery_degraded",
+      scope: buildAnalyticsObservationScope(null),
+      details: { eventName: "analytics_queue_storage_unavailable", count: null, statusCode: null },
+    });
     return;
   }
 

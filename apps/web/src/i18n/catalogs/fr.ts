@@ -109,6 +109,11 @@ const frCatalog: TranslationCatalog = {
       reload: "Recharger la page",
       later: "Plus tard",
     },
+    storageUnavailable: {
+      title: "Stockage du navigateur indisponible",
+      message: "Cette application a besoin du stockage du navigateur, et ce navigateur le bloque.",
+      guidance: "Ouvrez l'application dans une fenêtre normale (non privée) ou dans un autre navigateur.",
+    },
   },
   filters: {
     allCards: "Toutes les cartes",

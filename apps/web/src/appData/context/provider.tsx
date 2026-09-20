@@ -13,6 +13,7 @@ import { revalidateSession } from "../../api";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { loadActiveCardCount } from "../../localDb/cards/cards";
+import { isIndexedDbUnavailableError } from "../../localDb/core/indexedDbAvailability";
 import type {
   AccountPreferences,
   CloudSettings,
@@ -284,6 +285,14 @@ export function AppDataProvider(props: Props): ReactElement {
     void refreshLocalCardCount().catch((error: unknown): void => {
       indexedDbOpenRecoveryState.markFailed(error);
       if (indexedDbOpenRecoveryState.hasFailed()) {
+        return;
+      }
+
+      // A browser that exposes no IndexedDB factory is already shown the storage-unavailable
+      // screen by the session bootstrap, and no retry changes it. `markFailed` latches only the
+      // reload-recovery class, so rethrowing here would report that same permanent condition again
+      // as an unhandled rejection. Every other error still surfaces.
+      if (isIndexedDbUnavailableError(error)) {
         return;
       }
 
