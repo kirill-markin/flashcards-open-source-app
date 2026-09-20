@@ -135,14 +135,8 @@ Use that document when you need to regenerate localized App Store screenshots or
 ## CI/CD
 
 iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
-App Store release-note drafting guidance is documented in [`docs/version-bump.md`](../../docs/version-bump.md#app-store-release-notes).
-
-The human-operated release gate is:
-
-1. Native XCUITest grouped live smoke
-2. Xcode Cloud archive and distribution
-
-Xcode Cloud test and build workflows are manually started and monitored by a human. Agents must not trigger or monitor them unless the user explicitly requests that exact action.
+Release notes and release authorization are documented in [Release All Platforms and Start the Next Development Version](../../docs/release-current-version.md).
+Follow the [iOS release procedure](../../docs/manual-production-release.md#ios) for parallel Xcode Cloud build/test runs and App Review submission.
 
 ## Respect Existing Code
 

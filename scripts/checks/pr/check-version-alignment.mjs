@@ -1,14 +1,10 @@
-// Fails when the repo-owned release version surfaces do not all report the same
-// semantic version, so a half-finished version bump is caught before merge.
-// The surfaces and their alignment rules are defined in docs/version-bump.md.
-
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "..", "..", "..");
-const DOCUMENTATION_PATH = "docs/version-bump.md";
+const DOCUMENTATION_PATH = "docs/release-current-version.md";
 
 const SEMANTIC_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
