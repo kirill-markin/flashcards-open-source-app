@@ -1,0 +1,67 @@
+{
+  "localePrefix": "da-DK",
+  "appLocaleTag": "da",
+  "uiText": {
+    "emptyCardsMessage": "Der er ingen kort endnu. Tryk på tilføj-knappen for at oprette det første.",
+    "cardsTabTitle": "Kort",
+    "reviewTabTitle": "Repetition",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Søg efter kort",
+    "addCardContentDescription": "Tilføj kort",
+    "frontFieldTitle": "Forside",
+    "backFieldTitle": "Bagside",
+    "tagsFieldTitle": "Tags",
+    "addTagFieldTitle": "Tilføj et tag",
+    "addTagButtonTitle": "Tilføj tag",
+    "saveButtonTitle": "Gem",
+    "ratingAgainTitle": "Igen",
+    "ratingHardTitle": "Svær",
+    "ratingGoodTitle": "God",
+    "ratingEasyTitle": "Let"
+  },
+  "reviewCard": {
+    "frontText": "Hvad er alternativomkostning i økonomi?",
+    "backText": "Værdien af det bedste alternativ, du fravælger, når du vælger én mulighed frem for en anden.\n\nEksamenseksempel: Hvis du bruger lørdag på at læse til en eksamen i mikroøkonomi i stedet for at tage en betalt vagt, er den mistede løn en del af alternativomkostningen.",
+    "tags": [
+      "økonomi"
+    ]
+  },
+  "reviewAiDraftMessage": "Opret 6 nye kort om samme økonomiske emne med nært beslægtede begreber, som vi ikke allerede har.",
+  "cards": [
+    {
+      "frontText": "Hvad er alternativomkostning i økonomi?",
+      "backText": "Værdien af det bedste alternativ, du fravælger, når du vælger én mulighed frem for en anden.",
+      "subjectTag": "økonomi"
+    },
+    {
+      "frontText": "Hvad er osmose i biologi?",
+      "backText": "Vands bevægelse gennem en membran fra lavere til højere koncentration af opløste stoffer.",
+      "subjectTag": "biologi"
+    },
+    {
+      "frontText": "Hvad er standardafvigelse i statistik?",
+      "backText": "Et mål for, hvor spredte værdierne er omkring gennemsnittet.",
+      "subjectTag": "statistik"
+    },
+    {
+      "frontText": "Hvad er en katalysator i kemi?",
+      "backText": "Et stof, der fremskynder en kemisk reaktion uden selv at blive forbrugt.",
+      "subjectTag": "kemi"
+    },
+    {
+      "frontText": "Hvad er en kognitiv bias i psykologi?",
+      "backText": "Et systematisk tankemønster, der kan forvrænge vurderinger og beslutninger.",
+      "subjectTag": "psykologi"
+    },
+    {
+      "frontText": "Hvad er hastighed som vektor i fysik?",
+      "backText": "Et objekts fart sammen med retningen af dets bevægelse.",
+      "subjectTag": "fysik"
+    },
+    {
+      "frontText": "Hvad er rekursion i datalogi?",
+      "backText": "En metode, hvor en funktion løser et problem ved at kalde sig selv med mindre udgaver af samme problem.",
+      "subjectTag": "datalogi"
+    }
+  ]
+}
