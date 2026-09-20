@@ -1,0 +1,67 @@
+{
+  "localePrefix": "vi",
+  "appLocaleTag": "vi",
+  "uiText": {
+    "emptyCardsMessage": "Chưa có thẻ nào. Nhấn nút thêm để tạo thẻ đầu tiên.",
+    "cardsTabTitle": "Thẻ",
+    "reviewTabTitle": "Ôn tập",
+    "aiTabTitle": "AI",
+    "searchCardsPlaceholder": "Tìm thẻ",
+    "addCardContentDescription": "Thêm thẻ",
+    "frontFieldTitle": "Mặt trước",
+    "backFieldTitle": "Mặt sau",
+    "tagsFieldTitle": "Nhãn",
+    "addTagFieldTitle": "Thêm nhãn",
+    "addTagButtonTitle": "Thêm nhãn",
+    "saveButtonTitle": "Lưu",
+    "ratingAgainTitle": "Lại",
+    "ratingHardTitle": "Khó",
+    "ratingGoodTitle": "Tốt",
+    "ratingEasyTitle": "Dễ"
+  },
+  "reviewCard": {
+    "frontText": "Chi phí cơ hội là gì?",
+    "backText": "Giá trị của phương án tốt nhất bị bỏ qua khi bạn chọn một phương án khác.\n\nVí dụ ôn thi: Nếu bạn dành thứ Bảy để ôn thi kinh tế vi mô thay vì làm một ca có trả lương, khoản lương bị bỏ lỡ là một phần của chi phí cơ hội.",
+    "tags": [
+      "kinh tế học"
+    ]
+  },
+  "reviewAiDraftMessage": "Tạo 6 thẻ mới về cùng chủ đề kinh tế học, bao gồm các khái niệm liên quan chặt chẽ mà chúng ta chưa có.",
+  "cards": [
+    {
+      "frontText": "Chi phí cơ hội là gì?",
+      "backText": "Giá trị của phương án tốt nhất bị bỏ qua khi bạn chọn một phương án khác.",
+      "subjectTag": "kinh tế học"
+    },
+    {
+      "frontText": "Trong sinh học, thẩm thấu là gì?",
+      "backText": "Sự di chuyển của nước qua màng từ nơi có nồng độ chất tan thấp đến nơi có nồng độ chất tan cao.",
+      "subjectTag": "sinh học"
+    },
+    {
+      "frontText": "Trong thống kê, độ lệch chuẩn là gì?",
+      "backText": "Thước đo mức độ phân tán của các giá trị quanh giá trị trung bình.",
+      "subjectTag": "thống kê"
+    },
+    {
+      "frontText": "Trong hóa học, chất xúc tác là gì?",
+      "backText": "Chất làm tăng tốc độ phản ứng hóa học mà không bị tiêu hao trong phản ứng.",
+      "subjectTag": "hóa học"
+    },
+    {
+      "frontText": "Trong tâm lý học, thiên kiến nhận thức là gì?",
+      "backText": "Một kiểu tư duy có tính hệ thống có thể làm sai lệch phán đoán và việc ra quyết định.",
+      "subjectTag": "tâm lý học"
+    },
+    {
+      "frontText": "Trong vật lý, vận tốc là gì?",
+      "backText": "Đại lượng thể hiện tốc độ của vật cùng với hướng chuyển động của nó.",
+      "subjectTag": "vật lý"
+    },
+    {
+      "frontText": "Trong khoa học máy tính, đệ quy là gì?",
+      "backText": "Phương pháp trong đó một hàm giải quyết vấn đề bằng cách tự gọi chính nó với các phiên bản nhỏ hơn của vấn đề đó.",
+      "subjectTag": "khoa học máy tính"
+    }
+  ]
+}
