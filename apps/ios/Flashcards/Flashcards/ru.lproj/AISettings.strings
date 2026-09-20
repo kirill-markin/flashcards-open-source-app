@@ -814,3 +814,6 @@
 "settings.language.supported.gujarati" = "Гуджарати";
 "settings.language.supported.hebrew" = "Иврит";
 "settings.language.supported.croatian" = "Хорватский";
+"settings.language.supported.hungarian" = "Венгерский";
+"settings.language.supported.indonesian" = "Индонезийский";
+"settings.language.supported.icelandic" = "Исландский";

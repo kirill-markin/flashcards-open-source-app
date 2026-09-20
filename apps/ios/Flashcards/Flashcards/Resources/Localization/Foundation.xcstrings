@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kész"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokið"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -151,6 +169,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A hozzáférés kikapcsolásához nyisd meg a Beállításokat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Pengaturan untuk menonaktifkan akses ini."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnaðu Stillingar ef þú vilt slökkva á þessum aðgangi."
           }
         },
         "gu" : {
@@ -296,6 +332,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kérj hozzáférést most, vagy kezeld később a Beállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minta akses sekarang, atau buka Pengaturan nanti untuk mengelolanya secara manual."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Óskaðu eftir aðgangi núna eða opnaðu Stillingar síðar til að stjórna honum handvirkt."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -437,6 +491,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo kamerahozzáférése ki van kapcsolva. Módosítsd a Beállítások > Adatvédelem és biztonság > Kamera alatt."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses kamera untuk Nibomo dinonaktifkan. Buka Pengaturan > Privasi & Keamanan > Kamera untuk mengubahnya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á myndavélaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Myndavél til að breyta því."
           }
         },
         "gu" : {
@@ -582,6 +654,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A hozzáférés ellenőrzéséhez vagy bővítéséhez nyisd meg a Beállításokat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Pengaturan untuk meninjau atau memperluas akses ini."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnaðu Stillingar til að skoða eða auka þennan aðgang."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -723,6 +813,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo mikrofonhozzáférése ki van kapcsolva. Módosítsd a Beállítások > Adatvédelem és biztonság > Mikrofon alatt."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses mikrofon untuk Nibomo dinonaktifkan. Buka Pengaturan > Privasi & Keamanan > Mikrofon untuk mengubahnya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Hljóðnemi til að breyta því."
           }
         },
         "gu" : {
@@ -868,6 +976,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo fotóhozzáférése ki van kapcsolva. Módosítsd a Beállítások > Adatvédelem és biztonság > Fotók alatt."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses foto untuk Nibomo dinonaktifkan. Buka Pengaturan > Privasi & Keamanan > Foto untuk mengubahnya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á myndaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Myndir til að breyta því."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1009,6 +1135,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Csak a Nibomóval már megosztott fotók érhetők el. További fotókhoz a Beállításokban adhatsz hozzáférést."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hanya foto yang sudah Anda bagikan dengan Nibomo yang tersedia. Buka Pengaturan untuk memberi akses ke lebih banyak foto."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aðeins myndir sem þú hefur þegar deilt með Nibomo eru tiltækar. Opnaðu Stillingar til að veita víðtækari aðgang að myndum."
           }
         },
         "gu" : {
@@ -1154,6 +1298,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez a hozzáférés ezen az eszközön nem érhető el."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses ini tidak tersedia di perangkat ini."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þessi aðgangur er ekki tiltækur á þessu tæki."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1295,6 +1457,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engedélyezve"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diizinkan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyft"
           }
         },
         "gu" : {
@@ -1440,6 +1620,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rákérdezés minden alkalommal"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanya setiap kali"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spyrja í hvert sinn"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1581,6 +1779,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letiltva"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diblokir"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokað"
           }
         },
         "gu" : {
@@ -1726,6 +1942,24 @@
             "value" : "محدود"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Korlátozott"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terbatas"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takmarkað"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1867,6 +2101,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem érhető el"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak tersedia"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tiltækt"
           }
         },
         "gu" : {
@@ -2012,6 +2264,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Készíts fotókat közvetlenül az AI-csevegésből."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ambil foto langsung dari obrolan AI."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taktu myndir beint úr gervigreindarspjallinu."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2153,6 +2423,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Myndavél"
           }
         },
         "gu" : {
@@ -2298,6 +2586,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktálj szöveget az AI-csevegésbe."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktekan teks ke obrolan AI."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lestu inn texta í gervigreindarspjallið."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2439,6 +2745,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hljóðnemi"
           }
         },
         "gu" : {
@@ -2584,6 +2908,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Válassz fotókat az AI-csevegés mellékleteihez."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pilih foto untuk lampiran obrolan AI."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veldu myndir sem viðhengi í gervigreindarspjallinu."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2725,6 +3067,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotók"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Myndir"
           }
         },
         "gu" : {
@@ -2870,6 +3230,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo mikrofonhozzáférése ki van kapcsolva. Engedélyezd a Beállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses mikrofon untuk Nibomo dinonaktifkan. Buka Pengaturan untuk mengizinkannya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Opnaðu Stillingar til að leyfa hann."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3011,6 +3389,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonhozzáférés szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses Mikrofon Diperlukan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aðgangur að hljóðnema er nauðsynlegur"
           }
         },
         "gu" : {
@@ -3156,6 +3552,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo kamerahozzáférése ki van kapcsolva. Engedélyezd a Beállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses kamera untuk Nibomo dinonaktifkan. Buka Pengaturan untuk mengizinkannya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á myndavélaaðgangi fyrir Nibomo. Opnaðu Stillingar til að leyfa hann."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3297,6 +3711,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamerahozzáférés szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses Kamera Diperlukan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aðgangur að myndavél er nauðsynlegur"
           }
         },
         "gu" : {
@@ -3442,6 +3874,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo fájlhozzáférése ki van kapcsolva. Engedélyezd a Beállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses file untuk Nibomo dinonaktifkan. Buka Pengaturan untuk mengizinkannya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á skráaaðgangi fyrir Nibomo. Opnaðu Stillingar til að leyfa hann."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3583,6 +4033,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fájlhozzáférés szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses File Diperlukan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aðgangur að skrám er nauðsynlegur"
           }
         },
         "gu" : {
@@ -3728,6 +4196,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo fotóhozzáférése ki van kapcsolva. Engedélyezd a Beállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses foto untuk Nibomo dinonaktifkan. Buka Pengaturan untuk mengizinkannya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á aðgangi að myndum fyrir Nibomo. Opnaðu Stillingar til að leyfa hann."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3869,6 +4355,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotóhozzáférés szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses Foto Diperlukan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aðgangur að myndum er nauðsynlegur"
           }
         },
         "gu" : {
@@ -4014,6 +4518,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Összes kártya"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semua kartu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öll spjöld"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4155,6 +4677,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nincs kapcsolat"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terputus"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aftengt"
           }
         },
         "gu" : {
@@ -4300,6 +4840,24 @@
             "value" : "ضيف"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vendég"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestur"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4441,6 +4999,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Összekapcsolva"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terhubung"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengt"
           }
         },
         "gu" : {
@@ -4586,6 +5162,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Összekapcsolásra kész"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siap dihubungkan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilbúið til tengingar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4727,6 +5321,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A felhőbe való bejelentkezés nem érhető el. Ellenőrizd az alkalmazás konfigurációját."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masuk ke cloud tidak tersedia. Periksa konfigurasi aplikasi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Innskráning í skýið er ekki tiltæk. Athugaðu uppsetningu forritsins."
           }
         },
         "gu" : {
@@ -4872,6 +5484,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adj meg érvényes e-mail-címet."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masukkan alamat email yang valid."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sláðu inn gilt netfang."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5013,6 +5643,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ezt a kódot már felhasználták. Kérj újat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kode sudah digunakan. Minta kode baru."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kóðinn hefur þegar verið notaður. Óskaðu eftir nýjum."
           }
         },
         "gu" : {
@@ -5158,6 +5806,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Érvénytelen kód. Próbáld újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kode tidak valid. Coba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kóðinn er ógildur. Reyndu aftur."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5299,6 +5965,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült elküldeni a kódot. Próbáld újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak dapat mengirim kode. Coba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að senda kóða. Reyndu aftur."
           }
         },
         "gu" : {
@@ -5444,6 +6128,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A kód lejárt. Kérj újat."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kode kedaluwarsa. Minta kode baru."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kóðinn er útrunninn. Óskaðu eftir nýjum."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5585,6 +6287,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Túl sok próbálkozás. Kérj új kódot."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terlalu banyak percobaan. Minta kode baru."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Of margar tilraunir. Óskaðu eftir nýjum kóða."
           }
         },
         "gu" : {
@@ -5730,6 +6450,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült ellenőrizni a kódot. Próbáld újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak dapat memverifikasi kode. Coba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að staðfesta kóðann. Reyndu aftur."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5871,6 +6609,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sikertelen bejelentkezés a felhőbe. Próbáld újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gagal masuk ke cloud. Coba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Innskráning í skýið mistókst. Reyndu aftur."
           }
         },
         "gu" : {
@@ -6016,6 +6772,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A kapcsolat megszakadt a kód küldése közben. Nézd meg az e-mailjeidet, majd szükség esetén próbáld újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koneksi terputus saat mengirim kode. Periksa email Anda, lalu coba lagi jika perlu."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengingin rofnaði þegar kóðinn var sendur. Athugaðu tölvupóstinn þinn og reyndu aftur ef þörf krefur."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6157,6 +6931,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A kapcsolat megszakadt a kód ellenőrzése közben. Próbáld újra, vagy kérj új kódot."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koneksi terputus saat memverifikasi kode. Coba lagi, atau minta kode baru jika perlu."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengingin rofnaði við staðfestingu kóðans. Reyndu aftur eða óskaðu eftir nýjum kóða ef þörf krefur."
           }
         },
         "gu" : {
@@ -6302,6 +7094,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült frissíteni a pontszámranglistát. Húzd le az újrapróbáláshoz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papan peringkat nilai tidak dapat diperbarui. Tarik untuk mencoba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að uppfæra stigatöfluna. Dragðu niður til að reyna aftur."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6443,6 +7253,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült frissíteni az ismétlési ütemtervet. Húzd le az újrapróbáláshoz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jadwal pengulangan tidak dapat diperbarui. Tarik untuk mencoba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að uppfæra upprifjunaráætlunina. Dragðu niður til að reyna aftur."
           }
         },
         "gu" : {
@@ -6588,6 +7416,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült megjeleníteni az ismétlési ütemtervet. Húzd le az újrapróbáláshoz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jadwal pengulangan tidak dapat ditampilkan. Tarik untuk mencoba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að sýna upprifjunaráætlunina. Dragðu niður til að reyna aftur."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6729,6 +7575,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült frissíteni a haladási diagramot. Húzd le az újrapróbáláshoz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafik kemajuan tidak dapat diperbarui. Tarik untuk mencoba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að uppfæra framvinduritið. Dragðu niður til að reyna aftur."
           }
         },
         "gu" : {
@@ -6874,6 +7738,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült frissíteni a sorozatranglistát. Húzd le az újrapróbáláshoz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papan peringkat rangkaian tidak dapat diperbarui. Tarik untuk mencoba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að uppfæra runutöfluna. Dragðu niður til að reyna aftur."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7015,6 +7897,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült frissíteni a haladási összesítőt. Húzd le az újrapróbáláshoz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ringkasan kemajuan tidak dapat diperbarui. Tarik untuk mencoba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að uppfæra framvinduyfirlitið. Dragðu niður til að reyna aftur."
           }
         },
         "gu" : {
@@ -7160,6 +8060,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A haladás nem érhető el. Húzd le a frissítéshez és az újrapróbáláshoz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kemajuan tidak tersedia. Tarik untuk memperbarui dan mencoba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Framvinda er ekki tiltæk. Dragðu niður til að uppfæra og reyna aftur."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7301,6 +8219,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elérhető sorozatvédők: %@ / %@."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pelindung rangkaian tersedia: %@ dari %@."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runuvörn tiltæk: %@ af %@."
           }
         },
         "gu" : {
@@ -7446,6 +8382,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bemutatja a sorozatvédők működését."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menjelaskan cara kerja pelindung rangkaian."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sýnir hvernig runuvörn virkar."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7587,6 +8541,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elérhető: %@/%@. Feltöltés: %@/%@. A sorozatvédők megóvják a kihagyott napokat, és a sorozat folytatásával újratöltődnek."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tersedia: %@/%@. Isi ulang: %@/%@. Pelindung menjaga rangkaian saat Anda melewatkan hari dan terisi ulang saat rangkaian berlanjut."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiltækt: %@/%@. Endurhleðsla: %@/%@. Runuvörn verndar daga sem falla úr og endurhleðst þegar runan heldur áfram."
           }
         },
         "gu" : {
@@ -7732,6 +8704,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sorozatvédők"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pelindung rangkaian"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runuvörn"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7873,6 +8863,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hivatkozás létrehozása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buat Tautan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búa til tengil"
           }
         },
         "gu" : {
@@ -8018,6 +9026,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A megnyitás után bejelentkezhet vagy regisztrálhat, és megjelentek egymás alkalmazásában. A meghívó 2 nap múlva lejár."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teman dapat membukanya, masuk atau mendaftar, lalu Anda akan saling melihat di aplikasi. Tautan undangan kedaluwarsa dalam 2 hari."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vinurinn getur opnað tengilinn, skráð sig inn eða stofnað aðgang og þá sjáið þið hvort annað í forritinu. Boðstenglar renna út eftir 2 daga."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8159,6 +9185,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Küldd el ezt a hivatkozást a barátodnak"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirim tautan ini kepada teman Anda"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendu vini þínum þennan tengil"
           }
         },
         "gu" : {
@@ -8304,6 +9348,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Létrehozás…"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Membuat..."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bý til..."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8445,6 +9507,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hozz létre privát baráti meghívót a ranglistához."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buat tautan teman pribadi untuk papan peringkat."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Búðu til einkatengil fyrir vin á stigatöflunni."
           }
         },
         "gu" : {
@@ -8590,6 +9670,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ezt a nevet csak te látod a ranglistádon. A barátod az elfogadáskor ad neked nevet. A meghívó 2 nap múlva lejár."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hanya Anda yang melihat nama ini di papan peringkat Anda. Teman memilih nama Anda saat menerima undangan. Tautan undangan kedaluwarsa dalam 2 hari."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aðeins þú sérð þetta nafn á stigatöflunni þinni. Vinurinn velur hvað þú heitir þegar boðið er samþykkt. Boðstenglar renna út eftir 2 daga."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8731,6 +9829,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A barát neve a ranglistádon"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nama teman di papan peringkat Anda"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nafn vinar á stigatöflunni þinni"
           }
         },
         "gu" : {
@@ -8876,6 +9992,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barátod neve"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nama teman Anda"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nafn vinar þíns"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9017,6 +10151,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kész"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokið"
           }
         },
         "gu" : {
@@ -9162,6 +10314,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meghívó küldése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kirim Tautan Undangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senda boðstengil"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9303,6 +10473,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nyisd meg ezt a Nibomo-meghívót, jelentkezz be vagy regisztrálj, és látjuk egymást az alkalmazásban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka undangan Nibomo ini, masuk atau daftar, dan kita akan saling melihat di aplikasi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnaðu þetta Nibomo-boð, skráðu þig inn eða stofnaðu aðgang og þá sjáum við hvort annað í forritinu."
           }
         },
         "gu" : {
@@ -9448,6 +10636,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo baráti meghívó"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undangan teman Nibomo"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vinaboð í Nibomo"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9589,6 +10795,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barát hozzáadása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tambah Teman"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bæta við vini"
           }
         },
         "gu" : {
@@ -9734,6 +10958,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sortörések és vezérlőkarakterek nem használhatók."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baris baru dan karakter kontrol tidak diizinkan."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Línuskipti og stýristafir eru ekki leyfðir."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9875,6 +11117,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adj meg 1–30 karaktert."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masukkan 1–30 karakter."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sláðu inn 1–30 stafi."
           }
         },
         "gu" : {
@@ -10020,6 +11280,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ismétlési aktivitás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktivitas pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upprifjunarvirkni"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10161,6 +11439,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dátum"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanggal"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dagsetning"
           }
         },
         "gu" : {
@@ -10306,6 +11602,24 @@
             "value" : "المراجعات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ismétlések"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upprifjanir"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10447,6 +11761,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az elmúlt 30 nap."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 hari terakhir."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Síðustu 30 dagar."
           }
         },
         "gu" : {
@@ -10592,6 +11924,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 ismétlés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 upprifjun"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10733,6 +12083,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ismétlés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld upprifjanir"
           }
         },
         "gu" : {
@@ -10878,6 +12246,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ismétlési aktivitás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktivitas pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upprifjunarvirkni"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11019,6 +12405,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld في %2$@"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld. hely itt: %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld di %2$@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nr. %1$lld í %2$@"
           }
         },
         "gu" : {
@@ -11164,6 +12568,24 @@
             "value" : "أفضل تصنيف"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legjobb pontszám"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nilai terbaik"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestu stig"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11305,6 +12727,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد تصنيف بعد"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Még nincs pontszám"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum ada nilai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engin stig enn"
           }
         },
         "gu" : {
@@ -11450,6 +12890,24 @@
             "value" : "بطاقة واحدة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kártya"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kartu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 spjald"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11591,6 +13049,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld بطاقات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kártya"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kartu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld spjöld"
           }
         },
         "gu" : {
@@ -11736,6 +13212,24 @@
             "value" : "البطاقات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kártyák"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spjöld"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11877,6 +13371,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة الحالية"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jelenlegi sorozat"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rangkaian saat ini"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Núverandi runa"
           }
         },
         "gu" : {
@@ -12022,6 +13534,24 @@
             "value" : "تم"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kész"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selesai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokið"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12163,6 +13693,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ellenőrizd a kapcsolatot, majd próbáld újra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periksa koneksi Anda dan coba lagi."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Athugaðu tenginguna og reyndu aftur."
           }
         },
         "gu" : {
@@ -12308,6 +13856,24 @@
             "value" : "تعذر تحميل الملف الشخصي"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült betölteni a profilt"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak dapat memuat profil"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að hlaða prófíl"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12449,6 +14015,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "صديق"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barát"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teman"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vinur"
           }
         },
         "gu" : {
@@ -12594,6 +14178,24 @@
             "value" : "تاريخ الانضمام"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Csatlakozott"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bergabung"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skráning"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12735,6 +14337,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جارٍ تحميل الملف الشخصي..."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil betöltése…"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memuat profil..."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hleð prófíl..."
           }
         },
         "gu" : {
@@ -12880,6 +14500,24 @@
             "value" : "المقاييس"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mutatók"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metrik"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mælikvarðar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13021,6 +14659,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Újra"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coba Lagi"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reyna aftur"
           }
         },
         "gu" : {
@@ -13166,6 +14822,24 @@
             "value" : "الإحصاءات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statisztikák"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistik"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tölfræði"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13307,6 +14981,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jelentkezz be e-maillel a ranglistaprofilok megtekintéséhez."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masuk dengan email untuk melihat profil papan peringkat."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skráðu þig inn með netfangi til að skoða prófíla á stigatöflunni."
           }
         },
         "gu" : {
@@ -13452,6 +15144,24 @@
             "value" : "يلزم تسجيل الدخول"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bejelentkezés szükséges"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perlu masuk"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Innskráning nauðsynleg"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13593,6 +15303,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A profilok csak bekapcsolt pontszámranglista-részvétellel láthatók."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil hanya terlihat saat partisipasi papan peringkat nilai aktif."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prófílar sjást aðeins þegar þátttaka í stigatöflunni er virk."
           }
         },
         "gu" : {
@@ -13738,6 +15466,24 @@
             "value" : "المشاركة متوقفة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Részvétel kikapcsolva"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partisipasi nonaktif"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt á þátttöku"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13879,6 +15625,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez a ranglistaprofil most nem jeleníthető meg."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil papan peringkat ini tidak dapat ditampilkan saat ini."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki er hægt að sýna þennan prófíl á stigatöflunni núna."
           }
         },
         "gu" : {
@@ -14024,6 +15788,24 @@
             "value" : "الملف الشخصي غير متاح"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A profil nem érhető el"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil tidak tersedia"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prófíll ekki tiltækur"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14165,6 +15947,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة التقييمات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A pontszámranglistáról"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentang papan peringkat nilai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um stigatöfluna"
           }
         },
         "gu" : {
@@ -14310,6 +16110,24 @@
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nehéz, Jó és Könnyű értékelésű ismétlések számítanak a helyezésbe. Az Újra nem."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengulangan Sulit, Baik, dan Mudah dihitung dalam peringkat. Ulangi tidak dihitung."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upprifjanir metnar Erfitt, Gott og Auðvelt telja til stiga. Aftur telur ekki."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14451,6 +16269,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barát hozzáadása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tambah teman"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bæta við vini"
           }
         },
         "gu" : {
@@ -14596,6 +16432,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barát hozzáadása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tambah Teman"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bæta við vini"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14737,6 +16591,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próbáld újra később."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coba lagi nanti."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reyndu aftur síðar."
           }
         },
         "gu" : {
@@ -14882,6 +16754,24 @@
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült betölteni a pontszámranglistát"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak dapat memuat papan peringkat nilai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að hlaða stigatöfluna"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15023,6 +16913,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Csatlakozz az internethez a pontszámranglista betöltéséhez."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hubungkan ke internet untuk memuat papan peringkat nilai."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengstu internetinu til að hlaða stigatöfluna."
           }
         },
         "gu" : {
@@ -15168,6 +17076,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline vagy"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anda offline"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þú ert án nettengingar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15309,6 +17235,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pontszámranglista beállításainak megnyitása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka pengaturan papan peringkat nilai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opna stillingar stigatöflu"
           }
         },
         "gu" : {
@@ -15454,6 +17398,24 @@
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A helyezések csak a pontszámranglistán való részvétel közben láthatók."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peringkat hanya terlihat saat Anda berpartisipasi di papan peringkat nilai."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Staða sést aðeins á meðan þú tekur þátt í stigatöflunni."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15595,6 +17557,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة في التقييمات متوقفة"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pontszámranglista-részvétel kikapcsolva"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partisipasi peringkat nilai nonaktif"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt á þátttöku í stigatöflu"
           }
         },
         "gu" : {
@@ -15740,6 +17720,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld. hely, %2$lld ismétlés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peringkat %1$lld, %2$lld pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sæti %1$lld, %2$lld upprifjanir"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15881,6 +17879,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anda"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þú"
           }
         },
         "gu" : {
@@ -16026,6 +18042,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pontszámranglista"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papan peringkat nilai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stigatafla"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16167,6 +18201,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bejelentkezés vagy regisztráció"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masuk atau daftar"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skrá inn eða stofna aðgang"
           }
         },
         "gu" : {
@@ -16312,6 +18364,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jelentkezz be e-maillel, és nézd meg, hol állsz az ismétléseiddel a pontszámranglistán."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masuk dengan email untuk melihat peringkat pengulangan Anda di papan peringkat nilai."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skráðu þig inn með netfangi til að sjá stöðu upprifjana þinna á stigatöflunni."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16453,6 +18523,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Csatlakozás a pontszámranglistához"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gabung papan peringkat nilai"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taka þátt í stigatöflunni"
           }
         },
         "gu" : {
@@ -16598,6 +18686,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A pontszámranglista előkészítés alatt áll. Nézz vissza hamarosan."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papan peringkat nilai sedang disiapkan. Periksa lagi segera."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stigataflan er í undirbúningi. Líttu aftur við fljótlega."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16739,6 +18845,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Még nincs kész"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum siap"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tilbúið enn"
           }
         },
         "gu" : {
@@ -16884,6 +19008,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frissítve %@ ezelőtt"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diperbarui %@ yang lalu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uppfært fyrir %@ síðan"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17025,6 +19167,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "gu" : {
@@ -17170,6 +19330,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 óra"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 jam"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 klukkustund"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17311,6 +19489,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld ساعة"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld óra"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld jam"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld klukkustundir"
           }
         },
         "gu" : {
@@ -17456,6 +19652,24 @@
             "value" : "دقيقة واحدة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 perc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 menit"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 mínúta"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17597,6 +19811,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld دقيقة"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld perc"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld menit"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld mínútur"
           }
         },
         "gu" : {
@@ -17742,6 +19974,24 @@
             "value" : "الفترة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Időszak"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periode"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tímabil"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17883,6 +20133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "كل الأوقات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mindig"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sepanjang waktu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frá upphafi"
           }
         },
         "gu" : {
@@ -18028,6 +20296,24 @@
             "value" : "3 ي"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 n"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3h"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18169,6 +20455,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 ي"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 n"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7h"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d."
           }
         },
         "gu" : {
@@ -18314,6 +20618,24 @@
             "value" : "24 س"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 ó"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24j"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 klst."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18455,6 +20777,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 ي"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 n"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30h"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d."
           }
         },
         "gu" : {
@@ -18600,6 +20940,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kártya, %@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kartu, %@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld spjöld, %@"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18741,6 +21099,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 nap"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 hari"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 dagar"
           }
         },
         "gu" : {
@@ -18886,6 +21262,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 nap"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 hari"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 dagar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19027,6 +21421,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 nap"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 hari"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 dagar"
           }
         },
         "gu" : {
@@ -19172,6 +21584,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 nap"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 hari"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 dagar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19313,6 +21743,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Később"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nanti"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Síðar"
           }
         },
         "gu" : {
@@ -19458,6 +21906,24 @@
             "value" : "جديدة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Új"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baru"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nýtt"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19599,6 +22065,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ma"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hari ini"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Í dag"
           }
         },
         "gu" : {
@@ -19744,6 +22228,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 év"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 tahun"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 ár"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19885,6 +22387,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Még nincs aktív kártya."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum ada kartu aktif."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engin virk spjöld enn."
           }
         },
         "gu" : {
@@ -20030,6 +22550,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ismétlési ütemterv"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jadwal pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upprifjunaráætlun"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20171,6 +22709,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ismétlés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld upprifjanir"
           }
         },
         "gu" : {
@@ -20316,6 +22872,24 @@
             "value" : "الأسبوع التالي"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Következő hét"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minggu depan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Næsta vika"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20457,6 +23031,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع السابق"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Előző hét"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minggu sebelumnya"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fyrri vika"
           }
         },
         "gu" : {
@@ -20602,6 +23194,24 @@
             "value" : "المراجعات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ismétlések"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upprifjanir"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20743,6 +23353,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم واحد"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 nap"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 hari"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dagur"
           }
         },
         "gu" : {
@@ -20888,6 +23516,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld nap"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld hari"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dagar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21029,6 +23675,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A sorozatranglistáról"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentang papan peringkat rangkaian"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um runutöfluna"
           }
         },
         "gu" : {
@@ -21174,6 +23838,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A jelenlegi sorozatod hossza határozza meg a helyezésedet. A sorozatba minden olyan helyi nap beleszámít, amikor legalább egy kártyát %1$@, %2$@, %3$@ vagy %4$@ értékeléssel ismételsz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peringkat ditentukan oleh jumlah hari rangkaian saat ini. Hari rangkaian adalah hari setempat dengan minimal satu pengulangan kartu bernilai %1$@, %2$@, %3$@, atau %4$@."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dagar í núverandi runu ákvarða sæti þitt. Runudagur er hver staðardagur með að minnsta kosti einni upprifjun sem er metin %1$@, %2$@, %3$@ eða %4$@."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21315,6 +23997,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próbáld újra később."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coba lagi nanti."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reyndu aftur síðar."
           }
         },
         "gu" : {
@@ -21460,6 +24160,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nem sikerült betölteni a sorozatranglistát"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak dapat memuat papan peringkat rangkaian"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki tókst að hlaða runutöfluna"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21601,6 +24319,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Csatlakozz az internethez a sorozatranglista betöltéséhez."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hubungkan ke internet untuk memuat papan peringkat rangkaian."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tengstu internetinu til að hlaða runutöfluna."
           }
         },
         "gu" : {
@@ -21746,6 +24482,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline vagy"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anda offline"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þú ert án nettengingar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21887,6 +24641,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld. hely, %2$@"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peringkat %1$lld, %2$@"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sæti %1$lld, %2$@"
           }
         },
         "gu" : {
@@ -22032,6 +24804,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sorozatranglista"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papan peringkat rangkaian"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runutafla"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22173,6 +24963,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Védett nap"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hari terlindungi"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Varinn dagur"
           }
         },
         "gu" : {
@@ -22318,6 +25126,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jövőbeli nap"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hari mendatang"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Framtíðardagur"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22459,6 +25285,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sorozat"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rangkaian"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runa"
           }
         },
         "gu" : {
@@ -22604,6 +25448,24 @@
             "value" : "التقدم"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haladás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kemajuan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Framvinda"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22745,6 +25607,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ma"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hari ini"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Í dag"
           }
         },
         "gu" : {
@@ -22890,6 +25770,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Értesítések engedélyezése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Izinkan Notifikasi"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyfa tilkynningar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23031,6 +25929,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engedélyezve"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diizinkan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leyft"
           }
         },
         "gu" : {
@@ -23176,6 +26092,24 @@
             "value" : "محظور"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letiltva"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diblokir"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokað"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23317,6 +26251,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Még nem kérve"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belum diminta"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekki óskað eftir"
           }
         },
         "gu" : {
@@ -23462,6 +26414,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folytasd a tanulást a Nibomóban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lanjutkan sesi belajar Anda di Nibomo."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haltu áfram að læra í Nibomo."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23603,6 +26573,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naponta egyszer"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sekali sehari"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einu sinni á dag"
           }
         },
         "gu" : {
@@ -23748,6 +26736,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szünet után"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setelah jeda"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eftir hlé"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23889,6 +26895,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Újra"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ulangi"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aftur"
           }
         },
         "gu" : {
@@ -24034,6 +27058,24 @@
             "value" : "سهل"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Könnyű"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudah"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auðvelt"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24175,6 +27217,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jó"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baik"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gott"
           }
         },
         "gu" : {
@@ -24320,6 +27380,24 @@
             "value" : "صعب"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nehéz"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sulit"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erfitt"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24461,6 +27539,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fiók törölve"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akun dihapus"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aðgangi eytt"
           }
         },
         "gu" : {
@@ -24606,6 +27702,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gervigreind"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24747,6 +27861,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kártyák"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartu"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spjöld"
           }
         },
         "gu" : {
@@ -24892,6 +28024,24 @@
             "value" : "لاحقًا"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Később"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nanti"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Síðar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25033,6 +28183,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jelentkezz be e-maillel, hogy a kártyáid és a tanulási haladásod ne vesszen el."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masuk dengan email agar kartu dan kemajuan pengulangan ini tidak hilang."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skráðu þig inn með netfangi svo þessi spjöld og framvinda glatist ekki."
           }
         },
         "gu" : {
@@ -25178,6 +28346,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bejelentkezés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masuk"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skrá inn"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25319,6 +28505,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haladás mentése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simpan kemajuan Anda"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista framvindu þína"
           }
         },
         "gu" : {
@@ -25464,6 +28668,24 @@
             "value" : "التقدم"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haladás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kemajuan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Framvinda"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25605,6 +28827,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ismétlés"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengulangan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upprifjun"
           }
         },
         "gu" : {
@@ -25750,6 +28990,24 @@
             "value" : "الإعدادات"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beállítások"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengaturan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stillingar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25891,6 +29149,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beállítások megnyitása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Pengaturan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opna Stillingar"
           }
         },
         "gu" : {
@@ -26036,6 +29312,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hozzáférés kérése"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minta akses"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Óska eftir aðgangi"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26177,6 +29471,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oke"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Í lagi"
           }
         },
         "gu" : {
@@ -26322,6 +29634,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Őrizd meg a sorozatodat ma. Ismételj éjfél előtt. Még 2 óra van hátra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaga rangkaian Anda hari ini. Ulangi sebelum tengah malam. Tersisa 2 jam."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haltu rununni í dag. Rifjaðu upp fyrir miðnætti. 2 klukkustundir eftir."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26463,6 +29793,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Őrizd meg a sorozatodat ma. Ismételj éjfél előtt. Még 3 óra van hátra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaga rangkaian Anda hari ini. Ulangi sebelum tengah malam. Tersisa 3 jam."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haltu rununni í dag. Rifjaðu upp fyrir miðnætti. 3 klukkustundir eftir."
           }
         },
         "gu" : {
@@ -26608,6 +29956,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Őrizd meg a sorozatodat ma. Ismételj éjfél előtt. Még 4 óra van hátra."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaga rangkaian Anda hari ini. Ulangi sebelum tengah malam. Tersisa 4 jam."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haltu rununni í dag. Rifjaðu upp fyrir miðnætti. 4 klukkustundir eftir."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26749,6 +30115,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próbáld újra. Ha a hiba továbbra is fennáll, küldd el a technikai részleteket az ügyfélszolgálatnak."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coba lagi. Jika terus terjadi, bagikan detail teknis kepada dukungan."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reyndu aftur. Ef þetta heldur áfram skaltu deila tæknilegum upplýsingum með þjónustuveri."
           }
         },
         "gu" : {
@@ -26894,6 +30278,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hiba történt"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terjadi kesalahan"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Villa kom upp"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27035,6 +30437,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezárás"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutup"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loka"
           }
         },
         "gu" : {
@@ -27180,6 +30600,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Részletek másolása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salin detail"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afrita upplýsingar"
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27321,6 +30759,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Technikai részletek"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detail teknis"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tæknilegar upplýsingar"
           }
         },
         "gu" : {
@@ -27466,6 +30922,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Egy válasz már folyamatban van. Várd meg a végét, vagy állítsd le, mielőtt új üzenetet küldesz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respons sedang berlangsung. Tunggu hingga selesai atau hentikan sebelum mengirim pesan lain."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Svar er þegar í vinnslu. Bíddu þar til því lýkur eða stöðvaðu það áður en þú sendir önnur skilaboð."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27607,6 +31081,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nincs internetkapcsolat. Az AI-csevegéshez internet szükséges."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ada koneksi internet. Obrolan AI memerlukan akses internet."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Engin nettenging. Gervigreindarspjallið krefst netaðgangs."
           }
         },
         "gu" : {
@@ -27752,6 +31244,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kártyák frissítve a felhőből."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartu diperbarui dari cloud."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spjöld uppfærð úr skýinu."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27893,6 +31403,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A felolvasás ezen az eszközön nem érhető el."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pembacaan suara tidak tersedia di perangkat ini."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upplestur er ekki tiltækur á þessu tæki."
           }
         },
         "gu" : {
@@ -28038,6 +31566,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez az ismétlés másik eszközön frissült."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pengulangan ini diperbarui di perangkat lain."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Þessi upprifjun var uppfærð á öðru tæki."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28179,6 +31725,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tesztverzió kikapcsolva."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versi uji dinonaktifkan."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt á prófunarútgáfu."
           }
         },
         "gu" : {
@@ -28324,6 +31888,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tesztverzió bekapcsolva."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versi uji diaktifkan."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kveikt á prófunarútgáfu."
+          }
+        },
         "gu" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28465,6 +32047,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Munkaterületet csak fiók létrehozása után válthatsz."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perubahan ruang kerja hanya tersedia setelah Anda membuat akun."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aðeins er hægt að breyta vinnusvæði eftir að þú stofnar aðgang."
           }
         },
         "gu" : {
