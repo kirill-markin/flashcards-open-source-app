@@ -72,6 +72,8 @@ checks: [Android CI/CD](android-ci-cd.md).
    Do not submit with unresolved errors or warnings; ask for help when they
    cannot be resolved autonomously.
 5. Wait for the successful archive to finish processing in App Store Connect.
+   Verify its [uploaded binary localizations](ios-localization.md#bundlebuild-validation)
+   before submission.
    Attach the latest successful release build from that SHA to the version
    draft, with matching green test evidence. Verify the build number/version,
    saved localized notes, and required fields; submit the draft for App Review.

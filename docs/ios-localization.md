@@ -338,6 +338,14 @@ Each locale must contain `Foundation.strings`, `ReviewCards.strings`, and
 `AISettings.strings`. Catalog plural variants can additionally emit
 `ReviewCards.stringsdict`. Apply the same checks to every newly added locale.
 
+After the release archive finishes processing, open App Store Connect →
+TestFlight → iOS → the matching version/build → Build Metadata. Confirm its
+version/build and `Binary State: Validated`, then compare Store Information →
+Localizations with the intended app bundle inventory above. Use Apple's display
+names, including Norwegian Bokmål and separate Spanish (Mexico) and Spanish
+(Spain) entries; require all 50 app locales before submission. The 42 Store
+listing locales are a separate inventory.
+
 ### Manual runtime validation
 
 Check all of these on a simulator or device:
