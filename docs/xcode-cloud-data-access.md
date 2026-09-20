@@ -17,7 +17,9 @@ Use this workflow when you need one of these:
 
 ## Required local secrets
 
-The local root `.env` can contain the App Store Connect credentials needed for direct Xcode Cloud access.
+The main checkout's `.env` holds App Store Connect credentials for SAMO DANNI EOOD. Use the same access for Xcode Cloud, app metadata, and [analytics reports](app-store-analytics.md).
+
+On provisioned Macs, the private key is in `.env.secrets/app-store-connect-api-key.p8`; resolve its machine-local path from `APP_STORE_CONNECT_PRIVATE_KEY_PATH`. Both files are ignored by Git. Check their presence on the execution host; worktrees do not contain these secrets.
 
 Expected variables:
 
@@ -38,7 +40,9 @@ Rules:
 - never print the private key contents or the full bearer token
 - never commit the `.p8` key or local `.env`
 
-If these values are missing locally, stop and ask the user to create or provide them. Do not guess secret values and do not invent placeholder paths as if they were real.
+If values are missing, check the main checkout before requesting provisioning; do not infer that API access is unavailable from a worktree. Never print or commit credentials.
+
+Verify access with `GET /v1/apps/{appId}`. For `FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`, check key kind, owning team, and the selected team's agreement status; an error alone does not prove that an agreement needs signing. Follow the [metadata access diagnosis](app-store-connect-metadata.md) before switching to the browser.
 
 ## Data model overview
 
