@@ -2,7 +2,106 @@
 
 Related competitor references: [iOS competitors](competitor-store-metadata.md#ios)
 
-Upload an editable draft with [the localization command](../scripts/ios/upload-app-store-localizations.mts) (`node scripts/ios/upload-app-store-localizations.mts --help`).
+This file owns the source text and upload procedure for 42 App Store locales
+(41 languages, including both Spanish regions). These sections are repository
+inputs, not evidence of live publication. In-app language coverage belongs to
+[iOS localization](ios-localization.md#supported-app-locales).
+
+**Locale mapping**
+
+Apple's language selector was checked on 2026-09-20. Its label is not always the
+locale ID: Bangla uses `bn-BD`, Norwegian uses `no`, and Slovenian uses `sl-SI`.
+The [uploader input map](../scripts/ios/app-store-localization-inputs.mts) pairs
+all 42 exact section headings, Store IDs, and capture tags. Keep it aligned with
+both capture scripts and Swift catalogs described in
+[iOS marketing screenshots](../apps/ios/docs/marketing-screenshots.md#files-involved).
+
+| Language | iOS locale | Store ID | Capture tag |
+| --- | --- | --- | --- |
+| English (U.S.) | `en` | `en-US` | `en-US` |
+| Arabic | `ar` | `ar-SA` | `ar` |
+| Bangla | `bn` | `bn-BD` | `bn` |
+| Dutch | `nl` | `nl-NL` | `nl` |
+| French | `fr` | `fr-FR` | `fr` |
+| German | `de` | `de-DE` | `de` |
+| Gujarati | `gu` | `gu-IN` | `gu` |
+| Kannada | `kn` | `kn-IN` | `kn` |
+| Malayalam | `ml` | `ml-IN` | `ml` |
+| Marathi | `mr` | `mr-IN` | `mr` |
+| Norwegian | `nb` | `no` | `nb` |
+| Punjabi | `pa` | `pa-IN` | `pa` |
+| Slovenian | `sl` | `sl-SI` | `sl` |
+| Tamil | `ta` | `ta-IN` | `ta` |
+| Telugu | `te` | `te-IN` | `te` |
+| Urdu | `ur` | `ur-PK` | `ur` |
+
+Other supported Store tags match their iOS and capture tags. Preserve `es-ES`
+and `es-MX` separately. Apple has no listing locale for these app languages:
+`bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, `zu`; do not invent Store IDs for them.
+The parser reserves every level-two heading for exactly one locale and every
+level-three heading inside it for a metadata field. Keep usage text before the
+first locale and preserve the section/field names.
+
+**Upload an editable draft**
+
+1. Generate and review all 420 raw PNGs using
+   [the capture runbook](../apps/ios/docs/marketing-screenshots.md). Follow its
+   opaque-PNG, dimension, display-slot, and filename requirements; composites
+   are not upload inputs. Review all localized fields below. Refresh every What's
+   New field for the actual target and released baseline using the canonical
+   [release-note policy](release-current-version.md#release-notes); the command
+   uploads these checked-in fields, including any stale notes left there.
+2. Use Node 24 and the main checkout's `.env` credentials described in
+   [Xcode Cloud data access](xcode-cloud-data-access.md#required-local-secrets).
+   The command resolves that checkout through Git even when run in a worktree.
+   If Apple returns `FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`, verify
+   the selected account/team, key kind, key validity/access, and actual web
+   agreement status before asking for legal acceptance. An agreement error
+   alone does not prove an inactive agreement; replace invalid credentials
+   through the user when needed.
+3. Select an existing iOS version and app-info draft that are both
+   `PREPARE_FOR_SUBMISSION`. Keep `en-US` localizations in both with valid
+   privacy-policy and support URLs. New locales inherit only those technical
+   URLs; existing locales retain their URLs. Align unrelated app-info and
+   version locale sets if the command reports a mismatch.
+4. Run from the repository root, replacing the explicit version placeholder:
+
+   ```bash
+   node scripts/ios/upload-app-store-localizations.mts \
+     --version '<editable-version>' \
+     --metadata docs/app-store-connect-metadata.md \
+     --screenshots apps/ios/docs/media/app-store-screenshots
+   ```
+
+   This is a live write command, with no dry-run mode. It requires all locale
+   text and PNGs before contacting Apple, then checks remote state and staging
+   capacity before mutation. Keep the files and target draft unchanged during
+   the run. It creates neither a version nor a review submission and refuses
+   submitted/published targets. If the current version is awaiting review,
+   preserve it and wait for an editable next draft; do not withdraw a submitted
+   release merely to add languages.
+5. Require the final `app_store_upload_verified` event and inspect the saved
+   localizations and both screenshot families in App Store Connect. Continue
+   through [the iOS release procedure](manual-production-release.md#ios) for
+   the matching build and App Review. After release, verify the public binary's
+   Languages list as described in [iOS localization](ios-localization.md#manual-runtime-validation).
+
+**Recover a partial run**
+
+Writes are incremental. Inspect the reported locale/resource before rerunning
+with the same inputs. The command reuses matching `COMPLETE` images, waits for
+matching `UPLOAD_COMPLETE` images, and resumes a single matching
+`AWAITING_UPLOAD` reservation. Duplicate reservations or failed processing need
+explicit inspection; an uncertain POST is not automatically retried.
+
+Each targeted screenshot set needs room to stage missing replacements within
+Apple's 10-image limit. The command stops if capacity is insufficient; inspect
+and free slots explicitly rather than clearing a set blindly. Old owned
+`<capture-tag>-[1-5]_*.png` files are removed only after that set's replacements
+finish processing. Unknown filenames, other display slots, and locales remain.
+The five managed images are ordered first and verified by filename, size,
+checksum, and readback; metadata is read back too. A failed run can leave some locales saved
+and others pending, so do not report completion from a per-locale event alone.
 
 ## English (U.S.)
 
