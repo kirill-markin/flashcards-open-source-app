@@ -10,6 +10,24 @@
             "value" : "تم"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पूर्ण"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ferdig"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gereed"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -205,6 +223,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हा प्रवेश बंद करायचा असल्यास सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åpne Innstillinger hvis du vil slå av denne tilgangen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Instellingen als je deze toegang wilt uitschakelen."
           }
         },
         "lt" : {
@@ -404,6 +440,24 @@
             "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आता प्रवेशाची विनंती करा किंवा स्वतः व्यवस्थापित करण्यासाठी नंतर सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Be om tilgang nå, eller åpne Innstillinger senere hvis du vil administrere den selv."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraag nu toegang aan of open later Instellingen om dit zelf te beheren."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -599,6 +653,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी कॅमेऱ्याचा प्रवेश बंद आहे. बदलण्यासाठी सेटिंग्ज > गोपनीयता आणि सुरक्षा > कॅमेरा उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameratilgang er slått av for Nibomo. Åpne Innstillinger > Personvern og sikkerhet > Kamera for å endre dette."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cameratoegang is uitgeschakeld voor Nibomo. Open Instellingen > Privacy en beveiliging > Camera om dit te wijzigen."
           }
         },
         "lt" : {
@@ -798,6 +870,24 @@
             "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हा प्रवेश पाहण्यासाठी किंवा वाढवण्यासाठी सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åpne Innstillinger for å se gjennom eller utvide tilgangen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Instellingen om deze toegang te bekijken of uit te breiden."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -993,6 +1083,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी मायक्रोफोनचा प्रवेश बंद आहे. बदलण्यासाठी सेटिंग्ज > गोपनीयता आणि सुरक्षा > मायक्रोफोन उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofontilgang er slått av for Nibomo. Åpne Innstillinger > Personvern og sikkerhet > Mikrofon for å endre dette."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfoontoegang is uitgeschakeld voor Nibomo. Open Instellingen > Privacy en beveiliging > Microfoon om dit te wijzigen."
           }
         },
         "lt" : {
@@ -1192,6 +1300,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी फोटोंचा प्रवेश बंद आहे. बदलण्यासाठी सेटिंग्ज > गोपनीयता आणि सुरक्षा > फोटो उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildetilgang er slått av for Nibomo. Åpne Innstillinger > Personvern og sikkerhet > Bilder for å endre dette."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fototoegang is uitgeschakeld voor Nibomo. Open Instellingen > Privacy en beveiliging > Foto's om dit te wijzigen."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1387,6 +1513,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Nibomo. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुम्ही Nibomo सोबत आधी शेअर केलेले फोटोच उपलब्ध आहेत. अधिक फोटोंचा प्रवेश देण्यासाठी सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bare bildene du allerede har delt med Nibomo, er tilgjengelige. Åpne Innstillinger for å gi tilgang til flere bilder."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen de foto's die je al met Nibomo hebt gedeeld, zijn beschikbaar. Open Instellingen om toegang tot meer foto's te geven."
           }
         },
         "lt" : {
@@ -1586,6 +1730,24 @@
             "value" : "هذا الوصول غير متاح على الجهاز الحالي."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "या उपकरणावर हा प्रवेश उपलब्ध नाही."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne tilgangen er ikke tilgjengelig på denne enheten."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze toegang is niet beschikbaar op dit apparaat."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1781,6 +1943,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "परवानगी दिली"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tillatt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegestaan"
           }
         },
         "lt" : {
@@ -1980,6 +2160,24 @@
             "value" : "السؤال في كل مرة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रत्येक वेळी विचारा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spør hver gang"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraag elke keer"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2175,6 +2373,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "محظور"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अवरोधित"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blokkert"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geblokkeerd"
           }
         },
         "lt" : {
@@ -2374,6 +2590,24 @@
             "value" : "محدود"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मर्यादित"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Begrenset"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beperkt"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2569,6 +2803,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متاح"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुपलब्ध"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilgjengelig"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet beschikbaar"
           }
         },
         "lt" : {
@@ -2768,6 +3020,24 @@
             "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चॅटमधून थेट फोटो काढा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta bilder direkte fra AI-chatten."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak rechtstreeks foto's vanuit de AI-chat."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -2963,6 +3233,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكاميرا"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कॅमेरा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
           }
         },
         "lt" : {
@@ -3162,6 +3450,24 @@
             "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चॅटमध्ये बोलून मजकूर लिहा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dikter tekst i AI-chatten."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicteer tekst in de AI-chat."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3357,6 +3663,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الميكروفون"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मायक्रोफोन"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfoon"
           }
         },
         "lt" : {
@@ -3556,6 +3880,24 @@
             "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चॅटमध्ये जोडण्यासाठी फोटो निवडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velg bilder som vedlegg i AI-chatten."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies foto's als bijlage voor de AI-chat."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -3751,6 +4093,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الصور"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फोटो"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bilder"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foto's"
           }
         },
         "lt" : {
@@ -3950,6 +4310,24 @@
             "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी मायक्रोफोनचा प्रवेश बंद आहे. परवानगी देण्यासाठी सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofontilgang er slått av for Nibomo. Åpne Innstillinger for å tillate den."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfoontoegang is uitgeschakeld voor Nibomo. Open Instellingen om toegang toe te staan."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4145,6 +4523,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मायक्रोफोनचा प्रवेश आवश्यक"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofontilgang kreves"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfoontoegang nodig"
           }
         },
         "lt" : {
@@ -4344,6 +4740,24 @@
             "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी कॅमेऱ्याचा प्रवेश बंद आहे. परवानगी देण्यासाठी सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameratilgang er slått av for Nibomo. Åpne Innstillinger for å tillate den."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cameratoegang is uitgeschakeld voor Nibomo. Open Instellingen om toegang toe te staan."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4539,6 +4953,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कॅमेऱ्याचा प्रवेश आवश्यक"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameratilgang kreves"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cameratoegang nodig"
           }
         },
         "lt" : {
@@ -4738,6 +5170,24 @@
             "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी फाइलचा प्रवेश बंद आहे. परवानगी देण्यासाठी सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtilgang er slått av for Nibomo. Åpne Innstillinger for å tillate den."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestandstoegang is uitgeschakeld voor Nibomo. Open Instellingen om toegang toe te staan."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4933,6 +5383,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फाइलचा प्रवेश आवश्यक"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtilgang kreves"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestandstoegang nodig"
           }
         },
         "lt" : {
@@ -5132,6 +5600,24 @@
             "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح الإعدادات للسماح به."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी फोटोंचा प्रवेश बंद आहे. परवानगी देण्यासाठी सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildetilgang er slått av for Nibomo. Åpne Innstillinger for å tillate den."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fototoegang is uitgeschakeld voor Nibomo. Open Instellingen om toegang toe te staan."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5327,6 +5813,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फोटोंचा प्रवेश आवश्यक"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildetilgang kreves"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fototoegang nodig"
           }
         },
         "lt" : {
@@ -5526,6 +6030,24 @@
             "value" : "كل البطاقات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सर्व कार्डे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle kort"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle kaarten"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -5721,6 +6243,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير متصل"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जोडणी तुटली"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frakoblet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinding verbroken"
           }
         },
         "lt" : {
@@ -5920,6 +6460,24 @@
             "value" : "ضيف"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पाहुणा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gjest"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gast"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6115,6 +6673,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرتبط"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जोडलेले"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilknyttet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gekoppeld"
           }
         },
         "lt" : {
@@ -6314,6 +6890,24 @@
             "value" : "جاهز للربط"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जोडण्यासाठी तयार"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klar for tilknytning"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klaar om te koppelen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6509,6 +7103,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्लाउड साइन-इन उपलब्ध नाही. अ‍ॅपची संरचना तपासा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Innlogging i skyen er utilgjengelig. Sjekk appkonfigurasjonen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aanmelden bij de cloud is niet beschikbaar. Controleer de appconfiguratie."
           }
         },
         "lt" : {
@@ -6708,6 +7320,24 @@
             "value" : "أدخل عنوان بريد إلكتروني صالحًا."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "वैध ईमेल पत्ता प्रविष्ट करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv inn en gyldig e-postadresse."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voer een geldig e-mailadres in."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -6903,6 +7533,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड आधीच वापरला आहे. नवीन कोड मागवा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koden er allerede brukt. Be om en ny."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code is al gebruikt. Vraag een nieuwe aan."
           }
         },
         "lt" : {
@@ -7102,6 +7750,24 @@
             "value" : "الرمز غير صالح. حاول مرة أخرى."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड अवैध आहे. पुन्हा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koden er ugyldig. Prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code is ongeldig. Probeer het opnieuw."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7297,6 +7963,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड पाठवता आला नाही. पुन्हा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke sende en kode. Prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code kon niet worden verstuurd. Probeer het opnieuw."
           }
         },
         "lt" : {
@@ -7496,6 +8180,24 @@
             "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोडची मुदत संपली. नवीन कोड मागवा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koden er utløpt. Be om en ny."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code is verlopen. Vraag een nieuwe aan."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -7691,6 +8393,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تمت محاولات كثيرة جدًا. اطلب رمزًا جديدًا."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खूप वेळा प्रयत्न केले. नवीन कोड मागवा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For mange forsøk. Be om en ny kode."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te veel pogingen. Vraag een nieuwe code aan."
           }
         },
         "lt" : {
@@ -7890,6 +8610,24 @@
             "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड पडताळता आला नाही. पुन्हा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke bekrefte koden. Prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De code kon niet worden geverifieerd. Probeer het opnieuw."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8085,6 +8823,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्लाउड साइन-इन अयशस्वी झाले. पुन्हा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Innlogging i skyen mislyktes. Prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aanmelden bij de cloud is mislukt. Probeer het opnieuw."
           }
         },
         "lt" : {
@@ -8284,6 +9040,24 @@
             "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड पाठवताना जोडणी तुटली. तुमचा ईमेल तपासा, नंतर गरज असल्यास पुन्हा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbindelsen ble brutt mens koden ble sendt. Sjekk e-posten din, og prøv igjen om nødvendig."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De verbinding werd onderbroken tijdens het versturen van de code. Controleer je e-mail en probeer het zo nodig opnieuw."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8479,6 +9253,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड पडताळताना जोडणी तुटली. पुन्हा प्रयत्न करा किंवा गरज असल्यास नवीन कोड मागवा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forbindelsen ble brutt under bekreftelse av koden. Prøv igjen, eller be om en ny kode om nødvendig."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De verbinding werd onderbroken tijdens het verifiëren van de code. Probeer het opnieuw of vraag zo nodig een nieuwe code aan."
           }
         },
         "lt" : {
@@ -8678,6 +9470,24 @@
             "value" : "تعذر تحديث لوحة صدارة التقييمات. اسحب للمحاولة مرة أخرى."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारी ताजी करता आली नाही. पुन्हा प्रयत्न करण्यासाठी खाली ओढा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke oppdatere vurderingsrangeringen. Dra ned for å prøve igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het beoordelingsklassement kon niet worden vernieuwd. Trek omlaag om het opnieuw te proberen."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8873,6 +9683,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث جدول المراجعة. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उजळणीचे वेळापत्रक ताजे करता आले नाही. पुन्हा प्रयत्न करण्यासाठी खाली ओढा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke oppdatere repetisjonsplanen. Dra ned for å prøve igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het herhaalschema kon niet worden vernieuwd. Trek omlaag om het opnieuw te proberen."
           }
         },
         "lt" : {
@@ -9072,6 +9900,24 @@
             "value" : "تعذر عرض جدول المراجعة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उजळणीचे वेळापत्रक दाखवता आले नाही. पुन्हा प्रयत्न करण्यासाठी खाली ओढा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke vise repetisjonsplanen. Dra ned for å prøve igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het herhaalschema kon niet worden weergegeven. Trek omlaag om het opnieuw te proberen."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9267,6 +10113,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث مخطط التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगतीचा आलेख ताजा करता आला नाही. पुन्हा प्रयत्न करण्यासाठी खाली ओढा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke oppdatere fremdriftsdiagrammet. Dra ned for å prøve igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De voortgangsgrafiek kon niet worden vernieuwd. Trek omlaag om het opnieuw te proberen."
           }
         },
         "lt" : {
@@ -9466,6 +10330,24 @@
             "value" : "تعذر تحديث لوحة صدارة السلسلة. اسحب للمحاولة مرة أخرى."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सलग दिवसांची क्रमवारी ताजी करता आली नाही. पुन्हा प्रयत्न करण्यासाठी खाली ओढा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke oppdatere rangeringen for dagrekker. Dra ned for å prøve igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het klassement voor dagreeksen kon niet worden vernieuwd. Trek omlaag om het opnieuw te proberen."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -9661,6 +10543,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تعذر تحديث ملخص التقدم. اسحب للمحاولة مرة أخرى."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगतीचा सारांश ताजा करता आला नाही. पुन्हा प्रयत्न करण्यासाठी खाली ओढा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke oppdatere fremdriftssammendraget. Dra ned for å prøve igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het voortgangsoverzicht kon niet worden vernieuwd. Trek omlaag om het opnieuw te proberen."
           }
         },
         "lt" : {
@@ -9860,6 +10760,24 @@
             "value" : "التقدم غير متاح. اسحب للتحديث وحاول مرة أخرى."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगती उपलब्ध नाही. ताजी करून पुन्हा प्रयत्न करण्यासाठी खाली ओढा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremdrift er utilgjengelig. Dra ned for å oppdatere og prøve igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De voortgang is niet beschikbaar. Trek omlaag om te vernieuwen en probeer het opnieuw."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10055,6 +10973,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "بنك التجميد %@ من %@ متاح."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "संरक्षण साठा: %@ उपलब्ध, एकूण %@."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frysebank: %@ av %@ tilgjengelig."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschermingsvoorraad: %@ van %@ beschikbaar."
           }
         },
         "lt" : {
@@ -10254,6 +11190,24 @@
             "value" : "يعرض كيفية عمل تجميدات السلسلة."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सलग दिवसांचे संरक्षण कसे काम करते ते दाखवते."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viser hvordan frysing av dagrekken fungerer."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toont hoe bescherming van je dagreeks werkt."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10449,6 +11403,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المتاح: %@/%@. إعادة الشحن: %@/%@. تحمي التجميدات الأيام الفائتة وتُعاد شحنها مع استمرار سلسلتك."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उपलब्ध: %@/%@. पुनर्भरण: %@/%@. संरक्षणामुळे चुकलेल्या दिवशी मालिका टिकते आणि सलग अभ्यास करत राहिल्यास साठा पुन्हा भरतो."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tilgjengelig: %@/%@. Påfyll: %@/%@. Frysing beskytter dager du går glipp av, og fylles på når dagrekken fortsetter."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschikbaar: %@/%@. Aanvulling: %@/%@. Bescherming vangt gemiste dagen op en wordt aangevuld als je dagreeks doorgaat."
           }
         },
         "lt" : {
@@ -10648,6 +11620,24 @@
             "value" : "تجميدات السلسلة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सलग दिवसांचे संरक्षण"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frysing av dagrekken"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dagreeksbescherming"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -10843,6 +11833,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إنشاء الرابط"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लिंक तयार करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opprett lenke"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link maken"
           }
         },
         "lt" : {
@@ -11042,6 +12050,24 @@
             "value" : "يمكنه فتحه وتسجيل الدخول أو إنشاء حساب، وستريان بعضكما في التطبيق. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ते लिंक उघडून साइन-इन किंवा नोंदणी करू शकतात, आणि मग तुम्हाला अ‍ॅपमध्ये एकमेकांना पाहता येईल. आमंत्रण लिंकची मुदत 2 दिवसांत संपते."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vennen kan åpne den og logge inn eller registrere seg. Deretter ser dere hverandre i appen. Invitasjonslenker utløper etter 2 dager."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je vriend kan de link openen en zich aanmelden of registreren. Daarna zien jullie elkaar in de app. Uitnodigingslinks verlopen na 2 dagen."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11237,6 +12263,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أرسل هذا الرابط إلى صديقك"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ही लिंक तुमच्या मित्राला पाठवा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send denne lenken til vennen din"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stuur deze link naar je vriend"
           }
         },
         "lt" : {
@@ -11436,6 +12480,24 @@
             "value" : "جارٍ الإنشاء..."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तयार करत आहे..."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oppretter..."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezig met maken..."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -11631,6 +12693,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنشئ رابط صديق خاصًا للوحة الصدارة."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रमवारीसाठी खाजगी मित्र लिंक तयार करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opprett en privat vennelenke til rangeringen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak een privélink voor een vriend voor het klassement."
           }
         },
         "lt" : {
@@ -11830,6 +12910,24 @@
             "value" : "أنت فقط ترى هذا الاسم في لوحة الصدارة لديك. يختار صديقك اسمك عند قبول الدعوة. تنتهي صلاحية روابط الدعوة خلال يومين."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुमच्या क्रमवारीत हे नाव फक्त तुम्हालाच दिसते. आमंत्रण स्वीकारताना मित्र तुमच्यासाठी नाव निवडतो. आमंत्रण लिंकची मुदत 2 दिवसांत संपते."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bare du ser dette navnet i rangeringen din. Vennen velger hva du skal hete når invitasjonen godtas. Invitasjonslenker utløper etter 2 dager."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen jij ziet deze naam in je klassement. Je vriend kiest bij het accepteren hoe jij wordt genoemd. Uitnodigingslinks verlopen na 2 dagen."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12025,6 +13123,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اسم الصديق في لوحة الصدارة لديك"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुमच्या क्रमवारीतील मित्राचे नाव"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vennens navn i rangeringen din"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam van je vriend in je klassement"
           }
         },
         "lt" : {
@@ -12224,6 +13340,24 @@
             "value" : "اسم صديقك"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुमच्या मित्राचे नाव"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vennens navn"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Naam van je vriend"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12419,6 +13553,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पूर्ण"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ferdig"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gereed"
           }
         },
         "lt" : {
@@ -12618,6 +13770,24 @@
             "value" : "إرسال رابط الدعوة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आमंत्रण लिंक पाठवा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send invitasjonslenke"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uitnodigingslink versturen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -12813,6 +13983,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح دعوة Nibomo هذه، ثم سجّل الدخول أو أنشئ حسابًا، وسنرى بعضنا في التطبيق."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हे Nibomo आमंत्रण उघडा, साइन-इन किंवा नोंदणी करा, आणि आपण अ‍ॅपमध्ये एकमेकांना पाहू शकू."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åpne denne Nibomo-invitasjonen, logg inn eller registrer deg, så ser vi hverandre i appen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open deze Nibomo-uitnodiging, meld je aan of registreer je, dan zien we elkaar in de app."
           }
         },
         "lt" : {
@@ -13012,6 +14200,24 @@
             "value" : "دعوة صديق إلى Nibomo"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo मित्र आमंत्रण"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Venneinvitasjon til Nibomo"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vriendenuitnodiging voor Nibomo"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13207,6 +14413,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मित्र जोडा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legg til venn"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vriend toevoegen"
           }
         },
         "lt" : {
@@ -13406,6 +14630,24 @@
             "value" : "لا يُسمح بالأسطر الجديدة أو أحرف التحكم."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नवीन ओळी आणि नियंत्रण वर्ण वापरता येत नाहीत."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linjeskift og kontrolltegn er ikke tillatt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regeleinden en besturingstekens zijn niet toegestaan."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13601,6 +14843,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أدخل من 1 إلى 30 حرفًا."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–30 वर्ण प्रविष्ट करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skriv inn 1–30 tegn."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voer 1–30 tekens in."
           }
         },
         "lt" : {
@@ -13800,6 +15060,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उजळणीची क्रिया"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetisjonsaktivitet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herhaalactiviteit"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -13995,6 +15273,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التاريخ"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तारीख"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dato"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datum"
           }
         },
         "lt" : {
@@ -14194,6 +15490,24 @@
             "value" : "المراجعات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उजळण्या"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetisjoner"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herhalingen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14389,6 +15703,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "آخر 30 يومًا."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मागील 30 दिवस."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siste 30 dager."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afgelopen 30 dagen."
           }
         },
         "lt" : {
@@ -14588,6 +15920,24 @@
             "value" : "مراجعة واحدة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 उजळणी"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 repetisjon"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 herhaling"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -14783,6 +16133,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld उजळण्या"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld repetisjoner"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld herhalingen"
           }
         },
         "lt" : {
@@ -14982,6 +16350,24 @@
             "value" : "نشاط المراجعة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उजळणीची क्रिया"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetisjonsaktivitet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herhaalactiviteit"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15177,6 +16563,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%1$lld في %2$@"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ मध्ये #%1$lld"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nr. %1$lld i %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%1$lld in %2$@"
           }
         },
         "lt" : {
@@ -15376,6 +16780,24 @@
             "value" : "أفضل تصنيف"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सर्वोत्तम क्रमांक"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beste plassering"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beste positie"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15571,6 +16993,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد تصنيف بعد"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अद्याप क्रमांक नाही"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen plassering ennå"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog geen positie"
           }
         },
         "lt" : {
@@ -15770,6 +17210,24 @@
             "value" : "بطاقة واحدة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 कार्ड"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kort"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 kaart"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -15965,6 +17423,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld بطاقات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld कार्डे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kort"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kaarten"
           }
         },
         "lt" : {
@@ -16164,6 +17640,24 @@
             "value" : "البطاقات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कार्डे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kort"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaarten"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16359,6 +17853,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة الحالية"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सध्याची सलग दिवसांची मालिका"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nåværende dagrekke"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Huidige dagreeks"
           }
         },
         "lt" : {
@@ -16558,6 +18070,24 @@
             "value" : "تم"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पूर्ण"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ferdig"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gereed"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -16753,6 +18283,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تحقق من اتصالك وحاول مرة أخرى."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जोडणी तपासा आणि पुन्हा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sjekk forbindelsen og prøv igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controleer je verbinding en probeer het opnieuw."
           }
         },
         "lt" : {
@@ -16952,6 +18500,24 @@
             "value" : "تعذر تحميل الملف الشخصي"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रोफाइल लोड करता आले नाही"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke laste profilen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiel kon niet worden geladen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17147,6 +18713,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "صديق"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मित्र"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Venn"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vriend"
           }
         },
         "lt" : {
@@ -17346,6 +18930,24 @@
             "value" : "تاريخ الانضمام"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सामील झाले"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ble med"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lid sinds"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17541,6 +19143,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جارٍ تحميل الملف الشخصي..."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रोफाइल लोड करत आहे..."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laster profil..."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiel laden..."
           }
         },
         "lt" : {
@@ -17740,6 +19360,24 @@
             "value" : "المقاييس"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मोजमापे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Målinger"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetgegevens"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -17935,6 +19573,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पुन्हा प्रयत्न करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igjen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw proberen"
           }
         },
         "lt" : {
@@ -18134,6 +19790,24 @@
             "value" : "الإحصاءات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आकडेवारी"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistikk"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistieken"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18329,6 +20003,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني لعرض ملفات المتصدرين."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रमवारीतील प्रोफाइल पाहण्यासाठी ईमेलने साइन-इन करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logg inn med e-post for å se profiler i rangeringen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meld je aan met e-mail om profielen in het klassement te bekijken."
           }
         },
         "lt" : {
@@ -18528,6 +20220,24 @@
             "value" : "يلزم تسجيل الدخول"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "साइन-इन आवश्यक"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Innlogging kreves"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aanmelden vereist"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -18723,6 +20433,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تظهر الملفات الشخصية فقط عند تشغيل المشاركة في لوحة متصدري التقييم."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारीतील सहभाग सुरू असतानाच प्रोफाइल दिसतात."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiler er bare synlige når du deltar i vurderingsrangeringen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profielen zijn alleen zichtbaar als deelname aan het beoordelingsklassement is ingeschakeld."
           }
         },
         "lt" : {
@@ -18922,6 +20650,24 @@
             "value" : "المشاركة متوقفة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सहभाग बंद आहे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deltakelse er av"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deelname is uitgeschakeld"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19117,6 +20863,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يمكن عرض ملف لوحة المتصدرين هذا الآن."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हे क्रमवारीतील प्रोफाइल सध्या दाखवता येत नाही."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne rangeringsprofilen kan ikke vises akkurat nå."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit klassementsprofiel kan momenteel niet worden weergegeven."
           }
         },
         "lt" : {
@@ -19316,6 +21080,24 @@
             "value" : "الملف الشخصي غير متاح"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रोफाइल उपलब्ध नाही"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil utilgjengelig"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiel niet beschikbaar"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19511,6 +21293,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة التقييمات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारीबद्दल"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Om vurderingsrangeringen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Over het beoordelingsklassement"
           }
         },
         "lt" : {
@@ -19710,6 +21510,24 @@
             "value" : "تُحتسب مراجعات صعب وجيد وسهل في ترتيبك، أما مرة أخرى فلا تُحتسب."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कठीण, चांगले आणि सोपे या रेटिंगच्या उजळण्या तुमच्या क्रमांकासाठी मोजल्या जातात. पुन्हा हे रेटिंग मोजले जात नाही."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetisjoner vurdert som Vanskelig, Bra og Lett teller med i plasseringen din. Igjen teller ikke."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herhalingen met Moeilijk, Goed en Makkelijk tellen mee voor je positie. Opnieuw telt niet mee."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -19905,6 +21723,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إضافة صديق"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मित्र जोडा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legg til en venn"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een vriend toevoegen"
           }
         },
         "lt" : {
@@ -20104,6 +21940,24 @@
             "value" : "إضافة صديق"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मित्र जोडा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legg til venn"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vriend toevoegen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20299,6 +22153,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नंतर पुन्हा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igjen senere."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probeer het later opnieuw."
           }
         },
         "lt" : {
@@ -20498,6 +22370,24 @@
             "value" : "تعذّر تحميل لوحة صدارة التقييمات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारी लोड करता आली नाही"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke laste vurderingsrangeringen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beoordelingsklassement kon niet worden geladen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -20693,6 +22583,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة التقييمات."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारी लोड करण्यासाठी इंटरनेटशी जोडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koble til internett for å laste vurderingsrangeringen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak verbinding met internet om het beoordelingsklassement te laden."
           }
         },
         "lt" : {
@@ -20892,6 +22800,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुम्ही ऑफलाइन आहात"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du er frakoblet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21087,6 +23013,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح إعدادات لوحة صدارة التقييمات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारीची सेटिंग्ज उघडा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åpne innstillinger for vurderingsrangeringen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instellingen voor het beoordelingsklassement openen"
           }
         },
         "lt" : {
@@ -21286,6 +23230,24 @@
             "value" : "تظهر التصنيفات فقط أثناء مشاركتك في لوحة صدارة التقييمات."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारीत सहभागी असतानाच क्रमांक दिसतात."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plasseringer er bare synlige mens du deltar i vurderingsrangeringen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posities zijn alleen zichtbaar als je deelneemt aan het beoordelingsklassement."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21481,6 +23443,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المشاركة في التقييمات متوقفة"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंगमधील सहभाग बंद आहे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deltakelse i vurderingsrangeringen er av"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deelname aan het beoordelingsklassement is uitgeschakeld"
           }
         },
         "lt" : {
@@ -21680,6 +23660,24 @@
             "value" : "المرتبة %1$lld، %2$lld مراجعة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रमांक %1$lld, उजळण्या: %2$lld"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plass %1$lld, repetisjoner: %2$lld"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Positie %1$lld, herhalingen: %2$lld"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -21875,6 +23873,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "أنت"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुम्ही"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deg"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jij"
           }
         },
         "lt" : {
@@ -22074,6 +24090,24 @@
             "value" : "لوحة صدارة التقييمات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारी"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vurderingsrangering"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beoordelingsklassement"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22269,6 +24303,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تسجيل الدخول أو إنشاء حساب"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "साइन-इन किंवा नोंदणी करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logg inn eller registrer deg"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aanmelden of registreren"
           }
         },
         "lt" : {
@@ -22468,6 +24520,24 @@
             "value" : "سجّل الدخول بالبريد الإلكتروني لترى ترتيب مراجعاتك في لوحة صدارة التقييمات."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुमच्या उजळण्यांचा रेटिंग क्रमवारीतील क्रमांक पाहण्यासाठी ईमेलने साइन-इन करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logg inn med e-post for å se hvordan repetisjonene dine plasserer seg i vurderingsrangeringen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meld je aan met e-mail om te zien welke positie je herhalingen opleveren in het beoordelingsklassement."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -22663,6 +24733,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "انضم إلى لوحة صدارة التقييمات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारीत सामील व्हा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bli med i vurderingsrangeringen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deelnemen aan het beoordelingsklassement"
           }
         },
         "lt" : {
@@ -22862,6 +24950,24 @@
             "value" : "يجري تجهيز لوحة صدارة التقييمات. عد للتحقق قريبًا."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेटिंग क्रमवारी तयार होत आहे. लवकरच पुन्हा पाहा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vurderingsrangeringen klargjøres. Kom tilbake snart."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het beoordelingsklassement wordt voorbereid. Kom binnenkort terug."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23057,6 +25163,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "غير جاهزة بعد"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अद्याप तयार नाही"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke klar ennå"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog niet klaar"
           }
         },
         "lt" : {
@@ -23256,6 +25380,24 @@
             "value" : "تم التحديث قبل %@"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ पूर्वी अद्यतनित"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oppdatert for %@ siden"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ geleden bijgewerkt"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23451,6 +25593,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ و%2$@"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
         "lt" : {
@@ -23650,6 +25810,24 @@
             "value" : "ساعة واحدة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 तास"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 time"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 uur"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -23845,6 +26023,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld ساعة"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld तास"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld timer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld uur"
           }
         },
         "lt" : {
@@ -24044,6 +26240,24 @@
             "value" : "دقيقة واحدة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 मिनिट"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minutt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 minuut"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24239,6 +26453,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld دقيقة"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld मिनिटे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutter"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minuten"
           }
         },
         "lt" : {
@@ -24438,6 +26670,24 @@
             "value" : "الفترة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कालावधी"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periode"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Periode"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -24633,6 +26883,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "كل الأوقات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आतापर्यंत"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totalt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altijd"
           }
         },
         "lt" : {
@@ -24832,6 +27100,24 @@
             "value" : "3 ي"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3दि"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 d"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25027,6 +27313,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "7 ي"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7दि"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 d"
           }
         },
         "lt" : {
@@ -25226,6 +27530,24 @@
             "value" : "24 س"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24ता"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 t"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24 u"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25421,6 +27743,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "30 ي"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30दि"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 d"
           }
         },
         "lt" : {
@@ -25620,6 +27960,24 @@
             "value" : "%lld بطاقات، %@"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld कार्डे, %@"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kort, %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld kaarten, %@"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -25815,6 +28173,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1-7 أيام"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 dager"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–7 dagen"
           }
         },
         "lt" : {
@@ -26014,6 +28390,24 @@
             "value" : "8-30 يومًا"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 dager"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8–30 dagen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26209,6 +28603,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "31-90 يومًا"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 dager"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "31–90 dagen"
           }
         },
         "lt" : {
@@ -26408,6 +28820,24 @@
             "value" : "91-360 يومًا"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 dager"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "91–360 dagen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26603,6 +29033,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لاحقًا"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नंतर"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senere"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
           }
         },
         "lt" : {
@@ -26802,6 +29250,24 @@
             "value" : "جديدة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नवीन"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nye"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nieuw"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -26997,6 +29463,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आज"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dag"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vandaag"
           }
         },
         "lt" : {
@@ -27196,6 +29680,24 @@
             "value" : "1-2 سنة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 वर्षे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 år"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–2 jaar"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27391,6 +29893,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا توجد بطاقات نشطة بعد."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अद्याप सक्रिय कार्डे नाहीत."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen aktive kort ennå."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nog geen actieve kaarten."
           }
         },
         "lt" : {
@@ -27590,6 +30110,24 @@
             "value" : "جدول المراجعة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उजळणीचे वेळापत्रक"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetisjonsplan"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herhaalschema"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -27785,6 +30323,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld مراجعات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld उजळण्या"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld repetisjoner"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld herhalingen"
           }
         },
         "lt" : {
@@ -27984,6 +30540,24 @@
             "value" : "الأسبوع التالي"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पुढील आठवडा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neste uke"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volgende week"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28179,6 +30753,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الأسبوع السابق"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मागील आठवडा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forrige uke"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorige week"
           }
         },
         "lt" : {
@@ -28378,6 +30970,24 @@
             "value" : "المراجعات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उजळण्या"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repetisjoner"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herhalingen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28573,6 +31183,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم واحد"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dag"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 dag"
           }
         },
         "lt" : {
@@ -28772,6 +31400,24 @@
             "value" : "%lld يومًا"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dager"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld dagen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -28967,6 +31613,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حول لوحة صدارة السلسلة"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सलग दिवसांच्या क्रमवारीबद्दल"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Om rangeringen for dagrekker"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Over het klassement voor dagreeksen"
           }
         },
         "lt" : {
@@ -29166,6 +31830,24 @@
             "value" : "تحدد أيام سلسلتك الحالية ترتيبك. يوم السلسلة هو أي يوم محلي يحتوي على مراجعة بطاقة واحدة على الأقل بتقييم %1$@ أو %2$@ أو %3$@ أو %4$@."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सध्याच्या सलग दिवसांवर तुमचा क्रमांक ठरतो. ज्या स्थानिक दिवशी किमान एका कार्डच्या उजळणीला %1$@, %2$@, %3$@ किंवा %4$@ रेटिंग दिले जाते, तो दिवस मालिकेत मोजला जातो."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antall dager i den nåværende dagrekken avgjør plasseringen din. En dag telles når du har minst én kortrepetisjon vurdert som %1$@, %2$@, %3$@ eller %4$@ den lokale dagen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Het aantal dagen in je huidige dagreeks bepaalt je positie. Een dag telt mee als je die lokale dag minstens één kaart hebt herhaald met de beoordeling %1$@, %2$@, %3$@ of %4$@."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29361,6 +32043,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى لاحقًا."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नंतर पुन्हा प्रयत्न करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igjen senere."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probeer het later opnieuw."
           }
         },
         "lt" : {
@@ -29560,6 +32260,24 @@
             "value" : "تعذّر تحميل لوحة صدارة السلسلة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सलग दिवसांची क्रमवारी लोड करता आली नाही"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kunne ikke laste rangeringen for dagrekker"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klassement voor dagreeksen kon niet worden geladen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -29755,6 +32473,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اتصل بالإنترنت لتحميل لوحة صدارة السلسلة."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सलग दिवसांची क्रमवारी लोड करण्यासाठी इंटरनेटशी जोडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koble til internett for å laste rangeringen for dagrekker."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maak verbinding met internet om het klassement voor dagreeksen te laden."
           }
         },
         "lt" : {
@@ -29954,6 +32690,24 @@
             "value" : "أنت غير متصل"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुम्ही ऑफलाइन आहात"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du er frakoblet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30149,6 +32903,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المرتبة %1$lld، %2$@"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रमांक %1$lld, %2$@"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plass %1$lld, %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Positie %1$lld, %2$@"
           }
         },
         "lt" : {
@@ -30348,6 +33120,24 @@
             "value" : "لوحة صدارة السلسلة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सलग दिवसांची क्रमवारी"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rangering for dagrekker"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klassement voor dagreeksen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30543,6 +33333,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "يوم مجمّد"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "संरक्षित दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fryst dag"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschermde dag"
           }
         },
         "lt" : {
@@ -30742,6 +33550,24 @@
             "value" : "يوم مستقبلي"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भावी दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremtidig dag"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toekomstige dag"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -30937,6 +33763,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "السلسلة"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सलग दिवस"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dagrekke"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dagreeks"
           }
         },
         "lt" : {
@@ -31136,6 +33980,24 @@
             "value" : "التقدم"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगती"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremdrift"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voortgang"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31331,6 +34193,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "اليوم"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आज"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I dag"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vandaag"
           }
         },
         "lt" : {
@@ -31530,6 +34410,24 @@
             "value" : "السماح بالإشعارات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सूचनांना परवानगी द्या"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tillat varslinger"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meldingen toestaan"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31725,6 +34623,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مسموح"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "परवानगी दिली"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tillatt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegestaan"
           }
         },
         "lt" : {
@@ -31924,6 +34840,24 @@
             "value" : "محظور"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अवरोधित"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blokkert"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geblokkeerd"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32119,6 +35053,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لم يُطلب"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "विनंती केलेली नाही"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ikke forespurt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet aangevraagd"
           }
         },
         "lt" : {
@@ -32318,6 +35270,24 @@
             "value" : "واصل جلسة الدراسة في Nibomo."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo मध्ये तुमचे अभ्यास सत्र सुरू ठेवा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortsett studieøkten i Nibomo."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ga verder met je studiesessie in Nibomo."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32513,6 +35483,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة يوميًا"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दिवसातून एकदा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Én gang daglig"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eenmaal per dag"
           }
         },
         "lt" : {
@@ -32712,6 +35700,24 @@
             "value" : "بعد استراحة"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "विश्रांतीनंतर"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etter en pause"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Na een pauze"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -32907,6 +35913,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "مرة أخرى"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पुन्हा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Igjen"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opnieuw"
           }
         },
         "lt" : {
@@ -33106,6 +36130,24 @@
             "value" : "سهل"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सोपे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lett"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Makkelijk"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33301,6 +36343,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "جيد"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चांगले"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bra"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goed"
           }
         },
         "lt" : {
@@ -33500,6 +36560,24 @@
             "value" : "صعب"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कठीण"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vanskelig"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moeilijk"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -33695,6 +36773,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم حذف الحساب"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खाते हटवले"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto slettet"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account verwijderd"
           }
         },
         "lt" : {
@@ -33894,6 +36990,24 @@
             "value" : "الذكاء الاصطناعي"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34089,6 +37203,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "البطاقات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कार्डे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kort"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaarten"
           }
         },
         "lt" : {
@@ -34288,6 +37420,24 @@
             "value" : "لاحقًا"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नंतर"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senere"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34483,6 +37633,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ही कार्डे आणि उजळणीची प्रगती हरवू नये म्हणून ईमेलने साइन-इन करा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logg inn med e-post, slik at disse kortene og repetisjonsfremdriften ikke går tapt."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meld je aan met e-mail zodat deze kaarten en je herhaalvoortgang niet verloren gaan."
           }
         },
         "lt" : {
@@ -34682,6 +37850,24 @@
             "value" : "تسجيل الدخول"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "साइन-इन करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logg inn"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aanmelden"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -34877,6 +38063,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "احفظ تقدمك"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तुमची प्रगती जतन करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lagre fremdriften din"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sla je voortgang op"
           }
         },
         "lt" : {
@@ -35076,6 +38280,24 @@
             "value" : "التقدم"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रगती"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fremdrift"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voortgang"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35271,6 +38493,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "المراجعة"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उजळणी"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repeter"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herhalen"
           }
         },
         "lt" : {
@@ -35470,6 +38710,24 @@
             "value" : "الإعدادات"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग्ज"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Innstillinger"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instellingen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -35665,6 +38923,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "افتح الإعدادات"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग्ज उघडा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åpne Innstillinger"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instellingen openen"
           }
         },
         "lt" : {
@@ -35864,6 +39140,24 @@
             "value" : "اطلب الوصول"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रवेशाची विनंती करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Be om tilgang"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toegang aanvragen"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36059,6 +39353,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حسنًا"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ठीक आहे"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         },
         "lt" : {
@@ -36258,6 +39570,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ساعتان."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आजची सलग दिवसांची मालिका टिकवा. मध्यरात्रीपूर्वी उजळणी करा. 2 तास बाकी."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behold dagrekken i dag. Repeter før midnatt. 2 timer igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Houd je dagreeks vandaag vast. Herhaal vóór middernacht. Nog 2 uur."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36453,6 +39783,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت ثلاث ساعات."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आजची सलग दिवसांची मालिका टिकवा. मध्यरात्रीपूर्वी उजळणी करा. 3 तास बाकी."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behold dagrekken i dag. Repeter før midnatt. 3 timer igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Houd je dagreeks vandaag vast. Herhaal vóór middernacht. Nog 3 uur."
           }
         },
         "lt" : {
@@ -36652,6 +40000,24 @@
             "value" : "حافظ على سلسلتك اليوم. راجع قبل منتصف الليل. تبقت أربع ساعات."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आजची सलग दिवसांची मालिका टिकवा. मध्यरात्रीपूर्वी उजळणी करा. 4 तास बाकी."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behold dagrekken i dag. Repeter før midnatt. 4 timer igjen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Houd je dagreeks vandaag vast. Herhaal vóór middernacht. Nog 4 uur."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -36847,6 +40213,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "حاول مرة أخرى. إذا استمرت المشكلة، شارك التفاصيل الفنية مع الدعم."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पुन्हा प्रयत्न करा. समस्या कायम राहिल्यास तांत्रिक तपशील सहाय्य टीमला पाठवा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prøv igjen. Hvis det fortsetter, del de tekniske detaljene med brukerstøtten."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probeer het opnieuw. Blijft het gebeuren, deel dan de technische details met de ondersteuning."
           }
         },
         "lt" : {
@@ -37046,6 +40430,24 @@
             "value" : "حدث خطأ ما"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "काहीतरी चूक झाली"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noe gikk galt"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er is iets misgegaan"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37241,6 +40643,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "إغلاق"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बंद करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lukk"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sluiten"
           }
         },
         "lt" : {
@@ -37440,6 +40860,24 @@
             "value" : "نسخ التفاصيل"
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तपशील कॉपी करा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopier detaljer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details kopiëren"
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37635,6 +41073,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "التفاصيل الفنية"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तांत्रिक तपशील"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekniske detaljer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Technische details"
           }
         },
         "lt" : {
@@ -37834,6 +41290,24 @@
             "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एक प्रतिसाद आधीच सुरू आहे. दुसरा संदेश पाठवण्यापूर्वी तो पूर्ण होण्याची वाट पाहा किंवा थांबवा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Et svar er allerede underveis. Vent til det er ferdig, eller stopp det før du sender en ny melding."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er wordt al een antwoord gemaakt. Wacht tot het klaar is of stop het voordat je een nieuw bericht verstuurt."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38029,6 +41503,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इंटरनेट जोडणी नाही. AI चॅटसाठी इंटरनेट आवश्यक आहे."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingen internettforbindelse. AI-chat krever internettilgang."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen internetverbinding. De AI-chat heeft internettoegang nodig."
           }
         },
         "lt" : {
@@ -38228,6 +41720,24 @@
             "value" : "تم تحديث البطاقات من السحابة."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्लाउडमधून कार्डे अद्यतनित केली."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kort oppdatert fra skyen."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaarten bijgewerkt vanuit de cloud."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38423,6 +41933,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "या उपकरणावर वाचन सुविधा उपलब्ध नाही."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tale er ikke tilgjengelig på denne enheten."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spraak is niet beschikbaar op dit apparaat."
           }
         },
         "lt" : {
@@ -38622,6 +42150,24 @@
             "value" : "تم تحديث هذه المراجعة على جهاز آخر."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ही उजळणी दुसऱ्या उपकरणावर अद्यतनित झाली."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Denne repetisjonen ble oppdatert på en annen enhet."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze herhaling is bijgewerkt op een ander apparaat."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -38817,6 +42363,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تم تعطيل إصدار الاختبار."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चाचणी आवृत्ती बंद केली."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testversjon deaktivert."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testversie uitgeschakeld."
           }
         },
         "lt" : {
@@ -39016,6 +42580,24 @@
             "value" : "تم تفعيل إصدار الاختبار."
           }
         },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चाचणी आवृत्ती सुरू केली."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testversjon aktivert."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testversie ingeschakeld."
+          }
+        },
         "lt" : {
           "stringUnit" : {
             "state" : "translated",
@@ -39211,6 +42793,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खाते तयार केल्यानंतरच कार्यक्षेत्रात बदल करता येतात."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endringer i arbeidsområder er bare tilgjengelige etter at du har opprettet en konto."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je kunt werkruimtes pas wijzigen nadat je een account hebt gemaakt."
           }
         },
         "lt" : {
