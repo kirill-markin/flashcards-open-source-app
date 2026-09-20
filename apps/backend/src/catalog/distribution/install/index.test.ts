@@ -32,6 +32,7 @@ test("catalog install route rejects unauthorized workspace access before install
         userSettingsCreatedAt: testTimestamp,
         preferences: {
           reviewReactionAnimationsEnabled: true,
+          analyticsConsent: null,
         },
         transport: "api_key",
         connectionId: "connection-1",
@@ -90,6 +91,7 @@ test("catalog install route rejects unsafe operation prefixes without sanitizing
         userSettingsCreatedAt: testTimestamp,
         preferences: {
           reviewReactionAnimationsEnabled: true,
+          analyticsConsent: null,
         },
         transport: "api_key",
         connectionId: "connection-1",

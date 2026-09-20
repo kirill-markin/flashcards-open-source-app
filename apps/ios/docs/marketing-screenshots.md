@@ -15,7 +15,12 @@ This generator drives local iOS simulator-backed XCUITest flows and regenerates 
 
 ## What is included
 
-The expected generated inventory is five screenshot outputs per locale:
+The capture catalog supports 42 Store locales (41 languages). The expected raw
+inventory is five screenshots per locale per device family: 210 iPhone PNGs and
+210 iPad PNGs. Catalog support alone does not establish that these assets have
+been generated or uploaded.
+
+Each locale captures:
 
 1. Review front state
 2. Review revealed-answer state
@@ -63,7 +68,17 @@ What each layer does:
 - `MarketingScreenshotFixtures.swift` holds the test-side locale catalog (`MarketingScreenshotLocaleCatalog`): the supported locale list, the locale alias map, and the localized fixture card text. The generated output filenames come from the `MarketingScreenshotLocaleFixture` file-name properties and the screenshot slug constants on `MarketingScreenshotFixture`.
 - `FlashcardsStore+CloudUITest.swift` holds the app-side mirror of that catalog (`FlashcardsUITestMarketingFixtures`), seeds the localized UI-test content used by the screenshot flows, and defines the dedicated guest-session cleanup launch scenario used at the end of each manual test.
 
-Those two files each carry their own copy of the supported locale list, the locale alias map, and the localized card text, and the copies must stay character-identical. The locale list and the aliases also live in the shell layer: `scripts/ios/capture-ios-marketing-screenshot.sh` owns the `supported_locales` array and a `canonicalize_locale` function, and `scripts/ios/build-ios-marketing-materials.sh` carries a second `canonicalize_locale`. Adding, removing, or editing a locale means editing both Swift files and both shell scripts in the same change. If the shell scripts are not updated, the wrapper rejects the locale during argument validation with `Unsupported iOS marketing screenshot locale: ...` and exits before the app-side mechanism described next is ever reached. If only the test-side catalog is updated, the app side rejects the locale with `unsupportedLocalization` and the capture aborts before the first screenshot.
+Keep locale codes, aliases, and shared seeded card text and tags identical in the
+two Swift catalogs. The unsent AI drafts belong only to the test-side catalog.
+The shell layer also owns locale maps: `capture-ios-marketing-screenshot.sh`
+has `supported_locales` and `canonicalize_locale`, and
+`build-ios-marketing-materials.sh` has another `canonicalize_locale`.
+
+Align both Swift catalogs, both shell maps, and the uploader's
+[locale mapping](../../../scripts/ios/app-store-localization-inputs.mts) in the
+same change. Store IDs differ from some capture tags. Missing shell support
+fails argument validation; missing app-side support fails fixture seeding before
+the first screenshot.
 
 ## Guest cloud cleanup lifecycle
 
@@ -79,35 +94,26 @@ This is why the screenshot wrappers must still run sequentially. The cleanup rel
 
 ## Supported locales
 
-Canonical supported locale codes:
+The canonical list is the `supported_locales` array in
+[capture-ios-marketing-screenshot.sh](../../../scripts/ios/capture-ios-marketing-screenshot.sh).
+Use `--list-locales` below instead of copying a fixed list into capture loops.
+`en-US` is the default and the only capture tag that differs from its iOS bundle
+tag (`en`). Norwegian captures use `nb`; both Spanish regions remain separate.
 
-- `en-US`
-- `ar`
-- `zh-Hans`
-- `fr`
-- `de`
-- `hi`
-- `ja`
-- `pt-BR`
-- `ru`
-- `es-MX`
-- `es-ES`
+Store aliases use the
+[App Store locale map](../../../docs/app-store-connect-metadata.md): for example
+`ar-SA` becomes `ar`, `bn-BD` becomes `bn`, and `no` becomes `nb`. Both shell
+canonicalizers also accept these non-Store aliases:
 
-Default locale:
-
-- `en-US`
-
-Supported input aliases:
-
-- `en` -> `en-US`
-- `zh-CN` -> `zh-Hans`
-- `fr-FR` -> `fr`
-- `de-DE` -> `de`
-- `hi-IN` -> `hi`
-- `ja-JP` -> `ja`
-- `pt` -> `pt-BR`
-- `ru-RU` -> `ru`
-- `es-419` -> `es-MX`
+| Input | Canonical capture tag |
+| --- | --- |
+| `en` | `en-US` |
+| `zh-CN` | `zh-Hans` |
+| `hi-IN` | `hi` |
+| `ja-JP` | `ja` |
+| `pt` | `pt-BR` |
+| `ru-RU` | `ru` |
+| `es-419` | `es-MX` |
 
 How locale selection works:
 
@@ -135,12 +141,23 @@ It derives the output family from the one already booted simulator:
 This means:
 
 - boot `iPhone 14 Plus` if you want iPhone screenshots
-- boot an iPad simulator if you want iPad screenshots
+- boot `iPad Pro 13-inch (M5)` for the iPad App Store set
 - if more than one simulator is booted, set `FLASHCARDS_IOS_SIMULATOR_ID=<device-uuid>`
 
 The scripts do not boot or switch simulators for you. They only resolve a booted simulator, wait for `bootstatus`, and run the selected manual test.
 
-For the committed iPhone App Store assets, treat `iPhone 14 Plus` as the canonical simulator target. Do not regenerate the iPhone PNG set on a different iPhone model unless the screenshot policy is intentionally changed in this document.
+Use these canonical targets for committed App Store assets:
+
+| Family | Simulator | Portrait pixels | Upload display slot |
+| --- | --- | --- | --- |
+| iPhone | `iPhone 14 Plus` | `1284 × 2778` | `APP_IPHONE_65` |
+| iPad | `iPad Pro 13-inch (M5)` | `2064 × 2752` | `APP_IPAD_PRO_3GEN_129` |
+
+The uploader also accepts `2048 × 2732` iPad PNGs. Keep every image opaque: no
+alpha channel or PNG `tRNS` chunk, even if it looks opaque on screen. Inspect
+exported files before upload; use the
+[upload procedure](../../../docs/app-store-connect-metadata.md) for preflight and
+recovery. Do not change the canonical capture device without updating this policy.
 
 ## Output paths and filenames
 
@@ -186,7 +203,7 @@ Before running any screenshot script:
 
 - start from the repository root
 - boot exactly one local iOS simulator manually
-- use `iPhone 14 Plus` for iPhone output or an iPad simulator for iPad output
+- use the canonical simulator for the selected family from the table above
 - if multiple simulators are already booted, set `FLASHCARDS_IOS_SIMULATOR_ID`
 - keep the simulator UI hidden while the generator runs; do not keep `Simulator.app` visible on screen during screenshot capture
 
@@ -228,22 +245,6 @@ Or use the environment variable instead:
 
 ```bash
 FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/ios/capture-ios-marketing-screenshots.sh
-```
-
-## Generate all five screenshots for one locale
-
-Use one locale explicitly and run the supported wrapper once:
-
-```bash
-bash scripts/ios/capture-ios-marketing-screenshots.sh --locale es-ES
-```
-
-Or set the locale once in the environment:
-
-```bash
-export FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=es-ES
-
-bash scripts/ios/capture-ios-marketing-screenshots.sh
 ```
 
 ## Build derived marketing materials
@@ -294,17 +295,33 @@ The builder intentionally keeps PNG as the output format. These assets are UI-he
 For a clean multi-locale run, keep one simulator family booted and loop through the locales:
 
 ```bash
-for locale in en-US ar zh-Hans fr de hi ja pt-BR ru es-MX es-ES; do
-  bash scripts/ios/capture-ios-marketing-screenshots.sh --locale "$locale"
-done
+capture_locales="$(bash scripts/ios/capture-ios-marketing-screenshot.sh --list-locales)" || exit 1
+while IFS= read -r locale; do
+  bash scripts/ios/capture-ios-marketing-screenshots.sh --locale "$locale" || exit 1
+done <<< "$capture_locales"
 ```
 
 If you need both iPhone and iPad assets, run the full locale loop twice:
 
-1. once with one booted iPhone simulator
-2. once with one booted iPad simulator
+1. once with the canonical iPhone simulator selected
+2. once with the canonical iPad simulator selected
 
-That keeps filenames predictable and ensures outputs land in the correct family folder.
+Inspect all five images per locale in each family for untranslated copy, clipping,
+RTL layout, and the expected screen state. Include runtime-generated labels such
+as the AI card-attachment chip; catalog parity cannot catch hardcoded English
+outside the catalogs. Keep capture queries on stable accessibility IDs. For the
+attached card, the current fixture checks one chip and the exact card-text suffix
+without assuming its localized prefix is English. Foundation can wrap formatted
+snippets in FSI (`U+2068`) and PDI (`U+2069`); the fixture accepts the exact plain
+suffix or that exact isolated form. Preserve those controls in production
+rendering and user content. Inspect the translated prefix and the
+[iOS viewport requirements](../../../docs/ios-localization.md#manual-runtime-validation)
+visually; a hittable element can still extend beyond the screen.
+Do not infer capture freshness from fixture coverage or a successful build.
+Record the source SHA and completed locale/family inventory with the delivery evidence. If a capture exposes a code
+or translation defect, stop at the wrapper's cleanup boundary, preserve the
+failure evidence, deliver the scoped repair, then regenerate affected assets
+from the final capture revision before treating the inventory as complete.
 
 If you also want the derived marketing-material outputs, prefer the dedicated wrapper instead of hand-rolling a second locale loop:
 

@@ -62,8 +62,10 @@ checks: [Android CI/CD](android-ci-cd.md).
    their run links and source commit; do not infer test success from the build.
 3. While they run, create or verify the App Store version draft for the current
    version. Fill and save What's New for every locale using the texts already
-   in the chat. Verify each saved field and required metadata; request help for
-   missing declarations or unexpected store requirements.
+   in the chat. For localized listing text and iPhone/iPad screenshot uploads,
+   follow [App Store metadata](app-store-connect-metadata.md); its editable-draft
+   requirements apply. Verify each saved field and required metadata; request
+   help for missing declarations or unexpected store requirements.
 4. Wait for both workflows to finish green. Inspect errors and warnings even
    if the overall run is green. Fix code/build/test issues, merge and deploy
    through normal CI, then repeat both workflows for the corrected release SHA.
