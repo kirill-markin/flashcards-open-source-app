@@ -473,7 +473,10 @@ export type ProductWarningEvent =
   | (EventByAction<"guest_upgrade_complete_suspicious", GuestUpgradeCompleteSuspiciousDetails> & Readonly<{
     message: string;
   }>)
-  | EventByAction<"analytics_contract_violation", ProductAnalyticsContractViolationDetails>;
+  | EventByAction<"analytics_contract_violation", ProductAnalyticsContractViolationDetails>
+  | (EventByAction<"analytics_visitor_country_lookup_failed", Readonly<{
+    errorMessage: string;
+  }>> & Readonly<{ message: string }>);
 
 export type ProductExceptionEvent =
   | (EventByAction<"sync_push_error", SyncConflictFailureDetailsFor<SyncPushDetails>> & Readonly<{ error: Error }>)

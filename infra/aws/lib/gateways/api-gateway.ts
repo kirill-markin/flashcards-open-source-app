@@ -921,6 +921,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       forceDockerBundling: true,
     }),
   });
+  // The analytics visitor cookie is published on the base domain, so the app origin, this API and
+  // the auth origin all read one visitor (apps/backend/src/analyticsVisitor/cookie.ts). The value is
+  // an unsigned random UUID, so no secret is involved and only the HTTP handler needs the domain;
+  // the workers never see a browser request.
+  backendFn.addEnvironment("COOKIE_DOMAIN", props.baseDomain);
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,
     publicSiteOrigin,
@@ -1155,6 +1160,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const analyticsEvents = analytics.addResource("events");
   analyticsEvents.addMethod("ANY", integration);
   analyticsEvents.addMethod("POST", integration);
+  // GET and POST /analytics/visitor, the browser's analytics visitor cookie and the consent answer
+  // its jurisdiction needs (apps/backend/src/routes/analyticsVisitor.ts).
+  const analyticsVisitor = analytics.addResource("visitor");
+  analyticsVisitor.addMethod("ANY", integration);
+  analyticsVisitor.addMethod("GET", integration);
+  analyticsVisitor.addMethod("POST", integration);
   const catalogInstallAnalyticsEvents = analytics.addResource("catalog-install-events", {
     defaultCorsPreflightOptions: createCatalogInstallAnalyticsCorsPreflightOptions(
       catalogInstallAnalyticsAllowedOrigins,

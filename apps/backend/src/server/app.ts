@@ -26,6 +26,7 @@ import { createFeedbackRoutes } from "../routes/feedback";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
 import { createMediaAssetsRoutes } from "../routes/mediaAssets";
 import { createProductAnalyticsRoutes } from "../routes/productAnalytics";
+import { createAnalyticsVisitorRoutes } from "../routes/analyticsVisitor";
 import { createCatalogInstallAnalyticsRoutes } from "../routes/catalogInstallAnalytics";
 import { createWorkspacePackageRoutes } from "../routes/workspacePackages";
 import { createSyncRoutes } from "../routes/sync/index";
@@ -464,6 +465,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspacePackageRoutes({ allowedOrigins }));
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
   app.route("/", createProductAnalyticsRoutes({ allowedOrigins }));
+  app.route("/", createAnalyticsVisitorRoutes({ allowedOrigins }));
   app.route("/", createCatalogInstallAnalyticsRoutes({
     allowedOrigins: catalogInstallAnalyticsAllowedOrigins,
   }));

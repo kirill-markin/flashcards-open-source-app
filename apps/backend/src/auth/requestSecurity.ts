@@ -139,6 +139,32 @@ async function getSessionCsrfTokenWithAbortSignal(
 }
 
 /**
+ * Refuses any request another site could have driven: the browser's own `cross-site` marker, and an
+ * origin outside the allowlist. `Referer` stands in for a missing `Origin`, and a request that names
+ * neither is refused rather than trusted, because nothing then attributes it to a site.
+ *
+ * `cors()` cannot do this: it adds response headers and never refuses a request, and a cross-site
+ * request of a CORS-safelisted content type is not preflighted at all.
+ */
+export function enforceAllowedBrowserOrigin(
+  requestAuthInputs: RequestAuthInputs,
+  allowedOrigins: ReadonlyArray<string>,
+  originNotAllowedMessage: string,
+): void {
+  if (requestAuthInputs.secFetchSiteHeader?.toLowerCase() === "cross-site") {
+    throw new HttpError(403, "Cross-site browser requests are not allowed");
+  }
+
+  const requestOrigin = getRequestOrigin(
+    requestAuthInputs.originHeader,
+    requestAuthInputs.refererHeader,
+  );
+  if (!allowedOrigins.includes(requestOrigin)) {
+    throw new HttpError(403, originNotAllowedMessage);
+  }
+}
+
+/**
  * Applies browser CSRF checks only to unsafe requests authenticated by the
  * shared session cookie. Bearer-token requests are intentionally excluded.
  */
@@ -180,17 +206,11 @@ async function enforceSessionCsrfProtectionWithSignal(
     return;
   }
 
-  if (requestAuthInputs.secFetchSiteHeader?.toLowerCase() === "cross-site") {
-    throw new HttpError(403, "Cross-site browser requests are not allowed");
-  }
-
-  const requestOrigin = getRequestOrigin(
-    requestAuthInputs.originHeader,
-    requestAuthInputs.refererHeader,
+  enforceAllowedBrowserOrigin(
+    requestAuthInputs,
+    allowedOrigins,
+    "Origin is not allowed for session request",
   );
-  if (!allowedOrigins.includes(requestOrigin)) {
-    throw new HttpError(403, "Origin is not allowed for session request");
-  }
 
   const csrfToken = requestAuthInputs.csrfTokenHeader;
   if (csrfToken === undefined) {
