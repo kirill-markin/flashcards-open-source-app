@@ -55,8 +55,10 @@ checks: [Android CI/CD](android-ci-cd.md).
 
 ## iOS
 
-1. Open the app in App Store Connect in the browser and its Xcode Cloud area.
-   Ask the user to complete Apple login/MFA if needed, then resume.
+1. Access the app and Xcode Cloud through the App Store Connect API using
+   [local credentials](xcode-cloud-data-access.md#required-local-secrets). Use
+   the browser for unsupported operations or diagnosed API access blockers;
+   ask the user to complete Apple login/MFA if needed, then resume.
 2. Identify the two configured workflows for release build/archive and tests.
    Start both for the same release SHA and monitor them in parallel. Record
    their run links and source commit; do not infer test success from the build.
