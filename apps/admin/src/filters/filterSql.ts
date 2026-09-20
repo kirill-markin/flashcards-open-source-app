@@ -101,7 +101,7 @@ export function buildEventPlatformsFilterSql(
 
 // `catalog_deck_installed` is the one counted event type with a visible counterpart on screen, the
 // `Catalog deck installs` section, and a threshold that counted more installs than that section shows
-// would let a chip and a chart disagree about the same person. So this repeats the two exclusions the
+// would let the threshold the filter bar names and that chart disagree about the same person. So this repeats the two exclusions the
 // `deck_installs` CTE of `buildCatalogInstallsSql` applies: the delisted `test` fixture of
 // `db/migrations/0111_delist_catalog_test_fixture.sql`, and installs made by an admin whose grant is
 // not revoked. The `%@example.com` and excluded-actor exclusions that CTE also applies are
