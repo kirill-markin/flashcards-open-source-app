@@ -59,8 +59,18 @@ first locale and preserve the section/field names.
    agreement status before asking for legal acceptance. An agreement error
    alone does not prove an inactive agreement; replace invalid credentials
    through the user when needed.
-3. Select an existing iOS version and app-info draft that are both
-   `PREPARE_FOR_SUBMISSION`. Keep `en-US` localizations in both with valid
+3. Select an existing iOS version and the unique editable app-info resource.
+   Each must be `PREPARE_FOR_SUBMISSION` or `DEVELOPER_REJECTED`; all other
+   states are refused. Apple permits screenshot uploads in
+   [Developer Rejected](https://developer.apple.com/help/app-store-connect/manage-app-information/upload-app-previews-and-screenshots).
+   If the intended version is awaiting review, preserve it unless the user
+   explicitly authorizes its withdrawal. After an authorized
+   [withdrawal](https://developer.apple.com/help/app-store-connect/manage-submissions-to-app-review/remove-a-submission-from-review),
+   inspect the actual version and app-info states before continuing; do not
+   assume both changed. If replacing it with a newer build, rename the editable
+   version to match that build only if Apple permits it, then verify the saved
+   version string and use it below. Stop if the intended editable target cannot
+   be established. Keep `en-US` localizations in both with valid
    privacy-policy and support URLs. New locales inherit only those technical
    URLs; existing locales retain their URLs. Align unrelated app-info and
    version locale sets if the command reports a mismatch.
@@ -76,10 +86,9 @@ first locale and preserve the section/field names.
    This is a live write command, with no dry-run mode. It requires all locale
    text and PNGs before contacting Apple, then checks remote state and staging
    capacity before mutation. Keep the files and target draft unchanged during
-   the run. It creates neither a version nor a review submission and refuses
-   submitted/published targets. If the current version is awaiting review,
-   preserve it and wait for an editable next draft; do not withdraw a submitted
-   release merely to add languages.
+   the run. It never creates, renames, withdraws, or submits a version and
+   refuses submitted/published targets. Withdrawal and version changes are
+   separate actions; the command does not perform them automatically.
 5. Require the final `app_store_upload_verified` event and inspect the saved
    localizations and both screenshot families in App Store Connect. Continue
    through [the iOS release procedure](manual-production-release.md#ios) for
