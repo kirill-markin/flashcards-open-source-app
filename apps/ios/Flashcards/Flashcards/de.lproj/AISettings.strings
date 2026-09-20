@@ -808,3 +808,6 @@
 "settings.language.supported.czech" = "Tschechisch";
 "settings.language.supported.danish" = "Dänisch";
 "settings.language.supported.greek" = "Griechisch";
+"settings.language.supported.estonian" = "Estnisch";
+"settings.language.supported.persian" = "Persisch";
+"settings.language.supported.finnish" = "Finnisch";

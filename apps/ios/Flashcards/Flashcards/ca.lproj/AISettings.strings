@@ -780,3 +780,6 @@
 "settings.language.supported.czech" = "Txec";
 "settings.language.supported.danish" = "Danès";
 "settings.language.supported.greek" = "Grec";
+"settings.language.supported.estonian" = "Estonià";
+"settings.language.supported.persian" = "Persa";
+"settings.language.supported.finnish" = "Finès";
