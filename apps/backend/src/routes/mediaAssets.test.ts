@@ -63,6 +63,7 @@ const requestContext: RequestContext = {
   userSettingsCreatedAt: testTimestamp,
   preferences: {
     reviewReactionAnimationsEnabled: true,
+    analyticsConsent: null,
   },
   transport: "bearer",
   connectionId: null,

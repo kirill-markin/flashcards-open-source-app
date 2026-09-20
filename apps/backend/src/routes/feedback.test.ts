@@ -65,6 +65,7 @@ function createRequestContext(transport: RequestContext["transport"]): RequestCo
     userSettingsCreatedAt: "2026-04-17T00:00:00.000Z",
     preferences: {
       reviewReactionAnimationsEnabled: true,
+      analyticsConsent: null,
     },
     transport,
     connectionId: transport === "api_key" ? "connection-1" : null,

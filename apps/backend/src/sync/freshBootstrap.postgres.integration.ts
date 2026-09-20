@@ -45,6 +45,7 @@ function createLocalRequestContext(): RequestContext {
     userSettingsCreatedAt: "2026-01-01T00:00:00.000Z",
     preferences: {
       reviewReactionAnimationsEnabled: true,
+      analyticsConsent: null,
     },
     transport: "bearer",
     connectionId: null,

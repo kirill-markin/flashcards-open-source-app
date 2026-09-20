@@ -6,8 +6,8 @@ import {
 import { expectBoolean } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
 import type { AuthTransport } from "../../auth";
-import type { AccountPreferences } from "../../auth/ensureUser";
-import type { ProgressRequestedParameters } from "./types";
+import type { AnalyticsConsentChoice } from "../../auth/ensureUser";
+import type { AccountPreferencesUpdate, ProgressRequestedParameters } from "./types";
 
 export function readRequestedProgressParameters(requestUrl: URL): ProgressRequestedParameters {
   return {
@@ -78,8 +78,22 @@ export function assertFriendInvitationPublicPreviewTransport(request: Request): 
   }
 }
 
-export function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPreferences {
-  const unexpectedKey = Object.keys(body).find((key) => key !== "reviewReactionAnimationsEnabled");
+const accountPreferenceFieldNames: ReadonlyArray<string> = [
+  "reviewReactionAnimationsEnabled",
+  "analyticsConsent",
+];
+
+/** Null is refused rather than accepted as an erasure: a withdrawn consent is "declined". */
+function expectAnalyticsConsentChoice(value: unknown, fieldName: string): AnalyticsConsentChoice {
+  if (value === "granted" || value === "declined") {
+    return value;
+  }
+
+  throw new HttpError(400, `${fieldName} must be "granted" or "declined"`);
+}
+
+export function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPreferencesUpdate {
+  const unexpectedKey = Object.keys(body).find((key) => !accountPreferenceFieldNames.includes(key));
   if (unexpectedKey !== undefined) {
     throw new HttpError(
       400,
@@ -88,12 +102,24 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
     );
   }
 
-  return {
-    reviewReactionAnimationsEnabled: expectBoolean(
-      body.reviewReactionAnimationsEnabled,
-      "reviewReactionAnimationsEnabled",
-    ),
+  const update: AccountPreferencesUpdate = {
+    reviewReactionAnimationsEnabled: "reviewReactionAnimationsEnabled" in body
+      ? expectBoolean(body.reviewReactionAnimationsEnabled, "reviewReactionAnimationsEnabled")
+      : null,
+    analyticsConsent: "analyticsConsent" in body
+      ? expectAnalyticsConsentChoice(body.analyticsConsent, "analyticsConsent")
+      : null,
   };
+
+  if (update.reviewReactionAnimationsEnabled === null && update.analyticsConsent === null) {
+    throw new HttpError(
+      400,
+      `At least one preference field is required: ${accountPreferenceFieldNames.join(", ")}`,
+      "ACCOUNT_PREFERENCES_FIELD_REQUIRED",
+    );
+  }
+
+  return update;
 }
 
 export function parseCommunityProfileInput(body: Record<string, unknown>): Readonly<{
