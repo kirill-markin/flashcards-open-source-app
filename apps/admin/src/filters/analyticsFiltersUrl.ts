@@ -113,7 +113,7 @@ function normalizeEnumList<Value extends string>(
 // accept is dropped, because either one makes the reader treat the whole list as malformed and hand
 // back the default instead of the selection that was written. A padded entry is trimmed rather than
 // dropped: client-reported locale tags reach the selection as they were recorded, and losing such a
-// value silently would leave it on screen as a chip and gone after a reload.
+// value silently would leave it checked in its option list and gone after a reload.
 function normalizeOpaqueList(values: ReadonlyArray<string>): ReadonlyArray<string> {
   return [...new Set(values.map((value) => value.trim()).filter(isAcceptedListEntry))].sort();
 }
@@ -213,7 +213,8 @@ export function buildDefaultAnalyticsFilterStateForAvailableRange(
  * and `assertValidDateRange` refuses it on the way to a report.
  *
  * The filter bar puts every selection it builds through this, so a value the codec would drop or
- * reorder cannot stay on screen as a chip and then change on the next reload.
+ * reorder cannot stay on screen as a checked option and a popover header and then change on the next
+ * reload.
  */
 export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): AnalyticsFilterState {
   return {
