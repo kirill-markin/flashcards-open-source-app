@@ -129,12 +129,15 @@ struct CloudOtpVerificationSheet: View {
                     }
                     .disabled(self.isRequestInFlight || self.currentChallenge == nil)
                 }
-
-                ToolbarSpacer(.flexible, placement: .keyboard)
-                ToolbarItem(placement: .keyboard) {
+            }
+            .safeAreaBar(edge: .bottom, alignment: .trailing, spacing: 0) {
+                if self.isCodeFieldFocused {
                     Button(aiSettingsLocalized("common.done", "Done")) {
                         self.isCodeFieldFocused = false
                     }
+                    .buttonStyle(.glass)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
             }
             .sheet(item: self.$technicalErrorPresentation) { presentation in
