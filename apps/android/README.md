@@ -25,7 +25,7 @@ The development focus is Android 14, 15, 16, and 17. We do not spend effort vali
 
 ## Dependency Version Pin
 
-AndroidX and other dependency versions in `gradle/libs.versions.toml` must stay at the highest stable versions compatible with `compileSdk = 37`, our current stable baseline. Automated dependency-drift updates must not adopt dependencies that require a preview SDK beyond API 37, because Gradle is not run during their validation and cannot catch that break locally.
+AndroidX and other dependency versions in `gradle/libs.versions.toml` must stay at the highest stable versions compatible with `compileSdk = 37`, our current stable baseline. Automated dependency-drift updates must not adopt dependencies that require a preview SDK beyond API 37, because API 37 is our chosen stable baseline and moving past it is a deliberate product decision rather than something a drift update makes on its own.
 
 ## Design Rule
 

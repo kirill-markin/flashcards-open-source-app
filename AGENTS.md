@@ -43,8 +43,7 @@ When proposing a test plan, treat "real testing" as one of these two options onl
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).
 For Android local testing details, see [docs/android-ci-cd.md](docs/android-ci-cd.md).
-Running `./gradlew` is resource-heavy in this repository, so do not run it reflexively after every edit. When a Gradle run genuinely helps validate a change, run it: choose the narrowest Gradle task that validates the change, and avoid broad Gradle runs without a clear reason.
-Running iOS simulator-backed tests or local smoke flows is resource-heavy in this repository, so do not run `xcodebuild test`, XCUITest, screenshot-generation, or local smoke flows reflexively after every edit. When a simulator-backed run genuinely helps validate a change, run it: choose the narrowest iOS simulator run that validates the change, and avoid broad iOS test runs without a clear reason.
+Local Gradle, `xcodebuild`, simulator, and emulator runs are unrestricted, so run them whenever they are useful without asking the user for approval.
 
 ## Release Gates and Monitoring
 
@@ -54,7 +53,7 @@ Android jobs inside `.github/workflows/pr-checks.yml` are an accepted exception:
 Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
 Swift builds and tests run in Xcode Cloud, whose workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
-A request to execute the full release runbook authorizes its manual workflow dispatches and publication steps. Outside that scope, trigger or monitor Xcode Cloud, or trigger `Android Release` / `MCP Registry Publish`, only when the user requests those actions; agents may monitor and fix automatically triggered GitHub Actions.
+A request to execute the full release runbook authorizes its manual workflow dispatches and publication steps. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed without asking, including outside a release. Outside a release request, dispatch Xcode Cloud workflows or trigger `Android Release` / `MCP Registry Publish` only when the user requests those actions; agents may monitor and fix automatically triggered GitHub Actions.
 Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 
 ## Data Sources for Analysis
