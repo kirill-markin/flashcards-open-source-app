@@ -522,7 +522,7 @@
 "settings.account.dangerZone.alertTitle" = "Susa le akhawunti?";
 "settings.account.dangerZone.alertMessage" = "Lokhu kususa i-akhawunti nayo yonke idatha yefu unomphela.";
 "settings.account.deleteConfirmation.title" = "Susa i-akhawunti";
-"settings.account.deleteConfirmation.warning" = "Isexwayiso! Lesi senzo esangunaphakade. Uzolahlekelwa yiyo yonke idatha yakho unomphela, futhi ngeke sikwazi ukuyibuyisela.";
+"settings.account.deleteConfirmation.warning" = "Isexwayiso! Lesi senzo singunaphakade. Uzolahlekelwa yiyo yonke idatha yakho unomphela, futhi ngeke sikwazi ukuyibuyisela.";
 "settings.account.deleteConfirmation.placeholder" = "delete my account";
 "settings.account.deletionProgress.title" = "Kususwa i-akhawunti";
 "settings.account.deletionProgress.inProgress" = "I-akhawunti yakho iyasuswa. Gcina lesi sikrini sivulekile kuze kuqedwe.";
@@ -572,15 +572,15 @@
 "settings.workspace.overview.deleteAlertMessage" = "Lokhu kususa unomphela indawo yokusebenza yamanje.";
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Lokhu kususa unomphela amakhadi asebenzayo kule ndawo yokusebenza: %d.";
 "settings.workspace.deleteConfirmation.title" = "Susa indawo yokusebenza";
-"settings.workspace.deleteConfirmation.warning" = "Isexwayiso! Lesi senzo esangunaphakade. Inani lamakhadi asebenzayo azosuswa: %d, endaweni ethi %@.";
+"settings.workspace.deleteConfirmation.warning" = "Isexwayiso! Lesi senzo singunaphakade. Inani lamakhadi asebenzayo azosuswa: %d, endaweni ethi %@.";
 "settings.workspace.deleteConfirmation.lastWorkspace" = "Indawo yokusebenza entsha engenalutho ebizwa nge-Personal izodalwa ngokushesha ngemva kokususa.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Kuyasuswa...";
 "settings.workspace.resetConfirmation.title" = "Qinisekisa ukusetha kabusha";
-"settings.workspace.resetConfirmation.warning" = "Isexwayiso! Lesi senzo esangunaphakade. Sizosula inqubekelaphambili yokufunda yawo wonke amakhadi kule ndawo yokusebenza.";
+"settings.workspace.resetConfirmation.warning" = "Isexwayiso! Lesi senzo singunaphakade. Sizosula inqubekelaphambili yokufunda yawo wonke amakhadi kule ndawo yokusebenza.";
 "settings.workspace.resetConfirmation.description" = "Amakhadi azohlala ekhona. Inqubekelaphambili yawo yokufunda izobuyela esimweni esisha.";
 "settings.workspace.resetConfirmation.loadingPreview" = "Kulayishwa ukubuka kuqala kokusetha kabusha...";
-"settings.workspace.resetConfirmation.previewWarning" = "Isexwayiso! Lesi senzo esangunaphakade. Inani lamakhadi azosethwa kabusha: %d, endaweni ethi %@.";
+"settings.workspace.resetConfirmation.previewWarning" = "Isexwayiso! Lesi senzo singunaphakade. Inani lamakhadi azosethwa kabusha: %d, endaweni ethi %@.";
 "settings.workspace.resetConfirmation.previewDescription" = "Amakhadi azohlala endaweni yokusebenza. Kuzosulwa inqubekelaphambili yawo yokufunda kuphela.";
 "settings.workspace.resetConfirmation.cardsToReset" = "Amakhadi azosethwa kabusha";
 "settings.workspace.resetConfirmation.resetting" = "Kusethwa kabusha inqubekelaphambili...";
