@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } 
 import { useParams } from "react-router";
 import {
   buildCatalogInstallAuthReturnUrl,
-  readOrCreateCatalogInstallJourneyId,
   reportCatalogInstallFailure,
   reportCatalogInstallLanded,
   reportCatalogInstallSigninStarted,
   toCatalogInstallFailureReason,
   useAnalyticsScreenView,
+  useCatalogInstallJourneyId,
 } from "../../analytics";
 import {
   buildLoginUrl,
@@ -31,6 +31,13 @@ import {
 } from "./catalogImportShared";
 
 type CatalogImportLoadState = "loading" | "error" | "not_found" | "signed_out" | "signed_in";
+
+type LoadedCatalogPackage = Readonly<{
+  packageVersionId: string;
+  title: string;
+  cardCount: number;
+  authorDisplayName: string;
+}>;
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -73,14 +80,16 @@ function CatalogImportSignedOutScreen(props: Readonly<{ catalogContext: CatalogI
 export function CatalogImportScreen(): ReactElement {
   const { packageVersionId: routePackageVersionId } = useParams();
   const packageVersionId = parsePackageVersionId(routePackageVersionId);
-  const installJourneyId = useMemo(
-    () => packageVersionId === null ? null : readOrCreateCatalogInstallJourneyId(),
-    [packageVersionId],
-  );
+  // The journey id arrives when the consent answer does, which is a network round trip of its own
+  // and normally lands after this screen has already loaded. It is deliberately kept out of the load
+  // below — through the ref — so settling it never re-runs the fetch this screen already completed.
+  const installJourneyId = useCatalogInstallJourneyId(packageVersionId);
+  const installJourneyIdRef = useRef<string | null>(installJourneyId);
+  installJourneyIdRef.current = installJourneyId;
   const { indexedDbOpenRecoveryState, showTechnicalError } = useAppErrorDialog();
   const { t } = useI18n();
   const [loadState, setLoadState] = useState<CatalogImportLoadState>("loading");
-  const [catalogContext, setCatalogContext] = useState<CatalogImportContext | null>(null);
+  const [loadedPackage, setLoadedPackage] = useState<LoadedCatalogPackage | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [session, setSession] = useState<SessionInfo | null>(null);
   const loadRequestGenerationRef = useRef<number>(0);
@@ -100,7 +109,7 @@ export function CatalogImportScreen(): ReactElement {
     }
 
     setLoadState("loading");
-    setCatalogContext(null);
+    setLoadedPackage(null);
     setSession(null);
     setErrorMessage("");
     try {
@@ -116,19 +125,13 @@ export function CatalogImportScreen(): ReactElement {
       if (loadRequestGenerationRef.current !== requestGeneration) {
         return;
       }
-      setCatalogContext({
-        installJourneyId,
+      setLoadedPackage({
         packageVersionId: packageVersion.packageVersionId,
         title: packageVersion.title,
         cardCount: packageVersion.cardCount,
         authorDisplayName: packageVersion.author.displayName,
       });
       setSession(optionalSession);
-      reportCatalogInstallLanded(
-        installJourneyId,
-        packageVersion.packageVersionId,
-        optionalSession === null ? "signed_out" : "signed_in",
-      );
       setLoadState(optionalSession === null ? "signed_out" : "signed_in");
     } catch (error) {
       const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
@@ -139,7 +142,7 @@ export function CatalogImportScreen(): ReactElement {
         return;
       }
       reportCatalogInstallFailure(
-        installJourneyId,
+        installJourneyIdRef.current,
         packageVersionId,
         "landing",
         isCatalogPublicVersionNotFoundError(error)
@@ -169,7 +172,6 @@ export function CatalogImportScreen(): ReactElement {
     }
   }, [
     indexedDbOpenRecoveryState,
-    installJourneyId,
     packageVersionId,
     showTechnicalError,
     t,
@@ -179,6 +181,22 @@ export function CatalogImportScreen(): ReactElement {
   useEffect(() => {
     void loadCatalogImport();
   }, [loadCatalogImport]);
+
+  const catalogContext = useMemo<CatalogImportContext | null>(
+    () => loadedPackage === null ? null : { ...loadedPackage, installJourneyId },
+    [installJourneyId, loadedPackage],
+  );
+
+  // Reported from here rather than from the load, because the journey id can settle after it. The
+  // landing event is deduplicated by journey, package and name, so a re-run once the id arrives
+  // emits exactly one row — and a load that finished before the answer no longer loses the landing.
+  useEffect(() => {
+    if (catalogContext === null || (loadState !== "signed_in" && loadState !== "signed_out")) {
+      return;
+    }
+
+    reportCatalogInstallLanded(installJourneyId, catalogContext.packageVersionId, loadState);
+  }, [catalogContext, installJourneyId, loadState]);
 
   if (loadState === "loading") {
     return (

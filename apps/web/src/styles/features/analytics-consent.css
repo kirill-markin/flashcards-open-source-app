@@ -1,0 +1,79 @@
+/* Room for the strip, so the controls the app anchors to the bottom edge are lifted clear of it
+   rather than left underneath it: the review rating dock is the primary action of the whole product
+   and sticks to the bottom of the shell's scroller. `#root` is the flex column every screen is a
+   child of, so one padding covers all of them, and the height is published by the banner itself
+   while it is up — the strip wraps, so no constant would be right. A screen that sizes itself to the
+   viewport instead of to the shell keeps its own height, so this padding never reaches it; those
+   pages reserve the same variable themselves, beside their own `100vh` — see `.invite-page` in
+   features/invite.css and `.dev-preview-page` in features/dev-previews.css. */
+#root {
+  padding-bottom: var(--analytics-consent-banner-height, 0px);
+}
+
+/* The consent strip. Fixed to the bottom edge but never over the whole page: the product stays
+   usable while the question is open. Its layer is deliberately below every overlay in the app; see
+   `--z-index-consent-banner` in tokens.css for why it has to be. */
+.analytics-consent-banner {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-index-consent-banner);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px var(--desktop-shell-gutter) calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--panel-border);
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-soft);
+}
+
+.analytics-consent-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: var(--shell-width);
+  margin: 0 auto;
+}
+
+.analytics-consent-banner-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  min-width: 240px;
+  flex: 1 1 320px;
+}
+
+.analytics-consent-banner-message {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.analytics-consent-banner-link {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Both answers are one click on the same layer, in the same style: neither is the easy one. */
+.analytics-consent-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analytics-consent-banner-btn {
+  min-width: 120px;
+  flex: 1 1 auto;
+}
+
+@media (max-width: 640px) {
+  .analytics-consent-banner-actions {
+    width: 100%;
+  }
+}

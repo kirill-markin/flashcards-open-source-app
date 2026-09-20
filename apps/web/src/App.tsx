@@ -2,9 +2,13 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactEle
 import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useParams } from "react-router";
 import { AccountMenu } from "./AccountMenu";
 import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
-import { AnalyticsLifecycle, useAnalyticsScreenView, type AnalyticsSurface } from "./analytics";
+import {
+  AnalyticsConsentBanner,
+  AnalyticsLifecycle,
+  useAnalyticsScreenView,
+  type AnalyticsSurface,
+} from "./analytics";
 import { AppDataProvider, useAppData, type SessionLoadState } from "./appData";
-import { WebGuestSessionLifecycle } from "./appData/session/guest/WebGuestSessionLifecycle";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
 import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
@@ -35,6 +39,7 @@ import {
   settingsAccessRoute,
   settingsAccessDetailRoutePattern,
   settingsAIChatSuggestionsRoute,
+  settingsAnalyticsRoute,
   settingsCurrentWorkspaceRoute,
   settingsDeckNewRoute,
   settingsDecksRoute,
@@ -135,6 +140,9 @@ const LeaderboardParticipationSettingsScreen = lazy(async () => import("./screen
 })));
 const AIChatSuggestionsSettingsScreen = lazy(async () => import("./screens/settings/AIChatSuggestionsSettingsScreen").then((module) => ({
   default: module.AIChatSuggestionsSettingsScreen,
+})));
+const AnalyticsSettingsScreen = lazy(async () => import("./screens/settings/AnalyticsSettingsScreen").then((module) => ({
+  default: module.AnalyticsSettingsScreen,
 })));
 const SettingsScreen = lazy(async () => import("./screens/settings/SettingsScreen").then((module) => ({
   default: module.SettingsScreen,
@@ -751,6 +759,7 @@ export function RoutedShell(): ReactElement {
           <Route path={settingsNotificationsRoute} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
           <Route path={settingsReviewAnimationsRoute} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={settingsAIChatSuggestionsRoute} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
+          <Route path={settingsAnalyticsRoute} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />
           <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
           <Route path={settingsImportRoute} element={renderDeferredRoute(<WorkspaceImportScreen />, "loading.importSettings")} />
           <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
@@ -853,7 +862,8 @@ export default function App(): ReactElement {
     <AppErrorBoundary fallback={<AppCrashFallback />}>
       <BrowserRouter>
         <AnalyticsLifecycle />
-        <WebGuestSessionLifecycle />
+        {/* Outside the routes, so every surface a visitor can land on asks on the same terms. */}
+        <AnalyticsConsentBanner />
         <AppErrorDialogProvider>
           <TestModeProvider>
             <SentryRoutes>

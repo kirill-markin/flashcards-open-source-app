@@ -819,6 +819,22 @@ const esEsCatalog: TranslationCatalog = {
     toggleTitle: "Mostrar sugerencias en el compositor del chat de IA",
     toggleDescription: "Las sugerencias aparecen encima del compositor cuando el chat está inactivo y listo.",
   },
+  analyticsConsentBanner: {
+    label: "Cookies de analítica",
+    message: "Usamos una cookie y otro almacenamiento del navegador para medir cómo se usa la aplicación. Hasta que elijas, esta aplicación no guarda nada en este dispositivo ni envía nada que te identifique.",
+    allow: "Permitir",
+    decline: "Rechazar",
+    privacyPolicy: "Política de privacidad",
+    error: "No ha funcionado. Inténtalo de nuevo.",
+  },
+  analyticsSettings: {
+    title: "Analítica",
+    subtitle: "Elige si se puede medir este navegador.",
+    toggleTitle: "Permitir cookies de analítica",
+    toggleDescription: "Con esto desactivado, esta aplicación no da ningún identificador a este navegador ni guarda nada para analítica. Mientras tengas la sesión iniciada, lo que se mide se sigue registrando en tu cuenta.",
+    error: "No ha funcionado. Inténtalo de nuevo.",
+    unavailable: "La analítica está desactivada en esta aplicación, así que aquí no hay nada que permitir ni retirar.",
+  },
   leaderboardParticipationSettings: {
     title: "Participación en la clasificación",
     subtitle: "Controla si apareces en las clasificaciones de la comunidad y si puedes verlas.",

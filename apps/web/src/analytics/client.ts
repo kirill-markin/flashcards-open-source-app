@@ -1,10 +1,10 @@
-import type { AnalyticsRequestCredential } from "../api";
 import { createAnalyticsDeliveryRuntime } from "./deliveryRuntime";
 import {
   analyticsCatalogSlugPattern,
   analyticsUuidPattern,
   type AnalyticsEvent,
   type AnalyticsSurface,
+  type IdentityFreeAnalyticsEventName,
 } from "./events";
 
 let currentSurface: AnalyticsSurface | null = null;
@@ -19,19 +19,12 @@ export function isAnalyticsEnabledForCurrentRuntime(): boolean {
   return deliveryRuntime.isAnalyticsEnabledForCurrentRuntime();
 }
 
-export function registerAnalyticsGuestCredentialRefusalHandler(handler: () => void): () => void {
-  return deliveryRuntime.registerAnalyticsGuestCredentialRefusalHandler(handler);
+export function registerAnalyticsSessionOwnerPublisher(): () => void {
+  return deliveryRuntime.registerAnalyticsSessionOwnerPublisher();
 }
 
-export function setAnalyticsGuestOwnerId(nextGuestOwnerId: string | null): void {
-  deliveryRuntime.setAnalyticsGuestOwnerId(nextGuestOwnerId);
-}
-
-export function setAnalyticsConfirmedOwner(
-  userId: string,
-  credential: AnalyticsRequestCredential,
-): void {
-  deliveryRuntime.setAnalyticsConfirmedOwner(userId, credential);
+export function setAnalyticsConfirmedOwner(userId: string): void {
+  deliveryRuntime.setAnalyticsConfirmedOwner(userId);
 }
 
 export function readAnalyticsSessionOwnerId(): string | null {
@@ -142,6 +135,33 @@ export function trackCatalogDeckInstallStarted(
   track({ name: "catalog_deck_install_started", packageSlug, installJourneyId, packageVersionId });
 }
 
+/**
+ * Records the person's consent answer for this browser and releases, or withholds, everything that
+ * depends on it. The caller reports the decision itself: these two only carry it out, so a decision
+ * arriving from an account is not counted as one somebody just made.
+ *
+ * The grant resolves `false` when the server recorded none, which leaves the banner up.
+ */
+export function grantAnalyticsConsent(): Promise<boolean> {
+  return deliveryRuntime.applyAnalyticsConsentGrant();
+}
+
+export function declineAnalyticsConsent(): Promise<void> {
+  return deliveryRuntime.applyAnalyticsConsentDecline();
+}
+
+/**
+ * Reports one of the two consent facts the catalog allows no identity at all. It never enters the
+ * queue, so unlike `track` it is sent rather than collected.
+ */
+export function reportIdentityFreeAnalyticsEvent(eventName: IdentityFreeAnalyticsEventName): void {
+  try {
+    deliveryRuntime.reportIdentityFreeEvent(eventName);
+  } catch {
+    // A failure inside analytics is swallowed on purpose, exactly as in `track`.
+  }
+}
+
 export function flush(): void {
   deliveryRuntime.flush();
 }
@@ -150,8 +170,8 @@ export function reset(): void {
   // The open visit belongs to the person leaving, and this runs inside a live app rather than at a
   // page load, so the pointer is set. Carrying it over would make the dedupe swallow the next
   // person's first `screen_viewed` whenever they land on the same surface — which is the common
-  // case, the route rarely changes across an account switch — leaving their rotated `anonymous_id`
-  // with no entry into the screen they are on, permanently.
+  // case, the route rarely changes across an account switch — leaving their first session with no
+  // entry into the screen they are on, permanently.
   endAnalyticsScreenVisit();
   deliveryRuntime.reset();
 }

@@ -14,4 +14,5 @@
 @import "./features/progress.css" layer(features);
 @import "./features/invite.css" layer(features);
 @import "./features/app-platform-links.css" layer(features);
+@import "./features/analytics-consent.css" layer(features);
 @import "./features/dev-previews.css" layer(features);

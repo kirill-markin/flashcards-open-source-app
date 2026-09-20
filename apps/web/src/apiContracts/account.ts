@@ -2,6 +2,7 @@ import type {
   AccountPreferences,
   AccountPreferencesEnvelope,
   AgentApiKeyConnection,
+  AnalyticsConsentChoice,
   CommunityPublicProfile,
   DeleteWorkspaceResponse,
   ResetWorkspaceProgressResponse,
@@ -13,6 +14,7 @@ import type {
 import {
   parseArray,
   parseBoolean,
+  parseEnum,
   parseLiteral,
   parseNullableString,
   parseNumber,
@@ -36,6 +38,15 @@ export type AgentApiKeyConnectionsEnvelope = Readonly<{
   nextCursor: string | null;
 }>;
 
+/** Null is the stored "no decision has been recorded", not a missing field. */
+function parseAnalyticsConsent(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): AnalyticsConsentChoice | null {
+  return value === null ? null : parseEnum<AnalyticsConsentChoice>(value, endpoint, path, ["granted", "declined"]);
+}
+
 function parseAccountPreferences(value: unknown, endpoint: string, path: string): AccountPreferences {
   const objectValue = parseObject(value, endpoint, path);
   return {
@@ -46,6 +57,7 @@ function parseAccountPreferences(value: unknown, endpoint: string, path: string)
       path,
       parseBoolean,
     ),
+    analyticsConsent: parseRequiredField(objectValue, "analyticsConsent", endpoint, path, parseAnalyticsConsent),
   };
 }
 
