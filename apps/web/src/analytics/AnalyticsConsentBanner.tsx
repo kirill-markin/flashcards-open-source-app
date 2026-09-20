@@ -72,14 +72,17 @@ export function AnalyticsConsentBanner(): ReactElement | null {
    * line, and it is republished on every resize for the same reason.
    */
   useEffect(() => {
-    const banner = bannerRef.current;
+    const banner: HTMLElement | null = bannerRef.current;
     const rootStyle = document.documentElement.style;
     if (isVisible === false || banner === null) {
       return;
     }
+    // A hoisted function declaration does not keep the null check above, so the strip is captured
+    // here as a non-null element for the measurement to read.
+    const measuredBanner: HTMLElement = banner;
 
     function publishBannerHeight(): void {
-      rootStyle.setProperty(bannerHeightCustomProperty, `${banner.offsetHeight}px`);
+      rootStyle.setProperty(bannerHeightCustomProperty, `${measuredBanner.offsetHeight}px`);
     }
 
     publishBannerHeight();
@@ -92,7 +95,7 @@ export function AnalyticsConsentBanner(): ReactElement | null {
     }
 
     const observer = new ResizeObserver(publishBannerHeight);
-    observer.observe(banner);
+    observer.observe(measuredBanner);
     return (): void => {
       observer.disconnect();
       rootStyle.removeProperty(bannerHeightCustomProperty);
