@@ -802,3 +802,6 @@
 "settings.account.status.customGuestPause.retry" = "Повторить";
 "settings.account.status.customGuestPause.changeServer" = "Сменить сервер";
 "settings.account.status.customGuestPause.retryFailed" = "Повторная попытка не удалась. Синхронизация по-прежнему приостановлена. Проверьте пользовательский сервер и повторите попытку.";
+"settings.language.supported.bulgarian" = "Болгарский";
+"settings.language.supported.bangla" = "Бенгальский";
+"settings.language.supported.catalan" = "Каталанский";

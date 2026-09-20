@@ -802,3 +802,6 @@
 "settings.account.status.customGuestPause.retry" = "Volver a intentar";
 "settings.account.status.customGuestPause.changeServer" = "Cambiar servidor";
 "settings.account.status.customGuestPause.retryFailed" = "El reintento falló. La sincronización sigue en pausa. Revisa el servidor personalizado y vuelve a intentarlo.";
+"settings.language.supported.bulgarian" = "Búlgaro";
+"settings.language.supported.bangla" = "Bengalí";
+"settings.language.supported.catalan" = "Catalán";
