@@ -53,19 +53,24 @@ extension AIChatView {
                                     case .binary(let fileName, _, _):
                                         Image(systemName: attachment.isImage ? "photo" : "doc")
                                             .foregroundStyle(.secondary)
+                                            .fixedSize()
                                         Text(fileName)
                                             .font(.caption)
                                             .lineLimit(1)
+                                            .truncationMode(.tail)
                                     case .card(let card):
                                         Image(systemName: "square.stack")
                                             .foregroundStyle(.secondary)
+                                            .fixedSize()
                                         Text(aiChatCardAttachmentLabel(card: card))
                                             .font(.caption)
                                             .lineLimit(1)
+                                            .truncationMode(.tail)
                                             .accessibilityIdentifier(UITestIdentifier.aiComposerCardAttachmentChip)
                                     case .unknown(let unknownAttachment):
                                         Image(systemName: "questionmark.square.dashed")
                                             .foregroundStyle(.secondary)
+                                            .fixedSize()
                                         Text(
                                             aiSettingsLocalizedFormat(
                                                 "ai.composer.attachment.unsupported",
@@ -75,6 +80,7 @@ extension AIChatView {
                                         )
                                             .font(.caption)
                                             .lineLimit(1)
+                                            .truncationMode(.tail)
                                     }
                                     Button {
                                         self.chatStore.removeAttachment(id: attachment.id)
@@ -83,13 +89,24 @@ extension AIChatView {
                                             .foregroundStyle(.secondary)
                                     }
                                     .buttonStyle(.plain)
+                                    .fixedSize()
                                     .disabled(self.chatStore.canModifyDraftAttachments == false)
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
+                                .frame(
+                                    idealWidth: self.composerAttachmentViewportWidth,
+                                    maxWidth: self.composerAttachmentViewportWidth,
+                                    alignment: .leading
+                                )
                                 .background(.thinMaterial, in: Capsule())
                             }
                         }
+                    }
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.width
+                    } action: { width in
+                        self.composerAttachmentViewportWidth = width
                     }
                 }
 
