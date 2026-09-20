@@ -75,21 +75,35 @@ export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): stri
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * NOT YET APPLIED EVERYWHERE, AND THIS IS THE WHOLE LIST. Nineteen entries below derive an
- * actor-level fact from `analytics.product_events_resolved`, eighteen in this package and one
- * outside it. Each is APPLIED, UNREACHABLE, or PENDING, and the three are not interchangeable: only
- * a PENDING entry is work. Reading an UNREACHABLE entry as an unconverted one produces a no-op
- * predicate; reading it as an omission produces a remediation that converts the entries it happens
- * to have been told about and stops. A shared fragment is one entry, listed where it is written,
- * with its readers named.
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Nineteen entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, eighteen in this package and
+ * one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
+ * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
+ * remediation that converts the entries it happens to have been told about and stops. A shared
+ * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (4).
+ * APPLIED (10).
  *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
  *     feeds.
  *   - `reports/audience/query.ts`, the `history` CTE and the cohort it feeds.
+ *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
+ *     of an already-counted actor, over every event name.
+ *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
+ *   - `reports/catalogInstallFunnel/query.ts`, `install_actor_first_event`: whether the installing
+ *     account is new, which is a different rule from the cohort above - the absence of any trusted
+ *     row before the click, read with no lower bound and, by design, no event-name restriction at
+ *     all, so it sees every name the collector accepts.
  *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
  *     filter bar composes.
+ *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
+ *     `anonymous_client` row carries; read by the country filter, the country option list and the
+ *     country and pair charts of `Audience`.
+ *   - `buildAppUiLanguagesFilterSql` below, over every event name, composed by every report's
+ *     filter bar.
  *   - `filters/optionsQuery.ts`, the `Users` option list.
+ *   - `filters/optionsQuery.ts`, the `ui_locale` list, which otherwise gates on nothing but a
+ *     non-NULL actor, so a locale only a signed-out visitor ever sent would be offered as a filter
+ *     value.
  *
  * UNREACHABLE (8): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
  * from is either `serverOnly: true` in `apps/backend/src/productAnalytics/catalog.ts`, which the
@@ -114,39 +128,29 @@ export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): stri
  *     applies the actor exclusions to a server-origin `catalog_deck_installed`. By event name.
  *   - `filters/optionsQuery.ts`, the deck-slug list (`catalog_deck_installed`). By event name.
  *
- * PENDING (6), each needing this predicate of its own. Each is reachable as soon as a producer
- * sends the shared browser visitor id, because an `anonymous_client` row then resolves onto a real
- * person through `first_anonymous_link` in
- * `db/migrations/0115_product_analytics_resolved_view.sql`.
- *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
- *   - `reports/catalogInstallFunnel/query.ts`, `install_actor_first_event`: the same cohort, and by
- *     design it carries no event-name restriction at all, so it sees every name the collector
- *     accepts.
- *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
- *     of an already-counted actor, over every event name.
- *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
- *     `anonymous_client` row carries; read by the country filter, the country option list and the
- *     country and pair charts of `Audience`.
- *   - `buildAppUiLanguagesFilterSql` below, over every event name, composed by every report's
- *     filter bar.
- *   - `filters/optionsQuery.ts`, the `ui_locale` list, which gates on nothing but a non-NULL actor,
- *     so a locale only a signed-out visitor ever sent would be offered as a filter value.
- *
  * OUTSIDE THIS PACKAGE (1), and it cannot take the rule from here.
  *   - `apps/backend/src/productAnalytics/syntheticActorDetector.ts` groups the whole event store by
- *     actor and restates its own rules, because the backend cannot import this package. Its
- *     candidate population is gated on `review_answered`, so the collector can never produce a
- *     candidate, but its `app_opened_events = 0` safety signal counts that actor's whole unfiltered
- *     history, so a collector row resolving onto a candidate can only suppress a detection, never
- *     cause one. Pending in the weaker direction, and it is a restatement rather than a call.
+ *     actor and restates this rule, because the backend cannot import this package. Its candidate
+ *     population is gated on `review_answered`, so the collector can never produce a candidate, but
+ *     its `app_opened_events = 0` safety signal counts that actor's whole history, so without the
+ *     restatement a collector row resolving onto a candidate would suppress a detection. It is the
+ *     one entry the rule reaches in the weaker direction: a collector row can only suppress a
+ *     detection there, never cause one, and the restatement is what removes that suppression, so
+ *     the restatement itself can cause a detection that would not have fired and can never
+ *     suppress one.
  *
  * NOT ENTRIES, AND NOT OMISSIONS. The two available-range probes,
  * `buildReviewEventsByDateAvailableRangeSql` and `buildCatalogInstallFunnelAvailableRangeSql`, read
  * the same view but derive no actor fact at all - each is a `MIN(occurred_at)` over event names - so
- * neither needs this predicate, and the funnel's reads `anonymous_client` rows on purpose.
+ * neither needs this predicate, and the funnel's reads `anonymous_client` rows on purpose. The
+ * review-events one is still the one surface a credential-free `app_opened` row can move: it reads
+ * that name with no trust predicate, so such a row pulls the earliest selectable date backwards.
+ * That widens a date picker rather than deciding anything about a person, so it stays out of this
+ * list on purpose.
  *
- * Any further reader that decides a person takes the rule from here rather than restating it, and
- * adds itself to this list.
+ * Any further reader that decides a person takes the rule from here rather than restating it - unless
+ * it cannot import this module, the way the one entry outside this package cannot - and adds itself
+ * to this list.
  */
 export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string): string {
   return `${trustLevelSqlExpression} <> 'anonymous_client'`;
@@ -362,6 +366,9 @@ export function buildConnectionCountrySamplesSql(
     "WHERE sample_events.origin = 'client'",
     // A sample nobody can be resolved behind names no person to keep or to offer.
     "  AND sample_events.actor_id IS NOT NULL",
+    // `origin = 'client'` above is exactly what a credential-free collector row carries, and every
+    // reader of this fragment puts a person in a country. See `buildTrustedActorRowsFilterSql`.
+    `  AND ${buildTrustedActorRowsFilterSql("sample_events.trust_level")}`,
     `  AND sample_events.occurred_at >= ${rangeStartSql}`,
     `  AND sample_events.occurred_at < ${rangeEndSql}`,
     ...(eventPlatforms === null ? [] : [
@@ -429,6 +436,9 @@ export function buildAppUiLanguagesFilterSql(
     "  FROM analytics.product_events_resolved AS ui_locale_events",
     `  WHERE ${buildInPredicateSql("ui_locale_events.ui_locale", appUiLanguages)}`,
     "    AND ui_locale_events.actor_id IS NOT NULL",
+    // This keeps a person, and it reads every event name, so it reads the names the credential-free
+    // collector accepts too. See `buildTrustedActorRowsFilterSql`.
+    `    AND ${buildTrustedActorRowsFilterSql("ui_locale_events.trust_level")}`,
     `    AND ui_locale_events.occurred_at >= ${buildRangeStartSql(dateRange)}`,
     `    AND ui_locale_events.occurred_at < ${buildRangeEndSql(dateRange)}`,
   ]);
@@ -611,7 +621,8 @@ export function buildCatalogAttributionFiltersSql(
 /**
  * A row whose cohort cannot be decided is kept only while both cohorts are selected, which is the
  * state the filter row treats as "no cohort filter". Catalog installs are the one report with that
- * case: an installer with no `app_opened` day inside the range belongs to neither side.
+ * case: an installer with no trusted `app_opened` day inside the range belongs to neither side,
+ * trusted as `buildTrustedActorRowsFilterSql` defines it.
  */
 export function isEveryUserCohortSelected(filters: AnalyticsFilterState): boolean {
   return filters.userCohorts.length === reviewEventCohorts.length;
