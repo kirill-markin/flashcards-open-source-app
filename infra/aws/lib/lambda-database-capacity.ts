@@ -14,13 +14,13 @@
 // would leave these checks passing while the guarantee silently broke.
 //
 // Hard guarantee. The db.t4g.small instance reports max_connections = 181 with 3 held for
-// superusers, leaving 178 usable. The reservations below total 39 containers, so the worst case is
-// 39 x 3 = 117 <= 178. The check under the constants enforces it at synth time.
+// superusers, leaving 178 usable. The reservations below total 47 containers, so the worst case is
+// 47 x 3 = 141 <= 178. The check under the constants enforces it at synth time.
 //
 // Expected steady state. A warm container holds close to one connection, not the pool ceiling. This
 // is measured, not assumed: during the 2026-08-29 06:40 UTC burst BackendHandler
 // ConcurrentExecutions peaked at 110 in the same minute DatabaseConnections peaked at 110, a ratio
-// of about 1.1. So the expected draw here is 39 x ~1.1 ~= 43 connections, comfortably below the 62
+// of about 1.1. So the expected draw here is 47 x ~1.1 ~= 52 connections, comfortably below the 62
 // this instance already carries. databasePoolMaxConnectionsPerContainer is a per-container safety
 // ceiling, not the expected per-container draw.
 //
@@ -35,7 +35,7 @@
 // enforces that direction too, so the stack cannot deploy a value the fleet cannot run.
 //
 // Carve-outs. Two real draws on this database sit outside the factor above and are covered by
-// headroom rather than by budget, so 117 is this budget's ceiling and not the whole fleet's:
+// headroom rather than by budget, so 141 is this budget's ceiling and not the whole fleet's:
 //
 //   Secondary pools. A backend container may additionally open the session advisory lock pool
 //   (max: 2), the product analytics writer pool (max: 4), and the reporting pool (max: 4). Each is
@@ -51,8 +51,9 @@
 //   and its freshness checker draw on the reporting pool only, and DbMigrationHandler connects with
 //   its own owner credentials, so neither touches this pool.)
 //
-// The honest worst case is therefore 117 from the budget plus those carve-outs, not 117 flat, and
-// the 178 - 117 = 61 left over covers them comfortably.
+// The honest worst case is therefore 141 from the budget plus those carve-outs, not 141 flat, and
+// the 178 - 141 = 37 left over is all that covers them. That is thin, not comfortable: raise a
+// reservation here only against evidence, and re-check the carve-outs when you do.
 //
 // Once a reservation saturates, Lambda throttles and the caller sees a gateway error. That bounded,
 // observable rejection is the intended trade against an unbounded database outage.
@@ -74,8 +75,13 @@ export const databasePoolMaxConnectionsEnvValue = String(databasePoolMaxConnecti
 export const backendHandlerReservedConcurrency = 8;
 // Observed 1/3/19. 2x p95.
 export const authHandlerReservedConcurrency = 6;
-// Observed 1/1/9. 4x p95.
-export const mcpHandlerReservedConcurrency = 4;
+// Observed 1/1-2/9 over 2026-08-21..2026-09-20, but the reservation censors the metric, so demand
+// above the cap cannot be observed and 9 is the only uncensored point, from when the cap was higher.
+// On 2026-09-20 18:11 UTC a burst of about 25 requests in 2 s on one authenticated MCP connection
+// exceeded the cap of 4: Lambda throttled 4 invocations, API Gateway returned 503, and
+// McpApiGateway5xx fired at 18:13 UTC and self-cleared at 18:17 UTC. Sized above that uncensored 9
+// rather than as a p95 multiple.
+export const mcpHandlerReservedConcurrency = 12;
 // Production reached the previous cap of 10 on 2026-09-02, with two same-minute throttles and 40
 // throttles through 05:04 UTC. A reservation of 16 gives round headroom above at least 12
 // simultaneous attempts. SSE holds a container for the whole stream, so concurrency here is set by
