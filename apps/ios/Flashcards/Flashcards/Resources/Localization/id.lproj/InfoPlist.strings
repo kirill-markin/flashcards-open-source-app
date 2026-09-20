@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,kartu belajar,kartu hafalan,kartu kilas";
+"NSCameraUsageDescription" = "Izinkan akses kamera untuk mengambil foto sebagai lampiran obrolan AI.";
+"NSMicrophoneUsageDescription" = "Izinkan akses mikrofon untuk mendiktekan teks ke obrolan AI.";
+"NSPhotoLibraryUsageDescription" = "Izinkan akses perpustakaan foto untuk memilih foto sebagai lampiran obrolan AI.";

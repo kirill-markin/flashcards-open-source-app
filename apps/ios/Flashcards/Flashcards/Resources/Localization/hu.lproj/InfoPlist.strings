@@ -1,0 +1,4 @@
+"kMDItemKeywords" = "flashcards,tanulókártyák,tanulokartyak,memóriakártyák";
+"NSCameraUsageDescription" = "Engedélyezd a kamerahozzáférést, hogy fotókat készíthess az AI-csevegés mellékleteihez.";
+"NSMicrophoneUsageDescription" = "Engedélyezd a mikrofonhozzáférést, hogy szöveget diktálhass az AI-csevegésbe.";
+"NSPhotoLibraryUsageDescription" = "Engedélyezd a fotókönyvtár-hozzáférést, hogy fotókat választhass az AI-csevegés mellékleteihez.";

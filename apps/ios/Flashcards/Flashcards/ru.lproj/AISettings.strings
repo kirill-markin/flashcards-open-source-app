@@ -811,3 +811,9 @@
 "settings.language.supported.estonian" = "Эстонский";
 "settings.language.supported.persian" = "Персидский";
 "settings.language.supported.finnish" = "Финский";
+"settings.language.supported.gujarati" = "Гуджарати";
+"settings.language.supported.hebrew" = "Иврит";
+"settings.language.supported.croatian" = "Хорватский";
+"settings.language.supported.hungarian" = "Венгерский";
+"settings.language.supported.indonesian" = "Индонезийский";
+"settings.language.supported.icelandic" = "Исландский";
