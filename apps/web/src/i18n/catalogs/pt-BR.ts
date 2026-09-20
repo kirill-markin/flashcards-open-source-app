@@ -109,6 +109,11 @@ const ptBrCatalog: TranslationCatalog = {
       reload: "Recarregar página",
       later: "Depois",
     },
+    storageUnavailable: {
+      title: "Armazenamento do navegador indisponível",
+      message: "Este app precisa do armazenamento do navegador, e este navegador está bloqueando.",
+      guidance: "Abra o app em uma janela normal (não anônima) ou em outro navegador.",
+    },
   },
   filters: {
     allCards: "Todos os cartões",

@@ -887,7 +887,8 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   const isSessionPanelVisible = sessionLoadState === "loading"
     || sessionLoadState === "redirecting"
     || sessionLoadState === "error"
-    || sessionLoadState === "deleted";
+    || sessionLoadState === "deleted"
+    || sessionLoadState === "storage_unavailable";
   // Called before the early returns below so it runs on every render, as a hook must.
   useAnalyticsScreenView(resolveCatalogImportStepSurface({
     hasActiveWorkspace: activeWorkspace !== null,
@@ -904,6 +905,21 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         testId="catalog-import-session-loading"
         title={t("catalogImport.title")}
         message={t("loading.restoringSession")}
+        guidance={null}
+        retryLabel={null}
+        onRetry={null}
+      />
+    );
+  }
+
+  if (sessionLoadState === "storage_unavailable") {
+    // Retrying cannot help a browser that exposes no storage, so this panel offers no retry.
+    return (
+      <CatalogImportStatePanel
+        testId="catalog-import-session-storage-unavailable"
+        title={t("appError.storageUnavailable.title")}
+        message={t("appError.storageUnavailable.message")}
+        guidance={t("appError.storageUnavailable.guidance")}
         retryLabel={null}
         onRetry={null}
       />
@@ -916,6 +932,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         testId="catalog-import-session-error"
         title={t("catalogImport.errorTitle")}
         message={sessionErrorMessage === "" ? t("catalogImport.errorBody") : sessionErrorMessage}
+        guidance={null}
         retryLabel={t("common.retry")}
         onRetry={() => void initialize()}
       />
