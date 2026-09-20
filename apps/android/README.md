@@ -158,7 +158,7 @@ Current committed Android feature graphic files:
 
 - source HTML template: `apps/android/docs/media/play-store-feature-graphic/index.html`
 - exported store PNGs: `apps/android/docs/media/play-store-feature-graphic/<locale>-feature-graphic.png`
-- supported locales: `en-US`, `ar`, `zh-CN`, `fr-FR`, `de-DE`, `hi-IN`, `ja-JP`, `pt-BR`, `ru-RU`, `es-419`, `es-ES`, `es-US`
+- supported locales: the canonical list in [the batch exporter](../../scripts/android/export-android-feature-graphics.sh)
 
 These files are updated manually and are part of the repository on purpose.
 Media-only changes inside `apps/android/docs/media/` must not trigger Android CI builds.
