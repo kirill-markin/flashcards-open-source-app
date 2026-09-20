@@ -1,0 +1,67 @@
+{
+  "localePrefix": "tr-TR",
+  "appLocaleTag": "tr",
+  "uiText": {
+    "emptyCardsMessage": "Henüz kart yok. İlk kartı oluşturmak için ekle düğmesine dokunun.",
+    "cardsTabTitle": "Kartlar",
+    "reviewTabTitle": "Tekrar",
+    "aiTabTitle": "YZ",
+    "searchCardsPlaceholder": "Kart ara",
+    "addCardContentDescription": "Kart ekle",
+    "frontFieldTitle": "Ön yüz",
+    "backFieldTitle": "Arka yüz",
+    "tagsFieldTitle": "Etiketler",
+    "addTagFieldTitle": "Etiket ekle",
+    "addTagButtonTitle": "Etiket ekle",
+    "saveButtonTitle": "Kaydet",
+    "ratingAgainTitle": "Yeniden",
+    "ratingHardTitle": "Zor",
+    "ratingGoodTitle": "İyi",
+    "ratingEasyTitle": "Kolay"
+  },
+  "reviewCard": {
+    "frontText": "Fırsat maliyeti nedir?",
+    "backText": "Bir seçeneği diğerine tercih ettiğinizde vazgeçtiğiniz en iyi alternatifin değeridir.\n\nSınav örneği: Cumartesiyi ücretli bir vardiyada çalışmak yerine mikroekonomi sınavına hazırlanarak geçirirseniz, kaybettiğiniz ücret fırsat maliyetinin bir parçasıdır.",
+    "tags": [
+      "ekonomi"
+    ]
+  },
+  "reviewAiDraftMessage": "Aynı ekonomi konusunda, henüz elimizde olmayan yakından ilişkili kavramları kapsayan 6 yeni kart oluştur.",
+  "cards": [
+    {
+      "frontText": "Fırsat maliyeti nedir?",
+      "backText": "Bir seçeneği diğerine tercih ettiğinizde vazgeçtiğiniz en iyi alternatifin değeridir.",
+      "subjectTag": "ekonomi"
+    },
+    {
+      "frontText": "Biyolojide ozmoz nedir?",
+      "backText": "Suyun bir zardan, çözünen madde yoğunluğunun düşük olduğu taraftan yüksek olduğu tarafa geçmesidir.",
+      "subjectTag": "biyoloji"
+    },
+    {
+      "frontText": "İstatistikte standart sapma nedir?",
+      "backText": "Değerlerin ortalama etrafında ne kadar dağıldığını gösteren bir ölçüdür.",
+      "subjectTag": "istatistik"
+    },
+    {
+      "frontText": "Kimyada katalizör nedir?",
+      "backText": "Kendisi tüketilmeden kimyasal bir tepkimeyi hızlandıran maddedir.",
+      "subjectTag": "kimya"
+    },
+    {
+      "frontText": "Psikolojide bilişsel yanlılık nedir?",
+      "backText": "Yargı ve karar vermeyi çarpıtabilecek sistematik bir düşünme örüntüsüdür.",
+      "subjectTag": "psikoloji"
+    },
+    {
+      "frontText": "Fizikte hız vektörü nedir?",
+      "backText": "Bir cismin süratiyle birlikte hareket yönünü belirten büyüklüktür.",
+      "subjectTag": "fizik"
+    },
+    {
+      "frontText": "Bilgisayar biliminde özyineleme nedir?",
+      "backText": "Bir fonksiyonun, problemin daha küçük sürümleri için kendisini çağırarak problemi çözmesi yöntemidir.",
+      "subjectTag": "bilgisayar bilimi"
+    }
+  ]
+}
