@@ -28,6 +28,7 @@ import { streakLeaderboardSnapshotScheduleHours } from "./scheduled-jobs/streak-
 import { progressActiveDaysBackfillScheduleHours } from "./scheduled-jobs/progress-active-days-backfill";
 import { webGuestReaperScheduleHours } from "./scheduled-jobs/web-guest-reaper";
 import { countryRetentionScheduleHours } from "./scheduled-jobs/country-retention";
+import { geoLiteCountryObjectExpirationDays } from "./geolite-country";
 import { syntheticActorDetectorScheduleHours } from "./scheduled-jobs/synthetic-actor-detector";
 import { addProductAnalyticsMonitoring } from "./product-analytics-monitoring";
 
@@ -108,6 +109,35 @@ const webGuestReaperSaturationMetricName: string =
   "SaturatedRuns";
 const webGuestReaperSaturationMetricValue: string =
   "1";
+const geoLiteCountryMetricNamespace: string = "FlashcardsOpenSourceApp/GeoLiteCountry";
+const geoLiteCountryLookupFailureMetricName: string = "LookupFailures";
+const geoLiteCountryDatabasePublishedAgeMetricName: string = "DatabasePublishedAgeHours";
+// The consent route's own record for a lookup that threw. Deliberately not a count of unresolved
+// addresses: apps/backend/src/geolocation/country.ts returns null for an address the database has
+// no country for - a private range, an unallocated block - and throws only when the database itself
+// is unusable, so ordinary traffic cannot reach this metric at all.
+const geoLiteCountryLookupFailureAction: string = "analytics_visitor_country_lookup_failed";
+const geoLiteCountryDatabaseLoadedAction: string = "geolite_country_database_loaded";
+// Fifteen minutes is long enough for the three retries inside one download
+// (apps/backend/src/geolocation/storage.ts) to have played out, and the two consecutive periods
+// below are what separate a storage blip from a database that is not coming back.
+const geoLiteCountryLookupFailurePeriodMinutes = 15;
+const geoLiteCountryLookupFailureEvaluationPeriods = 2;
+// Equal to `databaseRefreshIntervalMs` in apps/backend/src/geolocation/country.ts, which is not
+// aligned to clock-hour boundaries: a container that loaded mid-period serves warm lookups for the
+// rest of its TTL and contributes nothing to the period it spills into. A traffic-serving container
+// therefore guarantees a datapoint only across two consecutive periods, which is why the alarm
+// below ignores missing data rather than reading it as a verdict.
+const geoLiteCountryDatabaseAgePeriodHours = 1;
+// Four missed daily refreshes, measured from the S3 write rather than the MaxMind build date. Both
+// walls of the usable band are close. Above: `geoLiteCountryObjectExpirationDays` in
+// ./geolite-country.ts deletes the object seven days after that write, and a deleted object emits
+// no age datapoint at all, so a threshold anywhere near 168 hours can never be reached. Below: the
+// refresh workflow uploads unconditionally every day at 05:17 UTC
+// (.github/workflows/geolite-country-refresh.yml) and a container can load just before the next
+// run, so a healthy pipeline reports up to 24 hours and a threshold near that fires on a working
+// system. Four days sits clear of both and leaves three days of lead time.
+const geoLiteCountryDatabasePublishedAgeThresholdHours = 4 * 24;
 
 function createAuthApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
   return logs.FilterPattern.any(
@@ -147,6 +177,22 @@ export function createWebGuestReaperSaturationFilterPattern(): logs.IFilterPatte
       "web_guest_reaper_completed",
     ),
     logs.FilterPattern.booleanValue("$.message.finished", false),
+  );
+}
+
+export function createGeoLiteCountryLookupFailureFilterPattern(): logs.IFilterPattern {
+  return logs.FilterPattern.stringValue(
+    "$.message.action",
+    "=",
+    geoLiteCountryLookupFailureAction,
+  );
+}
+
+export function createGeoLiteCountryDatabaseLoadedFilterPattern(): logs.IFilterPattern {
+  return logs.FilterPattern.stringValue(
+    "$.message.action",
+    "=",
+    geoLiteCountryDatabaseLoadedAction,
   );
 }
 
@@ -829,6 +875,101 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     },
   ), alertTopic);
+
+  // Two alarms on one dependency, because its two ways of breaking have nothing in common.
+  //
+  // What both protect: `isConsentRequiredForRequest` (apps/backend/src/routes/analyticsVisitor.ts)
+  // treats a country it cannot determine as consent-required, so a GeoLite database that stops
+  // working is not an outage - it silently shows the consent banner to every visitor on earth
+  // rather than to the EEA and the UK, and analytics coverage collapses everywhere with nothing
+  // erroring. Neither of these conditions raises a 5xx, appears in Lambda Errors, or reaches any
+  // other alarm in this stack. Both filters read the backend API Lambda's log group; see the log
+  // group comment in ./product-analytics-monitoring.ts for why `.logGroup` is the right handle.
+
+  // Hard failure: the object is gone or unreadable, the environment is unconfigured, the database
+  // is the wrong type, or it has already crossed the 30-day cliff. All of them throw out of the
+  // lookup and land here, on every request, until someone fixes them.
+  const geoLiteCountryLookupFailureMetricFilter = new logs.MetricFilter(
+    scope,
+    "GeoLiteCountryLookupFailureMetricFilter",
+    {
+      logGroup: props.backendFn.logGroup,
+      filterPattern: createGeoLiteCountryLookupFailureFilterPattern(),
+      metricNamespace: geoLiteCountryMetricNamespace,
+      metricName: geoLiteCountryLookupFailureMetricName,
+      metricValue: "1",
+      defaultValue: 0,
+    },
+  );
+  // The threshold is one failure, not a rate: nothing a visitor does produces this record, and the
+  // volume that would reach a higher threshold does not exist on this route at this product's
+  // stage, so a count tuned to traffic would simply never fire. The guard against paging on a
+  // transient S3 incident is the two consecutive periods instead, which a single failed download
+  // cannot span.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "GeoLiteCountryLookupFailureAlarm", {
+    metric: geoLiteCountryLookupFailureMetricFilter.metric({
+      period: cdk.Duration.minutes(geoLiteCountryLookupFailurePeriodMinutes),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+    evaluationPeriods: geoLiteCountryLookupFailureEvaluationPeriods,
+    datapointsToAlarm: geoLiteCountryLookupFailureEvaluationPeriods,
+    alarmDescription:
+      "GeoLite country lookup threw in each of " +
+      `${geoLiteCountryLookupFailureEvaluationPeriods} consecutive ` +
+      `${geoLiteCountryLookupFailurePeriodMinutes}-minute periods, so the database is missing, ` +
+      "unreadable, the wrong type, or past its 30-day limit and every visitor worldwide is being " +
+      "treated as consent-required. An address the database simply has no country for returns null " +
+      "and never reaches this metric. Check the private GeoLite bucket and the last GeoLite " +
+      "Country Refresh run; docs/geolite-country.md has the runbook",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  // Ageing out: nothing is failing yet. The daily refresh has stopped landing a new object, and the
+  // object still being served is walking toward the lifecycle expiry that deletes it and converts
+  // this into the failure above, all at once, for everybody. No `defaultValue` here, unlike the
+  // failure filter: this is a gauge, and publishing a zero for a period in which no container
+  // loaded the object would report a stale database as brand new.
+  const geoLiteCountryDatabaseAgeMetricFilter = new logs.MetricFilter(
+    scope,
+    "GeoLiteCountryDatabaseAgeMetricFilter",
+    {
+      logGroup: props.backendFn.logGroup,
+      filterPattern: createGeoLiteCountryDatabaseLoadedFilterPattern(),
+      metricNamespace: geoLiteCountryMetricNamespace,
+      metricName: geoLiteCountryDatabasePublishedAgeMetricName,
+      metricValue: "$.message.publishedAgeHours",
+    },
+  );
+  // Maximum, not Average: containers hold independent copies and the question is whether any
+  // request is still being answered from an old one. That is also why the alarm keeps firing for up
+  // to an hour after a fresh object is published - those containers really are still serving the
+  // old object - and why the OK mail this topic sends is the signal that the fix has landed
+  // everywhere. Missing data is ignored rather than treated as not breaching, for the same reason:
+  // a gauge only reports when a container loads, so a silent period is absence of evidence. Reading
+  // it as healthy would mail a recovery notice at the worst possible moment, because the loudest
+  // silence of all is the object being deleted, when every load throws and the failure alarm above
+  // is the thing that should be speaking.
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "GeoLiteCountryDatabaseStaleAlarm", {
+    metric: geoLiteCountryDatabaseAgeMetricFilter.metric({
+      period: cdk.Duration.hours(geoLiteCountryDatabaseAgePeriodHours),
+      statistic: "Maximum",
+    }),
+    threshold: geoLiteCountryDatabasePublishedAgeThresholdHours,
+    comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+    evaluationPeriods: 1,
+    datapointsToAlarm: 1,
+    alarmDescription:
+      "The GeoLite Country object being served was uploaded at least " +
+      `${geoLiteCountryDatabasePublishedAgeThresholdHours / 24} days ago, so the daily GeoLite ` +
+      "Country Refresh workflow has stopped publishing. Nothing is failing yet: the private " +
+      `bucket's ${geoLiteCountryObjectExpirationDays}-day lifecycle expiry deletes the object in ` +
+      `about ${geoLiteCountryObjectExpirationDays - geoLiteCountryDatabasePublishedAgeThresholdHours / 24} ` +
+      "days, and from then every country lookup throws and the consent banner is shown worldwide. " +
+      "docs/geolite-country.md has the runbook",
+    treatMissingData: cloudwatch.TreatMissingData.IGNORE,
+  }), alertTopic);
 
   return { alertTopic };
 }
