@@ -10,7 +10,7 @@ Nibomo (formerly Flashcards Open Source App) is an open-source AI-powered flashc
 
 - [iOS](https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964)
 - [Android](https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share)
-- [Web](https://app.flashcards-open-source-app.com/review)
+- [Web](https://app.nibomo.com/review)
 - MCP server: https://mcp.nibomo.com/mcp
 - Agent API: https://api.flashcards-open-source-app.com/v1/
 
