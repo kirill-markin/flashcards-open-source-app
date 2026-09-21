@@ -3,11 +3,10 @@
  * product domain (docs/analytics-visitor-identity.md), so this app measures a person from the first
  * page view rather than from the first interaction.
  *
- * The auth origin is not on that id today. `apps/auth/src/server/analytics/visitorSession.ts` mints
- * its own host-only `__Host-analytics_visitor` with a separate anonymous id, on the `/login` render
- * for any browser that carries none, with no country check, no banner and no decline path — so
- * `app.` and `auth.` measure the same person as two visitors, and the consent gate in this
- * directory does not reach the auth origin at all.
+ * The auth origin reports under the same cookie and mints nothing of its own
+ * (`apps/auth/src/server/analytics/visitorSession.ts`), so `app.` and `auth.` measure one visitor
+ * and the consent gate in this directory reaches both: a browser it withheld an identity from is
+ * not measured there either.
  *
  * Sessions are deliberately not in that cookie: every client rotates its own under the shared
  * 30-minute rule, which is what this module still owns locally.
