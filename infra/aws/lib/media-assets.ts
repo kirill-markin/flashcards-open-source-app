@@ -4,6 +4,12 @@ import { Construct } from "constructs";
 
 export interface MediaAssetsProps {
   baseDomain: string;
+  // Second host for the web bundle, owned by the CloudFront distribution and
+  // already resolved (./cloudfront-additional-host.ts). The browser reads and
+  // writes media with signed requests straight to this bucket
+  // (apps/web/src/apiContracts/mediaAssets.ts), so the allowlist below, not the
+  // API's, is the one a bundle served from that host is checked against.
+  webAdditionalHost: string | undefined;
 }
 
 export interface MediaAssetsResult {
@@ -26,10 +32,15 @@ export function mediaAssets(scope: Construct, props: MediaAssetsProps): MediaAss
     ],
     cors: [
       {
+        // Appended, never substituted: the primary host keeps serving browsers,
+        // and with no additional host configured this list is unchanged.
         allowedOrigins: [
           `https://app.${props.baseDomain}`,
           "http://localhost:3000",
           "http://localhost:3001",
+          ...(props.webAdditionalHost === undefined
+            ? []
+            : [`https://${props.webAdditionalHost}`]),
         ],
         allowedMethods: [
           s3.HttpMethods.GET,
