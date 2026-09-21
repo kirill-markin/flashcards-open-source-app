@@ -8,27 +8,33 @@ const roCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "fișă",
+        few: "fișe",
         other: "de fișe",
       },
       day: {
         one: "zi",
+        few: "zile",
         other: "de zile",
       },
       deck: {
         one: "pachet",
+        few: "pachete",
         other: "de pachete",
       },
       hour: {
         one: "oră",
-        other: "ore",
+        few: "ore",
+        other: "de ore",
       },
       minute: {
         one: "minut",
-        other: "minute",
+        few: "minute",
+        other: "de minute",
       },
       tag: {
         one: "etichetă",
-        other: "etichete",
+        few: "etichete",
+        other: "de etichete",
       },
     },
     continue: "Continuă",
@@ -198,6 +204,7 @@ const roCatalog: TranslationCatalog = {
     streakInfo: "Rezerva de înghețări {{available}}/{{capacity}}. Următoarea reîncărcare {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "recapitulare",
+      few: "recapitulări",
       other: "de recapitulări",
     },
     streakDayAria: {
@@ -332,6 +339,7 @@ const roCatalog: TranslationCatalog = {
       unavailable: "Clasamentul seriilor nu este disponibil momentan. Revino mai târziu.",
       dayLabels: {
         one: "zi",
+        few: "zile",
         other: "de zile",
       },
     },
@@ -694,6 +702,7 @@ const roCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "fișă",
+        few: "fișe",
         other: "de fișe",
       },
     },
@@ -1160,9 +1169,21 @@ const roCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistici pentru {{deckName}}",
     newDeck: "Pachet nou",
     statLabels: {
-      cards: "fișe",
-      new: "noi",
-      reviewed: "recapitulate",
+      cards: {
+        one: "fișă",
+        few: "fișe",
+        other: "de fișe",
+      },
+      new: {
+        one: "nouă",
+        few: "noi",
+        other: "noi",
+      },
+      reviewed: {
+        one: "recapitulată",
+        few: "recapitulate",
+        other: "recapitulate",
+      },
     },
     subtitle: "Pachetele sunt filtre inteligente, nu containere. Ele includ fișele după etichete.",
     title: "Pachete",

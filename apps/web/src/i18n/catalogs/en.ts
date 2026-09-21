@@ -1158,9 +1158,18 @@ const enCatalog = {
     emptyStatsAriaLabel: "{{deckName}} stats",
     newDeck: "New deck",
     statLabels: {
-      cards: "cards",
-      new: "new",
-      reviewed: "reviewed",
+      cards: {
+        one: "card",
+        other: "cards",
+      },
+      new: {
+        one: "new",
+        other: "new",
+      },
+      reviewed: {
+        one: "reviewed",
+        other: "reviewed",
+      },
     },
     subtitle: "Decks are smart filters, not containers. They match cards by tags.",
     title: "Decks",

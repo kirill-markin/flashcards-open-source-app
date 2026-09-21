@@ -716,7 +716,7 @@ const lvCatalog: TranslationCatalog = {
       dialogTitle: "Dzēst darbvietu",
       loading: "Ielādē dzēšanas informāciju...",
       warning: "Brīdinājums! Šī darbība ir neatgriezeniska. No darbvietas {{workspaceName}} tiks dzēsts: {{count}}.",
-      lastWorkspaceHint: "Tūlīt pēc dzēšanas tiks izveidota jauna tukša personīgā darbvieta.",
+      lastWorkspaceHint: "Tūlīt pēc dzēšanas tiks izveidota jauna tukša darbvieta ar nosaukumu Personal.",
       typePhrase: "Lai turpinātu, ierakstiet frāzi precīzi.",
       deleting: "Dzēš...",
     },
@@ -1160,9 +1160,18 @@ const lvCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}}: statistika",
     newDeck: "Jauna kava",
     statLabels: {
-      cards: "kartītes",
-      new: "jaunas",
-      reviewed: "atkārtotas",
+      cards: {
+        one: "kartīte",
+        other: "kartītes",
+      },
+      new: {
+        one: "jauna",
+        other: "jaunas",
+      },
+      reviewed: {
+        one: "atkārtota",
+        other: "atkārtotas",
+      },
     },
     subtitle: "Kavas ir viedie filtri, nevis konteineri. Tās atlasa kartītes pēc birkām.",
     title: "Kavas",

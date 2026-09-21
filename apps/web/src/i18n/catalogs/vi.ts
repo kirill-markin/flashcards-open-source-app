@@ -236,7 +236,7 @@ const viCatalog: TranslationCatalog = {
       title: "Bảng xếp hạng đánh giá",
       loading: "Đang tải bảng xếp hạng đánh giá...",
       infoToggleLabel: "Về bảng xếp hạng đánh giá",
-      info: "Các lượt ôn tập được chấm Khó, Tốt hoặc Dễ được tính vào thứ hạng của bạn. Lượt chấm Làm lại không được tính.",
+      info: "Các lượt ôn tập được chấm Khó, Tốt hoặc Dễ được tính vào thứ hạng của bạn. Lượt chấm Lại không được tính.",
       periodsLabel: "Khoảng thời gian của bảng xếp hạng đánh giá",
       periods: {
         last24Hours: "24 giờ",
@@ -324,7 +324,7 @@ const viCatalog: TranslationCatalog = {
       title: "Bảng xếp hạng chuỗi ngày",
       loading: "Đang tải bảng xếp hạng chuỗi ngày...",
       infoToggleLabel: "Về bảng xếp hạng chuỗi ngày",
-      info: "Số ngày trong chuỗi hiện tại quyết định thứ hạng của bạn. Một ngày được tính vào chuỗi là ngày theo giờ địa phương có ít nhất một lượt ôn tập thẻ được chấm Làm lại, Khó, Tốt hoặc Dễ. Khi bản chụp công khai chưa sẵn sàng, chuỗi ngày hiện tại trên thiết bị này sẽ được hiển thị.",
+      info: "Số ngày trong chuỗi hiện tại quyết định thứ hạng của bạn. Một ngày được tính vào chuỗi là ngày theo giờ địa phương có ít nhất một lượt ôn tập thẻ được chấm Lại, Khó, Tốt hoặc Dễ. Khi bản chụp công khai chưa sẵn sàng, chuỗi ngày hiện tại trên thiết bị này sẽ được hiển thị.",
       updatedAt: "Cập nhật {{duration}} trước",
       guestBody: "Đăng nhập để so sánh chuỗi ngày hiện tại của bạn với những người học khác.",
       participationDisabledBody: "Thứ hạng chuỗi ngày bị ẩn khi bạn tắt tham gia bảng xếp hạng. Hãy bật lại để xem những người học khác và vị trí của bạn.",
@@ -716,7 +716,7 @@ const viCatalog: TranslationCatalog = {
       dialogTitle: "Xóa không gian làm việc",
       loading: "Đang tải chi tiết xóa...",
       warning: "Cảnh báo! Thao tác này là vĩnh viễn. Nó sẽ xóa {{count}} khỏi {{workspaceName}}.",
-      lastWorkspaceHint: "Một không gian làm việc Personal trống sẽ được tạo ngay sau khi xóa.",
+      lastWorkspaceHint: "Ngay sau khi xóa, một không gian làm việc trống mới có tên Personal sẽ được tạo.",
       typePhrase: "Nhập chính xác cụm từ để tiếp tục.",
       deleting: "Đang xóa...",
     },
@@ -992,7 +992,7 @@ const viCatalog: TranslationCatalog = {
       upcoming: "Sắp tới",
     },
     ratings: {
-      again: "Làm lại",
+      again: "Lại",
       easy: "Dễ",
       good: "Tốt",
       hard: "Khó",
@@ -1026,7 +1026,7 @@ const viCatalog: TranslationCatalog = {
     title: "Sửa thẻ",
   },
   reviewHardReminder: {
-    body: "Nếu bạn không biết đáp án, hãy chọn \"Làm lại\". \"Khó\" chỉ dành cho những đáp án bạn biết nhưng phải vất vả mới nhớ ra.",
+    body: "Nếu bạn không biết đáp án, hãy chọn \"Lại\". \"Khó\" chỉ dành cho những đáp án bạn biết nhưng phải vất vả mới nhớ ra.",
     dismiss: "Đã hiểu",
     title: "Nhắc nhanh",
   },
@@ -1160,9 +1160,18 @@ const viCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Thống kê {{deckName}}",
     newDeck: "Bộ thẻ mới",
     statLabels: {
-      cards: "thẻ",
-      new: "mới",
-      reviewed: "đã ôn",
+      cards: {
+        one: "thẻ",
+        other: "thẻ",
+      },
+      new: {
+        one: "mới",
+        other: "mới",
+      },
+      reviewed: {
+        one: "đã ôn",
+        other: "đã ôn",
+      },
     },
     subtitle: "Bộ thẻ là bộ lọc thông minh, không phải thư mục chứa. Chúng khớp thẻ theo nhãn.",
     title: "Bộ thẻ",

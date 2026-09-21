@@ -8,26 +8,32 @@ const csCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "kartička",
+        few: "kartičky",
         other: "kartiček",
       },
       day: {
         one: "den",
+        few: "dny",
         other: "dní",
       },
       deck: {
         one: "balíček",
+        few: "balíčky",
         other: "balíčků",
       },
       hour: {
-        one: "hodina",
+        one: "hodinu",
+        few: "hodiny",
         other: "hodin",
       },
       minute: {
-        one: "minuta",
+        one: "minutu",
+        few: "minuty",
         other: "minut",
       },
       tag: {
         one: "štítek",
+        few: "štítky",
         other: "štítků",
       },
     },
@@ -198,6 +204,7 @@ const csCatalog: TranslationCatalog = {
     streakInfo: "Zásoba zmrazení {{available}}/{{capacity}}. Další doplnění {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "opakování",
+      few: "opakování",
       other: "opakování",
     },
     streakDayAria: {
@@ -332,6 +339,7 @@ const csCatalog: TranslationCatalog = {
       unavailable: "Žebříček sérií teď není dostupný. Zkuste to později.",
       dayLabels: {
         one: "den",
+        few: "dny",
         other: "dní",
       },
     },
@@ -694,6 +702,7 @@ const csCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "kartička",
+        few: "kartičky",
         other: "kartiček",
       },
     },
@@ -1160,9 +1169,21 @@ const csCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistiky balíčku {{deckName}}",
     newDeck: "Nový balíček",
     statLabels: {
-      cards: "kartiček",
-      new: "nových",
-      reviewed: "opakovaných",
+      cards: {
+        one: "kartička",
+        few: "kartičky",
+        other: "kartiček",
+      },
+      new: {
+        one: "nová",
+        few: "nové",
+        other: "nových",
+      },
+      reviewed: {
+        one: "opakovaná",
+        few: "opakované",
+        other: "opakovaných",
+      },
     },
     subtitle: "Balíčky jsou chytré filtry, ne kontejnery. Vybírají kartičky podle štítků.",
     title: "Balíčky",

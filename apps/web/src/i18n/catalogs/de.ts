@@ -1160,9 +1160,18 @@ const deCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}}-Statistik",
     newDeck: "Neues Deck",
     statLabels: {
-      cards: "Karten",
-      new: "neu",
-      reviewed: "wiederholt",
+      cards: {
+        one: "Karte",
+        other: "Karten",
+      },
+      new: {
+        one: "neu",
+        other: "neu",
+      },
+      reviewed: {
+        one: "wiederholt",
+        other: "wiederholt",
+      },
     },
     subtitle: "Decks sind intelligente Filter, keine Container. Sie finden Karten nach Tags.",
     title: "Decks",

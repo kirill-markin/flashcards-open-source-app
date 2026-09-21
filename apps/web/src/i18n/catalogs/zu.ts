@@ -716,7 +716,7 @@ const zuCatalog: TranslationCatalog = {
       dialogTitle: "Susa indawo yokusebenza",
       loading: "Kulayishwa imininingwane yokususa...",
       warning: "Isexwayiso! Lesi senzo asihlehliseki. Sizosusa lokhu ({{count}}) endaweni yokusebenza ethi {{workspaceName}}.",
-      lastWorkspaceHint: "Indawo yokusebenza entsha engenalutho ethi Okomuntu siqu izodalwa ngokushesha ngemva kokususa.",
+      lastWorkspaceHint: "Indawo yokusebenza entsha engenalutho ebizwa ngokuthi Personal izodalwa ngokushesha ngemva kokususa.",
       typePhrase: "Bhala umusho ngqo njengoba unjalo ukuze uqhubeke.",
       deleting: "Kuyasuswa...",
     },
@@ -1160,9 +1160,18 @@ const zuCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Izibalo zenqwaba ethi {{deckName}}",
     newDeck: "Inqwaba entsha",
     statLabels: {
-      cards: "amakhadi",
-      new: "okusha",
-      reviewed: "kubukeziwe",
+      cards: {
+        one: "amakhadi",
+        other: "amakhadi",
+      },
+      new: {
+        one: "okusha",
+        other: "okusha",
+      },
+      reviewed: {
+        one: "kubukeziwe",
+        other: "kubukeziwe",
+      },
     },
     subtitle: "Izinqwaba ziyizihlungi ezihlakaniphile, hhayi iziqukathi. Zithola amakhadi ngamathegi.",
     title: "Izinqwaba",

@@ -1160,9 +1160,18 @@ const taCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} புள்ளிவிவரங்கள்",
     newDeck: "புதிய தொகுப்பு",
     statLabels: {
-      cards: "அட்டைகள்",
-      new: "புதியவை",
-      reviewed: "மீள்பயிற்சி செய்தவை",
+      cards: {
+        one: "அட்டை",
+        other: "அட்டைகள்",
+      },
+      new: {
+        one: "புதியது",
+        other: "புதியவை",
+      },
+      reviewed: {
+        one: "மீள்பயிற்சி செய்தது",
+        other: "மீள்பயிற்சி செய்தவை",
+      },
     },
     subtitle: "தொகுப்புகள் திறமையான வடிகட்டிகள்; கொள்கலன்கள் அல்ல. அவை குறிச்சொற்களின்படி அட்டைகளைப் பொருத்துகின்றன.",
     title: "தொகுப்புகள்",

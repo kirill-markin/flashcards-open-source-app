@@ -8,26 +8,32 @@ const skCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "karta",
+        few: "karty",
         other: "kariet",
       },
       day: {
         one: "deň",
+        few: "dni",
         other: "dní",
       },
       deck: {
         one: "balíček",
+        few: "balíčky",
         other: "balíčkov",
       },
       hour: {
         one: "hodinu",
+        few: "hodiny",
         other: "hodín",
       },
       minute: {
         one: "minútu",
+        few: "minúty",
         other: "minút",
       },
       tag: {
         one: "značka",
+        few: "značky",
         other: "značiek",
       },
     },
@@ -198,6 +204,7 @@ const skCatalog: TranslationCatalog = {
     streakInfo: "Dostupné ochrany série: {{available}}/{{capacity}}. Ďalšie doplnenie: {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "opakovanie",
+      few: "opakovania",
       other: "opakovaní",
     },
     streakDayAria: {
@@ -332,6 +339,7 @@ const skCatalog: TranslationCatalog = {
       unavailable: "Rebríček sérií momentálne nie je dostupný. Skúste to neskôr.",
       dayLabels: {
         one: "deň",
+        few: "dni",
         other: "dní",
       },
     },
@@ -694,6 +702,7 @@ const skCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "karta",
+        few: "karty",
         other: "kariet",
       },
     },
@@ -716,7 +725,7 @@ const skCatalog: TranslationCatalog = {
       dialogTitle: "Vymazať pracovný priestor",
       loading: "Načítavajú sa podrobnosti vymazania...",
       warning: "Pozor! Táto akcia je nevratná. Z pracovného priestoru {{workspaceName}} sa vymaže: {{count}}.",
-      lastWorkspaceHint: "Hneď po vymazaní sa vytvorí nový prázdny osobný pracovný priestor.",
+      lastWorkspaceHint: "Hneď po vymazaní sa vytvorí nový prázdny pracovný priestor s názvom Personal.",
       typePhrase: "Ak chcete pokračovať, zadajte presne túto frázu.",
       deleting: "Vymazáva sa...",
     },
@@ -1160,9 +1169,21 @@ const skCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Štatistiky balíčka {{deckName}}",
     newDeck: "Nový balíček",
     statLabels: {
-      cards: "karty",
-      new: "nové",
-      reviewed: "zopakované",
+      cards: {
+        one: "karta",
+        few: "karty",
+        other: "kariet",
+      },
+      new: {
+        one: "nová",
+        few: "nové",
+        other: "nových",
+      },
+      reviewed: {
+        one: "zopakovaná",
+        few: "zopakované",
+        other: "zopakovaných",
+      },
     },
     subtitle: "Balíčky sú inteligentné filtre, nie kontajnery. Vyberajú karty podľa značiek.",
     title: "Balíčky",

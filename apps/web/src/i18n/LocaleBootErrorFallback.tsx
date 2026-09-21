@@ -1,17 +1,10 @@
-import { useLayoutEffect, type ReactElement } from "react";
+import { useLayoutEffect, useState, type ReactElement } from "react";
 import { enCatalog } from "./catalogs/en";
 import { getLocaleDirection } from "./locales";
-import { canPersistLocalePreference, persistLocalePreference } from "./runtime";
+import { persistLocalePreference } from "./runtime";
 import { defaultLocale } from "./types";
 
 function reloadPage(): void {
-  window.location.reload();
-}
-
-function continueInDefaultLocale(): void {
-  // The default catalog ships inside the app shell, so pinning it guarantees the next boot has a
-  // catalog even while the chunk for the previously selected locale stays unreachable.
-  persistLocalePreference(defaultLocale);
   window.location.reload();
 }
 
@@ -22,12 +15,26 @@ function continueInDefaultLocale(): void {
  * locale that failed to load is exactly what cannot be rendered here.
  */
 export function LocaleBootErrorFallback(): ReactElement {
+  const [canContinueInDefaultLocale, setCanContinueInDefaultLocale] = useState<boolean>(true);
+
   // A failure raised on a locale switch leaves the previous language and direction on the document,
   // which would lay this English-only panel out for that language.
   useLayoutEffect(() => {
     document.documentElement.lang = defaultLocale;
     document.documentElement.dir = getLocaleDirection(defaultLocale);
   }, []);
+
+  function continueInDefaultLocale(): void {
+    // The default catalog ships inside the app shell, so pinning it guarantees the next boot has a
+    // catalog even while the chunk for the previously selected locale stays unreachable. A pin
+    // that cannot be stored would reload into the same failure, so the option is withdrawn instead.
+    if (persistLocalePreference(defaultLocale) === false) {
+      setCanContinueInDefaultLocale(false);
+      return;
+    }
+
+    window.location.reload();
+  }
 
   return (
     <main className="page-state">
@@ -37,7 +44,7 @@ export function LocaleBootErrorFallback(): ReactElement {
         <button className="primary-btn" type="button" onClick={reloadPage}>
           {enCatalog.app.crashReload}
         </button>
-        {canPersistLocalePreference() === false ? null : (
+        {canContinueInDefaultLocale === false ? null : (
           <button className="ghost-btn" type="button" onClick={continueInDefaultLocale}>
             Continue in English
           </button>

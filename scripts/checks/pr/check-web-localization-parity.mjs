@@ -34,8 +34,8 @@ const STRING_LITERAL_PATTERN = /"([^"\\]*)"/y;
 const CATALOG_DECLARATION_PATTERN = /\bconst\s+[A-Za-z_$][\w$]*Catalog\s*(?::[^={;]+)?=\s*\{/g;
 const DEFAULT_LOCALE_PATTERN = /\bconst\s+defaultLocale\s*(?::[^={;]+)?=\s*"([^"\\]+)"/g;
 const IMPORT_CALL_PATTERN = /\bimport\s*\(/y;
-const STATIC_IMPORT_PATTERN = /\bimport\s*\{([^{}]*)\}\s*from\s*"([^"\\]*)"/y;
-const IMPORT_BINDING_PATTERN = /^(?:[A-Za-z_$][\w$]*\s+as\s+)?([A-Za-z_$][\w$]*)$/;
+const STATIC_IMPORT_PATTERN = /\bimport\s*\{([^{}]*)\}\s*from\s*(["'])([^"'\\]*)\2/y;
+const IMPORT_BINDING_PATTERN = /^(type\s+)?(?:[A-Za-z_$][\w$]*\s+as\s+)?([A-Za-z_$][\w$]*)$/;
 const IDENTIFIER_PATTERN = /[A-Za-z_$][\w$]*/y;
 const OPENING_BRACKETS = new Set(["{", "[", "("]);
 const CLOSING_BRACKETS = new Set(["}", "]", ")"]);
@@ -246,9 +246,11 @@ function readImportSpecifiers(valueText) {
   return specifiers;
 }
 
-// Local binding names a static `import { ... } from "./catalogs/<defaultLocale>"` introduces, read
-// with the same string- and comment-aware scan so an import written inside a string or a comment is
-// not counted. Returns null when such an import holds a binding clause this check cannot read.
+// Local runtime binding names a static `import { ... } from "./catalogs/<defaultLocale>"` introduces,
+// read with the same string- and comment-aware scan so an import written inside a string or a comment
+// is not counted. Inline `type` bindings are skipped, since they cannot be the loaded catalog.
+// Returns null when such an import holds a binding clause this check cannot read. Catalog modules
+// have only named exports, so default and namespace imports are not read.
 function readStaticCatalogBindings(content, locale) {
   const expectedSpecifier = `${CATALOG_MODULE_SPECIFIER_PREFIX}${locale}`;
   const bindings = [];
@@ -277,7 +279,7 @@ function readStaticCatalogBindings(content, locale) {
 
     index = STATIC_IMPORT_PATTERN.lastIndex;
 
-    if (importMatch[2] !== expectedSpecifier) {
+    if (importMatch[3] !== expectedSpecifier) {
       continue;
     }
 
@@ -294,7 +296,9 @@ function readStaticCatalogBindings(content, locale) {
         return null;
       }
 
-      bindings.push(bindingMatch[1]);
+      if (bindingMatch[1] === undefined) {
+        bindings.push(bindingMatch[2]);
+      }
     }
   }
 
@@ -365,8 +369,9 @@ function parseStringArrayItems(body) {
 // Anchored on the assignment, so a bracket inside a type annotation such as `readonly string[]` is
 // never read as the literal. The annotation is matched only up to the first `{`, `=` or `;`, so an
 // annotation carrying one of those ends the match early and the literal is taken as the first opening
-// bracket after that point: still correct for `Record<Locale, () => Promise<T>>`, and loud — an
-// unreadable body or a key set that is not the locale tags — for an annotation holding its own `{`.
+// bracket after that point: still correct for `Record<Locale, () => Promise<T>>`. Both failure shapes
+// are loud: an annotation with a `{` before any `=` finds no declaration, and one with a `{` after an
+// `=`, such as `() => Promise<{ ... }>`, yields an unreadable body or a key set that is not the tags.
 function findDeclarationBody(content, declarationName, openBracket) {
   const declarationPattern = new RegExp(`\\bconst\\s+${declarationName}\\s*(?::[^={;]+)?=`, "g");
   const declarations = [...content.matchAll(declarationPattern)];

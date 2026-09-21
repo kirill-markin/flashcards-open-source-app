@@ -1160,9 +1160,18 @@ const daCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistik for {{deckName}}",
     newDeck: "Ny bunke",
     statLabels: {
-      cards: "kort",
-      new: "nye",
-      reviewed: "repeteret",
+      cards: {
+        one: "kort",
+        other: "kort",
+      },
+      new: {
+        one: "nyt",
+        other: "nye",
+      },
+      reviewed: {
+        one: "repeteret",
+        other: "repeteret",
+      },
     },
     subtitle: "Bunker er smarte filtre, ikke beholdere. De matcher kort ud fra tags.",
     title: "Bunker",

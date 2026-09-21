@@ -80,7 +80,7 @@ export function ProgressScreen(): ReactElement {
       includeLeaderboard: true,
     },
   });
-  const { locale, matchedBrowserLanguageTag, direction, t, formatDate, formatNumber, formatCount } = useI18n();
+  const { locale, matchedBrowserLanguageTag, direction, messages, t, formatDate, formatNumber, formatCount } = useI18n();
   const [selectedPageStartLocalDate, setSelectedPageStartLocalDate] = useState<string | null>(null);
   const [reviewsChartSelection, setReviewsChartSelection] = useState<ProgressReviewsChartSelection>({ kind: "none" });
   const [selectedReviewScheduleBucket, setSelectedReviewScheduleBucket] = useState<ProgressReviewScheduleBucketKey | null>(null);
@@ -179,10 +179,7 @@ export function ProgressScreen(): ReactElement {
   const today = progress === null ? "" : progress.to;
   const weekContext = resolveLocaleWeekContext(matchedBrowserLanguageTag ?? locale, locale);
   const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, progress.streakDays, today, formatDate, weekContext);
-  const formatStreakReviewCount = (reviewCount: number): string => formatCount(reviewCount, {
-    one: t("progressScreen.streakDayReviewCount.one"),
-    other: t("progressScreen.streakDayReviewCount.other"),
-  });
+  const formatStreakReviewCount = (reviewCount: number): string => formatCount(reviewCount, messages.progressScreen.streakDayReviewCount);
   const formatProgressStreakDayAriaLabel = (day: StreakDay): string => {
     if (day.isFuture) {
       return t("progressScreen.streakDayAria.future", {

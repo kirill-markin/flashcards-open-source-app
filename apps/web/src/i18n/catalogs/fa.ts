@@ -1160,9 +1160,18 @@ const faCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "آمار {{deckName}}",
     newDeck: "دستهٔ جدید",
     statLabels: {
-      cards: "کارت",
-      new: "جدید",
-      reviewed: "مرورشده",
+      cards: {
+        one: "کارت",
+        other: "کارت",
+      },
+      new: {
+        one: "جدید",
+        other: "جدید",
+      },
+      reviewed: {
+        one: "مرورشده",
+        other: "مرورشده",
+      },
     },
     subtitle: "دسته‌ها فیلترهای هوشمندند، نه ظرف. کارت‌ها را بر اساس برچسب مطابقت می‌دهند.",
     title: "دسته‌ها",
