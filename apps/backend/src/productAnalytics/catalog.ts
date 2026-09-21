@@ -460,11 +460,13 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  // The catalog install facts. `install_journey_id` is optional everywhere it appears: no producer
+  // mints one any more, and released clients that still send it stay valid.
   catalog_install_clicked: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
       placement: { kind: "enum", values: ["top", "middle", "bottom"] },
       source: {
@@ -477,11 +479,14 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  // The four names below have no producer left: `catalog_install_landed` duplicated `screen_viewed`
+  // and the three sign-in steps duplicated the generic `signin_*` facts above. They stay in the
+  // catalog so released clients that still report them are stored rather than rejected.
   catalog_install_landed: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
       auth_state: { kind: "enum", values: ["signed_in", "signed_out"] },
     },
@@ -490,7 +495,7 @@ export const productAnalyticsEventCatalog = {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
     },
   },
@@ -498,7 +503,7 @@ export const productAnalyticsEventCatalog = {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
     },
   },
@@ -506,7 +511,7 @@ export const productAnalyticsEventCatalog = {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
     },
   },
@@ -514,7 +519,7 @@ export const productAnalyticsEventCatalog = {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
     },
   },
@@ -522,7 +527,7 @@ export const productAnalyticsEventCatalog = {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
       stage: {
         kind: "enum",

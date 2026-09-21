@@ -315,10 +315,8 @@ describe("CatalogImportScreen", () => {
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    // The install journey exists only once this browser knows whether it has to be asked for
-    // consent. Answering "no country requires it" here is what these tests are about: without the
-    // answer the screen holds the journey open and mints nothing, which is its correct behaviour
-    // and not what the return-URL expectations below describe.
+    // Answers the consent question this load would otherwise hold open, so the screen's analytics
+    // behave the same way in every test rather than depending on an unresolved jurisdiction.
     publishAnalyticsConsentJurisdiction(false);
     window.history.replaceState(null, "", `/catalog/import/${packageVersionId}?source=exact#install`);
     container = document.createElement("div");
@@ -404,7 +402,7 @@ describe("CatalogImportScreen", () => {
 
     expect(container.querySelector("[data-testid='catalog-import-package-summary']")?.textContent).toBe("тест — 2 cards");
     expect(buildLoginUrlMock).toHaveBeenCalledWith(
-      `http://localhost:3000/catalog/import/${packageVersionId}?source=exact&install_journey_id=44444444-4444-4444-8444-444444444444#install`,
+      `http://localhost:3000/catalog/import/${packageVersionId}?source=exact#install`,
       "en",
     );
   });
@@ -667,6 +665,9 @@ describe("CatalogImportScreen", () => {
     }
     expect(lockedTagInput.disabled).toBe(true);
     expect(confirmButton.disabled).toBe(false);
+    // The retry must reuse the install id rather than mint a second one. It is read as a delta
+    // because the analytics visitor identity mints through this same spy.
+    const mintCountBeforeRetry = vi.mocked(crypto.randomUUID).mock.calls.length;
 
     await act(async () => confirmButton.click());
     await waitForCondition("Catalog install conflict was not reconciled", () => (
@@ -679,7 +680,7 @@ describe("CatalogImportScreen", () => {
     const retryOptions = confirmCatalogPackageInstallMock.mock.calls[1]?.[2];
     expect(firstOptions?.installId).toBe("44444444-4444-4444-8444-444444444444");
     expect(retryOptions).toEqual(firstOptions);
-    expect(crypto.randomUUID).toHaveBeenCalledTimes(2);
+    expect(crypto.randomUUID).toHaveBeenCalledTimes(mintCountBeforeRetry);
   });
 
   it("keeps an unverified operation collision visible and does not start reconciliation sync", async () => {

@@ -408,9 +408,9 @@ export function writeStoredAnalyticsConsentDecision(decision: AnalyticsConsentCh
  * refusal each do, and this is the one place both halves are read together.
  *
  * It says nothing about a browser still waiting to answer the banner, which reads as allowed here.
- * Anything that spends an identity permanently — the guest identity link, the catalog install
- * journey — composes `isAnalyticsEnabledForCurrentRuntime()` with `isAnalyticsIdentityConsented()`
- * instead, so an unanswered load defers rather than spends.
+ * Anything that spends an identity permanently — the guest identity link — composes
+ * `isAnalyticsEnabledForCurrentRuntime()` with `isAnalyticsIdentityConsented()` instead, so an
+ * unanswered load defers rather than spends.
  */
 function isAnalyticsIdentityAllowed(): boolean {
   return readStoredAnalyticsEnabled() && readStoredAnalyticsConsentDecision() !== "declined";
