@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Time se trajno briše %d aktivnih kartica iz ovog radnog prostora.";
 "settings.workspace.deleteConfirmation.title" = "Izbriši radni prostor";
 "settings.workspace.deleteConfirmation.warning" = "Upozorenje! Ova je radnja trajna. Izbrisat će %d aktivnih kartica iz %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Odmah nakon brisanja stvorit će se novi prazan osobni radni prostor.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Odmah nakon brisanja stvorit će se novi prazan radni prostor pod nazivom Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Brisanje...";
 "settings.workspace.resetConfirmation.title" = "Potvrdi poništavanje";

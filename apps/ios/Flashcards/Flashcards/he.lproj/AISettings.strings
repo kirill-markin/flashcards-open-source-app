@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "פעולה זו מוחקת לצמיתות %d כרטיסיות פעילות מסביבת העבודה הזו.";
 "settings.workspace.deleteConfirmation.title" = "מחיקת סביבת עבודה";
 "settings.workspace.deleteConfirmation.warning" = "אזהרה! פעולה זו היא לצמיתות. היא תמחק %d כרטיסיות פעילות מתוך %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "מיד לאחר המחיקה תיווצר סביבת עבודה אישית חדשה וריקה.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "מיד לאחר המחיקה תיווצר סביבת עבודה חדשה וריקה בשם Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "מתבצעת מחיקה...";
 "settings.workspace.resetConfirmation.title" = "אישור איפוס";

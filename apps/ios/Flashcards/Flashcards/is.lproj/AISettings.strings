@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Þetta eyðir %d virkum spjöldum varanlega af þessu vinnusvæði.";
 "settings.workspace.deleteConfirmation.title" = "Eyða vinnusvæði";
 "settings.workspace.deleteConfirmation.warning" = "Viðvörun! Þessi aðgerð er varanleg. Hún eyðir %d virkum spjöldum úr %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Nýtt tómt persónulegt vinnusvæði verður búið til strax eftir eyðingu.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Nýtt tómt vinnusvæði sem heitir Personal verður búið til strax eftir eyðingu.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Eyði...";
 "settings.workspace.resetConfirmation.title" = "Staðfesta endurstillingu";

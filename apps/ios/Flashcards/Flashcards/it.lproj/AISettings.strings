@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Questa azione elimina definitivamente %d schede attive da questo spazio di lavoro.";
 "settings.workspace.deleteConfirmation.title" = "Elimina spazio di lavoro";
 "settings.workspace.deleteConfirmation.warning" = "Attenzione! Questa azione è permanente. Eliminerà %d schede attive da %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Subito dopo l’eliminazione verrà creato un nuovo spazio di lavoro Personale vuoto.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Subito dopo l’eliminazione verrà creato un nuovo spazio di lavoro vuoto chiamato Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Eliminazione...";
 "settings.workspace.resetConfirmation.title" = "Conferma reimpostazione";

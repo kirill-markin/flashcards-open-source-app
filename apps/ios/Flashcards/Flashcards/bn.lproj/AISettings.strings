@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "এটি স্থায়ীভাবে এই কর্মক্ষেত্র থেকে %d সক্রিয় কার্ড মুছে দেয়।";
 "settings.workspace.deleteConfirmation.title" = "কর্মক্ষেত্র মুছুন";
 "settings.workspace.deleteConfirmation.warning" = "সতর্কতা! এই কাজ ফেরানো যাবে না। %dটি সক্রিয় কার্ড মুছে যাবে। কর্মক্ষেত্র: %@।";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "মুছে ফেলার পরপরই একটি নতুন খালি ব্যক্তিগত কর্মক্ষেত্র তৈরি করা হবে।";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "মুছে ফেলার পরপরই Personal নামে একটি নতুন খালি কর্মক্ষেত্র তৈরি করা হবে।";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "মুছে ফেলা হচ্ছে...";
 "settings.workspace.resetConfirmation.title" = "রিসেট নিশ্চিত করুন";

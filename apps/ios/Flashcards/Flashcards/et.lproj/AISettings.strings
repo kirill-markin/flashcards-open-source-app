@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "See kustutab sellest tööruumist jäädavalt %d aktiivset kaarti.";
 "settings.workspace.deleteConfirmation.title" = "Kustuta tööruum";
 "settings.workspace.deleteConfirmation.warning" = "Hoiatus! See toiming on pöördumatu. See kustutab %d aktiivset kaarti tööruumist %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Kohe pärast kustutamist luuakse uus tühi isiklik tööruum.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Kohe pärast kustutamist luuakse uus tühi tööruum nimega Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Kustutamine...";
 "settings.workspace.resetConfirmation.title" = "Kinnita lähtestamine";
