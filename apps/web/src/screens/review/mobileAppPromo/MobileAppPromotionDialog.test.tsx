@@ -5,7 +5,7 @@ import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createStorageMock } from "../../../api/ApiTestSupport";
 import { webReviewMobilePromptStoreLinks } from "../../../appPlatformLinks";
-import { I18nProvider } from "../../../i18n";
+import { I18nProvider, loadTranslationCatalog } from "../../../i18n";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../../i18n/runtime";
 import {
   MobileAppPromotionDialog,
@@ -222,6 +222,8 @@ describe("MobileAppPromotionDialog", () => {
 
   it("keeps desktop platform placement left-to-right for rtl locales", async () => {
     window.localStorage.setItem(LOCALE_PREFERENCE_STORAGE_KEY, "ar");
+    // The provider renders a locale only once its catalog chunk is loaded.
+    await loadTranslationCatalog("ar");
 
     await renderDialog({
       isOpen: true,

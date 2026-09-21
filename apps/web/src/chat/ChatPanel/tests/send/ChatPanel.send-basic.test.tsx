@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { loadTranslationCatalog } from "../../../../i18n";
 import { persistLocalePreference } from "../../../../i18n/runtime";
 import {
   createNewChatSessionMock,
@@ -75,6 +76,8 @@ describe("ChatPanel send basic lifecycle", () => {
 
   it("includes the current app locale in the first send request body", async () => {
     persistLocalePreference("ar");
+    // The provider renders a locale only once its catalog chunk is loaded.
+    await loadTranslationCatalog("ar");
 
     await renderChatPanel();
     await flushAsync();

@@ -667,7 +667,8 @@ export function createAnalyticsDeliveryRuntime(
    * it on every call. That same 401 path nulls the cached CSRF token afterwards, so the token is
    * not guaranteed to be the first of the four to clear either, and
    * `sessionOwnerPublisherCount` reaches zero without leaving the page when a render crash unmounts
-   * `AppDataProvider` under the single root `AppErrorBoundary` (`App.tsx`).
+   * `AppDataProvider` under a root `AppErrorBoundary`, either the one in `App.tsx` or the one
+   * `main.tsx` mounts above `I18nProvider`.
    *
    * `hasPersistedUnderUnsettledQueueOwner` is what makes that safe instead of an ordering argument:
    * any persist that ran before this load settled the question blocks the clear for the rest of the
@@ -1097,9 +1098,10 @@ export function createAnalyticsDeliveryRuntime(
    */
   async function applyAnalyticsConsentGrant(): Promise<boolean> {
     // The kill switch outranks a grant, and this is the one call that would mint a 13-month cookie
-    // for a browser nothing is ever tracked from. Refusing it is also what keeps the settings screen
-    // honest: it reads the stored decision, so a grant stored under a switched-off runtime would
-    // render "on" over a runtime that reports nothing. The refusal is deliberately not symmetric —
+    // for a browser nothing is ever tracked from. Refusing it is also what keeps the withdrawal
+    // switch honest: it reads the stored decision, so a grant stored under a switched-off runtime
+    // would render "on" over a runtime that reports nothing. The refusal is deliberately not
+    // symmetric —
     // `applyAnalyticsConsentDecline` runs either way, because a withdrawal must never be blocked.
     if (isEnabled === false) {
       return false;
