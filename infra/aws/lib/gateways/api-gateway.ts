@@ -18,6 +18,7 @@ import {
   databasePoolMaxConnectionsEnvValue,
   directImageIngestionHandlerReservedConcurrency,
 } from "../lambda-database-capacity";
+import { normalizeHost } from "../alternate-host";
 import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
@@ -32,6 +33,23 @@ export interface ApiGatewayProps {
   baseDomain: string;
   siteBaseUrl: string | undefined;
   apiCertificateArn: string | undefined;
+  // Optional second public API host, already resolved (../alternate-host.ts) and
+  // undefined unless both of its context values are set. api.<baseDomain> is
+  // created and mapped either way.
+  apiAlternateHost: string | undefined;
+  apiAlternateCertificateArn: string | undefined;
+  // Second hosts serving the same browser clients, resolved by the stack. They
+  // create nothing here; they only widen the CORS allowlists below, because a
+  // host the API does not allow as an origin fails every preflight. The auth
+  // host is one of them: its login pages post anonymous analytics to this API.
+  authAlternateHost: string | undefined;
+  // Owned by the CloudFront distributions, not by this gateway: only allowed
+  // here as browser origins. Undefined unless that distribution serves them.
+  webAdditionalHost: string | undefined;
+  adminAdditionalHost: string | undefined;
+  // The domain the analytics visitor cookie is published on. Unset means
+  // baseDomain, so moving the cookie to another domain is its own switch.
+  cookieDomain: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   langfusePublicKeySecretArn: string | undefined;
   langfuseSecretKeySecretArn: string | undefined;
@@ -135,6 +153,64 @@ export const directImageIngestionMaximumOnDemandInitSeconds = 10;
 export const directImageIngestionLambdaTimeoutSeconds = 15;
 
 const allowAllRobotsBody = "User-agent: *\nDisallow:\n";
+
+/**
+ * The static robots.txt served beside the API on every API custom domain. It is
+ * a separate REST API because a custom domain maps it on its own base path.
+ */
+function createApiRobotsApi(scope: Construct): apigw.RestApi {
+  const robotsApi = new apigw.RestApi(scope, "ApiRobots", {
+    restApiName: "flashcards-open-source-app-api-robots",
+    description: "Static robots.txt for the public API host",
+    cloudWatchRole: false,
+    endpointConfiguration: {
+      types: [apigw.EndpointType.REGIONAL],
+    },
+  });
+  robotsApi.root.addMethod(
+    "GET",
+    new apigw.MockIntegration({
+      requestTemplates: {
+        "application/json": '{"statusCode": 200}',
+      },
+      integrationResponses: [
+        {
+          statusCode: "200",
+          responseParameters: {
+            "method.response.header.Content-Type": "'text/plain; charset=utf-8'",
+          },
+          responseTemplates: {
+            "text/plain": allowAllRobotsBody,
+          },
+        },
+      ],
+    }),
+    {
+      methodResponses: [
+        {
+          statusCode: "200",
+          responseParameters: {
+            "method.response.header.Content-Type": true,
+          },
+        },
+      ],
+    },
+  );
+  return robotsApi;
+}
+
+/**
+ * The browser origins of the hosts that are configured, in the order given. An
+ * unconfigured host contributes nothing, so with none set every allowlist is
+ * byte-identical to the one the stack has today.
+ */
+function createConfiguredHostOrigins(
+  hosts: ReadonlyArray<string | undefined>,
+): ReadonlyArray<string> {
+  return hosts
+    .filter((host): host is string => host !== undefined)
+    .map((host) => parsePublicOrigin(`https://${host}`, "extraHost"));
+}
 
 export type DirectImageIngestionApiRoutes = Readonly<{
   workspaceImages: apigw.Resource;
@@ -835,10 +911,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     `https://app.${props.baseDomain}`,
     "appBaseUrl",
   );
+  // Appended, never substituted: the primary origins stay in the lists and
+  // publicAppOrigin above still decides where server-generated links point.
+  const additionalWebOrigins = createConfiguredHostOrigins([props.webAdditionalHost]);
   const publicCatalogAllowedOrigins = [
     publicSiteOrigin,
     publicAppOrigin,
     "http://localhost:3000",
+    ...additionalWebOrigins,
   ];
   const anonymousAnalyticsAllowedOrigins = [
     publicSiteOrigin,
@@ -847,12 +927,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     "http://localhost:3000",
     "http://localhost:8081",
     "http://localhost:4321",
+    ...createConfiguredHostOrigins([props.webAdditionalHost, props.authAlternateHost]),
   ];
   const allowedOrigins = [
     publicAppOrigin,
     `https://admin.${props.baseDomain}`,
     "http://localhost:3000",
     "http://localhost:3001",
+    ...createConfiguredHostOrigins([props.webAdditionalHost, props.adminAdditionalHost]),
   ];
   const backendCsrfSecret = new cdk.aws_secretsmanager.Secret(scope, "BackendCsrfSecret", {
     secretName: "flashcards-open-source-app/backend-csrf-secret",
@@ -924,11 +1006,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       forceDockerBundling: true,
     }),
   });
-  // The analytics visitor cookie is published on the base domain, so the app origin, this API and
+  // The analytics visitor cookie is published on one domain, so the app origin, this API and
   // the auth origin all read one visitor (apps/backend/src/analyticsVisitor/cookie.ts). The value is
   // an unsigned random UUID, so no secret is involved and only the HTTP handler needs the domain;
   // the workers never see a browser request.
-  backendFn.addEnvironment("COOKIE_DOMAIN", props.baseDomain);
+  backendFn.addEnvironment("COOKIE_DOMAIN", normalizeHost(props.cookieDomain) ?? props.baseDomain);
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,
     publicSiteOrigin,
@@ -1219,6 +1301,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
   addTextContentHandlingToMockOptionsMethods(restApi);
 
+  // Every API custom domain maps the same robots.txt API, so it is created once
+  // by whichever domain comes first.
+  let primaryRobotsApi: apigw.RestApi | undefined;
+
   if (props.apiCertificateArn) {
     const apiDomainName = `api.${props.baseDomain}`;
     const certificate = cdk.aws_certificatemanager.Certificate.fromCertificateArn(
@@ -1234,50 +1320,41 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       basePath: "v1",
     });
 
-    const robotsApi = new apigw.RestApi(scope, "ApiRobots", {
-      restApiName: "flashcards-open-source-app-api-robots",
-      description: "Static robots.txt for the public API host",
-      cloudWatchRole: false,
-      endpointConfiguration: {
-        types: [apigw.EndpointType.REGIONAL],
-      },
-    });
-    robotsApi.root.addMethod(
-      "GET",
-      new apigw.MockIntegration({
-        requestTemplates: {
-          "application/json": '{"statusCode": 200}',
-        },
-        integrationResponses: [
-          {
-            statusCode: "200",
-            responseParameters: {
-              "method.response.header.Content-Type": "'text/plain; charset=utf-8'",
-            },
-            responseTemplates: {
-              "text/plain": allowAllRobotsBody,
-            },
-          },
-        ],
-      }),
-      {
-        methodResponses: [
-          {
-            statusCode: "200",
-            responseParameters: {
-              "method.response.header.Content-Type": true,
-            },
-          },
-        ],
-      },
-    );
-    domain.addBasePathMapping(robotsApi, {
+    primaryRobotsApi = createApiRobotsApi(scope);
+    domain.addBasePathMapping(primaryRobotsApi, {
       basePath: "robots.txt",
     });
 
     new cdk.CfnOutput(scope, "ApiCustomDomainTarget", {
       value: domain.domainNameAliasDomainName,
       description: "Create a Cloudflare CNAME for api.<domain> to this target",
+    });
+  }
+
+  // Additive second host for the same API: the primary domain above is created
+  // and mapped regardless of this block.
+  if (props.apiAlternateHost !== undefined && hasConfiguredValue(props.apiAlternateCertificateArn)) {
+    const alternateCertificate = cdk.aws_certificatemanager.Certificate.fromCertificateArn(
+      scope,
+      "ApiAlternateCertificate",
+      props.apiAlternateCertificateArn,
+    );
+
+    const alternateDomain = restApi.addDomainName("ApiAlternateCustomDomain", {
+      domainName: props.apiAlternateHost,
+      certificate: alternateCertificate,
+      endpointType: apigw.EndpointType.REGIONAL,
+      basePath: "v1",
+    });
+
+    const robotsApi = primaryRobotsApi ?? createApiRobotsApi(scope);
+    alternateDomain.addBasePathMapping(robotsApi, {
+      basePath: "robots.txt",
+    });
+
+    new cdk.CfnOutput(scope, "ApiAlternateCustomDomainTarget", {
+      value: alternateDomain.domainNameAliasDomainName,
+      description: "Create a CNAME for the alternate API host to this target",
     });
   }
 

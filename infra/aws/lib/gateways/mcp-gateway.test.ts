@@ -201,11 +201,11 @@ test("the alternate host reaches the MCP and auth Lambda environments only when 
   // One resolution in the stack feeds the auth Lambda, the heartbeat and the alarms.
   assert.match(
     stackSource,
-    /const mcpAlternateHost = resolveMcpAlternateHost\(\s*baseDomain,\s*mcpAlternateDomainName,\s*mcpAlternateCertificateArn,\s*\);/,
+    /mcp: mcpAlternateHostConfig\(baseDomain, mcpAlternateDomainName, mcpAlternateCertificateArn\),\s*\}\);\s*const mcpAlternateHost = alternateHosts\.mcp;/,
   );
   assert.match(
     stackSource,
-    /publicEndpointHeartbeat\(this, \{ baseDomain, mcpAlternateHeartbeatHost \}\);/,
+    /publicEndpointHeartbeat\(this, \{ baseDomain, alternateHeartbeatHosts \}\);/,
   );
   assert.match(heartbeatSource, /id: "McpAlternate",/);
 });
@@ -226,7 +226,7 @@ test("liveness policing of the alternate host waits for its own switch", () => {
   );
   assert.match(
     monitoringSource,
-    /createPublicEndpointHeartbeatTargets\(props\.baseDomain, props\.mcpAlternateHeartbeatHost\)/,
+    /createPublicEndpointHeartbeatTargets\(props\.baseDomain, props\.alternateHeartbeatHosts\)/,
   );
   // The certificate expiry alarm and the custom domain keep reading the deployed
   // host, which exists before anything is declared live.

@@ -117,11 +117,22 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "apiCertificateArn": get_trimmed_env("CDK_CONTEXT_API_CERTIFICATE_ARN"),
         "apexRedirectCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1"),
         "authCertificateArn": get_trimmed_env("CDK_CONTEXT_AUTH_CERTIFICATE_ARN"),
+        "apiAlternateDomainName": get_trimmed_env("CDK_CONTEXT_API_ALTERNATE_DOMAIN_NAME"),
+        "apiAlternateCertificateArn": get_trimmed_env("CDK_CONTEXT_API_ALTERNATE_CERTIFICATE_ARN"),
+        "authAlternateDomainName": get_trimmed_env("CDK_CONTEXT_AUTH_ALTERNATE_DOMAIN_NAME"),
+        "authAlternateCertificateArn": get_trimmed_env("CDK_CONTEXT_AUTH_ALTERNATE_CERTIFICATE_ARN"),
+        "apiAlternateHostLive": get_trimmed_env("CDK_CONTEXT_API_ALTERNATE_HOST_LIVE"),
+        "authAlternateHostLive": get_trimmed_env("CDK_CONTEXT_AUTH_ALTERNATE_HOST_LIVE"),
+        "cookieDomain": get_trimmed_env("CDK_CONTEXT_COOKIE_DOMAIN"),
         "mcpCertificateArn": get_trimmed_env("CDK_CONTEXT_MCP_CERTIFICATE_ARN"),
         "mcpAlternateDomainName": get_trimmed_env("CDK_CONTEXT_MCP_ALTERNATE_DOMAIN_NAME"),
         "mcpAlternateCertificateArn": get_trimmed_env("CDK_CONTEXT_MCP_ALTERNATE_CERTIFICATE_ARN"),
         "mcpAlternateHostLive": get_trimmed_env("CDK_CONTEXT_MCP_ALTERNATE_HOST_LIVE"),
         "adminCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1"),
+        "adminAdditionalDomainName": get_trimmed_env("CDK_CONTEXT_ADMIN_ADDITIONAL_DOMAIN_NAME"),
+        "adminAdditionalCertificateArnUsEast1": get_trimmed_env(
+            "CDK_CONTEXT_ADMIN_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1",
+        ),
         "adminEmails": get_trimmed_env("CDK_CONTEXT_ADMIN_EMAILS"),
         "demoEmailDostip": get_trimmed_env("CDK_CONTEXT_DEMO_EMAIL_DOSTIP"),
         "demoPasswordSecretArn": get_trimmed_env("CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN"),
@@ -143,6 +154,10 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "sentryTracesSampleRate": get_trimmed_env("CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE"),
         "siteBaseUrl": get_trimmed_env("CDK_CONTEXT_SITE_BASE_URL"),
         "webCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1"),
+        "webAdditionalDomainName": get_trimmed_env("CDK_CONTEXT_WEB_ADDITIONAL_DOMAIN_NAME"),
+        "webAdditionalCertificateArnUsEast1": get_trimmed_env(
+            "CDK_CONTEXT_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1",
+        ),
     }
     validate_required_backend_sentry_context(values, aws_deploy_role_arn)
     return {key: value for key, value in values.items() if value != ""}

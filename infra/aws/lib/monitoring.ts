@@ -16,6 +16,7 @@ import {
   globalMetricsSnapshotFreshnessMetricNamespace,
   globalMetricsSnapshotFreshnessMetricStackDimensionName,
 } from "./scheduled-jobs/global-metrics";
+import type { AlternateHeartbeatHosts } from "./scheduled-jobs/public-endpoint-heartbeat";
 import {
   createPublicEndpointHeartbeatTargets,
   publicEndpointHeartbeatIntervalMinutes,
@@ -74,14 +75,18 @@ export interface MonitoringProps {
   apiCertificateArn: string | undefined;
   authCertificateArn: string | undefined;
   mcpCertificateArn: string | undefined;
-  // Second public MCP host, already resolved (./mcp-alternate-host.ts) and
-  // undefined unless it is actually deployed. Its certificate expires whether or
-  // not the host is policed for liveness, so the expiry alarm reads this one.
+  // The stack's second public hosts, already resolved (./alternate-host.ts) and
+  // each undefined unless it is actually deployed. A certificate expires whether
+  // or not its host is policed for liveness, so the expiry alarms read these.
+  apiAlternateHost: string | undefined;
+  apiAlternateCertificateArn: string | undefined;
+  authAlternateHost: string | undefined;
+  authAlternateCertificateArn: string | undefined;
   mcpAlternateHost: string | undefined;
   mcpAlternateCertificateArn: string | undefined;
-  // The same host, but undefined until it is declared live. The heartbeat alarms
-  // below must cover exactly the targets the heartbeat itself probes.
-  mcpAlternateHeartbeatHost: string | undefined;
+  // The same hosts, but each undefined until it is declared live. The heartbeat
+  // alarms below must cover exactly the targets the heartbeat itself probes.
+  alternateHeartbeatHosts: AlternateHeartbeatHosts;
 }
 
 export interface MonitoringResult {
@@ -378,8 +383,26 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     });
   }
 
-  // The alternate MCP host carries its own certificate, so it needs its own
-  // expiry alarm. It exists only when the gateway also creates that domain.
+  // Every alternate host carries its own certificate, so each needs its own
+  // expiry alarm. Each exists only when the gateway also creates that domain.
+  if (props.apiAlternateHost && props.apiAlternateCertificateArn) {
+    createCertificateExpiryAlarm(scope, {
+      alertTopic,
+      alarmId: "ApiAlternateCertificateExpiryAlarm",
+      certificateArn: props.apiAlternateCertificateArn,
+      host: props.apiAlternateHost,
+    });
+  }
+
+  if (props.authAlternateHost && props.authAlternateCertificateArn) {
+    createCertificateExpiryAlarm(scope, {
+      alertTopic,
+      alarmId: "AuthAlternateCertificateExpiryAlarm",
+      certificateArn: props.authAlternateCertificateArn,
+      host: props.authAlternateHost,
+    });
+  }
+
   if (props.mcpAlternateHost && props.mcpAlternateCertificateArn) {
     createCertificateExpiryAlarm(scope, {
       alertTopic,
@@ -397,7 +420,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
   // pages after two consecutive failures, inside fifteen minutes. Missing data breaches on
   // purpose, unlike the certificate alarms above: a heartbeat that is not running leaves the
   // hosts unwatched, and that silence is exactly what this alarm exists to report.
-  for (const target of createPublicEndpointHeartbeatTargets(props.baseDomain, props.mcpAlternateHeartbeatHost)) {
+  for (const target of createPublicEndpointHeartbeatTargets(props.baseDomain, props.alternateHeartbeatHosts)) {
     notifyAlertTopic(new cloudwatch.Alarm(scope, `${target.id}PublicEndpointHeartbeatAlarm`, {
       metric: new cloudwatch.Metric({
         namespace: publicEndpointHeartbeatMetricNamespace,

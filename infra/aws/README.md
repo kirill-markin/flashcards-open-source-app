@@ -204,6 +204,8 @@ The supported deployed admin browser entrypoint is `https://admin.<domain>` only
 12. `POST https://auth.<domain>/api/revoke-token` revokes the refresh token.
 13. `GET https://auth.<domain>/login?redirect_uri=...` serves the browser login page.
 
+The REST API and the auth API can each answer on one more host outside `<domain>` in the same way, through `CDK_API_ALTERNATE_DOMAIN_NAME`, `CDK_AUTH_ALTERNATE_DOMAIN_NAME` and their certificate variables, with the CNAME taken from the `ApiAlternateCustomDomainTarget` and `AuthAlternateCustomDomainTarget` outputs. The browser cookie domain moves separately, through `CDK_COOKIE_DOMAIN`. See [docs/backend-web-deployment.md](../../docs/backend-web-deployment.md#optional-second-api-and-auth-host).
+
 ## MCP host
 
 The MCP server is exposed on its own `mcp.<domain>` subdomain, backed by a dedicated API Gateway and Lambda (`apps/backend/src/entrypoints/lambda-mcp.ts`). The canonical MCP resource is `https://mcp.<domain>/mcp` (no `/v1` prefix on the custom domain).

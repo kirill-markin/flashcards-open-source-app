@@ -7,11 +7,17 @@ import { Construct } from "constructs";
 import * as path from "path";
 import { infraAwsNodejsProjectPaths } from "../nodejs-project-paths";
 
+// The stack's second public hosts, already resolved (../alternate-host.ts) and
+// each undefined until it is both deployed and declared live.
+export interface AlternateHeartbeatHosts {
+  readonly api: string | undefined;
+  readonly auth: string | undefined;
+  readonly mcp: string | undefined;
+}
+
 export interface PublicEndpointHeartbeatProps {
   baseDomain: string;
-  // Second public MCP host, already resolved (../mcp-alternate-host.ts) and
-  // undefined until it is both deployed and declared live.
-  mcpAlternateHeartbeatHost: string | undefined;
+  alternateHeartbeatHosts: AlternateHeartbeatHosts;
 }
 
 export interface PublicEndpointHeartbeatResult {
@@ -48,13 +54,14 @@ const heartbeatBundling: lambdaNodejs.BundlingOptions = {
 // the host is serving: `scripts/checks/check-public-endpoints.sh` for the api and auth hosts,
 // and `scripts/checks/check-mcp-smoke.sh` for the mcp hosts. All answer HTTP 200.
 //
-// The alternate MCP host is appended only once it is declared live, because its CNAME can only
-// be created after the deploy that creates its custom domain. It needs its own probe rather than
-// riding on the primary one: it is a separate Cloudflare record, a separate certificate and a
-// separate API Gateway custom domain, so it can stop serving while `mcp.<domain>` is healthy.
+// An alternate host is appended only once it is declared live, because its CNAME can only be
+// created after the deploy that creates its custom domain. Each needs its own probe rather than
+// riding on its primary: it is a separate Cloudflare record, a separate certificate and a
+// separate API Gateway custom domain, so it can stop serving while the primary host is healthy.
+// The probe path follows the primary of the same role, because both hosts map the same stage.
 export function createPublicEndpointHeartbeatTargets(
   baseDomain: string,
-  mcpAlternateHeartbeatHost?: string | undefined,
+  alternateHeartbeatHosts: AlternateHeartbeatHosts,
 ): ReadonlyArray<PublicEndpointHeartbeatTarget> {
   const targets: Array<PublicEndpointHeartbeatTarget> = [
     { id: "Api", host: `api.${baseDomain}`, probeUrl: `https://api.${baseDomain}/v1/health` },
@@ -62,11 +69,27 @@ export function createPublicEndpointHeartbeatTargets(
     { id: "Mcp", host: `mcp.${baseDomain}`, probeUrl: `https://mcp.${baseDomain}/health` },
   ];
 
-  if (mcpAlternateHeartbeatHost !== undefined) {
+  if (alternateHeartbeatHosts.api !== undefined) {
+    targets.push({
+      id: "ApiAlternate",
+      host: alternateHeartbeatHosts.api,
+      probeUrl: `https://${alternateHeartbeatHosts.api}/v1/health`,
+    });
+  }
+
+  if (alternateHeartbeatHosts.auth !== undefined) {
+    targets.push({
+      id: "AuthAlternate",
+      host: alternateHeartbeatHosts.auth,
+      probeUrl: `https://${alternateHeartbeatHosts.auth}/health`,
+    });
+  }
+
+  if (alternateHeartbeatHosts.mcp !== undefined) {
     targets.push({
       id: "McpAlternate",
-      host: mcpAlternateHeartbeatHost,
-      probeUrl: `https://${mcpAlternateHeartbeatHost}/health`,
+      host: alternateHeartbeatHosts.mcp,
+      probeUrl: `https://${alternateHeartbeatHosts.mcp}/health`,
     });
   }
 
@@ -80,7 +103,7 @@ export function publicEndpointHeartbeat(
   scope: Construct,
   props: PublicEndpointHeartbeatProps,
 ): PublicEndpointHeartbeatResult {
-  const targets = createPublicEndpointHeartbeatTargets(props.baseDomain, props.mcpAlternateHeartbeatHost);
+  const targets = createPublicEndpointHeartbeatTargets(props.baseDomain, props.alternateHeartbeatHosts);
 
   const heartbeatFunction = new lambdaNodejs.NodejsFunction(scope, "PublicEndpointHeartbeatHandler", {
     entry: path.join(__dirname, "../../lambda/public-endpoint-heartbeat/index.ts"),
