@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "આ કાર્યક્ષેત્રમાંથી %d સક્રિય કાર્ડ કાયમ માટે કાઢી નાખશે.";
 "settings.workspace.deleteConfirmation.title" = "કાર્યક્ષેત્ર કાઢી નાખો";
 "settings.workspace.deleteConfirmation.warning" = "ચેતવણી! આ ક્રિયા કાયમી છે. તે %d સક્રિય કાર્ડ %@ માંથી કાઢી નાખશે.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "કાઢ્યા પછી તરત નવું ખાલી વ્યક્તિગત કાર્યક્ષેત્ર બનશે.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "કાઢ્યા પછી તરત Personal નામનું નવું ખાલી કાર્યક્ષેત્ર બનશે.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "કાઢી રહ્યું છે...";
 "settings.workspace.resetConfirmation.title" = "રીસેટની પુષ્ટિ કરો";

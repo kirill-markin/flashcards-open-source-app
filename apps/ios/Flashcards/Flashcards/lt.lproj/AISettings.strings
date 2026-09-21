@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Iš šios darbo srities visam laikui ištrinamų aktyvių kortelių skaičius: %d.";
 "settings.workspace.deleteConfirmation.title" = "Ištrinti darbo sritį";
 "settings.workspace.deleteConfirmation.warning" = "Dėmesio! Šis veiksmas negrįžtamas. Ištrinamų aktyvių kortelių: %d; darbo sritis: %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Iškart po ištrynimo bus sukurta nauja tuščia asmeninė darbo sritis.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Iškart po ištrynimo bus sukurta nauja tuščia darbo sritis pavadinimu Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Trinama...";
 "settings.workspace.resetConfirmation.title" = "Patvirtinti atstatymą";

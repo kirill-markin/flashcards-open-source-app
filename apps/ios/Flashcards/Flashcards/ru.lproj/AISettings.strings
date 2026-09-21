@@ -467,10 +467,10 @@
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "Источник ассета пуделя";
 "settings.account.openSource.thirdPartyNoticeWhaleSource" = "Источник ассета кита";
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "Источник ассета павлина";
-"settings.account.openSource.thirdPartyNoticeOxSource" = "Ox Asset Source";
-"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Paw Prints Asset Source";
-"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Racehorse Asset Source";
-"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Volcano Asset Source";
+"settings.account.openSource.thirdPartyNoticeOxSource" = "Источник ассета быка";
+"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Источник ассета следов лап";
+"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Источник ассета скаковой лошади";
+"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Источник ассета вулкана";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "Источник ассета единорога";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "Источник ассета улитки";
 "settings.account.openSource.thirdPartyNoticeRoseSource" = "Источник ассета розы";
@@ -595,7 +595,7 @@
 
 "settings.workspace.deleteConfirmation.title" = "Удалить рабочую область";
 "settings.workspace.deleteConfirmation.warning" = "Внимание: это действие является постоянным. Активные карты %d будут удалены из %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Новое пустое личное рабочее пространство будет создано сразу после удаления.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Сразу после удаления будет создано новое пустое рабочее пространство с названием Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "удалить рабочую область";
 "settings.workspace.deleteConfirmation.deleting" = "Удаление...";
 

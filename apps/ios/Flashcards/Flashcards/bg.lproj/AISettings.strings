@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Това изтрива за постоянно %d активни карти от това работно пространство.";
 "settings.workspace.deleteConfirmation.title" = "Изтриване на работното пространство";
 "settings.workspace.deleteConfirmation.warning" = "Внимание! Това действие е необратимо. Ще изтрие %d активни карти от %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Ново празно лично работно пространство ще бъде създадено веднага след изтриването.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Веднага след изтриването ще бъде създадено ново празно работно пространство с име Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Изтриване...";
 "settings.workspace.resetConfirmation.title" = "Потвърждаване на нулирането";
