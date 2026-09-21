@@ -716,7 +716,7 @@ const itCatalog: TranslationCatalog = {
       dialogTitle: "Elimina l’area di lavoro",
       loading: "Caricamento dei dettagli di eliminazione...",
       warning: "Attenzione! Questa azione è definitiva. Eliminerà {{count}} da {{workspaceName}}.",
-      lastWorkspaceHint: "Subito dopo l’eliminazione verrà creata una nuova area di lavoro Personal vuota.",
+      lastWorkspaceHint: "Subito dopo l’eliminazione verrà creata una nuova area di lavoro vuota chiamata Personal.",
       typePhrase: "Digita esattamente la frase per continuare.",
       deleting: "Eliminazione...",
     },
@@ -1160,9 +1160,18 @@ const itCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistiche di {{deckName}}",
     newDeck: "Nuovo mazzo",
     statLabels: {
-      cards: "carte",
-      new: "nuove",
-      reviewed: "ripassate",
+      cards: {
+        one: "carta",
+        other: "carte",
+      },
+      new: {
+        one: "nuova",
+        other: "nuove",
+      },
+      reviewed: {
+        one: "ripassata",
+        other: "ripassate",
+      },
     },
     subtitle: "I mazzi sono filtri intelligenti, non contenitori. Selezionano le carte in base ai tag.",
     title: "Mazzi",

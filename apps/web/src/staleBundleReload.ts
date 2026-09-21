@@ -28,6 +28,24 @@ function getSessionStorage(): Storage | null {
   }
 }
 
+function readSessionValue(sessionStorage: Storage, storageKey: string): string | null {
+  try {
+    return sessionStorage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
+function removeSessionValue(sessionStorage: Storage, storageKey: string): boolean {
+  try {
+    sessionStorage.removeItem(storageKey);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function getCurrentRoute(): string {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
@@ -82,12 +100,16 @@ function reportPreloadError(
 }
 
 function reportRecoveredReload(sessionStorage: Storage): void {
-  if (sessionStorage.getItem(PRELOAD_ERROR_REPORT_PENDING_STORAGE_KEY) !== "1") {
+  if (readSessionValue(sessionStorage, PRELOAD_ERROR_REPORT_PENDING_STORAGE_KEY) !== "1") {
     return;
   }
 
-  sessionStorage.removeItem(PRELOAD_ERROR_REPORT_PENDING_STORAGE_KEY);
-  const lastReloadAtMs = Number(sessionStorage.getItem(PRELOAD_ERROR_RELOADED_AT_STORAGE_KEY) ?? "0");
+  // A marker that cannot be cleared would report the same recovery on every load.
+  if (removeSessionValue(sessionStorage, PRELOAD_ERROR_REPORT_PENDING_STORAGE_KEY) === false) {
+    return;
+  }
+
+  const lastReloadAtMs = Number(readSessionValue(sessionStorage, PRELOAD_ERROR_RELOADED_AT_STORAGE_KEY) ?? "0");
   const isReloadTimestampValid = Number.isFinite(lastReloadAtMs) && lastReloadAtMs > 0;
   addWebBreadcrumb({
     action: "stale_bundle_reload",
@@ -123,7 +145,15 @@ export function installStaleBundleReloadGuard(): void {
       return;
     }
 
-    const lastReloadAtMs = Number(sessionStorage.getItem(PRELOAD_ERROR_RELOADED_AT_STORAGE_KEY) ?? "0");
+    let lastReloadAtMs: number;
+    try {
+      lastReloadAtMs = Number(sessionStorage.getItem(PRELOAD_ERROR_RELOADED_AT_STORAGE_KEY) ?? "0");
+    } catch {
+      // Without a readable rate-limit marker a reload could loop.
+      reportPreloadError(assetPath, false, "storage_unavailable");
+      return;
+    }
+
     if (Number.isFinite(lastReloadAtMs) && Date.now() - lastReloadAtMs < PRELOAD_ERROR_RELOAD_MIN_INTERVAL_MS) {
       reportPreloadError(assetPath, false, "rate_limited");
       return;

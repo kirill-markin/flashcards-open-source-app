@@ -716,7 +716,7 @@ const isCatalog: TranslationCatalog = {
       dialogTitle: "Eyða vinnusvæði",
       loading: "Hleð upplýsingum um eyðingu...",
       warning: "Viðvörun! Þessi aðgerð er varanleg. Úr {{workspaceName}} verður eytt: {{count}}.",
-      lastWorkspaceHint: "Nýtt autt persónulegt vinnusvæði verður búið til strax eftir eyðinguna.",
+      lastWorkspaceHint: "Nýtt autt vinnusvæði með heitinu Personal verður búið til strax eftir eyðinguna.",
       typePhrase: "Sláðu frasann inn nákvæmlega til að halda áfram.",
       deleting: "Eyði...",
     },
@@ -1160,9 +1160,18 @@ const isCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Tölfræði: {{deckName}}",
     newDeck: "Nýr stokkur",
     statLabels: {
-      cards: "spjöld",
-      new: "ný",
-      reviewed: "upprifjuð",
+      cards: {
+        one: "spjald",
+        other: "spjöld",
+      },
+      new: {
+        one: "nýtt",
+        other: "ný",
+      },
+      reviewed: {
+        one: "upprifjað",
+        other: "upprifjuð",
+      },
     },
     subtitle: "Stokkar eru snjallsíur, ekki ílát. Þeir velja spjöld eftir merkjum.",
     title: "Stokkar",

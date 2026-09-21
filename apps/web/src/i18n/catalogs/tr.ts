@@ -236,7 +236,7 @@ const trCatalog: TranslationCatalog = {
       title: "Değerlendirme sıralaması",
       loading: "Değerlendirme sıralaması yükleniyor...",
       infoToggleLabel: "Değerlendirme sıralaması hakkında",
-      info: "Zor, İyi veya Kolay olarak değerlendirilen tekrarlar sıranıza sayılır. Yeniden tekrarları sayılmaz.",
+      info: "Zor, İyi veya Kolay olarak değerlendirilen tekrarlar sıranıza sayılır. Tekrar olarak değerlendirilenler sayılmaz.",
       periodsLabel: "Değerlendirme sıralaması dönemi",
       periods: {
         last24Hours: "24s",
@@ -324,7 +324,7 @@ const trCatalog: TranslationCatalog = {
       title: "Seri sıralaması",
       loading: "Seri sıralaması yükleniyor...",
       infoToggleLabel: "Seri sıralaması hakkında",
-      info: "Sıranızı güncel seri gününüz belirler. Seri günü, en az bir kartın Yeniden, Zor, İyi veya Kolay olarak değerlendirildiği her yerel gündür. Herkese açık anlık görüntü henüz hazır değilse yerel güncel seriniz gösterilir.",
+      info: "Sıranızı güncel seri gününüz belirler. Seri günü, en az bir kartın Tekrar, Zor, İyi veya Kolay olarak değerlendirildiği her yerel gündür. Herkese açık anlık görüntü henüz hazır değilse yerel güncel seriniz gösterilir.",
       updatedAt: "{{duration}} önce güncellendi",
       guestBody: "Güncel serinizi diğer öğrenenlerle karşılaştırmak için giriş yapın.",
       participationDisabledBody: "Sıralama tablosuna katılım kapalıyken seri sıralamaları gizlenir. Diğer öğrenenleri ve kendi yerinizi görmek için yeniden açın.",
@@ -992,7 +992,7 @@ const trCatalog: TranslationCatalog = {
       upcoming: "Yaklaşan",
     },
     ratings: {
-      again: "Yeniden",
+      again: "Tekrar",
       easy: "Kolay",
       good: "İyi",
       hard: "Zor",
@@ -1026,7 +1026,7 @@ const trCatalog: TranslationCatalog = {
     title: "Kartı düzenle",
   },
   reviewHardReminder: {
-    body: "Cevabı bilmiyorduysanız \"Yeniden\" seçin. \"Zor\" yalnızca bildiğiniz ama hatırlaması güç olan cevaplar içindir.",
+    body: "Cevabı bilmiyorduysanız \"Tekrar\" seçeneğini seçin. \"Zor\" yalnızca bildiğiniz ama hatırlaması güç olan cevaplar içindir.",
     dismiss: "Anladım",
     title: "Kısa hatırlatma",
   },
@@ -1160,9 +1160,18 @@ const trCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} istatistikleri",
     newDeck: "Yeni deste",
     statLabels: {
-      cards: "kart",
-      new: "yeni",
-      reviewed: "tekrar edildi",
+      cards: {
+        one: "kart",
+        other: "kart",
+      },
+      new: {
+        one: "yeni",
+        other: "yeni",
+      },
+      reviewed: {
+        one: "tekrar edildi",
+        other: "tekrar edildi",
+      },
     },
     subtitle: "Desteler birer kapsayıcı değil, akıllı filtredir. Kartları etiketlere göre eşleştirir.",
     title: "Desteler",

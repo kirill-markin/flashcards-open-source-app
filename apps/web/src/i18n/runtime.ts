@@ -49,8 +49,6 @@ export type ResolvedLocaleState = Readonly<{
 }>;
 
 export const LOCALE_PREFERENCE_STORAGE_KEY = "flashcards-web-locale-preference";
-// A probe must never overwrite the preference it is probing for.
-const LOCALE_PREFERENCE_PROBE_STORAGE_KEY = `${LOCALE_PREFERENCE_STORAGE_KEY}-probe`;
 
 function buildBrowserLanguageCandidates(snapshot: BrowserLanguageSnapshot): ReadonlyArray<BrowserLanguageCandidate> {
   const candidates: Array<BrowserLanguageCandidate> = [];
@@ -200,13 +198,6 @@ function removeStoredValue(storageKey: string): boolean {
   }
 }
 
-// Pinning a locale only survives a reload when the preference can be written, so a caller that
-// offers that as a recovery must not offer it otherwise. Both operations are probed, because
-// persisting "auto" removes the key instead of writing it.
-export function canPersistLocalePreference(): boolean {
-  return writeStoredValue(LOCALE_PREFERENCE_PROBE_STORAGE_KEY, autoLocalePreference) && removeStoredValue(LOCALE_PREFERENCE_PROBE_STORAGE_KEY);
-}
-
 export function readBrowserLanguageSnapshot(): BrowserLanguageSnapshot {
   if (typeof navigator === "undefined") {
     return {
@@ -277,13 +268,13 @@ export function readStoredLocalePreference(): LocalePreference {
   return autoLocalePreference;
 }
 
-export function persistLocalePreference(localePreference: LocalePreference): void {
+// Returns whether the preference reached storage, so it survives a reload.
+export function persistLocalePreference(localePreference: LocalePreference): boolean {
   if (localePreference === autoLocalePreference) {
-    removeStoredValue(LOCALE_PREFERENCE_STORAGE_KEY);
-    return;
+    return removeStoredValue(LOCALE_PREFERENCE_STORAGE_KEY);
   }
 
-  writeStoredValue(LOCALE_PREFERENCE_STORAGE_KEY, localePreference);
+  return writeStoredValue(LOCALE_PREFERENCE_STORAGE_KEY, localePreference);
 }
 
 export function resolveLocaleState(localePreference: LocalePreference): ResolvedLocaleState {
@@ -330,9 +321,24 @@ export function formatNumber(locale: Locale, value: number, options?: Readonly<I
   return new Intl.NumberFormat(locale, options).format(value);
 }
 
-export function formatCount(locale: Locale, value: number, labels: PluralCountLabels): string {
+export function selectCountLabel(locale: Locale, value: number, labels: PluralCountLabels): string {
   const pluralCategory = value === 0 && labels.zero !== undefined ? "zero" : new Intl.PluralRules(locale).select(value);
-  const label = pluralCategory === "one" ? labels.one : pluralCategory === "zero" ? labels.zero ?? labels.other : labels.other;
 
-  return `${formatNumber(locale, value)} ${label}`;
+  switch (pluralCategory) {
+    case "zero":
+      return labels.zero ?? labels.other;
+    case "one":
+      return labels.one;
+    case "two":
+      return labels.two ?? labels.other;
+    case "few":
+      return labels.few ?? labels.other;
+    case "many":
+    case "other":
+      return labels.other;
+  }
+}
+
+export function formatCount(locale: Locale, value: number, labels: PluralCountLabels): string {
+  return `${formatNumber(locale, value)} ${selectCountLabel(locale, value, labels)}`;
 }

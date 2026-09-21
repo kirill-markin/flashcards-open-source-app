@@ -716,7 +716,7 @@ const etCatalog: TranslationCatalog = {
       dialogTitle: "Kustuta tööruum",
       loading: "Kustutamise üksikasjade laadimine...",
       warning: "Hoiatus! See toiming on jäädav. Tööruumist {{workspaceName}} kustutatakse: {{count}}.",
-      lastWorkspaceHint: "Kohe pärast kustutamist luuakse uus tühi isiklik tööruum.",
+      lastWorkspaceHint: "Kohe pärast kustutamist luuakse uus tühi tööruum nimega Personal.",
       typePhrase: "Jätkamiseks sisesta fraas täpselt.",
       deleting: "Kustutamine...",
     },
@@ -1160,9 +1160,18 @@ const etCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Paki statistika: {{deckName}}",
     newDeck: "Uus pakk",
     statLabels: {
-      cards: "kaarti",
-      new: "uut",
-      reviewed: "korratut",
+      cards: {
+        one: "kaart",
+        other: "kaarti",
+      },
+      new: {
+        one: "uus",
+        other: "uut",
+      },
+      reviewed: {
+        one: "korratud",
+        other: "korratut",
+      },
     },
     subtitle: "Pakid on nutikad filtrid, mitte konteinerid. Need valivad kaarte siltide järgi.",
     title: "Pakid",

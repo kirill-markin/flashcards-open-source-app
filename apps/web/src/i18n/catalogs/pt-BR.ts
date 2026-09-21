@@ -716,7 +716,7 @@ const ptBrCatalog: TranslationCatalog = {
       dialogTitle: "Excluir espaço de trabalho",
       loading: "Carregando detalhes da exclusão...",
       warning: "Atenção! Esta ação é permanente. Ela vai excluir {{count}} de {{workspaceName}}.",
-      lastWorkspaceHint: "Um novo espaço de trabalho Pessoal vazio será criado logo após a exclusão.",
+      lastWorkspaceHint: "Um novo espaço de trabalho vazio chamado Personal será criado logo após a exclusão.",
       typePhrase: "Digite a frase exatamente como está para continuar.",
       deleting: "Excluindo...",
     },
@@ -1160,9 +1160,18 @@ const ptBrCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Estatísticas de {{deckName}}",
     newDeck: "Novo baralho",
     statLabels: {
-      cards: "cartões",
-      new: "novos",
-      reviewed: "revisados",
+      cards: {
+        one: "cartão",
+        other: "cartões",
+      },
+      new: {
+        one: "novo",
+        other: "novos",
+      },
+      reviewed: {
+        one: "revisado",
+        other: "revisados",
+      },
     },
     subtitle: "Baralhos são filtros inteligentes, não pastas. Eles selecionam cartões por etiquetas.",
     title: "Baralhos",

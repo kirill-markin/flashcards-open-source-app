@@ -1160,9 +1160,18 @@ const swCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Takwimu za {{deckName}}",
     newDeck: "Fungu jipya",
     statLabels: {
-      cards: "kadi",
-      new: "mpya",
-      reviewed: "zilizorudiwa",
+      cards: {
+        one: "kadi",
+        other: "kadi",
+      },
+      new: {
+        one: "mpya",
+        other: "mpya",
+      },
+      reviewed: {
+        one: "iliyorudiwa",
+        other: "zilizorudiwa",
+      },
     },
     subtitle: "Mafungu ni vichujio mahiri, si vyombo vya kuhifadhi. Hulinganisha kadi kwa lebo.",
     title: "Mafungu",

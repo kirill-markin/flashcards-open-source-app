@@ -115,12 +115,9 @@ function ProgressLeaderboardProfileReadyBody(props: Readonly<{
   profile: ProgressLeaderboardProfileReady;
 }>): ReactElement {
   const { profile } = props;
-  const { formatCount, formatDate, formatNumber, t } = useI18n();
+  const { formatCount, formatDate, formatNumber, messages, t } = useI18n();
   const maxReviewCount = Math.max(1, ...profile.reviewActivity.days.map((day) => day.reviewCount));
-  const currentStreakText = formatCount(profile.metrics.currentStreakDays, {
-    one: t("progressScreen.streakLeaderboard.dayLabels.one"),
-    other: t("progressScreen.streakLeaderboard.dayLabels.other"),
-  });
+  const currentStreakText = formatCount(profile.metrics.currentStreakDays, messages.progressScreen.streakLeaderboard.dayLabels);
 
   return (
     <>

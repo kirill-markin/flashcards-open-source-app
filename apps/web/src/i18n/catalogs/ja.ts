@@ -1160,9 +1160,18 @@ export const jaCatalog = {
     emptyStatsAriaLabel: "{{deckName}} の統計",
     newDeck: "新しいデッキ",
     statLabels: {
-      cards: "カード",
-      new: "新規",
-      reviewed: "復習済み",
+      cards: {
+        one: "カード",
+        other: "カード",
+      },
+      new: {
+        one: "新規",
+        other: "新規",
+      },
+      reviewed: {
+        one: "復習済み",
+        other: "復習済み",
+      },
     },
     subtitle: "デッキはコンテナではなくスマートフィルターです。タグでカードに一致します。",
     title: "デッキ",
