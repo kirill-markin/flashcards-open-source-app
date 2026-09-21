@@ -6,8 +6,20 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private const val flashcardsOfficialApiBaseUrl: String = "https://api.flashcards-open-source-app.com/v1"
-private const val flashcardsOfficialAuthBaseUrl: String = "https://auth.flashcards-open-source-app.com"
+private const val flashcardsOfficialApiBaseUrl: String = "https://api.nibomo.com/v1"
+private const val flashcardsOfficialAuthBaseUrl: String = "https://auth.nibomo.com"
+
+/**
+ * Every official API base URL a record written by an earlier build may carry.
+ *
+ * The official hosts moved domain. All of them front the same backend, the same database and the
+ * same guest tokens, so a stored record naming any of them belongs to the official cloud and must
+ * survive the move rather than be discarded as foreign.
+ */
+private val officialCloudApiBaseUrls: Set<String> = setOf(
+    flashcardsOfficialApiBaseUrl,
+    "https://api.flashcards-open-source-app.com/v1"
+)
 private const val customCloudApiHostPrefix: String = "api."
 private const val customCloudAuthHostPrefix: String = "auth."
 private val canonicalIsoTimestampFormatter: DateTimeFormatter = DateTimeFormatter
@@ -21,6 +33,31 @@ fun makeOfficialCloudServiceConfiguration(): CloudServiceConfiguration {
         apiBaseUrl = flashcardsOfficialApiBaseUrl,
         authBaseUrl = flashcardsOfficialAuthBaseUrl
     )
+}
+
+/**
+ * Whether two cloud service coordinates name the same deployment.
+ *
+ * `CUSTOM` compares exactly: two self-hosted servers are separate deployments and neither may
+ * accept a session minted against the other. `OFFICIAL` accepts any official base URL, so a record
+ * written before the official hosts moved domain still matches the current one.
+ */
+fun isSameCloudService(
+    leftMode: CloudServiceConfigurationMode,
+    leftApiBaseUrl: String,
+    rightMode: CloudServiceConfigurationMode,
+    rightApiBaseUrl: String
+): Boolean {
+    if (leftMode != rightMode) {
+        return false
+    }
+
+    return when (leftMode) {
+        CloudServiceConfigurationMode.OFFICIAL ->
+            leftApiBaseUrl in officialCloudApiBaseUrls && rightApiBaseUrl in officialCloudApiBaseUrls
+
+        CloudServiceConfigurationMode.CUSTOM -> leftApiBaseUrl == rightApiBaseUrl
+    }
 }
 
 fun makeCustomCloudServiceConfiguration(customOrigin: String): CloudServiceConfiguration {
