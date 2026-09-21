@@ -183,7 +183,8 @@ record: a response body that could not be measured is recorded as a `null`
 | --- | --- |
 | `protocolVersion` | `MCP-Protocol-Version` request header; `null` when the client sends none, which includes the `initialize` request that negotiates it |
 | `jsonRpcMethod` | `Mcp-Method` request header, so `initialize`, `tools/list`, `tools/call`; `null` on clients older than MCP revision 2026-07-28, which is where the header became REQUIRED |
-| `toolName` | Tool the request ran, observed in process from the tool handler, so it is present for a tool call whatever the client's protocol revision is; when no handler ran it falls back to the client's own unvalidated `Mcp-Name` header, so a `tools/call` the SDK rejected before any handler is still named on a client new enough to send that header; `null` when no handler ran and no `Mcp-Name` was sent, and always `null` on a non-POST request |
+| `toolName` | Tool the request ran, observed in process from the tool handler, so it is present for a tool call whatever the client's protocol revision is; when no handler ran it falls back to the tool the `tools/call` body names and then to the client's own unvalidated `Mcp-Name` header, so a `tools/call` the SDK rejected before any handler is still named; `null` when the request named no tool, and always `null` on a non-POST request |
+| `toolExecuted` | `true` when a tool handler ran, `false` when a tool was named but no handler ran, `null` when the request named no tool. The SDK validates a call's arguments against the tool's input schema ahead of the handler, so an unknown tool, a wrong enum spelling, or a missing required argument answers the client with `-32602` and never reaches our code: those attempts are `toolExecuted = false`, and without this field they are indistinguishable from a client that never called the tool at all |
 | `caller` | Calling client label, normalized like the `agent_sql` one |
 | `connectionId` | Agent connection the request ran under |
 | `statusCode` | HTTP status the client received, including the 405 a non-POST request gets |
@@ -203,10 +204,11 @@ characters, and recorded as `null` when absent or empty. They are never
 validated: a missing or unexpected header changes nothing about how the request
 is served.
 
-No body content is recorded. The JSON-RPC body belongs to the transport and is
-never parsed for telemetry, and tool arguments and results carry flashcard
-content; `responseChars` is a length measured off the response and never any of
-what it contains.
+Of the JSON-RPC body, which belongs to the transport, only a `tools/call` tool
+name is read, capped and normalized like a header value. Nothing else of it is:
+tool arguments and results carry flashcard content and are never recorded, and
+`responseChars` is a length measured off the response and never any of what it
+contains.
 
 A `message.method = "GET"` row is a client trying to open the standalone SSE
 stream that MCP revisions 2025-03-26 through 2025-11-25 allow and revision
@@ -229,11 +231,29 @@ filter message.domain = "backend" and message.action = "mcp_request"
 
 `jsonRpcMethod` is `null` for every client older than MCP revision 2026-07-28,
 so today the split is carried by the other fields: a tool call is named by
-`toolName`, an `initialize`, or any request from a client that sends no
-`MCP-Protocol-Version`, is a row with no `protocolVersion`, a non-POST `method`
-is the rejected stream attempt above, and the remaining protocol traffic
-(`tools/list`, `ping`, `notifications/initialized`) shares one unnamed bucket
-until callers start sending `Mcp-Method`.
+`toolName` and its outcome by `toolExecuted`, an `initialize`, or any request
+from a client that sends no `MCP-Protocol-Version`, is a row with no
+`protocolVersion`, a non-POST `method` is the rejected stream attempt above, and
+the remaining protocol traffic (`tools/list`, `ping`,
+`notifications/initialized`) shares one unnamed bucket until callers start
+sending `Mcp-Method`.
+
+## Tool calls refused before the handler
+
+```
+filter message.domain = "backend" and message.action = "mcp_request"
+       and message.toolExecuted = 0
+| stats count(*) as refused by message.toolName, message.caller
+| sort refused desc
+| limit 20
+```
+
+A row here named a tool and never ran one, so the tool itself did not fail. It
+is almost always the SDK answering `-32602` before the handler -- an unknown
+tool name, or arguments its input schema rejects -- which is a client or model
+getting the contract wrong; `statusCode` separates the rarer case of a request
+that faulted before reaching the handler. Compare it against the same tool's
+executed calls to see whether one client is failing systematically.
 
 ## Failure share by surface
 
