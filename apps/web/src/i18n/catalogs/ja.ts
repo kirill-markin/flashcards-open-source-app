@@ -866,6 +866,10 @@ export const jaCatalog = {
     privacyPolicy: "プライバシーポリシー",
     error: "うまくいきませんでした。もう一度お試しください。",
   },
+  analyticsConsentWithdrawal: {
+    link: "分析用Cookie",
+    close: "閉じる",
+  },
   analyticsSettings: {
     title: "分析",
     subtitle: "このブラウザーを計測してよいかを選びます。",

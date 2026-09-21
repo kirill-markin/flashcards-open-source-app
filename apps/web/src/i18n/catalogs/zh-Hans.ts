@@ -866,6 +866,10 @@ export const zhHansCatalog = {
     privacyPolicy: "隐私政策",
     error: "没有成功，请再试一次。",
   },
+  analyticsConsentWithdrawal: {
+    link: "分析 Cookie",
+    close: "关闭",
+  },
   analyticsSettings: {
     title: "使用分析",
     subtitle: "选择是否可以统计此浏览器。",

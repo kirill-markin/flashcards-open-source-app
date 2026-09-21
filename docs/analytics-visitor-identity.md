@@ -103,9 +103,11 @@ reconciled at sign-in by the client rather than by either store: the account ans
 exist, and an account that has none adopts the browser's
 ([web sync](../apps/web/src/analytics/accountConsent.ts)).
 
-The banner is shown only to a browser that has stored no answer of its own, so what a public
-catalog, invite or share route can produce is a first decision and never a change of one. The
-reconciliation already carries that case: the account holding none adopts it at the next sign-in.
+The banner is shown only to a browser that has stored no answer of its own, so the banner on a
+public catalog, invite or share route produces a first decision and never a change of one; changing
+it there is the withdrawal link's job, and that link appears only once the banner's question has
+been answered. The reconciliation already carries the first decision: the account holding none
+adopts it at the next sign-in.
 The banner writes the account directly only where a verified session owner is published on the load
 that answered it, which is inside the authenticated app; on the public routes it records the
 browser's answer and nothing else.
@@ -169,19 +171,32 @@ switch rather than sitting beside it, and the switch carries the answer across i
 directions: a browser that refused stays refused when an operator turns analytics off and on again,
 instead of returning to undecided and becoming askable and mintable in between.
 
-The withdrawal control is the settings screen at `/settings/analytics`, and it is there in every
-region, not only where the banner is shown, because the published privacy policy states withdrawal
-without a regional qualifier. It is the only one: the public catalog, invite and share routes carry
-the banner but no control of their own, and a visitor who answered there and has no account
-withdraws by signing in and opening that screen — which is the route the privacy policy names ("in
-the web app settings"). The settings screen cannot serve those routes itself, because a signed-out
-visitor opening it is redirected to the auth origin.
+The withdrawal control is the same switch on two surfaces, and it is offered in every region, not
+only where the banner is shown, because the published privacy policy states withdrawal without a
+regional qualifier. A signed-in person has it on the settings screen at `/settings/analytics`, which
+is the route the privacy policy names ("in the web app settings"). The public catalog, invite and
+share routes carry it as a link in the corner, so a visitor who answered the banner there and has no
+account takes the answer back where it was given rather than by clearing browser storage.
+
+The public surface is a link rendering the switch in place, not a second route onto the settings
+screen. `/settings/analytics` is served by `AuthenticatedApp`, so a signed-out visitor opening it is
+redirected to the auth origin, and a route declared above `AuthenticatedApp` to fix that would win
+for everyone and take the settings screen away from the signed-in person it already serves.
+
+The public link carries the answer to the account on the same terms as the banner does from the same
+position above the app data provider: it reads the verified owner from the analytics runtime, which
+is module-level state outliving the session layer, so a person who signed in and then reached a
+public route writes both records there. Without that write an account holding `granted` would undo
+the withdrawal at the next verified session. A visitor who never signed in publishes no owner, and
+the browser's own decision is the whole write.
 
 Consent is not retroactive either way. What a browser collected while a refusal stood is discarded
 when it later grants, rather than adopted into the queue and stamped with the visitor id the grant
 has just minted.
 
 - [Consent state, and what it allows](../apps/web/src/analytics/consent.ts)
-- [Banner](../apps/web/src/analytics/AnalyticsConsentBanner.tsx) and
-  [settings withdrawal](../apps/web/src/screens/settings/AnalyticsSettingsScreen.tsx)
+- [Banner](../apps/web/src/analytics/AnalyticsConsentBanner.tsx), the shared
+  [withdrawal switch](../apps/web/src/analytics/AnalyticsConsentToggleCard.tsx), its
+  [settings surface](../apps/web/src/screens/settings/AnalyticsSettingsScreen.tsx) and its
+  [public-route link](../apps/web/src/analytics/PublicAnalyticsConsentLink.tsx)
 - [The gate the delivery runtime applies](../apps/web/src/analytics/deliveryRuntime.ts)
