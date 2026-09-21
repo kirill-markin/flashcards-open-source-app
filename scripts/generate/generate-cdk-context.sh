@@ -56,6 +56,28 @@ PY
 API_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "api.${DOMAIN_NAME}" "api-domain")"
 AUTH_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "auth.${DOMAIN_NAME}" "auth-domain")"
 MCP_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "mcp.${DOMAIN_NAME}" "mcp-domain")"
+# Optional second public host for the API and the auth API, on a domain that
+# cannot be derived from DOMAIN_NAME. Set API_ALTERNATE_DOMAIN_NAME or
+# AUTH_ALTERNATE_DOMAIN_NAME in root .env to enable one; each certificate is
+# discovered in the stack region unless it is set explicitly.
+API_ALTERNATE_DOMAIN_NAME="${API_ALTERNATE_DOMAIN_NAME:-}"
+API_ALTERNATE_CERTIFICATE_ARN="${API_ALTERNATE_CERTIFICATE_ARN:-}"
+if [[ -n "${API_ALTERNATE_DOMAIN_NAME}" && -z "${API_ALTERNATE_CERTIFICATE_ARN}" ]]; then
+  API_ALTERNATE_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "${API_ALTERNATE_DOMAIN_NAME}" "api-alternate-domain")"
+fi
+AUTH_ALTERNATE_DOMAIN_NAME="${AUTH_ALTERNATE_DOMAIN_NAME:-}"
+AUTH_ALTERNATE_CERTIFICATE_ARN="${AUTH_ALTERNATE_CERTIFICATE_ARN:-}"
+if [[ -n "${AUTH_ALTERNATE_DOMAIN_NAME}" && -z "${AUTH_ALTERNATE_CERTIFICATE_ARN}" ]]; then
+  AUTH_ALTERNATE_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "${AUTH_ALTERNATE_DOMAIN_NAME}" "auth-alternate-domain")"
+fi
+# Liveness of each extra host, flipped only once its DNS record exists. Empty
+# until then, so the deploy that creates a host never probes it.
+API_ALTERNATE_HOST_LIVE="${API_ALTERNATE_HOST_LIVE:-}"
+AUTH_ALTERNATE_HOST_LIVE="${AUTH_ALTERNATE_HOST_LIVE:-}"
+# The deployed browser cookie domain, unset unless it has to differ from
+# DOMAIN_NAME. Deliberately not COOKIE_DOMAIN: that name in root .env belongs to
+# the locally running backend.
+CDK_COOKIE_DOMAIN="${CDK_COOKIE_DOMAIN:-}"
 # Optional second MCP host on an unrelated domain, so it cannot be derived from
 # DOMAIN_NAME. Set MCP_ALTERNATE_DOMAIN_NAME in root .env to enable it; the
 # certificate is discovered in the stack region unless it is set explicitly.
@@ -115,6 +137,13 @@ export MCP_CERTIFICATE_ARN
 export MCP_ALTERNATE_DOMAIN_NAME
 export MCP_ALTERNATE_CERTIFICATE_ARN
 export MCP_ALTERNATE_HOST_LIVE
+export API_ALTERNATE_DOMAIN_NAME
+export API_ALTERNATE_CERTIFICATE_ARN
+export AUTH_ALTERNATE_DOMAIN_NAME
+export AUTH_ALTERNATE_CERTIFICATE_ARN
+export API_ALTERNATE_HOST_LIVE
+export AUTH_ALTERNATE_HOST_LIVE
+export CDK_COOKIE_DOMAIN
 export WEB_CERTIFICATE_ARN
 export WEB_ADDITIONAL_DOMAIN_NAME
 export WEB_ADDITIONAL_CERTIFICATE_ARN
@@ -155,6 +184,13 @@ values = {
     "mcpAlternateDomainName": os.environ.get("MCP_ALTERNATE_DOMAIN_NAME", ""),
     "mcpAlternateCertificateArn": os.environ.get("MCP_ALTERNATE_CERTIFICATE_ARN", ""),
     "mcpAlternateHostLive": os.environ.get("MCP_ALTERNATE_HOST_LIVE", ""),
+    "apiAlternateDomainName": os.environ.get("API_ALTERNATE_DOMAIN_NAME", ""),
+    "apiAlternateCertificateArn": os.environ.get("API_ALTERNATE_CERTIFICATE_ARN", ""),
+    "authAlternateDomainName": os.environ.get("AUTH_ALTERNATE_DOMAIN_NAME", ""),
+    "authAlternateCertificateArn": os.environ.get("AUTH_ALTERNATE_CERTIFICATE_ARN", ""),
+    "apiAlternateHostLive": os.environ.get("API_ALTERNATE_HOST_LIVE", ""),
+    "authAlternateHostLive": os.environ.get("AUTH_ALTERNATE_HOST_LIVE", ""),
+    "cookieDomain": os.environ.get("CDK_COOKIE_DOMAIN", ""),
     "webCertificateArnUsEast1": os.environ.get("WEB_CERTIFICATE_ARN", ""),
     "webAdditionalDomainName": os.environ.get("WEB_ADDITIONAL_DOMAIN_NAME", ""),
     "webAdditionalCertificateArnUsEast1": os.environ.get("WEB_ADDITIONAL_CERTIFICATE_ARN", ""),
