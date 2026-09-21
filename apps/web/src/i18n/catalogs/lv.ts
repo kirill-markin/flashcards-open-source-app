@@ -222,7 +222,7 @@ const lvCatalog: TranslationCatalog = {
       totalCards: "Kartītes kopā: {{count}}",
       legendLabel: "Atkārtošanas grafika grupas",
       buckets: {
-        new: "Jauns",
+        new: "Jaunas",
         today: "Šodien",
         days1To7: "1–7 dienas",
         days8To30: "8–30 dienas",
@@ -874,7 +874,7 @@ const lvCatalog: TranslationCatalog = {
     title: "Analītika",
     subtitle: "Izvēlieties, vai šo pārlūku drīkst mērīt.",
     toggleTitle: "Atļaut analītikas sīkfailus",
-    toggleDescription: "Ja tas ir izslēgts, šī lietotne nepiešķir šim pārlūkam identifikatoru un neko neglabā analītikas vajadzībām. Kamēr jūsu konts ir pierakstīts, mērītie dati joprojām tiek piesaistīti jūsu kontam.",
+    toggleDescription: "Ja tas ir izslēgts, šī lietotne nepiešķir šim pārlūkam identifikatoru un neko neglabā analītikas vajadzībām. Kamēr esat pierakstījies, mērītie dati joprojām tiek piesaistīti jūsu kontam.",
     error: "Neizdevās. Lūdzu, mēģiniet vēlreiz.",
     unavailable: "Analītika šai lietotnei ir izslēgta, tāpēc šeit nav ko atļaut vai atsaukt.",
   },
@@ -964,7 +964,7 @@ const lvCatalog: TranslationCatalog = {
     },
     interval: {
       inCount: "pēc {{count}}",
-      lessThanMinute: "mazāk nekā pēc minūtes",
+      lessThanMinute: "pēc mazāk nekā minūtes",
     },
     loading: {
       preparingCard: "Sagatavo kartīti",

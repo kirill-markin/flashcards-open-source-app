@@ -880,7 +880,7 @@ const isCatalog: TranslationCatalog = {
   },
   leaderboardParticipationSettings: {
     title: "Þátttaka í stigatöflu",
-    subtitle: "Stjórnaðu því hvort þú birtist í stöðutöflum samfélagsins og getir skoðað þær.",
+    subtitle: "Stjórnaðu því hvort þú birtist á stigatöflum samfélagsins og getir skoðað þær.",
     toggleTitle: "Sýna mig á stigatöflunni",
     toggleDescription: "Þegar slökkt er á þessu birtist þú ekki á stigatöflunni og staðan á henni er falin fyrir þér.",
     signInRequired: "Skráðu þig inn með netfangi til að stjórna þátttöku í stigatöflunni.",
@@ -964,7 +964,7 @@ const isCatalog: TranslationCatalog = {
     },
     interval: {
       inCount: "eftir {{count}}",
-      lessThanMinute: "eftir innan við mínútu",
+      lessThanMinute: "eftir minna en mínútu",
     },
     loading: {
       preparingCard: "Undirbý spjald",
@@ -1270,8 +1270,8 @@ const isCatalog: TranslationCatalog = {
     composerPlaceholder: "Spyrðu um spjöld, upprifjunarsögu eða hengdu við glósur...",
     dictation: {
       listening: "Hlusta...",
-      start: "Hefja upplestur texta",
-      stop: "Stöðva upplestur texta",
+      start: "Hefja raddinnslátt",
+      stop: "Stöðva raddinnslátt",
       transcribing: "Umrita...",
       waitingForPermission: "Bíð eftir aðgangi að hljóðnema...",
     },
@@ -1448,17 +1448,17 @@ const isCatalog: TranslationCatalog = {
   },
   agentConnections: {
     title: "Tengingar gervigreindarþjóna",
-    subtitle: "Skoðaðu og afturkallaðu langlífar tengingar vélmenna fyrir þennan aðgang.",
+    subtitle: "Skoðaðu og afturkallaðu langlífar tengingar gervigreindarþjóna fyrir þennan aðgang.",
     restoringSession: "Endurheimti lotu...",
     loading: "Hleð tengingum...",
-    empty: "Engar tengingar vélmenna hafa verið búnar til enn.",
+    empty: "Engar tengingar gervigreindarþjóna hafa verið búnar til enn.",
     labels: {
       created: "Búið til",
       lastUsed: "Síðast notað",
       revoked: "Afturkallað",
     },
     revoke: "Afturkalla",
-    generateTitle: "Búa til nýja tengingu vélmennis",
+    generateTitle: "Búa til nýja tengingu gervigreindarþjóns",
     labelPlaceholder: "Heiti (t.d. Gervigreindarþjónn á fartölvunni)",
     generate: "Búa til lykil",
     generateError: "Ekki tókst að búa til API-lykil. Reyndu aftur.",

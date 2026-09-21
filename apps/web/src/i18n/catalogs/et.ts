@@ -11,7 +11,7 @@ const etCatalog: TranslationCatalog = {
         other: "kaarti",
       },
       day: {
-        one: "päev",
+        one: "päeva",
         other: "päeva",
       },
       deck: {
@@ -19,12 +19,12 @@ const etCatalog: TranslationCatalog = {
         other: "pakki",
       },
       hour: {
-        one: "tund",
-        other: "tundi",
+        one: "tunni",
+        other: "tunni",
       },
       minute: {
-        one: "minut",
-        other: "minutit",
+        one: "minuti",
+        other: "minuti",
       },
       tag: {
         one: "silt",
@@ -963,7 +963,7 @@ const etCatalog: TranslationCatalog = {
       title: "Päevade jada",
     },
     interval: {
-      inCount: "{{count}} hiljem",
+      inCount: "{{count}} pärast",
       lessThanMinute: "vähem kui minuti pärast",
     },
     loading: {
@@ -1160,9 +1160,9 @@ const etCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Paki statistika: {{deckName}}",
     newDeck: "Uus pakk",
     statLabels: {
-      cards: "kaarte",
-      new: "uusi",
-      reviewed: "korratud",
+      cards: "kaarti",
+      new: "uut",
+      reviewed: "korratut",
     },
     subtitle: "Pakid on nutikad filtrid, mitte konteinerid. Need valivad kaarte siltide järgi.",
     title: "Pakid",
