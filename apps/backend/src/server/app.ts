@@ -26,7 +26,7 @@ import { createFeedbackRoutes } from "../routes/feedback";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
 import { createMediaAssetsRoutes } from "../routes/mediaAssets";
 import { createProductAnalyticsRoutes } from "../routes/productAnalytics";
-import { createAnalyticsVisitorRoutes } from "../routes/analyticsVisitor";
+import { analyticsVisitorPath, createAnalyticsVisitorRoutes } from "../routes/analyticsVisitor";
 import {
   anonymousAnalyticsEventPath,
   createAnonymousAnalyticsRoutes,
@@ -51,6 +51,7 @@ import { getAllowedOrigins } from "./requestContext";
 import {
   getConfiguredAnonymousAnalyticsCorsOrigins,
   getConfiguredPublicCatalogCorsOrigins,
+  getConfiguredPublicSiteOrigins,
   validatePublicUrlConfiguration,
 } from "../shared/publicUrls";
 import {
@@ -207,6 +208,16 @@ function isAnonymousAnalyticsPath(path: string): boolean {
   return anonymousAnalyticsPaths.has(path);
 }
 
+// Both mounts of the visitor identity route, on both base paths the API is served under, named the
+// way the anonymous collector names its own.
+const analyticsVisitorPaths: ReadonlySet<string> = new Set(
+  [analyticsVisitorPath, `/v1${analyticsVisitorPath}`],
+);
+
+function isAnalyticsVisitorPath(path: string): boolean {
+  return analyticsVisitorPaths.has(path);
+}
+
 function getPublicCatalogCorsOrigin(origin: string): string | null {
   if (origin === "") {
     return null;
@@ -250,6 +261,27 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     allowMethods: ["POST", "OPTIONS"],
     allowHeaders: ["content-type", "sentry-trace", "baggage"],
     exposeHeaders: ["content-type", "x-request-id", "retry-after"],
+  });
+  // The marketing site reaches this one credentialed route and nothing else. The shared list stays
+  // as it is: it governs every other browser route, and the site has no business on those. The route
+  // guard in ../routes/analyticsVisitor.ts is built with this same list, so the refusal and the
+  // response headers cannot disagree.
+  //
+  // Being on the list is necessary and not sufficient. `enforceAllowedBrowserOrigin` refuses a
+  // request the browser marked `Sec-Fetch-Site: cross-site` before it consults any allowlist
+  // (../auth/requestSecurity.ts), so the site obtains an identity only through the API host that
+  // shares its registrable domain — `api.nibomo.com` for a site on `nibomo.com`. The same call to
+  // the legacy API host is cross-site and still answers 403, allowlisted or not.
+  const analyticsVisitorAllowedOrigins = [
+    ...allowedOrigins,
+    ...getConfiguredPublicSiteOrigins(),
+  ];
+  const analyticsVisitorCorsMiddleware = cors({
+    origin: analyticsVisitorAllowedOrigins,
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: [...browserCorsAllowHeaders],
+    exposeHeaders: [...browserCorsExposeHeaders],
+    credentials: true,
   });
   const browserCorsMiddleware = cors({
     origin: allowedOrigins,
@@ -300,6 +332,10 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
     ) {
       await next();
       return;
+    }
+
+    if (isAnalyticsVisitorPath(context.req.path)) {
+      return analyticsVisitorCorsMiddleware(context, next);
     }
 
     return browserCorsMiddleware(context, next);
@@ -477,7 +513,9 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspacePackageRoutes({ allowedOrigins }));
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
   app.route("/", createProductAnalyticsRoutes({ allowedOrigins }));
-  app.route("/", createAnalyticsVisitorRoutes({ allowedOrigins }));
+  app.route("/", createAnalyticsVisitorRoutes({
+    allowedOrigins: analyticsVisitorAllowedOrigins,
+  }));
   app.route("/", createAnonymousAnalyticsRoutes({
     allowedOrigins: anonymousAnalyticsAllowedOrigins,
   }));

@@ -9,6 +9,7 @@ import {
 } from "aws-jwt-verify/error";
 import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
+import { parseCookieDomainCandidates, resolveCookieDomain } from "./cookieDomain.js";
 
 const SESSION_COOKIE_MAX_AGE_SECONDS = 3_024_000;
 
@@ -61,12 +62,21 @@ function getVerifier(): ReturnType<typeof CognitoJwtVerifier.create> {
   return verifier;
 }
 
-function getCookieDomain(): string | undefined {
-  const domain = process.env.COOKIE_DOMAIN ?? "";
-  return domain === "" ? undefined : domain;
+/**
+ * Unset means host-only, as it always has: local development runs one origin and needs no shared
+ * scope. Configured, the domain is the one the request's host sits under (./cookieDomain.ts), so
+ * every host that serves browsers keeps a session whichever registrable domain it is on.
+ */
+function getCookieDomain(context: Context): string | undefined {
+  const candidates = parseCookieDomainCandidates(process.env.COOKIE_DOMAIN);
+  if (candidates.length === 0) {
+    return undefined;
+  }
+
+  return resolveCookieDomain(context.req.header("host"), candidates);
 }
 
-function getCookieOptions(): Readonly<{
+function getCookieOptions(context: Context): Readonly<{
   path: string;
   secure: boolean;
   sameSite: "Lax";
@@ -76,7 +86,7 @@ function getCookieOptions(): Readonly<{
     path: "/",
     secure: true,
     sameSite: "Lax",
-    domain: getCookieDomain(),
+    domain: getCookieDomain(context),
   };
 }
 
@@ -127,7 +137,7 @@ export function setBrowserSessionCookies(
   sessionToken: string,
   refreshToken: string,
 ): void {
-  const cookieOptions = getCookieOptions();
+  const cookieOptions = getCookieOptions(context);
 
   setCookie(context, "session", sessionToken, {
     ...cookieOptions,
@@ -149,7 +159,7 @@ export function setBrowserSessionCookies(
 }
 
 export function clearBrowserSessionCookies(context: Context): void {
-  const cookieOptions = getCookieOptions();
+  const cookieOptions = getCookieOptions(context);
 
   deleteCookie(context, "session", cookieOptions);
   deleteCookie(context, "refresh", cookieOptions);

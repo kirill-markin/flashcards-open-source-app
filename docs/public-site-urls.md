@@ -43,5 +43,8 @@ Lambda environments. To override it (for example when the marketing site lives
 on a different host than the API apex), set the optional GitHub Actions
 repository variable `CDK_SITE_BASE_URL`; it flows through
 `CDK_CONTEXT_SITE_BASE_URL` into the `siteBaseUrl` CDK context. The reference
-deployment sets it to `https://nibomo.com`, because the marketing site no longer
-shares the API apex `flashcards-open-source-app.com`.
+deployment sets it to `https://nibomo.com` and must keep it set: the deployment
+apex stays `flashcards-open-source-app.com`, so the default would derive that
+apex and publish links to a host that serves no marketing site. The explicit
+value also makes both API hosts answer with the same links, rather than letting
+the derived apex depend on which host the request arrived on.
