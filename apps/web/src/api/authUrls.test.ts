@@ -14,7 +14,7 @@ describe("auth URL endpoints", () => {
   });
 
   it("prefers the first supported browser language", () => {
-    setNavigatorLanguages(["it-IT", "es-MX", "en-GB"], "it-IT");
+    setNavigatorLanguages(["cy-GB", "es-MX", "en-GB"], "cy-GB");
 
     expect(getPreferredAuthUiLocale()).toBe("es-MX");
   });
@@ -26,7 +26,7 @@ describe("auth URL endpoints", () => {
   });
 
   it("falls back to English when browser languages are unsupported", () => {
-    setNavigatorLanguages(["it-IT", "nl-NL"], "it-IT");
+    setNavigatorLanguages(["cy-GB", "ga-IE"], "cy-GB");
 
     expect(getPreferredAuthUiLocale()).toBe("en");
   });
