@@ -23,6 +23,7 @@ import {
   setAnalyticsConfirmedOwner,
   syncAnalyticsConsentWithAccount,
 } from "../../../analytics";
+import { clearAnalyticsVisitorCookie, resetAnalyticsSession } from "../../../analytics/identity";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import type { TranslationKey } from "../../../i18n";
 import { isIndexedDbUnavailableError } from "../../../localDb/core/indexedDbAvailability";
@@ -217,6 +218,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           && error.code === "ACCOUNT_DELETED"
         ) {
           markAccountDeletionServerConfirmed();
+          // Where a deletion this browser dispatched but never saw answered is confirmed instead,
+          // so the visitor identity and the session reporting under it are retired together, for
+          // the reason stated at the other confirmation site
+          // (`accountDeletion/AccountDeletionRecoveryGate.tsx`). The resume above is not a third
+          // site: it runs on a later load of a browser that has already retired both.
+          clearAnalyticsVisitorCookie();
+          resetAnalyticsSession();
           indexedDbOpenRecoveryState.throwIfFailed();
           await resumeConfirmedAccountDeletion();
           return;
