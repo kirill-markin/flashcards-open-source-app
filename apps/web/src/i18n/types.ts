@@ -30,6 +30,16 @@ export const supportedLocales = [
   "hu",
   "fa",
   "ca",
+  "bn",
+  "gu",
+  "kn",
+  "ml",
+  "mr",
+  "pa",
+  "ta",
+  "te",
+  "ur",
+  "sw",
 ] as const;
 export const defaultLocale = "en" as const;
 export const defaultSpanishLocale = "es-ES" as const;
