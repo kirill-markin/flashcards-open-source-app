@@ -18,7 +18,7 @@ import {
   databasePoolMaxConnectionsEnvValue,
   directImageIngestionHandlerReservedConcurrency,
 } from "../lambda-database-capacity";
-import { normalizeHost } from "../alternate-host";
+import { buildCookieDomains } from "../cookie-domains";
 import { parsePublicOrigin } from "../public-origin";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
 import { createSentrySourceMapUploadCommand } from "../sentry-source-maps";
@@ -47,8 +47,8 @@ export interface ApiGatewayProps {
   // here as browser origins. Undefined unless that distribution serves them.
   webAdditionalHost: string | undefined;
   adminAdditionalHost: string | undefined;
-  // The domain the analytics visitor cookie is published on. Unset means
-  // baseDomain, so moving the cookie to another domain is its own switch.
+  // Adds a candidate domain to COOKIE_DOMAIN. Unset means baseDomain alone, so
+  // moving browsers to another domain is its own switch.
   cookieDomain: string | undefined;
   openAiApiKeySecretArn: string | undefined;
   langfusePublicKeySecretArn: string | undefined;
@@ -936,6 +936,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     "http://localhost:3001",
     ...createConfiguredHostOrigins([props.webAdditionalHost, props.adminAdditionalHost]),
   ];
+  // One credentialed route the marketing site may reach, and the only one: the visitor cookie is
+  // the site's sole identity source. The shared list above is left alone so no other browser route
+  // starts accepting the site. The backend builds the same narrow list from PUBLIC_SITE_BASE_URL
+  // for the route's own origin guard (apps/backend/src/server/app.ts), and this entry is what
+  // answers the preflight, which never reaches the backend at all.
+  const analyticsVisitorAllowedOrigins = [...allowedOrigins, publicSiteOrigin];
   const backendCsrfSecret = new cdk.aws_secretsmanager.Secret(scope, "BackendCsrfSecret", {
     secretName: "flashcards-open-source-app/backend-csrf-secret",
     generateSecretString: {
@@ -1010,7 +1016,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // the auth origin all read one visitor (apps/backend/src/analyticsVisitor/cookie.ts). The value is
   // an unsigned random UUID, so no secret is involved and only the HTTP handler needs the domain;
   // the workers never see a browser request.
-  backendFn.addEnvironment("COOKIE_DOMAIN", normalizeHost(props.cookieDomain) ?? props.baseDomain);
+  backendFn.addEnvironment("COOKIE_DOMAIN", buildCookieDomains(props));
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,
     publicSiteOrigin,
@@ -1252,7 +1258,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   analyticsEvents.addMethod("POST", integration);
   // GET and POST /analytics/visitor, the browser's analytics visitor cookie and the consent answer
   // its jurisdiction needs (apps/backend/src/routes/analyticsVisitor.ts).
-  const analyticsVisitor = analytics.addResource("visitor");
+  const analyticsVisitor = analytics.addResource("visitor", {
+    defaultCorsPreflightOptions: createBrowserCorsPreflightOptions(
+      analyticsVisitorAllowedOrigins,
+    ),
+  });
   analyticsVisitor.addMethod("ANY", integration);
   analyticsVisitor.addMethod("GET", integration);
   analyticsVisitor.addMethod("POST", integration);

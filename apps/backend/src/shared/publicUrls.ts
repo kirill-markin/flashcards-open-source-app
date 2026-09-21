@@ -117,13 +117,18 @@ export function validatePublicUrlConfiguration(): void {
   }
 }
 
-export function getConfiguredPublicCatalogCorsOrigins(): ReadonlyArray<string> {
-  const origins: Array<string> = [];
+/** The marketing-site origin, empty when no site is configured for this deployment. */
+export function getConfiguredPublicSiteOrigins(): ReadonlyArray<string> {
   const publicSiteBaseUrl = process.env.PUBLIC_SITE_BASE_URL;
-  if (publicSiteBaseUrl !== undefined && publicSiteBaseUrl !== "") {
-    origins.push(parsePublicOrigin(publicSiteBaseUrl, "PUBLIC_SITE_BASE_URL"));
+  if (publicSiteBaseUrl === undefined || publicSiteBaseUrl === "") {
+    return [];
   }
 
+  return [parsePublicOrigin(publicSiteBaseUrl, "PUBLIC_SITE_BASE_URL")];
+}
+
+export function getConfiguredPublicCatalogCorsOrigins(): ReadonlyArray<string> {
+  const origins: Array<string> = [...getConfiguredPublicSiteOrigins()];
   const publicAppBaseUrl = process.env.PUBLIC_APP_BASE_URL;
   if (publicAppBaseUrl !== undefined && publicAppBaseUrl !== "") {
     origins.push(parsePublicOrigin(publicAppBaseUrl, "PUBLIC_APP_BASE_URL"));
