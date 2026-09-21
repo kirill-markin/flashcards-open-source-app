@@ -2,7 +2,7 @@
     <string name="flashcards_privacy_policy_url" translatable="false">https://nibomo.com/privacy/</string>
     <string name="flashcards_terms_of_service_url" translatable="false">https://nibomo.com/terms/</string>
     <string name="flashcards_support_url" translatable="false">https://nibomo.com/support/</string>
-    <string name="flashcards_share_url" translatable="false">https://app.flashcards-open-source-app.com/share</string>
+    <string name="flashcards_share_url" translatable="false">https://app.nibomo.com/share</string>
     <string name="flashcards_google_play_url" translatable="false">https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app</string>
     <string name="flashcards_repository_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app</string>
     <string name="third_party_notices_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app/blob/main/THIRD_PARTY_NOTICES.md</string>
