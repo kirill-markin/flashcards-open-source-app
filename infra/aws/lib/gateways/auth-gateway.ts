@@ -14,6 +14,8 @@ import {
 } from "../lambda-database-capacity";
 import { authNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { normalizeHost } from "../alternate-host";
+import { parsePublicOrigin } from "../public-origin";
+import { buildCookieDomains } from "../cookie-domains";
 import { getMcpResourceUrl, getPrimaryMcpHost } from "../mcp-alternate-host";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
@@ -23,18 +25,32 @@ export interface AuthGatewayProps {
   db: rds.DatabaseInstance;
   authDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
+  // Optional per-deploy override for the API origin this service advertises in
+  // its agent envelopes and calls for sign-in analytics. Unset means
+  // api.<baseDomain>, exactly as before it was settable.
+  apiBaseUrl: string | undefined;
   authCertificateArn: string | undefined;
   // Optional second public auth host, already resolved (../alternate-host.ts) and
   // undefined unless both of its context values are set. auth.<baseDomain> is
   // created either way.
   authAlternateHost: string | undefined;
   authAlternateCertificateArn: string | undefined;
-  // The domain the analytics visitor cookie is published on. Unset means
-  // baseDomain, so moving the cookie to another domain is its own switch.
+  // Created by the API gateway, not here. This service only needs the name so
+  // both services compute one identical COOKIE_DOMAIN from one identical set of
+  // browser hosts; see buildCookieDomains.
+  apiAlternateHost: string | undefined;
+  // Adds a candidate domain to COOKIE_DOMAIN. Unset means baseDomain alone, so
+  // moving browsers to another domain is its own switch.
   cookieDomain: string | undefined;
   // Second public MCP host, already resolved (../mcp-alternate-host.ts) and
   // undefined unless both alternate context values are set.
   mcpAlternateHost: string | undefined;
+  // Second hosts for the browser bundles, owned by the CloudFront distributions
+  // and already resolved (../cloudfront-additional-host.ts). Auth needs their
+  // names because ALLOWED_REDIRECT_URIS is the only allowlist a browser origin
+  // can reach auth through at all; see buildAllowedRedirectUris.
+  webAdditionalHost: string | undefined;
+  adminAdditionalHost: string | undefined;
   demoEmailDostip: string | undefined;
   demoPasswordSecretArn: string | undefined;
   userPoolId: string;
@@ -43,6 +59,29 @@ export interface AuthGatewayProps {
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
   sentryTracesSampleRate: string | undefined;
+}
+
+/**
+ * Browser origins the auth service accepts. One value carries two allowlists:
+ * the login and logout `redirect_uri` targets
+ * (`apps/auth/src/routes/browser/loginPage.ts`) and the auth API's CORS
+ * allowlist (`getAllowedApiOrigins` in `apps/auth/src/app.ts`), so an origin
+ * missing here cannot sign in and cannot call auth at all. The second web and
+ * admin hosts are appended, never substituted: the primary hosts keep serving
+ * already shipped clients.
+ */
+function buildAllowedRedirectUris(props: AuthGatewayProps): string {
+  return [
+    props.baseDomain,
+    `app.${props.baseDomain}`,
+    `admin.${props.baseDomain}`,
+    props.webAdditionalHost,
+    props.adminAdditionalHost,
+  ]
+    .map((host) => normalizeHost(host))
+    .filter((host): host is string => host !== undefined)
+    .map((host) => `https://${host}`)
+    .join(",");
 }
 
 export interface AuthGatewayResult {
@@ -155,6 +194,10 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
 };
 
 export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGatewayResult {
+  const publicApiOrigin = parsePublicOrigin(
+    props.apiBaseUrl ?? `https://api.${props.baseDomain}`,
+    "apiBaseUrl",
+  );
   const sessionEncryptionKey = new cdk.aws_secretsmanager.Secret(scope, "SessionEncryptionKey", {
     secretName: "flashcards-open-source-app/session-encryption-key",
     generateSecretString: {
@@ -189,10 +232,17 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       COGNITO_USER_POOL_ID: props.userPoolId,
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
-      ALLOWED_REDIRECT_URIS: `https://${props.baseDomain},https://app.${props.baseDomain},https://admin.${props.baseDomain}`,
-      COOKIE_DOMAIN: normalizeHost(props.cookieDomain) ?? props.baseDomain,
+      ALLOWED_REDIRECT_URIS: buildAllowedRedirectUris(props),
+      COOKIE_DOMAIN: buildCookieDomains(props),
+      // The OAuth issuer this authorization server publishes in its RFC 8414
+      // metadata and echoes as the RFC 9207 `iss` parameter
+      // (apps/auth/src/routes/oauth/metadata.ts,
+      // apps/auth/src/routes/oauth/authorize.ts). Shipped MCP clients compare it,
+      // and the backend names the same string in every protected-resource
+      // document (apps/backend/src/entrypoints/lambda-mcp.ts), so it is pinned to
+      // baseDomain and has no override.
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
-      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      PUBLIC_API_BASE_URL: `${publicApiOrigin}/v1`,
       // Canonical MCP protected-resource identifier the /authorize endpoint binds
       // authorization codes to; must match the backend MCP handler's resource
       // (apps/backend/src/mcp/hosts.ts). Built from the shared helper rather than

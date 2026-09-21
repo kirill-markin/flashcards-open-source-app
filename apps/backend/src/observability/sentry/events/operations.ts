@@ -68,16 +68,23 @@ export type AgentSqlDetails = Readonly<{
  * them empty or not at all (`Mcp-Method` is only REQUIRED from MCP revision
  * 2026-07-28). `toolName` is observed in process from the tool handler, so it
  * is present for a tool call regardless of the client's protocol revision, and
- * falls back to the client's unvalidated `Mcp-Name` header when no handler ran.
+ * falls back to the tool the `tools/call` body names and then to the client's
+ * unvalidated `Mcp-Name` header when no handler ran. `toolExecuted` separates
+ * those cases: true when a handler ran, false when a tool was named but none
+ * did -- the SDK validates a call's arguments against the tool's input schema
+ * ahead of the handler, so a refused call never reaches it -- and null when the
+ * request named no tool.
  *
- * No body content is carried: the transport owns the body, and tool arguments
- * and results carry flashcard content. `responseChars` is a length measured off
- * the response and never any of what it contains.
+ * Of the body the transport owns, only a `tools/call` tool name is read: tool
+ * arguments and results carry flashcard content and are never recorded, and
+ * `responseChars` is a length measured off the response and never any of what
+ * it contains.
  */
 export type McpRequestDetails = Readonly<{
   protocolVersion: string | null;
   jsonRpcMethod: string | null;
   toolName: string | null;
+  toolExecuted: boolean | null;
   caller: string | null;
   connectionId: string;
   statusCode: number;

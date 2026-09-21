@@ -170,6 +170,25 @@ validate_required_url_value "XCODE_CLOUD_AUTH_BASE_URL" "${XCODE_CLOUD_AUTH_BASE
 validate_required_url_value "XCODE_CLOUD_PRIVACY_POLICY_URL" "${XCODE_CLOUD_PRIVACY_POLICY_URL_VALUE}"
 validate_required_url_value "XCODE_CLOUD_TERMS_OF_SERVICE_URL" "${XCODE_CLOUD_TERMS_OF_SERVICE_URL_VALUE}"
 validate_required_url_value "XCODE_CLOUD_SUPPORT_URL" "${XCODE_CLOUD_SUPPORT_URL_VALUE}"
+
+# A build aimed at an official API host must name it exactly as the app lists it. Installs keep
+# their guest session across the host move only because a stored official URL is recognised by
+# exact match (Cloud/Support/CloudOfficialApiHosts.swift); a value that means the official host but
+# is spelled differently - no /v1, a trailing slash, http - would ship and clear every updated
+# guest's session instead. A host that is not official, such as a fork's own, is not checked.
+OFFICIAL_API_BASE_URL_CANDIDATE="$(printf "%s" "${XCODE_CLOUD_API_BASE_URL_VALUE}" | sed 's#:/\$()/#://#')"
+case "${OFFICIAL_API_BASE_URL_CANDIDATE}" in
+  *api.nibomo.com* | *api.flashcards-open-source-app.com*)
+    case "${OFFICIAL_API_BASE_URL_CANDIDATE}" in
+      "https://api.nibomo.com/v1" | "https://api.flashcards-open-source-app.com/v1")
+        ;;
+      *)
+        echo "Xcode Cloud environment variable XCODE_CLOUD_API_BASE_URL names an official API host but is not one of the exact values the app recognises (https://api.nibomo.com/v1, https://api.flashcards-open-source-app.com/v1). Received: ${OFFICIAL_API_BASE_URL_CANDIDATE}" >&2
+        exit 1
+        ;;
+    esac
+    ;;
+esac
 validate_sample_rate_value "XCODE_CLOUD_SENTRY_TRACES_SAMPLE_RATE" "${XCODE_CLOUD_SENTRY_TRACES_SAMPLE_RATE_VALUE}"
 
 XCODE_CLOUD_SENTRY_DSN_XCCONFIG_VALUE="$(escape_xcconfig_url_value "${XCODE_CLOUD_SENTRY_DSN_VALUE}")"

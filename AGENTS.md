@@ -2,8 +2,11 @@
 
 Open-source, offline-first flashcards platform.
 
-- Domain: `nibomo.com` for the marketing site, legal pages, and docs; the API,
-  auth, MCP, and web-app hosts stay on `flashcards-open-source-app.com`
+- Domain: `nibomo.com` carries the marketing site, legal pages, docs, and the
+  hosts browsers use (`app.`, `admin.`, `auth.`, and the `api.` they call). The
+  `flashcards-open-source-app.com` hosts are permanent, not deprecated: they
+  front the same backend and database forever, because every shipped iOS and
+  Android build has them compiled in with no client-side remedy
 - Repository: `kirill-markin/flashcards-open-source-app`
 - Product stage: early development
 
