@@ -77,3 +77,64 @@
     width: 100%;
   }
 }
+
+/* The withdrawal link on the public routes, in the corner the strip would occupy. It never shares
+   the screen with the strip — the link appears only once a decision is stored, and the strip only
+   while none is — so the two cannot compete for this edge, and it carries the strip's own layer for
+   the same reason: it is the same control after the question has been answered.
+
+   The pages it sits over reserve its published height the way they reserve the strip's, because the
+   corner it takes is where those pages put their primary action — the Accept button, the deck
+   install. Reserving the space is the fix; dropping pointer events only keeps the transparent padding
+   from catching a click it never showed anything for, and the trigger takes them back for itself. */
+.analytics-consent-withdrawal {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-index-consent-banner);
+  padding: 8px var(--desktop-shell-gutter) calc(8px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.analytics-consent-withdrawal-link {
+  padding: 4px 6px;
+  pointer-events: auto;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.analytics-consent-withdrawal-link:hover {
+  color: var(--text);
+}
+
+/* The popover tier the account menu and the card filters already use (200). It has to clear the
+   page beneath it, and being above the strip's 25 costs nothing even though they never coexist. */
+.analytics-consent-withdrawal-panel {
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.analytics-consent-withdrawal-close {
+  align-self: flex-end;
+  padding: 4px 6px;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.analytics-consent-withdrawal-close:hover {
+  color: var(--text);
+}
