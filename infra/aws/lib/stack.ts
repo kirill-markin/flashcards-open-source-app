@@ -9,8 +9,9 @@ import { monitoring } from "./monitoring";
 import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
 import { outputs } from "./outputs";
-import { webApp } from "./web";
-import { adminApp } from "./admin";
+import { getPrimaryWebHost, webApp } from "./web";
+import { adminApp, getPrimaryAdminHost } from "./admin";
+import { resolveDistributionHosts } from "./cloudfront-additional-host";
 import {
   addDatabaseMigrationDependency,
   databaseMigrationGate,
@@ -191,6 +192,14 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       : undefined;
     const webCertificateArnUsEast1 = getOptionalContextValue(this, "webCertificateArnUsEast1");
     const adminCertificateArnUsEast1 = getOptionalContextValue(this, "adminCertificateArnUsEast1");
+    // Optional second public host for the web and admin distributions, for
+    // example a rebranded domain served next to the original one. Both values of
+    // a pair are required; the certificate replaces the distribution's single
+    // viewer certificate and must cover both of its hosts.
+    const webAdditionalDomainName = getOptionalContextValue(this, "webAdditionalDomainName");
+    const webAdditionalCertificateArnUsEast1 = getOptionalContextValue(this, "webAdditionalCertificateArnUsEast1");
+    const adminAdditionalDomainName = getOptionalContextValue(this, "adminAdditionalDomainName");
+    const adminAdditionalCertificateArnUsEast1 = getOptionalContextValue(this, "adminAdditionalCertificateArnUsEast1");
     const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
     const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
@@ -410,14 +419,40 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
     addDatabaseMigrationDependency(countryRetentionResult.retentionFunction, migrationGate);
     addDatabaseMigrationDependency(syntheticActorDetectorResult.detectorFunction, migrationGate);
+    // Both distributions are resolved here, before either is constructed,
+    // because an additional host must be checked against every alias the stack
+    // claims and not only against its own distribution's primary. A repeat
+    // passes synth and fails the deploy with CNAMEAlreadyExists.
+    const webPrimaryHost = getPrimaryWebHost(baseDomain);
+    const adminPrimaryHost = getPrimaryAdminHost(baseDomain);
+    const claimedCloudFrontHosts = [
+      webPrimaryHost,
+      adminPrimaryHost,
+      // The apex redirect distribution only exists with its own certificate.
+      ...(apexRedirectCertificateArnUsEast1 === undefined ? [] : [baseDomain]),
+    ];
+    const webHosts = resolveDistributionHosts(
+      webPrimaryHost,
+      webCertificateArnUsEast1,
+      webAdditionalDomainName,
+      webAdditionalCertificateArnUsEast1,
+      claimedCloudFrontHosts,
+    );
+    const adminHosts = resolveDistributionHosts(
+      adminPrimaryHost,
+      adminCertificateArnUsEast1,
+      adminAdditionalDomainName,
+      adminAdditionalCertificateArnUsEast1,
+      [...claimedCloudFrontHosts, ...(webHosts.domainNames ?? [])],
+    );
     const web = webApp(this, {
       baseDomain,
-      webCertificateArnUsEast1,
+      hosts: webHosts,
       apexRedirectCertificateArnUsEast1,
     });
     const admin = adminApp(this, {
       baseDomain,
-      adminCertificateArnUsEast1,
+      hosts: adminHosts,
     });
 
     const mon = monitoring(this, {
