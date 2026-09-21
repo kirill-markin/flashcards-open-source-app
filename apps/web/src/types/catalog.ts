@@ -72,7 +72,6 @@ export type CatalogPackageInstallConfirmOptions = Readonly<{
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   operationIdPrefix: string;
-  installJourneyId?: string;
 }>;
 
 export type CatalogPackageInstallConfirmResponse = Readonly<{

@@ -12,7 +12,7 @@ at all. Authenticated clients keep batching through `POST /v1/analytics/events`.
 - [Storage contract](../db/migrations/0143_anonymous_client_identity_free_rows.sql)
 - [Route registration](../infra/aws/lib/gateways/api-gateway.ts)
 - The identity a producer sends: [analytics visitor identity](analytics-visitor-identity.md)
-- The funnel that produced this collector: [catalog install funnel](catalog-install-funnel.md)
+- The facts the catalog install flow reports: [catalog install facts](catalog-install-funnel.md)
 
 ## Paths
 
@@ -80,15 +80,15 @@ what bounds how the rows may be read is the trust rule below.
 
 `anonymousId` is the shared browser visitor id, and the route verifies nothing about it beyond the
 UUID shape — see [why there is no signature](analytics-visitor-identity.md#why-there-is-no-signature).
-A producer that sends none leaves `analytics.product_events.anonymous_id` empty, except on the
-catalog install events, which predate that identity and whose journey UUID stays the attempt key the
-funnel's reporting contract reads.
+A producer that sends none leaves `analytics.product_events.anonymous_id` empty. Every current
+producer sends it, the catalog install events included. Released catalog install clients are where an
+empty column still comes from: they send none and carry a per-attempt journey UUID that lands in it
+instead.
 
-The catalog is the single source of truth for what an event requires, and the route no longer
-overrides it: `catalog_deck_install_started` declares `install_journey_id` and `package_version_id`
-`optional`, so a body omitting them is accepted rather than refused, stores no `anonymous_id`, and is
-invisible to a funnel that joins on the journey key. That is intended. Every released producer builds
-both, and a per-event override on the route would be a second contract beside the catalog.
+The catalog is the single source of truth for what an event requires, and the route does not
+override it: every catalog install event declares `install_journey_id` `optional`, so a body omitting
+it is accepted rather than refused. That is intended — no producer mints a journey id any more — and
+a per-event override on the route would be a second contract beside the catalog.
 
 A row with no identity at all resolves to `actor_id` NULL in `analytics.product_events_resolved`. It
 is an event that belongs to no actor, not an event that is missing one, and a query that counts

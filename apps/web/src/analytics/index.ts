@@ -20,18 +20,16 @@ export {
   toAnalyticsSyncFailureReason,
 } from "./failureReasons";
 export {
-  buildCatalogInstallAuthReturnUrl,
+  createCatalogInstallReportScope,
   reportCatalogInstallFailure,
-  reportCatalogInstallLanded,
   reportCatalogInstallPreviewReady,
-  reportCatalogInstallSigninStarted,
   toCatalogInstallFailureReason,
-  useCatalogInstallJourneyId,
-} from "./catalogInstallJourney";
+} from "./catalogInstall";
 export type {
   CatalogInstallFailureReason,
   CatalogInstallFailureStage,
-} from "./catalogInstallJourney";
+  CatalogInstallReportScope,
+} from "./catalogInstall";
 export { syncAnalyticsConsentWithAccount } from "./accountConsent";
 export { AnalyticsConsentBanner } from "./AnalyticsConsentBanner";
 export { AnalyticsLifecycle } from "./AnalyticsLifecycle";

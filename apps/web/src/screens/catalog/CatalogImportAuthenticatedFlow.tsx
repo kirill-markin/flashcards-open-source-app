@@ -1,11 +1,13 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import {
+  createCatalogInstallReportScope,
   reportCatalogInstallFailure,
   reportCatalogInstallPreviewReady,
   toCatalogInstallFailureReason,
   trackCatalogDeckInstallStarted,
   useAnalyticsScreenView,
   type CatalogInstallFailureStage,
+  type CatalogInstallReportScope,
   type AnalyticsSurface,
 } from "../../analytics";
 import {
@@ -327,6 +329,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  // Held for this mount so one preview load is reported once, and so a later visit to the same deck
+  // in this tab reports its own.
+  const [previewReportScope] = useState<CatalogInstallReportScope>(createCatalogInstallReportScope);
   const previewRequestGenerationRef = useRef<number>(0);
   const installRequestGenerationRef = useRef<number>(0);
   const syncRequestGenerationRef = useRef<number>(0);
@@ -421,7 +426,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         return;
       }
       reportCatalogInstallFailure(
-        catalogContext.installJourneyId,
         catalogContext.packageVersionId,
         "postinstall_sync",
         toCatalogInstallFailureReason(error),
@@ -447,7 +451,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       }
     }
   }, [
-    catalogContext.installJourneyId,
     catalogContext.packageVersionId,
     indexedDbOpenRecoveryState,
     refreshLocalData,
@@ -464,7 +467,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     const requestIdentity = workspaceIdentityRef.current;
     if (!isImportAvailable || requestIdentity === null) {
       reportCatalogInstallFailure(
-        catalogContext.installJourneyId,
         catalogContext.packageVersionId,
         "preview",
         "workspace_unavailable",
@@ -515,7 +517,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         return;
       }
       reportCatalogInstallPreviewReady(
-        catalogContext.installJourneyId,
+        previewReportScope,
         catalogContext.packageVersionId,
       );
       setPreview(response);
@@ -537,7 +539,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         return;
       }
       reportCatalogInstallFailure(
-        catalogContext.installJourneyId,
         catalogContext.packageVersionId,
         "preview",
         isCatalogVersionUnavailableError(error)
@@ -571,10 +572,10 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     }
   }, [
     captureCatalogImportError,
-    catalogContext.installJourneyId,
     catalogContext.packageVersionId,
     indexedDbOpenRecoveryState,
     isImportAvailable,
+    previewReportScope,
     showCapturedTechnicalError,
     step,
     t,
@@ -687,7 +688,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     const requestIdentity = workspaceIdentityRef.current;
     if (!isImportAvailable || requestIdentity === null || activeWorkspace === null) {
       reportCatalogInstallFailure(
-        catalogContext.installJourneyId,
         catalogContext.packageVersionId,
         "preinstall_sync",
         "workspace_unavailable",
@@ -729,7 +729,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     setErrorMessage("");
     trackCatalogDeckInstallStarted(
       preview.packageVersion.slug,
-      catalogContext.installJourneyId,
       catalogContext.packageVersionId,
     );
     let failureStage: CatalogInstallFailureStage = currentAttempt === null
@@ -741,7 +740,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         const installationId = requireCloudInstallationId(cloudSettings);
         if (installationId !== requestIdentity.installationId) {
           reportCatalogInstallFailure(
-            catalogContext.installJourneyId,
             catalogContext.packageVersionId,
             "preinstall_sync",
             "workspace_unavailable",
@@ -781,9 +779,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
             clientUpdatedAt: installedAt,
             lastModifiedByReplicaId: replicaId,
             operationIdPrefix: installId,
-            ...(catalogContext.installJourneyId === null
-              ? {}
-              : { installJourneyId: catalogContext.installJourneyId }),
           },
           cardCount: preview.summary.cardCount,
           importTag: importOptions.addImportTag ? importTag : null,
@@ -846,7 +841,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
         return;
       }
       reportCatalogInstallFailure(
-        catalogContext.installJourneyId,
         catalogContext.packageVersionId,
         failureStage,
         isCatalogVersionUnavailableError(error)

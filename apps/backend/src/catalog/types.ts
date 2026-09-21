@@ -611,6 +611,8 @@ export type CatalogPackageInstallConfirmInput = Readonly<{
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   operationIdPrefix: string;
+  // Accepted and ignored: released clients still send it, and this backend keeps their confirms
+  // valid. Nothing reads it, so no install fact carries it any more.
   installJourneyId?: string;
   addImportTag?: boolean;
   importTag?: string;

@@ -115,24 +115,19 @@ export function track(event: AnalyticsEvent): void {
   }
 }
 
-/**
- * The existing general collector remains the sole owner of install intent. Carrying the journey
- * fields here keeps that event joinable without adding a duplicate through the public collector.
- */
+/** The general collector is the sole owner of install intent; it carries this browser's identity. */
 export function trackCatalogDeckInstallStarted(
   packageSlug: string,
-  installJourneyId: string | null,
   packageVersionId: string | null,
 ): void {
   if (
     analyticsCatalogSlugPattern.test(packageSlug) === false
-    || (installJourneyId !== null && analyticsUuidPattern.test(installJourneyId) === false)
     || (packageVersionId !== null && analyticsUuidPattern.test(packageVersionId) === false)
   ) {
     return;
   }
 
-  track({ name: "catalog_deck_install_started", packageSlug, installJourneyId, packageVersionId });
+  track({ name: "catalog_deck_install_started", packageSlug, packageVersionId });
 }
 
 /**
