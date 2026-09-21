@@ -866,6 +866,10 @@ const hiCatalog: TranslationCatalog = {
     privacyPolicy: "गोपनीयता नीति",
     error: "यह नहीं हो पाया। फिर से कोशिश करें।",
   },
+  analyticsConsentWithdrawal: {
+    link: "एनालिटिक्स कुकीज़",
+    close: "बंद करें",
+  },
   analyticsSettings: {
     title: "एनालिटिक्स",
     subtitle: "चुनें कि इस ब्राउज़र को मापा जा सकता है या नहीं।",
