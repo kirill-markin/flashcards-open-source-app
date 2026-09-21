@@ -13,8 +13,9 @@ Apple's language selector was checked on 2026-09-20. Its label is not always the
 locale ID: Bangla uses `bn-BD`, Norwegian uses `no`, and Slovenian uses `sl-SI`.
 The [uploader input map](../scripts/ios/app-store-localization-inputs.mts) pairs
 all 42 exact section headings, Store IDs, and capture tags. Keep it aligned with
-both capture scripts and Swift catalogs described in
-[iOS marketing screenshots](../apps/ios/docs/marketing-screenshots.md#files-involved).
+the 42 Store tags of both capture scripts and Swift catalogs described in
+[iOS marketing screenshots](../apps/ios/docs/marketing-screenshots.md#files-involved);
+capture tags without a Store ID never enter this map.
 
 | Language | iOS locale | Store ID | Capture tag |
 | --- | --- | --- | --- |
@@ -38,6 +39,8 @@ both capture scripts and Swift catalogs described in
 Other supported Store tags match their iOS and capture tags. Preserve `es-ES`
 and `es-MX` separately. Apple has no listing locale for these app languages:
 `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, `zu`; do not invent Store IDs for them.
+Those eight still have captured iPhone screenshots, which stay website-only
+assets that the uploader never reads.
 The parser reserves every level-two heading for exactly one locale and every
 level-three heading inside it for a metadata field. Keep usage text before the
 first locale and preserve the section/field names.

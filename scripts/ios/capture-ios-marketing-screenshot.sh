@@ -14,20 +14,26 @@ supported_locales=(
     "ru"
     "es-MX"
     "es-ES"
+    "bg"
     "bn"
     "ca"
     "cs"
     "da"
     "el"
+    "et"
+    "fa"
     "fi"
     "gu"
     "he"
     "hr"
     "hu"
     "id"
+    "is"
     "it"
     "kn"
     "ko"
+    "lt"
+    "lv"
     "ml"
     "mr"
     "nb"
@@ -38,6 +44,7 @@ supported_locales=(
     "sk"
     "sl"
     "sv"
+    "sw"
     "ta"
     "te"
     "th"
@@ -45,6 +52,19 @@ supported_locales=(
     "uk"
     "ur"
     "vi"
+    "zu"
+)
+
+# Capture tags without an App Store listing locale. Captured on iPhone only.
+iphone_only_locales=(
+    "bg"
+    "et"
+    "fa"
+    "is"
+    "lt"
+    "lv"
+    "sw"
+    "zu"
 )
 
 print_usage() {
@@ -52,6 +72,7 @@ print_usage() {
 Usage:
   capture-ios-marketing-screenshot.sh [--locale <code>] <test_identifier> <description> <screenshot_index> [<screenshot_index> ...]
   capture-ios-marketing-screenshot.sh --list-locales
+  capture-ios-marketing-screenshot.sh --list-ipad-locales
 
 Supported locales:
   en-US
@@ -65,20 +86,26 @@ Supported locales:
   ru
   es-MX
   es-ES
+  bg
   bn
   ca
   cs
   da
   el
+  et
+  fa
   fi
   gu
   he
   hr
   hu
   id
+  is
   it
   kn
   ko
+  lt
+  lv
   ml
   mr
   nb
@@ -89,6 +116,7 @@ Supported locales:
   sk
   sl
   sv
+  sw
   ta
   te
   th
@@ -96,6 +124,10 @@ Supported locales:
   uk
   ur
   vi
+  zu
+
+iPad locales are these locales without the iPhone-only capture tags. Print them
+with --list-ipad-locales. Capturing an iPhone-only tag on a booted iPad fails.
 
 Environment:
   FLASHCARDS_MARKETING_SCREENSHOT_LOCALE   Canonical locale code or supported alias.
@@ -105,6 +137,31 @@ EOF
 
 print_supported_locales() {
     printf '%s\n' "${supported_locales[@]}"
+}
+
+is_iphone_only_locale() {
+    local candidate="$1"
+    local locale=""
+
+    for locale in "${iphone_only_locales[@]}"; do
+        if [[ "$locale" == "$candidate" ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+print_ipad_locales() {
+    local locale=""
+
+    for locale in "${supported_locales[@]}"; do
+        if is_iphone_only_locale "$locale"; then
+            continue
+        fi
+
+        printf '%s\n' "$locale"
+    done
 }
 
 canonicalize_locale() {
@@ -144,6 +201,9 @@ canonicalize_locale() {
         es-ES)
             echo "es-ES"
             ;;
+        bg)
+            echo "bg"
+            ;;
         bn | bn-BD)
             echo "bn"
             ;;
@@ -158,6 +218,12 @@ canonicalize_locale() {
             ;;
         el)
             echo "el"
+            ;;
+        et)
+            echo "et"
+            ;;
+        fa)
+            echo "fa"
             ;;
         fi)
             echo "fi"
@@ -177,6 +243,9 @@ canonicalize_locale() {
         id)
             echo "id"
             ;;
+        is)
+            echo "is"
+            ;;
         it)
             echo "it"
             ;;
@@ -185,6 +254,12 @@ canonicalize_locale() {
             ;;
         ko)
             echo "ko"
+            ;;
+        lt)
+            echo "lt"
+            ;;
+        lv)
+            echo "lv"
             ;;
         ml | ml-IN)
             echo "ml"
@@ -216,6 +291,9 @@ canonicalize_locale() {
         sv)
             echo "sv"
             ;;
+        sw)
+            echo "sw"
+            ;;
         ta | ta-IN)
             echo "ta"
             ;;
@@ -236,6 +314,9 @@ canonicalize_locale() {
             ;;
         vi)
             echo "vi"
+            ;;
+        zu)
+            echo "zu"
             ;;
         *)
             return 1
@@ -289,6 +370,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --list-locales)
             print_supported_locales
+            exit 0
+            ;;
+        --list-ipad-locales)
+            print_ipad_locales
             exit 0
             ;;
         --help | -h)
@@ -540,6 +625,13 @@ resolve_screenshot_path_for_index() {
 simulator_id="$(resolve_booted_simulator_id)"
 simulator_name="$(resolve_simulator_name "$simulator_id")"
 device_family="$(resolve_device_family "$simulator_name")"
+
+if [[ "$device_family" == "ipad" ]] && is_iphone_only_locale "$localization_code"; then
+    echo "Capture tag '$localization_code' is iPhone-only and has no $device_family screenshots." >&2
+    echo "Boot an iPhone simulator, or capture the $device_family tags from --list-ipad-locales." >&2
+    exit 1
+fi
+
 output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_family"
 
 mkdir -p "$output_directory"
