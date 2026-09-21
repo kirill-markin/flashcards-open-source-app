@@ -168,7 +168,6 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "catalog_deck_install_started";
     packageSlug: string;
-    installJourneyId: string | null;
     packageVersionId: string | null;
   }>
   | Readonly<{
@@ -263,7 +262,6 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "catalog_deck_install_started":
       return {
         package_slug: event.packageSlug,
-        ...(event.installJourneyId === null ? {} : { install_journey_id: event.installJourneyId }),
         ...(event.packageVersionId === null ? {} : { package_version_id: event.packageVersionId }),
       };
     case "analytics_events_dropped":
