@@ -1160,9 +1160,18 @@ const fiCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Pakan {{deckName}} tilastot",
     newDeck: "Uusi pakka",
     statLabels: {
-      cards: "korttia",
-      new: "uutta",
-      reviewed: "kerrattua",
+      cards: {
+        one: "kortti",
+        other: "korttia",
+      },
+      new: {
+        one: "uusi",
+        other: "uutta",
+      },
+      reviewed: {
+        one: "kerrattu",
+        other: "kerrattua",
+      },
     },
     subtitle: "Pakat ovat älysuodattimia, eivät säiliöitä. Ne poimivat kortit tunnisteiden perusteella.",
     title: "Pakat",

@@ -8,26 +8,32 @@ export const ruCatalog = {
     countLabels: {
       card: {
         one: "карточка",
+        few: "карточки",
         other: "карточек",
       },
       day: {
         one: "день",
+        few: "дня",
         other: "дней",
       },
       deck: {
         one: "колода",
+        few: "колоды",
         other: "колод",
       },
       hour: {
         one: "час",
+        few: "часа",
         other: "часов",
       },
       minute: {
-        one: "минута",
+        one: "минуту",
+        few: "минуты",
         other: "минут",
       },
       tag: {
         one: "тег",
+        few: "тега",
         other: "тегов",
       },
     },
@@ -198,6 +204,7 @@ export const ruCatalog = {
     streakInfo: "Запас заморозок {{available}}/{{capacity}}. Следующее пополнение {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "повторение",
+      few: "повторения",
       other: "повторений",
     },
     streakDayAria: {
@@ -332,6 +339,7 @@ export const ruCatalog = {
       unavailable: "Таблица лидеров по серии сейчас недоступна. Загляните позже.",
       dayLabels: {
         one: "день",
+        few: "дня",
         other: "дней",
       },
     },
@@ -686,14 +694,15 @@ export const ruCatalog = {
       initialWarning: "Внимание! Это действие необратимо. Прогресс будет сброшен для каждой активной карточки в этом рабочем пространстве.",
       initialHelp: "Чтобы продолжить, введите эту фразу точно.",
       phraseLabel: "Фраза подтверждения",
-      previewWarning: "Внимание! Это действие необратимо. Будет сброшен прогресс для {{count}} в {{workspaceName}}.",
+      previewWarning: "Внимание! Это действие необратимо. Будет сброшен прогресс в {{workspaceName}}: {{count}}.",
       previewHelp: "Нажмите OK, чтобы очистить состояние планировщика и начать эти карточки заново.",
-      previewSummary: "{{count}} будет сброшено.",
+      previewSummary: "Будет сброшено: {{count}}.",
       resetting: "Сброс...",
     },
     countLabels: {
       card: {
         one: "карточка",
+        few: "карточки",
         other: "карточек",
       },
     },
@@ -715,7 +724,7 @@ export const ruCatalog = {
       button: "Удалить рабочее пространство",
       dialogTitle: "Удалить рабочее пространство",
       loading: "Загрузка сведений для удаления...",
-      warning: "Внимание! Это действие необратимо. Будет удалено {{count}} из {{workspaceName}}.",
+      warning: "Внимание! Это действие необратимо. Из {{workspaceName}} будет удалено: {{count}}.",
       lastWorkspaceHint: "Сразу после удаления будет создано новое пустое рабочее пространство Personal.",
       typePhrase: "Чтобы продолжить, введите фразу точно.",
       deleting: "Удаление...",
@@ -1160,9 +1169,21 @@ export const ruCatalog = {
     emptyStatsAriaLabel: "Статистика {{deckName}}",
     newDeck: "Новая колода",
     statLabels: {
-      cards: "карточки",
-      new: "новые",
-      reviewed: "повторено",
+      cards: {
+        one: "карточка",
+        few: "карточки",
+        other: "карточек",
+      },
+      new: {
+        one: "новая",
+        few: "новые",
+        other: "новых",
+      },
+      reviewed: {
+        one: "повторенная",
+        few: "повторенные",
+        other: "повторенных",
+      },
     },
     subtitle: "Колоды — это умные фильтры, а не контейнеры. Они подбирают карточки по тегам.",
     title: "Колоды",

@@ -1160,9 +1160,18 @@ const caCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Estadístiques de {{deckName}}",
     newDeck: "Baralla nova",
     statLabels: {
-      cards: "targetes",
-      new: "noves",
-      reviewed: "repassades",
+      cards: {
+        one: "targeta",
+        other: "targetes",
+      },
+      new: {
+        one: "nova",
+        other: "noves",
+      },
+      reviewed: {
+        one: "repassada",
+        other: "repassades",
+      },
     },
     subtitle: "Les baralles són filtres intel·ligents, no contenidors. Trien les targetes per etiquetes.",
     title: "Baralles",

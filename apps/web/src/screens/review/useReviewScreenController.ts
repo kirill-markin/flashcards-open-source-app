@@ -483,7 +483,7 @@ export function useReviewScreenController(
 
   if (isAnswerVisible && selectedCard !== null && workspaceSettings !== null) {
     try {
-      reviewButtonOptions = buildReviewButtonOptions(selectedCard, workspaceSettings, reviewButtonsNow, t, formatCount);
+      reviewButtonOptions = buildReviewButtonOptions(selectedCard, workspaceSettings, reviewButtonsNow, t, formatCount, messages.common.countLabels);
     } catch (error) {
       reviewButtonScheduleError = normalizeCaughtError(error);
       reviewButtonErrorMessage = t("appError.technicalError.message");

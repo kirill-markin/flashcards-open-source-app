@@ -1160,9 +1160,18 @@ const elCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Στατιστικά της δέσμης {{deckName}}",
     newDeck: "Νέα δέσμη",
     statLabels: {
-      cards: "κάρτες",
-      new: "νέες",
-      reviewed: "με επανάληψη",
+      cards: {
+        one: "κάρτα",
+        other: "κάρτες",
+      },
+      new: {
+        one: "νέα",
+        other: "νέες",
+      },
+      reviewed: {
+        one: "με επανάληψη",
+        other: "με επανάληψη",
+      },
     },
     subtitle: "Οι δέσμες είναι έξυπνα φίλτρα, όχι φάκελοι. Αντιστοιχίζουν κάρτες μέσω ετικετών.",
     title: "Δέσμες",

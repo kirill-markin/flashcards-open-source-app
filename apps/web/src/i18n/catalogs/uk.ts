@@ -8,26 +8,32 @@ const ukCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "картка",
+        few: "картки",
         other: "карток",
       },
       day: {
         one: "день",
+        few: "дні",
         other: "днів",
       },
       deck: {
         one: "колода",
+        few: "колоди",
         other: "колод",
       },
       hour: {
-        one: "година",
+        one: "годину",
+        few: "години",
         other: "годин",
       },
       minute: {
-        one: "хвилина",
+        one: "хвилину",
+        few: "хвилини",
         other: "хвилин",
       },
       tag: {
         one: "тег",
+        few: "теги",
         other: "тегів",
       },
     },
@@ -198,6 +204,7 @@ const ukCatalog: TranslationCatalog = {
     streakInfo: "Запас заморозок {{available}}/{{capacity}}. Наступне поповнення {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "повторення",
+      few: "повторення",
       other: "повторень",
     },
     streakDayAria: {
@@ -332,6 +339,7 @@ const ukCatalog: TranslationCatalog = {
       unavailable: "Таблиця лідерів за серіями зараз недоступна. Загляньте пізніше.",
       dayLabels: {
         one: "день",
+        few: "дні",
         other: "днів",
       },
     },
@@ -686,14 +694,15 @@ const ukCatalog: TranslationCatalog = {
       initialWarning: "Увага! Ця дія незворотна. Вона скине прогрес для кожної активної картки в цьому робочому просторі.",
       initialHelp: "Введіть цю фразу точно, щоб продовжити.",
       phraseLabel: "Фраза підтвердження",
-      previewWarning: "Увага! Ця дія незворотна. Вона скине прогрес для {{count}} у робочому просторі {{workspaceName}}.",
+      previewWarning: "Увага! Ця дія незворотна. Вона скине прогрес у робочому просторі {{workspaceName}}: {{count}}.",
       previewHelp: "Натисніть OK, щоб очистити стан планувальника й почати ці картки спочатку.",
-      previewSummary: "Буде скинуто {{count}}.",
+      previewSummary: "Буде скинуто: {{count}}.",
       resetting: "Скидання...",
     },
     countLabels: {
       card: {
         one: "картка",
+        few: "картки",
         other: "карток",
       },
     },
@@ -715,7 +724,7 @@ const ukCatalog: TranslationCatalog = {
       button: "Видалити робочий простір",
       dialogTitle: "Видалити робочий простір",
       loading: "Завантаження деталей видалення...",
-      warning: "Увага! Ця дія незворотна. Буде видалено {{count}} із робочого простору {{workspaceName}}.",
+      warning: "Увага! Ця дія незворотна. З робочого простору {{workspaceName}} буде видалено: {{count}}.",
       lastWorkspaceHint: "Одразу після видалення буде створено новий порожній робочий простір Personal.",
       typePhrase: "Введіть фразу точно, щоб продовжити.",
       deleting: "Видалення...",
@@ -1160,9 +1169,21 @@ const ukCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Статистика колоди {{deckName}}",
     newDeck: "Нова колода",
     statLabels: {
-      cards: "карток",
-      new: "нових",
-      reviewed: "повторено",
+      cards: {
+        one: "картка",
+        few: "картки",
+        other: "карток",
+      },
+      new: {
+        one: "нова",
+        few: "нові",
+        other: "нових",
+      },
+      reviewed: {
+        one: "повторена",
+        few: "повторені",
+        other: "повторених",
+      },
     },
     subtitle: "Колоди — це розумні фільтри, а не контейнери. Вони добирають картки за тегами.",
     title: "Колоди",

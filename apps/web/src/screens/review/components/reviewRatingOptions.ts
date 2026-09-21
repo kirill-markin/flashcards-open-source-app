@@ -1,10 +1,11 @@
-import type { useI18n } from "../../../i18n";
+import type { TranslationMessages, useI18n } from "../../../i18n";
 import type { Card, WorkspaceSchedulerSettings } from "../../../types";
 import { computeReviewSchedule, type ReviewRating } from "../../../../../backend/src/scheduling";
 
 type ReviewRatingTestId = "again" | "good" | "hard" | "easy";
 type Translate = ReturnType<typeof useI18n>["t"];
 type CountFormatter = ReturnType<typeof useI18n>["formatCount"];
+type CountLabels = TranslationMessages["common"]["countLabels"];
 
 export type ReviewButtonOption = Readonly<{
   intervalDescription: string;
@@ -52,6 +53,7 @@ function formatReviewIntervalDescription(
   dueAt: Date,
   t: Translate,
   formatCount: CountFormatter,
+  countLabels: CountLabels,
 ): string {
   const durationMilliseconds = Math.max(dueAt.getTime() - now.getTime(), 0);
   const durationSeconds = Math.floor(durationMilliseconds / 1000);
@@ -63,29 +65,20 @@ function formatReviewIntervalDescription(
   const durationMinutes = Math.floor(durationSeconds / 60);
   if (durationMinutes < 60) {
     return t("reviewScreen.interval.inCount", {
-      count: formatCount(durationMinutes, {
-        one: t("common.countLabels.minute.one"),
-        other: t("common.countLabels.minute.other"),
-      }),
+      count: formatCount(durationMinutes, countLabels.minute),
     });
   }
 
   const durationHours = Math.floor(durationMinutes / 60);
   if (durationHours < 24) {
     return t("reviewScreen.interval.inCount", {
-      count: formatCount(durationHours, {
-        one: t("common.countLabels.hour.one"),
-        other: t("common.countLabels.hour.other"),
-      }),
+      count: formatCount(durationHours, countLabels.hour),
     });
   }
 
   const durationDays = Math.floor(durationHours / 24);
   return t("reviewScreen.interval.inCount", {
-    count: formatCount(durationDays, {
-      one: t("common.countLabels.day.one"),
-      other: t("common.countLabels.day.other"),
-    }),
+    count: formatCount(durationDays, countLabels.day),
   });
 }
 
@@ -95,6 +88,7 @@ export function buildReviewButtonOptions(
   now: Date,
   t: Translate,
   formatCount: CountFormatter,
+  countLabels: CountLabels,
 ): Array<ReviewButtonOption> {
   return reviewAnswerOptions.map((option) => {
     const schedule = computeReviewSchedule(
@@ -125,7 +119,7 @@ export function buildReviewButtonOptions(
       title: reviewRatingTitle(option, t),
       rating: option,
       testId: reviewRatingTestId(option),
-      intervalDescription: formatReviewIntervalDescription(now, schedule.dueAt, t, formatCount),
+      intervalDescription: formatReviewIntervalDescription(now, schedule.dueAt, t, formatCount, countLabels),
     };
   });
 }

@@ -1160,9 +1160,18 @@ const bnCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} পরিসংখ্যান",
     newDeck: "নতুন ডেক",
     statLabels: {
-      cards: "কার্ড",
-      new: "নতুন",
-      reviewed: "পুনরালোচনা হয়েছে",
+      cards: {
+        one: "কার্ড",
+        other: "কার্ড",
+      },
+      new: {
+        one: "নতুন",
+        other: "নতুন",
+      },
+      reviewed: {
+        one: "পুনরালোচনা হয়েছে",
+        other: "পুনরালোচনা হয়েছে",
+      },
     },
     subtitle: "ডেক হলো স্মার্ট ফিল্টার, কনটেইনার নয়। এগুলো ট্যাগ দিয়ে কার্ড মেলায়।",
     title: "ডেক",

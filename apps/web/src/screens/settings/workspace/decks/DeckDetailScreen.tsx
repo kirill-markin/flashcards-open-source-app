@@ -39,7 +39,7 @@ export function DeckDetailScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatCount, formatDateTime, formatNumber } = useI18n();
+  const { messages, t, formatCount, formatDateTime, formatNumber } = useI18n();
   const {
     activeWorkspace,
     cloudSettings,
@@ -352,10 +352,7 @@ export function DeckDetailScreen(): ReactElement {
             <section className="deck-detail-panel">
               <div className="deck-detail-cards-head">
                 <h2 className="panel-subtitle">{t("deckDetail.matchingCards.title")}</h2>
-                <span className="badge">{formatCount(detailState.cards.length, {
-                  one: t("common.countLabels.card.one"),
-                  other: t("common.countLabels.card.other"),
-                })}</span>
+                <span className="badge">{formatCount(detailState.cards.length, messages.common.countLabels.card)}</span>
               </div>
               {detailState.cards.length === 0 ? (
                 <section className="content-card deck-detail-empty">
