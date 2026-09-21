@@ -16,6 +16,7 @@ import {
   readStoredLocalePreference,
   resolveLocaleState,
   type ResolvedLocaleState,
+  selectCountLabel,
   translateMessage,
 } from "./runtime";
 import type { DateTimeValue, Locale, LocaleDirection, LocalePreference, PluralCountLabels, TranslationValues } from "./types";
@@ -29,6 +30,8 @@ type I18nContextValue = Readonly<ResolvedLocaleState & {
   formatDateTime: (value: DateTimeValue, options?: Readonly<Intl.DateTimeFormatOptions>) => string;
   formatNumber: (value: number, options?: Readonly<Intl.NumberFormatOptions>) => string;
   formatCount: (value: number, labels: PluralCountLabels) => string;
+  // The plural label alone, for layouts that style the number separately.
+  selectCountLabel: (value: number, labels: PluralCountLabels) => string;
 }>;
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -116,6 +119,9 @@ export function I18nProvider(props: Props): ReactElement {
 
   useLayoutEffect(() => {
     if (documentLocale === null || documentDirection === null) {
+      // The boot placeholder stands in for the locale whose catalog is loading.
+      document.documentElement.lang = targetLocale;
+      document.documentElement.dir = targetDirection;
       return;
     }
 
@@ -123,7 +129,7 @@ export function I18nProvider(props: Props): ReactElement {
     lastRenderedTranslation.current = readRenderedTranslation(documentLocale, documentDirection);
     document.documentElement.lang = documentLocale;
     document.documentElement.dir = documentDirection;
-  }, [documentDirection, documentLocale]);
+  }, [documentDirection, documentLocale, targetDirection, targetLocale]);
 
   // Raised above every catalog consumer, so LocaleBootErrorFallback in main.tsx is what catches it.
   if (catalogLoadFailure !== null && catalogLoadFailure.locale === targetLocale) {
@@ -174,6 +180,10 @@ export function I18nProvider(props: Props): ReactElement {
     return formatCount(renderedLocale, value, labels);
   }
 
+  function selectCountLabelValue(value: number, labels: PluralCountLabels): string {
+    return selectCountLabel(renderedLocale, value, labels);
+  }
+
   return (
     <I18nContext.Provider
       value={{
@@ -189,6 +199,7 @@ export function I18nProvider(props: Props): ReactElement {
         formatDateTime: formatDateTimeValue,
         formatNumber: formatNumberValue,
         formatCount: formatCountValue,
+        selectCountLabel: selectCountLabelValue,
       }}
     >
       {children}

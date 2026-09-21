@@ -1160,9 +1160,18 @@ const urCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} کے اعداد و شمار",
     newDeck: "نیا ڈیک",
     statLabels: {
-      cards: "کارڈز",
-      new: "نئے",
-      reviewed: "دہرائے گئے",
+      cards: {
+        one: "کارڈ",
+        other: "کارڈز",
+      },
+      new: {
+        one: "نیا",
+        other: "نئے",
+      },
+      reviewed: {
+        one: "دہرایا گیا",
+        other: "دہرائے گئے",
+      },
     },
     subtitle: "ڈیکس اسمارٹ فلٹر ہیں، ڈبے نہیں۔ وہ ٹیگز کے ذریعے کارڈز سے مماثل ہوتے ہیں۔",
     title: "ڈیکس",

@@ -1160,9 +1160,18 @@ export const zhHansCatalog = {
     emptyStatsAriaLabel: "{{deckName}} 统计",
     newDeck: "新建牌组",
     statLabels: {
-      cards: "卡片",
-      new: "新建",
-      reviewed: "已复习",
+      cards: {
+        one: "卡片",
+        other: "卡片",
+      },
+      new: {
+        one: "新建",
+        other: "新建",
+      },
+      reviewed: {
+        one: "已复习",
+        other: "已复习",
+      },
     },
     subtitle: "牌组是智能筛选器，不是容器。它们会按标签匹配卡片。",
     title: "牌组",

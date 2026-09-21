@@ -467,10 +467,10 @@
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "Quelle des Pudel-Assets";
 "settings.account.openSource.thirdPartyNoticeWhaleSource" = "Quelle des Wal-Assets";
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "Quelle des Pfauen-Assets";
-"settings.account.openSource.thirdPartyNoticeOxSource" = "Ox Asset Source";
-"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Paw Prints Asset Source";
-"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Racehorse Asset Source";
-"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Volcano Asset Source";
+"settings.account.openSource.thirdPartyNoticeOxSource" = "Quelle des Ochsen-Assets";
+"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Quelle des Pfotenabdruck-Assets";
+"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Quelle des Rennpferd-Assets";
+"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Quelle des Vulkan-Assets";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "Einhorn-Asset-Quelle";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "Schnecken-Asset-Quelle";
 "settings.account.openSource.thirdPartyNoticeRoseSource" = "Rosen-Asset-Quelle";
@@ -595,7 +595,7 @@
 
 "settings.workspace.deleteConfirmation.title" = "Arbeitsbereich löschen";
 "settings.workspace.deleteConfirmation.warning" = "Achtung: Diese Aktion ist dauerhaft. Entfernt aktive %d-Karten aus %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Unmittelbar nach dem Löschen wird ein neuer leerer persönlicher Arbeitsbereich erstellt.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Unmittelbar nach dem Löschen wird ein neuer leerer Arbeitsbereich namens Personal erstellt.";
 "settings.workspace.deleteConfirmation.placeholder" = "Arbeitsbereich löschen";
 "settings.workspace.deleteConfirmation.deleting" = "Entfernen...";
 

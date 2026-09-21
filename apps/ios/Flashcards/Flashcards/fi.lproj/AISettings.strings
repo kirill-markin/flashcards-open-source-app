@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Tämä poistaa työtilasta pysyvästi %d aktiivista korttia.";
 "settings.workspace.deleteConfirmation.title" = "Poista työtila";
 "settings.workspace.deleteConfirmation.warning" = "Varoitus! Toiminto on pysyvä. Se poistaa %d aktiivista korttia työtilasta %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Heti poiston jälkeen luodaan uusi tyhjä henkilökohtainen työtila.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Heti poiston jälkeen luodaan uusi tyhjä työtila nimeltä Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Poistetaan...";
 "settings.workspace.resetConfirmation.title" = "Vahvista nollaus";

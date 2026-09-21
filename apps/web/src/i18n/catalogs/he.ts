@@ -1160,9 +1160,18 @@ const heCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "נתוני {{deckName}}",
     newDeck: "חפיסה חדשה",
     statLabels: {
-      cards: "כרטיסים",
-      new: "חדשים",
-      reviewed: "נלמדו",
+      cards: {
+        one: "כרטיס",
+        other: "כרטיסים",
+      },
+      new: {
+        one: "חדש",
+        other: "חדשים",
+      },
+      reviewed: {
+        one: "נלמד",
+        other: "נלמדו",
+      },
     },
     subtitle: "חפיסות הן מסננים חכמים, לא מכלים. הן מתאימות כרטיסים לפי תגיות.",
     title: "חפיסות",

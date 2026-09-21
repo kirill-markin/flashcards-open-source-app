@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Ez véglegesen töröl %d aktív kártyát ebből a munkaterületből.";
 "settings.workspace.deleteConfirmation.title" = "Munkaterület törlése";
 "settings.workspace.deleteConfirmation.warning" = "Figyelem! Ez a művelet végleges. %d aktív kártyát töröl innen: %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "A törlés után azonnal létrejön egy új, üres Személyes munkaterület.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "A törlés után azonnal létrejön egy új, üres munkaterület Personal néven.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Törlés…";
 "settings.workspace.resetConfirmation.title" = "Visszaállítás megerősítése";

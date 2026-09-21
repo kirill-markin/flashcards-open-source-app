@@ -1160,9 +1160,18 @@ const esEsCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "estadísticas de {{deckName}}",
     newDeck: "Nuevo mazo",
     statLabels: {
-      cards: "tarjetas",
-      new: "nuevas",
-      reviewed: "repasadas",
+      cards: {
+        one: "tarjeta",
+        other: "tarjetas",
+      },
+      new: {
+        one: "nueva",
+        other: "nuevas",
+      },
+      reviewed: {
+        one: "repasada",
+        other: "repasadas",
+      },
     },
     subtitle: "Los mazos son filtros inteligentes, no contenedores. Coinciden con tarjetas por etiquetas.",
     title: "Mazos",

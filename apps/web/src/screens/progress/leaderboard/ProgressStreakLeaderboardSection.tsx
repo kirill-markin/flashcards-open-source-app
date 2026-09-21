@@ -1,7 +1,7 @@
 import { type ReactElement } from "react";
 import { Link } from "react-router";
 import { buildLoginUrl } from "../../../api";
-import { useI18n } from "../../../i18n";
+import { useI18n, type PluralCountLabels } from "../../../i18n";
 import { settingsLeaderboardParticipationRoute } from "../../../routes";
 import type {
   ProgressStreakLeaderboardReadySnapshot,
@@ -39,7 +39,7 @@ function ProgressStreakLeaderboardSignInPlaceholder(): ReactElement {
 function buildStreakLeaderboardRows(
   leaderboard: ProgressStreakLeaderboardReadySnapshot,
   formatCount: ReturnType<typeof useI18n>["formatCount"],
-  t: ReturnType<typeof useI18n>["t"],
+  dayLabels: PluralCountLabels,
 ): ReadonlyArray<ProgressLeaderboardDisplayRow> {
   return leaderboard.rows.map((row): ProgressLeaderboardDisplayRow => {
     if (row.kind === "gap") {
@@ -55,10 +55,7 @@ function buildStreakLeaderboardRows(
       anonymousDisplayName: row.anonymousDisplayName,
       friendDisplayName: row.friendDisplayName,
       rank: row.rank,
-      metricText: formatCount(row.streakDays, {
-        one: t("progressScreen.streakLeaderboard.dayLabels.one"),
-        other: t("progressScreen.streakLeaderboard.dayLabels.other"),
-      }),
+      metricText: formatCount(row.streakDays, dayLabels),
       rowTestId: `progress-streak-leaderboard-row-${row.kind}`,
       metricTestId: `progress-streak-leaderboard-streak-days-${row.kind}`,
     };
@@ -70,7 +67,7 @@ function ProgressStreakLeaderboardBody(props: Readonly<{
   canRenderServerBase: boolean;
   onOpenProfile: (profile: ProgressLeaderboardProfileDialogSeed) => void;
 }>): ReactElement {
-  const { t, formatCount } = useI18n();
+  const { messages, t, formatCount } = useI18n();
   const { sourceState, canRenderServerBase, onOpenProfile } = props;
   const leaderboard = sourceState.renderedSnapshot;
 
@@ -135,7 +132,7 @@ function ProgressStreakLeaderboardBody(props: Readonly<{
 
   return (
     <ProgressLeaderboardRows
-      rows={buildStreakLeaderboardRows(leaderboard, formatCount, t)}
+      rows={buildStreakLeaderboardRows(leaderboard, formatCount, messages.progressScreen.streakLeaderboard.dayLabels)}
       paddingRowCount={0}
       paddingRowTestId="progress-streak-leaderboard-row-padding"
       onOpenProfile={leaderboard.source === "server" ? onOpenProfile : undefined}

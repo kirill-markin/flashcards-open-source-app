@@ -467,10 +467,10 @@
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "Fuente del recurso del caniche";
 "settings.account.openSource.thirdPartyNoticeWhaleSource" = "Fuente del recurso de la ballena";
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "Fuente del recurso del pavo real";
-"settings.account.openSource.thirdPartyNoticeOxSource" = "Ox Asset Source";
-"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Paw Prints Asset Source";
-"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Racehorse Asset Source";
-"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Volcano Asset Source";
+"settings.account.openSource.thirdPartyNoticeOxSource" = "Fuente del recurso de buey";
+"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Fuente del recurso de huellas de patas";
+"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Fuente del recurso de caballo de carreras";
+"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Fuente del recurso de volcán";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "Fuente del recurso de unicornio";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "Fuente del recurso de caracol";
 "settings.account.openSource.thirdPartyNoticeRoseSource" = "Fuente del recurso de rosa";
@@ -595,7 +595,7 @@
 
 "settings.workspace.deleteConfirmation.title" = "Eliminar espacio de trabajo";
 "settings.workspace.deleteConfirmation.warning" = "Advertencia: esta accion es permanente. Eliminara %d tarjetas activas de %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Se creara inmediatamente un nuevo espacio de trabajo Personal vacio despues de la eliminacion.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Inmediatamente después de la eliminación se creará un nuevo espacio de trabajo vacío llamado Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Eliminando...";
 

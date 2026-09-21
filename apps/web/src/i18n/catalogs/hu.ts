@@ -1160,9 +1160,18 @@ const huCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} statisztikái",
     newDeck: "Új pakli",
     statLabels: {
-      cards: "kártya",
-      new: "új",
-      reviewed: "ismételve",
+      cards: {
+        one: "kártya",
+        other: "kártya",
+      },
+      new: {
+        one: "új",
+        other: "új",
+      },
+      reviewed: {
+        one: "ismételve",
+        other: "ismételve",
+      },
     },
     subtitle: "A paklik okos szűrők, nem tárolók. Címkék alapján találják meg a kártyákat.",
     title: "Paklik",

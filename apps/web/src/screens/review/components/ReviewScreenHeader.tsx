@@ -38,11 +38,8 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
     reviewProgressBadge,
     reviewSpeechMessage,
   } = props;
-  const { t, formatCount, formatNumber } = useI18n();
-  const reviewQueueCountLabel = formatCount(reviewQueueTotalCount, {
-    one: t("common.countLabels.card.one"),
-    other: t("common.countLabels.card.other"),
-  });
+  const { messages, t, formatCount, formatNumber } = useI18n();
+  const reviewQueueCountLabel = formatCount(reviewQueueTotalCount, messages.common.countLabels.card);
   const reviewQueueAriaLabel = `${t("reviewScreen.queue.title")}: ${reviewQueueCountLabel}`;
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
     ? t("reviewScreen.progressBadge.reviewedToday")

@@ -30,7 +30,7 @@ export function ResetStudyProgressScreen(): ReactElement {
     setErrorMessage: setAppErrorMessage,
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
-  const { t, formatCount } = useI18n();
+  const { messages, t, formatCount } = useI18n();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState<boolean>(false);
   const [resetConfirmationValue, setResetConfirmationValue] = useState<string>("");
   const [resetPreview, setResetPreview] = useState<WorkspaceResetProgressPreview | null>(null);
@@ -353,10 +353,7 @@ export function ResetStudyProgressScreen(): ReactElement {
                 <>
                   <p className="error-banner settings-delete-warning">
                     {t("settingsWorkspace.resetProgress.previewWarning", {
-                      count: formatCount(resetPreview.cardsToResetCount, {
-                        one: t("settingsWorkspace.countLabels.card.one"),
-                        other: t("settingsWorkspace.countLabels.card.other"),
-                      }),
+                      count: formatCount(resetPreview.cardsToResetCount, messages.settingsWorkspace.countLabels.card),
                       workspaceName: resetPreview.workspaceName,
                     })}
                   </p>
@@ -368,10 +365,7 @@ export function ResetStudyProgressScreen(): ReactElement {
                     </span>
                     <span data-testid="workspace-reset-progress-preview-count">
                       {t("settingsWorkspace.resetProgress.previewSummary", {
-                        count: formatCount(resetPreview.cardsToResetCount, {
-                          one: t("settingsWorkspace.countLabels.card.one"),
-                          other: t("settingsWorkspace.countLabels.card.other"),
-                        }),
+                        count: formatCount(resetPreview.cardsToResetCount, messages.settingsWorkspace.countLabels.card),
                       })}
                     </span>
                   </p>

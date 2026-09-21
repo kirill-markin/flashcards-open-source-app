@@ -467,10 +467,10 @@
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "مصدر أصل البودل";
 "settings.account.openSource.thirdPartyNoticeWhaleSource" = "مصدر أصل الحوت";
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "مصدر أصل الطاووس";
-"settings.account.openSource.thirdPartyNoticeOxSource" = "Ox Asset Source";
-"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Paw Prints Asset Source";
-"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Racehorse Asset Source";
-"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Volcano Asset Source";
+"settings.account.openSource.thirdPartyNoticeOxSource" = "مصدر أصل الثور";
+"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "مصدر أصل آثار الأقدام";
+"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "مصدر أصل حصان السباق";
+"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "مصدر أصل البركان";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "مصدر اليونيكورن";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "مصدر الحلزون";
 "settings.account.openSource.thirdPartyNoticeRoseSource" = "مصدر الوردة";
@@ -595,7 +595,7 @@
 
 "settings.workspace.deleteConfirmation.title" = "حذف مساحة العمل";
 "settings.workspace.deleteConfirmation.warning" = "تحذير: هذا الإجراء دائم. سيتم إزالة بطاقات %d النشطة من %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "سيتم إنشاء مساحة عمل شخصية فارغة جديدة مباشرة بعد الحذف.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "سيتم إنشاء مساحة عمل فارغة جديدة باسم Personal مباشرة بعد الحذف.";
 "settings.workspace.deleteConfirmation.placeholder" = "حذف مساحة العمل";
 "settings.workspace.deleteConfirmation.deleting" = "جارٍ الإزالة...";
 

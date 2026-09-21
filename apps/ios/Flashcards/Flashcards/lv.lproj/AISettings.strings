@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "No šīs darbvietas neatgriezeniski dzēšamo aktīvo kartīšu skaits: %d.";
 "settings.workspace.deleteConfirmation.title" = "Dzēst darbvietu";
 "settings.workspace.deleteConfirmation.warning" = "Brīdinājums! Šī darbība ir neatgriezeniska. Dzēšamo aktīvo kartīšu skaits: %d; darbvieta: %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Uzreiz pēc dzēšanas tiks izveidota jauna tukša personīgā darbvieta.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Uzreiz pēc dzēšanas tiks izveidota jauna tukša darbvieta ar nosaukumu Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Dzēš...";
 "settings.workspace.resetConfirmation.title" = "Apstiprināt atiestatīšanu";

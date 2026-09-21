@@ -467,10 +467,10 @@
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "プードルアセットの提供元";
 "settings.account.openSource.thirdPartyNoticeWhaleSource" = "クジラアセットの提供元";
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "クジャクアセットの提供元";
-"settings.account.openSource.thirdPartyNoticeOxSource" = "Ox Asset Source";
-"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Paw Prints Asset Source";
-"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Racehorse Asset Source";
-"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Volcano Asset Source";
+"settings.account.openSource.thirdPartyNoticeOxSource" = "雄牛アセットのソース";
+"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "足跡アセットのソース";
+"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "競走馬アセットのソース";
+"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "火山アセットのソース";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "ユニコーンアセット元";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "カタツムリアセット元";
 "settings.account.openSource.thirdPartyNoticeRoseSource" = "バラアセット元";
@@ -595,7 +595,7 @@
 
 "settings.workspace.deleteConfirmation.title" = "ワークスペースを削除";
 "settings.workspace.deleteConfirmation.warning" = "警告: このアクションは永続的です。 %d アクティブ カードを %@ から削除します。";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "削除後すぐに、新しい空の個人ワークスペースが作成されます。";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "削除後すぐに、Personal という名前の新しい空のワークスペースが作成されます。";
 "settings.workspace.deleteConfirmation.placeholder" = "ワークスペースを削除";
 "settings.workspace.deleteConfirmation.deleting" = "削除中...";
 

@@ -1160,9 +1160,18 @@ const nlCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistieken van {{deckName}}",
     newDeck: "Nieuw deck",
     statLabels: {
-      cards: "kaarten",
-      new: "nieuw",
-      reviewed: "herhaald",
+      cards: {
+        one: "kaart",
+        other: "kaarten",
+      },
+      new: {
+        one: "nieuw",
+        other: "nieuw",
+      },
+      reviewed: {
+        one: "herhaald",
+        other: "herhaald",
+      },
     },
     subtitle: "Decks zijn slimme filters, geen mappen. Ze koppelen kaarten op basis van tags.",
     title: "Decks",

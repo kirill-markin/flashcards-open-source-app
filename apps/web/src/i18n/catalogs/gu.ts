@@ -1160,9 +1160,18 @@ const guCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} ના આંકડા",
     newDeck: "નવું ડેક",
     statLabels: {
-      cards: "કાર્ડ",
-      new: "નવાં",
-      reviewed: "પુનરાવર્તન થયું",
+      cards: {
+        one: "કાર્ડ",
+        other: "કાર્ડ",
+      },
+      new: {
+        one: "નવાં",
+        other: "નવાં",
+      },
+      reviewed: {
+        one: "પુનરાવર્તન થયું",
+        other: "પુનરાવર્તન થયું",
+      },
     },
     subtitle: "ડેક સ્માર્ટ ફિલ્ટર છે, કન્ટેનર નહીં. તે ટૅગ પ્રમાણે કાર્ડ મેળવે છે.",
     title: "ડેક",

@@ -1160,9 +1160,18 @@ const arCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "إحصاءات {{deckName}}",
     newDeck: "مجموعة جديدة",
     statLabels: {
-      cards: "بطاقات",
-      new: "جديدة",
-      reviewed: "تمت مراجعتها",
+      cards: {
+        one: "بطاقة",
+        other: "بطاقات",
+      },
+      new: {
+        one: "جديدة",
+        other: "جديدة",
+      },
+      reviewed: {
+        one: "تمت مراجعتها",
+        other: "تمت مراجعتها",
+      },
     },
     subtitle: "المجموعات فلاتر ذكية وليست حاويات. تطابق البطاقات حسب الوسوم.",
     title: "المجموعات",

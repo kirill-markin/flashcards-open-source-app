@@ -716,7 +716,7 @@ const bgCatalog: TranslationCatalog = {
       dialogTitle: "Изтриване на работното пространство",
       loading: "Зареждане на подробностите за изтриването...",
       warning: "Внимание! Това действие е необратимо. То ще изтрие {{count}} от {{workspaceName}}.",
-      lastWorkspaceHint: "Веднага след изтриването ще бъде създадено ново празно лично работно пространство.",
+      lastWorkspaceHint: "Веднага след изтриването ще бъде създадено ново празно работно пространство с име Personal.",
       typePhrase: "Въведете точно фразата, за да продължите.",
       deleting: "Изтрива се...",
     },
@@ -1160,9 +1160,18 @@ const bgCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Статистика за {{deckName}}",
     newDeck: "Ново тесте",
     statLabels: {
-      cards: "общо",
-      new: "нови",
-      reviewed: "преговорени",
+      cards: {
+        one: "карта",
+        other: "карти",
+      },
+      new: {
+        one: "нова",
+        other: "нови",
+      },
+      reviewed: {
+        one: "преговорена",
+        other: "преговорени",
+      },
     },
     subtitle: "Тестетата са умни филтри, а не контейнери. Те съпоставят картите по етикети.",
     title: "Тестета",

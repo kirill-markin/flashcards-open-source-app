@@ -236,7 +236,7 @@ const koCatalog: TranslationCatalog = {
       title: "평가 리더보드",
       loading: "평가 리더보드를 불러오는 중...",
       infoToggleLabel: "평가 리더보드 안내",
-      info: "어려움, 좋음, 쉬움으로 평가한 복습이 순위에 반영됩니다. 다시로 평가한 복습은 집계되지 않습니다.",
+      info: "어려움, 알맞음, 쉬움으로 평가한 복습이 순위에 반영됩니다. 다시로 평가한 복습은 집계되지 않습니다.",
       periodsLabel: "평가 리더보드 기간",
       periods: {
         last24Hours: "24시간",
@@ -324,7 +324,7 @@ const koCatalog: TranslationCatalog = {
       title: "연속 학습 리더보드",
       loading: "연속 학습 리더보드를 불러오는 중...",
       infoToggleLabel: "연속 학습 리더보드 안내",
-      info: "현재 연속 학습 일수로 순위가 정해집니다. 연속 학습일은 다시, 어려움, 좋음, 쉬움 중 하나로 평가한 카드 복습이 한 번 이상 있는 날입니다. 공개 스냅샷이 아직 준비되지 않았다면 이 기기에 저장된 현재 연속 학습이 표시됩니다.",
+      info: "현재 연속 학습 일수로 순위가 정해집니다. 연속 학습일은 다시, 어려움, 알맞음, 쉬움 중 하나로 평가한 카드 복습이 한 번 이상 있는 날입니다. 공개 스냅샷이 아직 준비되지 않았다면 이 기기에 저장된 현재 연속 학습이 표시됩니다.",
       updatedAt: "{{duration}} 전 업데이트",
       guestBody: "로그인하면 현재 연속 학습을 다른 학습자와 비교할 수 있습니다.",
       participationDisabledBody: "리더보드 참여가 꺼져 있어 연속 학습 순위가 표시되지 않습니다. 다시 켜면 다른 학습자와 내 순위를 볼 수 있습니다.",
@@ -994,7 +994,7 @@ const koCatalog: TranslationCatalog = {
     ratings: {
       again: "다시",
       easy: "쉬움",
-      good: "좋음",
+      good: "알맞음",
       hard: "어려움",
     },
     shortcuts: {
@@ -1160,9 +1160,18 @@ const koCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} 통계",
     newDeck: "새 덱",
     statLabels: {
-      cards: "카드",
-      new: "신규",
-      reviewed: "복습함",
+      cards: {
+        one: "카드",
+        other: "카드",
+      },
+      new: {
+        one: "신규",
+        other: "신규",
+      },
+      reviewed: {
+        one: "복습함",
+        other: "복습함",
+      },
     },
     subtitle: "덱은 저장 공간이 아니라 스마트 필터입니다. 태그로 카드를 찾아냅니다.",
     title: "덱",
