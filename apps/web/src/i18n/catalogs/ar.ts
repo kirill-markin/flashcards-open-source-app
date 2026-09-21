@@ -866,6 +866,10 @@ const arCatalog: TranslationCatalog = {
     privacyPolicy: "سياسة الخصوصية",
     error: "لم تنجح العملية. حاول مرة أخرى.",
   },
+  analyticsConsentWithdrawal: {
+    link: "ملفات تعريف الارتباط للتحليلات",
+    close: "إغلاق",
+  },
   analyticsSettings: {
     title: "التحليلات",
     subtitle: "اختر ما إذا كان يمكن قياس هذا المتصفح.",
