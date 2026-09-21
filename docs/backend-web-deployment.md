@@ -190,6 +190,37 @@ For the first admin-domain rollout, treat `bash scripts/cloudflare/setup-admin-d
 
 The MCP host on `mcp.<domain>` follows the same per-subdomain rollout: `bash scripts/cloudflare/setup-mcp-domain.sh --domain <domain> --region <region>` requests the ACM certificate, then `bash scripts/setup/setup-github.sh`, a deploy, and `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` to create the `mcp.<domain>` CNAME from the `McpCustomDomainTarget` output.
 
+### Optional second API and auth host
+
+The REST API and the auth API can each answer on one extra hostname outside `<domain>`, on the same stage as the primary host. Both are off by default, neither replaces `api.<domain>` or `auth.<domain>`, and each needs both of its repository variables before anything changes:
+
+- `CDK_API_ALTERNATE_DOMAIN_NAME` and `CDK_API_ALTERNATE_CERTIFICATE_ARN`: the extra API host, for example `api.nibomo.com`, and an ACM certificate for it issued and validated in the stack region.
+- `CDK_AUTH_ALTERNATE_DOMAIN_NAME` and `CDK_AUTH_ALTERNATE_CERTIFICATE_ARN`: the same for the extra auth host.
+- `CDK_API_ALTERNATE_HOST_LIVE` and `CDK_AUTH_ALTERNATE_HOST_LIVE`: set to `true` only once the host's DNS record exists, exactly like `CDK_MCP_ALTERNATE_HOST_LIVE` below. Until then the host is created but not probed.
+
+The extra API host serves `v1` and `robots.txt` exactly like `api.<domain>`. Naming a host the stack already serves — its own primary host, another pair's primary host, or another alternate — fails at synth with `AlternateHostConflictError` instead of failing the deploy halfway with a duplicate-domain error (`infra/aws/lib/alternate-host.ts`).
+
+Once a host is created, its certificate gets its own expiry alarm; once it is declared live, it joins the external liveness heartbeat and gains its own heartbeat alarm.
+
+Never move `CDK_DOMAIN_NAME` to add a host. Every host name derives from it, so changing it makes CloudFormation create the new custom domains and delete `api.<domain>` and `auth.<domain>`, which every already shipped mobile build has compiled in.
+
+`CDK_COOKIE_DOMAIN` is separate from all of this: it sets the domain the analytics visitor cookie is published on, for the backend and the auth service together, and with it unset that domain stays `<domain>`. Set it only as part of moving the browser clients to another domain, and expect existing visitor cookies on the old domain to be replaced.
+
+With none of these variables set the deploy is byte-for-byte what it is today. `scripts/setup/setup-github.sh` does not create them, because these hosts cannot be derived from `<domain>`; set them manually. Both the certificates and the DNS records are manual: `scripts/cloudflare/setup-dns.sh` only manages records under `<domain>`.
+
+#### Go-live order
+
+Creating a host and pointing DNS at it are separate deploys for the same reason as the second MCP host: the CNAME can only be created from a stack output that does not exist until the custom domain has been deployed.
+
+1. Request and validate the ACM certificates for the extra hosts in the stack region, set the domain and certificate variables above, and deploy. The stack creates the second custom domains, maps the same stages onto them, and emits the `ApiAlternateCustomDomainTarget` and `AuthAlternateCustomDomainTarget` outputs. Nothing probes the hosts yet.
+2. Create each CNAME in its own DNS zone, pointing at the matching output, then confirm by hand that `GET https://<extra-api-host>/v1/` and `GET https://<extra-auth-host>/health` answer.
+3. Set `CDK_API_ALTERNATE_HOST_LIVE` and `CDK_AUTH_ALTERNATE_HOST_LIVE` to `true` and deploy again. Only now do the hosts join the external liveness heartbeat and gain their heartbeat alarms.
+4. Move clients to the new hosts, and set `CDK_COOKIE_DOMAIN` only when the browser clients move with them.
+
+A passing `GET https://<extra-auth-host>/health` is not evidence the auth host is usable from a browser. Sessions are cookie-based and the cookies are scoped to `COOKIE_DOMAIN` (`apps/auth/src/server/browserSession.ts`), which stays `<domain>` until `CDK_COOKIE_DOMAIN` moves, so a real login through the extra host answers every request and silently drops its session. The same holds for an extra host serving the web or admin bundle: its origin joins the API's CORS allowlists from the same resolved CloudFront host the distribution serves (`CDK_WEB_ADDITIONAL_DOMAIN_NAME` and `CDK_ADMIN_ADDITIONAL_DOMAIN_NAME` with their certificates, resolved in `infra/aws/lib/cloudfront-additional-host.ts`), so until that pair is complete and the cookie domain has moved, that host serves assets and nothing else — every API preflight fails and no session survives. Treat step 4 as one cutover of origins, cookies and clients together, not as four independent switches.
+
+For a local context file, `API_ALTERNATE_DOMAIN_NAME`, `AUTH_ALTERNATE_DOMAIN_NAME`, their optional `*_CERTIFICATE_ARN` and `*_HOST_LIVE` counterparts and `CDK_COOKIE_DOMAIN` in root `.env` feed the same CDK context values through `scripts/generate/generate-cdk-context.sh`.
+
 ### Optional second MCP host
 
 The same MCP API can answer on one extra hostname outside `<domain>`, for example a rebranded domain. It is off by default, it never replaces `mcp.<domain>`, and both repository variables are required before anything changes:

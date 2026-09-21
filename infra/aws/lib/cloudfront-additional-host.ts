@@ -63,6 +63,13 @@ export interface DistributionHosts {
   certificateArn: string | undefined;
   /** The primary host when this distribution serves it, `undefined` otherwise. */
   primaryCustomDomain: string | undefined;
+  /**
+   * The additional host when this distribution serves it, `undefined` otherwise.
+   * The single definition of the extra host, so consumers that only need its
+   * name — the API's browser origin allowlists, for one — cannot disagree with
+   * the aliases about which hosts exist.
+   */
+  additionalCustomDomain: string | undefined;
 }
 
 /**
@@ -104,6 +111,7 @@ export function resolveDistributionHosts(
       domainNames: primaryCustomDomain === undefined ? undefined : [primaryHost],
       certificateArn: primaryCertificateArnUsEast1,
       primaryCustomDomain,
+      additionalCustomDomain: undefined,
     };
   }
 
@@ -112,6 +120,7 @@ export function resolveDistributionHosts(
       domainNames: [additionalHost],
       certificateArn: additionalCertificateArn,
       primaryCustomDomain: undefined,
+      additionalCustomDomain: additionalHost,
     };
   }
 
@@ -119,5 +128,6 @@ export function resolveDistributionHosts(
     domainNames: [primaryHost, additionalHost],
     certificateArn: additionalCertificateArn,
     primaryCustomDomain: primaryHost,
+    additionalCustomDomain: additionalHost,
   };
 }

@@ -209,8 +209,8 @@ export function addMcpHttpApiRoutes(
 export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGatewayResult {
   // Resolved once here: the same host is the custom domain below, the host the
   // handler accepts, and the host it names in its protected-resource metadata.
-  // Throws McpAlternateDomainConflictError at synth time when it names the
-  // primary MCP host.
+  // Throws AlternateHostConflictError at synth time when it names a host this
+  // stack already serves.
   const mcpAlternateHost = resolveMcpAlternateHost(
     props.baseDomain,
     props.mcpAlternateDomainName,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { AlternateHostConflictError } from "./alternate-host";
 import {
-  McpAlternateDomainConflictError,
   getMcpResourceUrl,
   getPrimaryMcpHost,
   isMcpAlternateHostLive,
@@ -37,8 +37,8 @@ test("naming the primary MCP host fails at synth with a named error", () => {
     assert.throws(
       () => resolveMcpAlternateHost(baseDomain, alternateDomainName, certificateArn),
       (error: unknown) => {
-        assert.ok(error instanceof McpAlternateDomainConflictError);
-        assert.equal(error.name, "McpAlternateDomainConflictError");
+        assert.ok(error instanceof AlternateHostConflictError);
+        assert.equal(error.name, "AlternateHostConflictError");
         assert.match(error.message, /must differ from the primary MCP host/);
         return true;
       },
@@ -49,7 +49,7 @@ test("naming the primary MCP host fails at synth with a named error", () => {
   // is already the mistake.
   assert.throws(
     () => resolveMcpAlternateHost(baseDomain, primaryMcpHost, undefined),
-    McpAlternateDomainConflictError,
+    AlternateHostConflictError,
   );
 });
 
