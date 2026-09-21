@@ -5,9 +5,9 @@ import {
   getAllowedMcpHosts,
   getMcpProtectedResourceMetadataUrl,
   getMcpResourceUrl,
-  normalizeRequestHost,
   resolveMcpHost,
 } from "./hosts";
+import { normalizeRequestHost } from "../shared/requestHost";
 
 const baseDomain = "flashcards-open-source-app.com";
 const primaryHost = `mcp.${baseDomain}`;

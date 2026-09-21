@@ -21,6 +21,14 @@ export interface CatalogDumpProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   mediaAssetsBucket: s3.IBucket;
   baseDomain: string;
+  // The app origin the published catalog's install links name, decided once by
+  // the stack so the dump and the API cannot disagree about it.
+  publicAppOrigin: string;
+  // Optional per-deploy override for the API origin in the dump's fallback media
+  // `downloadUrl`, used only for an asset the CDN cannot deliver; deliverable
+  // media carry CDN URLs. Unset means api.<baseDomain>, exactly as before it was
+  // settable.
+  apiBaseUrl: string | undefined;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
@@ -135,6 +143,10 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
   });
 
   const cdnBaseUrl = `https://${distribution.distributionDomainName}`;
+  const publicApiOrigin = parsePublicOrigin(
+    props.apiBaseUrl ?? `https://api.${props.baseDomain}`,
+    "apiBaseUrl",
+  );
 
   const dumpFunction = new lambdaNodejs.NodejsFunction(scope, "CatalogDumpHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-catalog-dump.ts"),
@@ -160,8 +172,8 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
       DB_SECRET_ARN: props.backendDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
-      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
-      PUBLIC_APP_BASE_URL: parsePublicOrigin(`https://app.${props.baseDomain}`, "appBaseUrl"),
+      PUBLIC_API_BASE_URL: `${publicApiOrigin}/v1`,
+      PUBLIC_APP_BASE_URL: props.publicAppOrigin,
       CATALOG_DUMP_S3_BUCKET_NAME: bucket.bucketName,
       CATALOG_DUMP_CDN_BASE_URL: cdnBaseUrl,
       MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,

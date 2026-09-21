@@ -45,6 +45,12 @@ export type AnalyticsFilterOptions = Readonly<{
   catalogSources: ReadonlyArray<CatalogInstallSource>;
   catalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
   catalogClickBrowserLanguages: ReadonlyArray<string>;
+  // The same four dimensions as the Funnels bar offers them, read off the clicks themselves rather
+  // than through the install bridge, because that is what that area matches.
+  funnelCatalogPlacements: ReadonlyArray<CatalogInstallPlacement>;
+  funnelCatalogSources: ReadonlyArray<CatalogInstallSource>;
+  funnelCatalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
+  funnelCatalogClickBrowserLanguages: ReadonlyArray<string>;
 }>;
 
 /** One installable deck version, named the way the shared `Catalog deck version` field names it: its slug and its version id. */
@@ -332,6 +338,63 @@ function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string):
 }
 
 /**
+ * Every value one catalog click dimension carried on a click itself, for the Funnels bar.
+ *
+ * Funnels matches a click that never had to become anything, and its four predicates read the click's
+ * own properties (`buildFunnelClickFilterSqlLines` in
+ * `apps/admin/src/reports/catalogInstallFunnel/query.ts`), so this reads the same rows rather than the
+ * install bridge the user-scoped areas read. That bridge joins on `install_journey_id`, which the
+ * server install fact no longer carries, so sourcing this list from it would freeze these four fields
+ * on pre-move history. The bridge stays where it is, on the person-level General and Audience filter.
+ *
+ * Unscoped by the selected range, as the lists above are, so a value a narrowed range excludes keeps
+ * being offered. What it restates is what the funnel's cohort applies to a click before a predicate
+ * sees it: a resolvable actor, the three identity exclusions, and the reduction to the first click
+ * of an identity and deck version. The funnel takes that first click inside the selected range, so
+ * the clicks any range can anchor are exactly the first ones of their identity and deck version on
+ * their own UTC day, and those are the rows read here. The one cohort rule not restated is the `test`
+ * deck, which the funnel detects from a later install start; a value only test-deck clicks carried
+ * is still offered and matches nothing.
+ */
+function buildAnalyticsFilterOptionCatalogClickSql(valueSqlExpression: string): string {
+  return [
+    `SELECT DISTINCT ${valueSqlExpression} AS option_value`,
+    "FROM (",
+    "  SELECT DISTINCT ON (",
+    "    clicked.actor_id,",
+    "    clicked.event_properties ->> 'package_version_id',",
+    "    (clicked.occurred_at AT TIME ZONE 'UTC')::date",
+    "  )",
+    "    clicked.actor_id,",
+    "    clicked.event_properties,",
+    "    clicked.device_locale",
+    "  FROM analytics.product_events_resolved AS clicked",
+    "  WHERE clicked.event_name = 'catalog_install_clicked'",
+    "    AND clicked.origin = 'client'",
+    "    AND clicked.trust_level = 'anonymous_client'",
+    "    AND clicked.actor_id IS NOT NULL",
+    "  ORDER BY",
+    "    clicked.actor_id,",
+    "    clicked.event_properties ->> 'package_version_id',",
+    "    (clicked.occurred_at AT TIME ZONE 'UTC')::date,",
+    "    clicked.occurred_at,",
+    "    clicked.event_id",
+    ") AS clicked",
+    `WHERE ${valueSqlExpression} IS NOT NULL`,
+    ...buildExcludedActorSqlLines("clicked.actor_id::text"),
+    "  AND NOT EXISTS (",
+    "    SELECT 1",
+    "    FROM org.user_settings AS admin_settings",
+    "    JOIN auth.admin_users AS admin_users",
+    "      ON admin_users.email = LOWER(btrim(admin_settings.email))",
+    "    WHERE pg_catalog.lower(admin_settings.user_id) = clicked.actor_id::text",
+    "      AND admin_users.revoked_at IS NULL",
+    "  )",
+    "ORDER BY option_value ASC",
+  ].join("\n");
+}
+
+/**
  * The declared values of one closed attribution dimension that the data actually carries.
  *
  * A value outside the declared list is skipped rather than raised. A value that is never offered can
@@ -400,6 +463,12 @@ export async function loadAnalyticsFilterOptions(
     buildAnalyticsFilterOptionCatalogAttributionSql("source"),
     buildAnalyticsFilterOptionCatalogAttributionSql("device_category"),
     buildAnalyticsFilterOptionCatalogAttributionSql("device_locale"),
+    buildAnalyticsFilterOptionCatalogClickSql("clicked.event_properties ->> 'placement'"),
+    buildAnalyticsFilterOptionCatalogClickSql("clicked.event_properties ->> 'source'"),
+    buildAnalyticsFilterOptionCatalogClickSql("clicked.event_properties ->> 'device_category'"),
+    // Folded to NULL exactly as the funnel's own predicate folds it, so an empty locale is the
+    // absence of a reported browser language on both sides rather than a bucket name on one.
+    buildAnalyticsFilterOptionCatalogClickSql("NULLIF(clicked.device_locale, '')"),
   ];
   const response = await runAdminQuery(config, optionListSql.join(";\n"));
   if (response.resultSets.length !== optionListSql.length) {
@@ -445,5 +514,25 @@ export async function loadAnalyticsFilterOptions(
     ),
     catalogClickBrowserLanguages: requireResultSet(resultSets, 8, "catalog click browser language")
       .rows.map((row) => assertIsString(row.option_value ?? null, optionsReportLabel, "device_locale")),
+    funnelCatalogPlacements: buildCatalogAttributionEnumOptions(
+      requireResultSet(resultSets, 9, "funnel catalog placement"),
+      catalogInstallPlacements,
+      "placement",
+    ),
+    funnelCatalogSources: buildCatalogAttributionEnumOptions(
+      requireResultSet(resultSets, 10, "funnel catalog source"),
+      catalogInstallSources,
+      "source",
+    ),
+    funnelCatalogDeviceCategories: buildCatalogAttributionEnumOptions(
+      requireResultSet(resultSets, 11, "funnel catalog device category"),
+      catalogInstallDeviceCategories,
+      "device_category",
+    ),
+    funnelCatalogClickBrowserLanguages: requireResultSet(
+      resultSets,
+      12,
+      "funnel catalog click browser language",
+    ).rows.map((row) => assertIsString(row.option_value ?? null, optionsReportLabel, "device_locale")),
   };
 }

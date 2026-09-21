@@ -9,7 +9,7 @@ import { monitoring } from "./monitoring";
 import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
 import { outputs } from "./outputs";
-import { getPrimaryWebHost, webApp } from "./web";
+import { getPrimaryWebHost, resolveWebPrimaryHostRedirectTarget, webApp } from "./web";
 import { adminApp, getPrimaryAdminHost } from "./admin";
 import { resolveDistributionHosts } from "./cloudfront-additional-host";
 import {
@@ -43,6 +43,7 @@ import { mediaAssets } from "./media-assets";
 import { catalogDump } from "./catalog-dump";
 import { geoLiteCountry } from "./geolite-country";
 import { parsePublicOrigin } from "./public-origin";
+import { resolvePublishedApiOrigin } from "./published-api-origin";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
   const value = stack.node.tryGetContext(key);
@@ -258,6 +259,23 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const siteBaseUrl = configuredSiteBaseUrl === undefined
       ? undefined
       : parsePublicOrigin(configuredSiteBaseUrl, "siteBaseUrl");
+    // Optional per-deploy override for the public API origin the backend, auth,
+    // MCP and catalog-dump Lambdas advertise. Defaults to `https://api.<baseDomain>`
+    // when unset, so an unconfigured deploy is unchanged. It moves only published
+    // addresses; see docs/published-api-origin.md for why the auth origin
+    // deliberately has no companion override.
+    // Throws at synth unless it names a host this stack serves and polices
+    // (./published-api-origin.ts).
+    const configuredApiBaseUrl = getOptionalRawContextValue(this, "apiBaseUrl");
+    const apiBaseUrl = resolvePublishedApiOrigin({
+      baseDomain,
+      configuredApiBaseUrl: configuredApiBaseUrl === undefined
+        ? undefined
+        : parsePublicOrigin(configuredApiBaseUrl, "apiBaseUrl"),
+      apiAlternateDomainName,
+      apiAlternateHost: alternateHosts.api,
+      apiAlternateHostLive: isAlternateHostLive(getOptionalContextValue(this, "apiAlternateHostLive")),
+    });
     const sentryContext = validateBackendSentryContext({
       sentryDsnSecretArn: getOptionalContextValue(this, "sentryDsnSecretArn"),
       sentryEnvironment: getOptionalContextValue(this, "sentryEnvironment"),
@@ -342,98 +360,12 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
     });
     publicEndpointHeartbeat(this, { baseDomain, alternateHeartbeatHosts });
-    const mediaAssetsResult = mediaAssets(this, {
-      baseDomain,
-    });
-    const generatedMediaPromotionResult = generatedMediaPromotion(this, {
-      vpc: net.vpc,
-      lambdaSg: net.lambdaSg,
-      db: dbResult.db,
-      backendDbSecret: dbResult.backendDbSecret,
-      mediaAssetsBucket: mediaAssetsResult.bucket,
-      mediaBlobCleanupEnabled,
-      scheduleState: generatedMediaPromotionScheduleState,
-      ...sentryContext,
-    });
-    const multipartCompletionReconciliationResult =
-      multipartCompletionReconciliation(this, {
-        vpc: net.vpc,
-        lambdaSg: net.lambdaSg,
-        db: dbResult.db,
-        backendDbSecret: dbResult.backendDbSecret,
-        mediaAssetsBucket: mediaAssetsResult.bucket,
-        scheduleState: multipartCompletionReconciliationScheduleState,
-        ...sentryContext,
-      });
-    const catalogDumpResult = catalogDump(this, {
-      vpc: net.vpc,
-      lambdaSg: net.lambdaSg,
-      db: dbResult.db,
-      backendDbSecret: dbResult.backendDbSecret,
-      mediaAssetsBucket: mediaAssetsResult.bucket,
-      baseDomain,
-      ...sentryContext,
-    });
-    let analyticsAccessResult: AnalyticsAccessResult | undefined;
-    if (analyticsAccessEnabled) {
-      analyticsAccessResult = analyticsAccess(this, {
-        vpc: net.vpc,
-        dbSg: net.dbSg,
-      });
-    }
-    const preSignUpFn = preSignUp(this, { ...sentryContext });
-    const authResult = auth(this, {
-      preSignUpFn,
-      resendApiKeySecretArn,
-      resendSenderEmail,
-      ...sentryContext,
-    });
-    const authApi = authGateway(this, {
-      vpc: net.vpc,
-      lambdaSg: net.lambdaSg,
-      db: dbResult.db,
-      authDbSecret: dbResult.authDbSecret,
-      baseDomain,
-      authCertificateArn,
-      authAlternateHost: alternateHosts.auth,
-      authAlternateCertificateArn,
-      cookieDomain,
-      mcpAlternateHost,
-      demoEmailDostip,
-      demoPasswordSecretArn,
-      userPoolId: authResult.userPool.userPoolId,
-      userPoolClientId: authResult.userPoolClient.userPoolClientId,
-      ...sentryContext,
-    });
-    const mcpApi = mcpGateway(this, {
-      vpc: net.vpc,
-      lambdaSg: net.lambdaSg,
-      db: dbResult.db,
-      backendDbSecret: dbResult.backendDbSecret,
-      baseDomain,
-      siteBaseUrl,
-      mcpCertificateArn,
-      mcpAlternateDomainName,
-      mcpAlternateCertificateArn,
-      ...sentryContext,
-    });
-    const migrationFn = migrationRunner(this, {
-      vpc: net.vpc,
-      lambdaSg: net.lambdaSg,
-      db: dbResult.db,
-      dbOwnerSecret: dbResult.dbOwnerSecret,
-      backendDbSecret: dbResult.backendDbSecret,
-      authDbSecret: dbResult.authDbSecret,
-      reportingDbSecret: dbResult.reportingDbSecret,
-      adminEmails,
-      ...sentryContext,
-    });
-    const migrationGate = databaseMigrationGate(this, migrationFn);
     // Both distributions are resolved here, before either is constructed and
-    // before the API that has to allow their hosts as browser origins, because
-    // an additional host must be checked against every alias the stack claims
-    // and not only against its own distribution's primary. A repeat passes
-    // synth and fails the deploy with CNAMEAlreadyExists.
+    // before the media bucket, auth and API stages that have to allow their
+    // hosts as browser origins, because an additional host must be checked
+    // against every alias the stack claims and not only against its own
+    // distribution's primary. A repeat passes synth and fails the deploy with
+    // CNAMEAlreadyExists.
     const webPrimaryHost = getPrimaryWebHost(baseDomain);
     const adminPrimaryHost = getPrimaryAdminHost(baseDomain);
     const claimedCloudFrontHosts = [
@@ -456,6 +388,122 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       adminAdditionalCertificateArnUsEast1,
       [...claimedCloudFrontHosts, ...(webHosts.domainNames ?? [])],
     );
+    const mediaAssetsResult = mediaAssets(this, {
+      baseDomain,
+      // The web bundle talks to this bucket directly, so its second host needs
+      // the same CORS entry the API and auth allowlists already give it.
+      webAdditionalHost: webHosts.additionalCustomDomain,
+    });
+    const generatedMediaPromotionResult = generatedMediaPromotion(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      mediaAssetsBucket: mediaAssetsResult.bucket,
+      mediaBlobCleanupEnabled,
+      scheduleState: generatedMediaPromotionScheduleState,
+      ...sentryContext,
+    });
+    const multipartCompletionReconciliationResult =
+      multipartCompletionReconciliation(this, {
+        vpc: net.vpc,
+        lambdaSg: net.lambdaSg,
+        db: dbResult.db,
+        backendDbSecret: dbResult.backendDbSecret,
+        mediaAssetsBucket: mediaAssetsResult.bucket,
+        scheduleState: multipartCompletionReconciliationScheduleState,
+        ...sentryContext,
+      });
+    // `app.<baseDomain>` stops serving the bundle and redirects to the additional
+    // web host instead; undefined until that switch is on. See
+    // ./web.ts for why the same switch moves the public app origin below.
+    const webPrimaryHostRedirectTarget = resolveWebPrimaryHostRedirectTarget(
+      getOptionalContextValue(this, "webPrimaryHostRetired"),
+      webHosts,
+    );
+    // The one place this stack decides where backend-generated links send people:
+    // invites and the published catalog dump's install links. Every consumer
+    // takes this value rather than deriving its own, so they cannot disagree
+    // about which host is the app. Share links are built by the clients.
+    const publicAppOrigin = parsePublicOrigin(
+      `https://${webPrimaryHostRedirectTarget ?? webPrimaryHost}`,
+      "appBaseUrl",
+    );
+
+    const catalogDumpResult = catalogDump(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      mediaAssetsBucket: mediaAssetsResult.bucket,
+      baseDomain,
+      publicAppOrigin,
+      apiBaseUrl,
+      ...sentryContext,
+    });
+    let analyticsAccessResult: AnalyticsAccessResult | undefined;
+    if (analyticsAccessEnabled) {
+      analyticsAccessResult = analyticsAccess(this, {
+        vpc: net.vpc,
+        dbSg: net.dbSg,
+      });
+    }
+    const preSignUpFn = preSignUp(this, { ...sentryContext });
+    const authResult = auth(this, {
+      preSignUpFn,
+      resendApiKeySecretArn,
+      resendSenderEmail,
+      ...sentryContext,
+    });
+    const authApi = authGateway(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      authDbSecret: dbResult.authDbSecret,
+      baseDomain,
+      apiBaseUrl,
+      authCertificateArn,
+      authAlternateHost: alternateHosts.auth,
+      authAlternateCertificateArn,
+      apiAlternateHost: alternateHosts.api,
+      cookieDomain,
+      mcpAlternateHost,
+      // Second hosts for the browser bundles. Auth allows them as redirect
+      // targets and browser origins; without that a bundle served from one of
+      // them cannot sign in, and no client rebuild can fix it.
+      webAdditionalHost: webHosts.additionalCustomDomain,
+      adminAdditionalHost: adminHosts.additionalCustomDomain,
+      demoEmailDostip,
+      demoPasswordSecretArn,
+      userPoolId: authResult.userPool.userPoolId,
+      userPoolClientId: authResult.userPoolClient.userPoolClientId,
+      ...sentryContext,
+    });
+    const mcpApi = mcpGateway(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      baseDomain,
+      siteBaseUrl,
+      apiBaseUrl,
+      mcpCertificateArn,
+      mcpAlternateDomainName,
+      mcpAlternateCertificateArn,
+      ...sentryContext,
+    });
+    const migrationFn = migrationRunner(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      dbOwnerSecret: dbResult.dbOwnerSecret,
+      backendDbSecret: dbResult.backendDbSecret,
+      authDbSecret: dbResult.authDbSecret,
+      reportingDbSecret: dbResult.reportingDbSecret,
+      adminEmails,
+      ...sentryContext,
+    });
+    const migrationGate = databaseMigrationGate(this, migrationFn);
     const api = apiGateway(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -464,6 +512,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       reportingDbSecret: dbResult.reportingDbSecret,
       baseDomain,
       siteBaseUrl,
+      apiBaseUrl,
       apiCertificateArn,
       apiAlternateHost: alternateHosts.api,
       apiAlternateCertificateArn,
@@ -471,9 +520,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       // Second hosts for the browser clients, owned by the CloudFront
       // distributions above. The API only needs their names, to allow them as
       // browser origins: a host that serves the bundle but is not an allowed
-      // origin fails every preflight. Nothing here moves PUBLIC_APP_BASE_URL.
+      // origin fails every preflight. Where links point is publicAppOrigin below.
       webAdditionalHost: webHosts.additionalCustomDomain,
       adminAdditionalHost: adminHosts.additionalCustomDomain,
+      publicAppOrigin,
       cookieDomain,
       openAiApiKeySecretArn,
       langfusePublicKeySecretArn,
@@ -507,6 +557,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       baseDomain,
       hosts: webHosts,
       apexRedirectCertificateArnUsEast1,
+      primaryHostRedirectTarget: webPrimaryHostRedirectTarget,
     });
     const admin = adminApp(this, {
       baseDomain,
@@ -611,6 +662,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       webBucket: web.bucket,
       webDistribution: web.distribution,
       webCustomDomain: web.customDomain,
+      webPrimaryHostRedirectTarget,
       adminBucket: admin.bucket,
       adminDistribution: admin.distribution,
       adminCustomDomain: admin.customDomain,

@@ -13,6 +13,7 @@ import {
   createBackendObservationScope,
 } from "../observability/sentry";
 import { HttpError } from "../shared/errors";
+import { getPublicAppOriginForGeneratedLinks } from "../shared/publicUrls";
 import {
   recordFriendInvitationCreatedAnalytics,
   recordFriendshipCreatedAnalytics,
@@ -27,7 +28,15 @@ import {
 export const activeFriendInvitationLimit = 20;
 export const friendInvitationDisplayNameMaxLength = 30;
 export const friendInviteTokenByteLength = 32;
-export const friendInviteUrlBase = "https://app.flashcards-open-source-app.com/invite";
+
+/**
+ * Invite links point at whatever host currently serves the app, which
+ * `PUBLIC_APP_BASE_URL` names. Resolved per invitation rather than at import, so
+ * the value in effect when the link is minted is the one it carries.
+ */
+export function getFriendInviteUrlBase(): string {
+  return `${getPublicAppOriginForGeneratedLinks()}/invite`;
+}
 
 // A savepoint name is an identifier and cannot be parameterized, so it is this fixed literal and
 // nothing a request supplied ever reaches the statements built from it.
@@ -88,7 +97,7 @@ export type FriendInvitationServiceDependencies = Readonly<{
   recordFriendshipCreatedAnalyticsFn: RecordFriendshipCreatedAnalyticsFn;
   randomBytesFn: (byteCount: number) => Buffer;
   randomUuidFn: () => string;
-  inviteUrlBase: string;
+  resolveInviteUrlBaseFn: () => string;
   activeInviteLimit: number;
 }>;
 
@@ -137,7 +146,7 @@ export const defaultFriendInvitationServiceDependencies: FriendInvitationService
   recordFriendshipCreatedAnalyticsFn: recordFriendshipCreatedAnalytics,
   randomBytesFn: randomBytes,
   randomUuidFn: randomUUID,
-  inviteUrlBase: friendInviteUrlBase,
+  resolveInviteUrlBaseFn: getFriendInviteUrlBase,
   activeInviteLimit: activeFriendInvitationLimit,
 };
 
@@ -533,7 +542,7 @@ export async function createFriendInvitationWithDependencies(
     return {
       invitation,
       response: {
-        inviteUrl: createFriendInviteUrl(dependencies.inviteUrlBase, rawInviteToken),
+        inviteUrl: createFriendInviteUrl(dependencies.resolveInviteUrlBaseFn(), rawInviteToken),
         expiresAt: invitation.expiresAt,
       },
     };

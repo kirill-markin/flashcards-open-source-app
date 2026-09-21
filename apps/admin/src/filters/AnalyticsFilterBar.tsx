@@ -96,10 +96,11 @@ type AnalyticsFilterBarProps = Readonly<{
   appUiLanguageOptions: ReadonlyArray<string>;
   /**
    * What the five catalog fields can offer. Unlike every list above, these are not scoped to the
-   * range: the decks name every deck version ever installed and the four dimensions name the values
-   * the originating clicks of completed installs carried, which is exactly what the user-scoped areas
-   * can match. Funnels matches any click in range instead, so there these lists are a subset of what
-   * a selection would match and the field explanations say so.
+   * range: the decks name every deck version ever installed, and the four dimensions name what the
+   * area's own rows carried. The caller chooses that source, because the two kinds of area match
+   * different rows: the user-scoped areas match a person through a completed install, so their values
+   * come from the clicks that became installs, while Funnels matches any click and takes its values
+   * from the clicks themselves. The field explanations say what each still cannot cover.
    */
   catalogDeckOptions: ReadonlyArray<CatalogDeckOption>;
   catalogPlacementOptions: ReadonlyArray<CatalogInstallPlacement>;

@@ -5,8 +5,8 @@ import {
   catalogInstallConversionWindowDays,
   loadCatalogInstallFunnelReport,
   type CatalogInstallFailureBucket,
-  type CatalogInstallFunnelAttempt,
   type CatalogInstallFunnelReport,
+  type CatalogInstallFunnelVisit,
 } from "./query";
 
 type FunnelLoadState =
@@ -17,20 +17,11 @@ type FunnelLoadState =
 type FunnelStage = Readonly<{ label: string; count: number }>;
 type FailureTotal = CatalogInstallFailureBucket & Readonly<{ count: number }>;
 
-/** One installed attempt reduced to what the engagement card reads, so no step needs a null branch. */
-type InstallEngagement = Readonly<{
-  actorIsNew: boolean;
-  reviewCount: number;
-  hasReturnDay: boolean;
-}>;
-
-type EngagementStep = Readonly<{ label: string; newAccounts: number; existingAccounts: number }>;
-
 /** Where "studied it properly" is drawn, rather than merely opened the deck once. */
 const engagedReviewThreshold = 20;
 
 /** One identity for every render without a report, so the derived counts below are memoized once. */
-const noAttempts: ReadonlyArray<CatalogInstallFunnelAttempt> = [];
+const noVisits: ReadonlyArray<CatalogInstallFunnelVisit> = [];
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected catalog installation funnel error.";
@@ -60,11 +51,11 @@ function formatDuration(seconds: number | null): string {
   return `${(seconds / 3600).toFixed(1)} hr`;
 }
 
-function getMedianInstallSeconds(attempts: ReadonlyArray<CatalogInstallFunnelAttempt>): number | null {
-  const values = attempts
-    .filter((attempt) => attempt.installedAt !== null)
-    .map((attempt) => (
-      (new Date(attempt.installedAt ?? attempt.clickedAt).getTime() - new Date(attempt.clickedAt).getTime()) / 1000
+function getMedianInstallSeconds(visits: ReadonlyArray<CatalogInstallFunnelVisit>): number | null {
+  const values = visits
+    .filter((visit) => visit.installedAt !== null)
+    .map((visit) => (
+      (new Date(visit.installedAt ?? visit.visitedAt).getTime() - new Date(visit.visitedAt).getTime()) / 1000
     ))
     .sort((left, right) => left - right);
   if (values.length === 0) {
@@ -84,83 +75,51 @@ function getMedianInstallSeconds(attempts: ReadonlyArray<CatalogInstallFunnelAtt
   return ((values[middleIndex - 1] ?? middle) + middle) / 2;
 }
 
-function buildMainStages(attempts: ReadonlyArray<CatalogInstallFunnelAttempt>): ReadonlyArray<FunnelStage> {
-  return [
-    { label: "Clicked", count: attempts.length },
-    { label: "Landed", count: attempts.filter((attempt) => attempt.landedAt !== null).length },
-    { label: "Preview ready", count: attempts.filter((attempt) => attempt.previewReadyAt !== null).length },
-    { label: "Install started", count: attempts.filter((attempt) => attempt.installStartedAt !== null).length },
-    { label: "Installed (server)", count: attempts.filter((attempt) => attempt.installedAt !== null).length },
-  ];
-}
-
-function buildAuthStages(attempts: ReadonlyArray<CatalogInstallFunnelAttempt>): ReadonlyArray<FunnelStage> {
-  return [
-    { label: "Signed-out landed", count: attempts.filter((attempt) => attempt.signedOutLandedAt !== null).length },
-    { label: "Sign-in started", count: attempts.filter((attempt) => attempt.signInStartedAt !== null).length },
-    { label: "Code requested", count: attempts.filter((attempt) => attempt.codeRequestedAt !== null).length },
-    { label: "Sign-in succeeded", count: attempts.filter((attempt) => attempt.signInSucceededAt !== null).length },
-    { label: "Preview after sign-in", count: attempts.filter((attempt) => attempt.signedOutPreviewReadyAt !== null).length },
-  ];
-}
-
-function collectInstallEngagements(
-  attempts: ReadonlyArray<CatalogInstallFunnelAttempt>,
-): ReadonlyArray<InstallEngagement> {
-  const engagements: Array<InstallEngagement> = [];
-  for (const attempt of attempts) {
-    if (
-      attempt.installActorIsNew === null
-      || attempt.installReviewCount === null
-      || attempt.installHasReturnDay === null
-    ) {
-      continue;
-    }
-
-    engagements.push({
-      actorIsNew: attempt.installActorIsNew,
-      reviewCount: attempt.installReviewCount,
-      hasReturnDay: attempt.installHasReturnDay,
-    });
-  }
-
-  return engagements;
-}
-
 /**
- * The four nested steps of the engagement card, each split by whether the installing account is new.
+ * The eight steps of one funnel, from the first site visit to a person who kept studying.
  *
- * The last one carries both conditions on purpose: a return day reported beside the review threshold
- * rather than under it would be two independent tests, and a later step could then exceed an earlier
- * one.
+ * The three engagement steps are measurable only on a visit that reached a server install, so a
+ * visit with no install carries null review facts and is absent from all three. That keeps them
+ * subsets of the install step above them rather than an independent test, and the last one carries
+ * both its conditions together for the same reason.
  */
-function buildEngagementSteps(
-  engagements: ReadonlyArray<InstallEngagement>,
-): ReadonlyArray<EngagementStep> {
-  const buildStep = (
-    label: string,
-    matches: (engagement: InstallEngagement) => boolean,
-  ): EngagementStep => ({
-    label,
-    newAccounts: engagements.filter((engagement) => engagement.actorIsNew && matches(engagement)).length,
-    existingAccounts: engagements.filter((engagement) => engagement.actorIsNew === false && matches(engagement)).length,
-  });
+function buildMainStages(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<FunnelStage> {
+  const countWhere = (matches: (visit: CatalogInstallFunnelVisit) => boolean): number => (
+    visits.filter(matches).length
+  );
 
   return [
-    buildStep("Server installs", () => true),
-    buildStep("1+ review", (engagement) => engagement.reviewCount >= 1),
-    buildStep(`${engagedReviewThreshold}+ reviews`, (engagement) => engagement.reviewCount >= engagedReviewThreshold),
-    buildStep(
-      `${engagedReviewThreshold}+ reviews with a return day`,
-      (engagement) => engagement.reviewCount >= engagedReviewThreshold && engagement.hasReturnDay,
-    ),
+    { label: "Site visit", count: visits.length },
+    { label: "Import screen", count: countWhere((visit) => visit.importScreenAt !== null) },
+    { label: "Import confirm", count: countWhere((visit) => visit.importConfirmAt !== null) },
+    { label: "Install started", count: countWhere((visit) => visit.installStartedAt !== null) },
+    { label: "Installed (server)", count: countWhere((visit) => visit.installedAt !== null) },
+    { label: "1+ review", count: countWhere((visit) => (visit.installReviewCount ?? 0) >= 1) },
+    {
+      label: `${engagedReviewThreshold}+ reviews`,
+      count: countWhere((visit) => (visit.installReviewCount ?? 0) >= engagedReviewThreshold),
+    },
+    {
+      label: `${engagedReviewThreshold}+ reviews with a return day`,
+      count: countWhere((visit) => (
+        (visit.installReviewCount ?? 0) >= engagedReviewThreshold && visit.installHasReturnDay === true
+      )),
+    },
   ];
 }
 
-function buildFailureTotals(attempts: ReadonlyArray<CatalogInstallFunnelAttempt>): ReadonlyArray<FailureTotal> {
+function buildAuthStages(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<FunnelStage> {
+  return [
+    { label: "Signed-out import gate", count: visits.filter((visit) => visit.signedOutGateAt !== null).length },
+    { label: "Signed in on this browser", count: visits.filter((visit) => visit.signedInAt !== null).length },
+    { label: "Import confirm after sign-in", count: visits.filter((visit) => visit.signedOutImportConfirmAt !== null).length },
+  ];
+}
+
+function buildFailureTotals(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<FailureTotal> {
   const totals = new Map<string, FailureTotal>();
-  for (const attempt of attempts) {
-    for (const bucket of attempt.failureBuckets) {
+  for (const visit of visits) {
+    for (const bucket of visit.failureBuckets) {
       const key = `${bucket.stage}:${bucket.reason}`;
       totals.set(key, { ...bucket, count: (totals.get(key)?.count ?? 0) + 1 });
     }
@@ -178,7 +137,12 @@ function FunnelGraphic(props: Readonly<{ stages: ReadonlyArray<FunnelStage> }>):
   const description = props.stages.map((stage) => `${stage.label}: ${stage.count}`).join(", ");
 
   return (
-    <svg className="funnel-graphic" viewBox="0 0 100 190" role="img" aria-label={description}>
+    <svg
+      className="funnel-graphic"
+      viewBox={`0 0 100 ${props.stages.length * 38}`}
+      role="img"
+      aria-label={description}
+    >
       {props.stages.map((stage, index) => {
         const width = denominator === 0 ? 0 : (stage.count / denominator) * 100;
         return (
@@ -202,7 +166,7 @@ function FunnelStageTable(props: Readonly<{ stages: ReadonlyArray<FunnelStage> }
   return (
     <div className="funnel-stage-table" role="table" aria-label="Main funnel conversions">
       <div className="funnel-stage-row funnel-stage-heading" role="row">
-        <span role="columnheader">Stage</span><span role="columnheader">Attempts</span>
+        <span role="columnheader">Stage</span><span role="columnheader">Visitors</span>
         <span role="columnheader">From prior</span><span role="columnheader">Overall</span>
       </div>
       {props.stages.map((stage, index) => (
@@ -211,28 +175,6 @@ function FunnelStageTable(props: Readonly<{ stages: ReadonlyArray<FunnelStage> }
           <span role="cell">{stage.count.toLocaleString("en-US")}</span>
           <span role="cell">{index === 0 ? "100%" : formatPercentage(stage.count, props.stages[index - 1]?.count ?? 0)}</span>
           <span role="cell">{formatPercentage(stage.count, denominator)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function EngagementStepTable(props: Readonly<{ steps: ReadonlyArray<EngagementStep> }>): JSX.Element {
-  const newDenominator = props.steps[0]?.newAccounts ?? 0;
-  const existingDenominator = props.steps[0]?.existingAccounts ?? 0;
-
-  return (
-    <div role="table" aria-label="Post-install engagement by account age">
-      <div className="funnel-engagement-row funnel-engagement-heading" role="row">
-        <span role="columnheader">Step</span>
-        <span role="columnheader">New accounts</span>
-        <span role="columnheader">Existing accounts</span>
-      </div>
-      {props.steps.map((step) => (
-        <div className="funnel-engagement-row" role="row" key={step.label}>
-          <span role="cell">{step.label}</span>
-          <strong role="cell">{step.newAccounts.toLocaleString("en-US")} · {formatPercentage(step.newAccounts, newDenominator)}</strong>
-          <strong role="cell">{step.existingAccounts.toLocaleString("en-US")} · {formatPercentage(step.existingAccounts, existingDenominator)}</strong>
         </div>
       ))}
     </div>
@@ -277,29 +219,22 @@ export function CatalogInstallFunnelSection(
   }, [loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
 
   const report = loadState.status === "ready" ? loadState.report : null;
-  const attempts = report === null ? noAttempts : report.attempts;
-  const mainStages = useMemo(() => buildMainStages(attempts), [attempts]);
-  const authStages = useMemo(() => buildAuthStages(attempts), [attempts]);
-  const failureTotals = useMemo(() => buildFailureTotals(attempts), [attempts]);
-  const engagementSteps = useMemo(
-    () => buildEngagementSteps(collectInstallEngagements(attempts)),
-    [attempts],
-  );
+  const visits = report === null ? noVisits : report.visits;
+  const mainStages = useMemo(() => buildMainStages(visits), [visits]);
+  const authStages = useMemo(() => buildAuthStages(visits), [visits]);
+  const failureTotals = useMemo(() => buildFailureTotals(visits), [visits]);
 
-  const installedCount = mainStages.at(-1)?.count ?? 0;
-  const directClickCount = attempts.filter((attempt) => attempt.source === "direct").length;
-  const bypassCount = attempts.filter((attempt) => (
-    attempt.signInSucceededAt !== null
-    && (attempt.codeRequestedAt === null
-      || new Date(attempt.codeRequestedAt).getTime() > new Date(attempt.signInSucceededAt).getTime())
-  )).length;
-  const maturingCount = report === null ? 0 : attempts.filter((attempt) => (
-    new Date(attempt.clickedAt).getTime() + catalogInstallConversionWindowDays * 86_400_000
+  const installedCount = visits.filter((visit) => visit.installedAt !== null).length;
+  const newIdentityInstallCount = visits.filter((visit) => visit.installActorIsNew === true).length;
+  const returningIdentityInstallCount = visits.filter((visit) => visit.installActorIsNew === false).length;
+  const directVisitCount = visits.filter((visit) => visit.source === "direct").length;
+  const maturingCount = report === null ? 0 : visits.filter((visit) => (
+    new Date(visit.visitedAt).getTime() + catalogInstallConversionWindowDays * 86_400_000
       > new Date(report.generatedAtUtc).getTime()
   )).length;
-  const missingClickCount = report === null ? 0 : report.missingClickCounts
-    .reduce((total, row) => total + row.attemptCount, 0);
-  const installsWithoutJourneyCount = report === null ? 0 : report.installsWithoutJourneyCount;
+  const previewsWithoutVisitCount = report === null ? 0 : report.previewsWithoutVisitCounts
+    .reduce((total, row) => total + row.visitorCount, 0);
+  const installsWithoutVisitCount = report === null ? 0 : report.installsWithoutVisitCount;
 
   return (
     <section className="dashboard-section funnel-report">
@@ -307,7 +242,10 @@ export function CatalogInstallFunnelSection(
         <p className="eyebrow">Funnel report</p>
         <h2>Catalog installation</h2>
         <p className="dashboard-section-description">
-          Distinct install journey attempts cohort on an actual <code>catalog_install_clicked</code> event in the selected UTC dates. Later milestones must keep the same package version, occur in order, and arrive within seven days. Only server-origin <code>catalog_deck_installed</code> is success. New journeys stopped being recorded on 2026-09-21, so these numbers cover a closed period rather than current traffic; only browsers still running the previous bundle, or holding a cached marketing-site page, still send the journey id, so the tail runs in days rather than release cycles. The funnel returns on the shared visitor identity once the domain move puts the site and the app under one registrable domain that identity can span.
+          One row is one visitor identity and one deck version, anchored at that identity&rsquo;s first marketing-site visit for it in the selected UTC dates. Every later step is joined by that same identity — the shared <code>analytics_visitor</code> cookie the site and the app both send, which resolves to the person&rsquo;s account once the app has linked it to a sign-in — and must arrive within seven days of the visit. Only server-origin <code>catalog_deck_installed</code> is success.
+        </p>
+        <p className="dashboard-section-description">
+          <strong>Only a site click sent with the shared visitor cookie can reach any later step.</strong> A marketing-site click sent without it is stored under a per-attempt identifier that nothing else shares, so on any date whose clicks all arrived that way — every date before the site and the app shared one registrable domain, and every later date until the site&rsquo;s own click producer sends the cookie — the visits here join to nothing downstream and every step below the site visit reads zero. That is the absence of the identity, not a broken report or a broken product.
         </p>
       </header>
 
@@ -317,17 +255,18 @@ export function CatalogInstallFunnelSection(
 
       {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading catalog installation funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
-      {props.isRangeLoading === false && loadState.status === "ready" && attempts.length === 0 ? <div className="report-state"><strong>No catalog click attempts match these filters.</strong><span>No earlier traffic history is inferred from Vercel aggregates.</span></div> : null}
+      {props.isRangeLoading === false && loadState.status === "ready" && visits.length === 0 ? <div className="report-state"><strong>No identified site visits match these filters.</strong><span>A click from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates.</span></div> : null}
 
-      {props.isRangeLoading === false && loadState.status === "ready" && attempts.length > 0 ? (
+      {props.isRangeLoading === false && loadState.status === "ready" && visits.length > 0 ? (
         <>
           <section className="summary-grid">
-            <article className="metric-card"><p className="metric-label">Click attempts</p><p className="metric-value">{attempts.length.toLocaleString("en-US")}</p></article>
+            <article className="metric-card"><p className="metric-label">Site visits</p><p className="metric-value">{visits.length.toLocaleString("en-US")}</p></article>
             <article className="metric-card"><p className="metric-label">Server installs</p><p className="metric-value">{installedCount.toLocaleString("en-US")}</p></article>
-            <article className="metric-card"><p className="metric-label">Overall conversion</p><p className="metric-value">{formatPercentage(installedCount, attempts.length)}</p></article>
-            <article className="metric-card"><p className="metric-label">Median click to install</p><p className="metric-value">{formatDuration(getMedianInstallSeconds(attempts))}</p></article>
+            <article className="metric-card"><p className="metric-label">Overall conversion</p><p className="metric-value">{formatPercentage(installedCount, visits.length)}</p></article>
+            <article className="metric-card"><p className="metric-label">Median visit to install</p><p className="metric-value">{formatDuration(getMedianInstallSeconds(visits))}</p></article>
           </section>
           <div className="funnel-main-panel"><FunnelGraphic stages={mainStages} /><FunnelStageTable stages={mainStages} /></div>
+          <p className="funnel-disclosure">The last three steps read the installing person&rsquo;s reviews anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck or card; say so wherever they are quoted. They are counted from the install to seven days after the site visit, so a late install leaves less of that window, and the return day is a later UTC day than the install&rsquo;s. A visit still inside its seven-day window is not a confirmed drop-off.</p>
         </>
       ) : null}
 
@@ -335,32 +274,28 @@ export function CatalogInstallFunnelSection(
         <div className="funnel-detail-grid">
           <section className="funnel-detail-card">
             <h3>Signed-out authentication branch</h3>
-            <p>Denominator: signed-out landings. Sign-in success may bypass code request or even sign-in start after a resumed session, so this branch is not treated as a strictly descending funnel.</p>
+            <p>Denominator: visits that reached the signed-out import gate. &ldquo;Signed in on this browser&rdquo; is the first screen view the same browser sent with an account credential after the gate, so it is the person&rsquo;s sign-in rather than this deck&rsquo;s, and a person who already had an account counts only when this browser signed in, not when they used the app elsewhere. It is read from the app rather than from the sign-in page, whose own events reach the account through a link that a first-ever sign-in usually does not complete in time. The sign-in screen and the code request are not shown for the same reason: a person who gave up there can never be matched to this visit, so those steps could only count people who went on to succeed. Gate to signed in is therefore the whole sign-in drop-off this report can see.</p>
             {authStages.map((stage) => <div className="funnel-detail-row" key={stage.label}><span>{stage.label}</span><strong>{stage.count.toLocaleString("en-US")} · {formatPercentage(stage.count, authStages[0]?.count ?? 0)}</strong></div>)}
-            <div className="funnel-detail-row"><span>Success without earlier code request</span><strong>{bypassCount.toLocaleString("en-US")}</strong></div>
-          </section>
-          <section className="funnel-detail-card">
-            <h3>Post-install engagement</h3>
-            <p>Every row counts install attempts, not distinct people: one person who installs two decks in range is two attempts, each carrying that person's own reviews, so &ldquo;20+ reviews&rdquo; is a count of attempts that reached it. Denominator: each column's own server installs, split by whether the installing account is new, meaning it had produced no event at all before the click, apart from rows the credential-free public collector wrote, which are evidence that an event happened, not evidence that a person exists. Reviews are the installing person's reviews anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck or card. They are counted from the install to seven days after the click, so a late install leaves less of that window, and the return day is a later UTC day than the install's. Every step is a subset of the one above it. An attempt still inside the seven-day window is not a confirmed drop-off.</p>
-            <EngagementStepTable steps={engagementSteps} />
           </section>
           <section className="funnel-detail-card">
             <h3>Diagnostics</h3>
-            <div className="funnel-detail-row"><span>Direct-source click attempts (inside denominator)</span><strong>{directClickCount.toLocaleString("en-US")}</strong></div>
-            <div className="funnel-detail-row"><span>Landings without a selected-range prior click (outside denominator)</span><strong>{missingClickCount.toLocaleString("en-US")}</strong></div>
-            <div className="funnel-detail-row"><span>Server installs carrying no journey (outside denominator)</span><strong>{installsWithoutJourneyCount.toLocaleString("en-US")}</strong></div>
-            <div className="funnel-detail-row"><span>Attempts still inside 7-day window</span><strong>{maturingCount.toLocaleString("en-US")}</strong></div>
-            <p>The no-click diagnostic can use only the date range, the installed deck and the client platform, because a landing with no click carries none of the click dimensions; narrowing placement, source, device category or browser language therefore leaves this line wider than the funnel above it. The no-journey install line reads the same three fields plus the actor exclusions off the install row itself, and counts only installs carrying no <code>install_journey_id</code> at all. It is therefore a lower bound on what the funnel cannot hold rather than the whole of it: an install that does carry a journey is equally unheld when that journey's click fell outside the selected dates, was dropped by a placement, source, device category or browser language selection, or has a broken step chain. It also cannot say which click, placement or source these came from, and because a server install carries no platform, selecting any device platform empties it. A still-maturing attempt is not a confirmed drop-off.</p>
+            <div className="funnel-detail-row"><span>Direct-source site visits (inside denominator)</span><strong>{directVisitCount.toLocaleString("en-US")}</strong></div>
+            <div className="funnel-detail-row"><span>Server installs by an identity first seen at its site visit</span><strong>{newIdentityInstallCount.toLocaleString("en-US")}</strong></div>
+            <div className="funnel-detail-row"><span>Server installs by an already-seen identity</span><strong>{returningIdentityInstallCount.toLocaleString("en-US")}</strong></div>
+            <div className="funnel-detail-row"><span>Import previews with no site visit in the selected dates (outside denominator)</span><strong>{previewsWithoutVisitCount.toLocaleString("en-US")}</strong></div>
+            <div className="funnel-detail-row"><span>Server installs with no site visit in the selected dates (outside denominator)</span><strong>{installsWithoutVisitCount.toLocaleString("en-US")}</strong></div>
+            <div className="funnel-detail-row"><span>Visits still inside 7-day window</span><strong>{maturingCount.toLocaleString("en-US")}</strong></div>
+            <p>&ldquo;First seen&rdquo; is that identity having produced no trusted event at all before its site visit, over every event name; rows the credential-free public collector wrote are evidence that an event happened, not evidence that a person exists, and are excluded from that test — including the anchoring site click itself, which is one of them. The two no-visit lines can use only the date range, the installed deck and the client platform, because a row with no site click carries none of the click dimensions; narrowing placement, source, device category or browser language therefore leaves them wider than the funnel above. A site click before the first selected day counts as no visit on both lines, as it does in the funnel. Each is a lower bound on what the funnel cannot hold rather than the whole of it: a person whose click in range was dropped by a selection, or whose step chain is broken, is equally unheld and counted by neither. A server install carries no platform, so selecting any device platform empties its line.</p>
           </section>
           <section className="funnel-detail-card">
             <h3>Observed failures</h3>
             {failureTotals.length === 0 ? <p>—</p> : failureTotals.map((total) => <div className="funnel-detail-row" key={`${total.stage}:${total.reason}`}><span>{total.stage} · {total.reason}</span><strong>{total.count.toLocaleString("en-US")}</strong></div>)}
-            <p>Counts are distinct attempts per stage/reason; one attempt may appear in more than one bucket. Missing telemetry is not classified as abandonment.</p>
+            <p>Counts are distinct visits per stage/reason; one visit may appear in more than one bucket. Missing telemetry is not classified as abandonment.</p>
           </section>
         </div>
       ) : null}
 
-      <p className="funnel-disclosure">Every field the shared bar offers here is applied in SQL, and each one reads the click attempt's own properties rather than a person: the five identity-derived fields are absent because a journey is keyed by an anonymous id whose first steps happen before sign-in. Test-deck journeys are excluded, and so is a journey that a server install or a signed-in install start links to an <code>@example.com</code> actor, an active admin or an actor on the analytics exclusion list. The <code>@example.com</code> and active-admin exclusions until now needed a completed server install, so these counts drop now that a signed-in install start names their actor too, before the exclusion list holds anybody. A journey that neither completed a server install nor started an install while signed in names nobody, so attempts that abandon before both cannot always be classified or excluded.</p>
+      <p className="funnel-disclosure">Every field the shared bar offers here is applied in SQL, and the five catalog dimensions read the anchoring site click&rsquo;s own properties, because the placement, source, device category and browser language exist only on it. Test-deck visits are excluded, and so is an identity belonging to an <code>@example.com</code> account, an active admin or an actor on the analytics exclusion list — reaching backwards over every row of theirs, including the ones sent before they signed in. The import-screen, import-confirm, signed-out-gate and confirm-after-sign-in steps come from <code>screen_viewed</code>, which carries no deck, so a visitor who clicked two deck versions in range has those steps satisfied on both rows by the same view. Import confirm is that screen view rather than <code>catalog_install_preview_ready</code>, which marks the same moment: the screen view is reported by the signed-in app with the account&rsquo;s own credential, so it needs no identity link to meet the install. A browser that refused consent is given no identifier at all and appears nowhere here.</p>
     </section>
   );
 }

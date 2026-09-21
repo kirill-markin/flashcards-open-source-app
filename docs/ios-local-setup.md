@@ -27,8 +27,8 @@ The app reads hosted service, observability, and legal/support values from `Loca
 
 ```xcconfig
 APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app
-API_BASE_URL = https:/$()/api.flashcards-open-source-app.com/v1
-AUTH_BASE_URL = https:/$()/auth.flashcards-open-source-app.com
+API_BASE_URL = https:/$()/api.nibomo.com/v1
+AUTH_BASE_URL = https:/$()/auth.nibomo.com
 PRIVACY_POLICY_URL = https:/$()/nibomo.com/privacy/
 TERMS_OF_SERVICE_URL = https:/$()/nibomo.com/terms/
 SUPPORT_URL = https:/$()/nibomo.com/support/

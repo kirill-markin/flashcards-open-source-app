@@ -7,7 +7,7 @@ none of its own.
 | Property | Value |
 | --- | --- |
 | Cookie name | `analytics_visitor` |
-| Scope | `Domain=.<base domain>`, `Path=/`, so every host under the product domain reads one visitor |
+| Scope | `Domain=.<domain>`, `Path=/`, so every host under that domain reads one visitor. Which domain is resolved per request from the caller's `Host` against the `COOKIE_DOMAIN` candidates ([`apps/backend/src/shared/cookieDomain.ts`](../apps/backend/src/shared/cookieDomain.ts)) |
 | Attributes | `Secure`, `SameSite=Lax`, no `HttpOnly`: browser code has to read the id to attach it to events |
 | Lifetime | 13 months, extended on every call that returns an id |
 | Value | A plain random UUID, unsigned. No secret is involved and the server validates the shape only |
@@ -46,12 +46,21 @@ identity on a visitor who never saw a banner. And `POST` is unauthenticated and 
 effect of its own: a cross-site `{"granted": false}` reaches `clearAnalyticsVisitor`, whose deletion
 `Set-Cookie` carries no explicit `SameSite` at all, unlike the explicit `Lax` on the mint.
 
-The allowlist is the one the shared browser CORS middleware in
-[`apps/backend/src/server/app.ts`](../apps/backend/src/server/app.ts) already carries: the web app
-origin, the admin origin and the two local development origins. The marketing site is deliberately
-not on it: it is on a different registrable domain, so it could not share a cookie scoped to the
-product base domain even if CORS allowed it. It joins when the product moves onto its domain, and
-not before.
+The allowlist is this route's own, built in
+[`apps/backend/src/server/app.ts`](../apps/backend/src/server/app.ts): the list the shared browser
+CORS middleware carries — the web app origin, the admin origin and the two local development
+origins — plus the marketing site origin, which is on this route and on no other. The site needs an
+identity and has no other way to obtain one, and now that the browser hosts are under `nibomo.com` a
+cookie scoped there spans the site and the app; widening the shared list instead would have handed
+the site every credentialed route in the API. The API Gateway preflight for the path carries the
+same extra origin ([`infra/aws/lib/gateways/api-gateway.ts`](../infra/aws/lib/gateways/api-gateway.ts)),
+because the browser's `OPTIONS` is answered at the edge and never reaches the route.
+
+Being on that allowlist is necessary and not sufficient. The `sec-fetch-site: cross-site` refusal
+above happens before any allowlist is consulted, so the marketing site obtains an identity only
+through the API host on its own registrable domain — `api.nibomo.com` for a site on `nibomo.com`.
+The same call to the legacy API host is cross-site and answers `403` however the origin is
+allowlisted, and no cookie the legacy host could set would be stored on the site's domain anyway.
 
 The two local origins serve the ordinary local setup, a local web app calling a local backend, which
 is same-site and unaffected. A locally-run web app pointed at the **deployed** API is a different

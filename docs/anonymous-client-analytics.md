@@ -34,8 +34,10 @@ scripts and integration harnesses therefore get a `403` unless they name an allo
 sending only an allowed `Referer` is accepted, exactly as it is on the visitor route. The allowlist
 is the marketing site, the web app, the auth origin and the three local development origins.
 
-Unlike the visitor route, cross-site requests are allowed: the marketing site is on its own domain
-and posts to the API host, so this collector is cross-site by design.
+Unlike the visitor route, cross-site requests are allowed: a marketing site that does not share the
+API's registrable domain still posts to the API host, so this collector is cross-site by design. The
+reference deployment no longer needs that allowance for its own site, which is on the API's domain,
+but a self-hosted site on a separate domain does.
 
 ## Body
 
