@@ -88,8 +88,7 @@ function normalizeDeviceLocale(value: string | null | undefined): string | null 
 }
 
 // Postgres returns uuid values lowercased, and the catalog's UUID property format is lowercase hex,
-// so the two id properties the catalog install funnel joins on are accepted in either spelling and
-// stored in one.
+// so both id properties are accepted in either spelling and stored in one.
 function normalizeUuidProperties(value: unknown): Readonly<Record<string, unknown>> | null {
   if (!isPlainObject(value)) {
     return null;
@@ -171,9 +170,9 @@ function assertEventMayCarryIdentity(
 }
 
 // The actor the row is counted under, which is a claim this route never verifies and is the only
-// identity it stores at all. A producer sends the shared browser visitor id. The catalog install
-// funnel predates that identity and sends none, so its one-attempt journey UUID stays the column
-// the reporting contract in docs/catalog-install-funnel.md already reads as its attempt key.
+// identity it stores at all. A producer sends the shared browser visitor id. Released clients of the
+// catalog install funnel send none and carry a per-attempt journey UUID instead, which stays the
+// column their historical rows are counted under (docs/catalog-install-funnel.md).
 function readAnonymousId(
   claimedAnonymousId: string | null | undefined,
   properties: ProductAnalyticsEventProperties,

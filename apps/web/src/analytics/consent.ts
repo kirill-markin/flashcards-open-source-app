@@ -66,9 +66,7 @@ export function isAwaitingAnalyticsConsentDecision(): boolean {
 
 /**
  * Whether this browser may be given an analytics identifier of any kind: it granted, or it is
- * somewhere that asks nobody. False while the question is open, and false after a refusal — which is
- * what the identifiers outside the visitor cookie, the catalog install journey among them, read
- * before spending one.
+ * somewhere that asks nobody. False while the question is open, and false after a refusal.
  */
 export function isAnalyticsIdentityConsented(): boolean {
   return isAwaitingAnalyticsConsentDecision() === false && readAnalyticsConsentDecision() !== "declined";
