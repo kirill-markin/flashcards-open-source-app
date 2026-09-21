@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Αυτό διαγράφει οριστικά %d ενεργές κάρτες από αυτόν τον χώρο εργασίας.";
 "settings.workspace.deleteConfirmation.title" = "Διαγραφή χώρου εργασίας";
 "settings.workspace.deleteConfirmation.warning" = "Προσοχή! Αυτή η ενέργεια είναι οριστική. Θα διαγράψει %d ενεργές κάρτες από το %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Ένας νέος κενός προσωπικός χώρος εργασίας θα δημιουργηθεί αμέσως μετά τη διαγραφή.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Αμέσως μετά τη διαγραφή θα δημιουργηθεί ένας νέος κενός χώρος εργασίας με το όνομα Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Διαγραφή…";
 "settings.workspace.resetConfirmation.title" = "Επιβεβαίωση μηδενισμού";

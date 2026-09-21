@@ -595,7 +595,7 @@
 
 "settings.workspace.deleteConfirmation.title" = "Excluir espaço de trabalho";
 "settings.workspace.deleteConfirmation.warning" = "Atenção! Esta ação é permanente. Ela vai excluir %d cartões ativos de %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Um novo espaço de trabalho Pessoal vazio será criado logo após a exclusão.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Um novo espaço de trabalho vazio chamado Personal será criado logo após a exclusão.";
 "settings.workspace.deleteConfirmation.placeholder" = "excluir espaço de trabalho";
 "settings.workspace.deleteConfirmation.deleting" = "Excluindo...";
 
