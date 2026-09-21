@@ -259,13 +259,26 @@ A CloudFront distribution accepts many alternate domain names but exactly one vi
 
 With either variable of a pair unset the deploy is byte-for-byte what it is today. `scripts/setup/setup-github.sh` does not create these variables, because the host cannot be derived from `<domain>`; set them manually. The DNS record is manual too: `scripts/cloudflare/setup-dns.sh` only manages records under `<domain>`.
 
-For a local context file, `WEB_ADDITIONAL_DOMAIN_NAME`, `WEB_ADDITIONAL_CERTIFICATE_ARN`, `ADMIN_ADDITIONAL_DOMAIN_NAME` and `ADMIN_ADDITIONAL_CERTIFICATE_ARN` in root `.env` feed the same CDK context values through `scripts/generate/generate-cdk-context.sh`. Both certificate ARNs must be set explicitly there, because a multi-SAN certificate cannot be discovered by the extra host's name.
+For a local context file, `WEB_ADDITIONAL_DOMAIN_NAME`, `WEB_ADDITIONAL_CERTIFICATE_ARN`, `WEB_PRIMARY_HOST_RETIRED`, `ADMIN_ADDITIONAL_DOMAIN_NAME` and `ADMIN_ADDITIONAL_CERTIFICATE_ARN` in root `.env` feed the same CDK context values through `scripts/generate/generate-cdk-context.sh`. Both certificate ARNs must be set explicitly there, because a multi-SAN certificate cannot be discovered by the extra host's name.
 
 #### Go-live order
 
 1. Request and validate the us-east-1 certificate covering both the existing host and the extra host, set that pair of variables, and deploy. Aliases and the viewer certificate change in place, so the distribution keeps its ID, its `*.cloudfront.net` name, and its existing alias while it starts accepting the extra host.
 2. Create the extra host's DNS record in its own zone, pointing at that distribution's `*.cloudfront.net` name, and confirm the app answers on it.
 3. Nothing here retires the original host, and the served bundle keeps the API and auth hosts it was built with. Both are separate changes.
+4. Retire `app.<domain>` with `CDK_WEB_PRIMARY_HOST_RETIRED` below, once the extra host is confirmed. That is a separate deploy on purpose.
+
+### Retiring the primary web host
+
+`CDK_WEB_PRIMARY_HOST_RETIRED=true` makes `app.<domain>` stop serving the bundle: a CloudFront Function on the web distribution answers `308 Permanent Redirect` to the same path and query on `CDK_WEB_ADDITIONAL_DOMAIN_NAME`, and `PUBLIC_APP_BASE_URL` moves to that host so the links the backend generates — invites and the published catalog's install links — name it too. Share links are not among them: the web app builds its own from its build configuration, and the iOS and Android apps compile theirs in, so those keep reaching the retired host through the redirect until the clients change. Unset, or any value other than `true` (compared case-insensitively), changes nothing, so the code ships dark and a later deploy switches it on. Set without an additional web host, synth fails rather than deploying a redirect with no destination.
+
+The redirect keeps path and query because links already sent out are the point of it; a redirect to the bare origin would break every invite and catalog-install link in existence. It is permanent rather than temporary because the move is confirmed before the switch is flipped, and `308` — unlike `301` — also preserves the request method and body. It stays reversible because the response carries `cache-control: public, max-age=300`, but that bounds only how long a browser remembers the redirect, not how fast a rollback lands. Rolling back is unsetting the variable and running a full AWS/Web release: the stack deploy and CloudFront propagation come first, and a browser that already saw the redirect keeps following it for up to five minutes after that.
+
+GitHub `vars` bind when a workflow run is created, not when its job starts, so set or unset `CDK_WEB_PRIMARY_HOST_RETIRED` before the run is queued, in both directions. A run already queued deploys the old value and still goes green.
+
+Both hosts are aliases of one distribution, and one alias cannot move to a second distribution without a window where it answers nothing, so the distribution that serves both redirects one of them. The function therefore runs on every viewer request of the live app and is one `Host` comparison before it hands the request on. A response a viewer-request function returns is never cached, so the redirect cannot reach the host that is still served.
+
+`api.<domain>`, `auth.<domain>` and `mcp.<domain>` are never redirected. Shipped mobile clients keep calling them, and a redirect on an API host loses the method and body in some HTTP clients.
 
 ## Later secret updates
 
