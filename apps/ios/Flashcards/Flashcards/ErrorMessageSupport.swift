@@ -157,7 +157,12 @@ func flashcardsURLErrorCode(error: Error, remainingDepth: Int) -> URLError.Code?
 }
 
 private let iosNetworkTransportDiagnosticsUnderlyingErrorDepth: Int = 4
-private let iosNetworkTransportOfficialAPIHost: String = "api.flashcards-open-source-app.com"
+// The legacy host keeps answering for already-shipped builds, so both official
+// hosts front the same backend and neither is a self-hosted server.
+private let iosNetworkTransportOfficialAPIHosts: Set<String> = [
+    "api.nibomo.com",
+    "api.flashcards-open-source-app.com"
+]
 private let cfStreamErrorDomainUserInfoKey: String = "_kCFStreamErrorDomainKey"
 private let cfStreamErrorCodeUserInfoKey: String = "_kCFStreamErrorCodeKey"
 
@@ -375,10 +380,10 @@ private func iosNetworkTransportAPIHostDiagnostics(
     }
 
     let normalizedHost: String = rawHost.lowercased()
-    if normalizedHost == iosNetworkTransportOfficialAPIHost {
+    if iosNetworkTransportOfficialAPIHosts.contains(normalizedHost) {
         return IOSNetworkTransportAPIHostDiagnostics(
             kind: "official",
-            host: iosNetworkTransportOfficialAPIHost
+            host: normalizedHost
         )
     }
 

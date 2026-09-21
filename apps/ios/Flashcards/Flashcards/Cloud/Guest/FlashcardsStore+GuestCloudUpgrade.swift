@@ -651,7 +651,10 @@ extension FlashcardsStore {
         }
 
         let state = try self.decoder.decode(PendingGuestUpgradeState.self, from: data)
-        return state
+        return canonicalizedPendingGuestUpgradeState(
+            state: state,
+            configuration: try self.currentCloudServiceConfiguration()
+        )
     }
 
     private func finishCompletedGuestCloudLink(
