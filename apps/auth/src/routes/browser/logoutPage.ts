@@ -4,7 +4,7 @@
  */
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
-import { clearAuthAnalyticsVisitor } from "../../server/analytics/visitorSession.js";
+import { clearAuthAnalyticsGuestSession } from "../../server/analytics/visitorSession.js";
 import { clearBrowserSessionCookies } from "../../server/browserSession.js";
 import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
 import { revokeToken } from "../../server/cognito/cognitoAuth.js";
@@ -69,8 +69,8 @@ app.get("/logout", async (c) => {
   }
 
   clearBrowserSessionCookies(c);
-  // Retired along with the session, under the rule in `clearAuthAnalyticsVisitor`'s docstring.
-  clearAuthAnalyticsVisitor(c);
+  // Retired along with the session, under the rule in `clearAuthAnalyticsGuestSession`'s docstring.
+  clearAuthAnalyticsGuestSession(c);
   return c.redirect(appendLoggedOutMarker(redirectUri), 302);
 });
 

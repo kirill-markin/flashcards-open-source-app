@@ -3,7 +3,7 @@
  * Accepts a refresh token and revokes it via Cognito.
  */
 import { Hono } from "hono";
-import { clearAuthAnalyticsVisitor } from "../../server/analytics/visitorSession.js";
+import { clearAuthAnalyticsGuestSession } from "../../server/analytics/visitorSession.js";
 import { clearBrowserSessionCookies } from "../../server/browserSession.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
 import { revokeToken } from "../../server/cognito/cognitoAuth.js";
@@ -29,9 +29,9 @@ app.post("/api/revoke-token", async (c) => {
   try {
     await revokeToken(refreshToken);
     clearBrowserSessionCookies(c);
-    // Retired along with the session, under the rule in `clearAuthAnalyticsVisitor`'s docstring. A
-    // caller holding neither cookie is unaffected by either clear.
-    clearAuthAnalyticsVisitor(c);
+    // Retired along with the session, under the rule in `clearAuthAnalyticsGuestSession`'s
+    // docstring. A caller holding neither cookie is unaffected by either clear.
+    clearAuthAnalyticsGuestSession(c);
     return c.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

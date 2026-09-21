@@ -29,10 +29,12 @@ import {
   type AuthAnalyticsTarget,
 } from "./client.js";
 import {
-  clearAuthAnalyticsVisitor,
-  readAuthAnalyticsVisitor,
+  clearAuthAnalyticsGuestSession,
+  createAuthAnalyticsGuestState,
+  readAuthAnalyticsGuestSession,
+  readSharedAnalyticsVisitorId,
   refreshAuthAnalyticsVisitorSession,
-  writeAuthAnalyticsVisitor,
+  writeAuthAnalyticsGuestSession,
   type AuthAnalyticsVisitor,
 } from "./visitorSession.js";
 
@@ -45,15 +47,15 @@ import {
  * The size of it is a concurrency limit, and it is derived rather than chosen. Concurrency is
  * arrival rate x invocation duration, so residency added here is multiplied by the rate at which
  * these routes can be driven — and they can be driven hard, because they are unauthenticated and
- * every gate this measurement sits behind is replayable: the visitor cookie by anyone who fetches
- * `GET /login` once, and the `429` branches of both OTP routes by anyone holding one signed
- * `otp_session`.
+ * every gate this measurement sits behind is replayable: the shared visitor cookie by anyone who
+ * sends a UUID of their own, since it is unsigned and this origin only reads it, and the `429`
+ * branches of both OTP routes by anyone holding one signed `otp_session`.
  *
  * Every browser route of this service — `/api/refresh-session`, `/api/send-code` and
  * `/api/verify-code` — is the one `{proxy+}` ANY method of a single API Gateway stage whose default
  * method throttle is 20 requests per second (`infra/aws/lib/gateways/auth-gateway.ts`), and all of
  * them run in the one `AuthHandler` function, whose `authHandlerReservedConcurrency` is 6
- * (`infra/aws/lib/gateways/api-gateway.ts`). That 6 is 2x the observed p95 concurrency of 3, so 3
+ * (`infra/aws/lib/lambda-database-capacity.ts`). That 6 is 2x the observed p95 concurrency of 3, so 3
  * concurrent containers are the headroom this measurement may spend and no more:
  *
  *   20 requests/second x 0.150 seconds = 3 concurrent containers
@@ -75,9 +77,9 @@ import {
  *
  * At 150 ms, driving these routes flat out at the stage ceiling draws those 3 spare containers and
  * still leaves the p95 demand of sign-in served. Past it the reservation saturates, Lambda throttles,
- * and — in the words of the budget comment in `api-gateway.ts` — the caller sees a gateway error:
- * `send-code` and `verify-code` would answer a sign-in with a gateway error so that a measurement
- * could be taken, which is the one outcome this instrumentation must never cause.
+ * and — in the words of the budget comment in `lambda-database-capacity.ts` — the caller sees a
+ * gateway error: `send-code` and `verify-code` would answer a sign-in with a gateway error so that
+ * a measurement could be taken, which is the one outcome this instrumentation must never cause.
  *
  * Raising this number therefore means raising `authHandlerReservedConcurrency` in the same change,
  * and that reservation is multiplied by `databasePoolMaxConnectionsPerContainer` against a Postgres
@@ -106,8 +108,8 @@ const analyticsReportBudgetMs = 150;
  *
  * The mint stays on these paths because there is nowhere cheaper to put it. `GET /login` is the same
  * function behind the same throttle, so minting there would relocate the residency rather than
- * remove it, and it would make the mint reachable with no cookie at all where here it needs a signed
- * one. What replaying that cookie forces is a guest row, and `POST /v1/guest-auth/session` is itself
+ * remove it, and it would spend it on every render rather than on the requests that report. What
+ * replaying the visitor cookie forces is a guest row, and `POST /v1/guest-auth/session` is itself
  * public and unauthenticated, so those rows can be written straight against the backend without ever
  * touching this function. What only this function can lose is a container of its reservation, and
  * that is what the budget above bounds.
@@ -155,8 +157,8 @@ const analyticsCallOverrunMarginMs = 10;
 /**
  * The login page marks its own calls with this, and it is what makes these events mean what they
  * claim. Every route instrumented here is shared with callers that are not sign-in funnel entries,
- * and the visitor cookie cannot tell them apart: it is host-only for this origin, so every returning
- * visitor carries it onto all of them.
+ * and the visitor cookie cannot tell them apart: it is the product domain's, so every browser that
+ * holds one carries it onto all of them.
  *
  * This list is the audit of who can set the marker, so keep it complete. None of the callers below
  * sends it today except the login page itself, and one that started to would silently be counted
@@ -178,17 +180,17 @@ const analyticsCallOverrunMarginMs = 10;
  *   a later change is checked against, not because either can be counted today. The iOS client
  *   (`apps/ios/Flashcards/Flashcards/Cloud/Auth/CloudAuthService.swift`) and the Android client
  *   (`apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/remote/auth/CloudAuthRemoteApi.kt`)
- *   post the same email-and-code exchange from native HTTP stacks. They stay out twice over: they
- *   send no `screen` query at all, and the report is AND-ed with a visitor cookie they cannot hold.
- *   That cookie is minted only by `GET /login` (`routes/browser/loginPage.ts`), which no native
- *   client loads, and its `__Host-` prefix makes it host-only to this origin, so nothing else can
- *   plant one. Both clients also carry their own OTP challenge in the request body rather than in
- *   cookies, which is why neither needs a cookie jar for this exchange in the first place. The live
- *   smoke scripts under `scripts/checks/` call both routes too, and are excluded the same way.
+ *   post the same email-and-code exchange from native HTTP stacks, and send no `screen` query at
+ *   all. Both also carry their own OTP challenge in the request body rather than in cookies, which
+ *   is why neither needs a cookie jar for this exchange in the first place. The live smoke scripts
+ *   under `scripts/checks/` call both routes too, and are excluded the same way.
  *
- *   The measurement is therefore browser-only by construction: the marker states intent, and the
- *   cookie is what makes a caller that never saw `GET /login` unable to enter the funnel even if it
- *   started sending the marker.
+ * The marker is now the whole gate, and that is what this origin gave up by joining the shared
+ * visitor identity. The id it reports under is the product domain's `analytics_visitor` cookie,
+ * minted by the backend for any browser and plantable by any sibling host
+ * (`docs/analytics-visitor-identity.md`), so holding one no longer says a caller came through
+ * `GET /login`. Keep the audit above complete: a caller that started sending the marker would now be
+ * counted into the sign-in funnel with nothing else standing in the way.
  */
 const signInScreenMarker = "signin";
 
@@ -333,6 +335,21 @@ async function deliverAuthAnalyticsEvent(
 }
 
 /**
+ * The identity this request reports under: the shared visitor id, and this origin's own guest
+ * session where one was kept. A browser holding no shared visitor id is not measured here — this
+ * origin mints none — so a first-ever touch that is the sign-in page produces no funnel rows.
+ */
+function readReportingVisitor(c: Context<AuthAppEnv>, nowMs: number): AuthAnalyticsVisitor | null {
+  const anonymousId = readSharedAnalyticsVisitorId(c);
+  if (anonymousId === null) {
+    return null;
+  }
+
+  const guestState = readAuthAnalyticsGuestSession(c) ?? createAuthAnalyticsGuestState(nowMs);
+  return { anonymousId, ...guestState };
+}
+
+/**
  * Reports one funnel step of a request the login page marked as its own.
  *
  * The wait is awaited on purpose. There is no `waitUntil` on this Lambda, so work left running after
@@ -348,7 +365,8 @@ async function reportSignInFunnelEvent(
       return;
     }
 
-    const visitor = readAuthAnalyticsVisitor(c);
+    const startedAtMs = Date.now();
+    const visitor = readReportingVisitor(c, startedAtMs);
     if (visitor === null) {
       return;
     }
@@ -357,13 +375,13 @@ async function reportSignInFunnelEvent(
       visitor,
       createBatch,
       createReportTarget(c),
-      Date.now(),
+      startedAtMs,
       analyticsReportBudgetMs,
       normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? ""),
     );
-    // One write, on the response that actually changed the visitor.
+    // One write, on the response that actually changed the guest session.
     if (storedVisitor !== visitor) {
-      writeAuthAnalyticsVisitor(c, storedVisitor);
+      writeAuthAnalyticsGuestSession(c, storedVisitor);
     }
   } catch (error) {
     logReportFailure(c, error);
@@ -457,61 +475,68 @@ export async function reportSignInFailed(
  * What the link buys is one `analytics.identity_links` row with `source = 'server_derived'`, keyed on
  * the guest user id. `analytics.product_events_resolved` reads that through `first_guest_upgrade_link`,
  * which joins `identity_links.anonymous_id` to `product_events.subject_user_id` and outranks the
- * row's own `user_id` (`db/migrations/0115_product_analytics_resolved_view.sql`). That is the only
- * arm that can resolve these rows: guest-transport ingest writes the guest user id into `user_id` as
- * well, and the `first_anonymous_link` arm sits below `user_id` in the COALESCE, so it reaches only
- * rows that carry none. The visitor's own `anonymous_id` resolves nothing here.
+ * row's own `user_id` (`db/migrations/0137_audience_context.sql`). That is the only arm that can
+ * resolve these rows: guest-transport ingest writes the guest user id into `user_id` as well, and
+ * the `first_anonymous_link` arm sits below `user_id` in the COALESCE, so it reaches only rows that
+ * carry none. The visitor's own `anonymous_id` resolves nothing here.
  *
- * The visitor cookie is dropped on every outcome, including a failed link, and that is the decision
- * rather than a shortcut. A guest token kept past this sign-in would be offered at the next sign-in
- * on this browser, which need not be the same person, and `analytics.identity_links` is append-only
- * and first-link-wins on the guest user id: a token whose link never landed would hand this
- * visitor's entire signed-out tail to whoever signs in next, permanently and with no repair path.
- * `docs/auth-service.md` tells clients never to drop the token
+ * The guest session cookie is dropped on every outcome, including a failed link, and that is the
+ * decision rather than a shortcut. A guest token kept past this sign-in would be offered at the next
+ * sign-in on this browser, which need not be the same person, and `analytics.identity_links` is
+ * append-only and first-link-wins on the guest user id: a token whose link never landed would hand
+ * this browser's entire signed-out tail to whoever signs in next, permanently and with no repair
+ * path. `docs/auth-service.md` tells clients never to drop the token
  * on a retryable refusal, and `apps/web/src/appData/session/guest/webGuestIdentityLink.ts` obeys it,
  * because a browser has a durable envelope, an account stamp and an identity generation that make
  * keeping the token safe. None of that exists inside a Lambda invocation, and the cost of dropping it
- * is one visitor's signed-out tail — the undercount this repository consistently prefers to a
+ * is one browser's signed-out tail — the undercount this repository consistently prefers to a
  * misattribution.
  *
- * What the ordering costs is a measured population that never reaches an outcome. A visitor counted
- * on the login page who then completes the sign-in from a caller that sends no `signInScreenMarker`
- * is retired with no success event and no link, and stays in the denominator as an abandonment. The
- * branch below logs every retirement it may not attribute, which is not a count of that population:
- * `routes/browser/loginPage.ts` mints the cookie on the render itself, so a browser answered 200 by
- * `tryRefreshSession` holds it having produced no `screen_viewed` at all.
+ * The shared visitor id is left alone, here and on every logout route. It is the product domain's
+ * rather than this origin's, and nothing about a sign-in is a reason to end it.
+ *
+ * What the ordering costs is a measured population that never reaches an outcome. A browser counted
+ * on the login page whose sign-in this measurement may not attribute — a caller that sends no
+ * `signInScreenMarker`, or a browser whose shared visitor id is gone by then — is retired with no
+ * success event and no link, and stays in the denominator as an abandonment. The
+ * branch below logs those retirements, and only a guest session ever reaches it: one exists exactly
+ * where an earlier request of this browser already ran a report.
  *
  * A report still in flight defeats the clear by writing the cookie back after it;
- * `clearAuthAnalyticsVisitor` weighs that survivor, and the link below is what can still retire it.
+ * `clearAuthAnalyticsGuestSession` weighs that survivor, and the link below is what can still retire
+ * it.
  */
 export async function reportSignInSucceeded(c: Context<AuthAppEnv>, idToken: string): Promise<void> {
   try {
-    const visitor = readAuthAnalyticsVisitor(c);
-    if (visitor === null) {
-      return;
+    const guestState = readAuthAnalyticsGuestSession(c);
+    if (guestState !== null) {
+      // Cleared before anything can fail or run out of budget, so no exit below can leave the
+      // credential behind, and cleared whether or not this sign-in is one this measurement may
+      // attribute: the guest identity is spent either way. A sign-in through the OAuth consent page
+      // carries the same cookie and reports nothing, and letting its guest token survive would leave
+      // exactly the credential the paragraph above refuses to keep.
+      clearAuthAnalyticsGuestSession(c);
     }
 
-    // Cleared before anything can fail or run out of budget, so no exit below can leave the identity
-    // behind, and cleared whether or not this sign-in is one this measurement may attribute: the
-    // visitor identity is spent either way. A sign-in through the OAuth consent page carries the
-    // same cookie and reports nothing, and letting its guest token survive would leave exactly the
-    // credential the paragraph above refuses to keep.
-    clearAuthAnalyticsVisitor(c);
-    if (c.req.query("screen") !== signInScreenMarker) {
-      log({
-        domain: "auth",
-        action: "analytics_visitor_retired_unreported",
-        requestId: getRequestId(c),
-        traceId: getTraceId(c),
-        route: c.req.path,
-      });
+    const anonymousId = readSharedAnalyticsVisitorId(c);
+    if (anonymousId === null || c.req.query("screen") !== signInScreenMarker) {
+      if (guestState !== null) {
+        log({
+          domain: "auth",
+          action: "analytics_visitor_retired_unreported",
+          requestId: getRequestId(c),
+          traceId: getTraceId(c),
+          route: c.req.path,
+        });
+      }
+
       return;
     }
 
     const target = createReportTarget(c);
     const startedAtMs = Date.now();
     const deliveredVisitor = await deliverAuthAnalyticsEvent(
-      visitor,
+      { anonymousId, ...(guestState ?? createAuthAnalyticsGuestState(startedAtMs)) },
       createSignInSucceededBatch,
       target,
       startedAtMs,
