@@ -10,7 +10,6 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 import { backendStructuredLoggingProps } from "./backend-lambda-logging";
-import { parsePublicOrigin } from "./public-origin";
 import { createSentrySourceMapUploadCommand } from "./sentry-source-maps";
 import { createRdsCaBundleDownloadCommand } from "./rds-ca-bundle";
 
@@ -21,6 +20,9 @@ export interface CatalogDumpProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   mediaAssetsBucket: s3.IBucket;
   baseDomain: string;
+  // The app origin the published catalog's install links name, decided once by
+  // the stack so the dump and the API cannot disagree about it.
+  publicAppOrigin: string;
   sentryDsnSecretArn: string | undefined;
   sentryEnvironment: string | undefined;
   sentryRelease: string | undefined;
@@ -161,7 +163,7 @@ export function catalogDump(scope: Construct, props: CatalogDumpProps): CatalogD
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
-      PUBLIC_APP_BASE_URL: parsePublicOrigin(`https://app.${props.baseDomain}`, "appBaseUrl"),
+      PUBLIC_APP_BASE_URL: props.publicAppOrigin,
       CATALOG_DUMP_S3_BUCKET_NAME: bucket.bucketName,
       CATALOG_DUMP_CDN_BASE_URL: cdnBaseUrl,
       MEDIA_ASSETS_S3_BUCKET_NAME: props.mediaAssetsBucket.bucketName,

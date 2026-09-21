@@ -47,6 +47,10 @@ export interface ApiGatewayProps {
   // here as browser origins. Undefined unless that distribution serves them.
   webAdditionalHost: string | undefined;
   adminAdditionalHost: string | undefined;
+  // Where server-generated links send people, decided once by the stack. It is
+  // not an allowlist: app.<baseDomain> stays an allowed browser origin below
+  // whether or not it is still the host those links name.
+  publicAppOrigin: string;
   // Adds a candidate domain to COOKIE_DOMAIN. Unset means baseDomain alone, so
   // moving browsers to another domain is its own switch.
   cookieDomain: string | undefined;
@@ -907,22 +911,22 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     props.siteBaseUrl ?? `https://${props.baseDomain}`,
     "siteBaseUrl",
   );
-  const publicAppOrigin = parsePublicOrigin(
+  const primaryAppOrigin = parsePublicOrigin(
     `https://app.${props.baseDomain}`,
     "appBaseUrl",
   );
-  // Appended, never substituted: the primary origins stay in the lists and
-  // publicAppOrigin above still decides where server-generated links point.
+  // Appended, never substituted: the primary origins stay in the lists, so a
+  // host keeps its API access for as long as it serves a browser client.
   const additionalWebOrigins = createConfiguredHostOrigins([props.webAdditionalHost]);
   const publicCatalogAllowedOrigins = [
     publicSiteOrigin,
-    publicAppOrigin,
+    primaryAppOrigin,
     "http://localhost:3000",
     ...additionalWebOrigins,
   ];
   const anonymousAnalyticsAllowedOrigins = [
     publicSiteOrigin,
-    publicAppOrigin,
+    primaryAppOrigin,
     `https://auth.${props.baseDomain}`,
     "http://localhost:3000",
     "http://localhost:8081",
@@ -930,7 +934,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     ...createConfiguredHostOrigins([props.webAdditionalHost, props.authAlternateHost]),
   ];
   const allowedOrigins = [
-    publicAppOrigin,
+    primaryAppOrigin,
     `https://admin.${props.baseDomain}`,
     "http://localhost:3000",
     "http://localhost:3001",
@@ -969,7 +973,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "BackendHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda.ts"),
     baseDomain: props.baseDomain,
-    publicAppOrigin,
+    publicAppOrigin: props.publicAppOrigin,
     publicSiteOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
@@ -1037,7 +1041,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "ChatRunWorkerHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-worker.ts"),
     baseDomain: props.baseDomain,
-    publicAppOrigin,
+    publicAppOrigin: props.publicAppOrigin,
     publicSiteOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
@@ -1080,7 +1084,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "ChatLiveHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-live.ts"),
     baseDomain: props.baseDomain,
-    publicAppOrigin,
+    publicAppOrigin: props.publicAppOrigin,
     publicSiteOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,

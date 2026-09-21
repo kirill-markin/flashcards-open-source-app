@@ -291,6 +291,7 @@ jobs:
           CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}
           CDK_CONTEXT_WEB_ADDITIONAL_DOMAIN_NAME: ${{ vars.CDK_WEB_ADDITIONAL_DOMAIN_NAME }}
           CDK_CONTEXT_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1 }}
+          CDK_CONTEXT_WEB_PRIMARY_HOST_RETIRED: ${{ vars.CDK_WEB_PRIMARY_HOST_RETIRED }}
         run: |
           python3 ../../scripts/generate/write-ci-cdk-context.py \
             --output cdk.context.local.json \
@@ -400,6 +401,7 @@ jobs:
           CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}
           CDK_CONTEXT_WEB_ADDITIONAL_DOMAIN_NAME: ${{ vars.CDK_WEB_ADDITIONAL_DOMAIN_NAME }}
           CDK_CONTEXT_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1 }}
+          CDK_CONTEXT_WEB_PRIMARY_HOST_RETIRED: ${{ vars.CDK_WEB_PRIMARY_HOST_RETIRED }}
         run: |
           python3 ../../scripts/generate/write-ci-cdk-context.py \
             --output cdk.context.local.json \
