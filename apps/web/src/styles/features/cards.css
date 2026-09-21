@@ -50,7 +50,7 @@
 .cards-filter-popover {
   --cards-filter-popover-padding: 16px;
   --cards-filter-popover-radius: var(--radius-xl);
-  z-index: 200;
+  z-index: var(--z-index-popover);
   display: grid;
   gap: 16px;
   padding: var(--cards-filter-popover-padding);
@@ -304,7 +304,7 @@
 .cell-select-overlay {
   --cell-select-overlay-padding: 6px;
   --cell-select-overlay-radius: var(--radius-md);
-  z-index: 200;
+  z-index: var(--z-index-popover);
   display: flex;
   flex-direction: column;
   background: var(--surface);

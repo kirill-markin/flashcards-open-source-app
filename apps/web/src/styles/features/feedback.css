@@ -5,7 +5,7 @@
   place-items: center;
   padding: 24px;
   background: rgba(0, 0, 0, 0.58);
-  z-index: 100;
+  z-index: var(--z-index-dialog-backdrop);
   backdrop-filter: blur(14px);
 }
 

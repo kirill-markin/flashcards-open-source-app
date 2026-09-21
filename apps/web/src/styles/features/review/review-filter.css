@@ -60,7 +60,7 @@
   --review-filter-menu-padding: 10px;
   --review-filter-menu-radius: var(--radius-lg);
   --review-filter-menu-inner-radius: calc(var(--review-filter-menu-radius) / 2);
-  z-index: 30;
+  z-index: var(--z-index-popover);
   display: flex;
   flex-direction: column;
   gap: 4px;

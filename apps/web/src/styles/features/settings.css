@@ -401,7 +401,7 @@
 .settings-delete-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: var(--z-index-dialog-backdrop);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -465,7 +465,7 @@
 .settings-workspace-dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 220;
+  z-index: var(--z-index-dialog-backdrop);
   display: grid;
   place-items: center;
   padding: 20px;

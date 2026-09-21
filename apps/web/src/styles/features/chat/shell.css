@@ -224,7 +224,7 @@
      fallback is 0px, which is every moment there is no strip. */
   bottom: calc(var(--shell-frame-gap) + var(--analytics-consent-banner-height, 0px));
   inset-inline-start: var(--shell-frame-gap);
-  z-index: 60;
+  z-index: var(--z-index-floating-control);
   min-height: 52px;
   padding: 0 22px;
   border: 1px solid transparent;

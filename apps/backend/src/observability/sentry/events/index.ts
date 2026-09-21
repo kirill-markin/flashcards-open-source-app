@@ -109,6 +109,7 @@ export type {
   FeedbackEmailRetryDetails,
   FriendshipCreatedAnalyticsSkippedDetails,
   GeneratedMediaPromotionBatchDetails,
+  GeoLiteCountryDatabaseLoadedDetails,
   GlobalMetricsS3RetryDetails,
   GlobalMetricsSnapshotFailureDetails,
   GlobalMetricsSnapshotGeneratedDetails,
