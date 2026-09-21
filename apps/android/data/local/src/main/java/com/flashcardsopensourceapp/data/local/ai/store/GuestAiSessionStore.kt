@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
+import com.flashcardsopensourceapp.data.local.model.cloud.isSameCloudService
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import org.json.JSONException
 import org.json.JSONObject
@@ -32,8 +33,12 @@ class GuestAiSessionStore(
         val session = decodeSessionOrNull(rawValue = rawValue)
         if (
             session == null
-            || session.apiBaseUrl != configuration.apiBaseUrl
-            || session.configurationMode != configuration.mode
+            || isSameCloudService(
+                leftMode = session.configurationMode,
+                leftApiBaseUrl = session.apiBaseUrl,
+                rightMode = configuration.mode,
+                rightApiBaseUrl = configuration.apiBaseUrl
+            ).not()
             || isWorkspaceBindingInvalid(storageKey = sessionStorageKey, session = session)
         ) {
             clearSessionByStorageKey(storageKey = sessionStorageKey)
@@ -78,8 +83,12 @@ class GuestAiSessionStore(
                 val session = decodeSessionOrNull(rawValue = rawValue)
                 if (
                     session == null
-                    || session.apiBaseUrl != configuration.apiBaseUrl
-                    || session.configurationMode != configuration.mode
+                    || isSameCloudService(
+                        leftMode = session.configurationMode,
+                        leftApiBaseUrl = session.apiBaseUrl,
+                        rightMode = configuration.mode,
+                        rightApiBaseUrl = configuration.apiBaseUrl
+                    ).not()
                     || isWorkspaceBindingInvalid(storageKey = entry.key, session = session)
                 ) {
                     invalidStorageKeys += entry.key
@@ -245,8 +254,12 @@ class GuestAiSessionStore(
             val rawValue = entry.value as? String ?: return@mapNotNull null
             val storedSession = decodeSessionOrNull(rawValue = rawValue) ?: return@mapNotNull null
             if (
-                storedSession.configurationMode == session.configurationMode
-                && storedSession.apiBaseUrl == session.apiBaseUrl
+                isSameCloudService(
+                    leftMode = storedSession.configurationMode,
+                    leftApiBaseUrl = storedSession.apiBaseUrl,
+                    rightMode = session.configurationMode,
+                    rightApiBaseUrl = session.apiBaseUrl
+                )
                 && (
                     storedSession.guestToken == session.guestToken
                         || storedSession.workspaceId == session.workspaceId
