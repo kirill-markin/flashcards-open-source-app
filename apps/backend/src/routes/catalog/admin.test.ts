@@ -3,17 +3,18 @@ import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AdminRequestContext } from "../../admin/authz";
-import type {
-  CatalogCollectionCover,
-  CatalogPackage,
-  CatalogPackageEducationalAlignmentCorrection,
-  CatalogPackageMediaAsset,
-  CatalogPackageStatus,
-  CatalogPackageVersion,
-  CorrectCatalogPackageEducationalAlignmentInput,
-  CreateCatalogPackageDraftInput,
-  CreateCatalogPackageVersionFromWorkspaceInput,
-  UpdateCatalogPackageDraftInput,
+import {
+  catalogAudienceLocales,
+  type CatalogCollectionCover,
+  type CatalogPackage,
+  type CatalogPackageEducationalAlignmentCorrection,
+  type CatalogPackageMediaAsset,
+  type CatalogPackageStatus,
+  type CatalogPackageVersion,
+  type CorrectCatalogPackageEducationalAlignmentInput,
+  type CreateCatalogPackageDraftInput,
+  type CreateCatalogPackageVersionFromWorkspaceInput,
+  type UpdateCatalogPackageDraftInput,
 } from "../../catalog/types";
 import type {
   CatalogCollectionCoverImageIngestionResult,
@@ -327,6 +328,9 @@ test("catalog package inputs explicitly reject the removed topicTags field", asy
 });
 
 test("catalog package inputs reject a language tag outside the supported audience locales", async () => {
+  // The marketing website routes decks by generic tag, so a regional or cased entry would break it.
+  assert.deepEqual(catalogAudienceLocales.filter((locale) => !/^[a-z]{2}$/.test(locale)), []);
+  assert.equal(new Set(catalogAudienceLocales).size, catalogAudienceLocales.length);
   let processingCalls = 0;
   const app = createCatalogPackageInputValidationApp(async () => {
     processingCalls += 1;
@@ -364,7 +368,7 @@ test("catalog package inputs reject a language tag outside the supported audienc
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), {
       error: "languageTags[1] must be a supported catalog audience locale. "
-        + "tag=world history supported=ar, de, en, es, fr, hi, ja, pt, ru, zh",
+        + `tag=world history supported=${catalogAudienceLocales.join(", ")}`,
       code: "CATALOG_INVALID_INPUT",
     });
   }
