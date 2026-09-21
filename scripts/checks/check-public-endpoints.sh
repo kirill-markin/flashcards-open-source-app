@@ -834,5 +834,13 @@ if [[ "$SKIP_STATIC_SITES" != "true" ]]; then
 fi
 
 if [[ -n "$APEX_REDIRECT_TARGET" && "$APEX_REDIRECT_TARGET" != "None" && -n "$BASE_DOMAIN" && "$BASE_DOMAIN" != "None" ]]; then
-  check_redirect_url "https://${BASE_DOMAIN}" "308" "${APP_PUBLIC_BASE}/" "public apex redirect"
+  # Mirrors web.ts: the apex points at the retirement target when there is one and at
+  # app.<base domain> otherwise - not at WebPublicBase, which is the CloudFront name when the
+  # stack serves no primary web certificate while the apex still redirects to app.<base domain>.
+  if [[ -n "$WEB_PRIMARY_HOST_REDIRECT_TARGET" && "$WEB_PRIMARY_HOST_REDIRECT_TARGET" != "None" ]]; then
+    APEX_EXPECTED_LOCATION="https://${WEB_PRIMARY_HOST_REDIRECT_TARGET}/"
+  else
+    APEX_EXPECTED_LOCATION="https://app.${BASE_DOMAIN}/"
+  fi
+  check_redirect_url "https://${BASE_DOMAIN}" "308" "${APEX_EXPECTED_LOCATION}" "public apex redirect"
 fi
