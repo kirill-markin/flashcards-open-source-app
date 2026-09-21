@@ -12,73 +12,47 @@
  * host string: the API Gateway custom domain, the host the MCP handler accepts,
  * the resource the authorization server mints tokens for, and the CloudWatch
  * metric dimension the heartbeat alarm reads are the same name or the feature is
- * silently half-on.
+ * silently half-on. The name rule itself is shared with the other alternate
+ * hosts (./alternate-host.ts).
  */
 
-/**
- * Raised when the alternate host names the primary MCP host. API Gateway allows
- * one custom domain per name, so CloudFormation would otherwise fail the deploy
- * partway through with a generic duplicate-domain error; this names the actual
- * mistake at synth time instead.
- */
-export class McpAlternateDomainConflictError extends Error {
-  constructor(primaryMcpHost: string) {
-    super(
-      `The alternate MCP domain must differ from the primary MCP host "${primaryMcpHost}". `
-      + "Unset CDK_MCP_ALTERNATE_DOMAIN_NAME, or point it at the second host.",
-    );
-    this.name = "McpAlternateDomainConflictError";
-  }
-}
-
-/**
- * Normalizes a configured host into the form every consumer compares against: a
- * lower-case name without surrounding whitespace or a trailing root dot. An
- * empty value means "not configured".
- */
-function normalizeHost(value: string | undefined): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const normalized = value.trim().toLowerCase().replace(/\.$/, "");
-  return normalized === "" ? undefined : normalized;
-}
+import type { AlternateHostConfig } from "./alternate-host";
+import { isAlternateHostLive, resolveAlternateHost } from "./alternate-host";
 
 export function getPrimaryMcpHost(baseDomain: string): string {
   return `mcp.${baseDomain}`;
 }
 
 /**
+ * The MCP entry in the stack-wide alternate host set (./alternate-host.ts), so
+ * the MCP host is resolved and collision-checked alongside the other two.
+ */
+export function mcpAlternateHostConfig(
+  baseDomain: string,
+  mcpAlternateDomainName: string | undefined,
+  mcpAlternateCertificateArn: string | undefined,
+): AlternateHostConfig {
+  return {
+    hostRole: "MCP",
+    primaryHost: getPrimaryMcpHost(baseDomain),
+    contextVariableName: "CDK_MCP_ALTERNATE_DOMAIN_NAME",
+    alternateDomainName: mcpAlternateDomainName,
+    alternateCertificateArn: mcpAlternateCertificateArn,
+  };
+}
+
+/**
  * Resolves the alternate MCP host, or `undefined` when the feature is off.
- *
- * The conflict check runs on the configured name alone, before the certificate
- * is considered: naming the primary host here is a configuration mistake in
- * every case, and it should fail loudly rather than depend on whether the second
- * variable happens to be set.
+ * Throws AlternateHostConflictError when it names the primary MCP host.
  */
 export function resolveMcpAlternateHost(
   baseDomain: string,
   mcpAlternateDomainName: string | undefined,
   mcpAlternateCertificateArn: string | undefined,
 ): string | undefined {
-  const alternateHost = normalizeHost(mcpAlternateDomainName);
-  if (alternateHost === undefined) {
-    return undefined;
-  }
-
-  const primaryMcpHost = getPrimaryMcpHost(baseDomain);
-  if (alternateHost === normalizeHost(primaryMcpHost)) {
-    throw new McpAlternateDomainConflictError(primaryMcpHost);
-  }
-
-  // The certificate is what makes the host servable, so a name without one stays
-  // inert instead of creating a custom domain that cannot terminate TLS.
-  if (normalizeHost(mcpAlternateCertificateArn) === undefined) {
-    return undefined;
-  }
-
-  return alternateHost;
+  return resolveAlternateHost(
+    mcpAlternateHostConfig(baseDomain, mcpAlternateDomainName, mcpAlternateCertificateArn),
+  );
 }
 
 /**
@@ -92,7 +66,7 @@ export function resolveMcpAlternateHost(
  * host does not resolve. Only the liveness heartbeat and its alarm read this.
  */
 export function isMcpAlternateHostLive(mcpAlternateHostLive: string | undefined): boolean {
-  return (mcpAlternateHostLive ?? "").trim().toLowerCase() === "true";
+  return isAlternateHostLive(mcpAlternateHostLive);
 }
 
 /**

@@ -13,6 +13,7 @@ import {
   databasePoolMaxConnectionsEnvValue,
 } from "../lambda-database-capacity";
 import { authNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
+import { normalizeHost } from "../alternate-host";
 import { getMcpResourceUrl, getPrimaryMcpHost } from "../mcp-alternate-host";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
@@ -23,6 +24,14 @@ export interface AuthGatewayProps {
   authDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   authCertificateArn: string | undefined;
+  // Optional second public auth host, already resolved (../alternate-host.ts) and
+  // undefined unless both of its context values are set. auth.<baseDomain> is
+  // created either way.
+  authAlternateHost: string | undefined;
+  authAlternateCertificateArn: string | undefined;
+  // The domain the analytics visitor cookie is published on. Unset means
+  // baseDomain, so moving the cookie to another domain is its own switch.
+  cookieDomain: string | undefined;
   // Second public MCP host, already resolved (../mcp-alternate-host.ts) and
   // undefined unless both alternate context values are set.
   mcpAlternateHost: string | undefined;
@@ -181,7 +190,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
       ALLOWED_REDIRECT_URIS: `https://${props.baseDomain},https://app.${props.baseDomain},https://admin.${props.baseDomain}`,
-      COOKIE_DOMAIN: props.baseDomain,
+      COOKIE_DOMAIN: normalizeHost(props.cookieDomain) ?? props.baseDomain,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       // Canonical MCP protected-resource identifier the /authorize endpoint binds
@@ -271,6 +280,27 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     new cdk.CfnOutput(scope, "AuthCustomDomainTarget", {
       value: domain.domainNameAliasDomainName,
       description: "Create a Cloudflare CNAME for auth.<domain> to this target",
+    });
+  }
+
+  // Additive second host for the same auth API: the primary auth.<baseDomain>
+  // domain above is created regardless of this block.
+  if (props.authAlternateHost !== undefined && hasConfiguredValue(props.authAlternateCertificateArn)) {
+    const alternateCertificate = cdk.aws_certificatemanager.Certificate.fromCertificateArn(
+      scope,
+      "AuthAlternateCertificate",
+      props.authAlternateCertificateArn,
+    );
+
+    const alternateDomain = restApi.addDomainName("AuthAlternateCustomDomain", {
+      domainName: props.authAlternateHost,
+      certificate: alternateCertificate,
+      endpointType: apigw.EndpointType.REGIONAL,
+    });
+
+    new cdk.CfnOutput(scope, "AuthAlternateCustomDomainTarget", {
+      value: alternateDomain.domainNameAliasDomainName,
+      description: "Create a CNAME for the alternate auth host to this target",
     });
   }
 
