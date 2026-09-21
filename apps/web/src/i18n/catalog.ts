@@ -20,6 +20,16 @@ const translationCatalogLoaders: Readonly<Record<Locale, () => Promise<Translati
   "es-ES": async () => (await import("./catalogs/es-ES")).esEsCatalog,
   fr: async () => (await import("./catalogs/fr")).frCatalog,
   "pt-BR": async () => (await import("./catalogs/pt-BR")).ptBrCatalog,
+  it: async () => (await import("./catalogs/it")).itCatalog,
+  ko: async () => (await import("./catalogs/ko")).koCatalog,
+  id: async () => (await import("./catalogs/id")).idCatalog,
+  tr: async () => (await import("./catalogs/tr")).trCatalog,
+  nl: async () => (await import("./catalogs/nl")).nlCatalog,
+  pl: async () => (await import("./catalogs/pl")).plCatalog,
+  vi: async () => (await import("./catalogs/vi")).viCatalog,
+  th: async () => (await import("./catalogs/th")).thCatalog,
+  uk: async () => (await import("./catalogs/uk")).ukCatalog,
+  he: async () => (await import("./catalogs/he")).heCatalog,
 };
 
 // Pre-seeded with the default locale so it never waits for a chunk.
