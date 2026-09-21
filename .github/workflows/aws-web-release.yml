@@ -288,6 +288,7 @@ jobs:
           CDK_CONTEXT_SENTRY_RELEASE: ${{ github.sha }}
           CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.CDK_SENTRY_TRACES_SAMPLE_RATE }}
           CDK_CONTEXT_SITE_BASE_URL: ${{ vars.CDK_SITE_BASE_URL }}
+          CDK_CONTEXT_API_BASE_URL: ${{ vars.CDK_API_BASE_URL }}
           CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}
           CDK_CONTEXT_WEB_ADDITIONAL_DOMAIN_NAME: ${{ vars.CDK_WEB_ADDITIONAL_DOMAIN_NAME }}
           CDK_CONTEXT_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1 }}
@@ -393,6 +394,7 @@ jobs:
           CDK_CONTEXT_SENTRY_RELEASE: ${{ github.sha }}
           CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.CDK_SENTRY_TRACES_SAMPLE_RATE }}
           CDK_CONTEXT_SITE_BASE_URL: ${{ vars.CDK_SITE_BASE_URL }}
+          CDK_CONTEXT_API_BASE_URL: ${{ vars.CDK_API_BASE_URL }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_BACKEND_PROJECT }}
@@ -649,6 +651,10 @@ jobs:
         env:
           FLASHCARDS_AGENT_SMOKE_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
           FLASHCARDS_AGENT_SMOKE_API_BASE_URL: https://api.flashcards-open-source-app.com/v1
+          # What the deploy advertises, which the smoke asserts on, as distinct from the
+          # host above that it calls: CDK_API_BASE_URL moves only the former. Unset, it
+          # is the same primary API base the stack publishes by default.
+          FLASHCARDS_AGENT_SMOKE_EXPECTED_ADVERTISED_API_BASE_URL: ${{ vars.CDK_API_BASE_URL != '' && format('{0}/v1', vars.CDK_API_BASE_URL) || 'https://api.flashcards-open-source-app.com/v1' }}
           FLASHCARDS_AGENT_SMOKE_DEMO_EMAIL: google-review@example.com
           FLASHCARDS_AGENT_SMOKE_WORKSPACE_PREFIX: "E2E agent api "
           FLASHCARDS_AGENT_SMOKE_CONNECTION_LABEL_PREFIX: "E2E agent api "
@@ -681,6 +687,10 @@ jobs:
         env:
           FLASHCARDS_MCP_SMOKE_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
           FLASHCARDS_MCP_SMOKE_API_BASE_URL: https://api.flashcards-open-source-app.com/v1
+          # What the deploy advertises, which the smoke asserts on, as distinct from the
+          # host above that it calls: CDK_API_BASE_URL moves only the former. Unset, it
+          # is the same primary API base the stack publishes by default.
+          FLASHCARDS_MCP_SMOKE_EXPECTED_ADVERTISED_API_BASE_URL: ${{ vars.CDK_API_BASE_URL != '' && format('{0}/v1', vars.CDK_API_BASE_URL) || 'https://api.flashcards-open-source-app.com/v1' }}
           FLASHCARDS_MCP_SMOKE_MCP_BASE_URL: https://mcp.flashcards-open-source-app.com
           FLASHCARDS_MCP_SMOKE_DEMO_EMAIL: google-review@example.com
           FLASHCARDS_MCP_SMOKE_WORKSPACE_PREFIX: "E2E mcp "
