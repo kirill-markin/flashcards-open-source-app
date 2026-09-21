@@ -98,6 +98,7 @@ ADMIN_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "admin.${DOMAIN_NAME}"
 # Set both values of a pair in root .env to enable one.
 WEB_ADDITIONAL_DOMAIN_NAME="${WEB_ADDITIONAL_DOMAIN_NAME:-}"
 WEB_ADDITIONAL_CERTIFICATE_ARN="${WEB_ADDITIONAL_CERTIFICATE_ARN:-}"
+WEB_PRIMARY_HOST_RETIRED="${WEB_PRIMARY_HOST_RETIRED:-}"
 ADMIN_ADDITIONAL_DOMAIN_NAME="${ADMIN_ADDITIONAL_DOMAIN_NAME:-}"
 ADMIN_ADDITIONAL_CERTIFICATE_ARN="${ADMIN_ADDITIONAL_CERTIFICATE_ARN:-}"
 APEX_REDIRECT_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "${DOMAIN_NAME}" "apex-redirect-domain")"
@@ -147,6 +148,7 @@ export CDK_COOKIE_DOMAIN
 export WEB_CERTIFICATE_ARN
 export WEB_ADDITIONAL_DOMAIN_NAME
 export WEB_ADDITIONAL_CERTIFICATE_ARN
+export WEB_PRIMARY_HOST_RETIRED
 export ADMIN_CERTIFICATE_ARN
 export ADMIN_ADDITIONAL_DOMAIN_NAME
 export ADMIN_ADDITIONAL_CERTIFICATE_ARN
@@ -194,6 +196,7 @@ values = {
     "webCertificateArnUsEast1": os.environ.get("WEB_CERTIFICATE_ARN", ""),
     "webAdditionalDomainName": os.environ.get("WEB_ADDITIONAL_DOMAIN_NAME", ""),
     "webAdditionalCertificateArnUsEast1": os.environ.get("WEB_ADDITIONAL_CERTIFICATE_ARN", ""),
+    "webPrimaryHostRetired": os.environ.get("WEB_PRIMARY_HOST_RETIRED", ""),
     "adminCertificateArnUsEast1": os.environ.get("ADMIN_CERTIFICATE_ARN", ""),
     "adminAdditionalDomainName": os.environ.get("ADMIN_ADDITIONAL_DOMAIN_NAME", ""),
     "adminAdditionalCertificateArnUsEast1": os.environ.get("ADMIN_ADDITIONAL_CERTIFICATE_ARN", ""),
