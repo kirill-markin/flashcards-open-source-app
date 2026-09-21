@@ -101,6 +101,10 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     () => getPackageColorScale(filterOptions.catalogPackageSlugs),
     [filterOptions.catalogPackageSlugs],
   );
+  // Funnels matches a click that never had to become an install, so its four click dimensions offer
+  // the values clicks themselves carried; the user-scoped areas match a person through a completed
+  // install and offer what that bridge can reach.
+  const isFunnelsArea = props.activeArea === "funnels";
 
   return (
     <>
@@ -113,10 +117,10 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         connectionCountryOptions={filterOptions.connectionCountries}
         appUiLanguageOptions={filterOptions.appUiLanguages}
         catalogDeckOptions={filterOptions.catalogDecks}
-        catalogPlacementOptions={filterOptions.catalogPlacements}
-        catalogSourceOptions={filterOptions.catalogSources}
-        catalogDeviceCategoryOptions={filterOptions.catalogDeviceCategories}
-        catalogClickBrowserLanguageOptions={filterOptions.catalogClickBrowserLanguages}
+        catalogPlacementOptions={isFunnelsArea ? filterOptions.funnelCatalogPlacements : filterOptions.catalogPlacements}
+        catalogSourceOptions={isFunnelsArea ? filterOptions.funnelCatalogSources : filterOptions.catalogSources}
+        catalogDeviceCategoryOptions={isFunnelsArea ? filterOptions.funnelCatalogDeviceCategories : filterOptions.catalogDeviceCategories}
+        catalogClickBrowserLanguageOptions={isFunnelsArea ? filterOptions.funnelCatalogClickBrowserLanguages : filterOptions.catalogClickBrowserLanguages}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
         userColorScale={userColorScale}
