@@ -32,6 +32,12 @@ export type {
 } from "./catalogInstall";
 export { syncAnalyticsConsentWithAccount } from "./accountConsent";
 export { AnalyticsConsentBanner } from "./AnalyticsConsentBanner";
+export { AnalyticsConsentToggleCard } from "./AnalyticsConsentToggleCard";
+export { PublicAnalyticsConsentLink } from "./PublicAnalyticsConsentLink";
 export { AnalyticsLifecycle } from "./AnalyticsLifecycle";
-export { readAnalyticsConsentDecision, subscribeToAnalyticsConsent } from "./consent";
+export {
+  isAwaitingAnalyticsConsentDecision,
+  readAnalyticsConsentDecision,
+  subscribeToAnalyticsConsent,
+} from "./consent";
 export { useAnalyticsScreenView } from "./useAnalyticsScreenView";

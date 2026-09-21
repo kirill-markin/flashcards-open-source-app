@@ -866,6 +866,10 @@ const esEsCatalog: TranslationCatalog = {
     privacyPolicy: "Política de privacidad",
     error: "No ha funcionado. Inténtalo de nuevo.",
   },
+  analyticsConsentWithdrawal: {
+    link: "Cookies de analítica",
+    close: "Cerrar",
+  },
   analyticsSettings: {
     title: "Analítica",
     subtitle: "Elige si se puede medir este navegador.",

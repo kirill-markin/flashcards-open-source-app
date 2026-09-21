@@ -5,6 +5,7 @@ import { AccountDeletionRecoveryGate } from "./accountDeletionRecovery";
 import {
   AnalyticsConsentBanner,
   AnalyticsLifecycle,
+  PublicAnalyticsConsentLink,
   useAnalyticsScreenView,
   type AnalyticsSurface,
 } from "./analytics";
@@ -864,6 +865,10 @@ export default function App(): ReactElement {
         <AnalyticsLifecycle />
         {/* Outside the routes, so every surface a visitor can land on asks on the same terms. */}
         <AnalyticsConsentBanner />
+        {/* The answer given on a public route has to be takeable back there too, so the withdrawal
+            control sits beside the strip that asked. It renders itself only on the routes below,
+            and only once the question has been answered. */}
+        <PublicAnalyticsConsentLink />
         <AppErrorDialogProvider>
           <TestModeProvider>
             <SentryRoutes>
