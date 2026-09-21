@@ -20,6 +20,7 @@ import {
   mcpHandlerReservedConcurrency,
 } from "../lambda-database-capacity";
 import { resolveMcpAlternateHost } from "../mcp-alternate-host";
+import { parsePublicOrigin } from "../public-origin";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
 
 export interface McpGatewayProps {
@@ -29,6 +30,9 @@ export interface McpGatewayProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
   siteBaseUrl: string | undefined;
+  // Optional per-deploy override for the API origin the MCP tools advertise.
+  // Unset means api.<baseDomain>, exactly as before it was settable.
+  apiBaseUrl: string | undefined;
   mcpCertificateArn: string | undefined;
   // Optional second public MCP host, served by the same API. Both values must be
   // set together; with either one missing the stack stays exactly as it is today.
@@ -216,6 +220,10 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     props.mcpAlternateDomainName,
     props.mcpAlternateCertificateArn,
   );
+  const publicApiOrigin = parsePublicOrigin(
+    props.apiBaseUrl ?? `https://api.${props.baseDomain}`,
+    "apiBaseUrl",
+  );
 
   const mcpFn = new lambdaNodejs.NodejsFunction(scope, "McpHandler", {
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-mcp.ts"),
@@ -241,7 +249,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       // The MCP sql_query and sql_execute tools return the shared agent
       // envelope; pin `docs.discoveryUrl` to the public API host instead of
       // resolving it against the mcp.<domain> request host.
-      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      PUBLIC_API_BASE_URL: `${publicApiOrigin}/v1`,
       // Public marketing-site origin surfaced in the MCP implementation
       // metadata (websiteUrl). Defaults to the apex domain; an optional CDK
       // `siteBaseUrl` context overrides it for self-host deployments.

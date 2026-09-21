@@ -14,6 +14,7 @@ import {
 } from "../lambda-database-capacity";
 import { authNodejsProjectPaths, resolveFromRepoRoot } from "../nodejs-project-paths";
 import { normalizeHost } from "../alternate-host";
+import { parsePublicOrigin } from "../public-origin";
 import { buildCookieDomains } from "../cookie-domains";
 import { getMcpResourceUrl, getPrimaryMcpHost } from "../mcp-alternate-host";
 import { createRdsCaBundleDownloadCommand } from "../rds-ca-bundle";
@@ -24,6 +25,10 @@ export interface AuthGatewayProps {
   db: rds.DatabaseInstance;
   authDbSecret: cdk.aws_secretsmanager.Secret;
   baseDomain: string;
+  // Optional per-deploy override for the API origin this service advertises in
+  // its agent envelopes and calls for sign-in analytics. Unset means
+  // api.<baseDomain>, exactly as before it was settable.
+  apiBaseUrl: string | undefined;
   authCertificateArn: string | undefined;
   // Optional second public auth host, already resolved (../alternate-host.ts) and
   // undefined unless both of its context values are set. auth.<baseDomain> is
@@ -189,6 +194,10 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
 };
 
 export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGatewayResult {
+  const publicApiOrigin = parsePublicOrigin(
+    props.apiBaseUrl ?? `https://api.${props.baseDomain}`,
+    "apiBaseUrl",
+  );
   const sessionEncryptionKey = new cdk.aws_secretsmanager.Secret(scope, "SessionEncryptionKey", {
     secretName: "flashcards-open-source-app/session-encryption-key",
     generateSecretString: {
@@ -225,8 +234,15 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       COGNITO_REGION: cdk.Stack.of(scope).region,
       ALLOWED_REDIRECT_URIS: buildAllowedRedirectUris(props),
       COOKIE_DOMAIN: buildCookieDomains(props),
+      // The OAuth issuer this authorization server publishes in its RFC 8414
+      // metadata and echoes as the RFC 9207 `iss` parameter
+      // (apps/auth/src/routes/oauth/metadata.ts,
+      // apps/auth/src/routes/oauth/authorize.ts). Shipped MCP clients compare it,
+      // and the backend names the same string in every protected-resource
+      // document (apps/backend/src/entrypoints/lambda-mcp.ts), so it is pinned to
+      // baseDomain and has no override.
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
-      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      PUBLIC_API_BASE_URL: `${publicApiOrigin}/v1`,
       // Canonical MCP protected-resource identifier the /authorize endpoint binds
       // authorization codes to; must match the backend MCP handler's resource
       // (apps/backend/src/mcp/hosts.ts). Built from the shared helper rather than

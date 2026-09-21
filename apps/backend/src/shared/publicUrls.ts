@@ -127,12 +127,35 @@ export function getConfiguredPublicSiteOrigins(): ReadonlyArray<string> {
   return [parsePublicOrigin(publicSiteBaseUrl, "PUBLIC_SITE_BASE_URL")];
 }
 
+/**
+ * The origin of a second host serving the same browser clients, empty unless
+ * this deployment serves one. For the app this is whichever accepted app origin
+ * `PUBLIC_APP_BASE_URL` does not name: that value says where links point, and it
+ * moves off `app.<baseDomain>` when that host is retired while both stay accepted.
+ *
+ * Every public host of this stack may have a second name (the nibomo hosts beside
+ * the original ones). API Gateway already allows both on the CORS preflight, so a
+ * list here that knows only the primary host answers the preflight and then
+ * refuses the request itself. These are appended to the lists below, never
+ * substituted: the primary origins keep being accepted for already shipped
+ * clients. The CDK side that sets them is `infra/aws/lib/gateways/api-gateway.ts`.
+ */
+function getConfiguredSecondHostOrigin(variableName: string): ReadonlyArray<string> {
+  const configuredValue = process.env[variableName];
+  if (configuredValue === undefined || configuredValue === "") {
+    return [];
+  }
+
+  return [parsePublicOrigin(stripTrailingSlash(configuredValue), variableName)];
+}
+
 export function getConfiguredPublicCatalogCorsOrigins(): ReadonlyArray<string> {
   const origins: Array<string> = [...getConfiguredPublicSiteOrigins()];
   const publicAppBaseUrl = process.env.PUBLIC_APP_BASE_URL;
   if (publicAppBaseUrl !== undefined && publicAppBaseUrl !== "") {
     origins.push(parsePublicOrigin(publicAppBaseUrl, "PUBLIC_APP_BASE_URL"));
   }
+  origins.push(...getConfiguredSecondHostOrigin("PUBLIC_APP_ADDITIONAL_BASE_URL"));
 
   return origins;
 }
@@ -145,6 +168,11 @@ export function getConfiguredAnonymousAnalyticsCorsOrigins(): ReadonlyArray<stri
       parsePublicOrigin(stripTrailingSlash(publicAuthBaseUrl), "PUBLIC_AUTH_BASE_URL"),
     );
   }
+  // The login pages of the second auth host post anonymous analytics here too.
+  // PUBLIC_AUTH_BASE_URL stays pinned to the primary host because it is also the
+  // OAuth issuer (docs/published-api-origin.md), so the second host needs its own
+  // entry rather than a change to that one.
+  origins.push(...getConfiguredSecondHostOrigin("PUBLIC_AUTH_ALTERNATE_BASE_URL"));
 
   return origins;
 }
