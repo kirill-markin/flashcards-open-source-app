@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "این کار %d کارت فعال را برای همیشه از این فضای کاری حذف می‌کند.";
 "settings.workspace.deleteConfirmation.title" = "حذف فضای کاری";
 "settings.workspace.deleteConfirmation.warning" = "هشدار! این اقدام دائمی است. %d کارت فعال از %@ حذف می‌شود.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "بلافاصله پس از حذف، یک فضای کاری شخصی خالی ساخته می‌شود.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "بلافاصله پس از حذف، یک فضای کاری خالی جدید به نام Personal ساخته می‌شود.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "در حال حذف...";
 "settings.workspace.resetConfirmation.title" = "تأیید بازنشانی";
