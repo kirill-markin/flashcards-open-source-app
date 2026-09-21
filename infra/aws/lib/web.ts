@@ -4,11 +4,19 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
+import type { DistributionHosts } from "./cloudfront-additional-host";
 
 export interface WebAppProps {
   baseDomain: string;
-  webCertificateArnUsEast1: string | undefined;
+  // Aliases and the single viewer certificate of the web distribution, resolved
+  // in stack.ts against every alias the stack claims; see
+  // ./cloudfront-additional-host.ts.
+  hosts: DistributionHosts;
   apexRedirectCertificateArnUsEast1: string | undefined;
+}
+
+export function getPrimaryWebHost(baseDomain: string): string {
+  return `app.${baseDomain}`;
 }
 
 export interface WebAppResult {
@@ -85,12 +93,11 @@ export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
     autoDeleteObjects: false,
   });
 
-  const customDomain = props.webCertificateArnUsEast1 === undefined
+  const primaryDomain = getPrimaryWebHost(props.baseDomain);
+  const customDomain = props.hosts.primaryCustomDomain;
+  const certificate = props.hosts.certificateArn === undefined
     ? undefined
-    : `app.${props.baseDomain}`;
-  const certificate = props.webCertificateArnUsEast1 === undefined
-    ? undefined
-    : acm.Certificate.fromCertificateArn(scope, "WebCertificate", props.webCertificateArnUsEast1);
+    : acm.Certificate.fromCertificateArn(scope, "WebCertificate", props.hosts.certificateArn);
 
   const distribution = new cloudfront.Distribution(scope, "WebDistribution", {
     comment: "flashcards-open-source-app web app",
@@ -101,7 +108,7 @@ export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
       cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       compress: true,
     },
-    domainNames: customDomain === undefined ? undefined : [customDomain],
+    domainNames: props.hosts.domainNames,
     certificate,
     errorResponses: [
       {
@@ -137,7 +144,7 @@ export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
 
   const apexRedirectFunction = new cloudfront.Function(scope, "ApexRedirectFunction", {
     code: cloudfront.FunctionCode.fromInline(
-      buildApexRedirectFunctionCode(`app.${props.baseDomain}`),
+      buildApexRedirectFunctionCode(primaryDomain),
     ),
   });
 

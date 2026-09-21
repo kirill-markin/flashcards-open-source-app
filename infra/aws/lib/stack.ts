@@ -9,8 +9,9 @@ import { monitoring } from "./monitoring";
 import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
 import { outputs } from "./outputs";
-import { webApp } from "./web";
-import { adminApp } from "./admin";
+import { getPrimaryWebHost, webApp } from "./web";
+import { adminApp, getPrimaryAdminHost } from "./admin";
+import { resolveDistributionHosts } from "./cloudfront-additional-host";
 import {
   addDatabaseMigrationDependency,
   databaseMigrationGate,
@@ -18,7 +19,8 @@ import {
 } from "./migration-runner";
 import { authGateway } from "./gateways/auth-gateway";
 import { mcpGateway } from "./gateways/mcp-gateway";
-import { isMcpAlternateHostLive, resolveMcpAlternateHost } from "./mcp-alternate-host";
+import { isMcpAlternateHostLive, mcpAlternateHostConfig } from "./mcp-alternate-host";
+import { isAlternateHostLive, resolveAlternateHosts } from "./alternate-host";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
 import { globalMetrics } from "./scheduled-jobs/global-metrics";
 import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
@@ -27,6 +29,7 @@ import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-day
 import { countryRetention } from "./scheduled-jobs/country-retention";
 import { syntheticActorDetector } from "./scheduled-jobs/synthetic-actor-detector";
 import { webGuestReaper } from "./scheduled-jobs/web-guest-reaper";
+import type { AlternateHeartbeatHosts } from "./scheduled-jobs/public-endpoint-heartbeat";
 import { publicEndpointHeartbeat } from "./scheduled-jobs/public-endpoint-heartbeat";
 import {
   generatedMediaPromotion,
@@ -164,21 +167,49 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const githubRepo = this.node.tryGetContext("githubRepo") as string;
     const apiCertificateArn = getOptionalContextValue(this, "apiCertificateArn");
     const authCertificateArn = getOptionalContextValue(this, "authCertificateArn");
+    // Optional second public host for the REST API and for the auth API, each on
+    // the same stage as its primary host. Both values of a pair are required;
+    // with either missing that gateway is unchanged. The primary hosts are
+    // derived from domainName and are never replaced by these.
+    const apiAlternateDomainName = getOptionalContextValue(this, "apiAlternateDomainName");
+    const apiAlternateCertificateArn = getOptionalContextValue(this, "apiAlternateCertificateArn");
+    const authAlternateDomainName = getOptionalContextValue(this, "authAlternateDomainName");
+    const authAlternateCertificateArn = getOptionalContextValue(this, "authAlternateCertificateArn");
+    // The browser cookie domain is settable on its own so it can move to another
+    // domain without touching domainName, which every host name derives from.
+    // Unset means domainName, exactly as before it was settable.
+    const cookieDomain = getOptionalContextValue(this, "cookieDomain");
     const mcpCertificateArn = getOptionalContextValue(this, "mcpCertificateArn");
     // Optional second public MCP host served by the same API, for example a
     // rebranded domain. Both values are required for it to be created; with
     // either missing the deploy is unchanged.
     const mcpAlternateDomainName = getOptionalContextValue(this, "mcpAlternateDomainName");
     const mcpAlternateCertificateArn = getOptionalContextValue(this, "mcpAlternateCertificateArn");
-    // The one host string every consumer agrees on: the API Gateway custom
-    // domain, the host the MCP handler accepts, the resource the authorization
-    // server mints tokens for, and the heartbeat metric dimension. Undefined
-    // unless both values above are set; throws when it names the primary host.
-    const mcpAlternateHost = resolveMcpAlternateHost(
-      baseDomain,
-      mcpAlternateDomainName,
-      mcpAlternateCertificateArn,
-    );
+    // The one place every alternate host of this stack is resolved, so each
+    // name is checked against the whole set rather than only against its own
+    // primary host. Each entry is undefined unless both of its context values
+    // are set. What comes out is the one host string every consumer of that
+    // host agrees on: the API Gateway custom domain, the host a handler
+    // accepts, the resource the authorization server mints tokens for, and the
+    // heartbeat metric dimension.
+    const alternateHosts = resolveAlternateHosts({
+      api: {
+        hostRole: "API",
+        primaryHost: `api.${baseDomain}`,
+        contextVariableName: "CDK_API_ALTERNATE_DOMAIN_NAME",
+        alternateDomainName: apiAlternateDomainName,
+        alternateCertificateArn: apiAlternateCertificateArn,
+      },
+      auth: {
+        hostRole: "auth",
+        primaryHost: `auth.${baseDomain}`,
+        contextVariableName: "CDK_AUTH_ALTERNATE_DOMAIN_NAME",
+        alternateDomainName: authAlternateDomainName,
+        alternateCertificateArn: authAlternateCertificateArn,
+      },
+      mcp: mcpAlternateHostConfig(baseDomain, mcpAlternateDomainName, mcpAlternateCertificateArn),
+    });
+    const mcpAlternateHost = alternateHosts.mcp;
     // Policing that host is a separate, later switch. Its Cloudflare CNAME can
     // only be created from the McpAlternateCustomDomainTarget output that the
     // deploy above produces, so the deploy that creates the host would fail its
@@ -189,8 +220,30 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     )
       ? mcpAlternateHost
       : undefined;
+    // The second API and auth hosts wait for the same kind of switch, for the
+    // same reason: their CNAMEs can only be created from the
+    // ApiAlternateCustomDomainTarget and AuthAlternateCustomDomainTarget
+    // outputs of the deploy that creates the custom domains, so that deploy
+    // would page on its own heartbeat if it also started probing them.
+    const alternateHeartbeatHosts: AlternateHeartbeatHosts = {
+      api: isAlternateHostLive(getOptionalContextValue(this, "apiAlternateHostLive"))
+        ? alternateHosts.api
+        : undefined,
+      auth: isAlternateHostLive(getOptionalContextValue(this, "authAlternateHostLive"))
+        ? alternateHosts.auth
+        : undefined,
+      mcp: mcpAlternateHeartbeatHost,
+    };
     const webCertificateArnUsEast1 = getOptionalContextValue(this, "webCertificateArnUsEast1");
     const adminCertificateArnUsEast1 = getOptionalContextValue(this, "adminCertificateArnUsEast1");
+    // Optional second public host for the web and admin distributions, for
+    // example a rebranded domain served next to the original one. Both values of
+    // a pair are required; the certificate replaces the distribution's single
+    // viewer certificate and must cover both of its hosts.
+    const webAdditionalDomainName = getOptionalContextValue(this, "webAdditionalDomainName");
+    const webAdditionalCertificateArnUsEast1 = getOptionalContextValue(this, "webAdditionalCertificateArnUsEast1");
+    const adminAdditionalDomainName = getOptionalContextValue(this, "adminAdditionalDomainName");
+    const adminAdditionalCertificateArnUsEast1 = getOptionalContextValue(this, "adminAdditionalCertificateArnUsEast1");
     const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
     const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
@@ -288,7 +341,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       reportingDbSecret: dbResult.reportingDbSecret,
       ...sentryContext,
     });
-    publicEndpointHeartbeat(this, { baseDomain, mcpAlternateHeartbeatHost });
+    publicEndpointHeartbeat(this, { baseDomain, alternateHeartbeatHosts });
     const mediaAssetsResult = mediaAssets(this, {
       baseDomain,
     });
@@ -342,6 +395,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       authDbSecret: dbResult.authDbSecret,
       baseDomain,
       authCertificateArn,
+      authAlternateHost: alternateHosts.auth,
+      authAlternateCertificateArn,
+      cookieDomain,
       mcpAlternateHost,
       demoEmailDostip,
       demoPasswordSecretArn,
@@ -373,6 +429,33 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
     });
     const migrationGate = databaseMigrationGate(this, migrationFn);
+    // Both distributions are resolved here, before either is constructed and
+    // before the API that has to allow their hosts as browser origins, because
+    // an additional host must be checked against every alias the stack claims
+    // and not only against its own distribution's primary. A repeat passes
+    // synth and fails the deploy with CNAMEAlreadyExists.
+    const webPrimaryHost = getPrimaryWebHost(baseDomain);
+    const adminPrimaryHost = getPrimaryAdminHost(baseDomain);
+    const claimedCloudFrontHosts = [
+      webPrimaryHost,
+      adminPrimaryHost,
+      // The apex redirect distribution only exists with its own certificate.
+      ...(apexRedirectCertificateArnUsEast1 === undefined ? [] : [baseDomain]),
+    ];
+    const webHosts = resolveDistributionHosts(
+      webPrimaryHost,
+      webCertificateArnUsEast1,
+      webAdditionalDomainName,
+      webAdditionalCertificateArnUsEast1,
+      claimedCloudFrontHosts,
+    );
+    const adminHosts = resolveDistributionHosts(
+      adminPrimaryHost,
+      adminCertificateArnUsEast1,
+      adminAdditionalDomainName,
+      adminAdditionalCertificateArnUsEast1,
+      [...claimedCloudFrontHosts, ...(webHosts.domainNames ?? [])],
+    );
     const api = apiGateway(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -382,6 +465,16 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       baseDomain,
       siteBaseUrl,
       apiCertificateArn,
+      apiAlternateHost: alternateHosts.api,
+      apiAlternateCertificateArn,
+      authAlternateHost: alternateHosts.auth,
+      // Second hosts for the browser clients, owned by the CloudFront
+      // distributions above. The API only needs their names, to allow them as
+      // browser origins: a host that serves the bundle but is not an allowed
+      // origin fails every preflight. Nothing here moves PUBLIC_APP_BASE_URL.
+      webAdditionalHost: webHosts.additionalCustomDomain,
+      adminAdditionalHost: adminHosts.additionalCustomDomain,
+      cookieDomain,
       openAiApiKeySecretArn,
       langfusePublicKeySecretArn,
       langfuseSecretKeySecretArn,
@@ -412,12 +505,12 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     addDatabaseMigrationDependency(syntheticActorDetectorResult.detectorFunction, migrationGate);
     const web = webApp(this, {
       baseDomain,
-      webCertificateArnUsEast1,
+      hosts: webHosts,
       apexRedirectCertificateArnUsEast1,
     });
     const admin = adminApp(this, {
       baseDomain,
-      adminCertificateArnUsEast1,
+      hosts: adminHosts,
     });
 
     const mon = monitoring(this, {
@@ -449,9 +542,13 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apiCertificateArn,
       authCertificateArn,
       mcpCertificateArn,
+      apiAlternateHost: alternateHosts.api,
+      apiAlternateCertificateArn,
+      authAlternateHost: alternateHosts.auth,
+      authAlternateCertificateArn,
       mcpAlternateHost,
       mcpAlternateCertificateArn,
-      mcpAlternateHeartbeatHost,
+      alternateHeartbeatHosts,
     });
 
     ciCd(this, {
