@@ -412,11 +412,13 @@ function buildEventWindowSql(from: string, to: string): ReadonlyArray<string> {
  * start names the same person just as well.
  *
  * `trust_level = 'authenticated_client'` on the install-intent bridge is load-bearing rather than
- * tidiness: an `anonymous_client` row carries no `user_id`, so its resolved `actor_id` falls back to
- * the `anonymous_id`, which is the journey UUID itself, and an unrestricted check would compare
- * journey ids against the exclusion list. That the column holds the journey UUID rather than the
- * browser's shared visitor id is a decision rather than an accident - the acquisition producer sends
- * no visitor id precisely so this stays true (docs/catalog-install-funnel.md).
+ * tidiness: only such a row carries the `user_id` the resolved `actor_id` is taken from. An
+ * `anonymous_client` row's `actor_id` is the browser's shared visitor id, because
+ * `catalog_deck_install_started` travels on the general collector that attaches it
+ * (`apps/web/src/analytics/client.ts`), and it is the journey UUID only when the browser claimed no
+ * `anonymousId` at all - a refused consent, or a row predating that collector - which is when the
+ * backend falls back to `install_journey_id` (`apps/backend/src/productAnalytics/anonymousEvent.ts`).
+ * An unrestricted check would compare one of those two anonymous ids against the exclusion list.
  *
  * Both bridges anchor on `candidate.anchor_at`, which is the click in the funnel and the landing in
  * the no-click diagnostic, so the conversion window shifts with whichever candidate row applies.
@@ -506,6 +508,11 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    events.platform",
     "  FROM client_events AS events",
     "  WHERE events.event_name = 'catalog_install_clicked'",
+    // The journey id is optional on the collector while the click fact is still sent, so a
+    // journey-less click is a real row that belongs to no attempt. Unguarded they collapse into one
+    // NULL journey that no bridge and no filter can reject, and whose `journey_id` then fails to
+    // parse and fails the whole section with it.
+    "    AND events.event_properties ->> 'install_journey_id' IS NOT NULL",
     "    AND events.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
@@ -809,6 +816,8 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    landing.platform",
     "  FROM client_events AS landing",
     "  WHERE landing.event_name = 'catalog_install_landed'",
+    // The same guard the click cohort carries: a journey-less landing belongs to no attempt either.
+    "    AND landing.event_properties ->> 'install_journey_id' IS NOT NULL",
     "    AND landing.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
