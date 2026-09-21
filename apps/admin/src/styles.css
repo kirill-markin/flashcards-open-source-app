@@ -267,10 +267,13 @@ h2 {
   fill: var(--accent);
 }
 
-.funnel-stage-shape-2 { opacity: 0.88; }
-.funnel-stage-shape-3 { opacity: 0.76; }
-.funnel-stage-shape-4 { opacity: 0.64; }
-.funnel-stage-shape-5 { opacity: 0.52; }
+.funnel-stage-shape-2 { opacity: 0.90; }
+.funnel-stage-shape-3 { opacity: 0.80; }
+.funnel-stage-shape-4 { opacity: 0.70; }
+.funnel-stage-shape-5 { opacity: 0.60; }
+.funnel-stage-shape-6 { opacity: 0.50; }
+.funnel-stage-shape-7 { opacity: 0.40; }
+.funnel-stage-shape-8 { opacity: 0.30; }
 
 .funnel-stage-table {
   display: grid;
@@ -335,34 +338,6 @@ h2 {
 .funnel-detail-row strong {
   color: var(--text);
   text-align: right;
-}
-
-.funnel-engagement-row {
-  display: grid;
-  /* Every track shrinks to zero rather than to a hard minimum: the detail grid can settle on a
-     track narrower than this row's content, and a `minmax(px, ...)` floor would spill the row out of
-     its card instead of wrapping inside it. */
-  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding: 9px 0;
-  border-top: 1px solid var(--panel-border);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.funnel-engagement-row strong {
-  color: var(--text);
-}
-
-.funnel-engagement-row > :not(:first-child) {
-  text-align: right;
-}
-
-.funnel-engagement-heading {
-  color: var(--muted-soft);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
 }
 
 .funnel-disclosure {
