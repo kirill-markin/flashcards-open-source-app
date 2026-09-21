@@ -26,7 +26,7 @@ The dedicated review tools support one-question-at-a-time conversations and idem
 
 Interactive clients authenticate with OAuth 2.1 authorization code + PKCE and Dynamic Client Registration. Headless clients can use an `fca_` Bearer token.
 
-The former address `https://mcp.flashcards-open-source-app.com/mcp` still serves the same server, so existing client configurations keep working.
+The former address `https://mcp.flashcards-open-source-app.com/mcp` still serves the same server, so existing client configurations keep working. A client moved to `https://mcp.nibomo.com/mcp` authorizes once more; [backend and web deployment](docs/backend-web-deployment.md) owns why.
 
 - [MCP connector docs](https://nibomo.com/docs/mcp-connector/)
 - [Agent API docs](https://nibomo.com/docs/api/)
