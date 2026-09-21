@@ -14,9 +14,9 @@ const localEnvironmentDefaults: Omit<E2eEnvironment, "target"> = {
 };
 
 const prodEnvironmentDefaults: Omit<E2eEnvironment, "target"> = {
-  appBaseUrl: "https://app.flashcards-open-source-app.com",
-  apiBaseUrl: "https://api.flashcards-open-source-app.com/v1",
-  authBaseUrl: "https://auth.flashcards-open-source-app.com",
+  appBaseUrl: "https://app.nibomo.com",
+  apiBaseUrl: "https://api.nibomo.com/v1",
+  authBaseUrl: "https://auth.nibomo.com",
 };
 
 function stripTrailingSlash(value: string): string {

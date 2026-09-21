@@ -472,11 +472,11 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
 
   # Scope note: this job never loads the deployed web assets. It builds `dist`
-  # from the merge commit, points `app.flashcards-open-source-app.com` at
-  # 127.0.0.1 through `/etc/hosts`, and serves that fresh build over a
-  # self-signed certificate. Only `auth.` and `api.` reach real deployed
-  # infrastructure, so a green run means the merge commit's web client works
-  # against the deployed backend, not that the hosted web deployment is healthy.
+  # from the merge commit, points `app.nibomo.com` at 127.0.0.1 through
+  # `/etc/hosts`, and serves that fresh build over a self-signed certificate.
+  # Only `auth.` and `api.` reach real deployed infrastructure, so a green run
+  # means the merge commit's web client works against the deployed backend, not
+  # that the hosted web deployment is healthy.
   web_smoke:
     name: Web post-deploy smoke
     needs:
@@ -507,9 +507,9 @@ jobs:
       - name: Build web app for live smoke
         timeout-minutes: 5
         env:
-          VITE_APP_BASE_URL: https://app.flashcards-open-source-app.com
-          VITE_API_BASE_URL: https://api.flashcards-open-source-app.com/v1
-          VITE_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
+          VITE_APP_BASE_URL: https://app.nibomo.com
+          VITE_API_BASE_URL: https://api.nibomo.com/v1
+          VITE_AUTH_BASE_URL: https://auth.nibomo.com
         run: npm run build --prefix apps/web
 
       - name: Run live web smoke test
@@ -517,15 +517,15 @@ jobs:
         working-directory: apps/web
         shell: bash
         env:
-          FLASHCARDS_E2E_APP_BASE_URL: https://app.flashcards-open-source-app.com
-          FLASHCARDS_E2E_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
+          FLASHCARDS_E2E_APP_BASE_URL: https://app.nibomo.com
+          FLASHCARDS_E2E_AUTH_BASE_URL: https://auth.nibomo.com
           FLASHCARDS_LIVE_REVIEW_EMAIL: google-review@example.com
         run: |
           set -euo pipefail
 
           cert_dir="${RUNNER_TEMP}/web-live-e2e-cert"
-          cert_path="${cert_dir}/app.flashcards-open-source-app.com.crt"
-          key_path="${cert_dir}/app.flashcards-open-source-app.com.key"
+          cert_path="${cert_dir}/app.nibomo.com.crt"
+          key_path="${cert_dir}/app.nibomo.com.key"
           server_log_path="${RUNNER_TEMP}/web-live-e2e-server.log"
 
           mkdir -p "${cert_dir}"
@@ -536,12 +536,12 @@ jobs:
             -sha256 \
             -nodes \
             -days 1 \
-            -subj "/CN=app.flashcards-open-source-app.com" \
-            -addext "subjectAltName=DNS:app.flashcards-open-source-app.com" \
+            -subj "/CN=app.nibomo.com" \
+            -addext "subjectAltName=DNS:app.nibomo.com" \
             -keyout "${key_path}" \
             -out "${cert_path}"
 
-          printf '127.0.0.1 app.flashcards-open-source-app.com\n' | tee -a /etc/hosts >/dev/null
+          printf '127.0.0.1 app.nibomo.com\n' | tee -a /etc/hosts >/dev/null
 
           env PATH="${PATH}" node scripts/serve-dist-https.mjs \
             --host 0.0.0.0 \
@@ -557,13 +557,13 @@ jobs:
           trap cleanup EXIT
 
           for _ in $(seq 1 30); do
-            if curl --silent --show-error --fail --insecure https://app.flashcards-open-source-app.com/ >/dev/null; then
+            if curl --silent --show-error --fail --insecure https://app.nibomo.com/ >/dev/null; then
               break
             fi
             sleep 1
           done
 
-          curl --silent --show-error --fail --insecure https://app.flashcards-open-source-app.com/ >/dev/null
+          curl --silent --show-error --fail --insecure https://app.nibomo.com/ >/dev/null
           npm run test:e2e
 
       - name: Upload Playwright report

@@ -36,7 +36,7 @@ const analyticsUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
 
 /**
  * This is the one cookie in the service that must not use `getCookieOptions()` from
- * `browserSession.ts`. That helper sets `domain: COOKIE_DOMAIN`, which is the bare base domain, so
+ * `browserSession.ts`. That helper sets the registrable domain this request's host sits under, so
  * it would publish a guest credential to `app.` and `admin.` as well; host-only is what keeps this
  * bearer token to the origin that obtained it.
  *

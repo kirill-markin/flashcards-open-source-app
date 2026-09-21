@@ -20,13 +20,15 @@
  * advance a session, so every client owns its own rotation under the shared 30-minute rule
  * (apps/web/src/analytics/identity.ts, and the iOS and Android equivalents).
  *
- * The cookie is scoped to the current product base domain, so the planned move to nibomo.com resets
- * every visitor id on that day. That is accepted: no anonymous identity survives the domain move,
- * and nothing tries to carry one across it.
+ * The cookie is scoped to the registrable domain of the host the request arrived on, so a browser
+ * that reaches the API on nibomo.com and one that reaches it on the legacy domain are two visitors.
+ * That is accepted: no anonymous identity survives the domain move, and nothing tries to carry one
+ * across it.
  */
 import { randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { parseCookieDomainCandidates, resolveCookieDomain } from "../shared/cookieDomain";
 
 const visitorCookieName = "analytics_visitor";
 
@@ -37,16 +39,18 @@ const analyticsUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
 
 /**
  * The base domain the cookie is published on, so every host under it — the web app, this API and the
- * auth origin — sees one visitor. A missing value is a deployment error rather than something to
- * fall back from: a host-only cookie would silently make the app and the API two different visitors.
+ * auth origin — sees one visitor. Which of the configured domains that is depends on the host this
+ * request arrived on (../shared/cookieDomain.ts). A missing configuration is a deployment error
+ * rather than something to fall back from: a host-only cookie would silently make the app and the
+ * API two different visitors.
  */
-function getVisitorCookieDomain(): string {
-  const domain = process.env.COOKIE_DOMAIN ?? "";
-  if (domain === "") {
-    throw new Error("COOKIE_DOMAIN must be the product base domain before the analytics visitor cookie can be set");
+function getVisitorCookieDomain(context: Context): string {
+  const candidates = parseCookieDomainCandidates(process.env.COOKIE_DOMAIN);
+  if (candidates.length === 0) {
+    throw new Error("COOKIE_DOMAIN must list the product base domains before the analytics visitor cookie can be set");
   }
 
-  return domain;
+  return resolveCookieDomain(context.req.header("host"), candidates);
 }
 
 /**
@@ -58,7 +62,7 @@ function getVisitorCookieDomain(): string {
  * cookie is described with (`Domain=.<base domain>`) is what a browser stores either way; RFC 6265
  * section 5.2.3 strips it on receipt.
  */
-function getVisitorCookieOptions(): Readonly<{
+function getVisitorCookieOptions(context: Context): Readonly<{
   domain: string;
   path: string;
   secure: true;
@@ -66,7 +70,7 @@ function getVisitorCookieOptions(): Readonly<{
   maxAge: number;
 }> {
   return {
-    domain: getVisitorCookieDomain(),
+    domain: getVisitorCookieDomain(context),
     path: "/",
     secure: true,
     sameSite: "Lax",
@@ -94,13 +98,13 @@ export function readAnalyticsVisitorId(context: Context): string | null {
 
 /** Writing the id a caller already holds is how the 13-month lifetime is extended on each visit. */
 export function writeAnalyticsVisitorId(context: Context, visitorId: string): void {
-  setCookie(context, visitorCookieName, visitorId, getVisitorCookieOptions());
+  setCookie(context, visitorCookieName, visitorId, getVisitorCookieOptions(context));
 }
 
 /** The domain and path repeat the write options, because that is what a browser matches a delete on. */
 export function clearAnalyticsVisitor(context: Context): void {
   deleteCookie(context, visitorCookieName, {
-    domain: getVisitorCookieDomain(),
+    domain: getVisitorCookieDomain(context),
     path: "/",
     secure: true,
   });

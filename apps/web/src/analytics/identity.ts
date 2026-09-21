@@ -173,8 +173,8 @@ export function readAnalyticsAnonymousId(): string | null {
 
 /**
  * The product base domain the shared cookie is published on, which is the API host's parent and the
- * `COOKIE_DOMAIN` the backend writes it with. Null where the API host has no parent domain — the
- * local development stack — and nothing is written there.
+ * `COOKIE_DOMAIN` candidate the backend resolves for that host. Null where the API host has no
+ * parent domain — the local development stack — and nothing is written there.
  */
 function readSharedVisitorCookieDomain(): string | null {
   const apiHostname = new URL(getAppConfig().apiBaseUrl).hostname;
