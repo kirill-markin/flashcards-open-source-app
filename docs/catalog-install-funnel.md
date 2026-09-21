@@ -57,8 +57,11 @@ It also still accepts `catalog_install_landed`, `catalog_install_signin_started`
 `catalog_install_signin_code_requested` and `catalog_install_signin_succeeded`, which no producer
 sends any more.
 
-Rows written before this change carry the journey id, and the admin catalog install funnel reads
-them. Its reach ends where the last journey-carrying client does.
+The admin Funnels area does not read the journey id: its catalog install funnel is keyed on the
+shared visitor identity below, and it does not read the four names above either. The General and
+Audience catalog click filters still do, through `buildCatalogInstallAttributionSql` in
+[`filterSql.ts`](../apps/admin/src/filters/filterSql.ts), which joins a click to a server install on
+it; the server install no longer carries it, so that join matches no install made since.
 
 ## Reporting
 
@@ -69,14 +72,40 @@ Use `occurred_at`, never the client clock columns, for time ranges. Only
 server fact. Server facts keep `platform` null because the install request headers are not a trusted
 replica fact. There is no historical click backfill and no historical conversion claim.
 
+What joins these facts into a flow is `analytics.product_events_resolved.actor_id`, nothing on the
+events themselves. A row sent with no account credential carries the
+[analytics visitor identity](analytics-visitor-identity.md) as `anonymous_id`, and resolves onto the
+account once the web app records an `authenticated_client` identity link for it; the signed-in app's
+rows and the server install carry the account already. So the site click, the import flow's
+`screen_viewed` rows and the server install resolve onto one identity. The auth origin's sign-in
+rows do not: they are delivered on a guest credential whose `user_id` outranks the visitor cookie,
+and reach the account only through the `server_derived` link written after `signin_succeeded`
+inside a budget a first-ever sign-in usually overruns, so they cannot reliably be joined to the rest.
+A sign-in is read instead from the web app's first screen view that the same browser sends with an
+account credential. The sequence is assembled at analysis time
+from that identity and `occurred_at`; the admin funnel over it, and everything it can and cannot
+claim, is [Admin app](admin-app.md). **Only a click sent with the visitor identity joins anything:**
+a click body that claims no `anonymousId` is stored under its per-attempt `install_journey_id`, which
+matches no later row, and that is every click made before the site and the app shared one
+registrable domain.
+
+Three limits bound what any such join can say. `screen_viewed` carries no properties at all, so a
+step read from it names no deck version. A browser that refused consent is given no identifier, so
+its rows resolve to a NULL actor and belong to no identity at all rather than to a missing one. And a
+report wanting the preview moment on the account's side of the flow reads the `catalog_import_confirm`
+screen view, which marks the same moment and is reported by the signed-in app with the account's own
+credential, while `catalog_install_preview_ready` goes out on the credential-free collector and
+reaches the account only through the identity link for its visitor cookie.
+
 Post-install engagement is reportable only on an install whose server `catalog_deck_installed` row
-exists, because that row is the only place this flow names a person. `review_answered` carries no
-deck or card identity, so those reviews are the person's reviews anywhere in the product and never
-deck-level retention; say so wherever they are shown. Whether the installing account is new is that
-actor having no trusted `analytics.product_events_resolved` row at all before the install, read with
-no lower bound and over every event name. Trusted is what
+exists, because that is where the install is a fact rather than an intent. `review_answered` carries
+no deck or card identity, so those reviews are the person's reviews anywhere in the product and never
+deck-level retention; say so wherever they are shown. Whether the installing identity is new is that
+actor having no trusted `analytics.product_events_resolved` row at all before the site visit, read
+with no lower bound and over every event name. Trusted is what
 [`buildTrustedActorRowsFilterSql`](../apps/admin/src/filters/filterSql.ts) defines and states in
-full.
+full, and it is load-bearing here: the anchoring site click is itself a credential-free row on the
+same identity, so without the rule no installer would ever read as new.
 
 ## Manual acceptance
 
