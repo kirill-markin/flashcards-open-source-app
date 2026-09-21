@@ -866,6 +866,10 @@ const ptBrCatalog: TranslationCatalog = {
     privacyPolicy: "Política de Privacidade",
     error: "Não deu certo. Tente de novo.",
   },
+  analyticsConsentWithdrawal: {
+    link: "Cookies de análise",
+    close: "Fechar",
+  },
   analyticsSettings: {
     title: "Análise de uso",
     subtitle: "Escolha se este navegador pode ser medido.",

@@ -866,6 +866,10 @@ export const ruCatalog = {
     privacyPolicy: "Политика конфиденциальности",
     error: "Не получилось. Попробуйте ещё раз.",
   },
+  analyticsConsentWithdrawal: {
+    link: "Аналитические cookie",
+    close: "Закрыть",
+  },
   analyticsSettings: {
     title: "Аналитика",
     subtitle: "Выберите, можно ли собирать статистику в этом браузере.",
