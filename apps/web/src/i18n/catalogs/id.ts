@@ -236,7 +236,7 @@ const idCatalog: TranslationCatalog = {
       title: "Papan peringkat penilaian",
       loading: "Memuat papan peringkat penilaian...",
       infoToggleLabel: "Tentang papan peringkat penilaian",
-      info: "Tinjauan dengan nilai Sulit, Bagus, atau Mudah dihitung untuk peringkat Anda. Tinjauan Ulangi tidak dihitung.",
+      info: "Tinjauan dengan nilai Sulit, Baik, atau Mudah dihitung untuk peringkat Anda. Tinjauan Ulangi tidak dihitung.",
       periodsLabel: "Periode papan peringkat penilaian",
       periods: {
         last24Hours: "24 j",
@@ -324,7 +324,7 @@ const idCatalog: TranslationCatalog = {
       title: "Papan peringkat rentetan",
       loading: "Memuat papan peringkat rentetan...",
       infoToggleLabel: "Tentang papan peringkat rentetan",
-      info: "Jumlah hari rentetan Anda saat ini menentukan peringkat. Hari rentetan adalah hari lokal mana pun dengan minimal satu tinjauan kartu bernilai Ulangi, Sulit, Bagus, atau Mudah. Jika snapshot publik belum tersedia, rentetan lokal Anda saat ini yang ditampilkan.",
+      info: "Jumlah hari rentetan Anda saat ini menentukan peringkat. Hari rentetan adalah hari lokal mana pun dengan minimal satu tinjauan kartu bernilai Ulangi, Sulit, Baik, atau Mudah. Jika snapshot publik belum tersedia, rentetan lokal Anda saat ini yang ditampilkan.",
       updatedAt: "Diperbarui {{duration}} lalu",
       guestBody: "Masuk untuk membandingkan rentetan Anda saat ini dengan pelajar lain.",
       participationDisabledBody: "Peringkat rentetan disembunyikan selama partisipasi papan peringkat nonaktif. Aktifkan lagi untuk melihat pelajar lain dan posisi Anda.",
@@ -994,7 +994,7 @@ const idCatalog: TranslationCatalog = {
     ratings: {
       again: "Ulangi",
       easy: "Mudah",
-      good: "Bagus",
+      good: "Baik",
       hard: "Sulit",
     },
     shortcuts: {
@@ -1160,9 +1160,18 @@ const idCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistik {{deckName}}",
     newDeck: "Dek baru",
     statLabels: {
-      cards: "kartu",
-      new: "baru",
-      reviewed: "ditinjau",
+      cards: {
+        one: "kartu",
+        other: "kartu",
+      },
+      new: {
+        one: "baru",
+        other: "baru",
+      },
+      reviewed: {
+        one: "ditinjau",
+        other: "ditinjau",
+      },
     },
     subtitle: "Dek adalah filter pintar, bukan wadah. Dek mencocokkan kartu berdasarkan tag.",
     title: "Dek",

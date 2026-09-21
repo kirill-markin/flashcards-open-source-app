@@ -8,26 +8,32 @@ const hrCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "kartica",
+        few: "kartice",
         other: "kartica",
       },
       day: {
         one: "dan",
+        few: "dana",
         other: "dana",
       },
       deck: {
         one: "špil",
+        few: "špila",
         other: "špilova",
       },
       hour: {
         one: "sat",
+        few: "sata",
         other: "sati",
       },
       minute: {
-        one: "minuta",
+        one: "minutu",
+        few: "minute",
         other: "minuta",
       },
       tag: {
         one: "oznaka",
+        few: "oznake",
         other: "oznaka",
       },
     },
@@ -198,6 +204,7 @@ const hrCatalog: TranslationCatalog = {
     streakInfo: "Zamrzavanja niza: {{available}}/{{capacity}}. Sljedeća obnova: {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "ponavljanje",
+      few: "ponavljanja",
       other: "ponavljanja",
     },
     streakDayAria: {
@@ -332,6 +339,7 @@ const hrCatalog: TranslationCatalog = {
       unavailable: "Ljestvica nizova trenutačno nije dostupna. Provjerite ponovno kasnije.",
       dayLabels: {
         one: "dan",
+        few: "dana",
         other: "dana",
       },
     },
@@ -694,6 +702,7 @@ const hrCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "kartica",
+        few: "kartice",
         other: "kartica",
       },
     },
@@ -716,7 +725,7 @@ const hrCatalog: TranslationCatalog = {
       dialogTitle: "Izbriši radni prostor",
       loading: "Učitavanje pojedinosti brisanja...",
       warning: "Upozorenje! Ova je radnja trajna. Iz radnog prostora {{workspaceName}} bit će izbrisano: {{count}}.",
-      lastWorkspaceHint: "Odmah nakon brisanja stvorit će se novi prazan osobni radni prostor.",
+      lastWorkspaceHint: "Odmah nakon brisanja stvorit će se novi prazan radni prostor pod nazivom Personal.",
       typePhrase: "Za nastavak upišite frazu točno.",
       deleting: "Brisanje...",
     },
@@ -1160,9 +1169,21 @@ const hrCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistika: {{deckName}}",
     newDeck: "Novi špil",
     statLabels: {
-      cards: "ukupno",
-      new: "novo",
-      reviewed: "ponovljeno",
+      cards: {
+        one: "kartica",
+        few: "kartice",
+        other: "kartica",
+      },
+      new: {
+        one: "nova",
+        few: "nove",
+        other: "novih",
+      },
+      reviewed: {
+        one: "ponovljena",
+        few: "ponovljene",
+        other: "ponovljenih",
+      },
     },
     subtitle: "Špilovi su pametni filtri, a ne spremnici. Kartice odabiru prema oznakama.",
     title: "Špilovi",

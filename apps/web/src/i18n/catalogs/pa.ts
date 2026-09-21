@@ -1160,9 +1160,18 @@ const paCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} ਦੇ ਅੰਕੜੇ",
     newDeck: "ਨਵਾਂ ਡੈੱਕ",
     statLabels: {
-      cards: "ਕਾਰਡ",
-      new: "ਨਵੇਂ",
-      reviewed: "ਦੁਹਰਾਏ",
+      cards: {
+        one: "ਕਾਰਡ",
+        other: "ਕਾਰਡ",
+      },
+      new: {
+        one: "ਨਵੇਂ",
+        other: "ਨਵੇਂ",
+      },
+      reviewed: {
+        one: "ਦੁਹਰਾਏ",
+        other: "ਦੁਹਰਾਏ",
+      },
     },
     subtitle: "ਡੈੱਕ ਸਮਾਰਟ ਫਿਲਟਰ ਹਨ, ਡੱਬੇ ਨਹੀਂ. ਇਹ ਟੈਗਾਂ ਨਾਲ ਕਾਰਡ ਮਿਲਾਉਂਦੇ ਹਨ.",
     title: "ਡੈੱਕ",

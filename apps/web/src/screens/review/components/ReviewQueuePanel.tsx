@@ -40,7 +40,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
     selectedCardId,
     visibleQueueCardsCount,
   } = props;
-  const { t, formatCount, formatDateTime } = useI18n();
+  const { messages, t, formatCount, formatDateTime } = useI18n();
   const closeLabel = t("reviewScreen.queue.close");
 
   return (
@@ -51,10 +51,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
           <span className="review-queue-caption">
             {isInitialReviewLoad && reviewLoadingSnapshot === null
               ? t("reviewScreen.queue.loading")
-              : formatCount(visibleQueueCardsCount, {
-                one: t("common.countLabels.card.one"),
-                other: t("common.countLabels.card.other"),
-              })}
+              : formatCount(visibleQueueCardsCount, messages.common.countLabels.card)}
           </span>
         </div>
         <button

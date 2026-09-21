@@ -716,7 +716,7 @@ const frCatalog: TranslationCatalog = {
       dialogTitle: "Supprimer l'espace de travail",
       loading: "Chargement des détails de suppression...",
       warning: "Attention ! Cette action est définitive. Elle supprimera {{count}} de {{workspaceName}}.",
-      lastWorkspaceHint: "Un nouvel espace de travail Personnel vide sera créé immédiatement après la suppression.",
+      lastWorkspaceHint: "Un nouvel espace de travail vide nommé Personal sera créé immédiatement après la suppression.",
       typePhrase: "Saisissez la phrase exactement pour continuer.",
       deleting: "Suppression...",
     },
@@ -1160,9 +1160,18 @@ const frCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistiques de {{deckName}}",
     newDeck: "Nouveau paquet",
     statLabels: {
-      cards: "cartes",
-      new: "nouvelles",
-      reviewed: "révisées",
+      cards: {
+        one: "carte",
+        other: "cartes",
+      },
+      new: {
+        one: "nouvelle",
+        other: "nouvelles",
+      },
+      reviewed: {
+        one: "révisée",
+        other: "révisées",
+      },
     },
     subtitle: "Les paquets sont des filtres intelligents, pas des conteneurs. Ils sélectionnent les cartes par étiquette.",
     title: "Paquets",

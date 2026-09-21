@@ -60,7 +60,7 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 export function DecksScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatNumber } = useI18n();
+  const { messages, t, formatNumber, selectCountLabel } = useI18n();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -233,15 +233,15 @@ export function DecksScreen(): ReactElement {
                 <div className="deck-card-stats" aria-label={t("decksScreen.emptyStatsAriaLabel", { deckName: title })}>
                   <span className="deck-card-stat">
                     <span className="deck-card-stat-value">{formatNumber(deck.stats.totalCards)}</span>
-                    <span className="deck-card-stat-label">{t("decksScreen.statLabels.cards")}</span>
+                    <span className="deck-card-stat-label">{selectCountLabel(deck.stats.totalCards, messages.decksScreen.statLabels.cards)}</span>
                   </span>
                   <span className="deck-card-stat">
                     <span className="deck-card-stat-value">{formatNumber(deck.stats.newCards)}</span>
-                    <span className="deck-card-stat-label">{t("decksScreen.statLabels.new")}</span>
+                    <span className="deck-card-stat-label">{selectCountLabel(deck.stats.newCards, messages.decksScreen.statLabels.new)}</span>
                   </span>
                   <span className="deck-card-stat">
                     <span className="deck-card-stat-value">{formatNumber(deck.stats.reviewedCards)}</span>
-                    <span className="deck-card-stat-label">{t("decksScreen.statLabels.reviewed")}</span>
+                    <span className="deck-card-stat-label">{selectCountLabel(deck.stats.reviewedCards, messages.decksScreen.statLabels.reviewed)}</span>
                   </span>
                 </div>
               </article>

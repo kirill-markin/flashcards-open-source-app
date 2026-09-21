@@ -34,16 +34,62 @@ const PRESERVED_BROWSER_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
 type BrowserStorageKeyPredicate = (storageKey: string) => boolean;
 
 function getBrowserStorage(): Storage | null {
-  const storageValue = window.localStorage;
-  if (
-    typeof storageValue?.getItem !== "function"
-    || typeof storageValue.setItem !== "function"
-    || typeof storageValue.removeItem !== "function"
-  ) {
+  try {
+    const storageValue = window.localStorage;
+    if (
+      typeof storageValue?.getItem !== "function"
+      || typeof storageValue.setItem !== "function"
+      || typeof storageValue.removeItem !== "function"
+    ) {
+      return null;
+    }
+
+    return storageValue;
+  } catch {
+    // Browsers with blocked site data throw on the localStorage getter itself; treat that as
+    // storage being unavailable.
+    return null;
+  }
+}
+
+function readStoredValue(browserStorage: Storage | null, storageKey: string): string | null {
+  if (browserStorage === null) {
     return null;
   }
 
-  return storageValue;
+  try {
+    return browserStorage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredValue(browserStorage: Storage | null, storageKey: string, storageValue: string): boolean {
+  if (browserStorage === null) {
+    return false;
+  }
+
+  try {
+    browserStorage.setItem(storageKey, storageValue);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function removeStoredValue(browserStorage: Storage | null, storageKey: string): boolean {
+  if (browserStorage === null) {
+    return false;
+  }
+
+  try {
+    browserStorage.removeItem(storageKey);
+
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function normalizeCleanupError(error: unknown): Error {
@@ -73,7 +119,7 @@ function buildCleanupObservationScope(browserStorage: Storage | null): WebObserv
     feature: "auth",
     userId: null,
     workspaceId: null,
-    installationId: browserStorage?.getItem(INSTALLATION_ID_STORAGE_KEY) ?? null,
+    installationId: readStoredValue(browserStorage, INSTALLATION_ID_STORAGE_KEY),
     route: getCurrentRoute(),
     requestId: null,
     statusCode: null,
@@ -102,22 +148,27 @@ function logLocalBrowserDataCleanup(
   });
 }
 
-function clearUserScopedBrowserStorage(browserStorage: Storage, shouldRemoveStorageKey: BrowserStorageKeyPredicate): void {
+// Returns whether every matching key was removed.
+function clearUserScopedBrowserStorage(browserStorage: Storage, shouldRemoveStorageKey: BrowserStorageKeyPredicate): boolean {
   const storageKeysToRemove: Array<string> = [];
-  for (let index = 0; index < browserStorage.length; index += 1) {
-    const storageKey = browserStorage.key(index);
-    if (storageKey === null) {
-      continue;
-    }
+  try {
+    for (let index = 0; index < browserStorage.length; index += 1) {
+      const storageKey = browserStorage.key(index);
+      if (storageKey === null) {
+        continue;
+      }
 
-    if (shouldRemoveStorageKey(storageKey)) {
-      storageKeysToRemove.push(storageKey);
+      if (shouldRemoveStorageKey(storageKey)) {
+        storageKeysToRemove.push(storageKey);
+      }
     }
+  } catch {
+    return false;
   }
 
-  for (const storageKey of storageKeysToRemove) {
-    browserStorage.removeItem(storageKey);
-  }
+  return storageKeysToRemove
+    .map((storageKey) => removeStoredValue(browserStorage, storageKey))
+    .every((isRemoved) => isRemoved);
 }
 
 function shouldRemoveAppLocalStorageKey(storageKey: string): boolean {
@@ -143,19 +194,19 @@ function shouldRemoveAppLocalStorageKeyAfterIncompleteIndexedDbCleanup(storageKe
 }
 
 export function markBrowserReauthRequired(): void {
-  getBrowserStorage()?.setItem(BROWSER_REAUTH_REQUIRED_KEY, "1");
+  writeStoredValue(getBrowserStorage(), BROWSER_REAUTH_REQUIRED_KEY, "1");
 }
 
 export function isBrowserReauthRequired(): boolean {
   const browserStorage = getBrowserStorage();
-  return browserStorage?.getItem(BROWSER_REAUTH_REQUIRED_KEY) === "1"
-    || browserStorage?.getItem(AUTH_RESET_REQUIRED_KEY) === "1";
+  return readStoredValue(browserStorage, BROWSER_REAUTH_REQUIRED_KEY) === "1"
+    || readStoredValue(browserStorage, AUTH_RESET_REQUIRED_KEY) === "1";
 }
 
 export function clearBrowserReauthRequired(): void {
   const browserStorage = getBrowserStorage();
-  browserStorage?.removeItem(BROWSER_REAUTH_REQUIRED_KEY);
-  browserStorage?.removeItem(AUTH_RESET_REQUIRED_KEY);
+  removeStoredValue(browserStorage, BROWSER_REAUTH_REQUIRED_KEY);
+  removeStoredValue(browserStorage, AUTH_RESET_REQUIRED_KEY);
 }
 
 export function markAuthResetRequired(): void {
@@ -216,6 +267,7 @@ export async function clearAllLocalBrowserData(
   }
 
   throwIfIndexedDbOpenRecoveryFailed();
+  let localStorageCleared = false;
   if (browserStorage !== null) {
     const shouldRemoveBaseStorageKey: BrowserStorageKeyPredicate = indexedDbError === null
       ? shouldRemoveAppLocalStorageKey
@@ -226,7 +278,7 @@ export async function clearAllLocalBrowserData(
         && shouldRemoveBaseStorageKey(storageKey)
       )
       : shouldRemoveBaseStorageKey;
-    clearUserScopedBrowserStorage(browserStorage, shouldRemoveStorageKey);
+    localStorageCleared = clearUserScopedBrowserStorage(browserStorage, shouldRemoveStorageKey);
   }
 
   if (indexedDbError !== null) {
@@ -234,7 +286,7 @@ export async function clearAllLocalBrowserData(
       eventName: "local_browser_data_cleanup_failed",
       reason,
       indexedDbCleared: false,
-      localStorageCleared: browserStorage !== null,
+      localStorageCleared,
       // errorName carries the underlying IndexedDB error name when the failure
       // originated in the local database layer, next to the raw errorMessage.
       errorName: readCleanupErrorName(indexedDbError),
@@ -243,11 +295,25 @@ export async function clearAllLocalBrowserData(
     throw indexedDbError;
   }
 
+  if (browserStorage !== null && localStorageCleared === false) {
+    // A key that survived cleanup can leak the previous account's data into the next session, so stop the flow.
+    const localStorageError = new Error("Local storage cleanup could not remove every user-scoped key");
+    logLocalBrowserDataCleanup(browserStorage, {
+      eventName: "local_browser_data_cleanup_failed",
+      reason,
+      indexedDbCleared: true,
+      localStorageCleared,
+      errorName: localStorageError.name,
+      errorMessage: localStorageError.message,
+    });
+    throw localStorageError;
+  }
+
   logLocalBrowserDataCleanup(browserStorage, {
     eventName: "local_browser_data_cleanup_succeeded",
     reason,
     indexedDbCleared: true,
-    localStorageCleared: browserStorage !== null,
+    localStorageCleared,
     errorName: null,
     errorMessage: null,
   });

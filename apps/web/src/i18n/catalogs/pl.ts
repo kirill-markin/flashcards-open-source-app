@@ -8,26 +8,32 @@ const plCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "karta",
+        few: "karty",
         other: "kart",
       },
       day: {
         one: "dzień",
+        few: "dni",
         other: "dni",
       },
       deck: {
         one: "talia",
+        few: "talie",
         other: "talii",
       },
       hour: {
-        one: "godzina",
+        one: "godzinę",
+        few: "godziny",
         other: "godzin",
       },
       minute: {
-        one: "minuta",
+        one: "minutę",
+        few: "minuty",
         other: "minut",
       },
       tag: {
         one: "tag",
+        few: "tagi",
         other: "tagów",
       },
     },
@@ -198,6 +204,7 @@ const plCatalog: TranslationCatalog = {
     streakInfo: "Zapas zamrożeń {{available}}/{{capacity}}. Następne doładowanie {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "powtórka",
+      few: "powtórki",
       other: "powtórek",
     },
     streakDayAria: {
@@ -236,7 +243,7 @@ const plCatalog: TranslationCatalog = {
       title: "Ranking ocen",
       loading: "Ładowanie rankingu ocen...",
       infoToggleLabel: "O rankingu ocen",
-      info: "Do rankingu liczą się powtórki ocenione jako Trudne, Dobre lub Łatwe. Powtórki ocenione jako Jeszcze raz nie są liczone.",
+      info: "Do rankingu liczą się powtórki ocenione jako Trudne, Dobrze lub Łatwe. Powtórki ocenione jako Jeszcze raz nie są liczone.",
       periodsLabel: "Okres rankingu ocen",
       periods: {
         last24Hours: "24 godz.",
@@ -324,7 +331,7 @@ const plCatalog: TranslationCatalog = {
       title: "Ranking serii",
       loading: "Ładowanie rankingu serii...",
       infoToggleLabel: "O rankingu serii",
-      info: "O pozycji decyduje liczba dni aktualnej serii. Dniem serii jest każdy lokalny dzień z co najmniej jedną powtórką karty ocenioną jako Jeszcze raz, Trudne, Dobre lub Łatwe. Gdy publiczna migawka nie jest jeszcze dostępna, pokazujemy Twoją lokalną aktualną serię.",
+      info: "O pozycji decyduje liczba dni aktualnej serii. Dniem serii jest każdy lokalny dzień z co najmniej jedną powtórką karty ocenioną jako Jeszcze raz, Trudne, Dobrze lub Łatwe. Gdy publiczna migawka nie jest jeszcze dostępna, pokazujemy Twoją lokalną aktualną serię.",
       updatedAt: "Zaktualizowano {{duration}} temu",
       guestBody: "Zaloguj się, aby porównać swoją aktualną serię z innymi uczącymi się.",
       participationDisabledBody: "Rankingi serii są ukryte, gdy udział w rankingu jest wyłączony. Włącz go ponownie, aby zobaczyć innych uczących się i swoje miejsce.",
@@ -332,6 +339,7 @@ const plCatalog: TranslationCatalog = {
       unavailable: "Ranking serii jest teraz niedostępny. Zajrzyj później.",
       dayLabels: {
         one: "dzień",
+        few: "dni",
         other: "dni",
       },
     },
@@ -694,6 +702,7 @@ const plCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "karta",
+        few: "karty",
         other: "kart",
       },
     },
@@ -994,7 +1003,7 @@ const plCatalog: TranslationCatalog = {
     ratings: {
       again: "Jeszcze raz",
       easy: "Łatwe",
-      good: "Dobre",
+      good: "Dobrze",
       hard: "Trudne",
     },
     shortcuts: {
@@ -1160,9 +1169,21 @@ const plCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statystyki: {{deckName}}",
     newDeck: "Nowa talia",
     statLabels: {
-      cards: "kart",
-      new: "nowe",
-      reviewed: "powtórzone",
+      cards: {
+        one: "karta",
+        few: "karty",
+        other: "kart",
+      },
+      new: {
+        one: "nowa",
+        few: "nowe",
+        other: "nowych",
+      },
+      reviewed: {
+        one: "powtórzona",
+        few: "powtórzone",
+        other: "powtórzonych",
+      },
     },
     subtitle: "Talie to inteligentne filtry, a nie pojemniki. Dopasowują karty po tagach.",
     title: "Talie",

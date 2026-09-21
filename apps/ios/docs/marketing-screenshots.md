@@ -154,7 +154,7 @@ The generator does not have a `--family` flag.
 It derives the output family from the one already booted simulator:
 
 - simulator name contains `iPhone` -> writes into `iphone/`
-- simulator name contains `iPad` -> writes into `ipad/`
+- simulator name contains `iPad` -> writes into `ipad/`, except for an iPhone-only tag from [Supported locales](#supported-locales), which fails before anything is written
 
 This means:
 

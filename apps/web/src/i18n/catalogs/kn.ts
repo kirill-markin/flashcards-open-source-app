@@ -1160,9 +1160,18 @@ const knCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} ಅಂಕಿಅಂಶಗಳು",
     newDeck: "ಹೊಸ ಡೆಕ್",
     statLabels: {
-      cards: "ಕಾರ್ಡ್‌ಗಳು",
-      new: "ಹೊಸದು",
-      reviewed: "ಪುನರಾವರ್ತಿಸಲಾಗಿದೆ",
+      cards: {
+        one: "ಕಾರ್ಡ್",
+        other: "ಕಾರ್ಡ್‌ಗಳು",
+      },
+      new: {
+        one: "ಹೊಸದು",
+        other: "ಹೊಸದು",
+      },
+      reviewed: {
+        one: "ಪುನರಾವರ್ತಿಸಲಾಗಿದೆ",
+        other: "ಪುನರಾವರ್ತಿಸಲಾಗಿದೆ",
+      },
     },
     subtitle: "ಡೆಕ್‌ಗಳು ಸ್ಮಾರ್ಟ್ ಫಿಲ್ಟರ್‌ಗಳು, ಕಂಟೇನರ್‌ಗಳಲ್ಲ. ಅವು ಟ್ಯಾಗ್‌ಗಳ ಪ್ರಕಾರ ಕಾರ್ಡ್‌ಗಳನ್ನು ಹೊಂದಿಸುತ್ತವೆ.",
     title: "ಡೆಕ್‌ಗಳು",
