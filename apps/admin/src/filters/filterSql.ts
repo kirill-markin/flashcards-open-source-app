@@ -90,9 +90,12 @@ export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): stri
  *     of an already-counted actor, over every event name.
  *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
  *   - `reports/catalogInstallFunnel/query.ts`, `install_actor_first_event`: whether the installing
- *     account is new, which is a different rule from the cohort above - the absence of any trusted
- *     row before the click, read with no lower bound and, by design, no event-name restriction at
- *     all, so it sees every name the collector accepts.
+ *     identity is new, which is a different rule from the cohort above - the absence of any trusted
+ *     row before the anchoring site visit, read with no lower bound and, by design, no event-name
+ *     restriction at all, so it sees every name the collector accepts. The shared visitor identity
+ *     makes it load-bearing rather than defensive: the site click that anchors the row is itself a
+ *     collector row resolving onto that same identity, so without this predicate every installer
+ *     would have an event at their own first visit and none would ever read as new.
  *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
  *     filter bar composes.
  *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
@@ -115,16 +118,18 @@ export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): stri
  *   - `reports/catalogInstalls/query.ts`, the `deck_installs` CTE (`catalog_deck_installed`). By
  *     event name.
  *   - `reports/catalogInstallFunnel/query.ts`, `install_actors` and `install_actor_reviews`. By
- *     event name: an attempt names a person only through the server-origin
+ *     event name: an identity enters them only by reaching the server-origin
  *     `catalog_deck_installed`, and the reviews read `review_answered`.
- *   - `reports/catalogInstallFunnel/query.ts`, the journey-level exclusion. By event name on the
- *     install bridge and by that query's own `trust_level = 'authenticated_client'` on the
- *     install-start bridge, which its comment already states is load-bearing.
+ *   - `reports/catalogInstallFunnel/query.ts`, the identity-level exclusion, which reads the
+ *     candidate row's own `actor_id` rather than bridging to an install. That id is the
+ *     collector-supplied one for a visitor who never signed in, and the predicate stays off it on
+ *     purpose: this removes rows rather than counting people, so reaching such a row is the safe
+ *     direction and refusing to read it would keep an excluded person in.
  *   - `buildCatalogInstalledDeckVersionsSql` and `buildCatalogInstallAttributionSql` below - two
  *     fragments, one bridge - read by the installed-deck and click-attribution filters and by their
  *     five option lists. The attribution fragment reads `anonymous_client` clicks deliberately, but
  *     a click names nobody: every actor it emits comes from the server-origin install it joins to.
- *   - `reports/catalogInstallFunnel/query.ts`, the installs-without-journey diagnostic, which
+ *   - `reports/catalogInstallFunnel/query.ts`, the installs-without-site-visit diagnostic, which
  *     applies the actor exclusions to a server-origin `catalog_deck_installed`. By event name.
  *   - `filters/optionsQuery.ts`, the deck-slug list (`catalog_deck_installed`). By event name.
  *
@@ -138,6 +143,23 @@ export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): stri
  *     detection there, never cause one, and the restatement is what removes that suppression, so
  *     the restatement itself can cause a detection that would not have fired and can never
  *     suppress one.
+ *
+ * NOT AN ENTRY EITHER, AND THE ONE THAT MOST LOOKS LIKE ONE. The catalog install funnel's cohort
+ * keys a row on the identity an `anonymous_client` click carries, and reads that identity through
+ * every later step. Applying this predicate there would empty the report, because the marketing-site
+ * click is credential-free by construction. It stays out because what the funnel counts is browser
+ * visitor identities arriving at a deck, which is what it calls them on screen and in
+ * `docs/admin-app.md`; that number is never merged into a count of people, and the one place inside
+ * the funnel that does decide a person - `install_actor_first_event` - is in the applied list above.
+ *
+ * That funnel's `surface_events` is not an entry either, one step further on. It derives per-actor
+ * step facts over `screen_viewed`, which is not `serverOnly`, and reads the import screens at every
+ * trust level, so the collector does reach it - but it decides no person. Its one trust predicate,
+ * on the signed-in step, selects a row an account credential sent rather than excluding the
+ * collector's. Its actors are already fixed by the cohort above and it only answers which steps
+ * one of them reached, so this rule stays off deliberately rather than by omission: applying it
+ * would zero the import-screen step for every signed-out visitor, whose `screen_viewed` rows are
+ * credential-free by construction.
  *
  * NOT ENTRIES, AND NOT OMISSIONS. The two available-range probes,
  * `buildReviewEventsByDateAvailableRangeSql` and `buildCatalogInstallFunnelAvailableRangeSql`, read
@@ -505,15 +527,13 @@ export function buildInstalledDecksFilterSql(
  *
  * `catalog_install_clicked` NAMES NO USER, because the click happens before sign-in. The only bridge
  * to a person is the server-origin `catalog_deck_installed`, which carries `actor_id` next to the
- * same `install_journey_id` and `package_version_id`; those two are the join keys here, exactly as in
- * `apps/admin/src/reports/catalogInstallFunnel/query.ts`. A click that never became an install names
+ * same `install_journey_id` and `package_version_id`; those two are the join keys here. A click that never became an install names
  * nobody and can therefore never match, and an install whose click was never recorded carries no
  * attribution at all - which is why the installed-deck fragment above reads the install alone.
  *
- * ONE CLICK PER JOURNEY, THE FIRST ONE. The clicks are reduced by the same
- * `DISTINCT ON (install_journey_id)` ordering the funnel applies, so a journey that recorded several
- * clicks is attributed to one click here exactly as it is there, rather than carrying the values of
- * every click it ever recorded.
+ * ONE CLICK PER JOURNEY, THE FIRST ONE. The clicks are reduced by `DISTINCT ON (install_journey_id)`,
+ * so a journey that recorded several clicks is attributed to one click rather than carrying the
+ * values of every click it ever recorded.
  *
  * Both sides state `event_properties ? 'install_journey_id'`, which is the predicate of
  * `idx_product_events_catalog_install_journey`

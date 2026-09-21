@@ -135,9 +135,10 @@ export const analyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = Object
   analyticsFilterFieldOrder,
 ) as Array<AnalyticsFilterField>;
 
-// Funnels is keyed by an anonymous `install_journey_id` and its top steps happen before sign-in, so
-// the five identity-derived fields cannot be answered there and are absent rather than empty. Every
-// field takes a side here for the same reason the order above is exhaustive.
+// Funnels is keyed by the shared browser visitor identity and its top steps happen before sign-in,
+// so the five identity-derived fields, each of which asks something only an account answers, cannot
+// be answered there and are absent rather than empty. Every field takes a side here for the same
+// reason the order above is exhaustive.
 const funnelsAnalyticsFilterFieldApplicability = {
   dateRange: true,
   users: false,
@@ -273,51 +274,54 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     + ` ${catalogClickAttributionExplanationTail}`,
 };
 
-// What the four click-based catalog fields have to admit on this area, where they match a click that
-// never had to become anything: the one shared option list behind each of them is built from the
-// clicks that did become installs, because that is all the user-scoped areas can match. The installed
-// deck is not one of them, because its list is read from the install alone and says so itself.
+// What the four click-based catalog fields have to admit on this area. Their option lists are read
+// off the clicks themselves here, the same rows the predicates read, rather than through the
+// completed-install bridge the user-scoped areas need; the one thing left to say is that they are not
+// scoped to the selected dates. The installed deck is not one of them, because its list is read from
+// the install alone and says so itself.
 const funnelsCatalogOptionCoverageTail =
-  "The values on offer come from clicks that became installs, so a value only abandoned clicks ever recorded is not listed even though picking it would match attempts.";
+  "The values on offer are read from the clicks themselves and cover every day rather than only the selected ones, so a value that only clicks outside this range recorded is still listed and picking it empties the area.";
 
-// Funnels counts one anonymous catalog click attempt per row, so the five catalog fields read off the
-// attempt's own click inside the selected range instead of a person's lifetime install history, and
-// the platform is the click's own platform rather than every step's. The date range changes meaning
-// too: it places an attempt by its opening step and then lets the later steps run past the range,
-// so the shared "only events inside these days" wording would be false here.
+// Funnels counts one visitor identity and deck version per row, anchored at that identity's first
+// catalog click for the deck inside the selected range, so the five catalog fields read off that
+// anchoring click instead of a person's lifetime install history, and the platform is the click's own
+// platform rather than every step's. The date range changes meaning too: it places a visit by its
+// anchoring click and then lets the later steps run past the range, so the shared "only events inside
+// these days" wording would be false here.
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
-  // Cut from the on-screen text: the no-click diagnostic places a landing by its own day the same
-  // way, and the seven-day tail is exactly what the "Attempts still inside 7-day window" line under
-  // the funnel counts, so a short recent window reads as a drop-off when it is only immature.
+  // Cut from the on-screen text: the two no-visit diagnostics place a preview or an install by its
+  // own day the same way, and the seven-day tail is exactly what the "Visits still inside 7-day
+  // window" line under the funnel counts, so a short recent window reads as a drop-off when it is
+  // only immature.
   dateRange:
-    "Selects an attempt by the click that opens it rather than bounding every event counted here: an attempt belongs to this range when its own catalog click falls on a UTC calendar day inside it, with the first and the last day both included. Every later milestone still counts for seven days after that opening click, so Landed, Preview ready, Install started and Installed can each have happened past the last selected day. A range whose last clicks are less than seven days old is therefore still filling rather than finished.",
-  // Cut from the on-screen text: the no-click diagnostic keeps landings by the landing row's own
-  // platform the same way, and it empties together with the rest of the area when a platform other
-  // than web is picked on its own.
+    "Selects a site visit by the catalog click that opens it rather than bounding every event counted here: a visitor and deck belong to this range when they made a catalog click on a UTC calendar day inside it, with the first and the last day both included, and the visit is anchored at the first such click. Every later step still counts for seven days after that click, so any step from the import screen to the review steps can have happened past the last selected day. A range whose last clicks are less than seven days old is therefore still filling rather than finished.",
+  // Cut from the on-screen text: the no-visit preview diagnostic keeps previews by the preview row's
+  // own platform the same way, and the no-visit install diagnostic reads the install row's platform,
+  // which is always unattributed, so it empties as soon as any device platform is picked.
   eventPlatforms:
-    "Keeps only the catalog click attempts whose own click row carries one of the client platforms you pick; a journey's later steps are never judged by it, so an install finished on another device still counts. The public collector stamps every anonymous catalog click as web itself and no client can override it, so picking any other platform on its own empties this whole area.",
+    "Keeps only the site visits whose own catalog click row carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the click resolve to the same person. The public collector stamps every anonymous catalog click as web itself and no client can override it, so picking any other platform on its own empties this whole area.",
   // Cut from the on-screen text, in full, because it is the reason the option list and the matching
   // disagree: the list is built from deck versions somebody completed an install of, so three kinds
   // of version are missing from it while a click on them is still counted here - a version nobody
   // ever finished installing, a version whose only completed installs came from a test account or an
   // excluded actor, and the delisted `test` fixture, which is dropped from the list outright while an
-  // attempt aimed at it is excluded only when a matching install start inside the conversion window
+  // visit aimed at it is excluded only when a matching install start inside the conversion window
   // named that slug, so a test click that never reached install start is still counted.
   installedDecks:
-    "Keeps only the catalog click attempts aimed at one of the deck versions you pick, read from the attempt's own click inside the selected date range. The versions on offer are the ones somebody completed an install of, so a version can be missing from the list and still match attempts here.",
+    "Keeps only the site visits aimed at one of the deck versions you pick, read from the visit's own catalog click inside the selected date range. The versions on offer are the ones somebody completed an install of, so a version can be missing from the list and still match visits here.",
   catalogPlacements:
-    "Keeps only the catalog click attempts whose own click came from one of the page placements you pick, inside the selected date range."
+    "Keeps only the site visits whose own catalog click came from one of the page placements you pick, inside the selected date range."
     + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogSources:
-    "Keeps only the catalog click attempts whose own click was attributed to one of the traffic sources you pick, inside the selected date range."
+    "Keeps only the site visits whose own catalog click was attributed to one of the traffic sources you pick, inside the selected date range."
     + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogDeviceCategories:
-    "Keeps only the catalog click attempts whose own click came from one of the device categories you pick, inside the selected date range."
+    "Keeps only the site visits whose own catalog click came from one of the device categories you pick, inside the selected date range."
     + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogClickBrowserLanguages:
-    "Keeps only the catalog click attempts whose own click reported one of the browser languages you pick, inside the selected date range; it is the browser setting at click time rather than the language the app is used in."
+    "Keeps only the site visits whose own catalog click reported one of the browser languages you pick, inside the selected date range; it is the browser setting at click time rather than the language the app is used in."
     + ` ${funnelsCatalogOptionCoverageTail}`,
 };
 
@@ -341,7 +345,7 @@ const analyticsFilterFieldExplanationOverridesByArea: Readonly<
   audience: audienceAnalyticsFilterFieldExplanations,
 };
 
-/** What one filter means in one area, because the same field can count people or click attempts. */
+/** What one filter means in one area, because the same field can count people or site visits. */
 export function getAnalyticsFilterFieldExplanation(
   area: AnalyticsArea,
   field: AnalyticsFilterField,
@@ -353,7 +357,7 @@ export function getAnalyticsFilterFieldExplanation(
 // A label has to be a full phrase somebody can read without opening this file, so a field whose
 // subject genuinely changes in an area is renamed here rather than neutralised into a name that fits
 // everywhere and says nothing. The date range is that field: on the user-scoped areas it bounds the
-// events being counted, while on `funnels` it only places an attempt by its opening click and the
+// events being counted, while on `funnels` it only places a visit by its opening click and the
 // later steps run past it, which is what the explanation above says.
 const funnelsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
