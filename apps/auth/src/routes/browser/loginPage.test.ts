@@ -1,6 +1,5 @@
-// These tests run without SESSION_ENCRYPTION_KEY, so `sign()` throws inside `ensureAnalyticsVisitor`
-// and the visitor-cookie write is swallowed as designed. Nothing here asserts that GET /login sets
-// that cookie, and nothing here would notice if it stopped: this file covers the rendered page only.
+// This file covers the rendered page only. GET /login sets no analytics cookie: the anonymous id is
+// the product domain's shared `analytics_visitor` cookie, which this service reads and never writes.
 import assert from "node:assert/strict";
 import test from "node:test";
 import loginPage from "./loginPage.js";

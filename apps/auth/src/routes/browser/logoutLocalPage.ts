@@ -4,7 +4,7 @@
  * that the web client can use to present the account-deleted completion state.
  */
 import { Hono } from "hono";
-import { clearAuthAnalyticsVisitor } from "../../server/analytics/visitorSession.js";
+import { clearAuthAnalyticsGuestSession } from "../../server/analytics/visitorSession.js";
 import { clearBrowserSessionCookies } from "../../server/browserSession.js";
 import { type AuthAppEnv } from "../../server/apiErrors.js";
 
@@ -52,9 +52,10 @@ app.get("/logout-local", async (c) => {
   }
 
   clearBrowserSessionCookies(c);
-  // The account this browser measured under has been deleted, so its visitor identity is retired
-  // with it, under the rule in `clearAuthAnalyticsVisitor`'s docstring.
-  clearAuthAnalyticsVisitor(c);
+  // The account this browser measured under has been deleted, so the guest credential that could
+  // still be bound to another one is retired with it, under the rule in
+  // `clearAuthAnalyticsGuestSession`'s docstring.
+  clearAuthAnalyticsGuestSession(c);
   return c.redirect(appendAccountDeletedMarkers(redirectUri), 302);
 });
 
