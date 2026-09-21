@@ -864,6 +864,10 @@ const enCatalog = {
     privacyPolicy: "Privacy Policy",
     error: "That did not go through. Please try again.",
   },
+  analyticsConsentWithdrawal: {
+    link: "Analytics cookies",
+    close: "Close",
+  },
   analyticsSettings: {
     title: "Analytics",
     subtitle: "Choose whether this browser may be measured.",

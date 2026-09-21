@@ -34,8 +34,10 @@
   place-items: center;
   padding: 24px;
   /* Viewport-sized like `.invite-page`, and not lifted by `#root`'s padding, so it reserves the
-     consent strip's height itself. */
-  padding-bottom: calc(24px + var(--analytics-consent-banner-height, 0px));
+     consent strip's height itself, and the withdrawal link's that replaces it. */
+  padding-bottom: calc(
+    24px + var(--analytics-consent-banner-height, 0px) + var(--analytics-consent-withdrawal-height, 0px)
+  );
   background: var(--bg);
 }
 
@@ -72,7 +74,9 @@
   .dev-preview-page {
     padding: 16px;
     /* Restates the reserve the shorthand above drops. */
-    padding-bottom: calc(16px + var(--analytics-consent-banner-height, 0px));
+    padding-bottom: calc(
+      16px + var(--analytics-consent-banner-height, 0px) + var(--analytics-consent-withdrawal-height, 0px)
+    );
     align-items: start;
   }
 }
