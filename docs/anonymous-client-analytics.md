@@ -131,6 +131,11 @@ be repaired afterwards, and a producer told nothing would believe it had reporte
 not. A per-request random id in place of the visitor id is not an escape either: it is an identifier
 again.
 
+An `identityFree` entry may not declare a property this collector promotes into an identity column,
+and the catalog type refuses the combination at compile time rather than at run time. The claimed-id
+refusal above does not cover it: nothing is claimed, so the promoted property would reach the
+writer's assertion instead and be refused there as a `500` no request could avoid.
+
 ## The consent facts
 
 `consent_prompt_shown`, `consent_granted` and `consent_declined` carry no properties and no `screen`:
