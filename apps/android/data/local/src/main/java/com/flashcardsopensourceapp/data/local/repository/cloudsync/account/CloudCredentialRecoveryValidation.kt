@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkCont
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
+import com.flashcardsopensourceapp.data.local.model.cloud.isSameCloudService
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.AuthenticatedCloudSession
 import java.util.Locale
 
@@ -191,8 +192,12 @@ internal fun linkedCredentialRecoveryConfigurationMatches(
     configuration: CloudServiceConfiguration
 ): Boolean {
     return recoveryState.previousCloudState == CloudAccountState.LINKED &&
-        recoveryState.configurationMode == configuration.mode &&
-        recoveryState.apiBaseUrl == configuration.apiBaseUrl
+        isSameCloudService(
+            leftMode = recoveryState.configurationMode,
+            leftApiBaseUrl = recoveryState.apiBaseUrl,
+            rightMode = configuration.mode,
+            rightApiBaseUrl = configuration.apiBaseUrl
+        )
 }
 
 internal fun linkedCredentialRecoveryIdentityMatches(
