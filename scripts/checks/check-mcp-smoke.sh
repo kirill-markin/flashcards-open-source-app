@@ -5,6 +5,11 @@ set -euo pipefail
 
 AUTH_BASE_URL="${FLASHCARDS_MCP_SMOKE_AUTH_BASE_URL:-https://auth.flashcards-open-source-app.com}"
 API_BASE_URL="${FLASHCARDS_MCP_SMOKE_API_BASE_URL:-https://api.flashcards-open-source-app.com/v1}"
+# The API base the deployment advertises in its payloads (data.apiBaseUrl,
+# docs.discoveryUrl, surface.accountUrl). It differs from API_BASE_URL, the host
+# this smoke calls, once CDK_API_BASE_URL moves the published origin; unset, the
+# two are the same value.
+EXPECTED_ADVERTISED_API_BASE_URL="${FLASHCARDS_MCP_SMOKE_EXPECTED_ADVERTISED_API_BASE_URL:-${API_BASE_URL}}"
 MCP_BASE_URL="${FLASHCARDS_MCP_SMOKE_MCP_BASE_URL:-https://mcp.flashcards-open-source-app.com}"
 # The optional second public MCP host, checked only when the release workflow's MCP
 # smoke job resolves it: the alternate domain name and certificate ARN are both set
@@ -284,7 +289,7 @@ request_json "POST" "${AUTH_BASE_URL%/}/api/agent/send-code" "{\"email\":\"${DEM
 assert_status "200" "POST /api/agent/send-code"
 SEND_CODE_BODY="${LAST_BODY_FILE}"
 OTP_SESSION_TOKEN="$(
-  python3 - <<'PY' "${SEND_CODE_BODY}" "${DEMO_EMAIL}" "${AUTH_BASE_URL%/}" "${API_BASE_URL%/}"
+  python3 - <<'PY' "${SEND_CODE_BODY}" "${DEMO_EMAIL}" "${AUTH_BASE_URL%/}" "${EXPECTED_ADVERTISED_API_BASE_URL%/}"
 import json
 import sys
 
@@ -330,7 +335,7 @@ print(connection_id)
 PY
 )"
 AGENT_API_KEY="$(
-  python3 - <<'PY' "${VERIFY_CODE_BODY}" "${CONNECTION_LABEL}" "${API_BASE_URL%/}" "${AGENT_CONNECTION_ID}"
+  python3 - <<'PY' "${VERIFY_CODE_BODY}" "${CONNECTION_LABEL}" "${EXPECTED_ADVERTISED_API_BASE_URL%/}" "${AGENT_CONNECTION_ID}"
 import json
 import sys
 

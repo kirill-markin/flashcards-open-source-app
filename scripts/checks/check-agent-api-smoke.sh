@@ -5,6 +5,11 @@ set -euo pipefail
 
 AUTH_BASE_URL="${FLASHCARDS_AGENT_SMOKE_AUTH_BASE_URL:-https://auth.flashcards-open-source-app.com}"
 API_BASE_URL="${FLASHCARDS_AGENT_SMOKE_API_BASE_URL:-https://api.flashcards-open-source-app.com/v1}"
+# The API base the deployment advertises in its payloads (data.apiBaseUrl,
+# docs.discoveryUrl, surface.accountUrl). It differs from API_BASE_URL, the host
+# this smoke calls, once CDK_API_BASE_URL moves the published origin; unset, the
+# two are the same value.
+EXPECTED_ADVERTISED_API_BASE_URL="${FLASHCARDS_AGENT_SMOKE_EXPECTED_ADVERTISED_API_BASE_URL:-${API_BASE_URL}}"
 DEMO_EMAIL="${FLASHCARDS_AGENT_SMOKE_DEMO_EMAIL:-google-review@example.com}"
 WORKSPACE_PREFIX="${FLASHCARDS_AGENT_SMOKE_WORKSPACE_PREFIX:-E2E agent api }"
 CONNECTION_LABEL_PREFIX="${FLASHCARDS_AGENT_SMOKE_CONNECTION_LABEL_PREFIX:-E2E agent api }"
@@ -145,7 +150,7 @@ trap cleanup EXIT
 request_json "GET" "${API_BASE_URL%/}/" "" ""
 assert_status "200" "GET /v1/"
 ROOT_DISCOVERY_BODY="${LAST_BODY_FILE}"
-python3 - <<'PY' "${ROOT_DISCOVERY_BODY}" "${DEMO_EMAIL}" "${API_BASE_URL%/}" "${AUTH_BASE_URL%/}"
+python3 - <<'PY' "${ROOT_DISCOVERY_BODY}" "${DEMO_EMAIL}" "${EXPECTED_ADVERTISED_API_BASE_URL%/}" "${AUTH_BASE_URL%/}"
 import json
 import sys
 
@@ -182,7 +187,7 @@ request_json "GET" "${API_BASE_URL%/}/agent/openapi.json" "" ""
 assert_status "200" "GET /v1/agent/openapi.json"
 CANONICAL_SOURCE_DISCOVERY_BODY="${LAST_BODY_FILE}"
 CANONICAL_SOURCE_DISCOVERY_HEADERS="${LAST_HEADERS_FILE}"
-python3 - <<'PY' "${CANONICAL_SOURCE_DISCOVERY_BODY}" "${CANONICAL_SOURCE_DISCOVERY_HEADERS}" "${API_BASE_URL%/}"
+python3 - <<'PY' "${CANONICAL_SOURCE_DISCOVERY_BODY}" "${CANONICAL_SOURCE_DISCOVERY_HEADERS}" "${EXPECTED_ADVERTISED_API_BASE_URL%/}"
 import json
 import sys
 from urllib.parse import urlparse
@@ -256,7 +261,7 @@ request_json "POST" "${AUTH_BASE_URL%/}/api/agent/send-code" "{\"email\":\"${DEM
 assert_status "200" "POST /api/agent/send-code"
 SEND_CODE_BODY="${LAST_BODY_FILE}"
 OTP_SESSION_TOKEN="$(
-  python3 - <<'PY' "${SEND_CODE_BODY}" "${DEMO_EMAIL}" "${AUTH_BASE_URL%/}" "${API_BASE_URL%/}"
+  python3 - <<'PY' "${SEND_CODE_BODY}" "${DEMO_EMAIL}" "${AUTH_BASE_URL%/}" "${EXPECTED_ADVERTISED_API_BASE_URL%/}"
 import json
 import sys
 
@@ -284,7 +289,7 @@ request_json "POST" "${AUTH_BASE_URL%/}/api/agent/verify-code" "{\"code\":\"0000
 assert_status "200" "POST /api/agent/verify-code"
 VERIFY_CODE_BODY="${LAST_BODY_FILE}"
 AGENT_API_KEY="$(
-  python3 - <<'PY' "${VERIFY_CODE_BODY}" "${CONNECTION_LABEL}" "${API_BASE_URL%/}"
+  python3 - <<'PY' "${VERIFY_CODE_BODY}" "${CONNECTION_LABEL}" "${EXPECTED_ADVERTISED_API_BASE_URL%/}"
 import json
 import sys
 
