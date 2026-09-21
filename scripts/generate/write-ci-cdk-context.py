@@ -114,6 +114,7 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "alertEmail": get_trimmed_env("CDK_CONTEXT_ALERT_EMAIL"),
         "analyticsAccessEnabled": get_trimmed_env("CDK_CONTEXT_ANALYTICS_ACCESS_ENABLED"),
         "anthropicApiKeySecretArn": get_trimmed_env("CDK_CONTEXT_ANTHROPIC_API_KEY_SECRET_ARN"),
+        "apiBaseUrl": get_trimmed_env("CDK_CONTEXT_API_BASE_URL"),
         "apiCertificateArn": get_trimmed_env("CDK_CONTEXT_API_CERTIFICATE_ARN"),
         "apexRedirectCertificateArnUsEast1": get_trimmed_env("CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1"),
         "authCertificateArn": get_trimmed_env("CDK_CONTEXT_AUTH_CERTIFICATE_ARN"),
@@ -158,6 +159,7 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "webAdditionalCertificateArnUsEast1": get_trimmed_env(
             "CDK_CONTEXT_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1",
         ),
+        "webPrimaryHostRetired": get_trimmed_env("CDK_CONTEXT_WEB_PRIMARY_HOST_RETIRED"),
     }
     validate_required_backend_sentry_context(values, aws_deploy_role_arn)
     return {key: value for key, value in values.items() if value != ""}

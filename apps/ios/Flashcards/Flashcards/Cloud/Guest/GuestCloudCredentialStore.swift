@@ -312,21 +312,23 @@ final class GuestCloudCredentialStore {
     }
 
     private func decodeGuestSession(data: Data) throws -> StoredGuestCloudSession {
-        do {
-            return try self.decoder.decode(StoredGuestCloudSession.self, from: data)
-        } catch {
+        guard let session = try? self.decoder.decode(StoredGuestCloudSession.self, from: data) else {
             guard let legacySession = try? self.decoder.decode(LegacyStoredGuestCloudSession.self, from: data) else {
                 throw GuestCloudCredentialStoreError.decodingFailed
             }
 
             return try self.migrateLegacyGuestSession(session: legacySession)
         }
+
+        return canonicalizedStoredGuestCloudSession(
+            session: session,
+            configuration: try self.currentCloudServiceConfiguration()
+        )
     }
 
-    private func migrateLegacyGuestSession(session: LegacyStoredGuestCloudSession) throws -> StoredGuestCloudSession {
-        let configuration: CloudServiceConfiguration
+    private func currentCloudServiceConfiguration() throws -> CloudServiceConfiguration {
         do {
-            configuration = try loadCloudServiceConfiguration(
+            return try loadCloudServiceConfiguration(
                 bundle: self.bundle,
                 userDefaults: self.userDefaults,
                 decoder: self.decoder
@@ -334,6 +336,10 @@ final class GuestCloudCredentialStore {
         } catch {
             throw GuestCloudCredentialStoreError.migrationFailed(Flashcards.errorMessage(error: error))
         }
+    }
+
+    private func migrateLegacyGuestSession(session: LegacyStoredGuestCloudSession) throws -> StoredGuestCloudSession {
+        let configuration = try self.currentCloudServiceConfiguration()
 
         let migratedSession = StoredGuestCloudSession(
             guestToken: session.guestToken,
