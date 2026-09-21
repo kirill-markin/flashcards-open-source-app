@@ -86,20 +86,26 @@ private enum MarketingScreenshotLocaleCatalog {
         "ru",
         "es-MX",
         "es-ES",
+        "bg",
         "bn",
         "ca",
         "cs",
         "da",
         "el",
+        "et",
+        "fa",
         "fi",
         "gu",
         "he",
         "hr",
         "hu",
         "id",
+        "is",
         "it",
         "kn",
         "ko",
+        "lt",
+        "lv",
         "ml",
         "mr",
         "nb",
@@ -110,13 +116,15 @@ private enum MarketingScreenshotLocaleCatalog {
         "sk",
         "sl",
         "sv",
+        "sw",
         "ta",
         "te",
         "th",
         "tr",
         "uk",
         "ur",
-        "vi"
+        "vi",
+        "zu"
     ]
 
     static let localizationAliases: [String: String] = [
@@ -141,12 +149,15 @@ private enum MarketingScreenshotLocaleCatalog {
         "es-419": "es-MX",
         "es-ES": "es-ES",
         "ar-SA": "ar",
+        "bg": "bg",
         "bn": "bn",
         "bn-BD": "bn",
         "ca": "ca",
         "cs": "cs",
         "da": "da",
         "el": "el",
+        "et": "et",
+        "fa": "fa",
         "fi": "fi",
         "gu": "gu",
         "gu-IN": "gu",
@@ -154,10 +165,13 @@ private enum MarketingScreenshotLocaleCatalog {
         "hr": "hr",
         "hu": "hu",
         "id": "id",
+        "is": "is",
         "it": "it",
         "kn": "kn",
         "kn-IN": "kn",
         "ko": "ko",
+        "lt": "lt",
+        "lv": "lv",
         "ml": "ml",
         "ml-IN": "ml",
         "mr": "mr",
@@ -174,6 +188,7 @@ private enum MarketingScreenshotLocaleCatalog {
         "sl": "sl",
         "sl-SI": "sl",
         "sv": "sv",
+        "sw": "sw",
         "ta": "ta",
         "ta-IN": "ta",
         "te": "te",
@@ -183,7 +198,8 @@ private enum MarketingScreenshotLocaleCatalog {
         "uk": "uk",
         "ur": "ur",
         "ur-PK": "ur",
-        "vi": "vi"
+        "vi": "vi",
+        "zu": "zu"
     ]
 
     static let fixturesByLocalizationCode: [String: MarketingScreenshotLocaleFixture] = Dictionary(
@@ -766,6 +782,58 @@ private enum MarketingScreenshotLocaleCatalog {
             ]
         ),
         MarketingScreenshotLocaleFixture(
+            localizationCode: "bg",
+            appleLanguage: "bg",
+            appleLocale: "bg_BG",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "В икономиката какво е алтернативна цена?",
+                backText: """
+                Алтернативната цена е стойността на най-добрата алтернатива, от която се отказвате, когато изберете една възможност вместо друга.
+
+                Пример за изпит: ако прекарате съботата в подготовка за изпит по микроикономика вместо да работите платена смяна, пропуснатото възнаграждение е част от алтернативната цена.
+                """,
+                subjectTag: "икономика"
+            ),
+            reviewAiDraftMessage: "Създай 6 нови карти по същата икономическа тема, които покриват тясно свързани идеи, каквито още нямаме.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "В икономиката какво е алтернативна цена?",
+                    backText: "Стойността на най-добрата алтернатива, от която се отказвате, когато изберете една възможност вместо друга.",
+                    subjectTag: "икономика"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "В биологията какво е осмоза?",
+                    backText: "Движението на водата през мембрана от по-ниска към по-висока концентрация на разтвореното вещество.",
+                    subjectTag: "биология"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "В статистиката какво е стандартно отклонение?",
+                    backText: "Мярка за това колко са разпръснати стойностите около средната стойност.",
+                    subjectTag: "статистика"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "В химията какво е катализатор?",
+                    backText: "Вещество, което ускорява химична реакция, без да се изразходва в нея.",
+                    subjectTag: "химия"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "В психологията какво е когнитивно изкривяване?",
+                    backText: "Систематичен модел на мислене, който може да изкриви преценката и вземането на решения.",
+                    subjectTag: "психология"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Във физиката какво е скорост?",
+                    backText: "Бързината на движение на тялото заедно с посоката на това движение.",
+                    subjectTag: "физика"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "В компютърните науки какво е рекурсия?",
+                    backText: "Метод, при който функция решава задача, като извиква сама себе си върху по-малки версии на същата задача.",
+                    subjectTag: "компютърни науки"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
             localizationCode: "bn",
             appleLanguage: "bn",
             appleLocale: "bn_BD",
@@ -1022,6 +1090,110 @@ private enum MarketingScreenshotLocaleCatalog {
                     frontText: "Τι είναι η αναδρομή στην πληροφορική;",
                     backText: "Μια μέθοδος όπου μια συνάρτηση λύνει ένα πρόβλημα καλώντας τον εαυτό της για μικρότερες εκδοχές του ίδιου προβλήματος.",
                     subjectTag: "πληροφορική"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
+            localizationCode: "et",
+            appleLanguage: "et",
+            appleLocale: "et_EE",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "Mis on majanduses alternatiivkulu?",
+                backText: """
+                Alternatiivkulu on parima kõrvalejäetud valiku väärtus, millest sa loobud, kui valid ühe võimaluse teise asemel.
+
+                Eksaminäide: kui veedad laupäeva mikroökonoomika eksamiks õppides, selle asemel et teha tasustatud vahetus, on saamata jäänud palk osa alternatiivkulust.
+                """,
+                subjectTag: "majandus"
+            ),
+            reviewAiDraftMessage: "Loo 6 uut kaarti sama majandusteema kohta, mis katavad tihedalt seotud mõisteid, mida meil veel ei ole.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "Mis on majanduses alternatiivkulu?",
+                    backText: "Parima kõrvalejäetud valiku väärtus, millest sa loobud, kui valid ühe võimaluse teise asemel.",
+                    subjectTag: "majandus"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Mis on bioloogias osmoos?",
+                    backText: "Vee liikumine läbi membraani madalama lahustunud aine sisaldusega poolelt kõrgema poole.",
+                    subjectTag: "bioloogia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Mis on statistikas standardhälve?",
+                    backText: "Näitaja, mis mõõdab väärtuste hajuvust keskmise ümber.",
+                    subjectTag: "statistika"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Mis on keemias katalüsaator?",
+                    backText: "Aine, mis kiirendab keemilist reaktsiooni, ilma et see reaktsioonis ära kuluks.",
+                    subjectTag: "keemia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Mis on psühholoogias kognitiivne kallutatus?",
+                    backText: "Süstemaatiline mõttemuster, mis võib moonutada hinnanguid ja otsuste tegemist.",
+                    subjectTag: "psühholoogia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Mis on füüsikas kiirus?",
+                    backText: "Keha liikumise kiirus koos selle liikumise suunaga.",
+                    subjectTag: "füüsika"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Mis on arvutiteaduses rekursioon?",
+                    backText: "Meetod, kus funktsioon lahendab ülesande, kutsudes iseennast sama ülesande väiksemate osade jaoks.",
+                    subjectTag: "arvutiteadus"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
+            localizationCode: "fa",
+            appleLanguage: "fa",
+            appleLocale: "fa_IR",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "در اقتصاد، هزینه فرصت چیست؟",
+                backText: """
+                هزینه فرصت ارزش بهترین گزینه جایگزینی است که وقتی یک گزینه را به جای گزینه دیگر انتخاب می‌کنید، از آن چشم‌پوشی می‌کنید.
+
+                مثال امتحانی: اگر شنبه را به جای کار کردن در یک شیفت با حقوق، صرف مطالعه برای امتحان اقتصاد خرد کنید، دستمزد از دست‌رفته بخشی از هزینه فرصت است.
+                """,
+                subjectTag: "اقتصاد"
+            ),
+            reviewAiDraftMessage: "6 کارت جدید درباره همان موضوع اقتصادی بساز که مفاهیم نزدیک به آن را پوشش دهد و هنوز آن‌ها را نداریم.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "در اقتصاد، هزینه فرصت چیست؟",
+                    backText: "ارزش بهترین گزینه جایگزینی که هنگام انتخاب یک گزینه به جای گزینه دیگر از آن چشم‌پوشی می‌کنید.",
+                    subjectTag: "اقتصاد"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "در زیست‌شناسی، اسمز چیست؟",
+                    backText: "حرکت آب از میان یک غشا از غلظت کمتر ماده حل‌شده به غلظت بیشتر آن.",
+                    subjectTag: "زیست‌شناسی"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "در آمار، انحراف معیار چیست؟",
+                    backText: "معیاری برای سنجش میزان پراکندگی مقادیر حول میانگین.",
+                    subjectTag: "آمار"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "در شیمی، کاتالیزور چیست؟",
+                    backText: "ماده‌ای که سرعت یک واکنش شیمیایی را افزایش می‌دهد بدون آنکه در آن مصرف شود.",
+                    subjectTag: "شیمی"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "در روان‌شناسی، سوگیری شناختی چیست؟",
+                    backText: "الگویی نظام‌مند در تفکر که می‌تواند قضاوت و تصمیم‌گیری را منحرف کند.",
+                    subjectTag: "روان‌شناسی"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "در فیزیک، سرعت برداری چیست؟",
+                    backText: "تندی حرکت یک جسم همراه با جهت آن حرکت.",
+                    subjectTag: "فیزیک"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "در علوم کامپیوتر، بازگشت چیست؟",
+                    backText: "روشی که در آن یک تابع مسئله را با فراخوانی خودش روی نسخه‌های کوچک‌تر همان مسئله حل می‌کند.",
+                    subjectTag: "علوم کامپیوتر"
                 )
             ]
         ),
@@ -1338,6 +1510,58 @@ private enum MarketingScreenshotLocaleCatalog {
             ]
         ),
         MarketingScreenshotLocaleFixture(
+            localizationCode: "is",
+            appleLanguage: "is",
+            appleLocale: "is_IS",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "Hvað er fórnarkostnaður í hagfræði?",
+                backText: """
+                Fórnarkostnaður er verðmæti næstbesta kostarins sem þú gefur eftir þegar þú velur einn valkost fram yfir annan.
+
+                Prófdæmi: ef þú eyðir laugardeginum í að lesa fyrir próf í örhagfræði í stað þess að vinna launaða vakt eru töpuðu launin hluti af fórnarkostnaðinum.
+                """,
+                subjectTag: "hagfræði"
+            ),
+            reviewAiDraftMessage: "Búðu til 6 ný spjöld um sama hagfræðiefni sem fjalla um náskyld hugtök sem við eigum ekki þegar.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "Hvað er fórnarkostnaður í hagfræði?",
+                    backText: "Verðmæti næstbesta kostarins sem þú gefur eftir þegar þú velur einn valkost fram yfir annan.",
+                    subjectTag: "hagfræði"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Hvað er himnuflæði í líffræði?",
+                    backText: "Flæði vatns gegnum himnu frá lægri styrk uppleysts efnis til hærri styrks.",
+                    subjectTag: "líffræði"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Hvað er staðalfrávik í tölfræði?",
+                    backText: "Mælikvarði á hversu dreifð gildin eru í kringum meðaltalið.",
+                    subjectTag: "tölfræði"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Hvað er hvati í efnafræði?",
+                    backText: "Efni sem flýtir efnahvarfi án þess að eyðast í því.",
+                    subjectTag: "efnafræði"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Hvað er hugræn skekkja í sálfræði?",
+                    backText: "Kerfisbundið hugsanamynstur sem getur skekkt mat og ákvarðanatöku.",
+                    subjectTag: "sálfræði"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Hvað er hraði í eðlisfræði?",
+                    backText: "Hraði hlutar ásamt stefnu hreyfingar hans.",
+                    subjectTag: "eðlisfræði"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Hvað er endurkvæmni í tölvunarfræði?",
+                    backText: "Aðferð þar sem fall leysir verkefni með því að kalla á sjálft sig fyrir minni útgáfur sama verkefnis.",
+                    subjectTag: "tölvunarfræði"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
             localizationCode: "it",
             appleLanguage: "it",
             appleLocale: "it_IT",
@@ -1490,6 +1714,110 @@ private enum MarketingScreenshotLocaleCatalog {
                     frontText: "컴퓨터 과학에서 재귀란 무엇인가요?",
                     backText: "함수가 같은 문제의 더 작은 형태에 대해 자기 자신을 호출하여 문제를 해결하는 방법입니다.",
                     subjectTag: "컴퓨터 과학"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
+            localizationCode: "lt",
+            appleLanguage: "lt",
+            appleLocale: "lt_LT",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "Kas ekonomikoje yra alternatyvieji kaštai?",
+                backText: """
+                Alternatyvieji kaštai yra geriausios atsisakytos alternatyvos vertė, kurios netenkate pasirinkę vieną variantą vietoj kito.
+
+                Egzamino pavyzdys: jei šeštadienį praleidžiate ruošdamiesi mikroekonomikos egzaminui, užuot dirbę apmokamą pamainą, prarastas atlyginimas yra alternatyviųjų kaštų dalis.
+                """,
+                subjectTag: "ekonomika"
+            ),
+            reviewAiDraftMessage: "Sukurk 6 naujas korteles ta pačia ekonomikos tema, apimančias glaudžiai susijusias sąvokas, kurių dar neturime.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas ekonomikoje yra alternatyvieji kaštai?",
+                    backText: "Geriausios atsisakytos alternatyvos vertė, kurios netenkate pasirinkę vieną variantą vietoj kito.",
+                    subjectTag: "ekonomika"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas biologijoje yra osmosas?",
+                    backText: "Vandens judėjimas pro membraną iš mažesnės ištirpusios medžiagos koncentracijos į didesnę.",
+                    subjectTag: "biologija"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas statistikoje yra standartinis nuokrypis?",
+                    backText: "Matas, rodantis, kaip plačiai reikšmės išsidėsčiusios apie vidurkį.",
+                    subjectTag: "statistika"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas chemijoje yra katalizatorius?",
+                    backText: "Medžiaga, kuri pagreitina cheminę reakciją ir pati joje nesunaudojama.",
+                    subjectTag: "chemija"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas psichologijoje yra kognityvinis iškraipymas?",
+                    backText: "Sistemingas mąstymo modelis, galintis iškreipti vertinimą ir sprendimų priėmimą.",
+                    subjectTag: "psichologija"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas fizikoje yra greitis?",
+                    backText: "Kūno judėjimo sparta kartu su to judėjimo kryptimi.",
+                    subjectTag: "fizika"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas informatikoje yra rekursija?",
+                    backText: "Metodas, kai funkcija sprendžia uždavinį kviesdama pati save mažesnėms to paties uždavinio dalims.",
+                    subjectTag: "informatika"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
+            localizationCode: "lv",
+            appleLanguage: "lv",
+            appleLocale: "lv_LV",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "Kas ekonomikā ir alternatīvās izmaksas?",
+                backText: """
+                Alternatīvās izmaksas ir labākās noraidītās izvēles vērtība, no kuras jūs atsakāties, izvēloties vienu iespēju citas vietā.
+
+                Eksāmena piemērs: ja sestdienu pavadāt, gatavojoties mikroekonomikas eksāmenam, nevis strādājot apmaksātā maiņā, zaudētā alga ir daļa no alternatīvajām izmaksām.
+                """,
+                subjectTag: "ekonomika"
+            ),
+            reviewAiDraftMessage: "Izveido 6 jaunas kartītes par to pašu ekonomikas tēmu, aptverot cieši saistītas idejas, kādu mums vēl nav.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas ekonomikā ir alternatīvās izmaksas?",
+                    backText: "Labākās noraidītās izvēles vērtība, no kuras jūs atsakāties, izvēloties vienu iespēju citas vietā.",
+                    subjectTag: "ekonomika"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas bioloģijā ir osmoze?",
+                    backText: "Ūdens kustība caur membrānu no zemākas izšķīdušās vielas koncentrācijas uz augstāku.",
+                    subjectTag: "bioloģija"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas statistikā ir standartnovirze?",
+                    backText: "Rādītājs, kas parāda, cik izkliedētas ir vērtības ap vidējo lielumu.",
+                    subjectTag: "statistika"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas ķīmijā ir katalizators?",
+                    backText: "Viela, kas paātrina ķīmisko reakciju un pati tajā netiek patērēta.",
+                    subjectTag: "ķīmija"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas psiholoģijā ir kognitīvā novirze?",
+                    backText: "Sistemātisks domāšanas modelis, kas var izkropļot spriedumus un lēmumu pieņemšanu.",
+                    subjectTag: "psiholoģija"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas fizikā ir ātrums?",
+                    backText: "Ķermeņa kustības ātrums kopā ar šīs kustības virzienu.",
+                    subjectTag: "fizika"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kas datorzinātnē ir rekursija?",
+                    backText: "Metode, kurā funkcija atrisina uzdevumu, izsaucot pati sevi mazākām tā paša uzdevuma daļām.",
+                    subjectTag: "datorzinātne"
                 )
             ]
         ),
@@ -2014,6 +2342,58 @@ private enum MarketingScreenshotLocaleCatalog {
             ]
         ),
         MarketingScreenshotLocaleFixture(
+            localizationCode: "sw",
+            appleLanguage: "sw",
+            appleLocale: "sw_KE",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "Katika uchumi, gharama ya fursa ni nini?",
+                backText: """
+                Gharama ya fursa ni thamani ya chaguo bora unaloachana nalo unapochagua chaguo moja badala ya lingine.
+
+                Mfano wa mtihani: ukitumia Jumamosi kusomea mtihani wa uchumi mdogo badala ya kufanya zamu inayolipwa, mshahara uliopotea ni sehemu ya gharama ya fursa.
+                """,
+                subjectTag: "uchumi"
+            ),
+            reviewAiDraftMessage: "Tengeneza kadi 6 mpya kuhusu mada hiyo hiyo ya uchumi, zikigusia dhana zinazohusiana kwa karibu ambazo bado hatuna.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "Katika uchumi, gharama ya fursa ni nini?",
+                    backText: "Thamani ya chaguo bora unaloachana nalo unapochagua chaguo moja badala ya lingine.",
+                    subjectTag: "uchumi"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Katika biolojia, osmosisi ni nini?",
+                    backText: "Msogeo wa maji kupitia utando kutoka mkusanyiko mdogo wa kiyeyushwa kwenda mkusanyiko mkubwa.",
+                    subjectTag: "biolojia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Katika takwimu, mkengeuko wa kawaida ni nini?",
+                    backText: "Kipimo cha jinsi thamani zilivyotawanyika kuzunguka wastani.",
+                    subjectTag: "takwimu"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Katika kemia, kichocheo ni nini?",
+                    backText: "Kitu kinachoharakisha mmenyuko wa kemikali bila chenyewe kutumika ndani yake.",
+                    subjectTag: "kemia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Katika saikolojia, upendeleo wa kifikra ni nini?",
+                    backText: "Mtindo wa kufikiri wa kimfumo unaoweza kupotosha tathmini na uamuzi.",
+                    subjectTag: "saikolojia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Katika fizikia, kasi yenye mwelekeo ni nini?",
+                    backText: "Mwendo wa kitu pamoja na mwelekeo wa mwendo huo.",
+                    subjectTag: "fizikia"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Katika sayansi ya kompyuta, urudiaji ni nini?",
+                    backText: "Mbinu ambapo kazi hutatua tatizo kwa kujiita yenyewe kwa matoleo madogo ya tatizo hilo.",
+                    subjectTag: "sayansi ya kompyuta"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
             localizationCode: "ta",
             appleLanguage: "ta",
             appleLocale: "ta_IN",
@@ -2374,6 +2754,58 @@ private enum MarketingScreenshotLocaleCatalog {
                     frontText: "Trong khoa học máy tính, đệ quy là gì?",
                     backText: "Phương pháp trong đó một hàm giải bài toán bằng cách tự gọi chính nó để giải các phiên bản nhỏ hơn của cùng bài toán.",
                     subjectTag: "khoa học máy tính"
+                )
+            ]
+        ),
+        MarketingScreenshotLocaleFixture(
+            localizationCode: "zu",
+            appleLanguage: "zu",
+            appleLocale: "zu_ZA",
+            reviewCard: MarketingScreenshotCardFixture(
+                frontText: "Kwezomnotho, iyini indleko yethuba?",
+                backText: """
+                Indleko yethuba iyinani lenketho engcono kunazo zonke oyilahlayo lapho ukhetha enye inketho esikhundleni senye.
+
+                Isibonelo sesivivinyo: uma uchitha uMgqibelo ufundela isivivinyo somnotho omncane esikhundleni sokusebenza ishifu ekhokhelwayo, iholo olilahlekelwe liyingxenye yendleko yethuba.
+                """,
+                subjectTag: "ezomnotho"
+            ),
+            reviewAiDraftMessage: "Dala amakhadi angu-6 amasha ngesihloko esifanayo sezomnotho, ahlanganisa imiqondo esondelene kakhulu esingakabi nayo.",
+            conceptCards: [
+                MarketingScreenshotCardFixture(
+                    frontText: "Kwezomnotho, iyini indleko yethuba?",
+                    backText: "Inani lenketho engcono kunazo zonke oyilahlayo lapho ukhetha enye inketho esikhundleni senye.",
+                    subjectTag: "ezomnotho"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kwibhayoloji, iyini i-osmosis?",
+                    backText: "Ukunyakaza kwamanzi ngolwelwesi kusuka ekugxileni okuphansi kwesincibilikisiwe kuya kokuphakeme.",
+                    subjectTag: "ibhayoloji"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kwizibalo, iyini ukuchezuka okujwayelekile?",
+                    backText: "Isilinganiso sokuthi amanani asakazeke kangakanani ngokuzungeza isilinganiso.",
+                    subjectTag: "izibalo"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kwikhemistri, iyini i-catalyst?",
+                    backText: "Into esheshisa ukusabela kwamakhemikhali ngaphandle kokuthi isetshenziswe kukho.",
+                    subjectTag: "ikhemistri"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kwisayikholoji, iyini ukuchema kwengqondo?",
+                    backText: "Iphethini yokucabanga ehlelekile engahlanekezela ukwahlulela nokuthatha izinqumo.",
+                    subjectTag: "isayikholoji"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kwifiziksi, iyini ijubane?",
+                    backText: "Isivinini sento kanye nendlela eqonde kuyo ekunyakazeni kwayo.",
+                    subjectTag: "ifiziksi"
+                ),
+                MarketingScreenshotCardFixture(
+                    frontText: "Kwisayensi yamakhompiyutha, iyini i-recursion?",
+                    backText: "Indlela lapho umsebenzi uxazulula inkinga ngokuzibiza wona ngokwawo ezinguqulweni ezincane zaleyo nkinga.",
+                    subjectTag: "isayensi yamakhompiyutha"
                 )
             ]
         )

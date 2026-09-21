@@ -13,6 +13,7 @@ print_usage() {
 Usage:
   build-ios-marketing-materials.sh [--all-locales | --locale <code>] [--family <iphone|ipad>] [--skip-screenshots] [--optimization-mode <visually-lossless|lossless|none>]
   build-ios-marketing-materials.sh --list-locales
+  build-ios-marketing-materials.sh --list-ipad-locales
 
 What it does:
   1. Optionally regenerates the raw localized iOS App Store screenshots.
@@ -20,8 +21,13 @@ What it does:
   3. Optimizes the generated PNG files.
 
 Locale selection:
-  --all-locales      Build every supported locale. This is the default if no locale flag is passed.
+  --all-locales      Build every capture tag of the resolved family. This is the default if no locale flag is passed.
+                     The iPad family excludes the iPhone-only capture tags.
   --locale <code>    Build one locale. Supported canonical locales match the raw screenshot pipeline.
+
+Locale discovery:
+  --list-locales       Print every capture tag, which is the iPhone family list.
+  --list-ipad-locales  Print the iPad family list, without the iPhone-only capture tags.
 
 Family selection:
   --family <value>   Required with --skip-screenshots. Optional otherwise; when omitted, the script derives the family from the currently booted simulator.
@@ -39,6 +45,31 @@ EOF
 
 print_supported_locales() {
     bash "$repo_root/scripts/ios/capture-ios-marketing-screenshot.sh" --list-locales
+}
+
+print_locales_for_family() {
+    local family="$1"
+
+    if [[ "$family" == "ipad" ]]; then
+        bash "$repo_root/scripts/ios/capture-ios-marketing-screenshot.sh" --list-ipad-locales
+        return
+    fi
+
+    print_supported_locales
+}
+
+locale_is_listed() {
+    local candidate="$1"
+    local locales_output="$2"
+    local locale=""
+
+    while IFS= read -r locale; do
+        if [[ "$locale" == "$candidate" ]]; then
+            return 0
+        fi
+    done <<< "$locales_output"
+
+    return 1
 }
 
 canonicalize_locale() {
@@ -78,6 +109,9 @@ canonicalize_locale() {
         es-ES)
             echo "es-ES"
             ;;
+        bg)
+            echo "bg"
+            ;;
         bn | bn-BD)
             echo "bn"
             ;;
@@ -92,6 +126,12 @@ canonicalize_locale() {
             ;;
         el)
             echo "el"
+            ;;
+        et)
+            echo "et"
+            ;;
+        fa)
+            echo "fa"
             ;;
         fi)
             echo "fi"
@@ -111,6 +151,9 @@ canonicalize_locale() {
         id)
             echo "id"
             ;;
+        is)
+            echo "is"
+            ;;
         it)
             echo "it"
             ;;
@@ -119,6 +162,12 @@ canonicalize_locale() {
             ;;
         ko)
             echo "ko"
+            ;;
+        lt)
+            echo "lt"
+            ;;
+        lv)
+            echo "lv"
             ;;
         ml | ml-IN)
             echo "ml"
@@ -150,6 +199,9 @@ canonicalize_locale() {
         sv)
             echo "sv"
             ;;
+        sw)
+            echo "sw"
+            ;;
         ta | ta-IN)
             echo "ta"
             ;;
@@ -170,6 +222,9 @@ canonicalize_locale() {
             ;;
         vi)
             echo "vi"
+            ;;
+        zu)
+            echo "zu"
             ;;
         *)
             return 1
@@ -287,8 +342,9 @@ resolve_requested_family() {
 }
 
 resolve_requested_locales() {
-    local use_all_locales="$1"
-    local requested_locale="$2"
+    local family="$1"
+    local use_all_locales="$2"
+    local requested_locale="$3"
     local canonical_locale=""
 
     if [[ "$use_all_locales" == "true" && -n "$requested_locale" ]]; then
@@ -296,10 +352,18 @@ resolve_requested_locales() {
         exit 1
     fi
 
+    local family_locales_output=""
+    family_locales_output="$(print_locales_for_family "$family")"
+
     if [[ -n "$requested_locale" ]]; then
         if ! canonical_locale="$(canonicalize_locale "$requested_locale")"; then
             echo "Unsupported iOS marketing screenshot locale: $requested_locale" >&2
-            echo "Supported locales: $(print_supported_locales | tr '\n' ' ' | sed -E 's/[[:space:]]+$//')" >&2
+            echo "Supported $family locales: $(printf '%s' "$family_locales_output" | tr '\n' ' ' | sed -E 's/[[:space:]]+$//')" >&2
+            exit 1
+        fi
+
+        if ! locale_is_listed "$canonical_locale" "$family_locales_output"; then
+            echo "Locale '$canonical_locale' is an iPhone-only capture tag and has no $family screenshots." >&2
             exit 1
         fi
 
@@ -307,7 +371,7 @@ resolve_requested_locales() {
         return
     fi
 
-    print_supported_locales
+    printf '%s\n' "$family_locales_output"
 }
 
 resolve_screenshot_paths() {
@@ -515,6 +579,10 @@ while [[ $# -gt 0 ]]; do
             print_supported_locales
             exit 0
             ;;
+        --list-ipad-locales)
+            print_locales_for_family "ipad"
+            exit 0
+            ;;
         --help | -h)
             print_usage
             exit 0
@@ -535,7 +603,7 @@ if [[ "$use_all_locales" == "false" && -z "$requested_locale" ]]; then
     use_all_locales="true"
 fi
 
-resolved_locales_output="$(resolve_requested_locales "$use_all_locales" "$requested_locale")"
+resolved_locales_output="$(resolve_requested_locales "$resolved_family" "$use_all_locales" "$requested_locale")"
 resolved_locales=()
 while IFS= read -r line; do
     [[ -n "$line" ]] && resolved_locales+=("$line")
