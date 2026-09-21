@@ -4,15 +4,23 @@ Every surface a new product language touches, in delivery order. Each step names
 the decision and links to the guide that owns it. Nothing here repeats those
 guides.
 
-Coverage is deliberately different across surfaces. Auth and iOS support 50
-locales across 49 languages, with separate `es-ES` and `es-MX`. iOS bundle
-coverage is owned by [iOS localization](ios-localization.md#supported-app-locales).
-Web and backend name pools each carry 11 locale tags; Android advertises 49
-languages, and the marketing website carries 10 locales. The App Store source
-covers 42 locales (41 languages). Repository resources, generated screenshots,
-editable Store drafts, and the released binary are separate delivery states.
-Do not widen web, Android, website, or name-pool coverage without an explicit
-scope decision.
+A new app language lands on every product surface: auth, iOS, the web app,
+Android, and the marketing website. Auth, iOS, and the web app use the same
+tags, with separate `es-ES` and `es-MX`; Android and the website use one
+generic tag per language. iOS bundle coverage is owned by
+[iOS localization](ios-localization.md#supported-app-locales). The App Store
+source covers 42 locales (41 languages). Repository resources, generated
+screenshots, editable Store drafts, and the released binary are separate
+delivery states. Backend name pools stay narrower; do not widen them without an
+explicit scope decision.
+
+The website deliberately translates less than the app, and this is permanent,
+not a backlog: interface, home, features, pricing, and catalog chrome are
+translated, while docs, legal pages, and blog articles fall back to English
+unless a translated file exists. Public deck content is never translated. Every
+site locale has catalog pages and appears in catalog filters; its catalog can
+be empty until decks exist. The website derives each locale's translated routes
+from its content files in `src/data/contentRegistry.ts`.
 
 Read the current locale sets from each surface's source below and its linked
 guide. The sets can differ intentionally; reconcile each requested rollout
@@ -34,7 +42,8 @@ rg -n 'Record<AppLocale' src next.config.ts # when website changes are in scope
 
 Independent locale inventories include:
 
-- [apps/web/src/i18n/types.ts](../apps/web/src/i18n/types.ts) — `supportedLocales`
+- [apps/web/src/i18n/types.ts](../apps/web/src/i18n/types.ts) — `supportedLocales`,
+  whose registration is checked by the [web parity check](web-localization.md#1-register-the-tag)
 - [apps/auth/src/routes/browser/loginPageLocale.ts](../apps/auth/src/routes/browser/loginPageLocale.ts) — `SUPPORTED_LOGIN_PAGE_LOCALES`
 - [apps/backend/src/community/anonymousDisplayNames.ts](../apps/backend/src/community/anonymousDisplayNames.ts) — `supportedAnonymousDisplayNameLocales`
 - [apps/android/app/src/main/res/xml/locales_config.xml](../apps/android/app/src/main/res/xml/locales_config.xml)
@@ -43,7 +52,9 @@ Independent locale inventories include:
 
 Two more backend lists are hand-maintained and nothing fails when they drift:
 `catalogAudienceLocales` in [apps/backend/src/catalog/types.ts](../apps/backend/src/catalog/types.ts),
-which must be changed together with the website's `src/lib/localeConfig.ts`, and
+which must be changed together with the website's `src/lib/localeConfig.ts`
+(a backend test pins only that its entries are unique lowercase two-letter
+tags, because the website routes decks by generic tag), and
 `INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE` in
 [apps/backend/src/chat/composerSuggestions.ts](../apps/backend/src/chat/composerSuggestions.ts).
 
@@ -51,7 +62,7 @@ which must be changed together with the website's `src/lib/localeConfig.ts`, and
 
 | # | Surface | Decide | Guide |
 | --- | --- | --- | --- |
-| 1 | Web app | the exact tag the product exposes, and its week-first-day fallback | [docs/web-localization.md](web-localization.md) |
+| 1 | Web app | the catalog under the iOS tag, its registration, and its week-first-day fallback | [docs/web-localization.md](web-localization.md) |
 | 2 | Auth app | sign-in, OAuth consent, locale resolution, and text direction | [Auth and backend dependencies](#auth-and-backend-dependencies) |
 | 3 | Backend | composer-suggestion aliases and the deliberate English name-pool fallback | [Auth and backend dependencies](#auth-and-backend-dependencies) |
 | 4 | Demo onboarding card | the four strings in every locale of each affected client | [docs/demo-card.md](demo-card.md) |
@@ -59,7 +70,7 @@ which must be changed together with the website's `src/lib/localeConfig.ts`, and
 | 6 | Android | one line in `locales_config.xml`, then enable the language in Play App strings | [apps/android/docs/add-language-checklist.md](../apps/android/docs/add-language-checklist.md) |
 | 7 | Store listings | supported Store locale, authored copy, localized assets, and publication from an editable version | [docs/app-store-connect-metadata.md](app-store-connect-metadata.md), [Play listing localization runbook](../apps/android/docs/play-store-localization-runbook.md) |
 | 8 | Screenshots and composites | capture per locale, then build the derived materials | [apps/ios/docs/marketing-screenshots.md](../apps/ios/docs/marketing-screenshots.md), [apps/android/docs/marketing-screenshot-runbook.md](../apps/android/docs/marketing-screenshot-runbook.md) |
-| 9 | Marketing website | the generic tag, its content tree, and the home-page composite | `flashcards-open-source-app-website`, `src/lib/localeConfig.ts` |
+| 9 | Marketing website | the generic tag, its translated interface and marketing pages, `catalogAudienceLocales`, and the home-page composite | `flashcards-open-source-app-website`, `src/lib/localeConfig.ts` |
 
 Step 4 lands with each affected client. Deploy auth and backend locale handling
 before a client ships that locale. Capture screenshots only after its complete
@@ -109,6 +120,7 @@ the right spelling in each column rather than reusing one.
 | Hindi | `hi` | `hi` | `hi` | `hi-IN` | `hi` (alias `hi-IN`) | `hi` |
 | Japanese | `ja` | `ja` | `ja` | `ja-JP` | `ja` (alias `ja-JP`) | `ja` |
 | Russian | `ru` | `ru` | `ru` | `ru-RU` | `ru` (alias `ru-RU`) | `ru` |
+| Norwegian | `nb` | — | `no` | `no-NO` | `nb` (alias `no`) | `nb` |
 
 Notes that are easy to get wrong:
 
