@@ -26,7 +26,11 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { authenticateMcpBearerToken } from "../auth/mcpTokens";
 import { createMcpServer } from "../mcp/server";
-import { normalizeMcpTelemetryHeader, runWithMcpRequestId } from "../mcp/requestTelemetry";
+import {
+  normalizeMcpTelemetryValue,
+  readCallToolNameFromRequestBody,
+  runWithMcpRequestId,
+} from "../mcp/requestTelemetry";
 import { HttpError } from "../shared/errors";
 import { logMcpRequestEvent } from "../server/logging";
 import { getHttpErrorResponseHeaders } from "../server/httpErrorResponseHeaders";
@@ -223,6 +227,7 @@ type McpRequestRecordInput = Readonly<{
   statusCode: number;
   response: Response | null;
   toolName: string | null;
+  toolExecuted: boolean | null;
 }>;
 
 /**
@@ -235,13 +240,15 @@ type McpRequestRecordInput = Readonly<{
  * reached the resource.
  *
  * Its inputs are the request headers the MCP spec defines
- * (`MCP-Protocol-Version`, `Mcp-Method`, `User-Agent`, and `Mcp-Name` through
- * the caller-resolved `toolName`) plus the tool name the handlers report in
- * process, because `Mcp-Name` is only REQUIRED from MCP revision 2026-07-28 and
+ * (`MCP-Protocol-Version`, `Mcp-Method`, `User-Agent`) plus the `toolName` and
+ * `toolExecuted` the caller resolved, which prefer the tool the handlers report
+ * in process and the one the `tools/call` body names over the `Mcp-Name`
+ * header, because that header is only REQUIRED from MCP revision 2026-07-28 and
  * most live clients are older. Header values are client-controlled, so they are
  * normalized for telemetry and never validated: a missing or surprising header
- * must not change how a request that works today is served. The JSON-RPC body
- * is deliberately not parsed here; the transport owns it.
+ * must not change how a request that works today is served. Of the JSON-RPC
+ * body the transport owns, only a `tools/call` tool name is ever read (see
+ * `readCallToolNameFromRequestBody`).
  *
  * Reading the response body and writing the record are purely observational, so
  * both are fenced, in two phases that keep the invariant above unconditional.
@@ -266,12 +273,13 @@ async function emitMcpRequestRecord(input: McpRequestRecordInput): Promise<void>
     userId: input.connection.userId,
     workspaceId: input.connection.selectedWorkspaceId,
     connectionId: input.connection.connectionId,
-    caller: normalizeMcpTelemetryHeader(input.request.headers.get("user-agent")),
-    protocolVersion: normalizeMcpTelemetryHeader(
+    caller: normalizeMcpTelemetryValue(input.request.headers.get("user-agent")),
+    protocolVersion: normalizeMcpTelemetryValue(
       input.request.headers.get("mcp-protocol-version"),
     ),
-    jsonRpcMethod: normalizeMcpTelemetryHeader(input.request.headers.get("mcp-method")),
+    jsonRpcMethod: normalizeMcpTelemetryValue(input.request.headers.get("mcp-method")),
     toolName: input.toolName,
+    toolExecuted: input.toolExecuted,
     statusCode: input.statusCode,
     durationMs,
     responseChars,
@@ -302,7 +310,11 @@ async function emitMcpRequestRecord(input: McpRequestRecordInput): Promise<void>
  * Exactly one `mcp_request` telemetry record is emitted per request through the
  * shared `emitMcpRequestRecord` above, on the response path and on the
  * transport-fault path alike. The record names the tool the handlers report in
- * process, falling back to the `Mcp-Name` header when no handler ran.
+ * process; when no handler ran it falls back to the tool the `tools/call` body
+ * names and then to the `Mcp-Name` header, and marks the record `toolExecuted:
+ * false` when a tool was named and `null` when none was, so a call the SDK
+ * refused before execution is countable instead of being indistinguishable
+ * from a request that named no tool at all.
  *
  * The request id is the one the `X-Request-Id` middleware below generated for
  * this request, so it is on every response of this surface including the ones
@@ -318,8 +330,9 @@ async function handleMcpTransportRequest(
   requestId: string,
   startedAtMs: number,
 ): Promise<Response> {
-  const caller = normalizeMcpTelemetryHeader(request.headers.get("user-agent"));
-  const headerToolName = normalizeMcpTelemetryHeader(request.headers.get("mcp-name"));
+  const caller = normalizeMcpTelemetryValue(request.headers.get("user-agent"));
+  const headerToolName = normalizeMcpTelemetryValue(request.headers.get("mcp-name"));
+  const bodyToolName = await readCallToolNameFromRequestBody(request);
   // Every tool the request runs, in call order. The last one is what the record
   // names, so a batched request still produces exactly one record.
   const invokedToolNames: Array<string> = [];
@@ -341,16 +354,20 @@ async function handleMcpTransportRequest(
     enableDnsRebindingProtection: true,
     allowedHosts: [...getAllowedMcpHosts(baseDomain, getAlternateMcpHost())],
   });
-  const emitRequestRecord = (statusCode: number, response: Response | null): Promise<void> =>
-    emitMcpRequestRecord({
+  const emitRequestRecord = (statusCode: number, response: Response | null): Promise<void> => {
+    const invokedToolName = invokedToolNames.at(-1) ?? null;
+    const toolName = invokedToolName ?? bodyToolName ?? headerToolName;
+    return emitMcpRequestRecord({
       request,
       connection,
       requestId,
       startedAtMs,
       statusCode,
       response,
-      toolName: invokedToolNames.at(-1) ?? headerToolName,
+      toolName,
+      toolExecuted: toolName === null ? null : invokedToolName !== null,
     });
+  };
 
   try {
     await server.connect(transport);
@@ -449,6 +466,7 @@ function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
         statusCode: 405,
         response,
         toolName: null,
+        toolExecuted: null,
       });
 
       return response;
