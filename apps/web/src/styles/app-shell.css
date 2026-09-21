@@ -382,6 +382,27 @@
   padding: 88px 34px 40px;
 }
 
+.page-state-spinner {
+  display: block;
+  inline-size: 28px;
+  block-size: 28px;
+  margin: 0 auto;
+  border: 2px solid var(--panel-border-strong);
+  border-block-start-color: var(--text-secondary);
+  border-radius: 999px;
+  animation: page-state-spin 0.8s linear infinite;
+}
+
+@keyframes page-state-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .state-panel {
   gap: 18px;
 }
