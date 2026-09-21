@@ -11,8 +11,8 @@ Pushes to `main` use independent release and check streams:
 - for an iOS release, a human or authorized AI explicitly starts and monitors both Xcode Cloud workflows for the selected SHA under the [iOS release procedure](manual-production-release.md#ios)
 
 The `Web post-deploy smoke` job never loads the deployed web assets: it serves a
-`dist` built from the merge commit on `app.flashcards-open-source-app.com`
-through `/etc/hosts`, so only `auth.` and `api.` reach deployed infrastructure.
+`dist` built from the merge commit on `app.nibomo.com` through `/etc/hosts`, so
+only `auth.` and `api.` reach deployed infrastructure.
 Read it as a check of the merge commit's web client against the deployed
 backend, not of the hosted web deployment. A failed run uploads
 `web-live-smoke-failure-diagnostics` with the Playwright failure diagnostics and
