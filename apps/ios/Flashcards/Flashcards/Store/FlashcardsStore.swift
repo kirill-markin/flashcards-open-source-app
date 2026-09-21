@@ -365,10 +365,26 @@ final class FlashcardsStore {
         let initialReviewPublishedState = ReviewQueueRuntime.makeInitialPublishedState(
             selectedReviewFilter: initialSelectedReviewFilter
         )
-        let initialCloudCredentialRecoveryState = loadCloudCredentialRecoveryState(
+        let storedCloudCredentialRecoveryState = loadCloudCredentialRecoveryState(
             userDefaults: userDefaults,
             decoder: decoder
         )
+        // This initializer cannot throw, and a configuration this install cannot read already fails
+        // every cloud path with its own error, so the record is left exactly as it was stored.
+        let initialCloudCredentialRecoveryState: CloudCredentialRecoveryState?
+        if let storedState = storedCloudCredentialRecoveryState,
+            let configuration = try? loadCloudServiceConfiguration(
+                bundle: .main,
+                userDefaults: userDefaults,
+                decoder: decoder
+            ) {
+            initialCloudCredentialRecoveryState = canonicalizedCloudCredentialRecoveryState(
+                state: storedState,
+                configuration: configuration
+            )
+        } else {
+            initialCloudCredentialRecoveryState = storedCloudCredentialRecoveryState
+        }
         let initialCustomGuestWorkspacePauseState = loadCustomGuestWorkspacePauseState(
             userDefaults: userDefaults,
             decoder: decoder

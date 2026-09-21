@@ -158,7 +158,7 @@ extension FlashcardsStore {
 
         self.accountPreferencesIdentityKey = identityKey
         let cache = self.loadPersistedAccountPreferencesCache()
-        if let preferences = cache.preferencesByIdentityKey[identityKey] {
+        if let preferences = self.cachedAccountPreferences(cache: cache, identityKey: identityKey) {
             self.accountPreferences = preferences
         } else if previousIdentityKey != identityKey {
             self.accountPreferences = makeDefaultAccountPreferences()
@@ -304,6 +304,38 @@ extension FlashcardsStore {
         }
 
         self.applyCloudAccountPreferences(preferences: accountContext.preferences, session: session)
+    }
+
+    /**
+     * The entry for this identity, falling back to one written under another official API host. An
+     * install that cached its preferences before the host move would otherwise read the defaults
+     * until the server refresh lands, and keep them while offline.
+     */
+    private func cachedAccountPreferences(
+        cache: PersistedAccountPreferencesCache,
+        identityKey: String
+    ) -> AccountPreferences? {
+        if let preferences = cache.preferencesByIdentityKey[identityKey] {
+            return preferences
+        }
+        guard let cloudSettings = self.cloudSettings,
+            let userId = cloudSettings.linkedUserId,
+            let configuration = try? self.currentCloudServiceConfiguration() else {
+            return nil
+        }
+
+        for apiBaseUrl in equivalentStoredCloudApiBaseUrls(configuration: configuration) {
+            let candidateKey = makeAccountPreferencesIdentityKey(
+                userId: userId,
+                configurationMode: configuration.mode,
+                apiBaseUrl: apiBaseUrl
+            )
+            if let preferences = cache.preferencesByIdentityKey[candidateKey] {
+                return preferences
+            }
+        }
+
+        return nil
     }
 
     private func currentAccountPreferencesIdentityKey() -> String? {
