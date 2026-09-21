@@ -1160,7 +1160,7 @@ const bgCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Статистика за {{deckName}}",
     newDeck: "Ново тесте",
     statLabels: {
-      cards: "карти",
+      cards: "общо",
       new: "нови",
       reviewed: "преговорени",
     },

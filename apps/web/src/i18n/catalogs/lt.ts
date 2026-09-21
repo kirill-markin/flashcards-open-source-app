@@ -169,7 +169,7 @@ const ltCatalog: TranslationCatalog = {
     accessSettings: "Įkeliami prieigos nustatymai...",
     accessDetails: "Įkeliama prieigos informacija...",
     notificationSettings: "Įkeliami pranešimų nustatymai...",
-    schedulerSettings: "Įkeliami planuoklės nustatymai...",
+    schedulerSettings: "Įkeliami planuoklio nustatymai...",
     importSettings: "Įkeliami importavimo nustatymai...",
     exportSettings: "Įkeliami eksportavimo nustatymai...",
     decks: "Įkeliamos kaladės...",
@@ -526,7 +526,7 @@ const ltCatalog: TranslationCatalog = {
   settingsDevice: {
     title: "Įrenginys",
     subtitle: "Peržiūrėkite dabartinės darbo srities naršyklės vietinį veikimą, saugyklą ir įrenginio informaciją.",
-    languageCardTitle: "Kalbos nepaisymas",
+    languageCardTitle: "Kalbos pasirinkimas",
     languageCardDescription: "Pasirinkite programėlės kalbą tik šiai naršyklei. Ši nuostata lieka šiame įrenginyje.",
     labels: {
       workspace: "Darbo sritis",
@@ -544,7 +544,7 @@ const ltCatalog: TranslationCatalog = {
       clientBrowser: "Naršyklė",
       storage: "IndexedDB + localStorage",
       workspaceScope: "Būsimas sinchronizavimas apsiriboja šiuo metu šiame įrenginyje pasirinkta darbo sritimi.",
-      localData: "Vietinė talpykla šiame įrenginyje saugo korteles, kalades, planuoklės nustatymus ir laukiančias sinchronizavimo operacijas.",
+      localData: "Vietinė talpykla šiame įrenginyje saugo korteles, kalades, planuoklio nustatymus ir laukiančias sinchronizavimo operacijas.",
     },
   },
   settingsTest: {
@@ -687,7 +687,7 @@ const ltCatalog: TranslationCatalog = {
       initialHelp: "Norėdami tęsti, tiksliai įveskite šią frazę.",
       phraseLabel: "Patvirtinimo frazė",
       previewWarning: "Įspėjimas! Šis veiksmas negrįžtamas. Bus atstatyta pažanga darbo srityje {{workspaceName}}: {{count}}.",
-      previewHelp: "Paspauskite „Gerai“, kad išvalytumėte planuoklės būseną ir šios kortelės būtų pradėtos iš naujo.",
+      previewHelp: "Paspauskite „Gerai“, kad išvalytumėte planuoklio būseną ir šios kortelės būtų pradėtos iš naujo.",
       previewSummary: "Bus atstatyta: {{count}}.",
       resetting: "Atstatoma...",
     },
@@ -723,8 +723,8 @@ const ltCatalog: TranslationCatalog = {
   },
   workspaceScheduler: {
     title: "Planavimas / FSRS",
-    subtitle: "Peržiūrėkite būsimiems kartojimams naudojamą planuoklės konfigūraciją.",
-    schedulerLabel: "Planuoklė",
+    subtitle: "Peržiūrėkite būsimiems kartojimams naudojamą planuoklio konfigūraciją.",
+    schedulerLabel: "Planuoklis",
     labels: {
       algorithm: "Algoritmas",
       desiredRetention: "Norimas įsiminimas",
@@ -949,7 +949,7 @@ const ltCatalog: TranslationCatalog = {
     },
     errors: {
       mathRenderFailed: "Nepavyko atvaizduoti formulės.",
-      schedulerUnavailable: "Darbo srities planuoklės nustatymai neįkelti",
+      schedulerUnavailable: "Darbo srities planuoklio nustatymai neįkelti",
     },
     leaderboardShortcut: {
       ariaLabel: "Atidaryti lyderių lentelę",
@@ -1010,7 +1010,7 @@ const ltCatalog: TranslationCatalog = {
       stop: "Sustabdyti skaitymą: {{side}}",
     },
     speechUnavailable: "Šiame įrenginyje skaitymas balsu nepasiekiamas.",
-    subtitle: "Eilės lentelė ir sutelktas kortelių vertimo srautas.",
+    subtitle: "Eilės lentelė ir sutelktas kortelių apvertimo srautas.",
     title: "Kartojimas",
   },
   reviewEditor: {
@@ -1034,7 +1034,7 @@ const ltCatalog: TranslationCatalog = {
     front: "Kokia programėlė geriausia mokymuisi?",
     back1: "{{appName}} – programėlė, į kurią dabar žiūrite. Čia viskas yra mokymosi kortelė: klausimas priekyje, atsakymas kitoje pusėje.",
     back2: "Pateikite temą integruotam DI pokalbiui ir jis sukurs jums kortelių rinkinį.",
-    back3: "Išbandykite dabar: įvertinkite šią kortelę {{againLabel}}, ir ji grįš maždaug po minutės, kad šis atsakymas įsimintų.",
+    back3: "Išbandykite dabar: įvertinkite šią kortelę {{againLabel}}, ir ji grįš maždaug po minutės – taip atsakymą įsiminsite.",
   },
   mobileAppPromo: {
     title: "Kartokite telefone",

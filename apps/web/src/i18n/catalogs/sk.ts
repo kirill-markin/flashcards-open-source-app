@@ -430,7 +430,7 @@ const skCatalog: TranslationCatalog = {
     device: "Zariadenie",
     access: "Prístup",
     test: "Test",
-    ariaLabel: "Karty nastavení",
+    ariaLabel: "Záložky nastavení",
   },
   settingsHome: {
     title: "Nastavenia",
@@ -942,7 +942,7 @@ const skCatalog: TranslationCatalog = {
     empty: {
       noCardsBody: "Zatiaľ ste nevytvorili žiadne karty. Pridajte prvú kartu a začnite sa učiť.",
       noCardsTitle: "Zatiaľ žiadne karty",
-      nothingDueBody: "Na teraz máte všetko zopakované. Vráťte sa neskôr alebo pridajte ďalšie karty.",
+      nothingDueBody: "Nateraz máte všetko zopakované. Vráťte sa neskôr alebo pridajte ďalšie karty.",
       nothingDueTitle: "Nič na opakovanie",
       or: "alebo",
       queue: "Momentálne nie sú žiadne karty na opakovanie.",
@@ -1077,7 +1077,7 @@ const skCatalog: TranslationCatalog = {
     loadingMore: "Načítavajú sa ďalšie karty...",
     search: {
       label: "Hľadať",
-      placeholder: "Hľadať v prednej a zadnej strane alebo značkách",
+      placeholder: "Hľadať na prednej a zadnej strane alebo v značkách",
     },
     subtitle: "Karty sú otázky a odpovede, ktoré si opakujete, aby ste sa učili a pamätali si ich.",
     table: {
@@ -1330,7 +1330,7 @@ const skCatalog: TranslationCatalog = {
       revealAnswer: "Zobraziť odpoveď",
       sql: "SQL",
       sqlExecute: "Zápis SQL",
-      sqlQuery: "Dotaz SQL",
+      sqlQuery: "Dopyt SQL",
       submitReview: "Odoslať hodnotenie",
       webSearch: "Vyhľadávanie na webe",
     },

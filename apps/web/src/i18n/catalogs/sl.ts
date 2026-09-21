@@ -999,7 +999,7 @@ const slCatalog: TranslationCatalog = {
     },
     shortcuts: {
       hint: "Pritisnite {{key}}",
-      spaceKey: "preslednica",
+      spaceKey: "preslednico",
     },
     sides: {
       back: "Zadnja stran",
@@ -1160,9 +1160,9 @@ const slCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistika: {{deckName}}",
     newDeck: "Nov komplet",
     statLabels: {
-      cards: "kartice",
-      new: "nove",
-      reviewed: "ponovljene",
+      cards: "skupaj",
+      new: "novo",
+      reviewed: "ponovljeno",
     },
     subtitle: "Kompleti so pametni filtri, ne vsebniki. Kartice izbirajo po oznakah.",
     title: "Kompleti",
