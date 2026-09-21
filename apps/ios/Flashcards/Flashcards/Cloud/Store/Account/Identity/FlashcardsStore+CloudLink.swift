@@ -678,7 +678,7 @@ extension FlashcardsStore {
         linkContext: CloudWorkspaceLinkContext,
         recoveryState: CloudCredentialRecoveryState
     ) throws -> CloudWorkspaceSummary? {
-        guard let checkpoint = try loadGuestLocalRecoveryWorkspaceCheckpoint(
+        guard let storedCheckpoint = try loadGuestLocalRecoveryWorkspaceCheckpoint(
             userDefaults: self.userDefaults,
             decoder: self.decoder
         ) else {
@@ -686,6 +686,10 @@ extension FlashcardsStore {
         }
 
         let configuration = try self.currentCloudServiceConfiguration()
+        let checkpoint = canonicalizedGuestLocalRecoveryWorkspaceCheckpoint(
+            checkpoint: storedCheckpoint,
+            configuration: configuration
+        )
         guard checkpoint.userId == linkContext.userId,
             checkpoint.apiBaseUrl == linkContext.apiBaseUrl,
             checkpoint.configurationMode == configuration.mode,

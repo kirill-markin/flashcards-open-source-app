@@ -15,7 +15,6 @@ import {
   acceptFriendInvitationWithDependencies,
   createFriendInvitationWithDependencies,
   friendInviteTokenByteLength,
-  friendInviteUrlBase,
   hashFriendInviteToken,
   parseFriendInvitationDisplayName,
   previewFriendInvitationWithDependencies,
@@ -23,6 +22,10 @@ import {
 } from "./friendInvitations";
 
 type QueryResultRow = pg.QueryResultRow;
+
+// Deliberately not a real host: the service takes the link base from its dependencies, which
+// deployed code resolves from PUBLIC_APP_BASE_URL, so no host is pinned here either.
+const inviteUrlBase = "https://app.example.test/invite";
 
 type RecordedQuery = Readonly<{
   text: string;
@@ -228,7 +231,7 @@ function createFriendInvitationDependencies(
       return state.tokenBytes;
     },
     randomUuidFn: () => "00000000-0000-4000-8000-000000000099",
-    inviteUrlBase: friendInviteUrlBase,
+    resolveInviteUrlBaseFn: () => inviteUrlBase,
     activeInviteLimit: 20,
   };
 }
@@ -260,7 +263,7 @@ test("createFriendInvitation stores only the token hash and returns the raw toke
   );
 
   assert.deepEqual(response, {
-    inviteUrl: `${friendInviteUrlBase}/${rawToken}`,
+    inviteUrl: `${inviteUrlBase}/${rawToken}`,
     expiresAt: "2026-06-17T10:00:00.000Z",
   });
   assert.deepEqual(state.scopes, [{ userId: "user-1" }]);

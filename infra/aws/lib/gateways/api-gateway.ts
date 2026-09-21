@@ -32,6 +32,11 @@ export interface ApiGatewayProps {
   reportingDbSecret: cdk.aws_secretsmanager.ISecret;
   baseDomain: string;
   siteBaseUrl: string | undefined;
+  // Optional per-deploy override for the API origin the backend publishes in the
+  // discovery payload, the agent next-step links and the catalog dump. It moves
+  // only what the backend advertises: every acceptance list below keeps naming
+  // the hosts it names today, and api.<baseDomain> keeps answering either way.
+  apiBaseUrl: string | undefined;
   apiCertificateArn: string | undefined;
   // Optional second public API host, already resolved (../alternate-host.ts) and
   // undefined unless both of its context values are set. api.<baseDomain> is
@@ -47,6 +52,10 @@ export interface ApiGatewayProps {
   // here as browser origins. Undefined unless that distribution serves them.
   webAdditionalHost: string | undefined;
   adminAdditionalHost: string | undefined;
+  // Where server-generated links send people, decided once by the stack. It is
+  // not an allowlist: app.<baseDomain> stays an allowed browser origin below
+  // whether or not it is still the host those links name.
+  publicAppOrigin: string;
   // Adds a candidate domain to COOKIE_DOMAIN. Unset means baseDomain alone, so
   // moving browsers to another domain is its own switch.
   cookieDomain: string | undefined;
@@ -86,8 +95,17 @@ interface BackendFunctionProps {
   constructId: string;
   entry: string;
   baseDomain: string;
+  publicApiOrigin: string;
   publicAppOrigin: string;
   publicSiteOrigin: string;
+  // The accepted app origin PUBLIC_APP_BASE_URL does not carry, and the second
+  // auth origin; each undefined unless configured. The app layer builds the
+  // public-catalog and anonymous-analytics CORS allowlists from the environment,
+  // so without these it answers the preflight API Gateway already allows and then
+  // refuses the request (getConfiguredPublicCatalogCorsOrigins in
+  // apps/backend/src/shared/publicUrls.ts).
+  publicAppAdditionalOrigin: string | undefined;
+  publicAuthAlternateOrigin: string | undefined;
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
@@ -122,6 +140,7 @@ interface BackendFunctionProps {
 
 interface DirectImageIngestionFunctionProps {
   baseDomain: string;
+  publicApiOrigin: string;
   publicSiteOrigin: string;
   vpc: ec2.Vpc;
   lambdaSg: ec2.SecurityGroup;
@@ -750,12 +769,27 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       BACKEND_ALLOWED_ORIGINS: props.allowedOrigins.join(","),
       BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
       BACKEND_CHAT_LIVE_AUTH_SECRET_ARN: props.backendChatLiveAuthSecret.secretArn,
-      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      PUBLIC_API_BASE_URL: `${props.publicApiOrigin}/v1`,
+      // Pinned to baseDomain, with no override beside publicApiOrigin above: this
+      // value is not only advertised. The backend matches it exactly as an entry
+      // of the anonymous-analytics CORS allowlist
+      // (getConfiguredAnonymousAnalyticsCorsOrigins in
+      // apps/backend/src/shared/publicUrls.ts), and the auth service publishes the
+      // same string as its OAuth issuer (docs/published-api-origin.md).
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       PUBLIC_APP_BASE_URL: props.publicAppOrigin,
       // Public marketing-site origin for the discovery legal links. Defaults to
       // the apex domain; an optional CDK `siteBaseUrl` context overrides it.
       PUBLIC_SITE_BASE_URL: props.publicSiteOrigin,
+      // Appended to the app layer's own CORS allowlists, never substituted for the
+      // primary origins above. Absent unless the second host is configured, so an
+      // unconfigured deployment has a byte-identical environment.
+      ...(props.publicAppAdditionalOrigin === undefined
+        ? {}
+        : { PUBLIC_APP_ADDITIONAL_BASE_URL: props.publicAppAdditionalOrigin }),
+      ...(props.publicAuthAlternateOrigin === undefined
+        ? {}
+        : { PUBLIC_AUTH_ALTERNATE_BASE_URL: props.publicAuthAlternateOrigin }),
       GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: props.guestAiWeightedMonthlyTokenCap ?? "0",
       ...(langfuseConfig === null
         ? {}
@@ -873,7 +907,7 @@ function createDirectImageIngestionFunction(
       COGNITO_REGION: cdk.Stack.of(scope).region,
       BACKEND_ALLOWED_ORIGINS: props.allowedOrigins.join(","),
       BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
-      PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
+      PUBLIC_API_BASE_URL: `${props.publicApiOrigin}/v1`,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       PUBLIC_SITE_BASE_URL: props.publicSiteOrigin,
       GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:
@@ -907,22 +941,47 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     props.siteBaseUrl ?? `https://${props.baseDomain}`,
     "siteBaseUrl",
   );
-  const publicAppOrigin = parsePublicOrigin(
+  const primaryAppOrigin = parsePublicOrigin(
     `https://app.${props.baseDomain}`,
     "appBaseUrl",
   );
-  // Appended, never substituted: the primary origins stay in the lists and
-  // publicAppOrigin above still decides where server-generated links point.
+  // The one API origin every Lambda of this gateway advertises. It is only ever
+  // put into a response body, a generated link or the catalog dump, never
+  // compared against anything a shipped client stores, so it may name the second
+  // API host while api.<baseDomain> keeps answering and keeps its CORS entries.
+  const publicApiOrigin = parsePublicOrigin(
+    props.apiBaseUrl ?? `https://api.${props.baseDomain}`,
+    "apiBaseUrl",
+  );
+  // Appended, never substituted: the primary origins stay in the lists, so a
+  // host keeps its API access for as long as it serves a browser client.
   const additionalWebOrigins = createConfiguredHostOrigins([props.webAdditionalHost]);
+  // Handed to the Lambdas so the app layer's own allowlists agree with the
+  // preflight this gateway answers. The app layer already reads one accepted app
+  // origin from PUBLIC_APP_BASE_URL, which is props.publicAppOrigin and moves to
+  // the additional host when app.<baseDomain> is retired (../web.ts); the host it
+  // leaves stays accepted below. So the extra origin is whichever accepted app
+  // origin that value is not, never simply the additional host.
+  const otherAcceptedAppOrigins = [primaryAppOrigin, ...additionalWebOrigins]
+    .filter((origin) => origin !== props.publicAppOrigin);
+  if (otherAcceptedAppOrigins.length > 1) {
+    throw new Error(
+      `publicAppOrigin "${props.publicAppOrigin}" is neither the primary app origin "${primaryAppOrigin}" `
+      + `nor the additional web origin (${additionalWebOrigins.join(", ") || "none configured"}), `
+      + "so no browser origin would carry the links it names.",
+    );
+  }
+  const [publicAppAdditionalOrigin] = otherAcceptedAppOrigins;
+  const [publicAuthAlternateOrigin] = createConfiguredHostOrigins([props.authAlternateHost]);
   const publicCatalogAllowedOrigins = [
     publicSiteOrigin,
-    publicAppOrigin,
+    primaryAppOrigin,
     "http://localhost:3000",
     ...additionalWebOrigins,
   ];
   const anonymousAnalyticsAllowedOrigins = [
     publicSiteOrigin,
-    publicAppOrigin,
+    primaryAppOrigin,
     `https://auth.${props.baseDomain}`,
     "http://localhost:3000",
     "http://localhost:8081",
@@ -930,7 +989,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     ...createConfiguredHostOrigins([props.webAdditionalHost, props.authAlternateHost]),
   ];
   const allowedOrigins = [
-    publicAppOrigin,
+    primaryAppOrigin,
     `https://admin.${props.baseDomain}`,
     "http://localhost:3000",
     "http://localhost:3001",
@@ -969,8 +1028,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "BackendHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda.ts"),
     baseDomain: props.baseDomain,
-    publicAppOrigin,
+    publicApiOrigin,
+    publicAppOrigin: props.publicAppOrigin,
     publicSiteOrigin,
+    publicAppAdditionalOrigin,
+    publicAuthAlternateOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -1019,6 +1081,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   backendFn.addEnvironment("COOKIE_DOMAIN", buildCookieDomains(props));
   const directImageIngestionFn = createDirectImageIngestionFunction(scope, {
     baseDomain: props.baseDomain,
+    publicApiOrigin,
     publicSiteOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
@@ -1037,8 +1100,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "ChatRunWorkerHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-worker.ts"),
     baseDomain: props.baseDomain,
-    publicAppOrigin,
+    publicApiOrigin,
+    publicAppOrigin: props.publicAppOrigin,
     publicSiteOrigin,
+    publicAppAdditionalOrigin,
+    publicAuthAlternateOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
@@ -1080,8 +1146,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     constructId: "ChatLiveHandler",
     entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "lambda-chat-live.ts"),
     baseDomain: props.baseDomain,
-    publicAppOrigin,
+    publicApiOrigin,
+    publicAppOrigin: props.publicAppOrigin,
     publicSiteOrigin,
+    publicAppAdditionalOrigin,
+    publicAuthAlternateOrigin,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
     db: props.db,
