@@ -180,6 +180,12 @@ export function clearAuthResetRequired(): void {
  * session state. Keeping them preserves device identity, UI language, local chat
  * UI preferences, local tester tooling, and an explicit analytics opt-out across
  * re-login while still clearing application data.
+ *
+ * The stored analytics consent answer is retained for the same reason, account
+ * deletion included: it is this browser's answer rather than the account's, it is
+ * given by visitors who have no account at all, and discarding it would make a
+ * browser that refused askable and re-mintable again
+ * (docs/analytics-visitor-identity.md).
  */
 export async function clearAllLocalBrowserData(
   reason: LocalBrowserDataCleanupReason,
