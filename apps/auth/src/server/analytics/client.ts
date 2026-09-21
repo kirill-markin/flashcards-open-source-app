@@ -12,7 +12,7 @@
  * resent. That is the design of this producer, not an omission from it.
  *
  * What it costs: one `web` guest session, and the four rows the web guest reaper documents it
- * owning, per reporting visitor identity, retired by `visitorSession.ts`. That is deliberate.
+ * owning, per reporting browser, retired by `visitorSession.ts`. That is deliberate.
  * "Reached the login page and never entered an email" is the most valuable number this measurement
  * produces, and it cannot exist without an identity at step one. The bound is the existing 90-day
  * web guest reaper in `apps/backend/src/guestAuth/reaper/`, which deletes web guests that never
@@ -29,8 +29,8 @@
  *   usually already succeeded on the backend. The visitor stores no token, the next load mints
  *   again, and the abandoned identity is never referenced.
  *
- *   Two login-page loads racing. Both read the same guest-token-less visitor cookie, both mint, and
- *   the last `Set-Cookie` of the two wins; the other identity is never referenced.
+ *   Two instrumented requests racing. Both find no guest session cookie, both mint, and the last
+ *   `Set-Cookie` of the two wins; the other identity is never referenced.
  */
 import type { AuthAnalyticsBatch } from "./catalog.js";
 import { logWarning } from "../logger.js";
@@ -201,8 +201,8 @@ function readAcceptedEventCount(responseText: string): number | null {
 /**
  * Creates the `web` guest session that authenticates ingest for one visitor.
  *
- * No `idempotencyKey` travels with it: the token is minted once per visitor and then kept in the
- * visitor cookie, and `apps/backend/src/routes/guestAuth.ts` documents an absent key as a fresh
+ * No `idempotencyKey` travels with it: the token is minted once per browser and then kept in the
+ * guest session cookie, and `apps/backend/src/routes/guestAuth.ts` documents an absent key as a fresh
  * guest identity per call, which is exactly what a first-ever login-page visit wants.
  */
 export async function mintWebGuestSession(call: AuthAnalyticsCall): Promise<AuthAnalyticsGuestSession | null> {
@@ -311,12 +311,13 @@ export type AuthAnalyticsIdentityLinkOutcome = "linked" | "account_required" | "
  * is terminal and unreachable for a `web` guest, which can own nothing the upgrade transfers, and
  * `GUEST_IDENTITY_LINK_OTHER_ACCOUNT` is terminal because the token is not this account's to link.
  *
- * What keeps that merely lossy is that the caller drops the visitor cookie on every outcome. A link
- * that failed before its commit stored nothing, and the session it leaves live is one a *different*
- * account could still be bound to; short of the one-request-wide race `reportSignInSucceeded` records
- * in `signInFunnel.ts`, no one can, because the only copy of that token goes with the cookie. What is
- * left is a guest session nobody should hold, which the 90-day web guest reaper collects unless the
- * link already landed: a `server_derived` link tells that reaper the guest signed in.
+ * What keeps that merely lossy is that the caller drops the guest session cookie on every outcome.
+ * A link that failed before its commit stored nothing, and the session it leaves live is one a
+ * *different* account could still be bound to; short of the one-request-wide race
+ * `reportSignInSucceeded` records in `signInFunnel.ts`, no one can, because the only copy of that
+ * token goes with the cookie. What is left is a guest session nobody should hold, which the 90-day
+ * web guest reaper collects unless the link already landed: a `server_derived` link tells that
+ * reaper the guest signed in.
  */
 export async function linkVisitorGuestToAccount(
   call: AuthAnalyticsCall,
