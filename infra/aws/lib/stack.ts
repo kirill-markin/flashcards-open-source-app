@@ -403,10 +403,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       getOptionalContextValue(this, "webPrimaryHostRetired"),
       webHosts,
     );
-    // The one place this stack decides where server-generated links send people:
-    // invites, shares, emails, and the published catalog dump. Every consumer
+    // The one place this stack decides where backend-generated links send people:
+    // invites and the published catalog dump's install links. Every consumer
     // takes this value rather than deriving its own, so they cannot disagree
-    // about which host is the app.
+    // about which host is the app. Share links are built by the clients.
     const publicAppOrigin = parsePublicOrigin(
       `https://${webPrimaryHostRedirectTarget ?? webPrimaryHost}`,
       "appBaseUrl",
