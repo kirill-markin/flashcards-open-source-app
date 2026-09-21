@@ -18,6 +18,16 @@ const localeDirections: Readonly<Record<Locale, LocaleDirection>> = {
   "es-ES": "ltr",
   fr: "ltr",
   "pt-BR": "ltr",
+  it: "ltr",
+  ko: "ltr",
+  id: "ltr",
+  tr: "ltr",
+  nl: "ltr",
+  pl: "ltr",
+  vi: "ltr",
+  th: "ltr",
+  uk: "ltr",
+  he: "rtl",
 };
 
 const primaryLanguageLocaleFallbacks: Readonly<Record<string, Locale>> = {
@@ -25,10 +35,20 @@ const primaryLanguageLocaleFallbacks: Readonly<Record<string, Locale>> = {
   de: "de",
   en: "en",
   fr: "fr",
+  he: "he",
   hi: "hi",
+  id: "id",
+  it: "it",
   ja: "ja",
+  ko: "ko",
+  nl: "nl",
+  pl: "pl",
   pt: "pt-BR",
   ru: "ru",
+  th: "th",
+  tr: "tr",
+  uk: "uk",
+  vi: "vi",
 };
 
 const legacyLocalePreferenceMap: Readonly<Record<string, Locale>> = {
