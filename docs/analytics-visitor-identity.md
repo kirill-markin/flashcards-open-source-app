@@ -1,8 +1,8 @@
 # Analytics visitor identity
 
 One browser visitor identity for the whole product domain, minted by the backend API because the web
-app is a static bundle with no server of its own. The auth origin keeps its own host-only visitor
-cookie and is not part of this one.
+app is a static bundle with no server of its own. The auth origin reads this same cookie and mints
+none of its own.
 
 | Property | Value |
 | --- | --- |
@@ -135,17 +135,18 @@ appending to the queue is itself a write. One row does go out before the answer,
 `consent_prompt_shown`, which is `identityFree` by construction and carries the locale and its date
 and nothing else — not even the surface it was shown on. The promise on the strip covers this origin
 only: it says that this app stores nothing on this device and sends nothing identifying — not that
-nothing at all is sent, and not that every origin under this domain keeps the same promise. The auth
-origin does not, and the paragraph below records it.
+nothing at all is sent.
 A refusal keeps that shape permanently: the
 browser is given no identifier at all, and what it reports is rows carrying none
 ([anonymous client analytics](anonymous-client-analytics.md)).
 
-This gate covers the app origin only. The auth origin is outside it and mints without asking: the
-`/login` render writes its own host-only `__Host-analytics_visitor` for any browser that carries
-none, with no country check, no banner and no decline path
-([login page](../apps/auth/src/routes/browser/loginPage.ts)). Bringing it under this gate is
-separate, undecided work.
+The auth origin is inside this gate without a banner of its own, because it mints nothing. Its
+server-side sign-in funnel reports under this cookie and reports nothing at all for a browser that
+holds none, so a browser this gate withheld an identity from stays unmeasured there too
+([sign-in funnel](../apps/auth/src/server/analytics/signInFunnel.ts)). The one cookie it writes is
+the host-only `__Host-analytics_guest`, a guest credential it sets only for a browser that already
+holds this id; a leftover one is read by nothing that reports and is deleted by the next sign-in or
+sign-out.
 
 A signed-in person who refuses is the one case where rows still carry a name, and it is the
 account's rather than the browser's: their events go out on their own credential and are stored

@@ -111,20 +111,27 @@ the `analytics` schema directly: the `auth_app` role has no grants there and mus
   - `signin_succeeded` and `signin_failed` with a `reason`: `verifyCode.ts` beside it, plus the
     demo-account and refusal branches of `sendCode.ts`.
   - Abandonment is the absence of the next step for an actor, not an event.
-  - Every step is gated on that marker and on the visitor cookie; lose either and the funnel counts
-    zero in silence. The cookie is minted outside the producer, by `GET /login`
-    (`apps/auth/src/routes/browser/loginPage.ts`); what a cache in front of that page costs is stated
-    there, and what an edited attribute costs beside `visitorCookieOptions` in `visitorSession.ts`.
+  - Every step is gated on that marker and on the shared `analytics_visitor` cookie; lose either and
+    the funnel counts zero in silence. This service mints no visitor id and never writes that cookie,
+    so the marker is the only gate it owns — keep the audit beside `signInScreenMarker` complete.
   - The producer — catalog mirror, cookie module, transport, report budgets, and the marker check
     that keeps non-funnel callers of these shared routes out — is `apps/auth/src/server/analytics/`.
-- Identity: its own `anonymous_id` and `web` guest session, both in the `__Host-analytics_visitor`
-  cookie (`apps/auth/src/server/analytics/visitorSession.ts`). Nothing is shared with the app origin.
+- Identity: the product domain's shared `anonymous_id`, read from the `analytics_visitor` cookie and
+  never written here ([analytics visitor identity](analytics-visitor-identity.md)). Only the `web`
+  guest session and the session id are this origin's own, in the host-only `__Host-analytics_guest`
+  cookie (`apps/auth/src/server/analytics/visitorSession.ts`); what an edited attribute costs is
+  stated beside `guestCookieOptions` there. That cookie is written only for a browser that already
+  holds the shared id, and one left over from before a consent withdrawal is read by nothing that
+  reports and is deleted by the next sign-in or sign-out on the browser.
 - The join: at sign-in success, and only there, this service links the visitor's guest identity to
   the account with `POST /v1/guest-auth/identity/link`, best effort inside the whole request's
   budget, which the success event shares and a first-ever sign-in usually overruns. Nothing recovers
   a link that did not land (`analyticsReportBudgetMs`, `reportSignInSucceeded` in `signInFunnel.ts`).
-- The accepted limitation: an unjoined visitor never stitches to the app-side guest identity, so an
-  end-to-end "opened the app -> registered" path needs a cross-origin identifier this design refuses.
-- The cost: one `web` guest session per visitor identity, not one per login-page load.
+  The shared `anonymous_id` does not replace it: guest-transport ingest stamps these rows with the
+  guest user id, and `first_guest_upgrade_link` is the only arm of `analytics.product_events_resolved`
+  that reaches a row carrying one.
+- The accepted limitation: a browser holding no shared visitor id produces no funnel rows at all, and
+  nothing here offers it one — a first-ever touch that is the sign-in page goes unmeasured.
+- The cost: one `web` guest session per reporting browser, not one per login-page load.
 - Deliberately not measured: the OAuth consent page at `GET /authorize`, and `app_version`.
 - Querying these rows: the caveats an analyst needs are in `docs/analytics-db-access.md`.
