@@ -15,10 +15,12 @@ This generator drives local iOS simulator-backed XCUITest flows and regenerates 
 
 ## What is included
 
-The capture catalog supports 42 Store locales (41 languages). The expected raw
-inventory is five screenshots per locale per device family: 210 iPhone PNGs and
-210 iPad PNGs. Catalog support alone does not establish that these assets have
-been generated or uploaded.
+The capture catalog supports 50 capture tags (49 languages): the 42 Store locales
+plus `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, and `zu`. The expected raw
+inventory is five screenshots per tag per captured device family: 250 iPhone PNGs
+and 210 iPad PNGs, because the eight non-Store tags are captured on iPhone only.
+Catalog support alone does not establish that these assets have been generated or
+uploaded.
 
 Each locale captures:
 
@@ -71,14 +73,17 @@ What each layer does:
 Keep locale codes, aliases, and shared seeded card text and tags identical in the
 two Swift catalogs. The unsent AI drafts belong only to the test-side catalog.
 The shell layer also owns locale maps: `capture-ios-marketing-screenshot.sh`
-has `supported_locales` and `canonicalize_locale`, and
+has `supported_locales`, `iphone_only_locales`, and `canonicalize_locale`, and
 `build-ios-marketing-materials.sh` has another `canonicalize_locale`.
 
-Align both Swift catalogs, both shell maps, and the uploader's
-[locale mapping](../../../scripts/ios/app-store-localization-inputs.mts) in the
-same change. Store IDs differ from some capture tags. Missing shell support
-fails argument validation; missing app-side support fails fixture seeding before
-the first screenshot.
+Add every capture tag to both Swift catalogs, to `supported_locales`, and to both
+`canonicalize_locale` maps in the same change. Add it to `iphone_only_locales` if
+and only if Apple has no listing locale for it, in which case it must stay out of
+the uploader's
+[locale mapping](../../../scripts/ios/app-store-localization-inputs.mts); every
+other tag belongs in that map. Store IDs differ from some capture tags. Missing
+shell support fails argument validation; missing app-side support fails fixture
+seeding before the first screenshot.
 
 ## Guest cloud cleanup lifecycle
 
@@ -99,6 +104,13 @@ The canonical list is the `supported_locales` array in
 Use `--list-locales` below instead of copying a fixed list into capture loops.
 `en-US` is the default and the only capture tag that differs from its iOS bundle
 tag (`en`). Norwegian captures use `nb`; both Spanish regions remain separate.
+Eight tags have no App Store listing locale: `bg`, `et`, `fa`, `is`, `lt`, `lv`,
+`sw`, and `zu`. They are declared in the `iphone_only_locales` array of the same
+script, feed website marketing assets, and are never upload inputs; see the
+[locale mapping](../../../docs/app-store-connect-metadata.md). The iPad tag set is
+the canonical list minus those eight, so iPad capture loops use
+`--list-ipad-locales` and the derived-material builder subtracts them whenever the
+resolved family is `ipad`.
 
 Store aliases use the
 [App Store locale map](../../../docs/app-store-connect-metadata.md): for example
@@ -125,6 +137,12 @@ List the canonical locale codes with:
 
 ```bash
 bash scripts/ios/capture-ios-marketing-screenshot.sh --list-locales
+```
+
+List the iPad subset with:
+
+```bash
+bash scripts/ios/capture-ios-marketing-screenshot.sh --list-ipad-locales
 ```
 
 If you pass an unsupported locale or alias, the wrapper exits with an error before running XCUITest.
@@ -253,12 +271,12 @@ The derived-material builder is the wrapper that turns the five localized screen
 
 Default behavior:
 
-- locale scope defaults to all supported locales
+- locale scope defaults to every capture tag of the resolved family, and the iPad family excludes the iPhone-only capture tags
 - raw screenshot regeneration is enabled
 - optimization mode defaults to `visually-lossless`
 - output family is inferred from the currently booted simulator unless you pass `--skip-screenshots`, in which case `--family` becomes required
 
-Run the full pipeline for every supported locale on the currently booted simulator family:
+Run the full pipeline for every capture tag of the currently booted simulator family:
 
 ```bash
 bash scripts/ios/build-ios-marketing-materials.sh --all-locales
@@ -308,7 +326,10 @@ done <<< "$capture_locales"
 If you need both iPhone and iPad assets, run the full locale loop twice:
 
 1. once with the canonical iPhone simulator selected
-2. once with the canonical iPad simulator selected
+2. once with the canonical iPad simulator selected and `--list-locales` replaced
+   by `--list-ipad-locales`, so the iPhone-only tags stay out of `ipad/`. A
+   forgotten substitution is not silent: the capture script refuses an
+   iPhone-only tag on a booted iPad before it writes anything
 
 Inspect all five images per locale in each family for untranslated copy, clipping,
 RTL layout, and the expected screen state. Include runtime-generated labels such
