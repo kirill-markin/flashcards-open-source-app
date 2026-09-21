@@ -69,6 +69,15 @@ if [[ -n "${MCP_ALTERNATE_DOMAIN_NAME}" && -z "${MCP_ALTERNATE_CERTIFICATE_ARN}"
 fi
 WEB_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "app.${DOMAIN_NAME}" "web-domain")"
 ADMIN_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "admin.${DOMAIN_NAME}" "admin-domain")"
+# Optional second host for the web and admin CloudFront distributions, on a
+# domain unrelated to DOMAIN_NAME. Neither value is discoverable: the host cannot
+# be derived from DOMAIN_NAME, and the certificate is a multi-SAN one that covers
+# the primary host as well, so it is not found by searching for the extra host.
+# Set both values of a pair in root .env to enable one.
+WEB_ADDITIONAL_DOMAIN_NAME="${WEB_ADDITIONAL_DOMAIN_NAME:-}"
+WEB_ADDITIONAL_CERTIFICATE_ARN="${WEB_ADDITIONAL_CERTIFICATE_ARN:-}"
+ADMIN_ADDITIONAL_DOMAIN_NAME="${ADMIN_ADDITIONAL_DOMAIN_NAME:-}"
+ADMIN_ADDITIONAL_CERTIFICATE_ARN="${ADMIN_ADDITIONAL_CERTIFICATE_ARN:-}"
 APEX_REDIRECT_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "${DOMAIN_NAME}" "apex-redirect-domain")"
 
 OPENAI_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/openai-api-key")"
@@ -107,7 +116,11 @@ export MCP_ALTERNATE_DOMAIN_NAME
 export MCP_ALTERNATE_CERTIFICATE_ARN
 export MCP_ALTERNATE_HOST_LIVE
 export WEB_CERTIFICATE_ARN
+export WEB_ADDITIONAL_DOMAIN_NAME
+export WEB_ADDITIONAL_CERTIFICATE_ARN
 export ADMIN_CERTIFICATE_ARN
+export ADMIN_ADDITIONAL_DOMAIN_NAME
+export ADMIN_ADDITIONAL_CERTIFICATE_ARN
 export APEX_REDIRECT_CERTIFICATE_ARN
 export GITHUB_OIDC_PROVIDER_ARN
 export OPENAI_SECRET_ARN
@@ -143,7 +156,11 @@ values = {
     "mcpAlternateCertificateArn": os.environ.get("MCP_ALTERNATE_CERTIFICATE_ARN", ""),
     "mcpAlternateHostLive": os.environ.get("MCP_ALTERNATE_HOST_LIVE", ""),
     "webCertificateArnUsEast1": os.environ.get("WEB_CERTIFICATE_ARN", ""),
+    "webAdditionalDomainName": os.environ.get("WEB_ADDITIONAL_DOMAIN_NAME", ""),
+    "webAdditionalCertificateArnUsEast1": os.environ.get("WEB_ADDITIONAL_CERTIFICATE_ARN", ""),
     "adminCertificateArnUsEast1": os.environ.get("ADMIN_CERTIFICATE_ARN", ""),
+    "adminAdditionalDomainName": os.environ.get("ADMIN_ADDITIONAL_DOMAIN_NAME", ""),
+    "adminAdditionalCertificateArnUsEast1": os.environ.get("ADMIN_ADDITIONAL_CERTIFICATE_ARN", ""),
     "apexRedirectCertificateArnUsEast1": os.environ.get("APEX_REDIRECT_CERTIFICATE_ARN", ""),
     "githubOidcProviderArn": os.environ.get("GITHUB_OIDC_PROVIDER_ARN", ""),
     "openAiApiKeySecretArn": os.environ.get("OPENAI_SECRET_ARN", ""),

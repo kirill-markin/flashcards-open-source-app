@@ -4,10 +4,18 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
+import type { DistributionHosts } from "./cloudfront-additional-host";
 
 export interface AdminAppProps {
   baseDomain: string;
-  adminCertificateArnUsEast1: string | undefined;
+  // Aliases and the single viewer certificate of the admin distribution,
+  // resolved in stack.ts against every alias the stack claims; see
+  // ./cloudfront-additional-host.ts.
+  hosts: DistributionHosts;
+}
+
+export function getPrimaryAdminHost(baseDomain: string): string {
+  return `admin.${baseDomain}`;
 }
 
 export interface AdminAppResult {
@@ -25,12 +33,10 @@ export function adminApp(scope: Construct, props: AdminAppProps): AdminAppResult
     autoDeleteObjects: false,
   });
 
-  const customDomain = props.adminCertificateArnUsEast1 === undefined
+  const customDomain = props.hosts.primaryCustomDomain;
+  const certificate = props.hosts.certificateArn === undefined
     ? undefined
-    : `admin.${props.baseDomain}`;
-  const certificate = props.adminCertificateArnUsEast1 === undefined
-    ? undefined
-    : acm.Certificate.fromCertificateArn(scope, "AdminCertificate", props.adminCertificateArnUsEast1);
+    : acm.Certificate.fromCertificateArn(scope, "AdminCertificate", props.hosts.certificateArn);
 
   const distribution = new cloudfront.Distribution(scope, "AdminDistribution", {
     comment: "flashcards-open-source-app admin app",
@@ -41,7 +47,7 @@ export function adminApp(scope: Construct, props: AdminAppProps): AdminAppResult
       cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       compress: true,
     },
-    domainNames: customDomain === undefined ? undefined : [customDomain],
+    domainNames: props.hosts.domainNames,
     certificate,
     errorResponses: [
       {
