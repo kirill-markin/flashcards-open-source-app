@@ -134,7 +134,10 @@ test("API Gateway allows the public website origin for catalog browser reads", (
     /const publicSiteOrigin = parsePublicOrigin\(\s*props\.siteBaseUrl \?\? `https:\/\/\$\{props\.baseDomain\}`,\s*"siteBaseUrl",\s*\);/,
   );
   assert.match(apiGatewaySource, /const publicCatalogAllowedOrigins = \[\s*publicSiteOrigin,/);
-  assert.match(apiGatewaySource, /const allowedOrigins = \[\s*publicAppOrigin/);
+  // The browser allowlist keeps the origin derived from the base domain, which is the
+  // legacy app host. `props.publicAppOrigin` is a different thing - where server-generated
+  // links send people - and it moves to the new host while this list keeps both.
+  assert.match(apiGatewaySource, /const allowedOrigins = \[\s*primaryAppOrigin/);
   assert.match(apiGatewaySource, /createPublicCatalogCorsPreflightOptions\(publicCatalogAllowedOrigins\)/);
   assert.match(apiGatewaySource, /catalog\.addMethod\("GET", integration\);/);
   assert.match(apiGatewaySource, /\.addResource\("\{proxy\+}", \{\s*defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions\(publicCatalogAllowedOrigins\),\s*\}\)\s*\.addMethod\("GET", integration\);/);

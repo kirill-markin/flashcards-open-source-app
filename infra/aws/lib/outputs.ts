@@ -41,6 +41,7 @@ export interface OutputsProps {
   webBucket: s3.IBucket;
   webDistribution: cloudfront.Distribution;
   webCustomDomain: string | undefined;
+  webPrimaryHostRedirectTarget: string | undefined;
   adminBucket: s3.IBucket;
   adminDistribution: cloudfront.Distribution;
   adminCustomDomain: string | undefined;
@@ -276,6 +277,16 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     new cdk.CfnOutput(scope, "WebCustomDomainTarget", {
       value: props.webDistribution.domainName,
       description: "Create a Cloudflare CNAME for app.<domain> to this target",
+    });
+  }
+
+  // Present only while app.<domain> is retired, so a post-deploy check can tell
+  // the two switch states apart from the stack itself rather than from a
+  // hostname pinned in the check.
+  if (props.webPrimaryHostRedirectTarget !== undefined) {
+    new cdk.CfnOutput(scope, "WebPrimaryHostRedirectTarget", {
+      value: props.webPrimaryHostRedirectTarget,
+      description: "Host that app.<domain> redirects to while it is retired",
     });
   }
 

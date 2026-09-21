@@ -158,6 +158,7 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "webAdditionalCertificateArnUsEast1": get_trimmed_env(
             "CDK_CONTEXT_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1",
         ),
+        "webPrimaryHostRetired": get_trimmed_env("CDK_CONTEXT_WEB_PRIMARY_HOST_RETIRED"),
     }
     validate_required_backend_sentry_context(values, aws_deploy_role_arn)
     return {key: value for key, value in values.items() if value != ""}

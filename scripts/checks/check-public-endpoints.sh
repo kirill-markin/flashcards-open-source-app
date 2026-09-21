@@ -753,6 +753,7 @@ check_redirect_url() {
 API_PUBLIC_BASE=$(get_stack_output "ApiPublicBase")
 AUTH_PUBLIC_BASE=$(get_stack_output "AuthPublicBase")
 WEB_PUBLIC_BASE=$(get_stack_output "WebPublicBase")
+WEB_PRIMARY_HOST_REDIRECT_TARGET=$(get_stack_output "WebPrimaryHostRedirectTarget")
 APEX_REDIRECT_TARGET=$(get_stack_output "ApexRedirectCustomDomainTarget")
 GLOBAL_METRICS_VISIBLE=$(get_stack_output "GlobalMetricsVisible")
 BASE_DOMAIN=$(get_stack_parameter "domainName")
@@ -770,6 +771,19 @@ fi
 if [[ -z "$AUTH_PUBLIC_BASE" || "$AUTH_PUBLIC_BASE" == "None" ]]; then
   echo "ERROR: AuthPublicBase output not found. Deploy the CDK stack first." >&2
   exit 1
+fi
+
+# This script runs on every deploy: before the cutover that retires
+# app.<domain>, on the deploy that performs it, and on a rollback. The host the
+# app is served from and the host the apex points at both move with that switch,
+# so both expectations are derived from the stack output the switch itself
+# produces rather than pinned to a hostname. A pinned expectation is what made
+# the cutover deploy fail its own verification: the retired host answered 308
+# while the check still demanded 200.
+if [[ -n "$WEB_PRIMARY_HOST_REDIRECT_TARGET" && "$WEB_PRIMARY_HOST_REDIRECT_TARGET" != "None" ]]; then
+  APP_PUBLIC_BASE="https://${WEB_PRIMARY_HOST_REDIRECT_TARGET}"
+else
+  APP_PUBLIC_BASE="$WEB_PUBLIC_BASE"
 fi
 
 WORKSPACES_URL="${API_PUBLIC_BASE%/}/workspaces"
@@ -802,7 +816,10 @@ check_api_route_absent "$LEGACY_GLOBAL_SNAPSHOT_URL" "$WEB_PUBLIC_BASE" "legacy 
 check_catalog_snapshot_redirect "$CATALOG_SNAPSHOT_URL" "public catalog snapshot endpoint"
 
 if [[ "$SKIP_STATIC_SITES" != "true" ]]; then
-  check_url "${WEB_PUBLIC_BASE}" "200" "public web root"
+  check_url "${APP_PUBLIC_BASE}" "200" "public web root"
+  if [[ "$APP_PUBLIC_BASE" != "$WEB_PUBLIC_BASE" ]]; then
+    check_redirect_url "${WEB_PUBLIC_BASE}" "308" "${APP_PUBLIC_BASE}/" "retired primary web host redirect"
+  fi
   ADMIN_PUBLIC_BASE=$(get_stack_output "AdminPublicBase")
 
   if [[ -z "$ADMIN_PUBLIC_BASE" || "$ADMIN_PUBLIC_BASE" == "None" ]]; then
@@ -817,5 +834,5 @@ if [[ "$SKIP_STATIC_SITES" != "true" ]]; then
 fi
 
 if [[ -n "$APEX_REDIRECT_TARGET" && "$APEX_REDIRECT_TARGET" != "None" && -n "$BASE_DOMAIN" && "$BASE_DOMAIN" != "None" ]]; then
-  check_redirect_url "https://${BASE_DOMAIN}" "308" "https://app.${BASE_DOMAIN}/" "public apex redirect"
+  check_redirect_url "https://${BASE_DOMAIN}" "308" "${APP_PUBLIC_BASE}/" "public apex redirect"
 fi
