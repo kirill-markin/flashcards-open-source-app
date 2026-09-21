@@ -1,4 +1,4 @@
-import type { TranslationKey } from "../../../i18n/catalog";
+import { loadTranslationCatalog, type TranslationKey } from "../../../i18n/catalog";
 import {
   readStoredLocalePreference,
   resolveLocaleState,
@@ -44,8 +44,10 @@ export type SeedDemoCardInput = Readonly<{
   localCardCount: number;
 }>;
 
-function buildDemoCardText(): DemoCardText {
+async function buildDemoCardText(): Promise<DemoCardText> {
   const locale = resolveLocaleState(readStoredLocalePreference()).locale;
+  // Catalogs are loaded per locale, and this seed can run before the UI has rendered this one.
+  await loadTranslationCatalog(locale);
   // The rating label comes from the catalog the review screen already uses, so the card
   // always names the button exactly as it is rendered. Like the bold product name, the
   // inline-code backticks are added here so the catalogs stay free of markup.
@@ -103,7 +105,7 @@ export async function seedDemoCardForNewWorkspace(
   }
 
   try {
-    const demoCardText = buildDemoCardText();
+    const demoCardText = await buildDemoCardText();
     return await createCardLocally(
       {
         workspaceId: input.workspaceId,

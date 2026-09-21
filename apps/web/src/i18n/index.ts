@@ -1,5 +1,11 @@
-export { type TranslationKey, type TranslationMessages, translationCatalogs } from "./catalog";
+export {
+  getLoadedTranslationCatalog,
+  loadTranslationCatalog,
+  type TranslationKey,
+  type TranslationMessages,
+} from "./catalog";
 export { I18nProvider, useI18n } from "./context";
+export { LocaleBootErrorFallback } from "./LocaleBootErrorFallback";
 export {
   formatCount,
   formatDate,

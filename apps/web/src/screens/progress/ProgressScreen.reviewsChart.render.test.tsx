@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it } from "vitest";
+import { loadTranslationCatalog } from "../../i18n";
 import {
   createNativeWeekRangeLabel,
   createProgressScreenRenderTestContext,
@@ -138,6 +139,8 @@ describe("ProgressScreen reviews chart", () => {
 
   it("mirrors week navigation arrows for rtl locales", async () => {
     window.localStorage.setItem(localePreferenceStorageKey, "ar");
+    // The provider renders a locale only once its catalog chunk is loaded.
+    await loadTranslationCatalog("ar");
 
     await progressScreen.renderProgressScreen();
     const container = progressScreen.getContainer();

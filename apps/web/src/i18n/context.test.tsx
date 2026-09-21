@@ -2,6 +2,7 @@
 import { act, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { loadTranslationCatalog } from "./catalog";
 import { I18nProvider, useI18n } from "./context";
 
 function createStorageMock(): Storage {
@@ -74,6 +75,8 @@ describe("I18nProvider", () => {
 
   it("applies rtl direction to the document and rendered content for Arabic", async () => {
     window.localStorage.setItem("flashcards-web-locale-preference", "ar");
+    // The provider renders a locale only once its catalog chunk is loaded.
+    await loadTranslationCatalog("ar");
 
     if (root === null || container === null) {
       throw new Error("I18nProvider test root is not ready");
