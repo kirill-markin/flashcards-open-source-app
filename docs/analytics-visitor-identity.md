@@ -125,6 +125,51 @@ the browser accepted its `Set-Cookie`. A caller that finds the returned id absen
 `document.cookie` afterwards must therefore treat the identity as unavailable rather than count a
 new visitor on every page load.
 
+## Account deletion
+
+The identity survives a logout by design and does not survive the deletion of the account it was
+measured alongside. The browser expires the cookie at the moment the server confirms the deletion,
+so the next page load finds none, asks the mint route again and continues as a new anonymous
+visitor.
+
+Nothing on the server clears it at that moment. `POST /v1/me/delete` answers a bearer caller as
+readily as a session one, so an iOS, Android or agent API deletion has no browser on the other end
+for a cookie header to reach. The web flow does pass through the auth origin's `/logout-local`
+afterwards, which is on this domain and already clears two cookie families of its own, and this one
+is deliberately not among them: reaching that route is a navigation the IndexedDB open-recovery
+guard can abort the deletion cleanup before, and a browser left stuck on that abort is exactly the
+one that must already be rid of the identifier.
+
+So the clear is paired with the confirmation instead, at the two places a browser learns the account
+is gone — the deletion it submitted
+([gate](../apps/web/src/accountDeletion/AccountDeletionRecoveryGate.tsx)), and the `ACCOUNT_DELETED`
+raised by the next `getSession()` after a deletion it dispatched but never saw answered
+([lifecycle](../apps/web/src/appData/session/lifecycle/useWorkspaceLifecycle.ts)). Both run
+synchronously, before the guard check that follows, so an abort cannot skip either. The load
+returning from the logout redirect clears nothing: it has already minted the fresh id this browser
+is meant to continue under, and expiring that one would leave the rest of the load reporting under a
+per-tab id no later load can see.
+
+The guarantee is therefore per-browser, not per-person: a deletion started on another device cannot
+expire this browser's cookie, and no mechanism here claims otherwise. Such a browser keeps its id
+until the cookie expires or the person clears it — neither clear above is within its reach, because the
+`ACCOUNT_DELETED` it meets has no deletion of its own behind it, and a later sign-in to a different
+account is an account switch, which the identity survives like every other boundary.
+
+The stored consent answer is deliberately not cleared with it. It is the browser's answer rather
+than the account's — a visitor with no account gives it — and discarding it would return a browser
+that refused to undecided, askable and re-mintable again, which is the same thing the kill switch is
+kept from doing above.
+
+Already-collected rows are not this cookie's concern: the deletion anonymizes the history attributed
+to the person's user ids in the same transaction it removes the account
+([account deletion](../apps/backend/src/auth/accountDeletion.ts)). Events reported while signed out
+carry none of those ids, so the rewrite — keyed on the user id — never reaches them, and they keep
+the `anonymous_id` they were written with whether or not a link to the account was ever recorded for
+it. Where one was, the deletion removes the link row, so nothing resolves that `anonymous_id` back to
+the account afterwards. What the clear decides is only the identifier this browser reports under from
+then on.
+
 ## The banner
 
 Where the answer above comes from, on the web: a strip at the bottom of the app, shown only where

@@ -9,6 +9,7 @@ import {
   deleteMyAccount,
   primeSessionCsrfToken,
 } from "../api";
+import { clearAnalyticsVisitorCookie, resetAnalyticsSession } from "../analytics/identity";
 import { useI18n } from "../i18n";
 import { captureApiContractError } from "../observability/apiContractObservation";
 import { captureAppOperationError } from "../observability/appOperationObservation";
@@ -148,6 +149,24 @@ export function AccountDeletionRecoveryGate(props: AccountDeletionRecoveryGatePr
 
               markAccountDeletionServerConfirmed();
             }
+
+            // Paired with the confirmation itself, synchronously and before the next guard check,
+            // because everything after it is skippable: the recovery guard below aborts the cleanup
+            // and the logout redirect alike, and a browser left on that abort must still stop
+            // reporting under the identity the deleted account was measured with. Only a visitor
+            // `GET` that threw is asked again, so what this load has left ships either under the
+            // per-tab id a cookie-blocked browser already degrades to or under an id minted fresh
+            // after this point, never under the retired one (docs/analytics-visitor-identity.md).
+            //
+            // The session goes with the identity, because the swap is otherwise bridged: the
+            // `anonymous_id` is stamped at flush time, but the session id outlives the clear in
+            // memory as well as in storage, and the rows reported next would carry the session the
+            // retired id was reporting under — joinable to the signed-out rows the deletion's own
+            // anonymization deliberately leaves in place. On the path that redirects, the analytics
+            // reset the later load runs on `account_deleted_marker` repeats this, which only starts
+            // one more session; on the aborted path there is no later load to rely on.
+            clearAnalyticsVisitorCookie();
+            resetAnalyticsSession();
           }
 
           indexedDbOpenRecoveryState.throwIfFailed();
