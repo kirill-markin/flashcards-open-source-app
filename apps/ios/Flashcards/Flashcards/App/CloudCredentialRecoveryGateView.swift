@@ -255,7 +255,7 @@ func makeCloudCredentialRecoveryGatePresentation(
             activeWorkspaceId: nil,
             linkedEmail: nil,
             configurationMode: .official,
-            apiBaseUrl: "https://api.flashcards-open-source-app.com/v1",
+            apiBaseUrl: "https://api.nibomo.com/v1",
             detectedAt: formatIsoTimestamp(date: Date())
         )
     )
