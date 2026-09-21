@@ -13,6 +13,10 @@ export interface WebAppProps {
   // ./cloudfront-additional-host.ts.
   hosts: DistributionHosts;
   apexRedirectCertificateArnUsEast1: string | undefined;
+  // The host `app.<baseDomain>` redirects to instead of serving the bundle,
+  // resolved by resolveWebPrimaryHostRedirectTarget above and undefined while
+  // that host still serves the app itself.
+  primaryHostRedirectTarget: string | undefined;
 }
 
 export function getPrimaryWebHost(baseDomain: string): string {
@@ -27,8 +31,60 @@ export interface WebAppResult {
   apexRedirectCustomDomain: string | undefined;
 }
 
-function buildApexRedirectFunctionCode(appDomain: string): string {
-  return `
+export class WebPrimaryHostRetirementError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "WebPrimaryHostRetirementError";
+  }
+}
+
+/**
+ * The host `app.<baseDomain>` redirects to once it is retired, or `undefined`
+ * while it still serves the bundle itself.
+ *
+ * Retirement is its own switch, off until the context value is exactly "true",
+ * so the redirect ships dark and is turned on by a later deploy. The same switch
+ * decides where server-generated links point (`PUBLIC_APP_BASE_URL`): the origin
+ * the browser clients run on and the origin the backend accepts have to move in
+ * one deploy, or the host still serving the app loses its own API access.
+ */
+export function resolveWebPrimaryHostRedirectTarget(
+  webPrimaryHostRetired: string | undefined,
+  hosts: DistributionHosts,
+): string | undefined {
+  if ((webPrimaryHostRetired ?? "").trim().toLowerCase() !== "true") {
+    return undefined;
+  }
+
+  if (hosts.primaryCustomDomain === undefined) {
+    throw new WebPrimaryHostRetirementError(
+      "webPrimaryHostRetired is set, but this distribution does not serve the primary web host, "
+      + "so there is nothing to retire. Unset CDK_WEB_PRIMARY_HOST_RETIRED.",
+    );
+  }
+
+  if (hosts.additionalCustomDomain === undefined) {
+    throw new WebPrimaryHostRetirementError(
+      "webPrimaryHostRetired is set, but no additional web host is configured to redirect to. "
+      + "Set CDK_WEB_ADDITIONAL_DOMAIN_NAME with CDK_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1, "
+      + "or unset CDK_WEB_PRIMARY_HOST_RETIRED.",
+    );
+  }
+
+  return hosts.additionalCustomDomain;
+}
+
+/**
+ * CloudFront Functions runtime 1.0 (ES5) helpers shared by both redirect
+ * functions below. `renderQueryString` is how a redirect keeps the query and
+ * `redirectTo` is how it keeps the path, so an invite or catalog-install link
+ * sent before the move still lands on the page it named.
+ *
+ * 308 rather than 301: both are permanent, but 308 also keeps the method and
+ * body, and the short `cache-control` bounds how long a client remembers it,
+ * which is what makes a permanent redirect reversible within minutes.
+ */
+const redirectFunctionHelpers = `
 function encode(value) {
   return encodeURIComponent(value);
 }
@@ -67,10 +123,9 @@ function renderQueryString(querystring) {
   return parts.length === 0 ? "" : "?" + parts.join("&");
 }
 
-function handler(event) {
-  var request = event.request;
+function redirectTo(targetHost, request) {
   var path = request.uri || "/";
-  var location = "https://${appDomain}" + path + renderQueryString(request.querystring);
+  var location = "https://" + targetHost + path + renderQueryString(request.querystring);
 
   return {
     statusCode: 308,
@@ -82,6 +137,56 @@ function handler(event) {
   };
 }
 `;
+
+/** Redirects every request to the same path and query on `targetHost`. */
+function buildRedirectFunctionCode(targetHost: string): string {
+  return `${redirectFunctionHelpers}
+function handler(event) {
+  return redirectTo("${targetHost}", event.request);
+}
+`;
+}
+
+/**
+ * Redirects the requests whose `Host` is `sourceHost` and serves every other
+ * request unchanged, so one distribution can retire one of its aliases while
+ * still serving the rest.
+ *
+ * This runs on every viewer request of a distribution that still serves an app,
+ * so it stays one header comparison. A response produced by a viewer-request
+ * function is never stored in the cache, so the redirect cannot leak into a
+ * cached object and reach the host that is still being served.
+ */
+function buildHostScopedRedirectFunctionCode(sourceHost: string, targetHost: string): string {
+  // The case of the Host header is the client's choice; the alias it has to match is not.
+  return `${redirectFunctionHelpers}
+function handler(event) {
+  var request = event.request;
+  var hostHeader = request.headers.host;
+  if (!hostHeader || hostHeader.value.toLowerCase() !== "${sourceHost.toLowerCase()}") {
+    return request;
+  }
+
+  return redirectTo("${targetHost}", request);
+}
+`;
+}
+
+function createPrimaryHostRedirectAssociations(
+  scope: Construct,
+  sourceHost: string,
+  targetHost: string,
+): cloudfront.FunctionAssociation[] {
+  return [
+    {
+      eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+      function: new cloudfront.Function(scope, "WebPrimaryHostRedirectFunction", {
+        code: cloudfront.FunctionCode.fromInline(
+          buildHostScopedRedirectFunctionCode(sourceHost, targetHost),
+        ),
+      }),
+    },
+  ];
 }
 
 export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
@@ -99,6 +204,14 @@ export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
     ? undefined
     : acm.Certificate.fromCertificateArn(scope, "WebCertificate", props.hosts.certificateArn);
 
+  // The primary and the additional host are two aliases of this one
+  // distribution. CloudFront serves one alias per distribution nowhere, and an
+  // alias cannot be moved to a second distribution without a window where it
+  // answers nothing, so the distribution that serves both redirects one of them.
+  const primaryHostRedirectAssociations = props.primaryHostRedirectTarget === undefined
+    ? undefined
+    : createPrimaryHostRedirectAssociations(scope, primaryDomain, props.primaryHostRedirectTarget);
+
   const distribution = new cloudfront.Distribution(scope, "WebDistribution", {
     comment: "flashcards-open-source-app web app",
     defaultRootObject: "index.html",
@@ -107,6 +220,7 @@ export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       compress: true,
+      functionAssociations: primaryHostRedirectAssociations,
     },
     domainNames: props.hosts.domainNames,
     certificate,
@@ -144,7 +258,9 @@ export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
 
   const apexRedirectFunction = new cloudfront.Function(scope, "ApexRedirectFunction", {
     code: cloudfront.FunctionCode.fromInline(
-      buildApexRedirectFunctionCode(primaryDomain),
+      // Once the primary host is retired the apex skips it, rather than
+      // sending every visitor through two redirects.
+      buildRedirectFunctionCode(props.primaryHostRedirectTarget ?? primaryDomain),
     ),
   });
 
