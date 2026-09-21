@@ -112,10 +112,10 @@
   color: var(--text);
 }
 
-/* The popover tier the account menu and the card filters already use (200). It has to clear the
-   page beneath it, and being above the strip's 25 costs nothing even though they never coexist. */
+/* The popover tier the account menu and the card filters already use. The panel portals to `<body>`,
+   so it carries its own layer rather than the trigger's, and it has to clear the page beneath it. */
 .analytics-consent-withdrawal-panel {
-  z-index: 200;
+  z-index: var(--z-index-popover);
   display: flex;
   flex-direction: column;
   gap: 12px;

@@ -203,7 +203,7 @@
 .progress-leaderboard-invite-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-index-dialog-backdrop);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -260,7 +260,7 @@
 .progress-leaderboard-profile-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-index-dialog-backdrop);
   display: grid;
   place-items: center;
   padding: 20px;
