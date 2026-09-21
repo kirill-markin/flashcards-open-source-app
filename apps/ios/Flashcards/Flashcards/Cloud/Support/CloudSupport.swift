@@ -43,7 +43,7 @@ let customGuestWorkspacePauseStateUserDefaultsKey: String = "custom-guest-worksp
 let guestLocalRecoveryWorkspaceCheckpointUserDefaultsKey: String = "guest-local-recovery-workspace-checkpoint"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
 let flashcardsAppShareUrl: URL = {
-    let urlString: String = "https://app.flashcards-open-source-app.com/share"
+    let urlString: String = "https://app.nibomo.com/share"
     guard let url = URL(string: urlString) else {
         preconditionFailure("Flashcards app share URL is invalid: \(urlString)")
     }
