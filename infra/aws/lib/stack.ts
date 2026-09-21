@@ -342,8 +342,39 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
     });
     publicEndpointHeartbeat(this, { baseDomain, alternateHeartbeatHosts });
+    // Both distributions are resolved here, before either is constructed and
+    // before the media bucket, auth and API stages that have to allow their
+    // hosts as browser origins, because an additional host must be checked
+    // against every alias the stack claims and not only against its own
+    // distribution's primary. A repeat passes synth and fails the deploy with
+    // CNAMEAlreadyExists.
+    const webPrimaryHost = getPrimaryWebHost(baseDomain);
+    const adminPrimaryHost = getPrimaryAdminHost(baseDomain);
+    const claimedCloudFrontHosts = [
+      webPrimaryHost,
+      adminPrimaryHost,
+      // The apex redirect distribution only exists with its own certificate.
+      ...(apexRedirectCertificateArnUsEast1 === undefined ? [] : [baseDomain]),
+    ];
+    const webHosts = resolveDistributionHosts(
+      webPrimaryHost,
+      webCertificateArnUsEast1,
+      webAdditionalDomainName,
+      webAdditionalCertificateArnUsEast1,
+      claimedCloudFrontHosts,
+    );
+    const adminHosts = resolveDistributionHosts(
+      adminPrimaryHost,
+      adminCertificateArnUsEast1,
+      adminAdditionalDomainName,
+      adminAdditionalCertificateArnUsEast1,
+      [...claimedCloudFrontHosts, ...(webHosts.domainNames ?? [])],
+    );
     const mediaAssetsResult = mediaAssets(this, {
       baseDomain,
+      // The web bundle talks to this bucket directly, so its second host needs
+      // the same CORS entry the API and auth allowlists already give it.
+      webAdditionalHost: webHosts.additionalCustomDomain,
     });
     const generatedMediaPromotionResult = generatedMediaPromotion(this, {
       vpc: net.vpc,
@@ -388,33 +419,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       resendSenderEmail,
       ...sentryContext,
     });
-    // Both distributions are resolved here, before either is constructed and
-    // before the auth and API stages that have to allow their hosts as browser
-    // origins, because an additional host must be checked against every alias
-    // the stack claims and not only against its own distribution's primary. A
-    // repeat passes synth and fails the deploy with CNAMEAlreadyExists.
-    const webPrimaryHost = getPrimaryWebHost(baseDomain);
-    const adminPrimaryHost = getPrimaryAdminHost(baseDomain);
-    const claimedCloudFrontHosts = [
-      webPrimaryHost,
-      adminPrimaryHost,
-      // The apex redirect distribution only exists with its own certificate.
-      ...(apexRedirectCertificateArnUsEast1 === undefined ? [] : [baseDomain]),
-    ];
-    const webHosts = resolveDistributionHosts(
-      webPrimaryHost,
-      webCertificateArnUsEast1,
-      webAdditionalDomainName,
-      webAdditionalCertificateArnUsEast1,
-      claimedCloudFrontHosts,
-    );
-    const adminHosts = resolveDistributionHosts(
-      adminPrimaryHost,
-      adminCertificateArnUsEast1,
-      adminAdditionalDomainName,
-      adminAdditionalCertificateArnUsEast1,
-      [...claimedCloudFrontHosts, ...(webHosts.domainNames ?? [])],
-    );
     const authApi = authGateway(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
