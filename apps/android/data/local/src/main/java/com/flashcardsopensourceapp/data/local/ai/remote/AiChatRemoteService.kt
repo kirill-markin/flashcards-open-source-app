@@ -79,7 +79,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
 private const val requestIdHeaderName: String = "X-Request-Id"
 private const val guestSessionClientPlatform: String = "android"
-private const val officialAiApiHost: String = "api.flashcards-open-source-app.com"
+private val officialAiApiHosts: Set<String> = setOf(
+    "api.nibomo.com",
+    "api.flashcards-open-source-app.com"
+)
 private const val officialAiApiPathPrefix: String = "/v1"
 private val aiJsonMediaType = "application/json".toMediaType()
 private val expectedAiChatHttpFailureCodes: Set<String> = setOf(
@@ -586,7 +589,7 @@ class AiChatRemoteService private constructor(
 
     private fun isOfficialAiApiBaseUrl(apiBaseUrl: String): Boolean {
         val uri = runCatching { URI(apiBaseUrl) }.getOrNull() ?: return false
-        if (uri.scheme != "https" || uri.host != officialAiApiHost) {
+        if (uri.scheme != "https" || uri.host !in officialAiApiHosts) {
             return false
         }
 

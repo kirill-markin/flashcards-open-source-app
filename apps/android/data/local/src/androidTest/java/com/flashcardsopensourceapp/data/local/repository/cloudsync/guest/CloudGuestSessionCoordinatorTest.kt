@@ -103,7 +103,7 @@ class CloudGuestSessionCoordinatorTest {
         assertEquals(preservationState.workspaceId, recoveryState.activeWorkspaceId)
         assertEquals("user@example.com", recoveryState.linkedEmail)
         assertEquals(CloudServiceConfigurationMode.OFFICIAL, recoveryState.configurationMode)
-        assertEquals("https://api.flashcards-open-source-app.com/v1", recoveryState.apiBaseUrl)
+        assertEquals("https://api.nibomo.com/v1", recoveryState.apiBaseUrl)
         assertCredentialRecoveryPreservedLocalData(
             environment = environment,
             preservationState = preservationState

@@ -23,10 +23,18 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 private const val flashcardsOfficialLiveLambdaHostSuffix: String = ".lambda-url.eu-central-1.on.aws"
-private const val flashcardsOfficialApiTraceTarget: String =
+// Both the current official hosts and the ones they replaced. An install that predates the host
+// move keeps its stored base URL forever, so the two populations send to different domains at the
+// same time - dropping the previous hosts here would leave distributed tracing working for some
+// installs and silently not for others, which is the kind of gap that survives unnoticed.
+private val flashcardsOfficialApiTraceTargets: List<String> = listOf(
+    "^https://api\\.nibomo\\.com/v1(?:/.*)?$",
     "^https://api\\.flashcards-open-source-app\\.com/v1(?:/.*)?$"
-private const val flashcardsOfficialAuthTraceTarget: String =
+)
+private val flashcardsOfficialAuthTraceTargets: List<String> = listOf(
+    "^https://auth\\.nibomo\\.com/.*$",
     "^https://auth\\.flashcards-open-source-app\\.com/.*$"
+)
 private const val sentryHttpUrlSpanDataKey: String = "http.url"
 private const val sentryUrlFullSpanDataKey: String = "url.full"
 private const val sentryUrlSpanDataKey: String = "url"
@@ -150,10 +158,7 @@ private fun sanitizeOkHttpSentrySpanUrlData(
 }
 
 private fun sentryTracePropagationTargets(): List<String> {
-    return listOf(
-        flashcardsOfficialApiTraceTarget,
-        flashcardsOfficialAuthTraceTarget
-    )
+    return flashcardsOfficialApiTraceTargets + flashcardsOfficialAuthTraceTargets
 }
 
 private fun sentryLiveTracePropagationInterceptor(): Interceptor {

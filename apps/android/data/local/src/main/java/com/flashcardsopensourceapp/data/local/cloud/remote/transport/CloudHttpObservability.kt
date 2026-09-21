@@ -14,8 +14,16 @@ private const val cloudRequestIdHeaderName: String = "X-Request-Id"
 private const val cloudAmazonRequestIdHeaderName: String = "X-Amzn-RequestId"
 private const val cloudApiGatewayRequestIdHeaderName: String = "X-Amz-Apigw-Id"
 private const val cloudHealthValidationPath: String = "/health"
-private const val officialCloudApiHost: String = "api.flashcards-open-source-app.com"
-private const val officialCloudAuthHost: String = "auth.flashcards-open-source-app.com"
+// Both the current official hosts and the ones they replaced, so traffic a pending flow still
+// sends to a previous official domain keeps its feature tag instead of degrading to CLOUD.
+private val officialCloudApiHosts: Set<String> = setOf(
+    "api.nibomo.com",
+    "api.flashcards-open-source-app.com"
+)
+private val officialCloudAuthHosts: Set<String> = setOf(
+    "auth.nibomo.com",
+    "auth.flashcards-open-source-app.com"
+)
 private val cloudObservationRouteLiteralSegments: Set<String> = setOf("upload-sessions")
 
 internal data class CloudHttpObservationVersions(
@@ -226,9 +234,9 @@ private fun cloudObservationFeature(request: Request): AndroidObservationFeature
     val host = request.url.host
     val path = request.url.encodedPath
     return when {
-        host == officialCloudAuthHost -> AndroidObservationFeature.AUTH
+        host in officialCloudAuthHosts -> AndroidObservationFeature.AUTH
         path.startsWith(prefix = "/api/") -> AndroidObservationFeature.AUTH
-        host == officialCloudApiHost -> AndroidObservationFeature.BACKEND
+        host in officialCloudApiHosts -> AndroidObservationFeature.BACKEND
         else -> AndroidObservationFeature.CLOUD
     }
 }
