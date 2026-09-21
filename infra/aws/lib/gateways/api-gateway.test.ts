@@ -68,7 +68,7 @@ test("API Gateway exposes catalog with site, app, and local credential-free CORS
 
   assert.match(
     apiGatewaySource,
-    /const publicAppOrigin = parsePublicOrigin\(\s*`https:\/\/app\.\$\{props\.baseDomain\}`,\s*"appBaseUrl",\s*\);/,
+    /const primaryAppOrigin = parsePublicOrigin\(\s*`https:\/\/app\.\$\{props\.baseDomain\}`,\s*"appBaseUrl",\s*\);/,
   );
   assert.match(
     apiGatewaySource,
@@ -76,7 +76,7 @@ test("API Gateway exposes catalog with site, app, and local credential-free CORS
   );
   assert.match(
     apiGatewaySource,
-    /const publicCatalogAllowedOrigins = \[\s*publicSiteOrigin,\s*publicAppOrigin,\s*"http:\/\/localhost:3000",\s*\.\.\.additionalWebOrigins,\s*\];/,
+    /const publicCatalogAllowedOrigins = \[\s*publicSiteOrigin,\s*primaryAppOrigin,\s*"http:\/\/localhost:3000",\s*\.\.\.additionalWebOrigins,\s*\];/,
   );
   assert.match(
     apiGatewaySource,

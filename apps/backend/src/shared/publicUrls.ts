@@ -170,15 +170,49 @@ export function getPublicApiBaseUrl(requestUrl: string): string {
 }
 
 /**
+ * The app origin this deployment was configured with, or `undefined` when it has
+ * none. `PUBLIC_APP_BASE_URL` is the single value CDK uses to say which host
+ * currently serves the app, so every server-generated link reads it here instead
+ * of naming a host of its own.
+ */
+export function getConfiguredPublicAppOrigin(): string | undefined {
+  const configuredValue = process.env.PUBLIC_APP_BASE_URL;
+  if (configuredValue === undefined || configuredValue === "") {
+    return undefined;
+  }
+
+  return parsePublicOrigin(configuredValue, "PUBLIC_APP_BASE_URL");
+}
+
+/**
+ * The app origin for links minted outside any request, such as invitations. Startup validation
+ * already refuses a deployment without `PUBLIC_APP_BASE_URL` unless the explicit local policy is on,
+ * so the local Vite origin is the only fallback that can be reached here.
+ */
+export function getPublicAppOriginForGeneratedLinks(): string {
+  const configuredOrigin = getConfiguredPublicAppOrigin();
+  if (configuredOrigin !== undefined) {
+    return configuredOrigin;
+  }
+
+  if (isExplicitLocalPublicUrlPolicyEnabled()) {
+    return fixedLocalPublicOrigin;
+  }
+
+  throw new Error("PUBLIC_APP_BASE_URL is required to build links to the web app");
+}
+
+/**
  * Resolves the public web-app origin used by exact catalog installation links.
- * Deployed Lambdas receive `PUBLIC_APP_BASE_URL=https://app.<baseDomain>` from
- * CDK. Explicit local development uses the fixed Vite origin; other
- * environments must configure the app origin and fail closed when it is absent.
+ * Deployed Lambdas receive `PUBLIC_APP_BASE_URL` from CDK, which resolves it to
+ * whichever host currently serves the app. Explicit local development uses the
+ * fixed Vite origin; other environments must configure the app origin and fail
+ * closed when it is absent.
  */
 export function getPublicAppBaseUrl(requestUrl: string): string {
-  const configuredValue = process.env.PUBLIC_APP_BASE_URL;
-  if (configuredValue !== undefined && configuredValue !== "") {
-    return parsePublicOrigin(configuredValue, "PUBLIC_APP_BASE_URL");
+  const configuredOrigin = getConfiguredPublicAppOrigin();
+  if (configuredOrigin !== undefined) {
+    return configuredOrigin;
   }
 
   const requestUrlValue = new URL(requestUrl);
