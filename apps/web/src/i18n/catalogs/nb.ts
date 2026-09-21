@@ -1160,9 +1160,18 @@ const nbCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistikk for {{deckName}}",
     newDeck: "Ny kortstokk",
     statLabels: {
-      cards: "kort",
-      new: "nye",
-      reviewed: "repetert",
+      cards: {
+        one: "kort",
+        other: "kort",
+      },
+      new: {
+        one: "nytt",
+        other: "nye",
+      },
+      reviewed: {
+        one: "repetert",
+        other: "repetert",
+      },
     },
     subtitle: "Kortstokker er smartfiltre, ikke mapper. De henter kort etter tagger.",
     title: "Kortstokker",

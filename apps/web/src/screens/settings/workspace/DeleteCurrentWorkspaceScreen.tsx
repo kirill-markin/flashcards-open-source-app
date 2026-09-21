@@ -35,7 +35,7 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
     session,
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatCount } = useI18n();
+  const { messages, t, formatCount } = useI18n();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [deletePreview, setDeletePreview] = useState<WorkspaceDeletePreview | null>(null);
   const [deletePreviewErrorMessage, setDeletePreviewErrorMessage] = useState<string>("");
@@ -268,10 +268,7 @@ export function DeleteCurrentWorkspaceScreen(): ReactElement {
                 <>
                   <p className="error-banner settings-delete-warning">
                     {t("workspaceOverview.delete.warning", {
-                      count: formatCount(deletePreview.activeCardCount, {
-                        one: t("settingsWorkspace.countLabels.card.one"),
-                        other: t("settingsWorkspace.countLabels.card.other"),
-                      }),
+                      count: formatCount(deletePreview.activeCardCount, messages.settingsWorkspace.countLabels.card),
                       workspaceName: deletePreview.workspaceName,
                     })}
                   </p>

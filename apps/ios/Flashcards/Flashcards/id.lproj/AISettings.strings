@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Ini menghapus %d kartu aktif dari ruang kerja ini secara permanen.";
 "settings.workspace.deleteConfirmation.title" = "Hapus ruang kerja";
 "settings.workspace.deleteConfirmation.warning" = "Peringatan! Tindakan ini permanen. Ini akan menghapus %d kartu aktif dari %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Ruang kerja Pribadi kosong yang baru akan dibuat segera setelah penghapusan.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Ruang kerja kosong baru bernama Personal akan dibuat segera setelah penghapusan.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Menghapus...";
 "settings.workspace.resetConfirmation.title" = "Konfirmasi reset";

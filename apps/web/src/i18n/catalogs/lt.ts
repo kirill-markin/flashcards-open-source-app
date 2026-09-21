@@ -8,26 +8,32 @@ const ltCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "kortelė",
+        few: "kortelės",
         other: "kortelių",
       },
       day: {
         one: "dienos",
+        few: "dienų",
         other: "dienų",
       },
       deck: {
         one: "kaladė",
+        few: "kaladės",
         other: "kaladžių",
       },
       hour: {
         one: "valandos",
+        few: "valandų",
         other: "valandų",
       },
       minute: {
         one: "minutės",
+        few: "minučių",
         other: "minučių",
       },
       tag: {
         one: "žyma",
+        few: "žymos",
         other: "žymų",
       },
     },
@@ -198,6 +204,7 @@ const ltCatalog: TranslationCatalog = {
     streakInfo: "Serijos apsaugų atsargoje: {{available}}/{{capacity}}. Kitas papildymas: {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "kartojimas",
+      few: "kartojimai",
       other: "kartojimų",
     },
     streakDayAria: {
@@ -332,6 +339,7 @@ const ltCatalog: TranslationCatalog = {
       unavailable: "Serijų lyderių lentelė šiuo metu nepasiekiama. Patikrinkite vėliau.",
       dayLabels: {
         one: "d.",
+        few: "d.",
         other: "d.",
       },
     },
@@ -694,6 +702,7 @@ const ltCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "kortelė",
+        few: "kortelės",
         other: "kortelių",
       },
     },
@@ -716,7 +725,7 @@ const ltCatalog: TranslationCatalog = {
       dialogTitle: "Ištrinti darbo sritį",
       loading: "Įkeliama trynimo informacija...",
       warning: "Įspėjimas! Šis veiksmas negrįžtamas. Iš darbo srities {{workspaceName}} bus ištrinta: {{count}}.",
-      lastWorkspaceHint: "Iškart po ištrynimo bus sukurta nauja tuščia asmeninė darbo sritis.",
+      lastWorkspaceHint: "Iškart po ištrynimo bus sukurta nauja tuščia darbo sritis pavadinimu Personal.",
       typePhrase: "Norėdami tęsti, tiksliai įveskite frazę.",
       deleting: "Trinama...",
     },
@@ -1160,9 +1169,21 @@ const ltCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Kaladės {{deckName}} statistika",
     newDeck: "Nauja kaladė",
     statLabels: {
-      cards: "kortelės",
-      new: "naujos",
-      reviewed: "pakartotos",
+      cards: {
+        one: "kortelė",
+        few: "kortelės",
+        other: "kortelių",
+      },
+      new: {
+        one: "nauja",
+        few: "naujos",
+        other: "naujų",
+      },
+      reviewed: {
+        one: "pakartota",
+        few: "pakartotos",
+        other: "pakartotų",
+      },
     },
     subtitle: "Kaladės yra išmanieji filtrai, o ne talpyklos. Jos atrenka korteles pagal žymas.",
     title: "Kaladės",

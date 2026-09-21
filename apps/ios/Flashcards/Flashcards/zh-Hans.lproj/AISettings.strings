@@ -467,10 +467,10 @@
 "settings.account.openSource.thirdPartyNoticePoodleSource" = "贵宾犬素材来源";
 "settings.account.openSource.thirdPartyNoticeWhaleSource" = "鲸鱼素材来源";
 "settings.account.openSource.thirdPartyNoticePeacockSource" = "孔雀素材来源";
-"settings.account.openSource.thirdPartyNoticeOxSource" = "Ox Asset Source";
-"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "Paw Prints Asset Source";
-"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "Racehorse Asset Source";
-"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "Volcano Asset Source";
+"settings.account.openSource.thirdPartyNoticeOxSource" = "公牛资源来源";
+"settings.account.openSource.thirdPartyNoticePawPrintsSource" = "爪印资源来源";
+"settings.account.openSource.thirdPartyNoticeRacehorseSource" = "赛马资源来源";
+"settings.account.openSource.thirdPartyNoticeVolcanoSource" = "火山资源来源";
 "settings.account.openSource.thirdPartyNoticeUnicornSource" = "独角兽素材来源";
 "settings.account.openSource.thirdPartyNoticeSnailSource" = "蜗牛素材来源";
 "settings.account.openSource.thirdPartyNoticeRoseSource" = "玫瑰素材来源";
@@ -595,7 +595,7 @@
 
 "settings.workspace.deleteConfirmation.title" = "删除工作区";
 "settings.workspace.deleteConfirmation.warning" = "警告：此操作是永久性的。%d 张活动卡将从 %@ 中删除。";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "删除后将立即创建一个新的空个人工作区。";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "删除后将立即创建一个名为 Personal 的新空工作区。";
 "settings.workspace.deleteConfirmation.placeholder" = "删除工作区";
 "settings.workspace.deleteConfirmation.deleting" = "正在删除...";
 

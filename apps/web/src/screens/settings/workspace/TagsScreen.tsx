@@ -20,7 +20,7 @@ const emptyTagsSummary: WorkspaceTagsSummary = {
 export function TagsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings, localReadVersion, openReview, refreshLocalData, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { t, formatCount, formatNumber } = useI18n();
+  const { messages, t, formatCount, formatNumber } = useI18n();
   const navigate = useNavigate();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -194,10 +194,7 @@ export function TagsScreen(): ReactElement {
             >
               <div className="tags-summary-card-head">
                 <strong className="panel-subtitle">{tagSummary.tag}</strong>
-                <span className="badge">{formatCount(tagSummary.cardsCount, {
-                  one: t("common.countLabels.card.one"),
-                  other: t("common.countLabels.card.other"),
-                })}</span>
+                <span className="badge">{formatCount(tagSummary.cardsCount, messages.common.countLabels.card)}</span>
               </div>
             </button>
           ))}

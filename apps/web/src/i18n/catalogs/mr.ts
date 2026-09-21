@@ -1160,9 +1160,18 @@ const mrCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} ची आकडेवारी",
     newDeck: "नवीन संच",
     statLabels: {
-      cards: "कार्डे",
-      new: "नवीन",
-      reviewed: "उजळणी केलेली",
+      cards: {
+        one: "कार्ड",
+        other: "कार्डे",
+      },
+      new: {
+        one: "नवीन",
+        other: "नवीन",
+      },
+      reviewed: {
+        one: "उजळणी केलेली",
+        other: "उजळणी केलेली",
+      },
     },
     subtitle: "संच हे स्मार्ट फिल्टर आहेत, कप्पे नाहीत. ते टॅगनुसार कार्डे जुळवतात.",
     title: "संच",
@@ -1418,7 +1427,7 @@ const mrCatalog: TranslationCatalog = {
     thirdPartyNoticeSnakeSourceAction: "सापाचा स्रोत उघडा",
     thirdPartyNoticeScorpionSourceAction: "विंचवाचा स्रोत उघडा",
     thirdPartyNoticeRoosterSourceAction: "कोंबड्याचा स्रोत उघडा",
-    thirdPartyNoticeOtterSourceAction: "उदमांजराचा स्रोत उघडा",
+    thirdPartyNoticeOtterSourceAction: "पाणमांजराचा स्रोत उघडा",
     thirdPartyNoticeRabbitSourceAction: "सशाचा स्रोत उघडा",
     thirdPartyNoticeSealSourceAction: "सीलचा स्रोत उघडा",
     thirdPartyNoticeServiceDogSourceAction: "सहाय्यक कुत्र्याचा स्रोत उघडा",

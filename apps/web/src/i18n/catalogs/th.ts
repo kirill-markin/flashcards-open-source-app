@@ -1160,9 +1160,18 @@ const thCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "สถิติของ {{deckName}}",
     newDeck: "เด็คใหม่",
     statLabels: {
-      cards: "การ์ด",
-      new: "ใหม่",
-      reviewed: "ทบทวนแล้ว",
+      cards: {
+        one: "การ์ด",
+        other: "การ์ด",
+      },
+      new: {
+        one: "ใหม่",
+        other: "ใหม่",
+      },
+      reviewed: {
+        one: "ทบทวนแล้ว",
+        other: "ทบทวนแล้ว",
+      },
     },
     subtitle: "เด็คคือตัวกรองอัจฉริยะ ไม่ใช่กล่องเก็บการ์ด โดยจับคู่การ์ดจากแท็ก",
     title: "เด็ค",

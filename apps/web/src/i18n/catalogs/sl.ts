@@ -8,26 +8,38 @@ const slCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "kartica",
+        two: "kartici",
+        few: "kartice",
         other: "kartic",
       },
       day: {
         one: "dan",
+        two: "dneva",
+        few: "dni",
         other: "dni",
       },
       deck: {
         one: "komplet",
+        two: "kompleta",
+        few: "kompleti",
         other: "kompletov",
       },
       hour: {
-        one: "ura",
+        one: "uro",
+        two: "uri",
+        few: "ure",
         other: "ur",
       },
       minute: {
-        one: "minuta",
+        one: "minuto",
+        two: "minuti",
+        few: "minute",
         other: "minut",
       },
       tag: {
         one: "oznaka",
+        two: "oznaki",
+        few: "oznake",
         other: "oznak",
       },
     },
@@ -198,6 +210,8 @@ const slCatalog: TranslationCatalog = {
     streakInfo: "Zaščite niza: {{available}}/{{capacity}}. Naslednje obnavljanje: {{progress}}/{{required}}.",
     streakDayReviewCount: {
       one: "ponovitev",
+      two: "ponovitvi",
+      few: "ponovitve",
       other: "ponovitev",
     },
     streakDayAria: {
@@ -332,6 +346,8 @@ const slCatalog: TranslationCatalog = {
       unavailable: "Lestvica nizov trenutno ni na voljo. Preverite znova pozneje.",
       dayLabels: {
         one: "dan",
+        two: "dneva",
+        few: "dnevi",
         other: "dni",
       },
     },
@@ -694,6 +710,8 @@ const slCatalog: TranslationCatalog = {
     countLabels: {
       card: {
         one: "kartica",
+        two: "kartici",
+        few: "kartice",
         other: "kartic",
       },
     },
@@ -716,7 +734,7 @@ const slCatalog: TranslationCatalog = {
       dialogTitle: "Izbriši delovni prostor",
       loading: "Nalaganje podrobnosti brisanja ...",
       warning: "Opozorilo! To dejanje je trajno. Iz delovnega prostora {{workspaceName}} bo izbrisano: {{count}}.",
-      lastWorkspaceHint: "Takoj po izbrisu bo ustvarjen nov prazen osebni delovni prostor.",
+      lastWorkspaceHint: "Takoj po izbrisu bo ustvarjen nov prazen delovni prostor z imenom Personal.",
       typePhrase: "Za nadaljevanje natančno vnesite besedno zvezo.",
       deleting: "Brisanje ...",
     },
@@ -1160,9 +1178,24 @@ const slCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistika: {{deckName}}",
     newDeck: "Nov komplet",
     statLabels: {
-      cards: "skupaj",
-      new: "novo",
-      reviewed: "ponovljeno",
+      cards: {
+        one: "kartica",
+        two: "kartici",
+        few: "kartice",
+        other: "kartic",
+      },
+      new: {
+        one: "nova",
+        two: "novi",
+        few: "nove",
+        other: "novih",
+      },
+      reviewed: {
+        one: "ponovljena",
+        two: "ponovljeni",
+        few: "ponovljene",
+        other: "ponovljenih",
+      },
     },
     subtitle: "Kompleti so pametni filtri, ne vsebniki. Kartice izbirajo po oznakah.",
     title: "Kompleti",

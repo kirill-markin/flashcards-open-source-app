@@ -1160,9 +1160,18 @@ const teCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "{{deckName}} గణాంకాలు",
     newDeck: "కొత్త డెక్",
     statLabels: {
-      cards: "కార్డులు",
-      new: "కొత్తవి",
-      reviewed: "పునశ్చరణ చేసినవి",
+      cards: {
+        one: "కార్డు",
+        other: "కార్డులు",
+      },
+      new: {
+        one: "కొత్తది",
+        other: "కొత్తవి",
+      },
+      reviewed: {
+        one: "పునశ్చరణ చేసినది",
+        other: "పునశ్చరణ చేసినవి",
+      },
     },
     subtitle: "డెక్‌లు స్మార్ట్ ఫిల్టర్‌లు, కంటైనర్‌లు కావు. అవి ట్యాగ్‌ల ఆధారంగా కార్డులను సరిపోలుస్తాయి.",
     title: "డెక్‌లు",

@@ -1160,9 +1160,18 @@ const svCatalog: TranslationCatalog = {
     emptyStatsAriaLabel: "Statistik för {{deckName}}",
     newDeck: "Ny kortlek",
     statLabels: {
-      cards: "kort",
-      new: "nya",
-      reviewed: "repeterade",
+      cards: {
+        one: "kort",
+        other: "kort",
+      },
+      new: {
+        one: "nytt",
+        other: "nya",
+      },
+      reviewed: {
+        one: "repeterat",
+        other: "repeterade",
+      },
     },
     subtitle: "Kortlekar är smarta filter, inte behållare. De matchar kort utifrån taggar.",
     title: "Kortlekar",
