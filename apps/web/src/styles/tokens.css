@@ -43,13 +43,26 @@
   --desktop-shell-gutter: var(--shell-frame-gap);
   --content-width: 1240px;
   --shell-width: 1320px;
-  /* The rule: the consent strip stays below every layer that can cover the viewport. `#root`'s
-     bottom padding lifts in-flow content clear of the strip, but an overlay is not in flow, so a
-     strip painted above one covers the bottom of it and swallows the clicks there — and the bottom
-     of a dialog is where its actions are. The app's overlays do not form one tier this could sit
-     under, so the strip goes below the lowest of them instead, leaving only ordinary page content
-     beneath it. Being covered costs the strip nothing: it is not modal, and the question is still
-     there when the overlay closes. */
+  /* The overlay scale. It orders the layers that compete in the root stacking context: everything
+     `position: fixed` under `#root`, plus every popover, which `AnchoredFloatingOverlay` portals to
+     `<body>`. A z-index on an element absolutely positioned inside a component competes with that
+     component's own children and stays a plain number there — the chat panel's drop and error
+     overlays and its resize handle are the ones that do.
+
+     The consent strip stays below every layer that can cover the viewport. `#root`'s bottom padding
+     lifts in-flow content clear of the strip, but an overlay is not in flow, so a strip painted
+     above one covers the bottom of it and swallows the clicks there — and the bottom of a dialog is
+     where its actions are. Being covered costs the strip nothing: it is not modal, and the question
+     is still there when the overlay closes. */
   --z-index-consent-banner: 25;
+  --z-index-sticky-header: 50;
+  --z-index-floating-control: 60;
+  --z-index-drawer: 100;
+  --z-index-dialog-backdrop: 200;
+  /* Above the dialog tier on purpose. A popover is a control of whatever is topmost and is opened
+     from inside it — the card editor's tag picker lives in a dialog but paints from `<body>` — so a
+     popover under the dialog tier would be clipped by the dialog that owns it. */
+  --z-index-popover: 250;
+  /* Reserved for the app error dialog, which has to reach a person whose app is already broken. */
   --z-index-app-modal-top: 300;
 }
