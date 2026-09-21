@@ -207,6 +207,13 @@ type ProductAnalyticsEventSpecProperties = Readonly<{
   properties: Readonly<Record<string, ProductAnalyticsPropertySpec>>;
 }>;
 
+// The catalog property names an ingest path stores into an identity column instead of leaving them
+// in event_properties alone. `readAnonymousId` in anonymousEvent.ts writes install_journey_id into
+// anonymous_id whenever a credential-free request claims no anonymousId of its own, so an entry
+// that declares this property declares an identity whatever else it says. Adding a property that
+// any ingest promotes this way means adding its name here.
+type ProductAnalyticsIdentityBearingPropertyName = "install_journey_id";
+
 // An event that may never be stored beside any identity at all: no user, subject user, guest
 // session, workspace, session or anonymous id. It is a property of the event rather than of the
 // route that accepted it, because an identifier stored beside "this visitor was asked" or "this
@@ -216,11 +223,24 @@ type ProductAnalyticsEventSpecProperties = Readonly<{
 // because it always stamps the caller's identity, the credential-free collector refuses a claimed
 // anonymousId rather than stripping it, and the writer's catalog assertion is the backstop.
 //
-// Optional and never `false`, so an entry that says nothing carries the default: an event may be
-// reported beside an identity.
-type ProductAnalyticsEventSpecIdentity = Readonly<{
-  identityFree?: true;
-}>;
+// `identityFree` carries the entry's properties rather than sitting beside them, because the rule
+// and an identity-bearing property contradict each other and the contradiction has no safe runtime
+// answer. Such an entry would pass the collector's claimed-id refusal - no id is claimed - and then
+// have its own property promoted into anonymous_id, so the row would reach the writer's catalog
+// assertion and be refused there as an unhandled error, reported to the producer as a 500 for a
+// defect no request could fix and no retry could clear. The two branches below make the entry
+// unwritable instead, which is the only form of that failure a person can act on.
+//
+// The identity-bearing branch says `identityFree?: undefined` rather than `?: false`, so an entry
+// that says nothing carries the default - an event may be reported beside an identity - and the
+// `false` spelling stays unwritable.
+type ProductAnalyticsEventSpecIdentity =
+  | Readonly<{
+    identityFree: true;
+    properties: Readonly<Record<string, ProductAnalyticsPropertySpec>>
+      & Readonly<Partial<Record<ProductAnalyticsIdentityBearingPropertyName, never>>>;
+  }>
+  | (Readonly<{ identityFree?: undefined }> & ProductAnalyticsEventSpecProperties);
 
 // serverOnly and requiresScreen are mutually exclusive, and the union below is what makes the
 // combination unwritable rather than merely wrong. The backend has no surface of its own to report,
@@ -229,8 +249,7 @@ type ProductAnalyticsEventSpecIdentity = Readonly<{
 // emitServerDerivedProductAnalyticsEvent turns that throw into a Sentry warning, so every row of
 // that event would be dropped with nothing visible at ingest. A compile error on the catalog entry
 // is the only form of that failure a person can act on.
-type ProductAnalyticsEventSpec = ProductAnalyticsEventSpecProperties &
-  ProductAnalyticsEventSpecIdentity &
+type ProductAnalyticsEventSpec = ProductAnalyticsEventSpecIdentity &
   (
     // Emitted by the backend from its own observation. Client ingest rejects these outright, so a
     // client can never forge an outcome the server never saw, and the server-side emission path is
