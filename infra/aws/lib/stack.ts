@@ -43,6 +43,7 @@ import { mediaAssets } from "./media-assets";
 import { catalogDump } from "./catalog-dump";
 import { geoLiteCountry } from "./geolite-country";
 import { parsePublicOrigin } from "./public-origin";
+import { resolvePublishedApiOrigin } from "./published-api-origin";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
   const value = stack.node.tryGetContext(key);
@@ -258,6 +259,23 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const siteBaseUrl = configuredSiteBaseUrl === undefined
       ? undefined
       : parsePublicOrigin(configuredSiteBaseUrl, "siteBaseUrl");
+    // Optional per-deploy override for the public API origin the backend, auth,
+    // MCP and catalog-dump Lambdas advertise. Defaults to `https://api.<baseDomain>`
+    // when unset, so an unconfigured deploy is unchanged. It moves only published
+    // addresses; see docs/published-api-origin.md for why the auth origin
+    // deliberately has no companion override.
+    // Throws at synth unless it names a host this stack serves and polices
+    // (./published-api-origin.ts).
+    const configuredApiBaseUrl = getOptionalRawContextValue(this, "apiBaseUrl");
+    const apiBaseUrl = resolvePublishedApiOrigin({
+      baseDomain,
+      configuredApiBaseUrl: configuredApiBaseUrl === undefined
+        ? undefined
+        : parsePublicOrigin(configuredApiBaseUrl, "apiBaseUrl"),
+      apiAlternateDomainName,
+      apiAlternateHost: alternateHosts.api,
+      apiAlternateHostLive: isAlternateHostLive(getOptionalContextValue(this, "apiAlternateHostLive")),
+    });
     const sentryContext = validateBackendSentryContext({
       sentryDsnSecretArn: getOptionalContextValue(this, "sentryDsnSecretArn"),
       sentryEnvironment: getOptionalContextValue(this, "sentryEnvironment"),
@@ -420,6 +438,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       mediaAssetsBucket: mediaAssetsResult.bucket,
       baseDomain,
       publicAppOrigin,
+      apiBaseUrl,
       ...sentryContext,
     });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
@@ -442,6 +461,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       db: dbResult.db,
       authDbSecret: dbResult.authDbSecret,
       baseDomain,
+      apiBaseUrl,
       authCertificateArn,
       authAlternateHost: alternateHosts.auth,
       authAlternateCertificateArn,
@@ -466,6 +486,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       baseDomain,
       siteBaseUrl,
+      apiBaseUrl,
       mcpCertificateArn,
       mcpAlternateDomainName,
       mcpAlternateCertificateArn,
@@ -491,6 +512,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       reportingDbSecret: dbResult.reportingDbSecret,
       baseDomain,
       siteBaseUrl,
+      apiBaseUrl,
       apiCertificateArn,
       apiAlternateHost: alternateHosts.api,
       apiAlternateCertificateArn,
