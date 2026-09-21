@@ -292,7 +292,7 @@ const funnelsAnalyticsFilterFieldExplanations: Readonly<
   // way, and the seven-day tail is exactly what the "Attempts still inside 7-day window" line under
   // the funnel counts, so a short recent window reads as a drop-off when it is only immature.
   dateRange:
-    "Selects an attempt by the click that opens it rather than bounding every event counted here: an attempt belongs to this range when its own catalog click falls on a UTC calendar day inside it, with the first and the last day both included. Every later milestone still counts for seven days after that opening click, so Landed, Preview ready, Install started and Installed can each have happened past the last selected day. A range ending near today is therefore still filling rather than finished.",
+    "Selects an attempt by the click that opens it rather than bounding every event counted here: an attempt belongs to this range when its own catalog click falls on a UTC calendar day inside it, with the first and the last day both included. Every later milestone still counts for seven days after that opening click, so Landed, Preview ready, Install started and Installed can each have happened past the last selected day. A range whose last clicks are less than seven days old is therefore still filling rather than finished.",
   // Cut from the on-screen text: the no-click diagnostic keeps landings by the landing row's own
   // platform the same way, and it empties together with the rest of the area when a platform other
   // than web is picked on its own.

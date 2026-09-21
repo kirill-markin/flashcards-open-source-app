@@ -307,7 +307,7 @@ export function CatalogInstallFunnelSection(
         <p className="eyebrow">Funnel report</p>
         <h2>Catalog installation</h2>
         <p className="dashboard-section-description">
-          Distinct install journey attempts cohort on an actual <code>catalog_install_clicked</code> event in the selected UTC dates. Later milestones must keep the same package version, occur in order, and arrive within seven days. Only server-origin <code>catalog_deck_installed</code> is success.
+          Distinct install journey attempts cohort on an actual <code>catalog_install_clicked</code> event in the selected UTC dates. Later milestones must keep the same package version, occur in order, and arrive within seven days. Only server-origin <code>catalog_deck_installed</code> is success. New journeys stopped being recorded on 2026-09-21, so these numbers cover a closed period rather than current traffic; only browsers still running the previous bundle, or holding a cached marketing-site page, still send the journey id, so the tail runs in days rather than release cycles. The funnel returns on the shared visitor identity once the domain move puts the site and the app under one registrable domain that identity can span.
         </p>
       </header>
 
