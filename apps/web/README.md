@@ -23,18 +23,22 @@ That guide covers the real source-of-truth files, browser-local language overrid
 The web app does not own an anonymous identity of its own. `anonymous_id` is the `analytics_visitor`
 cookie the backend mints for the product domain, so this app measures a person from the first page
 view and across a logout: [analytics visitor identity](../../docs/analytics-visitor-identity.md).
+It does not survive an account deletion, which expires it in this browser so the person continues as
+a new anonymous visitor; a deletion started on another device cannot reach this browser's copy.
 
 The auth origin is on that same id, which puts it inside the consent gate. It mints no identity of
 its own: its server-side sign-in funnel reports under this cookie and reports nothing for a browser
 that holds none, so `app.` and `auth.` measure one visitor.
 
 Where the law requires consent first, a bottom strip asks for it, and until the person answers this
-app writes nothing to the device and sends nothing carrying an identifier. Withdrawal lives in one
-place only, the settings screen at `/settings/analytics`; the banner also asks on the public catalog,
-invite and share routes, and a visitor who answered there and has no account withdraws by signing in
-and opening that screen. Read
-[analytics visitor identity](../../docs/analytics-visitor-identity.md) before touching the banner,
-the settings withdrawal entry, or anything in `src/analytics/` that runs before a decision exists.
+app writes nothing to the device and sends nothing carrying an identifier. The banner also asks on
+the public catalog, invite and share routes, and the same switch withdraws on both sides of the
+session gate: the settings screen at `/settings/analytics` for a signed-in person, and a corner link
+on those public routes for a visitor with no account. Both render the one switch in
+`src/analytics/AnalyticsConsentToggleCard.tsx`, and both carry the answer to the account whenever one
+is signed in on this browser. Read [analytics visitor identity](../../docs/analytics-visitor-identity.md) before
+touching the banner, either withdrawal entry, or anything in `src/analytics/` that runs before a
+decision exists.
 
 Which transport an event leaves on follows from whether a credential exists. A signed-in browser
 batches through the authenticated ingest; a signed-out one reports one event per request through the

@@ -1098,9 +1098,10 @@ export function createAnalyticsDeliveryRuntime(
    */
   async function applyAnalyticsConsentGrant(): Promise<boolean> {
     // The kill switch outranks a grant, and this is the one call that would mint a 13-month cookie
-    // for a browser nothing is ever tracked from. Refusing it is also what keeps the settings screen
-    // honest: it reads the stored decision, so a grant stored under a switched-off runtime would
-    // render "on" over a runtime that reports nothing. The refusal is deliberately not symmetric —
+    // for a browser nothing is ever tracked from. Refusing it is also what keeps the withdrawal
+    // switch honest: it reads the stored decision, so a grant stored under a switched-off runtime
+    // would render "on" over a runtime that reports nothing. The refusal is deliberately not
+    // symmetric —
     // `applyAnalyticsConsentDecline` runs either way, because a withdrawal must never be blocked.
     if (isEnabled === false) {
       return false;

@@ -710,6 +710,17 @@ export type SyntheticActorDetectorLargeRunDetails = Readonly<{
   threshold: number;
 }>;
 
+/**
+ * How long ago the GeoLite Country object a container just loaded was written to S3, in whole
+ * hours. It is the only place that age becomes a metric: the bucket's lifecycle expiry
+ * (infra/aws/lib/geolite-country.ts) deletes the object once refreshes stop landing, after which
+ * every country lookup worldwide throws at once, and without this record the approach to that
+ * deletion is invisible. `GeoLiteCountryDatabaseStaleAlarm` in infra/aws/lib/monitoring.ts reads it.
+ */
+export type GeoLiteCountryDatabaseLoadedDetails = Readonly<{
+  publishedAgeHours: number;
+}>;
+
 export type MigrationFailureDetails = Readonly<{
   migrationSurface: "lambda";
   operation: "run_migrations";
@@ -731,6 +742,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"synthetic_actor_excluded", SyntheticActorExcludedDetails>
   | EventByAction<"synthetic_actor_detector_completed", SyntheticActorDetectorCompletedDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
+  | EventByAction<"geolite_country_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
   | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
   | EventByAction<"media_blob_cleanup_retry", MediaBlobCleanupRetryDetails>
   | EventByAction<"media_blob_cleanup_failure_recorded", MediaBlobCleanupFailureRecordedDetails>

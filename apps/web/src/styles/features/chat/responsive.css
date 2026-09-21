@@ -15,7 +15,7 @@
     width: calc(100% - (2 * var(--shell-frame-gap))) !important;
     height: calc(100dvh - (2 * var(--shell-frame-gap)));
     max-height: calc(100dvh - (2 * var(--shell-frame-gap)));
-    z-index: 100;
+    z-index: var(--z-index-drawer);
     margin: 0;
   }
 

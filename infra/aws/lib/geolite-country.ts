@@ -5,6 +5,9 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
 export const geoLiteCountryObjectKey = "GeoLite2-Country.mmdb";
+// Re-armed by every daily upload, so it counts from the write that `GeoLiteCountryDatabaseStaleAlarm`
+// in ./monitoring.ts measures: once refreshes stop landing, this is what deletes the object.
+export const geoLiteCountryObjectExpirationDays = 7;
 
 export function geoLiteCountry(scope: Construct, backendFn: lambda.Function): s3.Bucket {
   const bucket = new s3.Bucket(scope, "GeoLiteCountryBucket", {
@@ -15,7 +18,7 @@ export function geoLiteCountry(scope: Construct, backendFn: lambda.Function): s3
     versioned: false,
     removalPolicy: cdk.RemovalPolicy.RETAIN,
     lifecycleRules: [{
-      expiration: cdk.Duration.days(7),
+      expiration: cdk.Duration.days(geoLiteCountryObjectExpirationDays),
       abortIncompleteMultipartUploadAfter: cdk.Duration.days(1),
     }],
   });
