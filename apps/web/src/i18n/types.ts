@@ -20,6 +20,16 @@ export const supportedLocales = [
   "th",
   "uk",
   "he",
+  "sv",
+  "da",
+  "nb",
+  "fi",
+  "cs",
+  "el",
+  "ro",
+  "hu",
+  "fa",
+  "ca",
 ] as const;
 export const defaultLocale = "en" as const;
 export const defaultSpanishLocale = "es-ES" as const;
