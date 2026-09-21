@@ -595,7 +595,7 @@
 
 "settings.workspace.deleteConfirmation.title" = "Supprimer l’espace de travail";
 "settings.workspace.deleteConfirmation.warning" = "Attention ! Cette action est définitive. Elle supprimera %d cartes actives de %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Un nouvel espace de travail Personnel vide sera créé immédiatement après la suppression.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Un nouvel espace de travail vide nommé Personal sera créé immédiatement après la suppression.";
 "settings.workspace.deleteConfirmation.placeholder" = "supprimer l’espace de travail";
 "settings.workspace.deleteConfirmation.deleting" = "Suppression...";
 

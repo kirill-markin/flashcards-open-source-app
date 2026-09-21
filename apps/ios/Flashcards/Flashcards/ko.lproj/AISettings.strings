@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "이 작업 공간에서 활성 카드 %d개가 영구적으로 삭제됩니다.";
 "settings.workspace.deleteConfirmation.title" = "작업 공간 삭제";
 "settings.workspace.deleteConfirmation.warning" = "경고! 이 작업은 되돌릴 수 없습니다. 활성 카드 %d개를 %@에서 삭제합니다.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "삭제 직후 비어 있는 새 개인 작업 공간이 생성됩니다.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "삭제 직후 Personal이라는 이름의 비어 있는 새 작업 공간이 생성됩니다.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "삭제 중...";
 "settings.workspace.resetConfirmation.title" = "초기화 확인";

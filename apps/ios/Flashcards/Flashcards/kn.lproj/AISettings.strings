@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "ಇದು ಈ ಕಾರ್ಯಸ್ಥಳದಿಂದ %d ಸಕ್ರಿಯ ಕಾರ್ಡ್‌ಗಳನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.";
 "settings.workspace.deleteConfirmation.title" = "ಕಾರ್ಯಸ್ಥಳ ಅಳಿಸಿ";
 "settings.workspace.deleteConfirmation.warning" = "ಎಚ್ಚರಿಕೆ! ಈ ಕ್ರಿಯೆ ಶಾಶ್ವತ. %d ಸಕ್ರಿಯ ಕಾರ್ಡ್‌ಗಳನ್ನು %@ದಿಂದ ಅಳಿಸುತ್ತದೆ.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "ಅಳಿಸಿದ ತಕ್ಷಣ ಹೊಸ ಖಾಲಿ ವೈಯಕ್ತಿಕ ಕಾರ್ಯಸ್ಥಳ ರಚಿಸಲಾಗುತ್ತದೆ.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "ಅಳಿಸಿದ ತಕ್ಷಣ Personal ಎಂಬ ಹೆಸರಿನ ಹೊಸ ಖಾಲಿ ಕಾರ್ಯಸ್ಥಳ ರಚಿಸಲಾಗುತ್ತದೆ.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "ಅಳಿಸಲಾಗುತ್ತಿದೆ...";
 "settings.workspace.resetConfirmation.title" = "ಮರುಹೊಂದಿಸುವಿಕೆ ದೃಢಪಡಿಸಿ";

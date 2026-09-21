@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Tím se z tohoto pracovního prostoru trvale smažou aktivní kartičky. Počet kartiček: %d.";
 "settings.workspace.deleteConfirmation.title" = "Smazat pracovní prostor";
 "settings.workspace.deleteConfirmation.warning" = "Pozor! Tato akce je nevratná. Počet aktivních kartiček ke smazání: %d. Pracovní prostor: %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Ihned po smazání bude vytvořen nový prázdný osobní pracovní prostor.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Ihned po smazání bude vytvořen nový prázdný pracovní prostor s názvem Personal.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Mazání…";
 "settings.workspace.resetConfirmation.title" = "Potvrdit reset";

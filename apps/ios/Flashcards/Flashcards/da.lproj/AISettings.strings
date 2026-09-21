@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "Dette sletter %d aktive kort permanent fra dette arbejdsområde.";
 "settings.workspace.deleteConfirmation.title" = "Slet arbejdsområde";
 "settings.workspace.deleteConfirmation.warning" = "Advarsel! Denne handling er permanent. Den sletter %d aktive kort fra %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "Et nyt, tomt personligt arbejdsområde oprettes umiddelbart efter sletningen.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "Et nyt, tomt arbejdsområde med navnet Personal oprettes umiddelbart efter sletningen.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "Sletter…";
 "settings.workspace.resetConfirmation.title" = "Bekræft nulstilling";

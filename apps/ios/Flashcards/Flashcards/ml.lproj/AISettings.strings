@@ -575,7 +575,7 @@
 "settings.workspace.overview.deleteAlertMessageWithCount" = "ഈ വർക്ക്‌സ്‌പേസിൽ നിന്ന് ശാശ്വതമായി ഇല്ലാതാക്കുന്ന സജീവ കാർഡുകളുടെ എണ്ണം: %d.";
 "settings.workspace.deleteConfirmation.title" = "വർക്ക്‌സ്‌പേസ് ഇല്ലാതാക്കുക";
 "settings.workspace.deleteConfirmation.warning" = "മുന്നറിയിപ്പ്! ഈ പ്രവർത്തനം ശാശ്വതമാണ്. ഇല്ലാതാക്കുന്ന സജീവ കാർഡുകൾ: %d; വർക്ക്‌സ്‌പേസ്: %@.";
-"settings.workspace.deleteConfirmation.lastWorkspace" = "ഇല്ലാതാക്കിയ ഉടൻ പുതിയ ശൂന്യമായ വ്യക്തിഗത വർക്ക്‌സ്‌പേസ് സൃഷ്ടിക്കും.";
+"settings.workspace.deleteConfirmation.lastWorkspace" = "ഇല്ലാതാക്കിയ ഉടൻ Personal എന്ന പേരിൽ പുതിയ ശൂന്യമായ വർക്ക്‌സ്‌പേസ് സൃഷ്ടിക്കും.";
 "settings.workspace.deleteConfirmation.placeholder" = "delete workspace";
 "settings.workspace.deleteConfirmation.deleting" = "ഇല്ലാതാക്കുന്നു...";
 "settings.workspace.resetConfirmation.title" = "പുനഃസജ്ജമാക്കൽ സ്ഥിരീകരിക്കുക";
