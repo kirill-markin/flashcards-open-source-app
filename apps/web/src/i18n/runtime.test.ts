@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
+import { loadTranslationCatalog } from "./catalog";
 import {
   persistLocalePreference,
   readStoredLocalePreference,
@@ -111,8 +112,9 @@ describe("i18n runtime", () => {
     expect(window.localStorage.getItem("flashcards-web-locale-preference")).toBe("es-ES");
   });
 
-  it("uses the explicit locale preference ahead of browser detection", () => {
+  it("uses the explicit locale preference ahead of browser detection", async () => {
     const localeState = resolveLocaleState("es-MX");
+    await loadTranslationCatalog(localeState.locale);
 
     expect(localeState).toEqual({
       locale: "es-MX",

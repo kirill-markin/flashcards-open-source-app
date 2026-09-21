@@ -14,7 +14,7 @@ Adding a new web language must cover all of these behaviors together:
 - the translation catalog stays complete and type-safe
 - automatic browser/device locale detection still resolves to the intended supported locale
 - the browser-local language override still works and persists correctly
-- `document.documentElement.lang` and `document.documentElement.dir` stay aligned with the resolved locale
+- `document.documentElement.lang` and `document.documentElement.dir` stay aligned with the catalog actually rendered
 - RTL presentation stays correct where layout or text alignment depends on direction
 - support copy, runtime-error paths, chat UI messages, and review speech do not stay half-English by accident
 - smoke checks stay deterministic regardless of the machine browser locale
@@ -32,7 +32,7 @@ The current web i18n system is centered on these files:
   Exact-tag normalization, browser-language matching, legacy preference migration, and locale direction.
 
 - [apps/web/src/i18n/catalog.ts](../apps/web/src/i18n/catalog.ts)
-  Typed translation catalogs. `enCatalog` defines the shape, `TranslationKey` is derived from it, and `translationCatalogs` must include every supported locale.
+  Typed translation catalogs. `enCatalog` defines the shape, `TranslationKey` is derived from it, and `translationCatalogLoaders` must lazily import a catalog for every supported locale except the default one, which stays statically imported with the app shell.
 
 - [apps/web/src/i18n/runtime.ts](../apps/web/src/i18n/runtime.ts)
   Browser language detection, locale matching, localStorage persistence, translation lookup, and `Intl` formatting helpers.
@@ -119,7 +119,7 @@ Then update [apps/web/src/i18n/weekContext.ts](../apps/web/src/i18n/weekContext.
 - this table is the Progress-screen week boundary whenever `Intl.Locale.getWeekInfo` is unavailable
 - keep the row describing the generic locale; region-specific browser tags are already handled by `resolveLocaleWeekContext(...)`
 
-Widening `supportedLocales` widens `Locale`, so every `Record<Locale, …>` map in `apps/web` must gain the new locale or `tsc -b` fails. Today those maps are `localeDirections`, `translationCatalogs`, and `localeFirstDayFallbacks`; search for `Record<Locale` before assuming the list is complete.
+Widening `supportedLocales` widens `Locale`, so every `Record<Locale, …>` map in `apps/web` must gain the new locale or `tsc -b` fails. Today those maps are `localeDirections`, `translationCatalogLoaders`, and `localeFirstDayFallbacks`; search for `Record<Locale` before assuming the list is complete.
 
 These files together drive runtime validation, browser auto-resolution, the browser-local language override, and locale-correct week boundaries.
 
@@ -129,7 +129,7 @@ Update [apps/web/src/i18n/catalog.ts](../apps/web/src/i18n/catalog.ts):
 
 - create the new `<locale>Catalog`
 - type it as `TranslationCatalog`
-- add it to `translationCatalogs`
+- add its loader to `translationCatalogLoaders` in the shipped form `async () => (await import("./catalogs/<tag>")).<catalogExport>`, because the loader must resolve to the catalog itself, not to the module namespace
 - add the locale name under `locale.names`
 - translate every existing key, including nested keys and plural labels
 
@@ -139,7 +139,7 @@ This catalog also owns support copy, loading states, confirmation text, permissi
 Why this matters:
 
 - `TranslationKey` is derived from `enCatalog`
-- `translationCatalogs` is typed as `Record<Locale, TranslationCatalog>`
+- `translationCatalogLoaders` is typed as `Record<Locale, () => Promise<TranslationCatalog>>`, so each locale ships as its own chunk
 - [apps/web/src/i18n/runtime.ts](../apps/web/src/i18n/runtime.ts) throws runtime errors for missing or non-leaf keys when `t(...)` resolves them
 
 ### 4. Verify runtime locale detection and browser-local persistence
@@ -169,8 +169,8 @@ The new locale should still flow through:
 
 - `I18nProvider`
 - `useI18n()`
-- `document.documentElement.lang = resolvedLocaleState.locale`
-- `document.documentElement.dir = resolvedLocaleState.direction`
+- `document.documentElement.lang`, assigned from the locale of the rendered translation
+- `document.documentElement.dir`, assigned from the direction of that same rendered translation; both stay unset until a catalog renders
 - `Intl.DateTimeFormat`, `Intl.NumberFormat`, and `Intl.PluralRules` calls that already consume `locale`
 - any provider-owned translation handoff into lower app-data hooks such as `useWorkspaceSession(...)`
 
@@ -348,7 +348,7 @@ Do not consider a new web locale complete until all of these are true:
 
 - the locale is in `supportedLocales`
 - exact locale matching and direction are configured in `locales.ts`
-- `translationCatalogs` includes a complete new catalog
+- `translationCatalogLoaders` loads a complete new catalog
 - the device/browser-local language override works
 - `document.documentElement.lang` and `dir` stay correct
 - RTL-sensitive presentation was audited where applicable

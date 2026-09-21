@@ -2,7 +2,7 @@ import { StrictMode, act, createElement, useEffect, useLayoutEffect, type ReactN
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
-import { I18nProvider, useI18n } from "../../../../i18n";
+import { I18nProvider, loadTranslationCatalog, resolveLocaleState, useI18n } from "../../../../i18n";
 import type { Locale, LocalePreference } from "../../../../i18n/types";
 import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../../../types";
 import { defaultChatConfig } from "../../../sessionController/support/config";
@@ -812,6 +812,9 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     if (setLocalePreferenceRef === null) {
       throw new Error("Expected locale preference setter");
     }
+
+    // The provider renders a locale only once its catalog chunk is loaded.
+    await loadTranslationCatalog(resolveLocaleState(localePreference).locale);
 
     await act(async () => {
       setLocalePreferenceRef?.(localePreference);

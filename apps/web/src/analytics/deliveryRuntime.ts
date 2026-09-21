@@ -667,7 +667,8 @@ export function createAnalyticsDeliveryRuntime(
    * it on every call. That same 401 path nulls the cached CSRF token afterwards, so the token is
    * not guaranteed to be the first of the four to clear either, and
    * `sessionOwnerPublisherCount` reaches zero without leaving the page when a render crash unmounts
-   * `AppDataProvider` under the single root `AppErrorBoundary` (`App.tsx`).
+   * `AppDataProvider` under a root `AppErrorBoundary`, either the one in `App.tsx` or the one
+   * `main.tsx` mounts above `I18nProvider`.
    *
    * `hasPersistedUnderUnsettledQueueOwner` is what makes that safe instead of an ordering argument:
    * any persist that ran before this load settled the question blocks the clear for the rest of the
