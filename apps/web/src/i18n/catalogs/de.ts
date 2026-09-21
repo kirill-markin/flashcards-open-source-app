@@ -866,6 +866,10 @@ const deCatalog: TranslationCatalog = {
     privacyPolicy: "Datenschutzerklärung",
     error: "Das hat nicht geklappt. Bitte versuche es erneut.",
   },
+  analyticsConsentWithdrawal: {
+    link: "Analyse-Cookies",
+    close: "Schließen",
+  },
   analyticsSettings: {
     title: "Analyse",
     subtitle: "Lege fest, ob dieser Browser gemessen werden darf.",

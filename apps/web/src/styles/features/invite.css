@@ -14,8 +14,12 @@
   /* This page sizes itself to the viewport rather than to the shell, so `#root`'s bottom padding
      does not lift it clear of the consent strip (features/analytics-consent.css). It is its own
      scroller, so it reserves the strip's published height here instead, and its content — the
-     primary button included — scrolls clear of the strip instead of under it. */
-  padding-bottom: calc(24px + var(--analytics-consent-banner-height, 0px));
+     primary button included — scrolls clear of the strip instead of under it. The withdrawal link
+     takes the same corner once the strip is gone, so its height is reserved here too; the two are
+     never up at the same time, so the sum is only ever one of them. */
+  padding-bottom: calc(
+    24px + var(--analytics-consent-banner-height, 0px) + var(--analytics-consent-withdrawal-height, 0px)
+  );
 }
 
 .invite-panel {
@@ -192,7 +196,9 @@
   .invite-page {
     padding: 16px;
     /* Restates the reserve the shorthand above drops. */
-    padding-bottom: calc(16px + var(--analytics-consent-banner-height, 0px));
+    padding-bottom: calc(
+      16px + var(--analytics-consent-banner-height, 0px) + var(--analytics-consent-withdrawal-height, 0px)
+    );
     align-content: start;
   }
 
