@@ -74,11 +74,18 @@ const exampleComEmailExclusionSqlFragments = {
 // error. See `db/migrations/0140_analytics_excluded_actors.sql`.
 //
 // Only the authenticated part of that table can reach these numbers. The stored key is the
-// `actor_id` that `analytics.product_events_resolved` reports, and that value falls back to a
+// `actor_id` that `analytics.product_events_resolved` reports - the view as
+// `db/migrations/0137_audience_context.sql` re-issued it - and that value falls back to a
 // client-chosen `anonymous_id`. Nothing constrains that UUID space to be disjoint from
-// `workspace_replicas.user_id`; the fallback is simply unreachable today, because it needs an
-// `analytics.product_events` row whose `user_id` is NULL and every stored row carries one, as
-// `db/migrations/0115_product_analytics_resolved_view.sql` states.
+// `workspace_replicas.user_id`, and that fallback is reachable: the credential-free collector
+// (`apps/backend/src/productAnalytics/anonymousEvent.ts`, `docs/anonymous-client-analytics.md`)
+// stores every row with `user_id` NULL, which `product_events_anonymous_client_shape` requires
+// rather than merely permits, so such a row resolves through the anonymous arms of the COALESCE -
+// or to `actor_id` NULL outright when its catalog entry is `identityFree` and it carries no
+// `anonymous_id` either. `db/migrations/0115_product_analytics_resolved_view.sql` still calls the
+// fallback unreachable, but it is the older definition: 0137 replaced it, adding `ui_locale` and
+// dropping that inline commentary. Both are immutable, so read 0115 as superseded here and by
+// `db/migrations/0143_anonymous_client_identity_free_rows.sql`.
 //
 // The design rule the asymmetry is meant to express: an actor excluded from the anonymous space
 // drops out of the admin reports while leaving these counters alone, so the two surfaces exclude
@@ -87,6 +94,11 @@ const exampleComEmailExclusionSqlFragments = {
 // `anonymous_id` equal to some `workspace_replicas.user_id` would fold onto it and be matched
 // below, excluding an unrelated real account instead of changing nothing. Nothing in the schema
 // enforces that disjointness, so the only reachable defense is on the writer that lists an actor.
+// The one code writer carries it twice: `excludeSyntheticActors` in
+// `apps/backend/src/productAnalytics/syntheticActorDetector.ts` gates its candidates on the
+// server-only `review_answered`, which no collector row can produce, and drops
+// `trust_level = 'anonymous_client'` besides, so no `anonymous_id` reaches the list. A row written
+// into `analytics.excluded_actors` by hand has neither gate.
 const excludedActorWhereSqlFragments = [
   "  AND NOT EXISTS (",
   "    SELECT 1",
