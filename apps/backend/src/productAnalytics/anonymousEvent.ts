@@ -173,6 +173,11 @@ function assertEventMayCarryIdentity(
 // identity it stores at all. A producer sends the shared browser visitor id. Released clients of the
 // catalog install funnel send none and carry a per-attempt journey UUID instead, which stays the
 // column their historical rows are counted under (docs/catalog-install-funnel.md).
+//
+// Promoting a declared property into an identity column is why catalog.ts lists this property name
+// as identity-bearing and refuses it on an `identityFree` entry. assertEventMayCarryIdentity above
+// has already passed by the time this runs, because no id was claimed, so a promoted property is
+// the one remaining way such an event could reach the writer carrying an identity.
 function readAnonymousId(
   claimedAnonymousId: string | null | undefined,
   properties: ProductAnalyticsEventProperties,
