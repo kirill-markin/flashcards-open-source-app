@@ -184,12 +184,17 @@ function readSharedVisitorCookieDomain(): string | null {
 }
 
 /**
- * Expires the shared visitor cookie from the browser side, for a browser that has just refused.
+ * Expires the shared visitor cookie from the browser side. Written with the attributes the backend
+ * mints it with, because a cookie is only replaced by one naming the same domain and path.
  *
- * The refusal's own `POST` already clears it, and this is what closes the window after it: a `GET`
- * that was in flight when the answer landed carries its own `Set-Cookie`, and a refused browser must
- * end up without the identifier rather than merely ignoring it. Written with the attributes the
- * backend mints it with, because a cookie is only replaced by one naming the same domain and path.
+ * Two callers, and the server's part differs between them. A refusal, whose own `POST` already
+ * clears the cookie, so this closes the window after it: a `GET` that was in flight when the answer
+ * landed carries its own `Set-Cookie`, and a refused browser must end up without the identifier
+ * rather than merely ignoring it. And an account deletion, where nothing on the server clears this
+ * cookie at the moment the deletion is confirmed: `POST /v1/me/delete` answers bearer callers with
+ * no browser behind them, and the auth origin's `/logout-local` — which does clear cookies of its
+ * own, on this domain — is reached only by a navigation the deletion cleanup can abort before
+ * (docs/analytics-visitor-identity.md).
  */
 export function clearAnalyticsVisitorCookie(): void {
   const cookieDomain = readSharedVisitorCookieDomain();
@@ -308,9 +313,10 @@ export function readAnalyticsSessionId(nowMs: number): string {
 }
 
 /**
- * Starts a fresh session, and only that: the identity behind it is the shared cookie and survives
- * every boundary this is called at, including a logout. Called from the logout cleanup path, where
- * the person leaving ends their session and the next one starts their own.
+ * Starts a fresh session, and only that. At a logout the identity behind it is the shared cookie and
+ * survives the boundary, so the person leaving ends their session and the next one starts their own.
+ * At an account deletion it is called beside `clearAnalyticsVisitorCookie`, because a session
+ * carried across that swap would join the retired identity to the one replacing it.
  */
 export function resetAnalyticsSession(): void {
   inMemorySessionState = null;

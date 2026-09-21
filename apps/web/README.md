@@ -23,6 +23,8 @@ That guide covers the real source-of-truth files, browser-local language overrid
 The web app does not own an anonymous identity of its own. `anonymous_id` is the `analytics_visitor`
 cookie the backend mints for the product domain, so this app measures a person from the first page
 view and across a logout: [analytics visitor identity](../../docs/analytics-visitor-identity.md).
+It does not survive an account deletion, which expires it in this browser so the person continues as
+a new anonymous visitor; a deletion started on another device cannot reach this browser's copy.
 
 The auth origin is on that same id, which puts it inside the consent gate. It mints no identity of
 its own: its server-side sign-in funnel reports under this cookie and reports nothing for a browser
