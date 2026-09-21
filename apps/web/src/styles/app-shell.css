@@ -9,7 +9,7 @@
   --header-inline-padding: var(--desktop-shell-gutter);
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: var(--z-index-sticky-header);
   flex-shrink: 0;
   padding: var(--shell-frame-gap) var(--header-inline-padding) 0;
   background: var(--bg);
@@ -162,7 +162,7 @@
 }
 
 .mobile-nav-menu {
-  z-index: 120;
+  z-index: var(--z-index-popover);
   display: none;
   gap: 4px;
   padding: 8px;
@@ -234,7 +234,7 @@
   box-shadow: var(--shadow);
   overflow-y: auto;
   overscroll-behavior: contain;
-  z-index: 200;
+  z-index: var(--z-index-popover);
 }
 
 .account-menu-item {
