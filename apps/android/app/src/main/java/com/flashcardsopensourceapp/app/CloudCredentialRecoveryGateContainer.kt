@@ -59,6 +59,10 @@ internal fun CloudCredentialRecoveryGateContainer(
             // rather than opening from a screen, which is exactly the case the catalog added
             // `credential_recovery` for.
             originSurface = AnalyticsSurface.CREDENTIAL_RECOVERY,
+            // And the surface the sign-in itself runs on: the gate never navigates to the sign-in
+            // screen, so `signin_code_requested` and `signin_succeeded` are reported from here as
+            // the recovery funnel they belong to rather than as an ordinary sign-in.
+            signInStepSurface = AnalyticsSurface.CREDENTIAL_RECOVERY,
             applicationContext = context.applicationContext
         )
     )
