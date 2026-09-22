@@ -12,10 +12,16 @@ import {
   buildExcludedActorFilterSqlLines,
   catalogInstallConversionWindowDays,
 } from "../catalogInstallFunnel/query";
-import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
+import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
 
 /** The marketing-site `page_kind` values a funnel on this page can start from. */
 export type SiteEntryPageKind = "home" | "blog_article";
+
+/**
+ * The first UTC day entries count from, whatever range is selected. The site began sending identified
+ * page views partway through 2026-09-22, so that day is partial and no day before it has any.
+ */
+export const siteEntryFunnelStartDate = "2026-09-23";
 
 /** Where "studied it properly" is drawn, the same line the other funnels draw. */
 export const siteEntryEngagedReviewThreshold = 20;
@@ -31,11 +37,6 @@ export type SiteEntryFunnelReport = Readonly<{
   engagedReturningCount: number;
   /** Entries whose seven-day window had not closed when the query ran. */
   maturingCount: number;
-  /**
-   * The first UTC day entries count from: the later of the selected start and the first day the site
-   * reported a page view carrying a visitor id. `null` when it had reported none by the end of the range.
-   */
-  effectiveFromDate: string | null;
 }>;
 
 /** A marketing-site fact: only the credential-free collector writes these, under the visitor cookie. */
@@ -49,7 +50,8 @@ function buildSiteFactSql(rowAlias: string, eventName: string): string {
 
 /**
  * One row per person whose first identified marketing-site page view is a `pageKind` page on a
- * selected UTC day, reduced in SQL to one row of step counts.
+ * selected UTC day from `siteEntryFunnelStartDate` on, reduced in SQL to one row of step counts that
+ * follow the funnel rule in `../funnels/funnelSections.ts`.
  *
  * The person is the visitor cookie the site reports under, `analytics_visitor`, which the web app on
  * the same domain reports under too. The web app's first authenticated analytics batch after sign-in
@@ -66,9 +68,6 @@ function buildSiteFactSql(rowAlias: string, eventName: string): string {
  *   selected platform, and the first trusted event. `entries` keeps the people whose first page view
  *   is that one, on a selected day, with no trusted event before it, so someone who was already
  *   using the product does not enter as a new visitor once their cookie resolves to their account.
- * - `site_facts_start` is the first UTC day of any identified page view in that pass. No entry can
- *   precede it, so it cuts nothing; it is returned so the section can say why an earlier range is
- *   empty instead of drawing a funnel from data the site was not yet sending.
  * - `step_events` hash-joins the step rows in the range to `actor_first_events`, each bounded to its
  *   own actor's `[first page view of pageKind, + 7 days]`, and each step is then a `GROUP BY` joined
  *   to the step above it.
@@ -87,7 +86,9 @@ export function buildSiteEntryFunnelSql(
   pageKind: SiteEntryPageKind,
   reportLabel: string,
 ): string {
-  const { from, to } = assertValidDateRange(filters.dateRange, reportLabel);
+  const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, reportLabel);
+  // A range ending before the start date leaves `from` after `to`, so nobody enters.
+  const from = laterCalendarDate(selectedFrom, siteEntryFunnelStartDate);
   const rangeStartSql = `(${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`;
   const rangeEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`;
   const stepWindowEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`;
@@ -110,15 +111,6 @@ export function buildSiteEntryFunnelSql(
     `    AND (${buildTrustedActorRowsFilterSql("resolved.trust_level")} OR (${pageViewSql}))`,
     `    AND resolved.occurred_at < ${rangeEndSql}`,
     "  GROUP BY resolved.actor_id",
-    "), site_facts_start AS MATERIALIZED (",
-    "  SELECT CASE",
-    "    WHEN MIN(history.first_page_viewed_at) IS NULL THEN NULL",
-    "    ELSE GREATEST(",
-    `      ${escapeSqlStringLiteral(from)}::date,`,
-    "      (MIN(history.first_page_viewed_at) AT TIME ZONE 'UTC')::date",
-    "    )",
-    "  END AS effective_from_date",
-    "  FROM actor_first_events AS history",
     "), entries AS MATERIALIZED (",
     "  SELECT history.actor_id, history.first_entry_viewed_at AS entered_at",
     "  FROM actor_first_events AS history",
@@ -214,8 +206,7 @@ export function buildSiteEntryFunnelSql(
     "  ))::int AS engaged_returning_count,",
     "  (COUNT(*) FILTER (",
     `    WHERE cohort.entered_at + ${windowSql} > now()`,
-    "  ))::int AS maturing_count,",
-    "  (SELECT facts.effective_from_date::text FROM site_facts_start AS facts) AS effective_from_date",
+    "  ))::int AS maturing_count",
     "FROM cohort",
     "LEFT JOIN app_entry_clicks AS clicked ON clicked.actor_id = cohort.actor_id",
     "LEFT JOIN sessions AS signed_in ON signed_in.actor_id = cohort.actor_id",
@@ -242,7 +233,6 @@ export async function loadSiteEntryFunnelReport(
     );
   }
 
-  const effectiveFromDate = row.effective_from_date ?? null;
   const count = (fieldName: string): number => toInteger(row[fieldName] ?? null, reportLabel, fieldName);
 
   return {
@@ -254,8 +244,5 @@ export async function loadSiteEntryFunnelReport(
     engagedCount: count("engaged_count"),
     engagedReturningCount: count("engaged_returning_count"),
     maturingCount: count("maturing_count"),
-    effectiveFromDate: effectiveFromDate === null
-      ? null
-      : assertIsString(effectiveFromDate, reportLabel, "effective_from_date"),
   };
 }
