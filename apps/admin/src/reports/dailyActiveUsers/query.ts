@@ -16,7 +16,7 @@ import {
   buildCatalogAttributionFiltersSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
-  buildExcludedActorsFilterSql,
+  buildExcludedActorSqlLines,
   buildMinimumEventCountsFilterSql,
   buildTrustedActorRowsFilterSql,
   buildUserCohortsFilterSql,
@@ -201,12 +201,11 @@ const dailyActiveUsersCohortSqlExpression = "CASE WHEN app_opens.active_date = a
 // The shape below deliberately mirrors `buildReviewEventsByDateSql`: one CTE bounded above by the
 // range end so the cohort CTE can see all of history, the `org.user_settings` email join folded with
 // `pg_catalog.lower` because `actor_id` renders canonical lowercase hex while `org.user_settings
-// .user_id` is an unconstrained TEXT primary key, the `%@example.com` exclusion restated inline
-// because this package cannot import `exampleComEmailExclusionSqlFragments` from
-// `apps/backend/src/globalMetrics/reporting.ts`, and grouping by `actor_id` so a guest and the
-// account that guest became are one person. Every note on that function about deleted accounts, the
-// case fold and the identity rules applies here unchanged; only the event name and the meaning of a
-// row differ.
+// .user_id` is an unconstrained TEXT primary key - here it only supplies the displayed address, since
+// the people this section refuses to count are dropped by `buildExcludedActorSqlLines` - and grouping
+// by `actor_id` so a guest and the account that guest became are one person. Every note on that
+// function about deleted accounts, the case fold and the identity rules applies here unchanged; only
+// the event name and the meaning of a row differ.
 //
 // ONE ROW PER (DAY, ACTOR, PLATFORM), AND THE ROWS ARE NEVER SUMMED. A person can open the phone and
 // the browser on the same day and is then two rows on that day. Every "unique users" number in this
@@ -256,12 +255,8 @@ export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string 
     "    AND resolved.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
-    "    AND (",
-    "      user_settings.email IS NULL",
-    "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
-    "    )",
-    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
     `    AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
+    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     "),",
     "actor_first_active_date AS (",
     "  SELECT",
