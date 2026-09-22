@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
@@ -43,6 +44,7 @@ class AiViewModel(
     appVersion: String,
     versionCode: Int,
     observability: AppObservability,
+    analytics: Analytics,
     textProvider: AiTextProvider,
     currentUiLocaleTag: () -> String?
 ) : ViewModel() {
@@ -98,7 +100,8 @@ class AiViewModel(
         currentServerConfiguration = { serverConfigurationState.value },
         currentSyncStatus = { syncStatusState.value.status },
         currentUiLocaleTag = currentUiLocaleTag,
-        observability = observability
+        observability = observability,
+        analytics = analytics
     )
 
     val uiState: StateFlow<AiUiState> = combine(
@@ -283,7 +286,8 @@ fun createAiViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     appVersion: String,
     versionCode: Int,
-    observability: AppObservability
+    observability: AppObservability,
+    analytics: Analytics
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -297,6 +301,7 @@ fun createAiViewModelFactory(
                 appVersion = appVersion,
                 versionCode = versionCode,
                 observability = observability,
+                analytics = analytics,
                 textProvider = aiTextProvider(context = application),
                 currentUiLocaleTag = {
                     currentAiUiLocaleTag(context = application)
