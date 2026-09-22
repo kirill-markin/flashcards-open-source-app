@@ -9,6 +9,7 @@ import {
 } from "../auth/requestSecurity";
 import { getDirectRequestSourceIp } from "../geolocation/requestCountry";
 import { parseAnonymousEvent } from "../productAnalytics/anonymousEvent";
+import { isAutomatedUserAgent } from "../productAnalytics/automatedClient";
 import { resolveDailyVisitorHash } from "../productAnalytics/dailyVisitorHash";
 import { insertAnonymousProductAnalyticsEvent } from "../productAnalytics/writer";
 import {
@@ -167,11 +168,18 @@ export function createAnonymousAnalyticsRoutes(
       );
       const serverReceivedAt = new Date();
       row = parseAnonymousEvent(body, serverReceivedAt, requestId);
+      // Read once and used twice: the hash derives from it, and the automated-client verdict is the
+      // whole of what it is classified by. Neither stores it.
+      const userAgent = context.req.header("user-agent") ?? null;
       const dailyVisitorHash = await resolveDailyVisitorHash(row, {
         sourceIp: getDirectRequestSourceIp(),
-        userAgent: context.req.header("user-agent") ?? null,
+        userAgent,
       });
-      const storedCount = await insertAnonymousProductAnalyticsEvent({ ...row, dailyVisitorHash });
+      const storedCount = await insertAnonymousProductAnalyticsEvent({
+        ...row,
+        dailyVisitorHash,
+        automatedClient: isAutomatedUserAgent(userAgent),
+      });
       addBackendBreadcrumb({
         action: "analytics_events_ingest",
         scope,

@@ -32,7 +32,8 @@ export type MobileFirstLaunchFunnelReport = Readonly<{
   reviewScreenCount: number;
   revealedCount: number;
   oneReviewCount: number;
-  engagedCount: number;
+  twoReviewsCount: number;
+  twoReviewDaysCount: number;
   engagedReturningCount: number;
   /** First opens whose seven-day window had not closed when the query ran. */
   maturingCount: number;
@@ -80,11 +81,12 @@ export const mobileFirstLaunchDemoCardAllowanceSeconds = 60;
  *
  * Every later step is the same actor within seven days of the first app open, at or after the step
  * above it: the review screen, then an answer reveal, then a first `review_answered`. The review
- * count runs from that first answer to the seven-day bound. The return day is one of those answers
- * on a later UTC day than the first app open, reported only together with the threshold, so a later
- * step can never exceed an earlier one. `review_answered` is the server's fact and carries no
- * platform, so an answer given on another device of the same person counts. Two app opens at the
- * same microsecond on different platforms count as a mobile first open.
+ * count runs from that first answer to the seven-day bound, and the review day count is the distinct
+ * UTC dates those same answers fall on. The tail steps are two reviews, then reviews on two distinct
+ * days, then the threshold together with three distinct days, and all three read that one per-person
+ * aggregate of the count pair, so a later step can never exceed an earlier one. `review_answered` is
+ * the server's fact and carries no platform, so an answer given on another device of the same person
+ * counts. Two app opens at the same microsecond on different platforms count as a mobile first open.
  */
 export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): string {
   const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, mobileFirstLaunchFunnelReportLabel);
@@ -136,7 +138,6 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "), step_events AS MATERIALIZED (",
     "  SELECT",
     "    history.actor_id,",
-    "    history.first_opened_at,",
     "    step_event.event_name,",
     "    step_event.occurred_at",
     "  FROM analytics.product_events_resolved AS step_event",
@@ -176,10 +177,7 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "  SELECT",
     "    review.actor_id,",
     "    COUNT(*)::int AS review_count,",
-    "    bool_or(",
-    "      (review.occurred_at AT TIME ZONE 'UTC')::date",
-    "        > (review.first_opened_at AT TIME ZONE 'UTC')::date",
-    "    ) AS has_return_day",
+    "    COUNT(DISTINCT (review.occurred_at AT TIME ZONE 'UTC')::date)::int AS review_day_count",
     "  FROM step_events AS review",
     "  INNER JOIN first_reviews AS first_review",
     "    ON first_review.actor_id = review.actor_id",
@@ -192,12 +190,11 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "  COUNT(review_screen.review_screen_at)::int AS review_screen_count,",
     "  COUNT(revealed.revealed_at)::int AS revealed_count,",
     "  COUNT(first_review.first_review_at)::int AS one_review_count,",
+    "  (COUNT(*) FILTER (WHERE engagement.review_count >= 2))::int AS two_reviews_count,",
+    "  (COUNT(*) FILTER (WHERE engagement.review_day_count >= 2))::int AS two_review_days_count,",
     "  (COUNT(*) FILTER (",
     `    WHERE engagement.review_count >= ${mobileFirstLaunchEngagedReviewThreshold}`,
-    "  ))::int AS engaged_count,",
-    "  (COUNT(*) FILTER (",
-    `    WHERE engagement.review_count >= ${mobileFirstLaunchEngagedReviewThreshold}`,
-    "      AND engagement.has_return_day",
+    "      AND engagement.review_day_count >= 3",
     "  ))::int AS engaged_returning_count,",
     "  (COUNT(*) FILTER (",
     `    WHERE cohort.first_opened_at + ${windowSql} > now()`,
@@ -238,7 +235,8 @@ export async function loadMobileFirstLaunchFunnelReport(
     reviewScreenCount: count("review_screen_count"),
     revealedCount: count("revealed_count"),
     oneReviewCount: count("one_review_count"),
-    engagedCount: count("engaged_count"),
+    twoReviewsCount: count("two_reviews_count"),
+    twoReviewDaysCount: count("two_review_days_count"),
     engagedReturningCount: count("engaged_returning_count"),
     maturingCount: count("maturing_count"),
   };
