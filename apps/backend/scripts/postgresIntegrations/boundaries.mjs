@@ -70,6 +70,17 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0144 adds analytics.product_events.daily_visitor_hash and analytics.daily_visitor_hash_salts.
+  // Only the credential-free collector's insert names them, which is why the shared writer column
+  // list leaves the column out and no test pinned below this migration moves here. This entry exists
+  // for the one test that exercises the new column.
+  Object.freeze({
+    migrationFileName: "0144_anonymous_client_daily_visitor_hash.sql",
+    expectedMigrationCount: 146,
+    testFiles: Object.freeze([
+      "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
+    ]),
+  }),
   // 0142 adds org.user_settings.analytics_consent, and the shared profile read now names that
   // column: the SELECT in ensureUserProfileInExecutor (auth/ensureUser.ts), which
   // loadAuthenticatedRequestContext runs for every authenticated request on every transport.

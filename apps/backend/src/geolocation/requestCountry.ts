@@ -4,16 +4,22 @@ import { resolveCountryCode } from "./country";
 
 export type RequestCountryLookup = () => Promise<string | null>;
 
-const requestCountryStorage = new AsyncLocalStorage<RequestCountryLookup | null>();
+type DirectRequestSource = Readonly<{
+  sourceIp: string;
+  countryLookup: RequestCountryLookup;
+}>;
+
+const directRequestSourceStorage = new AsyncLocalStorage<DirectRequestSource | null>();
 
 /** Only the Lambda transport installs this context; HTTP headers cannot supply an address. */
 export function runWithApiGatewayCountry<Result>(
   event: LambdaEvent,
   callback: () => Promise<Result>,
 ): Promise<Result> {
-  // This exclusion also covers feedback; a marker never authorizes a forwarded address.
+  // This exclusion also covers feedback and the daily visitor hash; a marker never authorizes a
+  // forwarded address.
   if (Object.keys(event.headers ?? {}).some((name) => name.toLowerCase() === "x-analytics-relay")) {
-    return requestCountryStorage.run(null, callback);
+    return directRequestSourceStorage.run(null, callback);
   }
   let sourceIp: string | null = null;
   if ("rawPath" in event) {
@@ -22,10 +28,17 @@ export function runWithApiGatewayCountry<Result>(
     sourceIp = event.requestContext.identity?.sourceIp ?? null;
   }
   const address = sourceIp;
-  const lookup = address === null ? null : () => resolveCountryCode(address);
-  return requestCountryStorage.run(lookup, callback);
+  const source = address === null
+    ? null
+    : { sourceIp: address, countryLookup: () => resolveCountryCode(address) };
+  return directRequestSourceStorage.run(source, callback);
 }
 
 export function getDirectRequestCountryLookup(): RequestCountryLookup | null {
-  return requestCountryStorage.getStore() ?? null;
+  return directRequestSourceStorage.getStore()?.countryLookup ?? null;
+}
+
+/** The API Gateway source IP of the direct caller, or null off Lambda and on a relayed request. */
+export function getDirectRequestSourceIp(): string | null {
+  return directRequestSourceStorage.getStore()?.sourceIp ?? null;
 }
