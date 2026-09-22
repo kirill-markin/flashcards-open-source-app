@@ -1,7 +1,20 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
+import { deckVersionDiscriminatorLength } from "../../filters/AnalyticsFilterBar";
 import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
+import type { CatalogDeckOption } from "../../filters/optionsQuery";
 import { isFunnelAllAudienceSelected, isFunnelHashedCohortRead } from "../funnels/funnelAudienceSql";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
+import { FunnelGroupByPicker } from "../funnels/FunnelGroupByPicker";
+import {
+  buildFunnelGroupLabel,
+  foldFunnelGroupsWith,
+  parseFunnelGroupByDimension,
+  unresolvedFunnelGroupKey,
+  writeFunnelGroupByToUrl,
+  type FunnelGroup,
+  type FunnelGroupByField,
+  type FunnelGroupCounts,
+} from "../funnels/funnelGroupBy";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import { formatPercentage, FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
@@ -50,6 +63,68 @@ const engagedReviewThreshold = 20;
 
 /** One identity for every render without a report, so the derived counts below are memoized once. */
 const noVisits: ReadonlyArray<CatalogInstallFunnelVisit> = [];
+
+/**
+ * One thing this funnel can be grouped by: a reader over a loaded row rather than a SQL expression.
+ *
+ * THAT IS WHERE THIS FUNNEL DEPARTS FROM `FunnelGroupByDimension` in `../funnels/funnelGroupBy.ts`,
+ * and it is a difference in the query rather than in the field. A funnel reduced in SQL has to name
+ * its key inside the statement, so its dimension carries one; this query already returns one row per
+ * visit and `countPeopleAtEachStep` below reduces them in the browser, so a dimension here only has
+ * to say which value of a row it reads. Picking one therefore regroups the rows already in hand and
+ * never reloads the report, which is also why the loaded report and the selected dimension can never
+ * disagree the way they can on a funnel that regroups in SQL. `null` is the dimension saying it
+ * cannot place that row.
+ */
+type CatalogInstallFunnelGroupByDimension = FunnelGroupByField & Readonly<{
+  readGroupKey: (visit: CatalogInstallFunnelVisit) => string | null;
+}>;
+
+/** The dimension whose keys are `package_version_id`, which is the one dimension that has to be named. */
+const deckGroupByDimensionId = "deck";
+
+/**
+ * What the `Group by` field offers, in picker order.
+ *
+ * Every one of them is a value the row already carries, and the four the query projects only for
+ * this field are documented on `CatalogInstallFunnelVisit`.
+ *
+ * ONLY `country` AND `language` PARTITION THE PEOPLE, and the reason is the row unit rather than any
+ * one dimension: a row is one identity and one deck version, so a key read off a row is a property
+ * of that pair, and a person whose deck rows disagree on it enters two groups. `deck` splits by
+ * definition; `source` and `device-category` are each row's own anchoring page view's, so the
+ * ordinary catalog browse - found by search, then on to the next deck from inside the site - is one
+ * person under two; `placement` and `click-language` are each row's own install click's, so a person
+ * who clicked on one deck and not on another is in a value group and in `Unresolved` at once. Only
+ * the country and the language are reduced per actor, by `buildActorConnectionCountrySql` and
+ * `buildActorAppUiLanguageSql`, which group by `actor_id` and give a person one value whatever their
+ * rows say. `buildGroups`, the chart's footnote and `docs/admin-app.md` all state that split, and
+ * the folded `Other` is re-reduced from visits because of it.
+ *
+ * NO DIMENSION HERE IS NARROWED BY THE FILTER FIELD OF ITS OWN NAME. The country and the language
+ * are the identity's over the range, exactly as on the mobile funnel. The other five are the row's
+ * own values while all four click filter fields read the install click, and the row's anchor is the
+ * person's first page view of that deck in range while their click may be up to seven days later, so
+ * a `source = search` selection keeps a person for their click and can still draw them under the
+ * `direct` that page view carried - a different session, and on a shared identity not necessarily
+ * even the same device. The placement and the browser language exist only on the install click, so
+ * every row that never clicked is `Unresolved` under them and their value groups start at a first
+ * step that is already the click; the source and the device category are on every row, clicked or
+ * not.
+ */
+const catalogInstallFunnelGroupByDimensions: ReadonlyArray<CatalogInstallFunnelGroupByDimension> = [
+  { id: deckGroupByDimensionId, label: "Deck version", readGroupKey: (visit) => visit.packageVersionId },
+  { id: "country", label: "Connection country", readGroupKey: (visit) => visit.connectionCountry },
+  { id: "language", label: "App interface language", readGroupKey: (visit) => visit.appUiLanguage },
+  { id: "placement", label: "Catalog link placement", readGroupKey: (visit) => visit.clickPlacement },
+  { id: "source", label: "Traffic source", readGroupKey: (visit) => visit.source },
+  { id: "device-category", label: "Device category", readGroupKey: (visit) => visit.deviceCategory },
+  {
+    id: "click-language",
+    label: "Browser language at click",
+    readGroupKey: (visit) => visit.clickBrowserLanguage,
+  },
+];
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected deck page to install funnel error.";
@@ -212,6 +287,115 @@ function buildMainStages(
     });
 }
 
+/** One loaded group, plus the visits it was reduced from, which the folded `Other` re-reduces. */
+type CatalogInstallFunnelGroup = FunnelGroupCounts<FunnelMainStepId> & Readonly<{
+  visits: ReadonlyArray<CatalogInstallFunnelVisit>;
+}>;
+
+/**
+ * How one group of the selected dimension is named on screen.
+ *
+ * Six of the seven name themselves: their keys are countries, locales, placements, sources and
+ * device categories, which `buildFunnelGroupLabel` prints as they come. A deck version's key is a
+ * 36-character UUID that no legend and no table column can be read at, so it is named the way the
+ * `Catalog deck version` filter field names the very same value on this page: its slug, carrying the
+ * leading `deckVersionDiscriminatorLength` characters of the id wherever two groups share that slug,
+ * drawn or folded. Every key is counted rather than the five that end up drawn, because a label has
+ * to exist before `foldFunnelGroupsWith` ranks the groups by size and breaks its ties on the label,
+ * so a drawn version can carry the fragment while its same-slug sibling sits inside `Other`.
+ *
+ * The slugs come from the deck option list that field is already given, which offers only versions
+ * somebody completed an install of, so a version nobody has installed keeps its raw key rather than
+ * inventing a name for it - the same fallback `buildFunnelGroupLabel` makes for an unknown platform.
+ * At this product stage that is not a rare bar: the groups are ranked by deck page views, and a much
+ * viewed deck version nobody finished installing is an ordinary outcome, so the explainer and
+ * `docs/admin-app.md` both state the limit rather than promising a slug.
+ */
+function buildGroupLabeller(
+  dimension: CatalogInstallFunnelGroupByDimension,
+  groupKeys: ReadonlyArray<string>,
+  catalogDeckOptions: ReadonlyArray<CatalogDeckOption>,
+): (groupKey: string) => string {
+  if (dimension.id !== deckGroupByDimensionId) {
+    return (groupKey) => buildFunnelGroupLabel(dimension, groupKey);
+  }
+
+  const slugByPackageVersionId = new Map(
+    catalogDeckOptions.map((deck) => [deck.packageVersionId, deck.packageSlug] as const),
+  );
+  const groupCountBySlug = new Map<string, number>();
+  for (const groupKey of groupKeys) {
+    const slug = slugByPackageVersionId.get(groupKey);
+    if (slug !== undefined) {
+      groupCountBySlug.set(slug, (groupCountBySlug.get(slug) ?? 0) + 1);
+    }
+  }
+
+  return (groupKey) => {
+    const slug = slugByPackageVersionId.get(groupKey);
+    if (slug === undefined) {
+      return buildFunnelGroupLabel(dimension, groupKey);
+    }
+
+    return (groupCountBySlug.get(slug) ?? 0) > 1
+      ? `${slug} — ${groupKey.slice(0, deckVersionDiscriminatorLength)}`
+      : slug;
+  };
+}
+
+/**
+ * One group per distinct value of the selected dimension, each reduced by `buildMainStages` so that
+ * the funnel rule stays owned by one function and a group is measured exactly as the funnel is.
+ *
+ * A VISIT IS GROUPED, A PERSON IS COUNTED, and under five of the seven dimensions those are not the
+ * same thing: a row is one identity and one deck version, so a person whose deck rows disagree on
+ * the key enters two groups and the groups then add up to more people than the funnel holds. Only
+ * `country` and `language` are per-actor values and genuinely partition it; the dimension list above
+ * names the other five and what splits each of them. The folded `Other` group is built from visits
+ * for the same reason, in the caller below.
+ *
+ * THE COOKIELESS PEOPLE OF THE `all` MODE GO TO `Unresolved` AND NOWHERE ELSE. They arrive as two
+ * counts rather than as rows because they have no actor and no attributed click, which is exactly
+ * what makes them unplaceable by every one of these dimensions. The group is created for them even
+ * when every visit row resolved, or a grouping would drop people the ungrouped chart counts.
+ */
+function buildGroups(
+  visits: ReadonlyArray<CatalogInstallFunnelVisit>,
+  hashedDeckPageViewCount: number,
+  hashedInstallClickCount: number,
+  dimension: CatalogInstallFunnelGroupByDimension,
+  catalogDeckOptions: ReadonlyArray<CatalogDeckOption>,
+): ReadonlyArray<CatalogInstallFunnelGroup> {
+  const visitsByGroupKey = new Map<string, Array<CatalogInstallFunnelVisit>>();
+  for (const visit of visits) {
+    const groupKey = dimension.readGroupKey(visit) ?? unresolvedFunnelGroupKey;
+    const groupVisits = visitsByGroupKey.get(groupKey) ?? [];
+    groupVisits.push(visit);
+    visitsByGroupKey.set(groupKey, groupVisits);
+  }
+
+  if (hashedDeckPageViewCount > 0 && visitsByGroupKey.has(unresolvedFunnelGroupKey) === false) {
+    visitsByGroupKey.set(unresolvedFunnelGroupKey, []);
+  }
+
+  // Named after every key is known, because a deck slug is shortened only against the other decks
+  // on this chart.
+  const buildGroupLabel = buildGroupLabeller(
+    dimension,
+    Array.from(visitsByGroupKey.keys()),
+    catalogDeckOptions,
+  );
+
+  return Array.from(visitsByGroupKey, ([groupKey, groupVisits]) => ({
+    key: groupKey,
+    label: buildGroupLabel(groupKey),
+    visits: groupVisits,
+    stages: groupKey === unresolvedFunnelGroupKey
+      ? buildMainStages(groupVisits, hashedDeckPageViewCount, hashedInstallClickCount)
+      : buildMainStages(groupVisits, 0, 0),
+  }));
+}
+
 /** The sign-in branch, counted as people by the same rule as the main steps. */
 function buildAuthStages(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<StepCount> {
   return countPeopleAtEachStep(visits, [
@@ -265,6 +449,15 @@ function buildFailureTotals(visits: ReadonlyArray<CatalogInstallFunnelVisit>): R
 export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Element {
   const [loadRevision, setLoadRevision] = useState<number>(0);
   const [loadState, setLoadState] = useState<FunnelLoadState>({ status: "loading" });
+  // The field is this funnel's own, seeded from the URL on mount and written back on every pick, so
+  // a reload or a shared link reopens the same grouping; `null` is the ungrouped default.
+  const [groupByDimension, setGroupByDimension] = useState<CatalogInstallFunnelGroupByDimension | null>(
+    () => parseFunnelGroupByDimension(
+      new URLSearchParams(window.location.search),
+      catalogInstallFunnelAnchor.funnelId,
+      catalogInstallFunnelGroupByDimensions,
+    ),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -298,10 +491,52 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
     () => buildMainStages(visits, hashedDeckPageViewCount, hashedInstallClickCount),
     [visits, hashedDeckPageViewCount, hashedInstallClickCount],
   );
+  // The grouped chart, and only the chart: the stages above and every figure below - the sign-in
+  // branch, the failures, the median, the two no-visit lines, the maturing warning and the empty
+  // state - go on reading the whole visit set, because grouping splits these people rather than
+  // narrowing them. `null` is the ungrouped chart, which is also every render before the report.
+  const groups = useMemo<ReadonlyArray<FunnelGroup<FunnelMainStepId>> | null>(() => {
+    if (report === null || groupByDimension === null) {
+      return null;
+    }
+
+    // The type arguments are explicit because `Group` alone cannot pin the step id for the compiler.
+    return foldFunnelGroupsWith<FunnelMainStepId, CatalogInstallFunnelGroup>(
+      groupByDimension,
+      buildGroups(
+        visits,
+        hashedDeckPageViewCount,
+        hashedInstallClickCount,
+        groupByDimension,
+        props.catalogDeckOptions,
+      ),
+      // From the folded groups' visits rather than by summing their counts: on the deck dimension
+      // one person can sit in two of them, and adding the counts would make `Other` hold more
+      // people than it has. Those groups never carry the cookieless counts, which stay pinned to
+      // `Unresolved`, and `Unresolved` is never folded.
+      (foldedGroups) => buildMainStages(foldedGroups.flatMap((group) => group.visits), 0, 0),
+    );
+  }, [
+    groupByDimension,
+    hashedDeckPageViewCount,
+    hashedInstallClickCount,
+    props.catalogDeckOptions,
+    report,
+    visits,
+  ]);
   const authStages = useMemo(() => buildAuthStages(visits), [visits]);
   const failureTotals = useMemo(() => buildFailureTotals(visits), [visits]);
 
   const firstInstallVisits = useMemo(() => getFirstInstallVisitByPerson(visits), [visits]);
+  // A pick regroups rows the browser already holds, so nothing reloads and the URL is all that is
+  // written back beside the state.
+  const selectGroupByDimension = useCallback(
+    (dimension: CatalogInstallFunnelGroupByDimension | null): void => {
+      setGroupByDimension(dimension);
+      writeFunnelGroupByToUrl(catalogInstallFunnelAnchor.funnelId, dimension?.id ?? null);
+    },
+    [],
+  );
 
   const newIdentityInstallerCount = firstInstallVisits.filter((visit) => visit.installActorIsNew === true).length;
   const returningIdentityInstallerCount = firstInstallVisits.filter((visit) => visit.installActorIsNew === false).length;
@@ -336,6 +571,20 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
 
       {props.filterRow}
 
+      {/* OUTSIDE EVERY STATE GATE BELOW, because the chart is not mounted while the report loads and
+          not mounted at all while the funnel is empty. A field that unmounts on its own use drops
+          keyboard focus on every pick, and once a narrowed range leaves no deck page views a
+          grouping already in the URL could only be cleared by editing the URL by hand. */}
+      <div className="funnel-group-by-row">
+        <FunnelGroupByPicker
+          funnelId={catalogInstallFunnelAnchor.funnelId}
+          dimensions={catalogInstallFunnelGroupByDimensions}
+          selectedDimensionId={groupByDimension === null ? null : groupByDimension.id}
+          isReportLoading={props.isRangeLoading || loadState.status === "loading"}
+          onSelect={selectGroupByDimension}
+        />
+      </div>
+
       {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading deck page to install funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
@@ -350,6 +599,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
         <FunnelStepsChart
           anchor={catalogInstallFunnelAnchor}
           stages={mainStages}
+          groups={groups ?? undefined}
           countLabel="Visitors"
           tableCaption="Deck page to install funnel steps"
           dateRange={props.filters.dateRange}
@@ -369,6 +619,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           <p>&ldquo;Who the funnels count&rdquo; picks the audience. <strong>With anonymous ID</strong>, the default, is everything described above. <strong>Signed-in only</strong> keeps just the visits whose identity resolves to a real, non-guest account at some point up to now, read from a Cognito row in <code>auth.user_identities</code>; it narrows the two no-visit diagnostics the same way, so they stay comparable with the funnel. <strong>All</strong> adds cookieless visitors as the lighter part of the first two bars: where the site may not set a cookie it still reports a daily hash, and one hash on one UTC day is one person. They can reach the deck page view and an install click on a deck whose page they viewed — the same rule as above, on the hash — and nothing below it, because every later step needs an identity the app or the server can meet again. They carry no actor, so the exclusion list, the test-account and admin rules and the delisted <code>test</code> deck&rsquo;s rejection cannot reach them — that last one recognises the fixture by an app-side install start by the same person, which a cookieless browser never sends, and a deck page view carries no deck slug to test instead, so the fixture&rsquo;s own cookieless views and clicks are in these bars. The deck version, the platform, the four click dimensions and their own page view&rsquo;s language still narrow them, and a selected connection country removes them altogether.</p>
           <p><strong>All counts people at most once per cohort, not once per person, so it is an upper bound.</strong> A hash and a cookie are never linked, by design: the daily salt is unreadable and no query may resolve one to the other. Where the site must ask before setting a cookie (the EEA and the UK), the same human sends hashed deck page views before consenting and cookie-bearing ones after, and on that day they can appear once in each part of step one, and of step two, and be added. Nothing here can subtract that overlap, which is why <strong>With anonymous ID</strong> is the default and <strong>All</strong> is a ceiling to read against it rather than a better count.</p>
           <p>A browser that refused consent is given no identifier at all. It is counted only in the <strong>All</strong> audience, through its daily hash, and appears nowhere else here: it holds no visit row, no diagnostic and no median.</p>
+          <p><strong>Group by</strong> splits exactly these people and measures each group inside itself: one bar per group at every step, every percentage taken from that group&rsquo;s own first step, and a selected step re-bases each group on its own count there, so two groups of very different size are compared by their rates. Beyond the five largest groups the rest are folded into one <strong>Other</strong>, and everything the selected dimension cannot place is kept in <strong>Unresolved</strong> rather than dropped &mdash; the cookieless visitors of <strong>All</strong> included, who carry neither an identity nor an attributed click and so keep their lighter segment there and only there. Nothing else on this page is grouped: the sign-in branch, the failures, the median, the diagnostics and the maturing warning all stay the whole funnel&rsquo;s. <strong>Only the connection country and the app interface language split these people into groups that add back up to the funnel.</strong> Underneath, one row is one person and one deck version, so under the other five dimensions a person whose deck rows carry different values is counted in two groups and the bars add up to more people than the funnel holds: two deck versions are two groups under <strong>Deck version</strong>; the traffic source and the device category are each row&rsquo;s own deck page view&rsquo;s, so an ordinary browse &mdash; a deck found by search, then the next one reached from inside the site &mdash; is one person under two; and the placement and the browser language are each row&rsquo;s own install click&rsquo;s, so a person who clicked on one deck and not on another is in a value group and in <strong>Unresolved</strong> at once. <strong>Other</strong> is re-counted from the underlying rows rather than by adding those groups up, so it at least stays a count of distinct people. None of the seven is narrowed by the filter field of the same name: the country and the language are the identity&rsquo;s alphabetically first value over the selected dates, and the other five are the row&rsquo;s own while those four filter fields all read the install click, which can be a later session on another device than the page view the row is anchored at &mdash; so a grouped chart can show a country, a language, a source, a device category or a placement that the filter above it did not select. The placement and the browser language exist only on the install click, so every person who never clicked is <strong>Unresolved</strong> under them; the traffic source and the device category are on every row, clicked or not. A <strong>Deck version</strong> bar is named by the slug the deck filter field above shows, and that field lists only versions somebody finished installing, so a deck page nobody has installed from is legended by its raw version id.</p>
         </details>
       ) : null}
 
