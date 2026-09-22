@@ -765,6 +765,20 @@ const funnelStepLabelLineHeight = 15;
 const funnelStepHitEdgeInset = 2;
 /** Clears the column's selected stroke with the 2-unit focus ring drawn inside it. */
 const funnelStepFocusRingInset = 4;
+/** Depth of the zig-zag drawn inside a capped bar's top edge; it stays below the labels, whose last baseline sits 10 units above the plot. */
+const funnelStepClipMarkDepth = 6;
+const funnelStepClipMarkToothWidth = 10;
+const funnelShareAxisFormatter = d3.format(".0%");
+
+function buildFunnelStepClipMarkPath(width: number): string {
+  const toothCount = Math.max(2, Math.round(width / funnelStepClipMarkToothWidth));
+  const points = d3.range(toothCount + 1).map((index) => {
+    const pointY = index % 2 === 0 ? funnelStepClipMarkDepth : 0;
+    return `${(width * index) / toothCount},${pointY}`;
+  });
+
+  return `M${points.join("L")}`;
+}
 
 function wrapFunnelStepLabel(label: string): ReadonlyArray<string> {
   const lines: Array<string> = [];
@@ -810,25 +824,35 @@ function getFunnelStepAriaLabel(step: FunnelStepBar, stepIndex: number, anchorIn
  * at the previous step's height sits behind every later bar, so the drop-off reads as the gap between
  * them, and a zero step keeps a thin muted stub so it still reads as a measured step. The labels sit
  * above the taller of the bar and its ghost so the ghost's dashed top edge never crosses them.
- * Each step's whole column is a toggle button that re-anchors the shares on it; steps before the
- * anchor fade. A redraw keeps keyboard focus on the column that held it.
+ * Each step's whole column is a toggle button that re-anchors the shares on it. A selected step with
+ * visitors re-bases the chart: its count fills the plot, the axis reads as a share of it, it loses its
+ * ghost, and steps before it turn grey, capped at the plot top with a zig-zag clip mark when taller.
+ * A redraw keeps keyboard focus on the column that held it.
  */
 export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): void {
   const innerWidth = chartWidth - funnelChartMargin.left - funnelChartMargin.right;
   const innerHeight = funnelChartHeight - funnelChartMargin.top - funnelChartMargin.bottom;
   const peakCount = Math.max(1, ...params.steps.map((step) => step.count));
+  const hasAnchor = params.anchorIndex > 0;
+  const anchorCount = params.steps[params.anchorIndex]?.count ?? 0;
+  // An anchor with no visitors has nothing to scale to, so the chart keeps the visitor scale.
+  const isRebased = hasAnchor && anchorCount > 0;
   const x = d3.scaleBand<string>()
     .domain(params.steps.map((step) => step.label))
     .range([0, innerWidth])
     .paddingInner(0.28)
     .paddingOuter(0.14);
-  const y = d3.scaleLinear().domain([0, peakCount]).range([innerHeight, 0]);
-  const yTicks = y.ticks(Math.min(6, peakCount + 1)).filter((tick) => Number.isInteger(tick));
+  // Clamping caps the steps before a re-based anchor at the plot top.
+  const y = d3.scaleLinear().domain([0, isRebased ? anchorCount : peakCount]).range([innerHeight, 0]).clamp(true);
+  const axisScale = isRebased ? d3.scaleLinear().domain([0, 1]).range([innerHeight, 0]) : y;
+  const axisTicks = isRebased
+    ? axisScale.ticks(5)
+    : y.ticks(Math.min(6, peakCount + 1)).filter((tick) => Number.isInteger(tick));
+  const axisTickFormatter = isRebased ? funnelShareAxisFormatter : numberFormatter;
 
   const svg = d3.select(params.svgElement);
   const focusedStepIndex = svg.selectAll<SVGGElement, FunnelStepBar>("g.funnel-step").nodes()
     .findIndex((node) => node === params.svgElement.ownerDocument.activeElement);
-  const hasAnchor = params.anchorIndex > 0;
   const stepIndexByLabel = new Map(params.steps.map((step, index) => [step.label, index]));
   const getStepIndex = (label: string): number => {
     const index = stepIndexByLabel.get(label);
@@ -847,13 +871,13 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
   group.append("g")
     .attr("class", "grid")
     .attr("aria-hidden", "true")
-    .call(d3.axisLeft(y).tickValues(yTicks).tickSize(-innerWidth).tickFormat(() => ""))
+    .call(d3.axisLeft(axisScale).tickValues(axisTicks).tickSize(-innerWidth).tickFormat(() => ""))
     .call((grid) => grid.select(".domain").remove());
 
   group.append("g")
     .attr("class", "axis")
     .attr("aria-hidden", "true")
-    .call(d3.axisLeft(y).tickValues(yTicks).tickFormat((value) => numberFormatter(Number(value))));
+    .call(d3.axisLeft(axisScale).tickValues(axisTicks).tickFormat((value) => axisTickFormatter(Number(value))));
 
   const xAxis = group.append("g")
     .attr("class", "axis")
@@ -889,7 +913,7 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("y", -48)
     .attr("transform", "rotate(-90)")
     .attr("text-anchor", "middle")
-    .text("Visitors");
+    .text(isRebased ? "% of selected" : "Visitors");
 
   const bandWidth = x.bandwidth();
   const stepGroups = group.selectAll<SVGGElement, FunnelStepBar>("g.funnel-step")
@@ -939,13 +963,20 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("height", funnelChartHeight - (funnelStepHitEdgeInset + funnelStepFocusRingInset) * 2)
     .attr("rx", 4);
 
-  stepGroups.filter((step) => step.previousCount !== null && step.previousCount > step.count)
+  // The anchor's previous step lies outside the measured funnel, so the anchor draws no ghost.
+  const getGhostCount = (step: FunnelStepBar): number | null => (
+    hasAnchor && getStepIndex(step.label) === params.anchorIndex ? null : step.previousCount
+  );
+  stepGroups.filter((step) => {
+    const ghostCount = getGhostCount(step);
+    return ghostCount !== null && ghostCount > step.count;
+  })
     .append("rect")
     .attr("class", "funnel-step-ghost")
     .attr("x", 0)
-    .attr("y", (step) => y(step.previousCount ?? 0))
+    .attr("y", (step) => y(getGhostCount(step) ?? 0))
     .attr("width", bandWidth)
-    .attr("height", (step) => innerHeight - y(step.previousCount ?? 0))
+    .attr("height", (step) => innerHeight - y(getGhostCount(step) ?? 0))
     .attr("rx", 4);
 
   const emptyStepHeight = 2;
@@ -957,11 +988,16 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("height", (step) => (step.count === 0 ? emptyStepHeight : innerHeight - y(step.count)))
     .attr("rx", 4);
 
+  stepGroups.filter((step) => isRebased && getStepIndex(step.label) < params.anchorIndex && step.count > anchorCount)
+    .append("path")
+    .attr("class", "funnel-step-clip-mark")
+    .attr("d", buildFunnelStepClipMarkPath(bandWidth));
+
   const valueLabels = stepGroups.append("text")
     .attr("class", "funnel-step-value")
     .attr("text-anchor", "middle")
     .attr("x", bandWidth / 2)
-    .attr("y", (step) => y(Math.max(step.count, step.previousCount ?? 0)) - 47);
+    .attr("y", (step) => y(Math.max(step.count, getGhostCount(step) ?? 0)) - 47);
   valueLabels.append("tspan")
     .attr("class", "funnel-step-count")
     .attr("x", bandWidth / 2)
