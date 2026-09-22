@@ -200,7 +200,7 @@ android {
         minSdk = androidMinSdk
         targetSdk = 37
         versionCode = androidVersionCode ?: 1
-        versionName = "1.28.0"
+        versionName = "1.29.0"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         // Every Gradle-driven instrumentation run is automation, so nothing it syncs becomes
