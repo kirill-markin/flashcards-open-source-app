@@ -4,6 +4,7 @@ import {
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
+import { catalogInstallConversionWindowDays } from "../reports/catalogInstallFunnel/query";
 import { escapeSqlStringLiteral } from "../sql";
 import {
   isAcceptedMinimumCount,
@@ -55,6 +56,34 @@ export function buildActorIsExcludedSql(actorIdSqlExpression: string): string {
  */
 export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): string {
   return `NOT ${buildActorIsExcludedSql(actorIdSqlExpression)}`;
+}
+
+/**
+ * The two exclusions every General report applies, `%@example.com` and `analytics.excluded_actors`,
+ * as `AND` lines on one actor. The email side folds the stored side of its join for the reason
+ * `buildReviewEventsByDateSql` states in full, and it asks whether any stored row of that actor is a
+ * test address rather than joining them: an actor with two case-folded rows would otherwise keep the
+ * value as soon as one of them carried a NULL or a real address.
+ *
+ * This carries those two exclusions and no other. The option lists in `filters/optionsQuery.ts` and
+ * `buildCatalogInstallAttributionSql` below read it, so the click-attribution filter and its option
+ * lists exclude exactly the same installs. A caller whose own report also drops active admins
+ * restates that exclusion itself right after calling this, as the packages option list does, while a
+ * caller whose surface still shows admins deliberately leaves it out, as the country option list and
+ * the attribution fragment do: the General sections show admins, and Audience drops them on its own.
+ */
+export function buildExcludedActorSqlLines(
+  actorIdSqlExpression: string,
+): ReadonlyArray<string> {
+  return [
+    "  AND NOT EXISTS (",
+    "    SELECT 1",
+    "    FROM org.user_settings AS excluded_settings",
+    `    WHERE pg_catalog.lower(excluded_settings.user_id) = ${actorIdSqlExpression}`,
+    "      AND LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'",
+    "  )",
+    `  AND ${buildExcludedActorsFilterSql(actorIdSqlExpression)}`,
+  ];
 }
 
 /**
@@ -128,7 +157,8 @@ export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): stri
  *   - `buildCatalogInstalledDeckVersionsSql` and `buildCatalogInstallAttributionSql` below - two
  *     fragments, one bridge - read by the installed-deck and click-attribution filters and by their
  *     five option lists. The attribution fragment reads `anonymous_client` clicks deliberately, but
- *     a click names nobody: every actor it emits comes from the server-origin install it joins to.
+ *     a click decides nobody: every actor it emits is the server-origin install's own, which a click
+ *     can only be matched to.
  *   - `reports/catalogInstallFunnel/query.ts`, the installs-without-site-visit diagnostic, which
  *     applies the actor exclusions to a server-origin `catalog_deck_installed`. By event name.
  *   - `filters/optionsQuery.ts`, the deck-slug list (`catalog_deck_installed`). By event name.
@@ -521,47 +551,79 @@ export function buildInstalledDecksFilterSql(
 }
 
 /**
- * Every completed catalog install whose originating click was recorded, as one row per install
+ * Every completed catalog install attributed to one originating site click, as one row per install
  * carrying the properties of that click. The four click-dimension predicates below and their four
  * option lists all read this one fragment, so an attribution value always means the same evidence.
  *
- * `catalog_install_clicked` NAMES NO USER, because the click happens before sign-in. The only bridge
- * to a person is the server-origin `catalog_deck_installed`, which carries `actor_id` next to the
- * same `install_journey_id` and `package_version_id`; those two are the join keys here. A click that never became an install names
- * nobody and can therefore never match, and an install whose click was never recorded carries no
- * attribution at all - which is why the installed-deck fragment above reads the install alone.
+ * TWO BRIDGES, ONE CLICK PER INSTALL. `catalog_install_clicked` is sent before sign-in, so only the
+ * server-origin `catalog_deck_installed` names the person, and a click reaches it in one of two ways,
+ * both also requiring the same `package_version_id`:
+ *   - the shared identity: the click resolves to the install's own `actor_id` through the
+ *     `analytics_visitor` cookie, exactly as the funnel's steps are joined, and the install falls
+ *     within `catalogInstallConversionWindowDays` of it. Of the clicks in those days before the
+ *     install, the install takes the earliest by `occurred_at` then `event_id`. The funnel
+ *     (`buildCatalogInstallFunnelSql` in `apps/admin/src/reports/catalogInstallFunnel/query.ts`)
+ *     instead anchors on a visitor's first click in the selected range, converting or not, so the two
+ *     credit one install to different clicks when the range cuts off an earlier click: with clicks on
+ *     day 0 and day 3, the install on day 5 and the range starting on day 2, the funnel's anchor is the
+ *     day-3 click and this picks the day-0 one.
+ *   - the per-attempt `install_journey_id`, which only rows written before the producers dropped it
+ *     carry, on the first click of that journey. It stays because those clicks share no identity with
+ *     anything: a click that claimed no visitor cookie is stored under its journey id
+ *     (`readAnonymousId` in `apps/backend/src/productAnalytics/anonymousEvent.ts`), so without this
+ *     bridge every pre-move install would lose its attribution. Where an install is reached both
+ *     ways, the journey click wins, because that key was written by the one attempt that installed.
+ * `DISTINCT ON` the install's `event_id` is what keeps an install reached both ways a single row.
  *
- * ONE CLICK PER JOURNEY, THE FIRST ONE. The clicks are reduced by `DISTINCT ON (install_journey_id)`,
- * so a journey that recorded several clicks is attributed to one click rather than carrying the
- * values of every click it ever recorded.
+ * A click that never became an install names nobody and can therefore never match, and an install
+ * with no qualifying click carries no attribution at all - which is why the installed-deck fragment
+ * above reads the install alone. There is deliberately no date bound: the window only relates a click
+ * to its install, the journey bridge needs none because its key names one attempt, and this answers
+ * what a person's installs were ever attributed to.
  *
- * Both sides state `event_properties ? 'install_journey_id'`, which is the predicate of
- * `idx_product_events_catalog_install_journey`
- * (`db/migrations/0134_catalog_install_journey_analytics.sql`). This join is unbounded by date and
- * sits on the critical path of every General and Audience load, so the guard is what lets the planner
- * prove that partial index applies; it also prunes the installs that could never have joined.
+ * The install side drops the delisted `test` deck by the install's own slug and applies
+ * `buildExcludedActorSqlLines` to the installing actor, so a value only such an install carried is
+ * neither offered nor matched. Active admins are deliberately kept, as every General section keeps
+ * them; Audience drops them on its own, and choosing a click counts nobody.
  *
- * There is deliberately no date bound and no conversion window here. The funnel measures one cohort
- * converting within seven days; this answers what a person's installs were ever attributed to, over
- * that person's whole history.
+ * Each side is read in one `MATERIALIZED` pass and both bridges are hash-joinable equalities on it,
+ * because an equality on `actor_id` can never become an index qual on the view (see
+ * `buildActorMembershipSql` in the funnel query) and this sits on the critical path of every General
+ * and Audience load.
  *
  * `placement`, `source` and `device_category` are properties of the click event, while `device_locale`
  * is a view column on the click row. An empty locale is the absence of a reported browser language
  * rather than a value, so it is folded to NULL and can then be neither offered nor matched.
  */
 export function buildCatalogInstallAttributionSql(): string {
+  const clickColumnsSql = [
+    "    clicks.placement,",
+    "    clicks.source,",
+    "    clicks.device_category,",
+    "    clicks.device_locale",
+  ];
+
   return [
-    "SELECT",
-    "  installs.actor_id,",
-    "  clicks.placement,",
-    "  clicks.source,",
-    "  clicks.device_category,",
-    "  clicks.device_locale",
-    "FROM analytics.product_events_resolved AS installs",
-    "JOIN (",
-    "  SELECT DISTINCT ON (candidate_clicks.event_properties ->> 'install_journey_id')",
-    "    candidate_clicks.event_properties ->> 'install_journey_id' AS install_journey_id,",
+    "WITH attribution_installs AS MATERIALIZED (",
+    "  SELECT",
+    "    installs.event_id,",
+    "    installs.actor_id,",
+    "    installs.occurred_at,",
+    "    installs.event_properties ->> 'package_version_id' AS package_version_id,",
+    "    installs.event_properties ->> 'install_journey_id' AS install_journey_id",
+    "  FROM analytics.product_events_resolved AS installs",
+    "  WHERE installs.event_name = 'catalog_deck_installed'",
+    "    AND installs.origin = 'server'",
+    "    AND installs.actor_id IS NOT NULL",
+    "    AND installs.event_properties ->> 'package_slug' IS DISTINCT FROM 'test'",
+    ...buildExcludedActorSqlLines("installs.actor_id::text"),
+    "), attribution_clicks AS MATERIALIZED (",
+    "  SELECT",
+    "    candidate_clicks.event_id,",
+    "    candidate_clicks.actor_id,",
+    "    candidate_clicks.occurred_at,",
     "    candidate_clicks.event_properties ->> 'package_version_id' AS package_version_id,",
+    "    candidate_clicks.event_properties ->> 'install_journey_id' AS install_journey_id,",
     "    candidate_clicks.event_properties ->> 'placement' AS placement,",
     "    candidate_clicks.event_properties ->> 'source' AS source,",
     "    candidate_clicks.event_properties ->> 'device_category' AS device_category,",
@@ -570,18 +632,49 @@ export function buildCatalogInstallAttributionSql(): string {
     "  WHERE candidate_clicks.event_name = 'catalog_install_clicked'",
     "    AND candidate_clicks.origin = 'client'",
     "    AND candidate_clicks.trust_level = 'anonymous_client'",
-    "    AND candidate_clicks.event_properties ? 'install_journey_id'",
-    "  ORDER BY",
-    "    candidate_clicks.event_properties ->> 'install_journey_id',",
-    "    candidate_clicks.occurred_at,",
-    "    candidate_clicks.event_id",
-    ") AS clicks",
-    "  ON clicks.install_journey_id = installs.event_properties ->> 'install_journey_id'",
-    "  AND clicks.package_version_id = installs.event_properties ->> 'package_version_id'",
-    "WHERE installs.event_name = 'catalog_deck_installed'",
-    "  AND installs.origin = 'server'",
-    "  AND installs.actor_id IS NOT NULL",
-    "  AND installs.event_properties ? 'install_journey_id'",
+    ")",
+    "SELECT DISTINCT ON (attributed.install_event_id)",
+    "  attributed.actor_id,",
+    "  attributed.placement,",
+    "  attributed.source,",
+    "  attributed.device_category,",
+    "  attributed.device_locale",
+    "FROM (",
+    "  SELECT",
+    "    installs.event_id AS install_event_id,",
+    "    1 AS bridge_rank,",
+    "    installs.actor_id,",
+    ...clickColumnsSql,
+    "  FROM attribution_installs AS installs",
+    "  JOIN (",
+    "    SELECT DISTINCT ON (journey_clicks.install_journey_id) journey_clicks.*",
+    "    FROM attribution_clicks AS journey_clicks",
+    "    WHERE journey_clicks.install_journey_id IS NOT NULL",
+    "    ORDER BY",
+    "      journey_clicks.install_journey_id,",
+    "      journey_clicks.occurred_at,",
+    "      journey_clicks.event_id",
+    "  ) AS clicks",
+    "    ON clicks.install_journey_id = installs.install_journey_id",
+    "    AND clicks.package_version_id = installs.package_version_id",
+    "  UNION ALL",
+    // Parenthesized so this `ORDER BY` picks this branch's first click rather than sorting the union.
+    "  (",
+    "    SELECT DISTINCT ON (installs.event_id)",
+    "      installs.event_id AS install_event_id,",
+    "      2 AS bridge_rank,",
+    "      installs.actor_id,",
+    ...clickColumnsSql.map((line) => `  ${line}`),
+    "    FROM attribution_installs AS installs",
+    "    JOIN attribution_clicks AS clicks",
+    "      ON clicks.actor_id = installs.actor_id",
+    "      AND clicks.package_version_id = installs.package_version_id",
+    "      AND clicks.occurred_at <= installs.occurred_at",
+    `      AND installs.occurred_at <= clicks.occurred_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
+    "    ORDER BY installs.event_id, clicks.occurred_at, clicks.event_id",
+    "  )",
+    ") AS attributed",
+    "ORDER BY attributed.install_event_id, attributed.bridge_rank",
   ].join("\n");
 }
 

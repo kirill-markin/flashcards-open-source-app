@@ -249,55 +249,152 @@ h2 {
   text-transform: uppercase;
 }
 
-.funnel-main-panel {
-  display: grid;
-  grid-template-columns: minmax(180px, 0.55fr) minmax(420px, 1.45fr);
-  gap: 20px;
-  align-items: center;
-  padding: 20px;
+.funnel-chart-column {
+  margin-top: 24px;
+}
+
+.funnel-steps-chart {
+  min-width: 960px;
+}
+
+.funnel-step-bar {
+  fill: var(--accent);
+}
+
+.funnel-step-bar-empty {
+  fill: var(--muted-soft);
+}
+
+.funnel-step-ghost {
+  fill: rgba(255, 255, 255, 0.04);
+  stroke: rgba(255, 255, 255, 0.18);
+  stroke-dasharray: 3 4;
+}
+
+.funnel-step-count {
+  fill: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.funnel-step-share {
+  fill: var(--muted);
+  font-size: 14px;
+}
+
+.funnel-step-axis-label {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.funnel-chart-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.funnel-step {
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.funnel-step-hit {
+  fill: transparent;
+}
+
+.funnel-step:hover .funnel-step-hit {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+.funnel-step-selected .funnel-step-hit {
+  fill: rgba(196, 75, 45, 0.12);
+  stroke: var(--accent-strong);
+  stroke-width: 1.5;
+}
+
+/* Same specificity as the plain hover rule and later, so hovering the anchor deepens its fill instead of dropping it. */
+.funnel-step-selected:hover .funnel-step-hit {
+  fill: rgba(196, 75, 45, 0.18);
+}
+
+/* A separate inset ring, so focus never replaces the anchor's accent stroke. */
+.funnel-step-focus-ring {
+  fill: none;
+  stroke: none;
+  pointer-events: none;
+}
+
+.funnel-step:focus-visible .funnel-step-focus-ring {
+  stroke: rgba(255, 255, 255, 0.72);
+  stroke-width: 2;
+}
+
+/* Qualified with `.axis text` so it outranks that rule's muted fill. */
+.axis text.funnel-step-axis-label-selected {
+  fill: var(--accent-strong);
+}
+
+.funnel-step-before-anchor .funnel-step-bar,
+.funnel-step-before-anchor .funnel-step-ghost,
+.funnel-step-before-anchor .funnel-step-value,
+.funnel-step-faded {
+  opacity: 0.25;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.funnel-explainer {
+  margin-top: 20px;
+  padding: 18px;
   border-radius: 18px;
   background: var(--panel);
 }
 
-.funnel-graphic {
-  min-height: 300px;
-}
-
-.funnel-stage-shape {
-  fill: var(--accent);
-}
-
-.funnel-stage-shape-2 { opacity: 0.90; }
-.funnel-stage-shape-3 { opacity: 0.80; }
-.funnel-stage-shape-4 { opacity: 0.70; }
-.funnel-stage-shape-5 { opacity: 0.60; }
-.funnel-stage-shape-6 { opacity: 0.50; }
-.funnel-stage-shape-7 { opacity: 0.40; }
-.funnel-stage-shape-8 { opacity: 0.30; }
-
-.funnel-stage-table {
-  display: grid;
-}
-
-.funnel-stage-row {
-  display: grid;
-  grid-template-columns: minmax(140px, 1.5fr) repeat(3, minmax(75px, 0.7fr));
-  gap: 10px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--panel-border);
+.funnel-explainer p {
+  margin: 14px 0 0;
+  max-width: 920px;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.6;
 }
 
-.funnel-stage-row strong {
-  color: var(--text);
+.funnel-explainer-figure {
+  margin-top: 14px;
 }
 
-.funnel-stage-heading {
-  color: var(--muted-soft);
-  font-size: 11px;
+.funnel-explainer > summary,
+.funnel-detail-grid-collapsible .funnel-detail-card > summary {
+  cursor: pointer;
   font-weight: 800;
-  text-transform: uppercase;
+}
+
+.funnel-detail-grid-collapsible {
+  align-items: start;
+}
+
+.funnel-detail-grid-collapsible .funnel-detail-card > summary h3 {
+  display: inline;
+  margin: 0;
+}
+
+.funnel-detail-grid-collapsible .funnel-detail-card[open] > summary {
+  margin-bottom: 14px;
+}
+
+.funnel-detail-grid-collapsible .funnel-detail-card p:last-child {
+  margin: 14px 0 0;
 }
 
 .funnel-detail-grid {
@@ -1297,18 +1394,5 @@ h2 {
   .chart-meta-right,
   .platform-key {
     justify-content: flex-start;
-  }
-
-  .funnel-main-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .funnel-graphic {
-    min-height: 220px;
-  }
-
-  .funnel-stage-row {
-    grid-template-columns: minmax(105px, 1.4fr) repeat(3, minmax(58px, 0.7fr));
-    font-size: 11px;
   }
 }

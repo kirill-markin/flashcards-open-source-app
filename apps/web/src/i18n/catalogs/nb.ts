@@ -59,6 +59,13 @@ const nbCatalog: TranslationCatalog = {
       languagePreference: "Språkinnstilling",
       languageSelection: "Språkvalg",
     },
+    picker: {
+      empty: "Fant ingen språk",
+      listAriaLabel: "Appspråk",
+      openAriaLabel: "Velg appspråk",
+      searchLabel: "Søk",
+      searchPlaceholder: "Søk etter språk",
+    },
     names: {
       en: "Engelsk",
       ar: "Arabisk",
@@ -354,6 +361,7 @@ const nbCatalog: TranslationCatalog = {
       ios: "QR-kode for lenken til iOS-appen",
       android: "QR-kode for lenken til Android-appen",
     },
+    qrCaption: "Skann den med telefonen",
     mcp: {
       label: "For AI-agent",
       title: "Koble til med MCP",

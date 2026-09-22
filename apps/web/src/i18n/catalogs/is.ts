@@ -59,6 +59,13 @@ const isCatalog: TranslationCatalog = {
       languagePreference: "Tungumálastilling",
       languageSelection: "Val á tungumáli",
     },
+    picker: {
+      empty: "Engin tungumál fundust",
+      listAriaLabel: "Tungumál forrits",
+      openAriaLabel: "Velja tungumál forrits",
+      searchLabel: "Leita",
+      searchPlaceholder: "Leita að tungumálum",
+    },
     names: {
       en: "Enska",
       ar: "Arabíska",
@@ -354,6 +361,7 @@ const isCatalog: TranslationCatalog = {
       ios: "QR-kóði fyrir tengil á iOS-forritið",
       android: "QR-kóði fyrir tengil á Android-forritið",
     },
+    qrCaption: "Skannaðu hann með símanum",
     mcp: {
       label: "Fyrir gervigreindarþjón",
       title: "Tengjast með MCP",

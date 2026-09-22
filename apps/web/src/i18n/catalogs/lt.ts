@@ -65,6 +65,13 @@ const ltCatalog: TranslationCatalog = {
       languagePreference: "Kalbos nuostata",
       languageSelection: "Kalbos pasirinkimas",
     },
+    picker: {
+      empty: "Kalbų nerasta",
+      listAriaLabel: "Programėlės kalbos",
+      openAriaLabel: "Pasirinkti programėlės kalbą",
+      searchLabel: "Paieška",
+      searchPlaceholder: "Ieškoti kalbų",
+    },
     names: {
       en: "Anglų",
       ar: "Arabų",
@@ -362,6 +369,7 @@ const ltCatalog: TranslationCatalog = {
       ios: "iOS programėlės nuorodos QR kodas",
       android: "Android programėlės nuorodos QR kodas",
     },
+    qrCaption: "Nuskenuokite jį telefonu",
     mcp: {
       label: "DI agentui",
       title: "Prisijungti per MCP",

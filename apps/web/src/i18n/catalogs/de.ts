@@ -59,6 +59,13 @@ const deCatalog: TranslationCatalog = {
       languagePreference: "Spracheinstellung",
       languageSelection: "Sprachauswahl",
     },
+    picker: {
+      empty: "Keine Sprachen gefunden",
+      listAriaLabel: "App-Sprachen",
+      openAriaLabel: "App-Sprache auswählen",
+      searchLabel: "Suchen",
+      searchPlaceholder: "Sprachen suchen",
+    },
     names: {
       en: "Englisch",
       ar: "Arabisch",
@@ -354,6 +361,7 @@ const deCatalog: TranslationCatalog = {
       ios: "QR-Code für den iOS-App-Link",
       android: "QR-Code für den Android-App-Link",
     },
+    qrCaption: "Mit dem Handy scannen",
     mcp: {
       label: "Für KI-Agenten",
       title: "Mit MCP verbinden",

@@ -71,6 +71,13 @@ const slCatalog: TranslationCatalog = {
       languagePreference: "Jezikovna nastavitev",
       languageSelection: "Izbira jezika",
     },
+    picker: {
+      empty: "Ni najdenih jezikov",
+      listAriaLabel: "Jeziki aplikacije",
+      openAriaLabel: "Izberi jezik aplikacije",
+      searchLabel: "Iskanje",
+      searchPlaceholder: "Išči jezike",
+    },
     names: {
       en: "Angleščina",
       ar: "Arabščina",
@@ -370,6 +377,7 @@ const slCatalog: TranslationCatalog = {
       ios: "Koda QR za povezavo do aplikacije za iOS",
       android: "Koda QR za povezavo do aplikacije za Android",
     },
+    qrCaption: "Skenirajte ga s telefonom",
     mcp: {
       label: "Za agenta UI",
       title: "Povežite se prek MCP",

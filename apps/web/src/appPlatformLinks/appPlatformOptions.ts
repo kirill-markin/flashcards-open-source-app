@@ -1,3 +1,4 @@
+import type { AnalyticsStore, AnalyticsStorePlacement } from "../analytics/events";
 import type { ClientPlatform } from "./clientPlatform";
 
 export type AppPlatformKind = "ios" | "android" | "web" | "mcp";
@@ -7,6 +8,7 @@ export type AppPlatformStoreKind = "ios" | "android";
 export type AppPlatformStoreLinks = Readonly<{
   ios: string;
   android: string;
+  placement: AnalyticsStorePlacement;
 }>;
 
 export type AppPlatformLabels = Readonly<{
@@ -26,6 +28,8 @@ export type AppPlatformOption = Readonly<{
   href: string | null;
   label: string;
   qrTitle: string | null;
+  /** Set only on the two store options. */
+  storePlacement: AnalyticsStorePlacement | null;
 }>;
 
 export type BuildAppPlatformOptionsInput = Readonly<{
@@ -51,6 +55,7 @@ function buildStoreOption(
     href: input.storeLinks[kind],
     label: input.labels[kind],
     qrTitle: input.clientPlatform === kind ? null : input.qrTitles[kind],
+    storePlacement: input.storeLinks.placement,
   };
 }
 
@@ -64,6 +69,7 @@ function buildWebOption(input: BuildAppPlatformOptionsInput): AppPlatformOption 
     href: input.webHref,
     label: input.labels.web,
     qrTitle: null,
+    storePlacement: null,
   };
 }
 
@@ -81,7 +87,12 @@ function buildOption(kind: AppPlatformKind, input: BuildAppPlatformOptionsInput)
     href: null,
     label: input.labels.mcp,
     qrTitle: null,
+    storePlacement: null,
   };
+}
+
+export function toAnalyticsStore(kind: AppPlatformStoreKind): AnalyticsStore {
+  return kind === "ios" ? "app_store" : "google_play";
 }
 
 /**

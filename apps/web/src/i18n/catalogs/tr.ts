@@ -59,6 +59,13 @@ const trCatalog: TranslationCatalog = {
       languagePreference: "Dil tercihi",
       languageSelection: "Dil seçimi",
     },
+    picker: {
+      empty: "Dil bulunamadı",
+      listAriaLabel: "Uygulama dilleri",
+      openAriaLabel: "Uygulama dilini seç",
+      searchLabel: "Ara",
+      searchPlaceholder: "Dil ara",
+    },
     names: {
       en: "İngilizce",
       ar: "Arapça",
@@ -354,6 +361,7 @@ const trCatalog: TranslationCatalog = {
       ios: "iOS uygulama bağlantısının QR kodu",
       android: "Android uygulama bağlantısının QR kodu",
     },
+    qrCaption: "Telefonunuzla tarayın",
     mcp: {
       label: "AI Agent için",
       title: "MCP ile bağlan",

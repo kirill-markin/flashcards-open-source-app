@@ -59,6 +59,13 @@ const ptBrCatalog: TranslationCatalog = {
       languagePreference: "Preferência de idioma",
       languageSelection: "Seleção de idioma",
     },
+    picker: {
+      empty: "Nenhum idioma encontrado",
+      listAriaLabel: "Idiomas do app",
+      openAriaLabel: "Escolher o idioma do app",
+      searchLabel: "Buscar",
+      searchPlaceholder: "Buscar idiomas",
+    },
     names: {
       en: "Inglês",
       ar: "Árabe",
@@ -354,6 +361,7 @@ const ptBrCatalog: TranslationCatalog = {
       ios: "QR code para o link do app iOS",
       android: "QR code para o link do app Android",
     },
+    qrCaption: "Escaneie com o celular",
     mcp: {
       label: "Para agente de IA",
       title: "Conectar com MCP",

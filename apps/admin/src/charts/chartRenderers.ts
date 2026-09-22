@@ -736,3 +736,248 @@ export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstall
     tooltipHandlers: params.tooltipHandlers,
   });
 }
+
+/** One funnel step as the step chart draws it; the shares arrive preformatted so the chart and its text alternative cannot disagree. */
+export type FunnelStepBar = Readonly<{
+  label: string;
+  count: number;
+  /** Null on the first step, which has nothing before it to drop off from. */
+  previousCount: number | null;
+  shareOfFirstLabel: string;
+  /** "—" on a step before the anchor, which is not a subset of it. */
+  shareOfAnchorLabel: string;
+  shareOfPreviousLabel: string;
+}>;
+
+export type RenderFunnelStepsChartParams = Readonly<{
+  svgElement: SVGSVGElement;
+  steps: ReadonlyArray<FunnelStepBar>;
+  /** The step every later share is measured from; 0 is the default view. */
+  anchorIndex: number;
+  onSelectStep: (stepIndex: number) => void;
+}>;
+
+const funnelChartHeight = 440;
+const funnelChartMargin = { top: 76, right: 24, bottom: 64, left: chartMargin.left } as const;
+const funnelStepLabelMaxLineLength = 18;
+const funnelStepLabelLineHeight = 15;
+/** Keeps the column's 1.5-unit selected stroke inside the viewBox, whose edges clip it. */
+const funnelStepHitEdgeInset = 2;
+/** Clears the column's selected stroke with the 2-unit focus ring drawn inside it. */
+const funnelStepFocusRingInset = 4;
+
+function wrapFunnelStepLabel(label: string): ReadonlyArray<string> {
+  const lines: Array<string> = [];
+  for (const word of label.split(" ")) {
+    const lastLine = lines[lines.length - 1];
+    if (lastLine !== undefined && `${lastLine} ${word}`.length <= funnelStepLabelMaxLineLength) {
+      lines[lines.length - 1] = `${lastLine} ${word}`;
+    } else {
+      lines.push(word);
+    }
+  }
+
+  return lines;
+}
+
+/** The anchored line reads "of selected" rather than the step's name, which can run past its ~153-unit column. */
+function getFunnelStepAnchorShareText(step: FunnelStepBar, stepIndex: number, anchorIndex: number): string {
+  if (stepIndex < anchorIndex || anchorIndex === 0) {
+    return `${step.shareOfFirstLabel} of first`;
+  }
+
+  return `${step.shareOfAnchorLabel} of selected`;
+}
+
+/**
+ * Names the control only: the counts and shares live once, in the chart's visually hidden table,
+ * so a screen reader does not hear every number twice.
+ */
+function getFunnelStepAriaLabel(step: FunnelStepBar, stepIndex: number, anchorIndex: number): string {
+  if (stepIndex === 0) {
+    return `Measure from ${step.label} (default start)`;
+  }
+
+  if (stepIndex === anchorIndex) {
+    return `Measure from ${step.label} (current start; press again to reset)`;
+  }
+
+  return `Measure from ${step.label}`;
+}
+
+/**
+ * Vertical funnel bars with the exact count and both shares written above each bar. A faint ghost
+ * at the previous step's height sits behind every later bar, so the drop-off reads as the gap between
+ * them, and a zero step keeps a thin muted stub so it still reads as a measured step. The labels sit
+ * above the taller of the bar and its ghost so the ghost's dashed top edge never crosses them.
+ * Each step's whole column is a toggle button that re-anchors the shares on it; steps before the
+ * anchor fade. A redraw keeps keyboard focus on the column that held it.
+ */
+export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): void {
+  const innerWidth = chartWidth - funnelChartMargin.left - funnelChartMargin.right;
+  const innerHeight = funnelChartHeight - funnelChartMargin.top - funnelChartMargin.bottom;
+  const peakCount = Math.max(1, ...params.steps.map((step) => step.count));
+  const x = d3.scaleBand<string>()
+    .domain(params.steps.map((step) => step.label))
+    .range([0, innerWidth])
+    .paddingInner(0.28)
+    .paddingOuter(0.14);
+  const y = d3.scaleLinear().domain([0, peakCount]).range([innerHeight, 0]);
+  const yTicks = y.ticks(Math.min(6, peakCount + 1)).filter((tick) => Number.isInteger(tick));
+
+  const svg = d3.select(params.svgElement);
+  const focusedStepIndex = svg.selectAll<SVGGElement, FunnelStepBar>("g.funnel-step").nodes()
+    .findIndex((node) => node === params.svgElement.ownerDocument.activeElement);
+  const hasAnchor = params.anchorIndex > 0;
+  const stepIndexByLabel = new Map(params.steps.map((step, index) => [step.label, index]));
+  const getStepIndex = (label: string): number => {
+    const index = stepIndexByLabel.get(label);
+    if (index === undefined) {
+      throw new Error(`Funnel step "${label}" is missing from the rendered steps.`);
+    }
+
+    return index;
+  };
+  svg.selectAll("*").remove();
+  svg.attr("viewBox", `0 0 ${chartWidth} ${funnelChartHeight}`);
+
+  const group = svg.append("g")
+    .attr("transform", `translate(${funnelChartMargin.left},${funnelChartMargin.top})`);
+
+  group.append("g")
+    .attr("class", "grid")
+    .attr("aria-hidden", "true")
+    .call(d3.axisLeft(y).tickValues(yTicks).tickSize(-innerWidth).tickFormat(() => ""))
+    .call((grid) => grid.select(".domain").remove());
+
+  group.append("g")
+    .attr("class", "axis")
+    .attr("aria-hidden", "true")
+    .call(d3.axisLeft(y).tickValues(yTicks).tickFormat((value) => numberFormatter(Number(value))));
+
+  const xAxis = group.append("g")
+    .attr("class", "axis")
+    .attr("aria-hidden", "true")
+    .attr("transform", `translate(0,${innerHeight})`)
+    .call(d3.axisBottom(x).tickSize(0))
+    .call((axis) => axis.selectAll(".tick text").remove());
+  xAxis.selectAll<SVGGElement, string>(".tick")
+    .append("text")
+    .attr("class", (label) => {
+      const index = getStepIndex(label);
+      if (index < params.anchorIndex) {
+        return "funnel-step-axis-label funnel-step-faded";
+      }
+
+      return hasAnchor && index === params.anchorIndex
+        ? "funnel-step-axis-label funnel-step-axis-label-selected"
+        : "funnel-step-axis-label";
+    })
+    .attr("text-anchor", "middle")
+    .attr("y", 18)
+    .selectAll("tspan")
+    .data((label) => wrapFunnelStepLabel(label))
+    .join("tspan")
+    .attr("x", 0)
+    .attr("dy", (_line, index) => (index === 0 ? 0 : funnelStepLabelLineHeight))
+    .text((line) => line);
+
+  group.append("text")
+    .attr("class", "axis-label")
+    .attr("aria-hidden", "true")
+    .attr("x", -innerHeight / 2)
+    .attr("y", -48)
+    .attr("transform", "rotate(-90)")
+    .attr("text-anchor", "middle")
+    .text("Visitors");
+
+  const bandWidth = x.bandwidth();
+  const stepGroups = group.selectAll<SVGGElement, FunnelStepBar>("g.funnel-step")
+    .data(params.steps)
+    .join("g")
+    .attr("class", (step) => {
+      const index = getStepIndex(step.label);
+      if (index < params.anchorIndex) {
+        return "funnel-step funnel-step-before-anchor";
+      }
+
+      return hasAnchor && index === params.anchorIndex ? "funnel-step funnel-step-selected" : "funnel-step";
+    })
+    .attr("transform", (step) => `translate(${x(step.label) ?? 0},0)`)
+    .attr("tabindex", 0)
+    .attr("role", "button")
+    .attr("aria-pressed", (step) => String(hasAnchor && getStepIndex(step.label) === params.anchorIndex))
+    .attr("aria-label", (step) => getFunnelStepAriaLabel(step, getStepIndex(step.label), params.anchorIndex))
+    .on("click", (_event: MouseEvent, step: FunnelStepBar) => {
+      params.onSelectStep(getStepIndex(step.label));
+    })
+    .on("keydown", (event: KeyboardEvent, step: FunnelStepBar) => {
+      if (event.repeat || (event.key !== "Enter" && event.key !== " ")) {
+        return;
+      }
+
+      event.preventDefault();
+      params.onSelectStep(getStepIndex(step.label));
+    });
+
+  // The full column from the top edge to below the axis labels, drawn first so the bar and labels sit over it.
+  // It stops short of the viewBox's top and bottom edges, which clip overflow, so its stroke is drawn whole.
+  const columnInset = (x.step() - bandWidth) / 2;
+  stepGroups.append("rect")
+    .attr("class", "funnel-step-hit")
+    .attr("x", -columnInset)
+    .attr("y", -funnelChartMargin.top + funnelStepHitEdgeInset)
+    .attr("width", x.step())
+    .attr("height", funnelChartHeight - funnelStepHitEdgeInset * 2)
+    .attr("rx", 6);
+  // The keyboard focus ring sits inside the column's own edge, so it shows alongside the anchor's accent stroke.
+  stepGroups.append("rect")
+    .attr("class", "funnel-step-focus-ring")
+    .attr("x", -columnInset + funnelStepFocusRingInset)
+    .attr("y", -funnelChartMargin.top + funnelStepHitEdgeInset + funnelStepFocusRingInset)
+    .attr("width", x.step() - funnelStepFocusRingInset * 2)
+    .attr("height", funnelChartHeight - (funnelStepHitEdgeInset + funnelStepFocusRingInset) * 2)
+    .attr("rx", 4);
+
+  stepGroups.filter((step) => step.previousCount !== null && step.previousCount > step.count)
+    .append("rect")
+    .attr("class", "funnel-step-ghost")
+    .attr("x", 0)
+    .attr("y", (step) => y(step.previousCount ?? 0))
+    .attr("width", bandWidth)
+    .attr("height", (step) => innerHeight - y(step.previousCount ?? 0))
+    .attr("rx", 4);
+
+  const emptyStepHeight = 2;
+  stepGroups.append("rect")
+    .attr("class", (step) => (step.count === 0 ? "funnel-step-bar funnel-step-bar-empty" : "funnel-step-bar"))
+    .attr("x", 0)
+    .attr("y", (step) => (step.count === 0 ? innerHeight - emptyStepHeight : y(step.count)))
+    .attr("width", bandWidth)
+    .attr("height", (step) => (step.count === 0 ? emptyStepHeight : innerHeight - y(step.count)))
+    .attr("rx", 4);
+
+  const valueLabels = stepGroups.append("text")
+    .attr("class", "funnel-step-value")
+    .attr("text-anchor", "middle")
+    .attr("x", bandWidth / 2)
+    .attr("y", (step) => y(Math.max(step.count, step.previousCount ?? 0)) - 47);
+  valueLabels.append("tspan")
+    .attr("class", "funnel-step-count")
+    .attr("x", bandWidth / 2)
+    .text((step) => numberFormatter(step.count));
+  valueLabels.append("tspan")
+    .attr("class", "funnel-step-share")
+    .attr("x", bandWidth / 2)
+    .attr("dy", 20)
+    .text((step) => getFunnelStepAnchorShareText(step, getStepIndex(step.label), params.anchorIndex));
+  valueLabels.append("tspan")
+    .attr("class", "funnel-step-share")
+    .attr("x", bandWidth / 2)
+    .attr("dy", 17)
+    .text((step) => `${step.shareOfPreviousLabel} of previous`);
+
+  if (focusedStepIndex >= 0) {
+    stepGroups.nodes()[focusedStepIndex]?.focus({ preventScroll: true });
+  }
+}

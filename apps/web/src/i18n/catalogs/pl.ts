@@ -65,6 +65,13 @@ const plCatalog: TranslationCatalog = {
       languagePreference: "Preferencja języka",
       languageSelection: "Wybór języka",
     },
+    picker: {
+      empty: "Nie znaleziono języków",
+      listAriaLabel: "Języki aplikacji",
+      openAriaLabel: "Wybierz język aplikacji",
+      searchLabel: "Szukaj",
+      searchPlaceholder: "Szukaj języków",
+    },
     names: {
       en: "Angielski",
       ar: "Arabski",
@@ -362,6 +369,7 @@ const plCatalog: TranslationCatalog = {
       ios: "Kod QR z linkiem do aplikacji na iOS",
       android: "Kod QR z linkiem do aplikacji na Androida",
     },
+    qrCaption: "Zeskanuj go telefonem",
     mcp: {
       label: "Dla agenta AI",
       title: "Połącz przez MCP",

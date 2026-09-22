@@ -59,6 +59,13 @@ const knCatalog: TranslationCatalog = {
       languagePreference: "ಭಾಷೆಯ ಆದ್ಯತೆ",
       languageSelection: "ಭಾಷೆಯ ಆಯ್ಕೆ",
     },
+    picker: {
+      empty: "ಯಾವುದೇ ಭಾಷೆ ಕಂಡುಬಂದಿಲ್ಲ",
+      listAriaLabel: "ಆ್ಯಪ್ ಭಾಷೆಗಳು",
+      openAriaLabel: "ಆ್ಯಪ್ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      searchLabel: "ಹುಡುಕಿ",
+      searchPlaceholder: "ಭಾಷೆಗಳನ್ನು ಹುಡುಕಿ",
+    },
     names: {
       en: "ಇಂಗ್ಲಿಷ್",
       ar: "ಅರೇಬಿಕ್",
@@ -354,6 +361,7 @@ const knCatalog: TranslationCatalog = {
       ios: "iOS ಆ್ಯಪ್ ಲಿಂಕ್‌ಗಾಗಿ QR ಕೋಡ್",
       android: "Android ಆ್ಯಪ್ ಲಿಂಕ್‌ಗಾಗಿ QR ಕೋಡ್",
     },
+    qrCaption: "ನಿಮ್ಮ ಫೋನ್‌ನಿಂದ ಇದನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
     mcp: {
       label: "AI ಏಜೆಂಟ್‌ಗಾಗಿ",
       title: "MCP ಮೂಲಕ ಸಂಪರ್ಕಿಸಿ",

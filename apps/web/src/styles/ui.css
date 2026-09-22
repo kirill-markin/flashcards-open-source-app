@@ -429,8 +429,7 @@
   white-space: pre-wrap;
 }
 
-.settings-input,
-.settings-select {
+.settings-input {
   width: 100%;
   min-height: 46px;
   padding: 10px 12px;
@@ -441,8 +440,7 @@
   font-size: 16px;
 }
 
-.settings-input:focus,
-.settings-select:focus {
+.settings-input:focus {
   border-color: rgba(196, 75, 45, 0.5);
   box-shadow: 0 0 0 4px rgba(196, 75, 45, 0.14);
 }
