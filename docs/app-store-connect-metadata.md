@@ -162,11 +162,8 @@ notes,photo,spaced,repetition,language,memorize,revision,learning,practice,decks
 
 ### What's New
 
-- Nibomo's interface now supports 49 languages.
-- Sign-in pages are now available in the same languages.
-- Improved keyboard dismissal in AI chat, sign-in, and review scheduling settings.
-- Improved AI chat scrolling, dictation, and attachment controls.
-- Fixed long answers being cut off during review.
+- Share the app using new nibomo.com links.
+- Keep access to your cards as a guest when the app moves to our new domain.
 
 ## Arabic
 
@@ -195,11 +192,8 @@ Nibomo: بطاقات ذكاء اصطناعي
 
 ### What's New
 
-- أصبحت واجهة Nibomo تدعم 49 لغة.
-- تتوفر صفحات تسجيل الدخول الآن باللغات نفسها.
-- تحسين إخفاء لوحة المفاتيح في محادثة الذكاء الاصطناعي وتسجيل الدخول وإعدادات جدولة المراجعة.
-- تحسين التمرير والإملاء وعناصر التحكم في المرفقات في محادثة الذكاء الاصطناعي.
-- إصلاح اقتطاع الإجابات الطويلة أثناء المراجعة.
+- شارك التطبيق باستخدام روابط nibomo.com الجديدة.
+- احتفظ بإمكانية الوصول إلى بطاقاتك كضيف عند انتقال التطبيق إلى نطاقنا الجديد.
 
 ## Chinese (Simplified)
 
@@ -228,11 +222,8 @@ AI 功能需要联网。
 
 ### What's New
 
-- Nibomo 界面现已支持 49 种语言。
-- 登录页面也支持这些语言。
-- 优化了 AI 聊天、登录和复习计划设置中的键盘收起操作。
-- 改进了 AI 聊天中的滚动、语音输入和附件控件。
-- 修复了复习时长答案显示不完整的问题。
+- 使用新的 nibomo.com 链接分享应用。
+- 应用迁移到新域名后，您仍可在访客模式下访问自己的卡片。
 
 ## French
 
@@ -261,11 +252,8 @@ notes,photo,répétition,espacée,examen,langue,mémoire,apprentissage,cartes,pa
 
 ### What's New
 
-- L'interface de Nibomo est désormais disponible en 49 langues.
-- Les pages de connexion sont aussi disponibles dans ces langues.
-- Le clavier est plus facile à masquer dans le chat IA, à la connexion et dans les réglages de planification des révisions.
-- Amélioration du défilement, de la dictée et des commandes des pièces jointes dans le chat IA.
-- Correction des réponses longues qui étaient tronquées pendant les révisions.
+- Partagez l’app avec les nouveaux liens nibomo.com.
+- Conservez l’accès à vos fiches en tant qu’invité lorsque l’app passe à notre nouveau domaine.
 
 ## German
 
@@ -294,11 +282,8 @@ Notizen,Fotos,Wiederholung,Lernen,Gedächtnis,Sprachen,Üben,Karten,Stapel,Tags
 
 ### What's New
 
-- Die Oberfläche von Nibomo unterstützt jetzt 49 Sprachen.
-- Die Anmeldeseiten sind jetzt ebenfalls in diesen Sprachen verfügbar.
-- Die Tastatur lässt sich im KI-Chat, bei der Anmeldung und in den Einstellungen zur Wiederholungsplanung leichter ausblenden.
-- Scrollen, Diktieren und die Bedienelemente für Anhänge im KI-Chat wurden verbessert.
-- Lange Antworten werden beim Wiederholen nicht mehr abgeschnitten.
+- Teile die App über die neuen nibomo.com-Links.
+- Beim Wechsel der App auf unsere neue Domain behältst du als Gast Zugriff auf deine Karten.
 
 ## Hindi
 
@@ -327,11 +312,8 @@ AI सुविधाओं के लिए इंटरनेट कनेक�
 
 ### What's New
 
-- Nibomo का इंटरफ़ेस अब 49 भाषाओं में उपलब्ध है।
-- साइन-इन पेज भी अब इन्हीं भाषाओं में उपलब्ध हैं।
-- AI चैट, साइन-इन और रिव्यू शेड्यूलिंग सेटिंग्स में कीबोर्ड छिपाना बेहतर बनाया गया है।
-- AI चैट में स्क्रॉलिंग, बोलकर लिखने और अटैचमेंट के कंट्रोल बेहतर बनाए गए हैं।
-- रिव्यू के दौरान लंबे जवाब अधूरे दिखने की समस्या ठीक की गई है।
+- नए nibomo.com लिंक से ऐप शेयर करें।
+- ऐप के हमारे नए डोमेन पर जाने के बाद भी अतिथि के रूप में अपने कार्ड इस्तेमाल कर सकेंगे।
 
 ## Japanese
 
@@ -360,11 +342,8 @@ AI機能にはインターネット接続が必要です。
 
 ### What's New
 
-- Nibomo の画面表示が49言語に対応しました。
-- ログインページも同じ言語に対応しました。
-- AI チャット、ログイン、復習スケジュール設定でキーボードを閉じやすくしました。
-- AI チャットのスクロール、音声入力、添付ファイルの操作を改善しました。
-- 復習中に長い回答が途中で切れて表示される問題を修正しました。
+- 新しい nibomo.com リンクでアプリを共有できます。
+- アプリが新しいドメインに移行しても、ゲストとして使っているカードに引き続きアクセスできます。
 
 ## Portuguese (Brazil)
 
@@ -393,11 +372,8 @@ notas,fotos,revisão,repetição,espaçada,prova,idioma,vocabulário,memória,es
 
 ### What's New
 
-- A interface do Nibomo agora está disponível em 49 idiomas.
-- As páginas de login também estão disponíveis nesses idiomas.
-- Ficou mais fácil ocultar o teclado no chat com IA, no login e nas configurações de agendamento das revisões.
-- Melhoramos a rolagem, o ditado e os controles de anexos no chat com IA.
-- Corrigimos o corte de respostas longas durante a revisão.
+- Compartilhe o app com os novos links nibomo.com.
+- Mantenha o acesso aos seus cartões como convidado quando o app passar para o nosso novo domínio.
 
 ## Russian
 
@@ -426,11 +402,8 @@ Nibomo: ИИ-флешкарты
 
 ### What's New
 
-- Интерфейс Nibomo теперь доступен на 49 языках.
-- Страницы входа теперь поддерживают те же языки.
-- Стало удобнее скрывать клавиатуру в чате с ИИ, при входе и в настройках расписания повторений.
-- Улучшены прокрутка, голосовой ввод и управление вложениями в чате с ИИ.
-- Исправлено обрезание длинных ответов при повторении.
+- Делитесь приложением по новым ссылкам nibomo.com.
+- Сохраните гостевой доступ к своим карточкам при переходе приложения на наш новый домен.
 
 ## Spanish (Mexico)
 
@@ -459,11 +432,8 @@ apuntes,fotos,repaso,repetición,espaciada,examen,idioma,vocabulario,memoria,est
 
 ### What's New
 
-- La interfaz de Nibomo ahora está disponible en 49 idiomas.
-- Las páginas de inicio de sesión también están disponibles en esos idiomas.
-- Ahora es más fácil ocultar el teclado en el chat con IA, al iniciar sesión y en los ajustes de programación de repasos.
-- Mejoramos el desplazamiento, el dictado y los controles de archivos adjuntos en el chat con IA.
-- Corregimos un problema que cortaba las respuestas largas durante el repaso.
+- Comparte la app con los nuevos enlaces de nibomo.com.
+- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
 
 ## Spanish (Spain)
 
@@ -492,11 +462,8 @@ apuntes,fotos,repaso,repetición,espaciada,idioma,vocabulario,memoria,estudio,pr
 
 ### What's New
 
-- La interfaz de Nibomo ya está disponible en 49 idiomas.
-- Las páginas de inicio de sesión también están disponibles en esos idiomas.
-- Ahora es más fácil ocultar el teclado en el chat con IA, al iniciar sesión y en los ajustes de programación de repasos.
-- Hemos mejorado el desplazamiento, el dictado y los controles de archivos adjuntos en el chat con IA.
-- Hemos corregido un problema que cortaba las respuestas largas durante el repaso.
+- Comparte la app con los nuevos enlaces de nibomo.com.
+- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
 
 ## Bangla
 
@@ -527,11 +494,8 @@ AI সুবিধার জন্য ইন্টারনেট সংযো�
 
 ### What's New
 
-- Nibomo-এর ইন্টারফেস এখন 49টি ভাষায় ব্যবহার করা যায়।
-- সাইন-ইন পৃষ্ঠাগুলোও এখন একই ভাষাগুলোতে ব্যবহার করা যায়।
-- AI চ্যাট, সাইন-ইন ও পুনরাবৃত্তির সময়সূচির সেটিংসে কিবোর্ড লুকানো আরও সহজ হয়েছে।
-- AI চ্যাটে স্ক্রল করা, বলে লেখা ও সংযুক্তি নিয়ন্ত্রণ উন্নত করা হয়েছে।
-- পুনরাবৃত্তির সময় দীর্ঘ উত্তর কেটে যাওয়ার সমস্যা ঠিক করা হয়েছে।
+- নতুন nibomo.com লিংক দিয়ে অ্যাপ শেয়ার করুন।
+- অ্যাপ আমাদের নতুন ডোমেইনে চলে গেলেও অতিথি হিসেবে আপনার কার্ডগুলো ব্যবহার করতে পারবেন।
 
 ## Catalan
 
@@ -562,11 +526,8 @@ apunts,fotos,repàs,repetició,espaiada,idioma,vocabulari,memòria,estudi,pràct
 
 ### What's New
 
-- La interfície de Nibomo ja està disponible en 49 idiomes.
-- Les pàgines d'inici de sessió també estan disponibles en aquests idiomes.
-- Ara és més fàcil amagar el teclat al xat amb IA, a l'inici de sessió i als ajustos de programació dels repassos.
-- Hem millorat el desplaçament, el dictat i els controls dels fitxers adjunts al xat amb IA.
-- Hem corregit un problema que tallava les respostes llargues durant el repàs.
+- Comparteix l’aplicació amb els nous enllaços de nibomo.com.
+- Conserva l’accés a les teves targetes com a convidat quan l’aplicació passi al nostre nou domini.
 
 ## Czech
 
@@ -597,11 +558,8 @@ poznámky,fotky,opakování,jazyky,paměť,učení,procvičování,balíčky,št
 
 ### What's New
 
-- Rozhraní Nibomo je nyní dostupné ve 49 jazycích.
-- Přihlašovací stránky jsou nyní dostupné ve stejných jazycích.
-- Klávesnici lze snáze skrýt v chatu s AI, při přihlašování a v nastavení plánování opakování.
-- Vylepšili jsme posouvání, diktování a ovládání příloh v chatu s AI.
-- Opravili jsme ořezávání dlouhých odpovědí při opakování.
+- Sdílejte aplikaci pomocí nových odkazů na nibomo.com.
+- Při přechodu aplikace na naši novou doménu si zachováte přístup ke svým kartičkám jako host.
 
 ## Danish
 
@@ -632,11 +590,8 @@ noter,fotos,repetition,sprog,hukommelse,læring,øvelse,kort,bunker,tags
 
 ### What's New
 
-- Nibomos brugerflade er nu tilgængelig på 49 sprog.
-- Loginsiderne er nu også tilgængelige på de samme sprog.
-- Det er blevet lettere at skjule tastaturet i AI-chatten, ved login og i indstillingerne for planlægning af repetition.
-- Forbedret rulning, diktering og betjening af vedhæftninger i AI-chatten.
-- Rettet en fejl, hvor lange svar blev afkortet under repetition.
+- Del appen med de nye nibomo.com-links.
+- Behold adgangen til dine kort som gæst, når appen flytter til vores nye domæne.
 
 ## Greek
 
@@ -667,11 +622,8 @@ Nibomo: Κάρτες με AI
 
 ### What's New
 
-- Το περιβάλλον του Nibomo είναι πλέον διαθέσιμο σε 49 γλώσσες.
-- Οι σελίδες σύνδεσης είναι πλέον διαθέσιμες στις ίδιες γλώσσες.
-- Το πληκτρολόγιο κρύβεται πιο εύκολα στη συνομιλία AI, στη σύνδεση και στις ρυθμίσεις προγραμματισμού επαναλήψεων.
-- Βελτιώθηκαν η κύλιση, η υπαγόρευση και τα στοιχεία ελέγχου συνημμένων στη συνομιλία AI.
-- Διορθώθηκε η αποκοπή μεγάλων απαντήσεων κατά την επανάληψη.
+- Μοιραστείτε την εφαρμογή με τους νέους συνδέσμους nibomo.com.
+- Διατηρείτε την πρόσβαση στις κάρτες σας ως επισκέπτης όταν η εφαρμογή μεταφερθεί στο νέο μας domain.
 
 ## Finnish
 
@@ -702,11 +654,8 @@ muistiinpanot,kuvat,kertaus,kielet,sanasto,muisti,opiskelu,harjoittelu,pakat,tun
 
 ### What's New
 
-- Nibomon käyttöliittymä on nyt saatavilla 49 kielellä.
-- Myös kirjautumissivut ovat nyt saatavilla samoilla kielillä.
-- Näppäimistön piilottaminen on helpompaa tekoälychatissa, kirjautuessa ja kertauksen ajoitusasetuksissa.
-- Tekoälychatin vieritystä, sanelua ja liitteiden hallintaa on parannettu.
-- Pitkien vastausten katkeaminen kertauksen aikana on korjattu.
+- Jaa sovellus uusilla nibomo.com-linkeillä.
+- Säilytät pääsyn kortteihisi vierailijana, kun sovellus siirtyy uudelle verkkotunnuksellemme.
 
 ## Gujarati
 
@@ -737,11 +686,8 @@ AI સુવિધાઓ માટે ઇન્ટરનેટ કનેક્�
 
 ### What's New
 
-- Nibomoનું ઇન્ટરફેસ હવે 49 ભાષાઓમાં ઉપલબ્ધ છે.
-- સાઇન-ઇન પૃષ્ઠો પણ હવે એ જ ભાષાઓમાં ઉપલબ્ધ છે.
-- AI ચેટ, સાઇન-ઇન અને પુનરાવર્તનના સમયપત્રકની સેટિંગ્સમાં કીબોર્ડ છુપાવવાનું વધુ સરળ બનાવ્યું છે.
-- AI ચેટમાં સ્ક્રોલિંગ, બોલીને લખવાની સુવિધા અને જોડાણોના નિયંત્રણો સુધાર્યા છે.
-- પુનરાવર્તન દરમિયાન લાંબા જવાબો અધૂરા દેખાવાની સમસ્યા સુધારી છે.
+- નવી nibomo.com લિંક્સથી ઍપ શેર કરો.
+- ઍપ અમારા નવા ડોમેન પર જાય ત્યારે પણ મહેમાન તરીકે તમારા કાર્ડનો ઉપયોગ કરી શકશો.
 
 ## Hebrew
 
@@ -772,11 +718,8 @@ Nibomo: כרטיסיות עם AI
 
 ### What's New
 
-- הממשק של Nibomo זמין עכשיו ב-49 שפות.
-- גם דפי הכניסה זמינים עכשיו באותן שפות.
-- קל יותר להסתיר את המקלדת בצ'אט AI, בכניסה לחשבון ובהגדרות תזמון החזרות.
-- שופרו הגלילה, ההכתבה ופקדי הקבצים המצורפים בצ'אט AI.
-- תוקנה בעיה שבה תשובות ארוכות נחתכו בזמן החזרה.
+- שתפו את האפליקציה עם הקישורים החדשים של nibomo.com.
+- הגישה שלכם לכרטיסיות כאורחים נשמרת כשהאפליקציה עוברת לדומיין החדש שלנו.
 
 ## Croatian
 
@@ -807,11 +750,8 @@ bilješke,fotografije,ponavljanje,jezici,pamćenje,učenje,vježba,špilovi,ozna
 
 ### What's New
 
-- Sučelje aplikacije Nibomo sada je dostupno na 49 jezika.
-- Stranice za prijavu sada su dostupne na istim jezicima.
-- Tipkovnicu je lakše sakriti u AI chatu, pri prijavi i u postavkama rasporeda ponavljanja.
-- Poboljšani su pomicanje, diktiranje i upravljanje privicima u AI chatu.
-- Ispravljeno je odsijecanje dugih odgovora tijekom ponavljanja.
+- Podijelite aplikaciju putem novih poveznica nibomo.com.
+- Zadržite pristup svojim karticama kao gost kada aplikacija prijeđe na našu novu domenu.
 
 ## Hungarian
 
@@ -842,11 +782,8 @@ jegyzet,fotó,ismétlés,nyelv,memória,tanulás,gyakorlás,pakli,címke
 
 ### What's New
 
-- A Nibomo felülete mostantól 49 nyelven érhető el.
-- A bejelentkezési oldalak is elérhetők ezeken a nyelveken.
-- Könnyebb elrejteni a billentyűzetet az AI-csevegésben, bejelentkezéskor és az ismétlések ütemezési beállításaiban.
-- Javítottuk a görgetést, a diktálást és a mellékletek kezelését az AI-csevegésben.
-- Javítottuk a hosszú válaszok levágását ismétlés közben.
+- Oszd meg az alkalmazást az új nibomo.com-hivatkozásokkal.
+- Vendégként is megmarad a hozzáférésed a kártyáidhoz, amikor az alkalmazás az új domainünkre költözik.
 
 ## Indonesian
 
@@ -877,11 +814,8 @@ catatan,foto,pengulangan,berjarak,bahasa,ingatan,belajar,latihan,dek,tag
 
 ### What's New
 
-- Antarmuka Nibomo kini tersedia dalam 49 bahasa.
-- Halaman masuk kini juga tersedia dalam bahasa-bahasa tersebut.
-- Keyboard kini lebih mudah disembunyikan di chat AI, saat masuk, dan di pengaturan jadwal ulasan.
-- Pengguliran, dikte, dan kontrol lampiran di chat AI telah ditingkatkan.
-- Memperbaiki jawaban panjang yang terpotong saat mengulas.
+- Bagikan aplikasi dengan tautan nibomo.com yang baru.
+- Akses kartu Anda sebagai tamu tetap terjaga saat aplikasi beralih ke domain baru kami.
 
 ## Italian
 
@@ -912,11 +846,8 @@ appunti,foto,ripasso,ripetizione,spaziata,lingue,vocabolario,memoria,studio,mazz
 
 ### What's New
 
-- L'interfaccia di Nibomo è ora disponibile in 49 lingue.
-- Anche le pagine di accesso sono disponibili nelle stesse lingue.
-- È più facile nascondere la tastiera nella chat IA, durante l'accesso e nelle impostazioni di pianificazione dei ripassi.
-- Abbiamo migliorato lo scorrimento, la dettatura e i controlli degli allegati nella chat IA.
-- Abbiamo corretto il taglio delle risposte lunghe durante il ripasso.
+- Condividi l’app con i nuovi link di nibomo.com.
+- Mantieni l’accesso alle tue schede come ospite quando l’app passa al nostro nuovo dominio.
 
 ## Kannada
 
@@ -947,11 +878,8 @@ AI ಸೌಲಭ್ಯಗಳಿಗೆ ಇಂಟರ್ನೆಟ್ ಸಂಪರ್
 
 ### What's New
 
-- Nibomoದ ಇಂಟರ್ಫೇಸ್ ಈಗ 49 ಭಾಷೆಗಳಲ್ಲಿ ಲಭ್ಯವಿದೆ.
-- ಸೈನ್-ಇನ್ ಪುಟಗಳು ಕೂಡ ಈಗ ಅದೇ ಭಾಷೆಗಳಲ್ಲಿ ಲಭ್ಯವಿವೆ.
-- AI ಚಾಟ್, ಸೈನ್-ಇನ್ ಮತ್ತು ಪುನರಾವರ್ತನೆಯ ವೇಳಾಪಟ್ಟಿ ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಕೀಬೋರ್ಡ್ ಮರೆಮಾಡುವುದು ಈಗ ಸುಲಭವಾಗಿದೆ.
-- AI ಚಾಟ್‌ನಲ್ಲಿ ಸ್ಕ್ರೋಲಿಂಗ್, ಧ್ವನಿ ಮೂಲಕ ಬರೆಯುವುದು ಮತ್ತು ಲಗತ್ತುಗಳ ನಿಯಂತ್ರಣಗಳನ್ನು ಸುಧಾರಿಸಲಾಗಿದೆ.
-- ಪುನರಾವರ್ತನೆಯ ಸಮಯದಲ್ಲಿ ಉದ್ದವಾದ ಉತ್ತರಗಳು ಅಪೂರ್ಣವಾಗಿ ಕಾಣುತ್ತಿದ್ದ ಸಮಸ್ಯೆಯನ್ನು ಸರಿಪಡಿಸಲಾಗಿದೆ.
+- ಹೊಸ nibomo.com ಲಿಂಕ್‌ಗಳ ಮೂಲಕ ಆ್ಯಪ್ ಹಂಚಿಕೊಳ್ಳಿ.
+- ಆ್ಯಪ್ ನಮ್ಮ ಹೊಸ ಡೊಮೇನ್‌ಗೆ ಬದಲಾದಾಗಲೂ ಅತಿಥಿಯಾಗಿ ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳನ್ನು ಬಳಸಬಹುದು.
 
 ## Korean
 
@@ -982,11 +910,8 @@ AI 기능을 사용하려면 인터넷 연결이 필요해요.
 
 ### What's New
 
-- Nibomo의 화면이 이제 49개 언어를 지원합니다.
-- 로그인 페이지도 같은 언어를 지원합니다.
-- AI 채팅, 로그인, 복습 일정 설정에서 키보드를 더 쉽게 닫을 수 있습니다.
-- AI 채팅의 스크롤, 음성 입력, 첨부 파일 조작을 개선했습니다.
-- 복습 중 긴 답변이 잘려 보이던 문제를 수정했습니다.
+- 새로운 nibomo.com 링크로 앱을 공유하세요.
+- 앱이 새 도메인으로 이전해도 게스트로 사용하던 카드에 계속 접근할 수 있어요.
 
 ## Malayalam
 
@@ -1017,11 +942,8 @@ AI സൗകര്യങ്ങൾക്ക് ഇന്റർനെറ്റ് 
 
 ### What's New
 
-- Nibomoയുടെ ഇന്റർഫേസ് ഇപ്പോൾ 49 ഭാഷകളിൽ ലഭ്യമാണ്.
-- സൈൻ-ഇൻ പേജുകളും ഇപ്പോൾ ഇതേ ഭാഷകളിൽ ലഭ്യമാണ്.
-- AI ചാറ്റിലും സൈൻ-ഇൻ ചെയ്യുമ്പോഴും പുനഃപഠന സമയക്രമത്തിന്റെ ക്രമീകരണങ്ങളിലും കീബോർഡ് മറയ്ക്കുന്നത് എളുപ്പമാക്കി.
-- AI ചാറ്റിലെ സ്ക്രോളിംഗ്, ശബ്ദം ഉപയോഗിച്ച് എഴുതൽ, അറ്റാച്ച്‌മെന്റ് നിയന്ത്രണങ്ങൾ എന്നിവ മെച്ചപ്പെടുത്തി.
-- പുനഃപഠനത്തിനിടെ നീണ്ട ഉത്തരങ്ങൾ മുറിഞ്ഞുകാണുന്ന പ്രശ്നം പരിഹരിച്ചു.
+- പുതിയ nibomo.com ലിങ്കുകൾ ഉപയോഗിച്ച് ആപ്പ് പങ്കിടൂ.
+- ആപ്പ് ഞങ്ങളുടെ പുതിയ ഡൊമെയ്‌നിലേക്ക് മാറുമ്പോഴും അതിഥിയായി നിങ്ങളുടെ കാർഡുകൾ ഉപയോഗിക്കാം.
 
 ## Marathi
 
@@ -1052,11 +974,8 @@ AI सुविधांसाठी इंटरनेट कनेक्शन
 
 ### What's New
 
-- Nibomoचा इंटरफेस आता 49 भाषांमध्ये उपलब्ध आहे.
-- साइन-इन पृष्ठेही आता याच भाषांमध्ये उपलब्ध आहेत.
-- AI चॅट, साइन-इन आणि उजळणीच्या वेळापत्रकाच्या सेटिंग्जमध्ये कीबोर्ड लपवणे आता सोपे झाले आहे.
-- AI चॅटमधील स्क्रोलिंग, बोलून लिहिणे आणि जोडलेल्या फाइल्सची नियंत्रणे सुधारली आहेत.
-- उजळणीदरम्यान लांब उत्तरे अपूर्ण दिसण्याची समस्या सोडवली आहे.
+- नवीन nibomo.com लिंक्स वापरून ॲप शेअर करा.
+- ॲप आमच्या नवीन डोमेनवर गेले तरी अतिथी म्हणून तुमची कार्डे वापरता येतील.
 
 ## Norwegian
 
@@ -1087,11 +1006,8 @@ notater,bilder,repetisjon,språk,ordforråd,hukommelse,læring,øving,kortstokke
 
 ### What's New
 
-- Nibomos grensesnitt er nå tilgjengelig på 49 språk.
-- Innloggingssidene er nå også tilgjengelige på de samme språkene.
-- Det er blitt enklere å skjule tastaturet i KI-chatten, ved innlogging og i innstillingene for repetisjonsplanlegging.
-- Forbedret rulling, diktering og håndtering av vedlegg i KI-chatten.
-- Rettet en feil der lange svar ble kuttet under repetisjon.
+- Del appen med de nye nibomo.com-lenkene.
+- Behold tilgangen til kortene dine som gjest når appen flyttes til det nye domenet vårt.
 
 ## Dutch
 
@@ -1122,11 +1038,8 @@ notities,fotos,herhaling,talen,woordenschat,geheugen,leren,oefenen,stapels,tags
 
 ### What's New
 
-- De interface van Nibomo is nu beschikbaar in 49 talen.
-- De inlogpagina's zijn nu ook beschikbaar in dezelfde talen.
-- Het toetsenbord is makkelijker te verbergen in de AI-chat, bij het inloggen en in de instellingen voor het plannen van herhalingen.
-- Scrollen, dicteren en de bediening van bijlagen in de AI-chat zijn verbeterd.
-- Opgelost dat lange antwoorden tijdens het herhalen werden afgekapt.
+- Deel de app via de nieuwe nibomo.com-links.
+- Je behoudt als gast toegang tot je kaarten wanneer de app naar ons nieuwe domein verhuist.
 
 ## Punjabi
 
@@ -1157,11 +1070,8 @@ AI ਸਹੂਲਤਾਂ ਲਈ ਇੰਟਰਨੈੱਟ ਕਨੈਕਸ਼ਨ �
 
 ### What's New
 
-- Nibomo ਦਾ ਇੰਟਰਫੇਸ ਹੁਣ 49 ਭਾਸ਼ਾਵਾਂ ਵਿੱਚ ਉਪਲਬਧ ਹੈ।
-- ਸਾਈਨ-ਇਨ ਪੰਨੇ ਵੀ ਹੁਣ ਇਨ੍ਹਾਂ ਹੀ ਭਾਸ਼ਾਵਾਂ ਵਿੱਚ ਉਪਲਬਧ ਹਨ।
-- AI ਚੈਟ, ਸਾਈਨ-ਇਨ ਅਤੇ ਦੁਹਰਾਈ ਦੀ ਸਮਾਂ-ਸਾਰਣੀ ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਕੀਬੋਰਡ ਲੁਕਾਉਣਾ ਹੁਣ ਸੌਖਾ ਹੋ ਗਿਆ ਹੈ।
-- AI ਚੈਟ ਵਿੱਚ ਸਕ੍ਰੌਲ ਕਰਨ, ਬੋਲ ਕੇ ਲਿਖਣ ਅਤੇ ਨੱਥੀ ਫ਼ਾਈਲਾਂ ਦੇ ਕੰਟਰੋਲ ਸੁਧਾਰੇ ਗਏ ਹਨ।
-- ਦੁਹਰਾਈ ਦੌਰਾਨ ਲੰਬੇ ਜਵਾਬ ਅਧੂਰੇ ਦਿਖਾਈ ਦੇਣ ਦੀ ਸਮੱਸਿਆ ਠੀਕ ਕੀਤੀ ਗਈ ਹੈ।
+- ਨਵੇਂ nibomo.com ਲਿੰਕਾਂ ਰਾਹੀਂ ਐਪ ਸਾਂਝੀ ਕਰੋ।
+- ਐਪ ਸਾਡੇ ਨਵੇਂ ਡੋਮੇਨ ’ਤੇ ਜਾਣ ਤੋਂ ਬਾਅਦ ਵੀ ਮਹਿਮਾਨ ਵਜੋਂ ਆਪਣੇ ਕਾਰਡ ਵਰਤ ਸਕੋਗੇ।
 
 ## Polish
 
@@ -1192,11 +1102,8 @@ notatki,zdjęcia,powtórki,języki,pamięć,nauka,ćwiczenia,talie,tagi
 
 ### What's New
 
-- Interfejs Nibomo jest teraz dostępny w 49 językach.
-- Strony logowania są teraz dostępne w tych samych językach.
-- Łatwiej ukryć klawiaturę w czacie z AI, przy logowaniu i w ustawieniach harmonogramu powtórek.
-- Ulepszyliśmy przewijanie, dyktowanie i obsługę załączników w czacie z AI.
-- Naprawiliśmy ucinanie długich odpowiedzi podczas powtórek.
+- Udostępniaj aplikację za pomocą nowych linków nibomo.com.
+- Zachowasz dostęp do swoich fiszek jako gość, gdy aplikacja przejdzie na naszą nową domenę.
 
 ## Romanian
 
@@ -1227,11 +1134,8 @@ notițe,fotografii,recapitulare,repetiție,spațiată,limbi,vocabular,memorie,st
 
 ### What's New
 
-- Interfața Nibomo este acum disponibilă în 49 de limbi.
-- Paginile de conectare sunt acum disponibile în aceleași limbi.
-- Tastatura se ascunde mai ușor în chatul AI, la conectare și în setările de programare a recapitulărilor.
-- Am îmbunătățit derularea, dictarea și comenzile pentru atașamente din chatul AI.
-- Am remediat afișarea incompletă a răspunsurilor lungi în timpul recapitulării.
+- Distribuie aplicația prin noile linkuri nibomo.com.
+- Îți păstrezi accesul la carduri ca vizitator când aplicația trece pe noul nostru domeniu.
 
 ## Slovak
 
@@ -1262,11 +1166,8 @@ poznámky,fotky,opakovanie,jazyky,pamäť,učenie,precvičovanie,balíčky,ští
 
 ### What's New
 
-- Rozhranie Nibomo je teraz dostupné v 49 jazykoch.
-- Prihlasovacie stránky sú teraz dostupné v rovnakých jazykoch.
-- Klávesnicu možno jednoduchšie skryť v chate s AI, pri prihlasovaní a v nastaveniach plánovania opakovania.
-- Vylepšili sme posúvanie, diktovanie a ovládanie príloh v chate s AI.
-- Opravili sme orezávanie dlhých odpovedí pri opakovaní.
+- Zdieľajte aplikáciu pomocou nových odkazov na nibomo.com.
+- Pri prechode aplikácie na našu novú doménu si zachováte prístup k svojim kartičkám ako hosť.
 
 ## Slovenian
 
@@ -1297,11 +1198,8 @@ zapiski,fotografije,ponavljanje,jeziki,besedišče,spomin,učenje,vaja,zbirke,oz
 
 ### What's New
 
-- Vmesnik aplikacije Nibomo je zdaj na voljo v 49 jezikih.
-- Strani za prijavo so zdaj na voljo v istih jezikih.
-- Tipkovnico je lažje skriti v klepetu z AI, pri prijavi in v nastavitvah urnika ponavljanja.
-- Izboljšali smo pomikanje, narekovanje in upravljanje prilog v klepetu z AI.
-- Odpravili smo težavo z odrezanimi dolgimi odgovori med ponavljanjem.
+- Delite aplikacijo z novimi povezavami nibomo.com.
+- Ko aplikacija preide na našo novo domeno, kot gost ohranite dostop do svojih kartic.
 
 ## Swedish
 
@@ -1332,11 +1230,8 @@ anteckningar,foton,repetition,språk,ordförråd,minne,lärande,övning,kortleka
 
 ### What's New
 
-- Nibomos gränssnitt finns nu på 49 språk.
-- Inloggningssidorna finns nu också på samma språk.
-- Det är lättare att dölja tangentbordet i AI-chatten, vid inloggning och i inställningarna för repetitionsschemat.
-- Förbättrad rullning, diktering och hantering av bilagor i AI-chatten.
-- Åtgärdat att långa svar klipptes av under repetition.
+- Dela appen med de nya nibomo.com-länkarna.
+- Behåll åtkomsten till dina kort som gäst när appen flyttar till vår nya domän.
 
 ## Tamil
 
@@ -1367,11 +1262,8 @@ AI வசதிகளுக்கு இணைய இணைப்பு தே�
 
 ### What's New
 
-- Nibomoவின் இடைமுகம் இப்போது 49 மொழிகளில் கிடைக்கிறது.
-- உள்நுழைவுப் பக்கங்களும் இப்போது அதே மொழிகளில் கிடைக்கின்றன.
-- AI அரட்டை, உள்நுழைவு மற்றும் மீள்பார்வை அட்டவணை அமைப்புகளில் விசைப்பலகையை மறைப்பது எளிதாக்கப்பட்டுள்ளது.
-- AI அரட்டையில் ஸ்க்ரோல் செய்வது, குரல் மூலம் எழுதுவது மற்றும் இணைப்புக் கட்டுப்பாடுகள் மேம்படுத்தப்பட்டுள்ளன.
-- மீள்பார்வையின்போது நீண்ட பதில்கள் முழுமையாகத் தெரியாத சிக்கல் சரிசெய்யப்பட்டுள்ளது.
+- புதிய nibomo.com இணைப்புகளுடன் செயலியைப் பகிருங்கள்.
+- செயலி எங்களின் புதிய டொமைனுக்கு மாறும்போதும் விருந்தினராக உங்கள் அட்டைகளைத் தொடர்ந்து அணுகலாம்.
 
 ## Telugu
 
@@ -1402,11 +1294,8 @@ AI సౌకర్యాలకు ఇంటర్నెట్ కనెక్ష
 
 ### What's New
 
-- Nibomo ఇంటర్‌ఫేస్ ఇప్పుడు 49 భాషల్లో అందుబాటులో ఉంది.
-- సైన్-ఇన్ పేజీలు కూడా ఇప్పుడు అవే భాషల్లో అందుబాటులో ఉన్నాయి.
-- AI చాట్, సైన్-ఇన్, పునశ్చరణ సమయ ప్రణాళిక సెట్టింగ్‌లలో కీబోర్డ్‌ను దాచడం సులభమైంది.
-- AI చాట్‌లో స్క్రోలింగ్, మాటలతో రాయడం, అటాచ్‌మెంట్ నియంత్రణలు మెరుగుపరిచాం.
-- పునశ్చరణ సమయంలో పొడవైన సమాధానాలు అసంపూర్ణంగా కనిపించే సమస్యను పరిష్కరించాం.
+- కొత్త nibomo.com లింక్‌లతో యాప్‌ను షేర్ చేయండి.
+- యాప్ మా కొత్త డొమైన్‌కు మారినప్పటికీ అతిథిగా మీ కార్డ్‌లను ఉపయోగించవచ్చు.
 
 ## Thai
 
@@ -1437,11 +1326,8 @@ Nibomo: แฟลชการ์ด AI
 
 ### What's New
 
-- อินเทอร์เฟซของ Nibomo รองรับ 49 ภาษาแล้ว
-- หน้าเข้าสู่ระบบก็รองรับภาษาเหล่านี้แล้วเช่นกัน
-- ซ่อนคีย์บอร์ดได้ง่ายขึ้นในแชท AI หน้าเข้าสู่ระบบ และการตั้งค่าตารางทบทวน
-- ปรับปรุงการเลื่อน การพิมพ์ด้วยเสียง และปุ่มควบคุมไฟล์แนบในแชท AI
-- แก้ไขคำตอบยาวที่แสดงไม่ครบระหว่างทบทวน
+- แชร์แอปด้วยลิงก์ nibomo.com ใหม่
+- ยังเข้าถึงบัตรคำในฐานะผู้เยี่ยมชมได้เมื่อแอปย้ายไปใช้โดเมนใหม่ของเรา
 
 ## Turkish
 
@@ -1472,11 +1358,8 @@ not,fotoğraf,aralıklı,tekrar,dil,hafıza,çalışma,alıştırma,deste,etiket
 
 ### What's New
 
-- Nibomo'nun arayüzü artık 49 dili destekliyor.
-- Giriş sayfaları da artık aynı dillerde kullanılabiliyor.
-- AI sohbetinde, giriş yaparken ve tekrar zamanlama ayarlarında klavyeyi gizlemek daha kolay hale geldi.
-- AI sohbetinde kaydırma, dikte ve ek kontrolleri iyileştirildi.
-- Tekrar sırasında uzun yanıtların kesilmesi düzeltildi.
+- Uygulamayı yeni nibomo.com bağlantılarıyla paylaşın.
+- Uygulama yeni alan adımıza geçtiğinde misafir olarak kartlarınıza erişiminiz korunur.
 
 ## Ukrainian
 
@@ -1507,11 +1390,8 @@ Nibomo: Картки з ШІ
 
 ### What's New
 
-- Інтерфейс Nibomo тепер доступний 49 мовами.
-- Сторінки входу тепер підтримують ті самі мови.
-- Стало зручніше приховувати клавіатуру в чаті з ШІ, під час входу та в налаштуваннях розкладу повторень.
-- Поліпшено прокручування, голосове введення та керування вкладеннями в чаті з ШІ.
-- Виправлено обрізання довгих відповідей під час повторення.
+- Діліться застосунком за новими посиланнями nibomo.com.
+- Збережіть гостьовий доступ до своїх карток, коли застосунок перейде на наш новий домен.
 
 ## Urdu
 
@@ -1542,11 +1422,8 @@ AI کی سہولتوں کے لیے انٹرنیٹ کنکشن ضروری ہے۔
 
 ### What's New
 
-- Nibomo کا انٹرفیس اب 49 زبانوں میں دستیاب ہے۔
-- سائن اِن کے صفحات بھی اب انہی زبانوں میں دستیاب ہیں۔
-- AI چیٹ، سائن اِن اور دہرائی کے شیڈول کی ترتیبات میں کی بورڈ چھپانا آسان بنا دیا گیا ہے۔
-- AI چیٹ میں اسکرولنگ، بول کر لکھنے اور منسلک فائلوں کے کنٹرولز کو بہتر بنایا گیا ہے۔
-- دہرائی کے دوران طویل جوابات ادھورے نظر آنے کا مسئلہ حل کر دیا گیا ہے۔
+- نئے nibomo.com لنکس کے ذریعے ایپ شیئر کریں۔
+- ایپ ہمارے نئے ڈومین پر منتقل ہونے کے بعد بھی بطور مہمان اپنے کارڈز تک رسائی برقرار رکھیں۔
 
 ## Vietnamese
 
@@ -1577,8 +1454,5 @@ ghi chú,ảnh,ôn tập,ngắt quãng,ngoại ngữ,trí nhớ,học tập,luy�
 
 ### What's New
 
-- Giao diện Nibomo hiện hỗ trợ 49 ngôn ngữ.
-- Các trang đăng nhập cũng đã hỗ trợ những ngôn ngữ này.
-- Dễ ẩn bàn phím hơn trong trò chuyện AI, khi đăng nhập và trong phần cài đặt lịch ôn tập.
-- Cải thiện thao tác cuộn, nhập bằng giọng nói và các nút điều khiển tệp đính kèm trong trò chuyện AI.
-- Sửa lỗi câu trả lời dài bị cắt khi ôn tập.
+- Chia sẻ ứng dụng bằng các liên kết nibomo.com mới.
+- Bạn vẫn có thể truy cập thẻ ở chế độ khách khi ứng dụng chuyển sang tên miền mới của chúng tôi.

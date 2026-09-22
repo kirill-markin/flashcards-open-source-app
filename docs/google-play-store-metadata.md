@@ -32,6 +32,11 @@ Turn notes and photos into flashcards with AI to prepare for exams and learn voc
 - Organize subjects with decks and tags, then find cards with search and filters.
 - Sign in with email to sync your study material across devices.
 
+### Release notes
+
+- Share the app using new nibomo.com links.
+- Keep access to your cards as a guest when the app moves to our new domain.
+
 ## Arabic - ar
 
 ### App Name
@@ -50,6 +55,11 @@ Nibomo: بطاقات ذكاء اصطناعي
 - اكتب أسئلتك وإجاباتك وعدّل البطاقات أثناء التعلّم.
 - نظّم المواد في مجموعات وبوسوم، واعثر على البطاقات بالبحث والتصفية.
 - سجّل الدخول ببريدك الإلكتروني لمزامنة مواد الدراسة بين أجهزتك.
+
+### Release notes
+
+- شارك التطبيق باستخدام روابط nibomo.com الجديدة.
+- احتفظ بإمكانية الوصول إلى بطاقاتك كضيف عند انتقال التطبيق إلى نطاقنا الجديد.
 
 ## Chinese (Simplified) - zh-CN
 
@@ -70,6 +80,11 @@ Nibomo: AI 闪卡
 - 用牌组和标签整理各科内容，通过搜索和筛选找到卡片。
 - 使用邮箱登录，在不同设备间同步学习资料。
 
+### Release notes
+
+- 使用新的 nibomo.com 链接分享应用。
+- 应用迁移到新域名后，您仍可在访客模式下访问自己的卡片。
+
 ## French - fr-FR
 
 ### App Name
@@ -88,6 +103,11 @@ Transformez vos notes et photos en fiches avec l’IA pour préparer vos examens
 - Rédigez vos propres questions et réponses, puis ajustez-les au fil de vos révisions.
 - Classez vos matières par paquets et étiquettes, et retrouvez vos fiches avec la recherche et les filtres.
 - Connectez-vous par e-mail pour synchroniser vos supports de révision entre vos appareils.
+
+### Release notes
+
+- Partagez l’app avec les nouveaux liens nibomo.com.
+- Conservez l’accès à vos fiches en tant qu’invité lorsque l’app passe à notre nouveau domaine.
 
 ## German - de-DE
 
@@ -108,6 +128,11 @@ Erstelle mit KI aus Notizen und Fotos Karteikarten für Prüfungen und zum Vokab
 - Ordne deine Themen mit Stapeln und Tags und finde Karten über Suche und Filter.
 - Melde dich per E-Mail an, um dein Lernmaterial zwischen Geräten zu synchronisieren.
 
+### Release notes
+
+- Teile die App über die neuen nibomo.com-Links.
+- Beim Wechsel der App auf unsere neue Domain behältst du als Gast Zugriff auf deine Karten.
+
 ## Hindi - hi-IN
 
 ### App Name
@@ -126,6 +151,11 @@ Nibomo: AI फ्लैशकार्ड
 - अपने सवाल-जवाब लिखें और सीखते समय कार्ड में बदलाव करें।
 - डेक और टैग से विषय व्यवस्थित करें, फिर खोज और फ़िल्टर से कार्ड ढूंढें।
 - ईमेल से साइन इन करके अपनी पढ़ाई की सामग्री अलग-अलग डिवाइस पर सिंक करें।
+
+### Release notes
+
+- नए nibomo.com लिंक से ऐप शेयर करें।
+- ऐप के हमारे नए डोमेन पर जाने के बाद भी अतिथि के रूप में अपने कार्ड इस्तेमाल कर सकेंगे।
 
 ## Japanese - ja-JP
 
@@ -146,6 +176,11 @@ Nibomo: AI暗記カード
 - デッキやタグで科目を整理し、検索や絞り込みでカードを探せます。
 - メールアドレスでログインして、学習内容を複数の端末で同期できます。
 
+### Release notes
+
+- 新しい nibomo.com リンクでアプリを共有できます。
+- アプリが新しいドメインに移行しても、ゲストとして使っているカードに引き続きアクセスできます。
+
 ## Portuguese (Brazil) - pt-BR
 
 ### App Name
@@ -164,6 +199,11 @@ Transforme suas anotações e fotos em flashcards com IA para estudar para prova
 - Escreva suas próprias perguntas e respostas e edite os cartões enquanto aprende.
 - Organize as matérias com baralhos e etiquetas e encontre cartões com a busca e os filtros.
 - Entre com seu e-mail para sincronizar seu material de estudo entre dispositivos.
+
+### Release notes
+
+- Compartilhe o app com os novos links nibomo.com.
+- Mantenha o acesso aos seus cartões como convidado quando o app passar para o nosso novo domínio.
 
 ## Russian - ru-RU
 
@@ -184,6 +224,11 @@ Nibomo: ИИ-флешкарты
 - Распределяйте материал по колодам и тегам, находите карточки через поиск и фильтры.
 - Войдите по электронной почте, чтобы синхронизировать учебные материалы между устройствами.
 
+### Release notes
+
+- Делитесь приложением по новым ссылкам nibomo.com.
+- Сохраните гостевой доступ к своим карточкам при переходе приложения на наш новый домен.
+
 ## Spanish (Latin America) - es-419
 
 ### App Name
@@ -202,6 +247,11 @@ Convierte tus apuntes y fotos en tarjetas de estudio con IA para preparar exáme
 - Escribe tus propias preguntas y respuestas y edítalas mientras estudias.
 - Organiza tus materias con mazos y etiquetas y encuentra tarjetas con la búsqueda y los filtros.
 - Inicia sesión con tu correo electrónico para sincronizar tu material entre dispositivos.
+
+### Release notes
+
+- Comparte la app con los nuevos enlaces de nibomo.com.
+- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
 
 ## Spanish (Spain) - es-ES
 
@@ -222,6 +272,11 @@ Convierte tus apuntes y fotos en tarjetas de estudio con IA para preparar exáme
 - Ordena tus asignaturas con mazos y etiquetas y localiza tarjetas con la búsqueda y los filtros.
 - Inicia sesión con tu correo electrónico para sincronizar tu material entre dispositivos.
 
+### Release notes
+
+- Comparte la app con los nuevos enlaces de nibomo.com.
+- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
+
 ## Spanish (United States) - es-US
 
 ### App Name
@@ -240,6 +295,11 @@ Convierte tus notas y fotos en tarjetas de estudio con IA para preparar exámene
 - Crea tus propias preguntas y respuestas y edítalas conforme aprendes.
 - Organiza tus materias con mazos y etiquetas y busca tarjetas usando filtros.
 - Inicia sesión con tu email para sincronizar tu material de estudio entre dispositivos.
+
+### Release notes
+
+- Comparte la app con los nuevos enlaces de nibomo.com.
+- Conserva el acceso a tus tarjetas como invitado cuando la app pase a nuestro nuevo dominio.
 
 ## Bulgarian - bg
 
@@ -260,6 +320,11 @@ Nibomo: Флашкарти с ИИ
 - Подредете темите в тестета и с етикети и намирайте карти чрез търсене и филтри.
 - Влезте с имейл, за да синхронизирате учебните си материали между устройствата.
 
+### Release notes
+
+- Споделяйте приложението с новите връзки към nibomo.com.
+- Запазвате достъпа до картите си като гост при преминаването на приложението към новия ни домейн.
+
 ## Bengali (Bangladesh) - bn-BD
 
 ### App Name
@@ -278,6 +343,11 @@ Nibomo: AI ফ্ল্যাশকার্ড
 - নিজের প্রশ্ন ও উত্তর লিখুন এবং শেখার সঙ্গে সঙ্গে কার্ড সম্পাদনা করুন।
 - ডেক ও ট্যাগ দিয়ে বিষয়গুলো সাজান, তারপর সার্চ ও ফিল্টার দিয়ে কার্ড খুঁজুন।
 - ইমেইল দিয়ে সাইন ইন করে বিভিন্ন ডিভাইসে পড়ার উপকরণ সিঙ্ক করুন।
+
+### Release notes
+
+- নতুন nibomo.com লিংক দিয়ে অ্যাপ শেয়ার করুন।
+- অ্যাপ আমাদের নতুন ডোমেইনে চলে গেলেও অতিথি হিসেবে আপনার কার্ডগুলো ব্যবহার করতে পারবেন।
 
 ## Catalan - ca
 
@@ -298,6 +368,11 @@ Converteix els apunts i les fotos en targetes d’estudi amb IA per preparar ex�
 - Organitza les matèries amb baralles i etiquetes i troba targetes amb la cerca i els filtres.
 - Inicia la sessió amb el correu electrònic per sincronitzar el material entre dispositius.
 
+### Release notes
+
+- Comparteix l’aplicació amb els nous enllaços de nibomo.com.
+- Conserva l’accés a les teves targetes com a convidat quan l’aplicació passi al nostre nou domini.
+
 ## Czech - cs-CZ
 
 ### App Name
@@ -316,6 +391,11 @@ Proměňte poznámky a fotky v kartičky s pomocí AI a připravujte se na zkou�
 - Pište vlastní otázky a odpovědi a upravujte je během učení.
 - Třiďte učivo pomocí balíčků a štítků, kartičky najděte vyhledáváním a filtry.
 - Přihlaste se e-mailem a synchronizujte učební materiály mezi zařízeními.
+
+### Release notes
+
+- Sdílejte aplikaci pomocí nových odkazů na nibomo.com.
+- Při přechodu aplikace na naši novou doménu si zachováte přístup ke svým kartičkám jako host.
 
 ## Danish - da-DK
 
@@ -336,6 +416,11 @@ Lav noter og fotos om til flashcards med AI, så du kan forberede dig til eksame
 - Organiser fag med kortsæt og tags, og find kort med søgning og filtre.
 - Log ind med e-mail for at synkronisere dit studiemateriale mellem enheder.
 
+### Release notes
+
+- Del appen med de nye nibomo.com-links.
+- Behold adgangen til dine kort som gæst, når appen flytter til vores nye domæne.
+
 ## Greek - el-GR
 
 ### App Name
@@ -354,6 +439,11 @@ Nibomo: Κάρτες με AI
 - Γράψτε δικές σας ερωτήσεις και απαντήσεις και επεξεργαστείτε τις καθώς μαθαίνετε.
 - Οργανώστε τα μαθήματα με συλλογές και ετικέτες και βρείτε κάρτες με αναζήτηση και φίλτρα.
 - Συνδεθείτε με email για να συγχρονίσετε το υλικό μελέτης μεταξύ συσκευών.
+
+### Release notes
+
+- Μοιραστείτε την εφαρμογή με τους νέους συνδέσμους nibomo.com.
+- Διατηρείτε την πρόσβαση στις κάρτες σας ως επισκέπτης όταν η εφαρμογή μεταφερθεί στο νέο μας domain.
 
 ## Estonian - et
 
@@ -374,6 +464,11 @@ Muuda märkmed ja fotod AI abil õpikaartideks, et valmistuda eksamiteks ja õpp
 - Korrasta teemasid kaardipakkide ja siltidega ning leia kaarte otsingu ja filtrite abil.
 - Logi sisse e-postiga, et sünkroonida õppematerjale seadmete vahel.
 
+### Release notes
+
+- Jaga rakendust uute nibomo.com-i linkidega.
+- Rakenduse üleminekul meie uuele domeenile säilib külalisena juurdepääs sinu kaartidele.
+
 ## Persian - fa
 
 ### App Name
@@ -392,6 +487,11 @@ Nibomo: فلش‌کارت هوشمند
 - پرسش و پاسخ‌های خودتان را بنویسید و در طول یادگیری ویرایش کنید.
 - مطالب را با دسته‌ها و برچسب‌ها مرتب کنید و با جست‌وجو و فیلتر کارت‌ها را پیدا کنید.
 - با ایمیل وارد شوید تا مطالب درسی‌تان بین دستگاه‌ها همگام شود.
+
+### Release notes
+
+- برنامه را با پیوندهای جدید nibomo.com به اشتراک بگذارید.
+- هنگام انتقال برنامه به دامنهٔ جدید ما، دسترسی شما به کارت‌هایتان در حالت مهمان حفظ می‌شود.
 
 ## Finnish - fi-FI
 
@@ -412,6 +512,11 @@ Muuta muistiinpanot ja kuvat tekoälyn avulla muistikorteiksi kokeisiin valmista
 - Järjestä aiheet pakkoihin ja tunnisteilla ja löydä kortit haun ja suodattimien avulla.
 - Kirjaudu sähköpostilla ja synkronoi opiskelumateriaalisi laitteiden välillä.
 
+### Release notes
+
+- Jaa sovellus uusilla nibomo.com-linkeillä.
+- Säilytät pääsyn kortteihisi vierailijana, kun sovellus siirtyy uudelle verkkotunnuksellemme.
+
 ## Gujarati - gu
 
 ### App Name
@@ -430,6 +535,11 @@ Nibomo: AI ફ્લેશકાર્ડ્સ
 - તમારા પોતાના પ્રશ્નો અને જવાબો લખો અને શીખતા જાઓ તેમ કાર્ડમાં ફેરફાર કરો.
 - ડેક અને ટૅગથી વિષયો ગોઠવો, પછી શોધ અને ફિલ્ટરથી કાર્ડ શોધો.
 - અલગ-અલગ ડિવાઇસ પર અભ્યાસની સામગ્રી સિંક કરવા ઇમેઇલથી સાઇન ઇન કરો.
+
+### Release notes
+
+- નવી nibomo.com લિંક્સથી ઍપ શેર કરો.
+- ઍપ અમારા નવા ડોમેન પર જાય ત્યારે પણ મહેમાન તરીકે તમારા કાર્ડનો ઉપયોગ કરી શકશો.
 
 ## Hebrew - iw-IL
 
@@ -450,6 +560,11 @@ Nibomo: כרטיסיות עם AI
 - ארגנו נושאים בחפיסות ובעזרת תגיות ומצאו כרטיסיות באמצעות חיפוש וסינון.
 - התחברו עם כתובת אימייל כדי לסנכרן את חומר הלימוד בין מכשירים.
 
+### Release notes
+
+- שתפו את האפליקציה עם הקישורים החדשים של nibomo.com.
+- הגישה שלכם לכרטיסיות כאורחים נשמרת כשהאפליקציה עוברת לדומיין החדש שלנו.
+
 ## Croatian - hr
 
 ### App Name
@@ -468,6 +583,11 @@ Pretvori bilješke i fotografije u kartice uz AI za pripremu ispita i učenje no
 - Piši vlastita pitanja i odgovore te ih uređuj dok učiš.
 - Organiziraj gradivo u špilove i pomoću oznaka, a kartice pronađi pretraživanjem i filtrima.
 - Prijavi se e-poštom za sinkronizaciju materijala za učenje između uređaja.
+
+### Release notes
+
+- Podijelite aplikaciju putem novih poveznica nibomo.com.
+- Zadržite pristup svojim karticama kao gost kada aplikacija prijeđe na našu novu domenu.
 
 ## Hungarian - hu-HU
 
@@ -488,6 +608,11 @@ Készíts jegyzetekből és fotókból tanulókártyákat AI-val a vizsgákra é
 - Rendezd a témákat paklikba és címkékkel, majd kereséssel és szűrőkkel találd meg a kártyákat.
 - Jelentkezz be e-maillel, hogy szinkronizáld a tananyagot az eszközeid között.
 
+### Release notes
+
+- Oszd meg az alkalmazást az új nibomo.com-hivatkozásokkal.
+- Vendégként is megmarad a hozzáférésed a kártyáidhoz, amikor az alkalmazás az új domainünkre költözik.
+
 ## Indonesian - id
 
 ### App Name
@@ -506,6 +631,11 @@ Ubah catatan dan foto menjadi flashcard dengan AI untuk persiapan ujian dan bela
 - Tulis pertanyaan dan jawaban sendiri, lalu edit seiring kamu belajar.
 - Atur materi dengan dek dan tag, lalu temukan kartu lewat pencarian dan filter.
 - Masuk dengan email untuk menyinkronkan materi belajar antarperangkat.
+
+### Release notes
+
+- Bagikan aplikasi dengan tautan nibomo.com yang baru.
+- Akses kartu Anda sebagai tamu tetap terjaga saat aplikasi beralih ke domain baru kami.
 
 ## Icelandic - is-IS
 
@@ -526,6 +656,11 @@ Breyttu glósum og myndum í námskort með gervigreind til að undirbúa þig f
 - Skipuleggðu námsefnið með kortastokkum og merkjum og finndu kort með leit og síum.
 - Skráðu þig inn með netfangi til að samstilla námsefnið milli tækja.
 
+### Release notes
+
+- Deildu appinu með nýjum nibomo.com-tenglum.
+- Þú heldur aðgangi að spjöldunum þínum sem gestur þegar appið færist yfir á nýja lénið okkar.
+
 ## Italian - it-IT
 
 ### App Name
@@ -544,6 +679,11 @@ Trasforma appunti e foto in flashcard con l’IA per preparare gli esami e impar
 - Scrivi domande e risposte personali e modificale mentre studi.
 - Organizza le materie con mazzi e tag e ritrova le carte usando ricerca e filtri.
 - Accedi con la tua email per sincronizzare il materiale di studio tra dispositivi.
+
+### Release notes
+
+- Condividi l’app con i nuovi link di nibomo.com.
+- Mantieni l’accesso alle tue schede come ospite quando l’app passa al nostro nuovo dominio.
 
 ## Kannada (India) - kn-IN
 
@@ -564,6 +704,11 @@ Nibomo: AI ಫ್ಲ್ಯಾಶ್‌ಕಾರ್ಡ್
 - ಡೆಕ್ ಮತ್ತು ಟ್ಯಾಗ್‌ಗಳ ಮೂಲಕ ವಿಷಯಗಳನ್ನು ಜೋಡಿಸಿ, ಹುಡುಕಾಟ ಮತ್ತು ಫಿಲ್ಟರ್‌ಗಳಿಂದ ಕಾರ್ಡ್‌ಗಳನ್ನು ಹುಡುಕಿ.
 - ಸಾಧನಗಳ ನಡುವೆ ಕಲಿಕಾ ಸಾಮಗ್ರಿಯನ್ನು ಸಿಂಕ್ ಮಾಡಲು ಇಮೇಲ್ ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ.
 
+### Release notes
+
+- ಹೊಸ nibomo.com ಲಿಂಕ್‌ಗಳ ಮೂಲಕ ಆ್ಯಪ್ ಹಂಚಿಕೊಳ್ಳಿ.
+- ಆ್ಯಪ್ ನಮ್ಮ ಹೊಸ ಡೊಮೇನ್‌ಗೆ ಬದಲಾದಾಗಲೂ ಅತಿಥಿಯಾಗಿ ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳನ್ನು ಬಳಸಬಹುದು.
+
 ## Korean - ko-KR
 
 ### App Name
@@ -582,6 +727,11 @@ Nibomo: AI 암기카드
 - 직접 질문과 답을 작성하고 공부하면서 수정할 수 있습니다.
 - 덱과 태그로 과목을 정리하고 검색과 필터로 필요한 카드를 찾으세요.
 - 이메일로 로그인하면 여러 기기에서 학습 자료를 동기화할 수 있습니다.
+
+### Release notes
+
+- 새로운 nibomo.com 링크로 앱을 공유하세요.
+- 앱이 새 도메인으로 이전해도 게스트로 사용하던 카드에 계속 접근할 수 있어요.
 
 ## Lithuanian - lt
 
@@ -602,6 +752,11 @@ Su DI paverskite užrašus ir nuotraukas mokymosi kortelėmis, kad pasiruoštum�
 - Tvarkykite temas naudodami kalades ir žymas, o korteles raskite per paiešką ir filtrus.
 - Prisijunkite el. paštu ir sinchronizuokite mokymosi medžiagą tarp įrenginių.
 
+### Release notes
+
+- Dalykitės programėle naudodami naujas nibomo.com nuorodas.
+- Programėlei persikėlus į naują mūsų domeną, svečio prieiga prie jūsų kortelių išliks.
+
 ## Latvian - lv
 
 ### App Name
@@ -620,6 +775,11 @@ Pārvērt piezīmes un fotogrāfijas mācību kartītēs ar MI, lai gatavotos ek
 - Raksti savus jautājumus un atbildes un rediģē tos mācoties.
 - Sakārto tēmas ar kartīšu komplektiem un birkām un atrodi kartītes ar meklēšanu un filtriem.
 - Pieraksties ar e-pastu, lai sinhronizētu mācību materiālus starp ierīcēm.
+
+### Release notes
+
+- Kopīgojiet lietotni ar jaunajām nibomo.com saitēm.
+- Lietotnei pārejot uz mūsu jauno domēnu, jums kā viesim saglabāsies piekļuve savām kartītēm.
 
 ## Malayalam (India) - ml-IN
 
@@ -640,6 +800,11 @@ Nibomo: AI ഫ്ലാഷ്‌കാർഡുകൾ
 - ഡെക്കുകളും ടാഗുകളും ഉപയോഗിച്ച് വിഷയങ്ങൾ ക്രമീകരിക്കൂ; തിരയലും ഫിൽട്ടറുകളും ഉപയോഗിച്ച് കാർഡുകൾ കണ്ടെത്തൂ.
 - ഉപകരണങ്ങൾക്കിടയിൽ പഠനസാമഗ്രികൾ സിങ്ക് ചെയ്യാൻ ഇമെയിൽ ഉപയോഗിച്ച് സൈൻ ഇൻ ചെയ്യൂ.
 
+### Release notes
+
+- പുതിയ nibomo.com ലിങ്കുകൾ ഉപയോഗിച്ച് ആപ്പ് പങ്കിടൂ.
+- ആപ്പ് ഞങ്ങളുടെ പുതിയ ഡൊമെയ്‌നിലേക്ക് മാറുമ്പോഴും അതിഥിയായി നിങ്ങളുടെ കാർഡുകൾ ഉപയോഗിക്കാം.
+
 ## Marathi (India) - mr-IN
 
 ### App Name
@@ -658,6 +823,11 @@ Nibomo: AI फ्लॅशकार्ड्स
 - स्वतःचे प्रश्न व उत्तरे लिहा आणि शिकताना त्यात बदल करा.
 - डेक आणि टॅग वापरून विषय नीट लावा, मग शोध आणि फिल्टरने कार्ड शोधा.
 - अभ्यासाचे साहित्य वेगवेगळ्या डिव्हाइसवर सिंक करण्यासाठी ईमेलने साइन इन करा.
+
+### Release notes
+
+- नवीन nibomo.com लिंक्स वापरून ॲप शेअर करा.
+- ॲप आमच्या नवीन डोमेनवर गेले तरी अतिथी म्हणून तुमची कार्डे वापरता येतील.
 
 ## Dutch - nl-NL
 
@@ -678,6 +848,11 @@ Zet notities en foto’s met AI om in flashcards om je voor te bereiden op exame
 - Orden je vakken met kaartensets en tags en vind kaarten via zoeken en filters.
 - Log in met je e-mailadres om je studiemateriaal tussen apparaten te synchroniseren.
 
+### Release notes
+
+- Deel de app via de nieuwe nibomo.com-links.
+- Je behoudt als gast toegang tot je kaarten wanneer de app naar ons nieuwe domein verhuist.
+
 ## Norwegian - no-NO
 
 ### App Name
@@ -696,6 +871,11 @@ Gjør notater og bilder om til læringskort med KI for å forberede deg til eksa
 - Skriv egne spørsmål og svar, og rediger kortene mens du lærer.
 - Organiser fag med kortstokker og etiketter, og finn kort med søk og filtre.
 - Logg inn med e-post for å synkronisere studiematerialet mellom enheter.
+
+### Release notes
+
+- Del appen med de nye nibomo.com-lenkene.
+- Behold tilgangen til kortene dine som gjest når appen flyttes til det nye domenet vårt.
 
 ## Punjabi - pa
 
@@ -716,6 +896,11 @@ Nibomo: AI ਫਲੈਸ਼ਕਾਰਡ
 - ਡੈੱਕ ਅਤੇ ਟੈਗ ਨਾਲ ਵਿਸ਼ੇ ਤਰਤੀਬ ਵਿੱਚ ਰੱਖੋ, ਫਿਰ ਖੋਜ ਅਤੇ ਫਿਲਟਰਾਂ ਨਾਲ ਕਾਰਡ ਲੱਭੋ।
 - ਵੱਖ-ਵੱਖ ਡਿਵਾਈਸਾਂ ਉੱਤੇ ਪੜ੍ਹਾਈ ਦੀ ਸਮੱਗਰੀ ਸਿੰਕ ਕਰਨ ਲਈ ਈਮੇਲ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ।
 
+### Release notes
+
+- ਨਵੇਂ nibomo.com ਲਿੰਕਾਂ ਰਾਹੀਂ ਐਪ ਸਾਂਝੀ ਕਰੋ।
+- ਐਪ ਸਾਡੇ ਨਵੇਂ ਡੋਮੇਨ ’ਤੇ ਜਾਣ ਤੋਂ ਬਾਅਦ ਵੀ ਮਹਿਮਾਨ ਵਜੋਂ ਆਪਣੇ ਕਾਰਡ ਵਰਤ ਸਕੋਗੇ।
+
 ## Polish - pl-PL
 
 ### App Name
@@ -734,6 +919,11 @@ Zamieniaj notatki i zdjęcia w fiszki z pomocą AI, by przygotować się do egza
 - Pisz własne pytania i odpowiedzi, a potem edytuj je w trakcie nauki.
 - Porządkuj tematy za pomocą talii i tagów, a fiszki znajduj przez wyszukiwanie i filtry.
 - Zaloguj się adresem e-mail, by synchronizować materiały do nauki między urządzeniami.
+
+### Release notes
+
+- Udostępniaj aplikację za pomocą nowych linków nibomo.com.
+- Zachowasz dostęp do swoich fiszek jako gość, gdy aplikacja przejdzie na naszą nową domenę.
 
 ## Romanian - ro
 
@@ -754,6 +944,11 @@ Transformă notițele și fotografiile în fișe de studiu cu AI pentru pregăti
 - Organizează materiile în seturi și cu etichete și găsește fișele prin căutare și filtre.
 - Conectează-te cu adresa de e-mail pentru a sincroniza materialele între dispozitive.
 
+### Release notes
+
+- Distribuie aplicația prin noile linkuri nibomo.com.
+- Îți păstrezi accesul la carduri ca vizitator când aplicația trece pe noul nostru domeniu.
+
 ## Slovak - sk
 
 ### App Name
@@ -772,6 +967,11 @@ Premeňte poznámky a fotky na kartičky pomocou AI a pripravujte sa na skúšky
 - Píšte vlastné otázky a odpovede a upravujte ich počas učenia.
 - Trieďte učivo pomocou balíčkov a štítkov, kartičky nájdite vyhľadávaním a filtrami.
 - Prihláste sa e-mailom a synchronizujte učebné materiály medzi zariadeniami.
+
+### Release notes
+
+- Zdieľajte aplikáciu pomocou nových odkazov na nibomo.com.
+- Pri prechode aplikácie na našu novú doménu si zachováte prístup k svojim kartičkám ako hosť.
 
 ## Slovenian - sl
 
@@ -792,6 +992,11 @@ Z AI spremeni zapiske in fotografije v učne kartice za pripravo na izpite in u�
 - Razvrsti snov v komplete in z oznakami, kartice pa poišči z iskanjem in filtri.
 - Prijavi se z e-pošto za sinhronizacijo učnega gradiva med napravami.
 
+### Release notes
+
+- Delite aplikacijo z novimi povezavami nibomo.com.
+- Ko aplikacija preide na našo novo domeno, kot gost ohranite dostop do svojih kartic.
+
 ## Swedish - sv-SE
 
 ### App Name
@@ -810,6 +1015,11 @@ Gör anteckningar och foton till flashcards med AI för att förbereda dig infö
 - Skriv egna frågor och svar och redigera dem medan du lär dig.
 - Ordna ämnen med kortlekar och taggar och hitta kort med sökning och filter.
 - Logga in med e-post för att synkronisera ditt studiematerial mellan enheter.
+
+### Release notes
+
+- Dela appen med de nya nibomo.com-länkarna.
+- Behåll åtkomsten till dina kort som gäst när appen flyttar till vår nya domän.
 
 ## Swahili - sw
 
@@ -830,6 +1040,11 @@ Geuza madokezo na picha zako kuwa kadi za kujifunza kwa AI ili kujiandaa kwa mit
 - Panga masomo kwa makundi ya kadi na lebo, kisha pata kadi kwa utafutaji na vichujio.
 - Ingia kwa barua pepe ili kusawazisha nyenzo zako za kujifunza kwenye vifaa vyako.
 
+### Release notes
+
+- Shiriki programu kwa viungo vipya vya nibomo.com.
+- Endelea kufikia kadi zako kama mgeni programu inapohamia kwenye kikoa chetu kipya.
+
 ## Tamil (India) - ta-IN
 
 ### App Name
@@ -848,6 +1063,11 @@ Nibomo: AI கற்றல் அட்டைகள்
 - உங்கள் சொந்த கேள்விகளையும் பதில்களையும் எழுதி, கற்கும்போது திருத்துங்கள்.
 - அட்டைத் தொகுப்புகள் மற்றும் குறிச்சொற்களால் பாடங்களை ஒழுங்குபடுத்தி, தேடல் மற்றும் வடிகட்டிகளால் அட்டைகளைக் கண்டறியுங்கள்.
 - சாதனங்களுக்கு இடையே பாடப் பொருட்களை ஒத்திசைக்க மின்னஞ்சல் மூலம் உள்நுழையுங்கள்.
+
+### Release notes
+
+- புதிய nibomo.com இணைப்புகளுடன் செயலியைப் பகிருங்கள்.
+- செயலி எங்களின் புதிய டொமைனுக்கு மாறும்போதும் விருந்தினராக உங்கள் அட்டைகளைத் தொடர்ந்து அணுகலாம்.
 
 ## Telugu (India) - te-IN
 
@@ -868,6 +1088,11 @@ Nibomo: AI ఫ్లాష్‌కార్డులు
 - డెక్‌లు, ట్యాగ్‌లతో విషయాలను క్రమబద్ధీకరించి, శోధన మరియు ఫిల్టర్‌లతో కార్డులను కనుగొనండి.
 - పరికరాల మధ్య మీ అధ్యయన సామగ్రిని సింక్ చేయడానికి ఇమెయిల్‌తో సైన్ ఇన్ చేయండి.
 
+### Release notes
+
+- కొత్త nibomo.com లింక్‌లతో యాప్‌ను షేర్ చేయండి.
+- యాప్ మా కొత్త డొమైన్‌కు మారినప్పటికీ అతిథిగా మీ కార్డ్‌లను ఉపయోగించవచ్చు.
+
 ## Thai - th
 
 ### App Name
@@ -886,6 +1111,11 @@ Nibomo: แฟลชการ์ด AI
 - เขียนคำถามและคำตอบเอง แล้วแก้ไขระหว่างเรียนรู้
 - จัดหมวดหมู่วิชาด้วยชุดการ์ดและแท็ก แล้วค้นหาการ์ดด้วยการค้นหาและตัวกรอง
 - ลงชื่อเข้าใช้ด้วยอีเมลเพื่อซิงค์เนื้อหาที่เรียนระหว่างอุปกรณ์
+
+### Release notes
+
+- แชร์แอปด้วยลิงก์ nibomo.com ใหม่
+- ยังเข้าถึงบัตรคำในฐานะผู้เยี่ยมชมได้เมื่อแอปย้ายไปใช้โดเมนใหม่ของเรา
 
 ## Turkish - tr-TR
 
@@ -906,6 +1136,11 @@ Sınavlara hazırlanmak ve kelime öğrenmek için notlarınızı ve fotoğrafla
 - Konuları desteler ve etiketlerle düzenleyin, arama ve filtrelerle kartları bulun.
 - Çalışma materyallerinizi cihazlar arasında eşitlemek için e-postayla giriş yapın.
 
+### Release notes
+
+- Uygulamayı yeni nibomo.com bağlantılarıyla paylaşın.
+- Uygulama yeni alan adımıza geçtiğinde misafir olarak kartlarınıza erişiminiz korunur.
+
 ## Ukrainian - uk
 
 ### App Name
@@ -924,6 +1159,11 @@ Nibomo: Флешкартки з ШІ
 - Пишіть власні запитання та відповіді й редагуйте їх у процесі навчання.
 - Упорядковуйте теми за допомогою колод і тегів, знаходьте картки через пошук і фільтри.
 - Увійдіть за електронною поштою, щоб синхронізувати навчальні матеріали між пристроями.
+
+### Release notes
+
+- Діліться застосунком за новими посиланнями nibomo.com.
+- Збережіть гостьовий доступ до своїх карток, коли застосунок перейде на наш новий домен.
 
 ## Urdu - ur
 
@@ -944,6 +1184,11 @@ Nibomo: AI فلیش کارڈز
 - ڈیکس اور ٹیگز سے موضوعات ترتیب دیں، پھر تلاش اور فلٹرز سے کارڈز ڈھونڈیں۔
 - مختلف ڈیوائسز پر اپنا مطالعاتی مواد سنک کرنے کے لیے ای میل سے سائن ان کریں۔
 
+### Release notes
+
+- نئے nibomo.com لنکس کے ذریعے ایپ شیئر کریں۔
+- ایپ ہمارے نئے ڈومین پر منتقل ہونے کے بعد بھی بطور مہمان اپنے کارڈز تک رسائی برقرار رکھیں۔
+
 ## Vietnamese - vi
 
 ### App Name
@@ -963,6 +1208,11 @@ Biến ghi chú và ảnh thành thẻ ghi nhớ bằng AI để ôn thi và h�
 - Sắp xếp môn học bằng bộ thẻ và nhãn, tìm thẻ bằng công cụ tìm kiếm và bộ lọc.
 - Đăng nhập bằng email để đồng bộ tài liệu học giữa các thiết bị.
 
+### Release notes
+
+- Chia sẻ ứng dụng bằng các liên kết nibomo.com mới.
+- Bạn vẫn có thể truy cập thẻ ở chế độ khách khi ứng dụng chuyển sang tên miền mới của chúng tôi.
+
 ## Zulu - zu
 
 ### App Name
@@ -981,3 +1231,8 @@ Guqula amanothi nezithombe kube amakhadi okufunda nge-AI ukuze ulungiselele iziv
 - Bhala imibuzo nezimpendulo zakho, bese uzihlela njengoba ufunda.
 - Hlela izifundo ngamaqoqo amakhadi nomaka, bese uthola amakhadi ngokusesha nangezihlungi.
 - Ngena nge-imeyili ukuze uvumelanise izinto ozifundayo phakathi kwamadivayisi.
+
+### Release notes
+
+- Yabelana ngohlelo lokusebenza ngezixhumanisi ezintsha ze-nibomo.com.
+- Usengafinyelela amakhadi akho njengesivakashi lapho uhlelo lokusebenza luthuthela esizindeni sethu esisha.
