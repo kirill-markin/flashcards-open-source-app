@@ -29,6 +29,9 @@ import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedul
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNotificationKind
 import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledStrictReminderPayload
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
@@ -37,9 +40,12 @@ import com.flashcardsopensourceapp.data.local.notifications.appNotificationWorkL
 import com.flashcardsopensourceapp.data.local.notifications.buildStrictReminderLocalDateWindow
 import com.flashcardsopensourceapp.data.local.notifications.buildStrictReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.isStrictReminderLocalDateCompleted
+import com.flashcardsopensourceapp.data.local.notifications.mergeReportedScheduledNotifications
 import com.flashcardsopensourceapp.data.local.notifications.mergeStrictReminderCompletedReviewAtMillis
 import com.flashcardsopensourceapp.data.local.notifications.resolveStrictReminderCompletedReviewAtMillis
+import com.flashcardsopensourceapp.data.local.notifications.strictReminderScheduledNotificationIdentities
 import com.flashcardsopensourceapp.data.local.notifications.strictReminderWorkLimit
+import com.flashcardsopensourceapp.data.local.notifications.unreportedScheduledNotificationIdentities
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
@@ -183,6 +189,7 @@ class StrictRemindersManager(
     private val currentWorkspaceIdProvider: suspend () -> String?,
     private val zoneIdProvider: () -> ZoneId,
     private val observability: AppObservability,
+    private val analytics: Analytics,
     private val appVersion: String?,
     private val versionCode: Int?
 ) {
@@ -501,6 +508,7 @@ class StrictRemindersManager(
         }
 
         strictRemindersStore.saveScheduledStrictReminderPayloads(payloads = payloads)
+        reportScheduledStrictReminders(payloads = payloads, zoneId = zoneId, nowMillis = nowMillis)
         val expectedWorkReadback: NotificationExpectedWorkInfoReadback = scheduler.loadExpectedWorkReadback(
             requestIds = payloads.map { payload ->
                 payload.requestId
@@ -532,6 +540,46 @@ class StrictRemindersManager(
             plannedCount = payloads.size,
             expectedWorkReadback = expectedWorkReadback
         )
+    }
+
+    /**
+     * Reports every reminder just enqueued that the ledger has not seen, then records it.
+     *
+     * The payloads are the enqueued set rather than a readback: enqueuing unique work is the act of
+     * scheduling on this platform, and the readback below exists to catch work WorkManager later
+     * dropped, which is not the same question as whether a reminder was scheduled.
+     */
+    private fun reportScheduledStrictReminders(
+        payloads: List<ScheduledStrictReminderPayload>,
+        zoneId: ZoneId,
+        nowMillis: Long
+    ) {
+        val reported = strictRemindersStore.loadReportedScheduledStrictReminders()
+        val identities = strictReminderScheduledNotificationIdentities(
+            payloads = payloads,
+            zoneId = zoneId
+        )
+        val unreported = unreportedScheduledNotificationIdentities(
+            identities = identities,
+            reported = reported
+        )
+        repeat(unreported.size) {
+            analytics.track(
+                event = AnalyticsEvent.NotificationScheduled(
+                    notificationKind = AnalyticsNotificationKind.STRICT_REMINDER
+                )
+            )
+        }
+        val merged = mergeReportedScheduledNotifications(
+            reported = reported,
+            identities = identities,
+            nowMillis = nowMillis
+        )
+        // Reconciles run on every foreground, permission change, settings change and recorded
+        // review, and the steady state changes nothing, so the disk write is skipped.
+        if (merged != reported) {
+            strictRemindersStore.saveReportedScheduledStrictReminders(reported = merged)
+        }
     }
 
     private suspend fun saveEmptyStrictReminderSchedulingAndEmitSkippedDiagnostic(
