@@ -10,54 +10,59 @@
   padding-bottom: var(--analytics-consent-banner-height, 0px);
 }
 
-/* The consent strip. Fixed to the bottom edge but never over the whole page: the product stays
-   usable while the question is open. Its layer is deliberately below every overlay in the app; see
-   `--z-index-consent-banner` in tokens.css for why it has to be. */
+/* The consent card. Fixed to the bottom edge but never over the whole page: the product stays
+   usable while the question is open. It matches the marketing site's banner - a card inset from the
+   edges rather than a full-width strip - so the question looks the same on both origins. The fixed
+   layer is transparent and lets clicks through; only the card takes them. Its height, inset
+   included, is what the banner publishes for `#root` above. Its layer is deliberately below every
+   overlay in the app; see `--z-index-consent-banner` in tokens.css for why it has to be. */
 .analytics-consent-banner {
   position: fixed;
   right: 0;
   bottom: 0;
   left: 0;
   z-index: var(--z-index-consent-banner);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px var(--desktop-shell-gutter) calc(12px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--panel-border);
-  background: var(--surface-glass);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-soft);
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom));
+  pointer-events: none;
 }
 
 .analytics-consent-banner-inner {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  max-width: var(--shell-width);
+  gap: 14px 18px;
+  box-sizing: border-box;
+  width: min(100%, var(--shell-width));
   margin: 0 auto;
+  padding: 18px 22px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-glass);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
 }
 
 .analytics-consent-banner-copy {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px 10px;
-  min-width: 240px;
-  flex: 1 1 320px;
+  gap: 6px 12px;
 }
 
 .analytics-consent-banner-message {
   margin: 0;
   font-size: 15px;
-  color: var(--text);
+  line-height: 1.45;
+  color: var(--text-secondary);
 }
 
 .analytics-consent-banner-link {
   font-size: 14px;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Both answers are one click on the same layer, at the same size. Allow carries the accent like
@@ -65,13 +70,15 @@
    secondary grey a ghost button normally uses, so refusing is never the harder one to read. */
 .analytics-consent-banner-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 
 .analytics-consent-banner-btn {
-  min-width: 120px;
-  flex: 1 1 auto;
+  min-height: 42px;
+  padding: 0 18px;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 .analytics-consent-banner-decline {
@@ -79,9 +86,26 @@
   color: var(--text);
 }
 
+.analytics-consent-banner-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 @media (max-width: 640px) {
-  .analytics-consent-banner-actions {
-    width: 100%;
+  .analytics-consent-banner {
+    padding: 0 12px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .analytics-consent-banner-inner {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .analytics-consent-banner-btn {
+    flex: 1;
+    white-space: normal;
   }
 }
 
