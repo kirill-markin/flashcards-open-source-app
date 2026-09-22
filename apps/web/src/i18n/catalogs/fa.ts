@@ -59,6 +59,13 @@ const faCatalog: TranslationCatalog = {
       languagePreference: "ترجیح زبان",
       languageSelection: "انتخاب زبان",
     },
+    picker: {
+      empty: "زبانی پیدا نشد",
+      listAriaLabel: "زبان‌های برنامه",
+      openAriaLabel: "انتخاب زبان برنامه",
+      searchLabel: "جست‌وجو",
+      searchPlaceholder: "جست‌وجوی زبان‌ها",
+    },
     names: {
       en: "انگلیسی",
       ar: "عربی",
@@ -354,6 +361,7 @@ const faCatalog: TranslationCatalog = {
       ios: "کد QR پیوند برنامهٔ iOS",
       android: "کد QR پیوند برنامهٔ اندروید",
     },
+    qrCaption: "آن را با گوشی خود اسکن کنید",
     mcp: {
       label: "برای عامل هوش مصنوعی",
       title: "اتصال با MCP",

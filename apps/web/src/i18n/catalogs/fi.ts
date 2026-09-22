@@ -59,6 +59,13 @@ const fiCatalog: TranslationCatalog = {
       languagePreference: "Kieliasetus",
       languageSelection: "Kielen valinta",
     },
+    picker: {
+      empty: "Kieliä ei löytynyt",
+      listAriaLabel: "Sovelluksen kielet",
+      openAriaLabel: "Valitse sovelluksen kieli",
+      searchLabel: "Haku",
+      searchPlaceholder: "Hae kieliä",
+    },
     names: {
       en: "englanti",
       ar: "arabia",
@@ -354,6 +361,7 @@ const fiCatalog: TranslationCatalog = {
       ios: "QR-koodi iOS-sovelluksen linkkiin",
       android: "QR-koodi Android-sovelluksen linkkiin",
     },
+    qrCaption: "Skannaa se puhelimellasi",
     mcp: {
       label: "Tekoälyagentille",
       title: "Yhdistä MCP:llä",

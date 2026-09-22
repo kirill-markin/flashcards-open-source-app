@@ -65,6 +65,13 @@ export const ruCatalog = {
       languagePreference: "Языковая настройка",
       languageSelection: "Выбор языка",
     },
+    picker: {
+      empty: "Языки не найдены",
+      listAriaLabel: "Языки приложения",
+      openAriaLabel: "Выбрать язык приложения",
+      searchLabel: "Поиск",
+      searchPlaceholder: "Искать языки",
+    },
     names: {
       en: "Английский",
       ar: "Арабский",
@@ -362,6 +369,7 @@ export const ruCatalog = {
       ios: "QR-код для ссылки на приложение iOS",
       android: "QR-код для ссылки на приложение Android",
     },
+    qrCaption: "Отсканируйте с телефона",
     mcp: {
       label: "Для AI-агента",
       title: "Подключение через MCP",

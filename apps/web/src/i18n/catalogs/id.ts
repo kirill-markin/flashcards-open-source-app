@@ -59,6 +59,13 @@ const idCatalog: TranslationCatalog = {
       languagePreference: "Preferensi bahasa",
       languageSelection: "Pemilihan bahasa",
     },
+    picker: {
+      empty: "Bahasa tidak ditemukan",
+      listAriaLabel: "Bahasa aplikasi",
+      openAriaLabel: "Pilih bahasa aplikasi",
+      searchLabel: "Cari",
+      searchPlaceholder: "Cari bahasa",
+    },
     names: {
       en: "Inggris",
       ar: "Arab",
@@ -354,6 +361,7 @@ const idCatalog: TranslationCatalog = {
       ios: "Kode QR untuk tautan aplikasi iOS",
       android: "Kode QR untuk tautan aplikasi Android",
     },
+    qrCaption: "Pindai dari ponsel Anda",
     mcp: {
       label: "Untuk Agen AI",
       title: "Hubungkan lewat MCP",

@@ -176,6 +176,98 @@
   line-height: 1.35;
 }
 
+.header-store-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.header-store-button-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.header-store-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--text);
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.header-store-button:hover {
+  border-color: var(--panel-border-strong);
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.header-store-button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.header-store-button-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* The popover lives inside the sticky header, whose stacking context already paints above the page. */
+.header-store-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  inset-inline-start: 0;
+  z-index: 1;
+  display: none;
+  justify-items: center;
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--panel-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  pointer-events: none;
+}
+
+.header-store-button:focus-visible + .header-store-popover {
+  display: grid;
+}
+
+/* Touch devices get no QR: a tap only opens the store. */
+@media (hover: hover) and (pointer: fine) {
+  .header-store-button:hover + .header-store-popover {
+    display: grid;
+  }
+}
+
+/* The QR frame stays white in every theme so scanners keep enough contrast. */
+.header-store-popover-qr-frame {
+  padding: 8px;
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+
+.header-store-popover-caption {
+  max-width: 180px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .header-store-buttons {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
   .app-platform-links-grid {
     grid-template-columns: minmax(0, 1fr);

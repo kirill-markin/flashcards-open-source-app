@@ -59,6 +59,13 @@ const guCatalog: TranslationCatalog = {
       languagePreference: "પસંદગીની ભાષા",
       languageSelection: "ભાષાની પસંદગી",
     },
+    picker: {
+      empty: "કોઈ ભાષા મળી નહીં",
+      listAriaLabel: "ઍપની ભાષાઓ",
+      openAriaLabel: "ઍપની ભાષા પસંદ કરો",
+      searchLabel: "શોધો",
+      searchPlaceholder: "ભાષાઓ શોધો",
+    },
     names: {
       en: "અંગ્રેજી",
       ar: "અરબી",
@@ -354,6 +361,7 @@ const guCatalog: TranslationCatalog = {
       ios: "iOS ઍપ લિંક માટે QR કોડ",
       android: "Android ઍપ લિંક માટે QR કોડ",
     },
+    qrCaption: "તમારા ફોનથી તેને સ્કૅન કરો",
     mcp: {
       label: "AI એજન્ટ માટે",
       title: "MCP થી જોડાઓ",

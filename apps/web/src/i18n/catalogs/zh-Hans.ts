@@ -59,6 +59,13 @@ export const zhHansCatalog = {
       languagePreference: "语言偏好",
       languageSelection: "语言选择",
     },
+    picker: {
+      empty: "未找到语言",
+      listAriaLabel: "应用语言列表",
+      openAriaLabel: "选择应用语言",
+      searchLabel: "搜索",
+      searchPlaceholder: "搜索语言",
+    },
     names: {
       en: "英语",
       ar: "阿拉伯语",
@@ -354,6 +361,7 @@ export const zhHansCatalog = {
       ios: "iOS 应用链接的二维码",
       android: "Android 应用链接的二维码",
     },
+    qrCaption: "用手机扫描",
     mcp: {
       label: "面向 AI 代理",
       title: "通过 MCP 连接",

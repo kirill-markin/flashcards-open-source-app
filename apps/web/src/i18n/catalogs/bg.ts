@@ -59,6 +59,13 @@ const bgCatalog: TranslationCatalog = {
       languagePreference: "Предпочитан език",
       languageSelection: "Избор на език",
     },
+    picker: {
+      empty: "Няма намерени езици",
+      listAriaLabel: "Езици на приложението",
+      openAriaLabel: "Избор на език на приложението",
+      searchLabel: "Търсене",
+      searchPlaceholder: "Търсене на езици",
+    },
     names: {
       en: "Английски",
       ar: "Арабски",
@@ -354,6 +361,7 @@ const bgCatalog: TranslationCatalog = {
       ios: "QR код за връзката към приложението за iOS",
       android: "QR код за връзката към приложението за Android",
     },
+    qrCaption: "Сканирайте го с телефона си",
     mcp: {
       label: "За ИИ агент",
       title: "Свързване чрез MCP",

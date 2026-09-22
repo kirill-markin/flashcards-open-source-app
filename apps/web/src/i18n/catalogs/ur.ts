@@ -59,6 +59,13 @@ const urCatalog: TranslationCatalog = {
       languagePreference: "زبان کی ترجیح",
       languageSelection: "زبان کا انتخاب",
     },
+    picker: {
+      empty: "کوئی زبان نہیں ملی",
+      listAriaLabel: "ایپ کی زبانیں",
+      openAriaLabel: "ایپ کی زبان منتخب کریں",
+      searchLabel: "تلاش",
+      searchPlaceholder: "زبانیں تلاش کریں",
+    },
     names: {
       en: "انگریزی",
       ar: "عربی",
@@ -354,6 +361,7 @@ const urCatalog: TranslationCatalog = {
       ios: "iOS ایپ کے لنک کا QR کوڈ",
       android: "Android ایپ کے لنک کا QR کوڈ",
     },
+    qrCaption: "اسے اپنے فون سے اسکین کریں",
     mcp: {
       label: "AI ایجنٹ کے لیے",
       title: "MCP سے جڑیں",
