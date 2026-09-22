@@ -59,6 +59,13 @@ const nlCatalog: TranslationCatalog = {
       languagePreference: "Taalvoorkeur",
       languageSelection: "Taalkeuze",
     },
+    picker: {
+      empty: "Geen talen gevonden",
+      listAriaLabel: "App-talen",
+      openAriaLabel: "App-taal kiezen",
+      searchLabel: "Zoeken",
+      searchPlaceholder: "Zoek talen",
+    },
     names: {
       en: "Engels",
       ar: "Arabisch",
@@ -354,6 +361,7 @@ const nlCatalog: TranslationCatalog = {
       ios: "QR-code voor de link naar de iOS-app",
       android: "QR-code voor de link naar de Android-app",
     },
+    qrCaption: "Scan hem met je telefoon",
     mcp: {
       label: "Voor AI-agent",
       title: "Verbinden via MCP",

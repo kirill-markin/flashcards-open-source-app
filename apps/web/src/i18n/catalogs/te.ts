@@ -59,6 +59,13 @@ const teCatalog: TranslationCatalog = {
       languagePreference: "భాషా ప్రాధాన్యం",
       languageSelection: "భాష ఎంపిక",
     },
+    picker: {
+      empty: "భాషలు ఏవీ దొరకలేదు",
+      listAriaLabel: "యాప్ భాషలు",
+      openAriaLabel: "యాప్ భాషను ఎంచుకోండి",
+      searchLabel: "శోధన",
+      searchPlaceholder: "భాషలను వెతకండి",
+    },
     names: {
       en: "ఇంగ్లీష్",
       ar: "అరబిక్",
@@ -354,6 +361,7 @@ const teCatalog: TranslationCatalog = {
       ios: "iOS యాప్ లింక్ కోసం QR కోడ్",
       android: "Android యాప్ లింక్ కోసం QR కోడ్",
     },
+    qrCaption: "మీ ఫోన్‌తో దీన్ని స్కాన్ చేయండి",
     mcp: {
       label: "AI ఏజెంట్ కోసం",
       title: "MCPతో కనెక్ట్ అవ్వండి",

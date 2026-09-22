@@ -59,6 +59,13 @@ const viCatalog: TranslationCatalog = {
       languagePreference: "Tùy chọn ngôn ngữ",
       languageSelection: "Chọn ngôn ngữ",
     },
+    picker: {
+      empty: "Không tìm thấy ngôn ngữ",
+      listAriaLabel: "Các ngôn ngữ ứng dụng",
+      openAriaLabel: "Chọn ngôn ngữ ứng dụng",
+      searchLabel: "Tìm kiếm",
+      searchPlaceholder: "Tìm ngôn ngữ",
+    },
     names: {
       en: "Tiếng Anh",
       ar: "Tiếng Ả Rập",
@@ -354,6 +361,7 @@ const viCatalog: TranslationCatalog = {
       ios: "Mã QR cho liên kết ứng dụng iOS",
       android: "Mã QR cho liên kết ứng dụng Android",
     },
+    qrCaption: "Quét bằng điện thoại của bạn",
     mcp: {
       label: "Dành cho AI Agent",
       title: "Kết nối qua MCP",

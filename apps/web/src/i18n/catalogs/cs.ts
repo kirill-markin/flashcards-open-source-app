@@ -65,6 +65,13 @@ const csCatalog: TranslationCatalog = {
       languagePreference: "Předvolba jazyka",
       languageSelection: "Výběr jazyka",
     },
+    picker: {
+      empty: "Nenalezeny žádné jazyky",
+      listAriaLabel: "Jazyky aplikace",
+      openAriaLabel: "Vybrat jazyk aplikace",
+      searchLabel: "Hledat",
+      searchPlaceholder: "Hledat jazyky",
+    },
     names: {
       en: "angličtina",
       ar: "arabština",
@@ -362,6 +369,7 @@ const csCatalog: TranslationCatalog = {
       ios: "QR kód pro odkaz na aplikaci pro iOS",
       android: "QR kód pro odkaz na aplikaci pro Android",
     },
+    qrCaption: "Naskenujte ho telefonem",
     mcp: {
       label: "Pro AI agenta",
       title: "Připojit přes MCP",

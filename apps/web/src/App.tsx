@@ -11,6 +11,7 @@ import {
 } from "./analytics";
 import { AppDataProvider, useAppData, type SessionLoadState } from "./appData";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
+import { HeaderStoreButtons } from "./appPlatformLinks";
 import { buildLoginUrl, buildLogoutUrl } from "./api";
 import { ChatDraftProvider } from "./chat/composer/drafts/ChatDraftContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/layout/ChatLayoutContext";
@@ -20,6 +21,7 @@ import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss, type
 import { useAppErrorDialog } from "./appError/AppErrorContext";
 import { type TranslationKey, useI18n } from "./i18n";
 import { AppErrorBoundary, wrapRoutesComponent } from "./observability/instrument";
+import { getPublicSiteHomeUrl } from "./publicSiteUrl";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
@@ -599,10 +601,11 @@ export function AppShell(): ReactElement {
           <div className="topbar">
             <div className="topbar-brand-block">
               <div className="topbar-brand-row">
-                <a className="topbar-brand" href={reviewRoute}>
+                <a className="topbar-brand" href={getPublicSiteHomeUrl(locale)} rel="noreferrer" target="_blank">
                   <span className="brand-full">Nibomo</span>
                   <span className="brand-short">Nibomo</span>
                 </a>
+                <HeaderStoreButtons />
                 {isSyncing ? <span className="topbar-sync-status">{t("app.syncing")}</span> : null}
                 {!isSyncing && sessionRestoringMessage !== "" ? <span className="topbar-sync-status">{sessionRestoringMessage}</span> : null}
               </div>

@@ -14,6 +14,7 @@ Current campaign buckets:
 | `web_review_mobile_prompt` | Web review mobile app promotion prompt. |
 | `catalog_import` | Catalog package import screen in the web app. |
 | `friend_invite` | Friend invite acceptance screen in the web app. |
+| `web_app_header` | Store buttons in the web app top bar. |
 
 ## Google Play
 

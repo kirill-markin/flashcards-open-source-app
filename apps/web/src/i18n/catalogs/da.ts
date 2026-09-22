@@ -59,6 +59,13 @@ const daCatalog: TranslationCatalog = {
       languagePreference: "Sprogindstilling",
       languageSelection: "Valg af sprog",
     },
+    picker: {
+      empty: "Ingen sprog fundet",
+      listAriaLabel: "Appsprog",
+      openAriaLabel: "Vælg appsprog",
+      searchLabel: "Søg",
+      searchPlaceholder: "Søg efter sprog",
+    },
     names: {
       en: "Engelsk",
       ar: "Arabisk",
@@ -354,6 +361,7 @@ const daCatalog: TranslationCatalog = {
       ios: "QR-kode til linket til iOS-appen",
       android: "QR-kode til linket til Android-appen",
     },
+    qrCaption: "Scan den med din telefon",
     mcp: {
       label: "Til AI-agent",
       title: "Forbind med MCP",

@@ -59,6 +59,13 @@ const svCatalog: TranslationCatalog = {
       languagePreference: "Språkinställning",
       languageSelection: "Språkval",
     },
+    picker: {
+      empty: "Inga språk hittades",
+      listAriaLabel: "Appens språk",
+      openAriaLabel: "Välj appens språk",
+      searchLabel: "Sök",
+      searchPlaceholder: "Sök språk",
+    },
     names: {
       en: "Engelska",
       ar: "Arabiska",
@@ -354,6 +361,7 @@ const svCatalog: TranslationCatalog = {
       ios: "QR-kod till länken för iOS-appen",
       android: "QR-kod till länken för Android-appen",
     },
+    qrCaption: "Skanna den med telefonen",
     mcp: {
       label: "För AI-agent",
       title: "Anslut med MCP",

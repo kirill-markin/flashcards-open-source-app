@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
-import type { AppPlatformOption } from "./appPlatformOptions";
+import { track } from "../analytics/client";
+import { toAnalyticsStore, type AppPlatformOption } from "./appPlatformOptions";
 import { AppPlatformMcpOption } from "./AppPlatformMcpOption";
 import { AppPlatformQrCode } from "./AppPlatformQrCode";
 import { AppStoreBadge, GooglePlayBadge, WebAppIcon } from "./badges";
@@ -20,6 +21,21 @@ function requireOptionHref(option: AppPlatformOption): string {
   }
 
   return option.href;
+}
+
+/** Store tiles report the click; the web tile is not a store link and reports nothing. */
+function buildOptionClickHandler(option: AppPlatformOption): (() => void) | undefined {
+  if (option.kind !== "ios" && option.kind !== "android") {
+    return undefined;
+  }
+
+  const store = toAnalyticsStore(option.kind);
+  const placement = option.storePlacement;
+  if (placement === null) {
+    throw new Error(`App platform option "${option.kind}" is missing its store placement.`);
+  }
+
+  return () => track({ name: "store_link_clicked", store, placement });
 }
 
 function AppPlatformOptionBadge({ option }: Readonly<{ option: AppPlatformOption }>): ReactElement {
@@ -45,6 +61,7 @@ function AppPlatformOptionBadge({ option }: Readonly<{ option: AppPlatformOption
 
 function AppPlatformLinkTile({ option, testIdPrefix }: AppPlatformLinkTileProps): ReactElement {
   const href = requireOptionHref(option);
+  const handleClick = buildOptionClickHandler(option);
 
   return (
     <a
@@ -54,6 +71,7 @@ function AppPlatformLinkTile({ option, testIdPrefix }: AppPlatformLinkTileProps)
       target="_blank"
       aria-label={option.label}
       data-testid={`${testIdPrefix}-link-${option.kind}`}
+      onClick={handleClick}
     >
       <AppPlatformOptionBadge option={option} />
       {option.qrTitle === null ? null : (

@@ -59,6 +59,13 @@ const arCatalog: TranslationCatalog = {
       languagePreference: "تفضيل اللغة",
       languageSelection: "اختيار اللغة",
     },
+    picker: {
+      empty: "لم يتم العثور على لغات",
+      listAriaLabel: "لغات التطبيق",
+      openAriaLabel: "اختر لغة التطبيق",
+      searchLabel: "بحث",
+      searchPlaceholder: "ابحث عن لغة",
+    },
     names: {
       en: "الإنجليزية",
       ar: "العربية",
@@ -354,6 +361,7 @@ const arCatalog: TranslationCatalog = {
       ios: "رمز QR لرابط تطبيق iOS",
       android: "رمز QR لرابط تطبيق Android",
     },
+    qrCaption: "امسحه ضوئيًا من هاتفك",
     mcp: {
       label: "لوكيل الذكاء الاصطناعي",
       title: "الاتصال عبر MCP",

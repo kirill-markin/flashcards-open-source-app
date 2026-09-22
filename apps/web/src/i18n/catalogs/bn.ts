@@ -59,6 +59,13 @@ const bnCatalog: TranslationCatalog = {
       languagePreference: "ভাষার পছন্দ",
       languageSelection: "ভাষা নির্বাচন",
     },
+    picker: {
+      empty: "কোনো ভাষা পাওয়া যায়নি",
+      listAriaLabel: "অ্যাপের ভাষাগুলো",
+      openAriaLabel: "অ্যাপের ভাষা বেছে নিন",
+      searchLabel: "খুঁজুন",
+      searchPlaceholder: "ভাষা খুঁজুন",
+    },
     names: {
       en: "ইংরেজি",
       ar: "আরবি",
@@ -354,6 +361,7 @@ const bnCatalog: TranslationCatalog = {
       ios: "iOS অ্যাপ লিঙ্কের QR কোড",
       android: "Android অ্যাপ লিঙ্কের QR কোড",
     },
+    qrCaption: "আপনার ফোন দিয়ে স্ক্যান করুন",
     mcp: {
       label: "এআই এজেন্টের জন্য",
       title: "MCP দিয়ে সংযুক্ত হোন",
