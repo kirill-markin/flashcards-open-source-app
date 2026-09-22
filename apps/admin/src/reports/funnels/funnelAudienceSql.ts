@@ -1,5 +1,8 @@
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
-import { buildEventPlatformsFilterSql } from "../../filters/filterSql";
+import {
+  buildEventPlatformsFilterSql,
+  buildNonAutomatedClientRowsFilterSql,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { laterCalendarDate } from "../reportValues";
 
@@ -103,8 +106,15 @@ export function isFunnelHashedCohortRead(filters: AnalyticsFilterState): boolean
   return filters.funnelAudienceMode === "all" && filters.connectionCountries.length === 0;
 }
 
-/** True once `all` is selected, whatever the country selection then leaves readable. */
-export function isFunnelHashedSplitShown(filters: AnalyticsFilterState): boolean {
+/**
+ * True once `all` is selected, whatever the country selection then leaves readable.
+ *
+ * It is deliberately not named after the split on screen, which is the one thing it must never gate:
+ * the chart's `showsHashedSplit` prop is fed by `isFunnelHashedCohortRead` above, so nothing announces
+ * a segment the query did not read. This answers only which mode is selected, which is what a section
+ * needs to say why the cohort was left out under it.
+ */
+export function isFunnelAllAudienceSelected(filters: AnalyticsFilterState): boolean {
   return filters.funnelAudienceMode === "all";
 }
 
@@ -148,6 +158,12 @@ export function buildHashedVisitorDayRangeSqlLines(
  * ever-admin address, an entry on the exclusion list - and these rows have no actor to test, so an
  * admin browsing the site without consenting is counted among the hashed people. It is why the mode
  * that reads them is not the default, and the sections say what the segment is.
+ *
+ * THE ONE ARM OF THAT RULE THAT DOES REACH THEM IS THE AUTOMATED VERDICT, because the collector
+ * writes it onto the row rather than onto a person, so it needs no actor: a browser-day reported by a
+ * bot, a crawler, a headless browser or a request carrying no `User-Agent` never becomes a hashed
+ * person at all. `buildNonAutomatedClientRowsFilterSql` owns that predicate and the reason it keeps
+ * NULL, which on these rows is one stored before the marker shipped and is a real visitor.
  */
 export function buildHashedSiteRowSqlLines(
   rowAlias: string,
@@ -158,6 +174,7 @@ export function buildHashedSiteRowSqlLines(
     `${rowAlias}.origin = 'client'`,
     `${rowAlias}.trust_level = 'anonymous_client'`,
     `${rowAlias}.daily_visitor_hash IS NOT NULL`,
+    buildNonAutomatedClientRowsFilterSql(`${rowAlias}.automated_client`),
   ];
 }
 
