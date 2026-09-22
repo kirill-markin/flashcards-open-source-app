@@ -101,6 +101,28 @@ func appNotificationTapType(request: AppNotificationTapRequest) -> String {
     }
 }
 
+/**
+ * Reports the reminder tap that brought the person back.
+ *
+ * Called where the OS hands the response to the app and nowhere else: the later stages — persisting
+ * the envelope and consuming it once the app is ready — run again after a relaunch, and reporting
+ * there would count one tap several times or lose it entirely when the tap is dropped for a stale
+ * workspace, which is still a reminder that brought the person back.
+ *
+ * A fallback carries no kind, because it is a tap the app could not resolve and naming either kind
+ * would invent one.
+ */
+func trackAppNotificationOpened(request: AppNotificationTapRequest) {
+    switch request {
+    case .openReviewReminder, .openFilteredReviewReminder:
+        Analytics.track(.notificationOpened(notificationKind: .reviewReminder))
+    case .openStrictReminder:
+        Analytics.track(.notificationOpened(notificationKind: .strictReminder))
+    case .fallback:
+        return
+    }
+}
+
 func savePendingAppNotificationTap(
     envelope: PendingAppNotificationTapEnvelope,
     userDefaults: UserDefaults,

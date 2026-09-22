@@ -189,6 +189,12 @@ enum class AnalyticsReviewAnswerFailureReason(val wireValue: String) {
     SERVER_ERROR(wireValue = "server_error")
 }
 
+/** The two reminders this app schedules with WorkManager. */
+enum class AnalyticsNotificationKind(val wireValue: String) {
+    REVIEW_REMINDER(wireValue = "review_reminder"),
+    STRICT_REMINDER(wireValue = "strict_reminder")
+}
+
 enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {
     CARDS(wireValue = "cards"),
     DECK_DETAIL(wireValue = "deck_detail"),
@@ -346,6 +352,47 @@ sealed interface AnalyticsEvent {
         override val eventName: String = "review_answer_failed"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "reason" to AnalyticsPropertyValue.Text(value = reason.wireValue)
+        )
+    }
+
+    /**
+     * One reminder WorkManager accepted, reported once per distinct scheduled notification.
+     *
+     * Reconciliation runs on many triggers and re-schedules the same slots every time, so an emit
+     * site must report only the slots it has not reported before; a slot id is built from the
+     * reminder kind and the wall clock it fires at — except inactivity reminders, whose id is the
+     * local day and position — never from the scheduling request id, which is what makes that
+     * comparison a comparison of scheduled notifications rather than of reconciliation runs. The
+     * slot identity is defined in `ScheduledNotificationFacts`.
+     *
+     * `screen` is absent rather than defaulted: reconciliation runs off any screen and from
+     * background work with no screen at all, so naming one would attribute it to wherever the person
+     * happened to be.
+     */
+    data class NotificationScheduled(
+        val notificationKind: AnalyticsNotificationKind
+    ) : AnalyticsEvent {
+        override val eventName: String = "notification_scheduled"
+        override val screen: AnalyticsSurface? = null
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "notification_kind" to AnalyticsPropertyValue.Text(value = notificationKind.wireValue)
+        )
+    }
+
+    /**
+     * A reminder tap that brought the person back, reported where the tap intent reaches the
+     * process. It is the numerator [NotificationScheduled] is the denominator of.
+     *
+     * `screen` is absent because the tap is what decides the destination: the person is not anywhere
+     * yet when it arrives.
+     */
+    data class NotificationOpened(
+        val notificationKind: AnalyticsNotificationKind
+    ) : AnalyticsEvent {
+        override val eventName: String = "notification_opened"
+        override val screen: AnalyticsSurface? = null
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "notification_kind" to AnalyticsPropertyValue.Text(value = notificationKind.wireValue)
         )
     }
 
