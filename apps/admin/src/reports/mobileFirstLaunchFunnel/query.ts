@@ -5,13 +5,11 @@ import {
   buildAppUiLanguagesFilterSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
+  buildExcludedActorSqlLines,
   buildTrustedActorRowsFilterSql,
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
-import {
-  buildExcludedActorFilterSqlLines,
-  catalogInstallConversionWindowDays,
-} from "../catalogInstallFunnel/query";
+import { catalogInstallConversionWindowDays } from "../catalogInstallFunnel/query";
 import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
 
 export const mobileFirstLaunchFunnelReportLabel = "Mobile first launch funnel";
@@ -128,7 +126,7 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "  SELECT candidate.actor_id, candidate.first_opened_at",
     "  FROM first_launches AS candidate",
     "  WHERE TRUE",
-    ...buildExcludedActorFilterSqlLines(),
+    ...buildExcludedActorSqlLines("candidate.actor_id::text"),
     `    AND ${buildConnectionCountriesFilterSql("candidate.actor_id::text", filters.connectionCountries, filters.dateRange)}`,
     `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
     "), step_events AS MATERIALIZED (",

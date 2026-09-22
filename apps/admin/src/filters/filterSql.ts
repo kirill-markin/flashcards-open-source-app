@@ -23,54 +23,33 @@ import {
 // reports count the same activity.
 
 /**
- * Whether one actor is excluded from reporting right now.
+ * THE ONE EXCLUSION RULE: the people no analytics number on this dashboard counts, as `AND` lines on
+ * one actor. Every report, every filter option list and the catalog attribution fragment below compose
+ * it into the rows their actors come from, and this is the only place it is written. The public daily
+ * snapshot applies the same rule to its own identity column in
+ * `apps/backend/src/globalMetrics/reporting.ts`, which this package cannot import from. An actor is
+ * dropped when
+ *   - a stored `org.user_settings` row of that actor has an `@example.com` address, a test account;
+ *   - a stored row of that actor has the address of any `auth.admin_users` row, whether or not the
+ *     grant was revoked, so an admin's history never comes back into the numbers. That table's email
+ *     is lower/btrim normalized by its own CHECK (`db/migrations/0045_admin_users.sql`), so only the
+ *     settings side is folded, and `reporting_readonly` reads it through
+ *     `db/migrations/0125_reporting_readonly_admin_users.sql`;
+ *   - `analytics.excluded_actors` lists the actor and no human restored it, `restored_at IS NULL`
+ *     (`db/migrations/0140_analytics_excluded_actors.sql`).
  *
- * `analytics.excluded_actors` is the one list of actors no human produced, and an exclusion is active
- * while `restored_at IS NULL`, because a human restore is recorded on the row rather than deleting it
- * (`db/migrations/0140_analytics_excluded_actors.sql`).
+ * THE ACTOR SIDE IS NEVER FOLDED HERE, and the stored sides are. Every caller passes
+ * `analytics.product_events_resolved.actor_id::text`, which renders canonical lowercase hex, while
+ * `org.user_settings.user_id` is an unconstrained TEXT key folded with `pg_catalog.lower` for the
+ * reason `buildReviewEventsByDateSql` states in full. The excluded-actor key is lower-cased and
+ * trimmed by its own CHECK. Both address tests ask whether ANY stored row of the actor matches rather
+ * than joining them, so an actor with two case-folded rows cannot stay counted because one of them
+ * carries a NULL or a real address.
  *
- * NOTHING IS FOLDED ON THIS SIDE. The stored key is lower-cased and trimmed by its own CHECK, so every
- * reader folds its own side to match it - but every actor expression on this dashboard is
- * `analytics.product_events_resolved.actor_id`, a UUID whose `::text` is already canonical lowercase
- * hex, so a fold here would be a no-op. A reader comparing an unconstrained TEXT id instead, as the
- * public snapshot does, has to fold that column.
- */
-export function buildActorIsExcludedSql(actorIdSqlExpression: string): string {
-  return [
-    "EXISTS (",
-    "  SELECT 1",
-    "  FROM analytics.excluded_actors AS excluded_actors",
-    `  WHERE excluded_actors.actor_id = ${actorIdSqlExpression}`,
-    "    AND excluded_actors.restored_at IS NULL",
-    ")",
-  ].join("\n");
-}
-
-/**
- * Drops every event of an excluded actor, on every surface that counts people.
- *
- * This is an identity rule rather than a selection, so it takes no filter state and a report composes
- * it into the CTE its own actors come from, beside the `%@example.com` exclusion that is restated
- * there. The option lists restate it for the reason they restate that one: a country, language or deck
- * only an excluded actor ever produced must not be offered.
- */
-export function buildExcludedActorsFilterSql(actorIdSqlExpression: string): string {
-  return `NOT ${buildActorIsExcludedSql(actorIdSqlExpression)}`;
-}
-
-/**
- * The two exclusions every General report applies, `%@example.com` and `analytics.excluded_actors`,
- * as `AND` lines on one actor. The email side folds the stored side of its join for the reason
- * `buildReviewEventsByDateSql` states in full, and it asks whether any stored row of that actor is a
- * test address rather than joining them: an actor with two case-folded rows would otherwise keep the
- * value as soon as one of them carried a NULL or a real address.
- *
- * This carries those two exclusions and no other. The option lists in `filters/optionsQuery.ts` and
- * `buildCatalogInstallAttributionSql` below read it, so the click-attribution filter and its option
- * lists exclude exactly the same installs. A caller whose own report also drops active admins
- * restates that exclusion itself right after calling this, as the packages option list does, while a
- * caller whose surface still shows admins deliberately leaves it out, as the country option list and
- * the attribution fragment do: the General sections show admins, and Audience drops them on its own.
+ * A visitor who never signed in resolves to their own browser id, which is no account's user id, so
+ * the address and admin tests find nothing for them; only the exclusion list can reach such a row. A
+ * visitor the web app later linked to an account resolves to that account, so the rule reaches that
+ * person's rows from before they signed in as well.
  */
 export function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
@@ -80,9 +59,21 @@ export function buildExcludedActorSqlLines(
     "    SELECT 1",
     "    FROM org.user_settings AS excluded_settings",
     `    WHERE pg_catalog.lower(excluded_settings.user_id) = ${actorIdSqlExpression}`,
-    "      AND LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'",
+    "      AND (",
+    "        LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'",
+    "        OR EXISTS (",
+    "          SELECT 1",
+    "          FROM auth.admin_users AS excluded_admin_users",
+    "          WHERE excluded_admin_users.email = LOWER(btrim(excluded_settings.email))",
+    "        )",
+    "      )",
     "  )",
-    `  AND ${buildExcludedActorsFilterSql(actorIdSqlExpression)}`,
+    "  AND NOT EXISTS (",
+    "    SELECT 1",
+    "    FROM analytics.excluded_actors AS excluded_actors",
+    `    WHERE excluded_actors.actor_id = ${actorIdSqlExpression}`,
+    "      AND excluded_actors.restored_at IS NULL",
+    "  )",
   ];
 }
 
@@ -100,7 +91,7 @@ export function buildExcludedActorSqlLines(
  * append-only table that cannot be corrected afterwards.
  *
  * This is a trust rule rather than a selection, so it takes no filter state and a report composes it
- * into the CTE its own actors come from, beside the exclusion above. Every other trust level is
+ * into the CTE its own actors come from, beside the exclusion rule above. Every other trust level is
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
@@ -295,22 +286,14 @@ export function buildEventPlatformsFilterSql(
 
 // `catalog_deck_installed` is the one counted event type with a visible counterpart on screen, the
 // `Catalog deck installs` section, and a threshold that counted more installs than that section shows
-// would let the threshold the filter bar names and that chart disagree about the same person. So this repeats the two exclusions the
-// `deck_installs` CTE of `buildCatalogInstallsSql` applies: the delisted `test` fixture of
-// `db/migrations/0111_delist_catalog_test_fixture.sql`, and installs made by an admin whose grant is
-// not revoked. The `%@example.com` and excluded-actor exclusions that CTE also applies are
-// deliberately not repeated, because every set of users a threshold is applied to has already dropped
-// those actors itself.
+// would let the threshold the filter bar names and that chart disagree about the same person. So this
+// repeats the one exclusion of the `deck_installs` CTE of `buildCatalogInstallsSql` that a threshold
+// can still decide: the delisted `test` fixture of
+// `db/migrations/0111_delist_catalog_test_fixture.sql`. The shared actor exclusions of
+// `buildExcludedActorSqlLines` are deliberately not repeated, because every set of users a threshold
+// is applied to has already dropped those actors itself.
 const catalogInstallThresholdExclusionSqlLines = [
   "    AND threshold_events.event_properties ->> 'package_slug' <> 'test'",
-  "    AND NOT EXISTS (",
-  "      SELECT 1",
-  "      FROM org.user_settings AS threshold_user_settings",
-  "      JOIN auth.admin_users AS threshold_admin_users",
-  "        ON threshold_admin_users.email = LOWER(btrim(threshold_user_settings.email))",
-  "      WHERE pg_catalog.lower(threshold_user_settings.user_id) = threshold_events.actor_id::text",
-  "        AND threshold_admin_users.revoked_at IS NULL",
-  "    )",
 ];
 
 // One threshold, as the set of actors that cleared it. The count is taken inside the selected range
@@ -456,7 +439,7 @@ export function buildConnectionCountrySamplesSql(
  * field is narrowed. The samples are read across every platform whatever the platform field says, so
  * the platform dimension never narrows what this can match, which is exactly how its own range-scoped
  * option list reads them too. The list is still a strict subset of what this matches, because it
- * restates the `%@example.com` and excluded-actor exclusions on purpose. The audience report's own
+ * restates the shared actor exclusions on purpose. The audience report's own
  * country and pair charts stay narrowed to the selected platforms, so a person kept by this filter can
  * still land in their `unknown` buckets.
  */
@@ -485,8 +468,7 @@ export function buildConnectionCountriesFilterSql(
  * inside the range over every event rather than over one report's own event name, and across every
  * platform whatever the platform field says, so the platform dimension never narrows what this can
  * match, which is exactly how its own range-scoped option list reads them too. The list is still a
- * strict subset of what this matches, because it restates the `%@example.com` and excluded-actor
- * exclusions on purpose.
+ * strict subset of what this matches, because it restates the shared actor exclusions on purpose.
  * The audience report's own language and pair charts stay narrowed to the selected platforms, so a
  * person kept by this filter can still land in their `unknown` buckets. An old client and an old
  * queued event carry no locale, so a user whose events in range carry none matches no language and is
@@ -549,8 +531,8 @@ export function buildCatalogInstalledDeckVersionsSql(): string {
  * This restricts people rather than rows, and it restricts them on their whole history rather than
  * inside the selected range, so what it keeps is "users who ever completed an install of one of these
  * deck versions" - whether or not the click that led there was ever recorded. Its own option list is
- * a strict subset of what this matches, because the list restates the `%@example.com`, excluded-actor
- * and delisted `test` exclusions on purpose and this restates none of them.
+ * a strict subset of what this matches, because the list restates the shared actor exclusions and the
+ * delisted `test` one on purpose and this restates none of them.
  */
 export function buildInstalledDecksFilterSql(
   actorIdSqlExpression: string,
@@ -602,8 +584,7 @@ export function buildInstalledDecksFilterSql(
  *
  * The install side drops the delisted `test` deck by the install's own slug and applies
  * `buildExcludedActorSqlLines` to the installing actor, so a value only such an install carried is
- * neither offered nor matched. Active admins are deliberately kept, as every General section keeps
- * them; Audience drops them on its own, and choosing a click counts nobody.
+ * neither offered nor matched.
  *
  * Each side is read in one `MATERIALIZED` pass and both bridges are hash-joinable equalities on it,
  * because an equality on `actor_id` can never become an index qual on the view (see

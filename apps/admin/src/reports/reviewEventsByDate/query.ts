@@ -22,7 +22,7 @@ import {
   buildCatalogAttributionFiltersSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
-  buildExcludedActorsFilterSql,
+  buildExcludedActorSqlLines,
   buildMinimumEventCountsFilterSql,
   buildUserCohortsFilterSql,
   buildUsersFilterSql,
@@ -394,19 +394,20 @@ const reviewCohortSqlExpression = "CASE WHEN review_answers.review_date = actor_
 // That single rule is what removes the `actor_kind = 'client_installation'` filter, the guest-merge
 // reasoning and the duplicated cohort CTE at once.
 //
-// ONE IDENTITY RULE IS NOT IN THE EVENTS TABLE. An event row carries no email, so the
-// `%@example.com` exclusion has to bring its own, joined from `actor_id` to `org.user_settings`. The
-// same rule is encoded canonically as `exampleComEmailExclusionSqlFragments` in
-// `apps/backend/src/globalMetrics/reporting.ts`; this package cannot import from there, so it is
-// restated inline here and again in `buildReviewEventsByDateCommunitySql`. If the exclusion changes
-// - a second test domain, a different match - update both files.
+// ONE IDENTITY RULE IS NOT IN THE EVENTS TABLE. An event row carries no email, so the shared
+// exclusion rule brings its own join from `actor_id` to `org.user_settings`.
+// `buildExcludedActorSqlLines` in `apps/admin/src/filters/filterSql.ts` is the only place this
+// dashboard writes that rule, and the public snapshot restates it in
+// `apps/backend/src/globalMetrics/reporting.ts`, which this package cannot import from. If the rule
+// changes - a second test domain, a different match - update both files.
 //
-// THAT JOIN FOLDS THE STORED SIDE, and has to. `resolved.actor_id` is UUID, so `::text` always
+// EVERY JOIN ONTO THAT TABLE FOLDS THE STORED SIDE, the displayed-email join here and the exclusion
+// rule's own lookup alike, and has to. `resolved.actor_id` is UUID, so `::text` always
 // renders canonical lowercase hex, while `org.user_settings.user_id` is an unconstrained TEXT
 // primary key (`db/migrations/0001_initial_schema.sql:26-27`) that may hold either hex case.
-// Compared as stored, an uppercase-hex row would simply miss, the email would come back NULL, the
-// row would pass `user_settings.email IS NULL`, and a test account would be counted in every chart
-// while displaying as `(no email)`. `0120_backfill_product_analytics_server_facts.sql:445-460`
+// Compared as stored, an uppercase-hex row would simply miss: the exclusion would find no address
+// for that actor and a test account would be counted in every chart while displaying as
+// `(no email)`. `0120_backfill_product_analytics_server_facts.sql:445-460`
 // settles this same question for the same reason and folds both sides of its live-account guard.
 // Folding rather than `::uuid` is equally deliberate: `0001_initial_schema.sql:152` seeds this table
 // with the id `'local'` for `AUTH_MODE=none`, and a cast would abort the whole statement and take
@@ -542,11 +543,7 @@ function buildReviewAnswersCteSql(to: string, users: ReadonlyArray<string>): str
     "    AND resolved.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
-    "    AND (",
-    "      user_settings.email IS NULL",
-    "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
-    "    )",
-    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
+    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     "),",
     // `occurred_at` is the client clock, kept only inside a 30-day window that ends at a server
     // anchor and replaced by that anchor outside the window in EITHER direction - too far in the
@@ -579,10 +576,9 @@ function buildReviewAnswersCteSql(to: string, users: ReadonlyArray<string>): str
 // One row per (report date, actor) with at least one non-zero count; the client fills the remaining
 // dates.
 //
-// Both series now come from `analytics.product_events_resolved`, grouped by `actor_id`, with the
-// same case-folded `org.user_settings` email join described on `buildReviewEventsByDateSql`, and the
-// same restatement of the `%@example.com` exclusion that lives canonically in
-// `apps/backend/src/globalMetrics/reporting.ts`.
+// Both series now come from `analytics.product_events_resolved`, grouped by `actor_id`, under the
+// same shared exclusion rule `buildReviewEventsByDateSql` applies, through
+// `buildExcludedActorSqlLines`.
 //
 // `friendship_count` is a RUNNING SUM of `friendship_created`, which replaces the old
 // `requested_dates x real_friendships` cross join - the one genuinely non-scaling part of the
@@ -679,17 +675,11 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
     "    resolved.actor_id::text AS actor_id,",
     "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS event_date",
     "  FROM analytics.product_events_resolved AS resolved",
-    "  LEFT JOIN org.user_settings AS user_settings",
-    "    ON pg_catalog.lower(user_settings.user_id) = resolved.actor_id::text",
     "  WHERE resolved.event_name IN ('friend_invitation_created', 'friendship_created')",
     "    AND resolved.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
-    "    AND (",
-    "      user_settings.email IS NULL",
-    "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
-    "    )",
-    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
+    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     "),",
     "daily_friend_invitations AS (",
     "  SELECT",
