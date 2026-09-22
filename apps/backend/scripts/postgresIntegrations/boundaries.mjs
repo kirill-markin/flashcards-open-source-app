@@ -70,13 +70,17 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
-  // 0144 adds analytics.product_events.daily_visitor_hash and analytics.daily_visitor_hash_salts.
-  // Only the credential-free collector's insert names them, which is why the shared writer column
-  // list leaves the column out and no test pinned below this migration moves here. This entry exists
-  // for the one test that exercises the new column.
+  // 0145 adds analytics.product_events.automated_client, beside the daily_visitor_hash and
+  // analytics.daily_visitor_hash_salts 0144 added. Only the credential-free collector's insert names
+  // any of them, which is why the shared writer column list leaves both columns out and no test
+  // pinned below this migration moves here. This entry replaces 0144's, which listed the same one
+  // test file: that collector insert now names automated_client on every row it writes, so a test
+  // calling insertAnonymousProductAnalyticsEvent against 0144's database would fail with
+  // `column "automated_client" of relation "product_events" does not exist`. The test covers both
+  // columns here, and 0144's schema keeps no coverage of its own, as with every earlier re-pin.
   Object.freeze({
-    migrationFileName: "0144_anonymous_client_daily_visitor_hash.sql",
-    expectedMigrationCount: 146,
+    migrationFileName: "0145_anonymous_client_automated_marker.sql",
+    expectedMigrationCount: 147,
     testFiles: Object.freeze([
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
     ]),
