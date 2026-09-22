@@ -492,6 +492,44 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: {},
   },
+  // Voice input, which `permission_prompt_answered` could not stand in for: a granted microphone
+  // permission says nothing about whether dictation is then used, and a dictation that fails after
+  // the grant is invisible in that event entirely. Neither entry carries anything about the
+  // recording — no transcript, no length, no duration, no confidence — because a transcript is
+  // content a person spoke and this table is append-only.
+  //
+  // `dictation_started` is the attempt that reached the microphone. A producer emits it where
+  // recording actually begins and never where the control was pressed, so a refused permission is a
+  // failure below rather than a start with no end. It requires a surface because a person has to be
+  // on the screen they are speaking into, so that surface is always known here, and voice usage is
+  // only comparable between the places dictation is offered from if every producer names one.
+  dictation_started: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {},
+  },
+  // Why one attempt ended without a transcript. Each value names a terminal branch a client really
+  // reaches: `permission_denied` is the OS refusing the microphone or having already refused it,
+  // `no_speech` a recording that contained nothing, `cancelled` the person stopping the attempt or
+  // leaving the surface it was running on, `offline` and `timeout` the transport, and
+  // `server_error` the remaining bucket — the same reading it carries on `sync_failed` and
+  // `review_answer_failed`, so a recorder that refused to start is in it alongside a backend that
+  // failed.
+  //
+  // It requires no surface, unlike the start above, and the producers fill it differently on
+  // purpose. iOS and Android assert `ai`, the only surface those clients dictate from. Web takes
+  // the surface the person is on, because its composer can be open over another route, so a
+  // failure there can be filed against a route while its own start named `ai`.
+  dictation_failed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      reason: {
+        kind: "enum",
+        values: ["permission_denied", "offline", "timeout", "server_error", "cancelled", "no_speech"],
+      },
+    },
+  },
   sync_failed: {
     serverOnly: false,
     requiresScreen: false,

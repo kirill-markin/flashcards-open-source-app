@@ -56,6 +56,19 @@ enum AnalyticsEvent: Sendable, Equatable {
      */
     case permissionPromptAnswered(permission: AnalyticsPermission, outcome: AnalyticsPermissionOutcome)
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
+    /**
+     * Voice input reached the microphone: the recorder really started, not the button being pressed.
+     *
+     * A permission the person refuses therefore produces `dictationFailed` and no start at all, which
+     * is what keeps the pair readable — every start is an attempt that could have produced a
+     * transcript. Nothing about the recording is reported here or on the failure: a transcript is
+     * content a person spoke.
+     */
+    case dictationStarted
+    /// The catalog allows this one to carry no surface, but every call site passes `screen: .ai`:
+    /// dictation exists nowhere else on this client, so the failure names the same surface its start
+    /// declares. Web takes the caller's route instead, because its composer opens over one.
+    case dictationFailed(reason: AnalyticsDictationFailureReason)
     /// Emit only through `Analytics.reportSyncFailure(reason:)`. Sync is retried on a timer, so a
     /// direct `track` measures poll cadence instead of failure incidence.
     case syncFailed(reason: AnalyticsSyncFailureReason)
@@ -206,6 +219,30 @@ enum AnalyticsCardCreateEntryPoint: String, Sendable, Equatable {
     case quickAction = "quick_action"
 }
 
+/**
+ * Why one dictation attempt ended without a transcript.
+ *
+ * `permissionDenied` is the microphone refusal, both the answer to the OS dialog and the refusal it
+ * already holds; `noSpeech` an empty recording; `cancelled` the attempt being abandoned, which on
+ * this client is a recording cancelled before it was stopped or a cancelled dictation task; and
+ * `serverError` the remaining bucket, which carries the reading it has on
+ * `AnalyticsSyncFailureReason` — the attempt could not complete for a reason the person cannot act
+ * on, a recorder that refused to start included.
+ *
+ * `offline` and `timeout` come from the transport failures that reach the dictation paths with their
+ * `URLError` intact. The transcription client collapses its own transport failures into
+ * `AIChatTranscriptionError.serviceUnavailable`, so those land in `serverError`; the event's own
+ * `network_state` field is what still says whether the device had a connection.
+ */
+enum AnalyticsDictationFailureReason: String, Sendable, Equatable {
+    case permissionDenied = "permission_denied"
+    case offline
+    case timeout
+    case serverError = "server_error"
+    case cancelled
+    case noSpeech = "no_speech"
+}
+
 enum AnalyticsSyncFailureReason: String, Sendable, Equatable {
     case offline
     case timeout
@@ -273,6 +310,10 @@ extension AnalyticsEvent {
             return "permission_prompt_answered"
         case .cardCreateStarted:
             return "card_create_started"
+        case .dictationStarted:
+            return "dictation_started"
+        case .dictationFailed:
+            return "dictation_failed"
         case .syncFailed:
             return "sync_failed"
         case .catalogDeckInstallStarted:
@@ -284,8 +325,9 @@ extension AnalyticsEvent {
 
     /**
      * `screen` is a top-level event field on the wire, never a property: a surface placed inside
-     * `properties` is rejected `unknown_property`. Only `screen_viewed` and `review_card_revealed`
-     * carry one of their own; every other event takes the surface the caller was on, if any.
+     * `properties` is rejected `unknown_property`. Only `screen_viewed`, `review_card_revealed` and
+     * `dictation_started` carry one of their own; every other event takes the surface the caller was
+     * on, if any.
      */
     var declaredScreen: AnalyticsSurface? {
         switch self {
@@ -298,6 +340,10 @@ extension AnalyticsEvent {
         // unrecognised surface value draws instead.
         case .reviewCardRevealed:
             return .review
+        // The catalog requires a surface on the start, and dictation has no home on this client
+        // other than the AI chat composer, so there is nothing for a call site to choose.
+        case .dictationStarted:
+            return .ai
         default:
             return nil
         }
@@ -332,6 +378,10 @@ extension AnalyticsEvent {
             ]
         case .cardCreateStarted(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
+        case .dictationStarted:
+            return [:]
+        case .dictationFailed(let reason):
+            return ["reason": .string(reason.rawValue)]
         case .syncFailed(let reason):
             return ["reason": .string(reason.rawValue)]
         case .catalogDeckInstallStarted(let packageSlug):
