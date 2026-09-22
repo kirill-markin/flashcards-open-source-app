@@ -20,6 +20,7 @@ import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss, type
 import { useAppErrorDialog } from "./appError/AppErrorContext";
 import { type TranslationKey, useI18n } from "./i18n";
 import { AppErrorBoundary, wrapRoutesComponent } from "./observability/instrument";
+import { getPublicSiteHomeUrl } from "./publicSiteUrl";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
@@ -599,7 +600,7 @@ export function AppShell(): ReactElement {
           <div className="topbar">
             <div className="topbar-brand-block">
               <div className="topbar-brand-row">
-                <a className="topbar-brand" href={reviewRoute}>
+                <a className="topbar-brand" href={getPublicSiteHomeUrl(locale)}>
                   <span className="brand-full">Nibomo</span>
                   <span className="brand-short">Nibomo</span>
                 </a>
