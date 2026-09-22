@@ -12,6 +12,10 @@ import { loadAnalyticsFilterOptions, type AnalyticsFilterOptions } from "./filte
 import { AnalyticsIndexPage } from "./navigation/AnalyticsIndexPage";
 import { NotFoundPage } from "./navigation/NotFoundPage";
 import { RootIndexPage } from "./navigation/RootIndexPage";
+import {
+  parseFunnelAnchorStepId,
+  withFunnelAnchorSearchParams,
+} from "./reports/catalogInstallFunnel/funnelAnchorUrl";
 import { loadCatalogInstallFunnelAvailableRange } from "./reports/catalogInstallFunnel/query";
 import { loadCatalogInstallsReport } from "./reports/catalogInstalls/query";
 import { loadDailyActiveUsersReport } from "./reports/dailyActiveUsers/query";
@@ -439,12 +443,21 @@ export default function App(): JSX.Element {
   // stepping through every click, and the single write this does on load is the canonicalization of a
   // hand-typed query string rather than a filter change of its own. The selection lives above the
   // areas, so switching area re-writes it onto the new path instead of being read back from it.
+  // The Funnels chart's anchor is the one area-specific parameter: the Funnels section owns it, so
+  // on that route a valid value already in the URL is carried over and an invalid one is dropped,
+  // and on every other route it is left out, so it cannot leak into another area.
   useEffect(() => {
     if (filterState === null || reportRanges === null || doesRouteUseAnalyticsFilters(route) === false) {
       return;
     }
 
-    const searchParams = toAnalyticsFilterSearchParams(filterState, reportRanges.availableRange);
+    const filterSearchParams = toAnalyticsFilterSearchParams(filterState, reportRanges.availableRange);
+    const searchParams = route.kind === "analyticsArea" && route.area === "funnels"
+      ? withFunnelAnchorSearchParams(
+        filterSearchParams,
+        parseFunnelAnchorStepId(new URLSearchParams(window.location.search)),
+      )
+      : filterSearchParams;
     const serializedParams = searchParams.toString();
     const nextSearch = serializedParams === "" ? "" : `?${serializedParams}`;
     if (nextSearch === window.location.search) {
