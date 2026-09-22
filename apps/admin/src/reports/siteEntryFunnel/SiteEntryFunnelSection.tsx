@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
-import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
-import { isFunnelHashedCohortRead, isFunnelHashedSplitShown } from "../funnels/funnelAudienceSql";
+import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
+import { isFunnelAllAudienceSelected, isFunnelHashedCohortRead } from "../funnels/funnelAudienceSql";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
@@ -162,10 +162,11 @@ function SiteEntryFunnelSection(
   const entryCount = report === null ? 0 : report.entryViewCount + report.hashedEntryViewCount;
   // The mode alone, never the chart's `showsHashedSplit` prop: that one is the read gate below,
   // and the two differ exactly in the `all`-with-a-country case this note exists to explain.
-  const wantsHashedCohort = isFunnelHashedSplitShown(props.filters);
+  const wantsHashedCohort = isFunnelAllAudienceSelected(props.filters);
   // What the query actually read, which is what every sentence and column about the cookieless
   // segment is chosen on: with a country selected the mode is still `all` and the cohort is not read.
   const readsHashedCohort = isFunnelHashedCohortRead(props.filters);
+  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
   const hashedCountryNote = report !== null
     && wantsHashedCohort
     && props.filters.connectionCountries.length > 0
@@ -185,7 +186,8 @@ function SiteEntryFunnelSection(
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
       {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
-      {report !== null && entryCount === 0 ? <div className="report-state"><strong>No first visits on a {definition.pageName} match these filters.</strong><span>Only a person whose first site page is a {definition.pageName} viewed on a selected day enters this funnel.</span></div> : null}
+      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
+      {report !== null && entryCount === 0 ? <div className="report-state"><strong>No first visits on a {definition.pageName} match these filters.</strong><span>Only a person whose first site page is a {definition.pageName} viewed on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
       {report !== null ? <FunnelMaturingWarning maturingCount={report.maturingCount} entryCount={report.entryViewCount} /> : null}
 

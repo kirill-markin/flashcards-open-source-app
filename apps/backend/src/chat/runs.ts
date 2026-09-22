@@ -14,7 +14,7 @@ export type {
   RecoveredPaginatedSession,
 } from "./runs/types";
 
-export { recordAiMessageSentAnalytics } from "./runs/analytics";
+export { recordAiMessageSentAnalytics, recordAiRunFailedAnalytics } from "./runs/analytics";
 
 export {
   assertActiveChatRunClaimWithExecutor,

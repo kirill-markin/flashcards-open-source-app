@@ -279,9 +279,12 @@ extension FlashcardsStore {
         self.trackCloudSignInFailed(reason: reason)
     }
 
-    /// Credentials were verified, so whatever happens next in post-auth is not an abandoned sign-in.
-    func recordCloudSignInVerified() {
+    /// Credentials were verified, so whatever happens next in post-auth is not an abandoned
+    /// sign-in. Every verification path reaches this one point, which is why `signin_succeeded` is
+    /// reported here: one event per attempt that authenticated, whatever post-auth then makes of it.
+    func recordCloudSignInVerified(screen: AnalyticsSurface) {
         self.isCloudSignInAttemptOpen = false
+        Analytics.track(.signInSucceeded(screen: screen))
     }
 
     private var isCloudCredentialRecoveryGateActive: Bool {
@@ -335,6 +338,20 @@ enum CloudSignInPresentationContext: Hashable {
         switch self {
         case .standard(let originSurface):
             return originSurface
+        case .credentialRecoveryGate:
+            return .credentialRecovery
+        }
+    }
+
+    /// The surface `signin_code_requested` and `signin_succeeded` carry, which separates a sign-in
+    /// run to recover this device's credentials from an ordinary one. It is `screen` in its ordinary
+    /// reading and never the entry point above: every presenter that opens the sheet over a product
+    /// screen reports the sign-in screen itself, and only the gate that replaces the app root
+    /// reports something else.
+    var signInStepSurface: AnalyticsSurface {
+        switch self {
+        case .standard:
+            return .signin
         case .credentialRecoveryGate:
             return .credentialRecovery
         }

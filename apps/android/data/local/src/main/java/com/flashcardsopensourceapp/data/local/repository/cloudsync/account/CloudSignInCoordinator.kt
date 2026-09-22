@@ -56,7 +56,17 @@ internal class CloudSignInCoordinator(
         }
     }
 
-    suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
+    /**
+     * [onVerified] runs the moment the remote call returns credentials: before the link context is
+     * built, and not at all on the short circuit below, which returns blocked credentials without
+     * verifying anything. A caller that reports the sign-in therefore never claims one where
+     * nothing was verified, and never loses one whose workspace context failed to build afterwards.
+     */
+    suspend fun verifyCode(
+        challenge: CloudOtpChallenge,
+        code: String,
+        onVerified: () -> Unit
+    ): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
             val recoveryState: CloudCredentialRecoveryState? = preferencesStore.loadCloudCredentialRecoveryState()
             if (recoveryState?.reason == CloudCredentialRecoveryReason.INVALID_STORED_STATE) {
@@ -74,6 +84,7 @@ internal class CloudSignInCoordinator(
                 code = code,
                 authBaseUrl = configuration.authBaseUrl
             )
+            onVerified()
             val linkContext: CloudWorkspaceLinkContext = buildCloudWorkspaceLinkContext(
                 credentials = credentials,
                 configuration = configuration

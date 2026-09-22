@@ -191,6 +191,7 @@ fun createCloudSignInViewModelFactory(
     messageController: TransientMessageController,
     analytics: Analytics,
     originSurface: AnalyticsSurface?,
+    signInStepSurface: AnalyticsSurface,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return com.flashcardsopensourceapp.feature.settings.cloud.signIn.createCloudSignInViewModelFactory(
@@ -199,6 +200,7 @@ fun createCloudSignInViewModelFactory(
         messageController = messageController,
         analytics = analytics,
         originSurface = originSurface,
+        signInStepSurface = signInStepSurface,
         applicationContext = applicationContext
     )
 }
