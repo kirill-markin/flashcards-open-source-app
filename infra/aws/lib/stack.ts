@@ -27,6 +27,7 @@ import { communityLeaderboard } from "./scheduled-jobs/community-leaderboard";
 import { streakLeaderboard } from "./scheduled-jobs/streak-leaderboard";
 import { progressActiveDaysBackfill } from "./scheduled-jobs/progress-active-days-backfill";
 import { countryRetention } from "./scheduled-jobs/country-retention";
+import { dailyVisitorHashSaltExpiry } from "./scheduled-jobs/daily-visitor-hash-salt-expiry";
 import { syntheticActorDetector } from "./scheduled-jobs/synthetic-actor-detector";
 import { webGuestReaper } from "./scheduled-jobs/web-guest-reaper";
 import type { AlternateHeartbeatHosts } from "./scheduled-jobs/public-endpoint-heartbeat";
@@ -351,6 +352,13 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       ...sentryContext,
     });
+    const dailyVisitorHashSaltExpiryResult = dailyVisitorHashSaltExpiry(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      backendDbSecret: dbResult.backendDbSecret,
+      ...sentryContext,
+    });
     const syntheticActorDetectorResult = syntheticActorDetector(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
@@ -552,6 +560,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
     addDatabaseMigrationDependency(webGuestReaperResult.reaperFunction, migrationGate);
     addDatabaseMigrationDependency(countryRetentionResult.retentionFunction, migrationGate);
+    addDatabaseMigrationDependency(dailyVisitorHashSaltExpiryResult.expiryFunction, migrationGate);
     addDatabaseMigrationDependency(syntheticActorDetectorResult.detectorFunction, migrationGate);
     const web = webApp(this, {
       baseDomain,
@@ -583,6 +592,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       streakLeaderboardSnapshotFn: streakLeaderboardResult.snapshotFunction,
       progressActiveDaysBackfillFn: progressActiveDaysBackfillResult.backfillFunction,
       countryRetentionFn: countryRetentionResult.retentionFunction,
+      dailyVisitorHashSaltExpiryFn: dailyVisitorHashSaltExpiryResult.expiryFunction,
       syntheticActorDetectorFn: syntheticActorDetectorResult.detectorFunction,
       webGuestReaperFn: webGuestReaperResult.reaperFunction,
       generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,

@@ -11,6 +11,7 @@ export type BackendService =
   | "progress-active-days-backfill"
   | "web-guest-reaper"
   | "country-retention"
+  | "daily-visitor-hash-salt-expiry"
   | "synthetic-actor-detector"
   | "generated-media-promotion"
   | "multipart-completion-reconciliation"

@@ -78,3 +78,11 @@ kept the outcome correct, not the table.
 
 The file's `approved_row_count := 115` assertion is consistent with its own
 literal list and still passes; it never checked the table against the catalog.
+
+### `0143_anonymous_client_identity_free_rows.sql` — cookieless rows are no longer bare
+
+Its header says a cookieless row's identifier "is left empty rather than filled", and that a
+per-request id is not substituted. That still holds for `anonymous_id`. But since
+`0144_anonymous_client_daily_visitor_hash.sql`, a cookieless credential-free row that is not a
+consent fact carries a separate server-derived `daily_visitor_hash`, which links one browser's events
+within one UTC day. The consent facts still carry neither.
