@@ -16,10 +16,10 @@ package com.flashcardsopensourceapp.core.observability.analytics
  * A narrower enum is allowed, and every omission is deliberate and documented at the enum itself.
  * A value being absent here is therefore not on its own evidence that the server rejects it.
  *
- * Ten events are server-derived — `guest_upgrade_completed`, `review_answered`, `card_created`,
+ * Eleven events are server-derived — `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `deck_created`, `deck_updated`, `friend_invitation_created`,
- * `friendship_created`, `ai_message_sent` and `catalog_deck_installed`. A client batch that
- * contains any of them is rejected, so they are absent here on purpose.
+ * `friendship_created`, `ai_message_sent`, `ai_run_failed` and `catalog_deck_installed`. A client
+ * batch that contains any of them is rejected, so they are absent here on purpose.
  *
  * `onboarding_step_completed`, `review_session_started` and `review_session_ended` remain outside
  * the active catalog. The server keeps exact backend-only tombstones for old queued copies and

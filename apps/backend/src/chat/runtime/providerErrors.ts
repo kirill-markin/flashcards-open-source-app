@@ -199,7 +199,20 @@ export function createChatTerminalWarningFingerprint(
   ];
 }
 
-function classifyProviderErrorCategory(error: unknown, providerStatus: number | null): string | null {
+// The failure classifications this module makes, named once because two readers depend on them: the
+// lifecycle log's `providerErrorCategory` and the `ai_run_failed` analytics reason.
+export type ChatProviderErrorCategory =
+  | "provider_abort"
+  | "provider_auth"
+  | "provider_rate_limited"
+  | "provider_unavailable"
+  | "provider_error"
+  | "runtime_error";
+
+function classifyProviderErrorCategory(
+  error: unknown,
+  providerStatus: number | null,
+): ChatProviderErrorCategory | null {
   if (error instanceof OpenAI.APIUserAbortError || (error instanceof Error && error.name === "AbortError")) {
     return "provider_abort";
   }
@@ -296,6 +309,17 @@ export function createPublicTerminalErrorMessage(error: unknown): string {
   }
 
   return GENERIC_RUNTIME_ERROR_MESSAGE;
+}
+
+/**
+ * The category a run that reached the failure path is reported under.
+ *
+ * The classification's null case is folded into `runtime_error` rather than left unreported: only a
+ * null error produces it, and a run finalized as failed failed for some reason whatever it carried.
+ */
+export function classifyChatRunFailureCategory(error: unknown): ChatProviderErrorCategory {
+  const providerMetadata = getAIProviderFailureMetadata(error);
+  return classifyProviderErrorCategory(error, providerMetadata.upstreamStatus) ?? "runtime_error";
 }
 
 export function isHandledProviderFailure(error: unknown): boolean {
