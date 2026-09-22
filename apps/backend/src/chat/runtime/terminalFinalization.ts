@@ -13,6 +13,7 @@ import {
   type ChatWorkerLogContext,
 } from "../worker/logging";
 import {
+  classifyChatRunFailureCategory,
   createSafeProviderErrorDetails,
   createPublicTerminalErrorMessage,
 } from "./providerErrors";
@@ -136,6 +137,15 @@ export async function persistFailedChatRun(
     errorMessage: createPublicTerminalErrorMessage(input.error),
     sessionState: "idle",
   }, input.params.claimToken);
+  // After the terminal state is stored, never before: a worker that lost the run throws above, and
+  // the fact belongs to the run that really ended as failed. The emission never throws, so it
+  // cannot turn a persisted failure into an unpersisted one.
+  await input.dependencies.recordAiRunFailedAnalytics(
+    input.params.userId,
+    input.params.workspaceId,
+    input.params.runId,
+    classifyChatRunFailureCategory(input.error),
+  );
   const lifecycleState = input.readLifecycleState();
   logTerminalStatePersisted(
     input.logContext,

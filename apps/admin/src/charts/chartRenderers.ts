@@ -831,6 +831,51 @@ function buildFunnelStepClipMarkPath(width: number): string {
   return `M${points.join("L")}`;
 }
 
+/**
+ * A rectangle with rounded top corners and independently rounded bottom ones, as a path.
+ *
+ * The hashed segment is drawn over the upper slice of the bar the total already drew, so its bottom
+ * edge is normally an internal boundary rather than the shape's end: rounding it would curve the
+ * lighter fill away from the accent underneath and leave a notch at each bottom corner, which a thin
+ * segment shows plainly. `rect` rounds all four corners or none, so that shape is drawn here instead.
+ *
+ * `bottomRadius` exists for the one case where that bottom edge is not internal. When the hashed count
+ * equals the total, the segment is the whole bar, and the bar's own `rx` has rounded the two bottom
+ * corners away: square ones there would paint outside the bar's silhouette and the composite would
+ * read as square-bottomed. The caller passes the bar's radius in that case and `0` otherwise. Each
+ * radius is clamped to the segment, so a segment shorter or narrower than its corners keeps clean
+ * edges, and both are clamped to half the height once the bottom is rounded, so opposite corners on a
+ * thin full-height segment cannot overlap.
+ *
+ * That clamp does not reproduce the bar's own corners exactly on a very short bar. `rect` clamps only
+ * `ry` to half the height and leaves `rx` at the radius, so its corners turn elliptical there, while
+ * these stay circular at the smaller radius and keep a sliver of fill the bar has already curved
+ * away. It is sub-pixel on the bars this renders and is left as is rather than switched to elliptical
+ * arcs; a full-height segment is otherwise inside the bar's silhouette, not square-bottomed over it.
+ */
+function buildRoundedBarSegmentPath(
+  width: number,
+  height: number,
+  topRadius: number,
+  bottomRadius: number,
+): string {
+  const heightLimit = bottomRadius > 0 ? height / 2 : height;
+  const top = Math.max(0, Math.min(topRadius, heightLimit, width / 2));
+  const bottom = Math.max(0, Math.min(bottomRadius, height / 2, width / 2));
+  return [
+    `M0,${height - bottom}`,
+    `L0,${top}`,
+    `A${top},${top} 0 0 1 ${top},0`,
+    `L${width - top},0`,
+    `A${top},${top} 0 0 1 ${width},${top}`,
+    `L${width},${height - bottom}`,
+    `A${bottom},${bottom} 0 0 1 ${width - bottom},${height}`,
+    `L${bottom},${height}`,
+    `A${bottom},${bottom} 0 0 1 0,${height - bottom}`,
+    "Z",
+  ].join("");
+}
+
 function wrapFunnelStepLabel(label: string): ReadonlyArray<string> {
   const lines: Array<string> = [];
   for (const word of label.split(" ")) {
@@ -1133,18 +1178,28 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
   // The hashed part sits at the top of the bar the total already drew, so the bar's height stays the
   // total and only its upper slice is lighter. The scale is clamped, so on a step capped by a re-based
   // anchor both ends land on the plot top and the segment collapses to nothing rather than escaping it.
+  const funnelStepBarRadius = 4;
   barGroups.filter((bar) => bar.step.count > 0 && bar.step.hashedCount > 0)
-    .append("rect")
+    .append("path")
     .attr("class", "funnel-step-bar-hashed")
-    .attr("x", 0)
-    .attr("y", (bar) => getGroupValueY(bar.groupIndex, bar.step.count))
-    .attr("width", groupBandWidth)
-    .attr("height", (bar) => Math.max(
-      0,
-      getGroupValueY(bar.groupIndex, bar.step.count - bar.step.hashedCount)
-        - getGroupValueY(bar.groupIndex, bar.step.count),
-    ))
-    .attr("rx", 4);
+    .attr("transform", (bar) => `translate(0,${getGroupValueY(bar.groupIndex, bar.step.count)})`)
+    .attr("d", (bar) => {
+      const barTop = getGroupValueY(bar.groupIndex, bar.step.count);
+      const segmentHeight = Math.max(
+        0,
+        getGroupValueY(bar.groupIndex, bar.step.count - bar.step.hashedCount) - barTop,
+      );
+      // A step whose identified count is zero makes the segment the whole bar, whose own bottom
+      // corners are rounded, so it takes the bar's radius there rather than painting square corners
+      // outside that silhouette.
+      const isWholeBar = segmentHeight >= innerHeight - barTop;
+      return buildRoundedBarSegmentPath(
+        groupBandWidth,
+        segmentHeight,
+        funnelStepBarRadius,
+        isWholeBar ? funnelStepBarRadius : 0,
+      );
+    });
 
   barGroups.filter((bar) => (
     isRebased

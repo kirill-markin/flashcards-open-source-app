@@ -1,0 +1,47 @@
+-- Migration status: Current / additive.
+-- Introduces: analytics.idx_product_events_automated_client_anonymous_id, a partial index whose body
+--   is exactly the rows db/migrations/0145_anonymous_client_automated_marker.sql marked
+--   automated_client = TRUE. It adds no column, no constraint and no grant, and changes no query's
+--   result: it exists so the readers below can enumerate the marked identities without scanning the
+--   busiest append-only table in the database.
+-- Current guidance: the readers it serves are the two restatements of the dashboard's one exclusion
+--   rule, both of which need the same set - every actor any of whose rows carries the verdict.
+--   buildExcludedActorSqlLines in apps/admin/src/filters/filterSql.ts composes that set as an
+--   uncorrelated ARRAY(...) InitPlan into every admin report and every filter option list, and
+--   automatedClientActorWhereSqlFragments in apps/backend/src/globalMetrics/reporting.ts composes the
+--   same rule as a NOT EXISTS into the three queries behind GET /v1/global/snapshot and the scheduled
+--   snapshot Lambda. Without this index either one reads the marked rows by a sequential scan of
+--   analytics.product_events. That scan is affordable at today's table size and was measured so
+--   before this file was written, so this is insurance against growth rather than a repair of a
+--   broken plan: no reader depends on the index for correctness, and dropping it would slow those
+--   queries rather than change a published number.
+--   anonymous_id is the key column because it is the only identity a marked row can carry. 0145's
+--   product_events_automated_client_shape admits a non-NULL automated_client only on a
+--   trust_level = 'anonymous_client' row, and product_events_anonymous_client_shape - added by
+--   db/migrations/0134_catalog_install_journey_analytics.sql and re-issued by
+--   db/migrations/0143_anonymous_client_identity_free_rows.sql - forbids user_id and subject_user_id
+--   on such a row. So the analytics.product_events_resolved COALESCE that produces actor_id skips its
+--   first two arms for every marked row and resolves through anonymous_id alone, either onto the
+--   account an authenticated_client row of analytics.identity_links names for that anonymous_id or
+--   onto the anonymous_id itself. A marked row whose anonymous_id is NULL, the identity-free case
+--   0143 documents, resolves to a NULL actor_id and names nobody to exclude; it is still indexed,
+--   because a partial index selects on its predicate rather than on its key. Only the admin reader
+--   discards it explicitly, and it must: it collects actors into an ARRAY, and one NULL inside that
+--   array makes every comparison that does not match a listed actor unknown, so the caller keeps no
+--   row either way, and its actor_id IS NOT NULL guard is load-bearing rather than duplicated
+--   boilerplate. The backend fragment needs no such guard, because its NOT EXISTS compares row by
+--   row and the equality against a NULL actor_id is never true.
+--   Not CREATE INDEX CONCURRENTLY: scripts/deploy/migrate.sh applies each migration with
+--   --single-transaction, and CONCURRENTLY cannot run inside a transaction block. The build therefore
+--   takes a SHARE lock that blocks analytics inserts for one sequential scan of the table - reads are
+--   unaffected, the scan is the same one the queries above do today, and the resulting index holds
+--   only the marked rows.
+-- Schemas touched/read explicitly: analytics.
+-- See also: db/migrations/0145_anonymous_client_automated_marker.sql,
+-- db/migrations/0143_anonymous_client_identity_free_rows.sql,
+-- db/migrations/0114_product_analytics_storage.sql, apps/admin/src/filters/filterSql.ts,
+-- apps/backend/src/globalMetrics/reporting.ts, docs/admin-app.md, docs/global-metrics.md.
+
+CREATE INDEX IF NOT EXISTS idx_product_events_automated_client_anonymous_id
+  ON analytics.product_events (anonymous_id)
+  WHERE automated_client;

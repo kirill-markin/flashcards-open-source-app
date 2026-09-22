@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
-import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
-import { isFunnelHashedCohortRead, isFunnelHashedSplitShown } from "../funnels/funnelAudienceSql";
+import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
+import { isFunnelAllAudienceSelected, isFunnelHashedCohortRead } from "../funnels/funnelAudienceSql";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
@@ -316,10 +316,11 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
   const startDateNote = isReady ? buildStartDateNote(props.filters.dateRange) : null;
   // The mode alone, never the chart's `showsHashedSplit` prop: that one is the read gate below,
   // and the two differ exactly in the `all`-with-a-country case this note exists to explain.
-  const wantsHashedCohort = isFunnelHashedSplitShown(props.filters);
+  const wantsHashedCohort = isFunnelAllAudienceSelected(props.filters);
   // What the query actually read, which is what every sentence and column about the cookieless
   // segment is chosen on: with a country selected the mode is still `all` and the cohort is not read.
   const readsHashedCohort = isFunnelHashedCohortRead(props.filters);
+  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
   const hashedCountryNote = isReady
     && wantsHashedCohort
     && props.filters.connectionCountries.length > 0
@@ -339,8 +340,8 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
       {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
-      {/* Chosen on the read gate, not the mode: with a country selected the cookieless rows were not read, and the note above already says so. */}
-      {isReady && hasVisits === false ? <div className="report-state"><strong>No deck page views match these filters.</strong><span>{readsHashedCohort ? "Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates." : "A page view from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates."}</span></div> : null}
+      {/* Chosen on the read gate, not the mode: with a country selected the cookieless rows were not read, and the note above already says so. The audience mode is named as well, because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
+      {isReady && hasVisits === false ? <div className="report-state"><strong>No deck page views match these filters.</strong><span>{readsHashedCohort ? "Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates." : "A page view from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates."}</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
       {/* The window belongs to the people who have one, so the denominator is the identified part of the first step. */}
       {isReady ? <FunnelMaturingWarning maturingCount={maturingCount} entryCount={(mainStages[0]?.count ?? 0) - (mainStages[0]?.hashedCount ?? 0)} /> : null}

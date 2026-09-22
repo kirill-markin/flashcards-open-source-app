@@ -39,12 +39,25 @@ import {
 // and their numbers are not expected to agree.
 //
 // It does still carry the same exclusion rule as the admin dashboard: an `@example.com`
-// address, an admin, or an actor listed in `analytics.excluded_actors`. That dashboard
-// lives in a separate package and cannot import these fragments, so it writes the rule
-// once of its own in `buildExcludedActorSqlLines`
-// (`apps/admin/src/filters/filterSql.ts`) and every one of its reports and filter option
-// lists reads it from there. The two surfaces exclude the same people and must be changed
-// together.
+// address, an admin, an actor listed in `analytics.excluded_actors`, or an actor any of
+// whose rows the credential-free collector marked automated. That dashboard lives in a
+// separate package and cannot import these fragments, so it writes the rule once of its
+// own in `buildExcludedActorSqlLines` (`apps/admin/src/filters/filterSql.ts`) and every
+// one of its reports and filter option lists reads it from there. The two surfaces
+// exclude the same people and must be changed together.
+//
+// THE AUTOMATED-CLIENT ARM DOES REACH A STORED ACCOUNT, which is why it is restated below
+// rather than skipped. The verdict is stamped on an event row of a browser request
+// (`db/migrations/0145_anonymous_client_automated_marker.sql`), and such a row carries no
+// `user_id` at all - `product_events_anonymous_client_shape` forbids one. But
+// `analytics.product_events_resolved` does not stop there: when
+// `analytics.identity_links` holds an `authenticated_client` row for that browser's
+// `anonymous_id`, the view resolves those marked rows onto the account that later signed
+// in, and `actor_id` is then that account's id. A smoke run that browses the site and
+// then signs in is exactly that case, and without the restatement below this query would
+// go on counting its reviews while the dashboard drops them. The comparison is the one
+// `excludedActorWhereSqlFragments` makes: the marked `actor_id`, against the folded
+// `workspace_replicas.user_id` this query counts people by.
 
 // WHERE-fragment that restricts review activity to real client-app installations on
 // supported user-facing platforms (excludes system actors and the 'system' platform).
@@ -125,6 +138,41 @@ const excludedActorWhereSqlFragments = [
   "  )",
 ] as const;
 
+// SQL fragments that exclude the actors the credential-free collector judged automated, the
+// fourth arm of the rule the comment at the top of this file names. TRUE is the only value
+// dropped: NULL means nothing assessed that row - it was stored before
+// `db/migrations/0145_anonymous_client_automated_marker.sql` shipped, or on a trust level
+// where no `User-Agent` is read - and FALSE is one unverified claim a client makes about
+// itself, so neither is evidence either way. The verdict is read on the actor rather than on
+// the row, as it is on the dashboard: one marked row removes that person's whole history
+// here, so a smoke run that later signs into a real account cannot bring its reviews back.
+//
+// The folding matches `excludedActorWhereSqlFragments` above and for the same reason:
+// `workspace_replicas.user_id` is unconstrained TEXT, while the view's `actor_id` renders
+// canonical lowercase hex, so comparing the replica side raw would silently match no row.
+// The cast is what that comparison needs on top: `analytics.excluded_actors.actor_id` is
+// declared TEXT, but the view's `actor_id` is a `uuid` - every arm of its COALESCE is
+// (`db/migrations/0114_product_analytics_storage.sql`) - and Postgres has no `uuid = text`
+// operator in either direction, so the fragment below would fail to parse without `::text`.
+// Every other reader that compares the view's `actor_id` against a text column casts it the
+// same way.
+//
+// `analytics.product_events_resolved` carries no index qual for `actor_id`, so this is
+// deliberately a correlated `NOT EXISTS` that the planner turns into an anti-join over the
+// marked rows alone: the outer side here is a real join of `content.review_events` and
+// `sync.workspace_replicas` with column statistics behind it, unlike the statistics-free CTE
+// scans behind the admin package's funnel cohorts, which is why that package writes the same
+// arm as an InitPlan on every one of its call sites instead. `db/migrations/0146_product_events_automated_client_index.sql`
+// is what keeps the inner side off a whole-table scan.
+const automatedClientActorWhereSqlFragments = [
+  "  AND NOT EXISTS (",
+  "    SELECT 1",
+  "    FROM analytics.product_events_resolved AS automated_events",
+  "    WHERE automated_events.automated_client",
+  "      AND automated_events.actor_id::text = pg_catalog.lower(pg_catalog.btrim(workspace_replicas.user_id))",
+  "  )",
+] as const;
+
 type GlobalMetricsSnapshotHistoricalStartDateRow = Readonly<{
   historical_start_date: string | null;
 }>;
@@ -141,6 +189,7 @@ function buildGlobalMetricsSnapshotHistoricalStartDateSql(): string {
     ...clientInstallationActivityWhereSqlFragments,
     ...accountEmailExclusionSqlFragments.whereFragments,
     ...excludedActorWhereSqlFragments,
+    ...automatedClientActorWhereSqlFragments,
   ].join(" ");
 }
 
@@ -160,6 +209,7 @@ function buildGlobalMetricsSnapshotTotalsSql(): string {
     ...clientInstallationActivityWhereSqlFragments,
     ...accountEmailExclusionSqlFragments.whereFragments,
     ...excludedActorWhereSqlFragments,
+    ...automatedClientActorWhereSqlFragments,
   ].join(" ");
 }
 
@@ -177,6 +227,7 @@ function buildGlobalMetricsSnapshotDaysSql(): string {
     ...clientInstallationActivityWhereSqlFragments,
     ...accountEmailExclusionSqlFragments.whereFragments,
     ...excludedActorWhereSqlFragments,
+    ...automatedClientActorWhereSqlFragments,
     "  GROUP BY workspace_replicas.user_id",
     "), daily_user_activity AS (",
     "  SELECT",
@@ -198,6 +249,7 @@ function buildGlobalMetricsSnapshotDaysSql(): string {
     ...clientInstallationActivityWhereSqlFragments,
     ...accountEmailExclusionSqlFragments.whereFragments,
     ...excludedActorWhereSqlFragments,
+    ...automatedClientActorWhereSqlFragments,
     "  GROUP BY (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date, workspace_replicas.user_id, user_first_review_date.first_review_date",
     ")",
     "SELECT",

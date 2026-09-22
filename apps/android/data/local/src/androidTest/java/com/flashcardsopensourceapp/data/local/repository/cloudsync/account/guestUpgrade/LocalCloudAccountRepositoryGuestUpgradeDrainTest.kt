@@ -84,7 +84,8 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         val linkedWorkspace = repository.completeGuestUpgrade(
@@ -163,7 +164,8 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         val upgradeResult = async {
@@ -254,7 +256,8 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         val mutationResult = async {
@@ -357,7 +360,8 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         try {
@@ -447,7 +451,8 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         try {
