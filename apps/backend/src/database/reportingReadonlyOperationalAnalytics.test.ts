@@ -49,3 +49,16 @@ test("0066 migration grants reporting access to operational analytics metadata o
   assert.doesNotMatch(sql, /GRANT SELECT \([^)]*suggestions[^)]*\) ON TABLE ai\.chat_composer_suggestion_generations/);
   assert.equal(sql.includes("sync.changes"), false);
 });
+
+test("0146 migration grants reporting access to the guest analytics consent column", () => {
+  const migrationPath = resolve(
+    process.cwd(),
+    "../../db/migrations/0146_guest_session_analytics_consent.sql",
+  );
+  const sql = readFileSync(migrationPath, "utf8").replace(/\s+/g, " ");
+
+  // 0066 enumerates the readable columns of this table one by one, so the column this migration
+  // adds is invisible to the reporting role until it is granted here.
+  assert.match(sql, /GRANT SELECT \(analytics_consent\) ON TABLE auth\.guest_sessions TO reporting_readonly/);
+  assert.doesNotMatch(sql, /GRANT SELECT ON TABLE auth\.guest_sessions TO reporting_readonly/);
+});

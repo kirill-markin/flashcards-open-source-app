@@ -59,6 +59,11 @@ enum class AnalyticsSurface(val wireValue: String) {
     CARDS(wireValue = "cards"),
     PROGRESS(wireValue = "progress"),
     SETTINGS(wireValue = "settings"),
+
+    // The legal and privacy screen, the one settings leaf the catalog names on its own, because the
+    // analytics opt-out promised in the privacy policy is exercised there. No site reports it:
+    // `analyticsSurfaceForRoute` still folds `settings/legal` into SETTINGS with every other leaf.
+    SETTINGS_LEGAL(wireValue = "settings_legal"),
     AI(wireValue = "ai"),
 
     // Workspace content management. These sit under the settings screen only as a routing accident:

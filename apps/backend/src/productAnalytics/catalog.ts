@@ -80,8 +80,9 @@ const productAnalyticsSitePageKinds = [
 // table: a screen earns a value when it is a destination of its own, meaning a tab, a public route,
 // a prompt a person has to answer, an abandonable step of a flow, or one of the content objects the
 // enum already names, while the app preference and account leaves that all three clients nest under
-// their settings screen collapse into `settings`. A client whose screen has no value here sends no
-// `screen` at all rather than the nearest wrong one.
+// their settings screen collapse into `settings`, with `settings_legal` below the single named
+// exception. A client whose screen has no value here sends no `screen` at all rather than the
+// nearest wrong one.
 //
 // `screen` carries two readings, deliberately. On `screen_viewed` and on every other event it is
 // where the person is now. On `signin_failed` alone it is the entry point: the surface that owned
@@ -99,6 +100,12 @@ export const productAnalyticsSurfaces = [
   "cards",
   "progress",
   "settings",
+  // The legal and privacy screen, and the only settings leaf that does not collapse into
+  // `settings`. The analytics opt-out promised in the published privacy policy is exercised there
+  // and nowhere else, so how many people reach it is a question about whether that promise is
+  // reachable rather than about navigation, and it cannot be answered while every settings leaf
+  // reports one value. Every other leaf stays collapsed for exactly the reason it always was.
+  "settings_legal",
   "ai",
   // Workspace content management. These sit under the settings screen on all three clients only as
   // a routing accident: they act on the person's own decks, cards and tags, which is the same

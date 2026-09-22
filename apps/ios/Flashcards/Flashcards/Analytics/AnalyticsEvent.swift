@@ -82,6 +82,10 @@ enum AnalyticsSurface: String, Sendable, Equatable, CaseIterable {
     case cards
     case progress
     case settings
+    // The legal and privacy screen, the one settings leaf the catalog names on its own, because the
+    // analytics opt-out promised in the privacy policy is exercised there. Nothing here reports it:
+    // `AccountLegalView` is still counted as `settings` like every other leaf.
+    case settingsLegal = "settings_legal"
     case ai
     // Workspace content management. These are pushed under Settings here only as a routing accident:
     // they act on the person's own decks, cards and tags, the same object family `cards`,
