@@ -9,6 +9,7 @@ import type { UserColorScale } from "../dashboard/userColors";
 import {
   chartMargin,
   chartWidth,
+  funnelHashedSegmentMixColor,
   getPlatformColor,
   platformLabels,
   simpleChartHeight,
@@ -818,7 +819,21 @@ const funnelStepClipMarkDepth = 6;
 const funnelStepClipMarkToothWidth = 10;
 /** The gap between two groups inside one step band; the band's own edges stay flush with the step column. */
 const funnelGroupBandPaddingInner = 0.16;
+const funnelHashedSegmentMixRatio = 0.55;
 const funnelShareAxisFormatter = d3.format(".0%");
+
+/**
+ * A grouped bar's hashed segment: that group's own colour, mixed toward the page's text.
+ *
+ * The stylesheet's wash cannot serve a grouped chart. It is one translucent `--text` over whatever
+ * is beneath, so every group's segment comes out the same colour, and on a step whose identified
+ * count is zero the segment is the whole bar and its group's colour is gone from the plot. Mixing
+ * the group's own colour instead keeps the segment that group one shade up, which is exactly what
+ * the wash does over the single accent bar of an ungrouped funnel.
+ */
+function buildFunnelHashedSegmentColor(groupColor: string): string {
+  return d3.interpolateLab(groupColor, funnelHashedSegmentMixColor)(funnelHashedSegmentMixRatio);
+}
 
 /** An even tooth count starts and ends the zig-zag at its depth, inside the bar's rounded top corners. */
 function buildFunnelStepClipMarkPath(width: number): string {
@@ -1179,7 +1194,7 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
   // total and only its upper slice is lighter. The scale is clamped, so on a step capped by a re-based
   // anchor both ends land on the plot top and the segment collapses to nothing rather than escaping it.
   const funnelStepBarRadius = 4;
-  barGroups.filter((bar) => bar.step.count > 0 && bar.step.hashedCount > 0)
+  const hashedSegments = barGroups.filter((bar) => bar.step.count > 0 && bar.step.hashedCount > 0)
     .append("path")
     .attr("class", "funnel-step-bar-hashed")
     .attr("transform", (bar) => `translate(0,${getGroupValueY(bar.groupIndex, bar.step.count)})`)
@@ -1200,6 +1215,16 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
         isWholeBar ? funnelStepBarRadius : 0,
       );
     });
+  if (isGrouped) {
+    // Inline styles for the reason the bars above take one, and opaque, because the group's colour
+    // is already beneath the segment and a translucent one of the same hue would vanish into it. A
+    // step before the anchor keeps the stylesheet's wash, the way its bar keeps the stylesheet fill.
+    hashedSegments
+      .style("fill", (bar) => (
+        bar.stepIndex < params.anchorIndex ? null : buildFunnelHashedSegmentColor(bar.group.color)
+      ))
+      .style("fill-opacity", (bar) => (bar.stepIndex < params.anchorIndex ? null : 1));
+  }
 
   barGroups.filter((bar) => (
     isRebased

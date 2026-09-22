@@ -2,6 +2,8 @@ import { runAdminQuery } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
+  buildActorAppUiLanguageSql,
+  buildActorConnectionCountrySql,
   buildAppUiLanguagesFilterSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
@@ -18,7 +20,11 @@ import {
   buildHashedVisitorDaySql,
   isFunnelHashedCohortRead,
 } from "../funnels/funnelAudienceSql";
-import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
+import {
+  unresolvedFunnelGroupKey,
+  type FunnelGroupByDimension,
+} from "../funnels/funnelGroupBy";
+import { assertIsString, assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
 
 /** The marketing-site `page_kind` values a funnel on this page can start from. */
 export type SiteEntryPageKind = "home" | "blog_article";
@@ -33,7 +39,7 @@ export const siteEntryFunnelStartDate = "2026-09-23";
 export const siteEntryEngagedReviewThreshold = 20;
 
 /**
- * People per step, each step a subset of the one before it.
+ * People per step, each step a subset of the one before it: one group's, or the funnel's own sum.
  *
  * The six step counts are the people with an identifier, which is every mode's cohort. The two
  * `hashed` counts are the cookieless visitors of the `all` mode, counted separately because they are
@@ -42,8 +48,7 @@ export const siteEntryEngagedReviewThreshold = 20;
  * country is selected, and there is no hashed count for the steps below the site ones, because a hash
  * names nobody the web app or the server could ever meet again.
  */
-export type SiteEntryFunnelReport = Readonly<{
-  generatedAtUtc: string;
+export type SiteEntryFunnelCounts = Readonly<{
   entryViewCount: number;
   appEntryClickCount: number;
   signedInCount: number;
@@ -52,9 +57,102 @@ export type SiteEntryFunnelReport = Readonly<{
   engagedReturningCount: number;
   hashedEntryViewCount: number;
   hashedAppEntryClickCount: number;
-  /** Entries whose seven-day window had not closed when the query ran. */
+  /** Entries whose seven-day window had not closed when the query ran; a hashed person has none. */
   maturingCount: number;
 }>;
+
+/**
+ * One group's counts under the key the SQL produced: the dimension's own value,
+ * `unresolvedFunnelGroupKey` for a person it cannot place, or `ungroupedSiteEntryGroupKey` while no
+ * dimension is selected.
+ *
+ * The cookieless visitors are `Unresolved` under either dimension while one is selected, and on the
+ * single group while none is. Their country is unknowable, and their page view's own `ui_locale` is
+ * readable but deliberately not grouped on here, so a language group is short by the cookieless
+ * people who carry that language rather than containing them.
+ */
+export type SiteEntryFunnelGroup = SiteEntryFunnelCounts & Readonly<{ key: string }>;
+
+/**
+ * One entry per group, and exactly one while no dimension is selected.
+ *
+ * EVERY COUNT IS GROUPED, so a range nobody entered returns no groups at all rather than a row of
+ * zeros; the section sums the groups it did get, which is zero people and its own empty state.
+ */
+export type SiteEntryFunnelReport = Readonly<{
+  generatedAtUtc: string;
+  groups: ReadonlyArray<SiteEntryFunnelGroup>;
+}>;
+
+/**
+ * The one key of the ungrouped funnel, and the hashed row's key too while no dimension is selected.
+ * Both reads must produce this same literal: the outer `SUM ... GROUP BY group_key` merges the two
+ * rows on it, and a second literal would return the ungrouped `all`-mode funnel as two rows.
+ */
+const ungroupedSiteEntryGroupKey = "all";
+
+/**
+ * The two dimensions, whose key is not on the cohort row but in a per-actor source joined beside it.
+ * The ids are named here because the dimension that declares one and the join that supplies it have
+ * to agree, and they are written in two places.
+ */
+const connectionCountryGroupByDimensionId = "country";
+const appUiLanguageGroupByDimensionId = "language";
+
+/**
+ * What these funnels offer in their `Group by` field, in picker order.
+ *
+ * Each expression yields exactly one key per person in the cohort, so the groups partition the funnel
+ * and still sum to it, and both can be NULL for somebody they cannot place, which the query folds
+ * into the `Unresolved` group. The client platform is not offered: the entry is a marketing-site page
+ * view and the site always reports as web, as the field explanations in
+ * `../../filters/analyticsFilters.ts` state, so grouping by it would always draw one bar.
+ */
+export const siteEntryFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDimension> = [
+  {
+    id: connectionCountryGroupByDimensionId,
+    label: "Connection country",
+    buildGroupKeySql: () => "actor_country.country",
+  },
+  {
+    id: appUiLanguageGroupByDimensionId,
+    label: "App interface language",
+    buildGroupKeySql: () => "actor_language.ui_locale",
+  },
+];
+
+/**
+ * The per-actor source the selected dimension's key expression reads, joined to the cohort, or no
+ * lines at all while none is selected.
+ *
+ * ONE SOURCE, NEVER BOTH, the way `../mobileFirstLaunchFunnel/query.ts` does it: each of the two is a
+ * scan of its own and this query is shaped around the 30 s statement timeout, so a join whose alias
+ * the group key never mentions is paid for nothing. The alias each case supplies is the one the
+ * matching dimension's `buildGroupKeySql` names, which is why the two are written against the same
+ * id constants.
+ */
+function buildGroupSourceJoinSqlLines(
+  groupByDimension: FunnelGroupByDimension | null,
+  dateRange: AnalyticsFilterState["dateRange"],
+): ReadonlyArray<string> {
+  if (groupByDimension?.id === connectionCountryGroupByDimensionId) {
+    return [
+      "LEFT JOIN (",
+      buildActorConnectionCountrySql(dateRange),
+      ") AS actor_country ON actor_country.actor_id = cohort.actor_id",
+    ];
+  }
+
+  if (groupByDimension?.id === appUiLanguageGroupByDimensionId) {
+    return [
+      "LEFT JOIN (",
+      buildActorAppUiLanguageSql(dateRange),
+      ") AS actor_language ON actor_language.actor_id = cohort.actor_id",
+    ];
+  }
+
+  return [];
+}
 
 /** A marketing-site fact: only the credential-free collector writes these, under the visitor cookie. */
 function buildSiteFactSql(rowAlias: string, eventName: string): string {
@@ -122,8 +220,14 @@ function buildHashedSiteEntryCteSqlLines(
 
 /**
  * One row per person whose first identified marketing-site page view is a `pageKind` page on a
- * selected UTC day from `siteEntryFunnelStartDate` on, reduced in SQL to one row of step counts that
- * follow the funnel rule in `../funnels/funnelSections.ts`.
+ * selected UTC day from `siteEntryFunnelStartDate` on, reduced in SQL to one row of step counts per
+ * group that follow the funnel rule in `../funnels/funnelSections.ts`.
+ *
+ * THE GROUP KEY IS A PROPERTY OF THE PERSON, never of a step: it is computed once per cohort row and
+ * every count is taken inside it, so the groups partition the funnel and sum back to it step by
+ * step, `maturing_count` included. `None` groups by one literal, so there is one group of everybody
+ * and no dimension source is joined at all, and a selected dimension joins only the one source its
+ * own key reads.
  *
  * The person is the visitor cookie the site reports under, `analytics_visitor`, which the web app on
  * the same domain reports under too. The web app's first authenticated analytics batch after sign-in
@@ -155,13 +259,14 @@ function buildHashedSiteEntryCteSqlLines(
  *
  * The audience mode reaches this in two places and nowhere else: `signed-in` adds one restriction to
  * `cohort`, and `all` appends `buildHashedSiteEntryCteSqlLines` as a second, independent cohort whose
- * two counts are returned beside these and added to the first two steps by the section. Neither
+ * two counts are a group row of their own that the section adds to the first two steps. Neither
  * changes anything above, so the default mode produces exactly the statement it produced before.
  */
 export function buildSiteEntryFunnelSql(
   filters: AnalyticsFilterState,
   pageKind: SiteEntryPageKind,
   reportLabel: string,
+  groupByDimension: FunnelGroupByDimension | null,
 ): string {
   const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, reportLabel);
   // A range ending before the start date leaves `from` after `to`, so nobody enters.
@@ -175,7 +280,7 @@ export function buildSiteEntryFunnelSql(
   // what it cost before the modes existed and only `all` pays for the second pass over the site rows.
   const isHashedCohortRead = isFunnelHashedCohortRead(filters);
 
-  return [
+  const cteSqlLines = [
     "WITH actor_first_events AS MATERIALIZED (",
     "  SELECT",
     "    resolved.actor_id,",
@@ -276,7 +381,18 @@ export function buildSiteEntryFunnelSql(
       ? buildHashedSiteEntryCteSqlLines(filters, pageKind, from, to)
       : []),
     ")",
+  ];
+  // Every count is grouped, always: with no dimension the key is one literal, so the shape of the
+  // query is the same whichever way the field is set and `None` is simply one group of everybody.
+  // `::text` on both branches, deliberately rather than by default: the key is also the `GROUP BY`
+  // target and is read back as a string, so nothing here depends on how Postgres resolves the type
+  // of a bare literal or of a `COALESCE` over one.
+  const groupKeySql = groupByDimension === null
+    ? `${escapeSqlStringLiteral(ungroupedSiteEntryGroupKey)}::text`
+    : `COALESCE(${groupByDimension.buildGroupKeySql(filters)}, ${escapeSqlStringLiteral(unresolvedFunnelGroupKey)})::text`;
+  const identifiedGroupSqlLines = [
     "SELECT",
+    `  ${groupKeySql} AS group_key,`,
     "  COUNT(*)::int AS entry_view_count,",
     "  COUNT(clicked.clicked_at)::int AS app_entry_click_count,",
     "  COUNT(signed_in.signed_in_at)::int AS signed_in_count,",
@@ -291,22 +407,67 @@ export function buildSiteEntryFunnelSql(
     "  (COUNT(*) FILTER (",
     `    WHERE cohort.entered_at + ${windowSql} > now()`,
     "  ))::int AS maturing_count,",
-    // Uncorrelated scalars over the hashed relations, which are keyed on nothing this aggregate over
-    // `cohort` shares, so they are evaluated once each rather than per identified person.
-    ...(isHashedCohortRead
-      ? [
-        "  (SELECT COUNT(*) FROM hashed_cohort)::int AS hashed_entry_view_count,",
-        "  (SELECT COUNT(*) FROM hashed_clicks)::int AS hashed_app_entry_click_count",
-      ]
-      : [
-        "  0::int AS hashed_entry_view_count,",
-        "  0::int AS hashed_app_entry_click_count",
-      ]),
+    "  0::int AS hashed_entry_view_count,",
+    "  0::int AS hashed_app_entry_click_count",
     "FROM cohort",
     "LEFT JOIN app_entry_clicks AS clicked ON clicked.actor_id = cohort.actor_id",
     "LEFT JOIN sessions AS signed_in ON signed_in.actor_id = cohort.actor_id",
     "LEFT JOIN first_reviews AS first_review ON first_review.actor_id = cohort.actor_id",
     "LEFT JOIN person_engagement AS engagement ON engagement.actor_id = cohort.actor_id",
+    ...buildGroupSourceJoinSqlLines(groupByDimension, filters.dateRange),
+    "GROUP BY group_key",
+  ];
+  if (isHashedCohortRead === false) {
+    return [...cteSqlLines, ...identifiedGroupSqlLines].join("\n");
+  }
+
+  // The cookieless people are a row of their own rather than two scalars on the identified rows,
+  // because a grouped aggregate returns no row at all when nobody identified entered, and their
+  // count may not disappear with them; the outer aggregate then merges that row into the identified
+  // group of the same key and every count stays summed exactly once. The key is `Unresolved` under
+  // either dimension while one is selected, and the single ungrouped key while none is: a hashed
+  // person has no actor, so their country is unknowable, and while `hashed_cohort` does read their
+  // page view's own `ui_locale`, these funnels deliberately do not group them by it, because keying
+  // this row on a locale would make it an aggregate whose two uncorrelated hashed scalars would be
+  // attributed to every locale group at once.
+  const hashedGroupKey = groupByDimension === null ? ungroupedSiteEntryGroupKey : unresolvedFunnelGroupKey;
+
+  return [
+    ...cteSqlLines,
+    "SELECT",
+    "  funnel_group.group_key,",
+    "  SUM(funnel_group.entry_view_count)::int AS entry_view_count,",
+    "  SUM(funnel_group.app_entry_click_count)::int AS app_entry_click_count,",
+    "  SUM(funnel_group.signed_in_count)::int AS signed_in_count,",
+    "  SUM(funnel_group.one_review_count)::int AS one_review_count,",
+    "  SUM(funnel_group.engaged_count)::int AS engaged_count,",
+    "  SUM(funnel_group.engaged_returning_count)::int AS engaged_returning_count,",
+    "  SUM(funnel_group.maturing_count)::int AS maturing_count,",
+    "  SUM(funnel_group.hashed_entry_view_count)::int AS hashed_entry_view_count,",
+    "  SUM(funnel_group.hashed_app_entry_click_count)::int AS hashed_app_entry_click_count",
+    "FROM (",
+    ...identifiedGroupSqlLines,
+    "  UNION ALL",
+    "  SELECT",
+    `    ${escapeSqlStringLiteral(hashedGroupKey)}::text AS group_key,`,
+    "    0::int AS entry_view_count,",
+    "    0::int AS app_entry_click_count,",
+    "    0::int AS signed_in_count,",
+    "    0::int AS one_review_count,",
+    "    0::int AS engaged_count,",
+    "    0::int AS engaged_returning_count,",
+    // A hashed person ceases to exist at the end of their UTC day, so they have no window to fill.
+    "    0::int AS maturing_count,",
+    // Uncorrelated scalars over the hashed relations, evaluated once each rather than per person.
+    "    (SELECT COUNT(*) FROM hashed_cohort)::int AS hashed_entry_view_count,",
+    "    (SELECT COUNT(*) FROM hashed_clicks)::int AS hashed_app_entry_click_count",
+    ") AS funnel_group",
+    "GROUP BY funnel_group.group_key",
+    // The hashed row is emitted unconditionally, so without this the `Unresolved` group survives
+    // with nobody in it whenever the hashed relations are empty - common, since hashed rows exist
+    // only for pre-consent EEA and UK traffic - and the chart spends a legend entry, a band slot
+    // that narrows every real bar, and a table row on it. Only a group that entered is a group.
+    "HAVING SUM(funnel_group.entry_view_count) + SUM(funnel_group.hashed_entry_view_count) > 0",
   ].join("\n");
 }
 
@@ -315,31 +476,36 @@ export async function loadSiteEntryFunnelReport(
   filters: AnalyticsFilterState,
   pageKind: SiteEntryPageKind,
   reportLabel: string,
+  groupByDimension: FunnelGroupByDimension | null,
 ): Promise<SiteEntryFunnelReport> {
-  const response = await runAdminQuery(config, buildSiteEntryFunnelSql(filters, pageKind, reportLabel));
+  const response = await runAdminQuery(
+    config,
+    buildSiteEntryFunnelSql(filters, pageKind, reportLabel, groupByDimension),
+  );
   if (response.resultSets.length !== 1) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
   }
 
-  const row = response.resultSets[0]?.rows[0];
-  if (row === undefined || response.resultSets[0]?.rows.length !== 1) {
-    throw new Error(
-      `${reportLabel} must return exactly one row. Got ${response.resultSets[0]?.rows.length ?? 0}.`,
-    );
-  }
-
-  const count = (fieldName: string): number => toInteger(row[fieldName] ?? null, reportLabel, fieldName);
+  // No row is a legal answer and means nobody entered the funnel, because every count is grouped.
+  const rows = response.resultSets[0]?.rows ?? [];
 
   return {
     generatedAtUtc: response.executedAtUtc,
-    entryViewCount: count("entry_view_count"),
-    appEntryClickCount: count("app_entry_click_count"),
-    signedInCount: count("signed_in_count"),
-    oneReviewCount: count("one_review_count"),
-    engagedCount: count("engaged_count"),
-    engagedReturningCount: count("engaged_returning_count"),
-    hashedEntryViewCount: count("hashed_entry_view_count"),
-    hashedAppEntryClickCount: count("hashed_app_entry_click_count"),
-    maturingCount: count("maturing_count"),
+    groups: rows.map((row) => {
+      const count = (fieldName: string): number => toInteger(row[fieldName] ?? null, reportLabel, fieldName);
+
+      return {
+        key: assertIsString(row.group_key ?? null, reportLabel, "group_key"),
+        entryViewCount: count("entry_view_count"),
+        appEntryClickCount: count("app_entry_click_count"),
+        signedInCount: count("signed_in_count"),
+        oneReviewCount: count("one_review_count"),
+        engagedCount: count("engaged_count"),
+        engagedReturningCount: count("engaged_returning_count"),
+        hashedEntryViewCount: count("hashed_entry_view_count"),
+        hashedAppEntryClickCount: count("hashed_app_entry_click_count"),
+        maturingCount: count("maturing_count"),
+      };
+    }),
   };
 }
