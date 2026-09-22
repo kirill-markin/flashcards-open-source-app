@@ -23,9 +23,10 @@
  */
 
 /**
- * Mirrors `productAnalyticsSurfaces` in catalog order. Two values are unreachable from this client
- * and are kept only so the mirror stays comparable to the catalog by eye: `notifications_pre_prompt`
- * and `signin_after_review_prompt`, the two prompts above that this app does not have.
+ * Mirrors `productAnalyticsSurfaces` in catalog order. Three values are kept only so the mirror
+ * stays comparable to the catalog by eye: `notifications_pre_prompt` and
+ * `signin_after_review_prompt`, the two prompts above that this app does not have, and
+ * `settings_legal`, a screen this app does have but never reports under its own value.
  *
  * `signin` and `credential_recovery` are reachable, from `resolveSessionGateSurface` in `App.tsx`.
  * The email and code steps of signing in do live on the auth service's origin, but the catalog
@@ -40,6 +41,10 @@ export type AnalyticsSurface =
   | "cards"
   | "progress"
   | "settings"
+  // The legal and privacy screen. Declared so the mirror stays comparable to the catalog, and not
+  // mapped: `resolveAnalyticsSurface` still reports `settings` for `/settings/legal`, as it does
+  // for every other settings leaf.
+  | "settings_legal"
   | "ai"
   | "decks"
   | "deck_editor"

@@ -160,7 +160,11 @@ async function loadAuthenticatedRequestContext(
     email: userProfile.email,
     locale: userProfile.locale,
     userSettingsCreatedAt: userProfile.createdAt,
-    preferences: userProfile.preferences,
+    // A guest's analytics decision lives on the guest session, so the org.user_settings column the
+    // profile carries is not that person's answer and would report an opt-out as unanswered.
+    preferences: auth.transport === "guest"
+      ? { ...userProfile.preferences, analyticsConsent: auth.guestAnalyticsConsent }
+      : userProfile.preferences,
     transport: auth.transport,
     connectionId: auth.connectionId,
     guestSessionId: auth.guestSessionId,

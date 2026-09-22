@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type pg from "pg";
+import type { AnalyticsConsentChoice } from "../../auth/ensureUser";
 import { hasCognitoIdentityMappingForUserInExecutor } from "../../auth/userIdentities";
 import type { DatabaseExecutor } from "../../database";
 import { applyUserDatabaseScopeInExecutor } from "../../database";
@@ -13,12 +14,21 @@ import {
   lockUserSettingsForWorkspaceLifecycleInExecutor,
   UserSettingsRowNotFoundError,
 } from "../../workspaces/state";
+import { guestSessionAnalyticsConsentColumnExistsInExecutor } from "../analyticsConsentColumn";
 import { guestSessionPlatformColumnExistsInExecutor } from "../platformColumn";
 import { hashGuestToken } from "../shared";
 import { loadGuestWorkspaceIdInExecutor } from "../store/index";
 import type { GuestSessionPlatform, GuestSessionSnapshot } from "../types";
 
 type GuestSessionRow = Readonly<{
+  session_id: string;
+  user_id: string;
+  platform: GuestSessionPlatform | null;
+  analytics_consent: AnalyticsConsentChoice | null;
+  revoked_at: Date | string | null;
+}>;
+
+type PreAnalyticsConsentGuestSessionRow = Readonly<{
   session_id: string;
   user_id: string;
   platform: GuestSessionPlatform | null;
@@ -31,10 +41,18 @@ type LegacyGuestSessionRow = Readonly<{
   revoked_at: Date | string | null;
 }>;
 
+function toUndecidedGuestSessionRow(row: PreAnalyticsConsentGuestSessionRow): GuestSessionRow {
+  return {
+    ...row,
+    analytics_consent: null,
+  };
+}
+
 function toUnboundGuestSessionRow(row: LegacyGuestSessionRow): GuestSessionRow {
   return {
     ...row,
     platform: null,
+    analytics_consent: null,
   };
 }
 
@@ -45,7 +63,22 @@ const unsafeGuestSessionExecutor: DatabaseExecutor = {
 async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow | null> {
   const sessionSecretHash = hashGuestToken(guestToken);
   if (await guestSessionPlatformColumnExistsInExecutor(unsafeGuestSessionExecutor)) {
-    const result = await unsafeQuery<GuestSessionRow>(
+    // Each added column answers for itself: the platform probe above is cached true in production
+    // and says nothing about the column migration 0146 has yet to add in this same release.
+    if (await guestSessionAnalyticsConsentColumnExistsInExecutor(unsafeGuestSessionExecutor)) {
+      const result = await unsafeQuery<GuestSessionRow>(
+        [
+          "SELECT session_id, user_id, platform, analytics_consent, revoked_at",
+          "FROM auth.guest_sessions",
+          "WHERE session_secret_hash = $1",
+          "LIMIT 1",
+        ].join(" "),
+        [sessionSecretHash],
+      );
+      return result.rows[0] ?? null;
+    }
+
+    const preAnalyticsConsentResult = await unsafeQuery<PreAnalyticsConsentGuestSessionRow>(
       [
         "SELECT session_id, user_id, platform, revoked_at",
         "FROM auth.guest_sessions",
@@ -54,7 +87,10 @@ async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow 
       ].join(" "),
       [sessionSecretHash],
     );
-    return result.rows[0] ?? null;
+    const preAnalyticsConsentRow = preAnalyticsConsentResult.rows[0];
+    return preAnalyticsConsentRow === undefined
+      ? null
+      : toUndecidedGuestSessionRow(preAnalyticsConsentRow);
   }
 
   // During the single-release rollout, new Lambda code can run before
@@ -77,6 +113,7 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
   sessionId: string;
   userId: string;
   platform: GuestSessionPlatform | null;
+  analyticsConsent: AnalyticsConsentChoice | null;
 }>> {
   const row = await loadGuestSessionRow(guestToken);
   if (row === null || row.revoked_at !== null) {
@@ -87,6 +124,9 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
     sessionId: row.session_id,
     userId: row.user_id,
     platform: row.platform,
+    // A guest has no account to keep an analytics decision on, so it rides in with the credential
+    // that was read anyway rather than costing a second query per request.
+    analyticsConsent: row.analytics_consent,
   };
 }
 
