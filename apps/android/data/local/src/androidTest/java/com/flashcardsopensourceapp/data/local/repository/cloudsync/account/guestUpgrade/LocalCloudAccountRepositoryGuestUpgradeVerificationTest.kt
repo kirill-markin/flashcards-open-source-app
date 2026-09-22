@@ -130,7 +130,8 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
 
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         assertEquals(listOf("prepare", "fetch"), accountEvents)
@@ -214,7 +215,8 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
 
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         assertNull(linkContext.guestUpgradeMode)
@@ -271,7 +273,8 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
 
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         assertNull(linkContext.guestUpgradeMode)

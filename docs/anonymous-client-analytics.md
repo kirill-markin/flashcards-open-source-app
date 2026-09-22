@@ -156,6 +156,20 @@ corrected afterwards.
 Funnels and event counts over these rows are unaffected: the rule is about counting actors, not about
 counting events.
 
+The Funnels area's `all` audience mode is the one surface that counts people out of these rows, and
+it does not break the rule above: it counts no actor at all. A cookieless site row is keyed on its
+`daily_visitor_hash` and the UTC day of that hash's salt, so one person there is one browser for one
+day and nobody the app can ever meet again, which is why those people appear only at the site steps
+and as a segment of their own. That cohort reads no `anonymous_id`, so the unverified claim this
+section is about decides nothing in it. It is also one of the reads where `automated_client` is read
+on the row rather than on the actor, because these rows have no actor to drop:
+[`funnelAudienceSql.ts`](../apps/admin/src/reports/funnels/funnelAudienceSql.ts) keeps a browser-day
+out of the cohort when its rows are marked `IS TRUE`. It is not the only one, and the whole list of
+them is the one the `buildNonAutomatedClientRowsFilterSql` comment in
+[`filterSql.ts`](../apps/admin/src/filters/filterSql.ts) carries; read it from there rather than from
+this page. Everywhere an actor does exist, the shared exclusion rule drops that actor instead
+([Admin app](admin-app.md)).
+
 ## Identity-free events
 
 A catalog entry may declare `identityFree`, meaning the event may never be stored beside any

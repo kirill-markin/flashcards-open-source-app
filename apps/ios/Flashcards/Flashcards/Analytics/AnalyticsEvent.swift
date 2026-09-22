@@ -12,16 +12,10 @@ import Foundation
  * catalog — is gone; while it existed an event carrying it as its `screen` compiled and was
  * rejected `invalid_event`.
  *
- * The ten server-derived events are absent here on purpose, because a client batch that carries one
- * is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
+ * The eleven server-derived events are absent here on purpose, because a client batch that carries
+ * one is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `deck_created`, `deck_updated`, `friend_invitation_created`, `friendship_created`,
- * `ai_message_sent` and `catalog_deck_installed`.
- *
- * `signin_code_requested` and `signin_succeeded` are client-emittable and absent for a different
- * reason: this app reports neither of the two middle funnel steps. Adopting one is its own change —
- * a case here plus an emit site in the iOS sign-in flow — rather than a gap in this mirror. Which
- * other producers already report them is not this file's to track; the catalog entry is where their
- * shape is defined.
+ * `ai_message_sent`, `ai_run_failed` and `catalog_deck_installed`.
  *
  * `onboarding_step_completed`, `review_session_started` and `review_session_ended` remain outside
  * the active catalog. The server keeps exact backend-only tombstones for old queued copies and
@@ -30,6 +24,17 @@ import Foundation
 enum AnalyticsEvent: Sendable, Equatable {
     case appOpened(launchType: AnalyticsLaunchType)
     case screenViewed(screen: AnalyticsSurface)
+    /**
+     * The two middle steps of the sign-in funnel, read against `signInFailed`.
+     *
+     * Each carries the surface its sign-in is running on, which the catalog requires and which is
+     * `screen` in its ordinary reading — where the person is now. That is deliberately not
+     * `signInFailed`'s entry point: the ordinary flow is `signin` wherever the sheet was opened
+     * from, and only the credential-recovery gate, which replaces the app root instead of
+     * presenting over a screen, reports itself.
+     */
+    case signInCodeRequested(screen: AnalyticsSurface)
+    case signInSucceeded(screen: AnalyticsSurface)
     case signInFailed(reason: AnalyticsSignInFailureReason)
     /// The card flip: the answer side being shown, once per card presentation. It never reaches the
     /// backend on its own, so only a client can report it, and it is the denominator the
@@ -95,6 +100,10 @@ enum AnalyticsSurface: String, Sendable, Equatable, CaseIterable {
     case cards
     case progress
     case settings
+    // The legal and privacy screen, the one settings leaf the catalog names on its own, because the
+    // analytics opt-out promised in the privacy policy is exercised there. Nothing here reports it:
+    // `AccountLegalView` is still counted as `settings` like every other leaf.
+    case settingsLegal = "settings_legal"
     case ai
     // Workspace content management. These are pushed under Settings here only as a routing accident:
     // they act on the person's own decks, cards and tags, the same object family `cards`,
@@ -298,6 +307,10 @@ extension AnalyticsEvent {
             return "app_opened"
         case .screenViewed:
             return "screen_viewed"
+        case .signInCodeRequested:
+            return "signin_code_requested"
+        case .signInSucceeded:
+            return "signin_succeeded"
         case .signInFailed:
             return "signin_failed"
         case .reviewCardRevealed:
@@ -325,9 +338,9 @@ extension AnalyticsEvent {
 
     /**
      * `screen` is a top-level event field on the wire, never a property: a surface placed inside
-     * `properties` is rejected `unknown_property`. Only `screen_viewed`, `review_card_revealed` and
-     * `dictation_started` carry one of their own; every other event takes the surface the caller was
-     * on, if any.
+     * `properties` is rejected `unknown_property`. Only `screen_viewed`, `review_card_revealed`,
+     * the two sign-in steps and `dictation_started` carry one of their own; every other event
+     * takes the surface the caller was on, if any.
      */
     var declaredScreen: AnalyticsSurface? {
         switch self {
@@ -340,6 +353,11 @@ extension AnalyticsEvent {
         // unrecognised surface value draws instead.
         case .reviewCardRevealed:
             return .review
+        // The catalog requires a surface on both sign-in steps, and the sign-in flow always knows
+        // which of its two surfaces it is running on, so the value travels with the event instead
+        // of being left to a `track(screen:)` a call site can forget.
+        case .signInCodeRequested(let screen), .signInSucceeded(let screen):
+            return screen
         // The catalog requires a surface on the start, and dictation has no home on this client
         // other than the AI chat composer, so there is nothing for a call site to choose.
         case .dictationStarted:
@@ -359,6 +377,8 @@ extension AnalyticsEvent {
         case .appOpened(let launchType):
             return ["launch_type": .string(launchType.rawValue)]
         case .screenViewed:
+            return [:]
+        case .signInCodeRequested, .signInSucceeded:
             return [:]
         case .signInFailed(let reason):
             return ["reason": .string(reason.rawValue)]

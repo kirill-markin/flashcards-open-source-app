@@ -16,19 +16,14 @@ package com.flashcardsopensourceapp.core.observability.analytics
  * A narrower enum is allowed, and every omission is deliberate and documented at the enum itself.
  * A value being absent here is therefore not on its own evidence that the server rejects it.
  *
- * Ten events are server-derived — `guest_upgrade_completed`, `review_answered`, `card_created`,
+ * Eleven events are server-derived — `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `deck_created`, `deck_updated`, `friend_invitation_created`,
- * `friendship_created`, `ai_message_sent` and `catalog_deck_installed`. A client batch that
- * contains any of them is rejected, so they are absent here on purpose.
+ * `friendship_created`, `ai_message_sent`, `ai_run_failed` and `catalog_deck_installed`. A client
+ * batch that contains any of them is rejected, so they are absent here on purpose.
  *
  * `onboarding_step_completed`, `review_session_started` and `review_session_ended` remain outside
  * the active catalog. The server keeps exact backend-only tombstones for old queued copies and
  * rejects them `retired_event_name`.
- *
- * Two client events the catalog declares are absent because this client does not observe them yet
- * rather than because it may not send them: `signin_code_requested` and `signin_succeeded`.
- * Whoever wires the Android sign-in funnel adds each one here and at its emit site together, and
- * reads the catalog entry for the shape.
  */
 
 /** Named because the delivery path has to recognise a batch that carries nothing else. */
@@ -59,6 +54,11 @@ enum class AnalyticsSurface(val wireValue: String) {
     CARDS(wireValue = "cards"),
     PROGRESS(wireValue = "progress"),
     SETTINGS(wireValue = "settings"),
+
+    // The legal and privacy screen, the one settings leaf the catalog names on its own, because the
+    // analytics opt-out promised in the privacy policy is exercised there. No site reports it:
+    // `analyticsSurfaceForRoute` still folds `settings/legal` into SETTINGS with every other leaf.
+    SETTINGS_LEGAL(wireValue = "settings_legal"),
     AI(wireValue = "ai"),
 
     // Workspace content management. These sit under the settings screen only as a routing accident:
@@ -263,6 +263,28 @@ sealed interface AnalyticsEvent {
         override val screen: AnalyticsSurface
     ) : AnalyticsEvent {
         override val eventName: String = "screen_viewed"
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
+    /**
+     * The two middle steps of the sign-in funnel, read against [SignInFailed].
+     *
+     * `screen` is required and defaulted nowhere, for the reason [PermissionPromptAnswered] refuses
+     * a default: the sign-in runs on the sign-in screen and on the credential-recovery gate, and
+     * the surface is the only thing that tells those two funnels apart. It is `screen` in its
+     * ordinary reading — where the person is now — and never [SignInFailed]'s entry point.
+     */
+    data class SignInCodeRequested(
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "signin_code_requested"
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
+    data class SignInSucceeded(
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "signin_succeeded"
         override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
     }
 

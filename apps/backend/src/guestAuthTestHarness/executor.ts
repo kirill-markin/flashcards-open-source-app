@@ -223,7 +223,10 @@ function handleSchemaExecutorQuery<Row extends pg.QueryResultRow>(
     !text.includes("FROM information_schema.columns")
     || !text.includes("table_schema = 'auth'")
     || !text.includes("table_name = 'guest_sessions'")
-    || !text.includes("column_name = 'platform'")
+    || !(
+      text.includes("column_name = 'platform'")
+      || text.includes("column_name = 'analytics_consent'")
+    )
   ) {
     return null;
   }

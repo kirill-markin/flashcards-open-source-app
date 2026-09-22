@@ -107,7 +107,8 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         try {
@@ -221,7 +222,8 @@ class LocalCloudAccountRepositoryPendingGuestUpgradeRecoveryTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         try {

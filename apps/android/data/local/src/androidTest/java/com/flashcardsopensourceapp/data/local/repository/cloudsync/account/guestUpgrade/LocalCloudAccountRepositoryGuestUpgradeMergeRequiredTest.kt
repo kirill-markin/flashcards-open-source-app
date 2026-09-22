@@ -279,7 +279,8 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         repository.completeGuestUpgrade(
@@ -388,7 +389,8 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         try {
@@ -475,7 +477,8 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
         )
         val linkContext = repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { }
         )
 
         repository.completeGuestUpgrade(

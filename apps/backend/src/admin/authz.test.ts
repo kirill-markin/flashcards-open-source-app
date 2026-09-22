@@ -26,6 +26,7 @@ function createAuthenticatedResult(
     selectedWorkspaceId: null,
     guestSessionId: transport === "guest" ? "guest-session-1" : null,
     guestPlatform: transport === "guest" ? "ios" : null,
+    guestAnalyticsConsent: null,
   };
 }
 

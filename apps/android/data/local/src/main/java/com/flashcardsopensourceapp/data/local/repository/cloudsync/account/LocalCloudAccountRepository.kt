@@ -227,10 +227,15 @@ class LocalCloudAccountRepository(
         return signInCoordinator.prepareVerifiedSignIn(credentials = credentials)
     }
 
-    override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
+    override suspend fun verifyCode(
+        challenge: CloudOtpChallenge,
+        code: String,
+        onVerified: () -> Unit
+    ): CloudWorkspaceLinkContext {
         return signInCoordinator.verifyCode(
             challenge = challenge,
-            code = code
+            code = code,
+            onVerified = onVerified
         )
     }
 

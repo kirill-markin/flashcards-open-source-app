@@ -9,6 +9,7 @@ import {
   persistClaimedChatRunCancelled,
   persistClaimedChatRunTerminalError,
   reconcileInactiveClaimedChatRun,
+  recordAiRunFailedAnalytics,
   touchClaimedChatRunHeartbeat,
 } from "../runs";
 import {
@@ -26,6 +27,7 @@ export type ChatRuntimeDependencies = Readonly<{
   completeChatRun: typeof completeClaimedChatRun;
   persistAssistantCancelled: typeof persistClaimedChatRunCancelled;
   persistAssistantTerminalError: typeof persistClaimedChatRunTerminalError;
+  recordAiRunFailedAnalytics: typeof recordAiRunFailedAnalytics;
   reconcileInactiveChatRun: typeof reconcileInactiveClaimedChatRun;
   touchChatRunHeartbeat: typeof touchClaimedChatRunHeartbeat;
   updateAssistantMessageItem: typeof updateAssistantMessageItem;
@@ -41,6 +43,7 @@ export const DEFAULT_CHAT_RUNTIME_DEPENDENCIES: ChatRuntimeDependencies = {
   completeChatRun: completeClaimedChatRun,
   persistAssistantCancelled: persistClaimedChatRunCancelled,
   persistAssistantTerminalError: persistClaimedChatRunTerminalError,
+  recordAiRunFailedAnalytics,
   reconcileInactiveChatRun: reconcileInactiveClaimedChatRun,
   touchChatRunHeartbeat: touchClaimedChatRunHeartbeat,
   updateAssistantMessageItem,
