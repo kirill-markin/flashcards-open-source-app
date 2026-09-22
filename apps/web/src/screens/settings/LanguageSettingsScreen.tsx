@@ -7,25 +7,13 @@ import {
   type TranslationKey,
   useI18n,
 } from "../../i18n";
+import { LanguagePicker } from "./LanguagePicker";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 type LocaleNameTranslationKey = `locale.names.${Locale}`;
 
 function localeNameKey(locale: Locale): LocaleNameTranslationKey {
   return `locale.names.${locale}`;
-}
-
-function parseLocalePreference(value: string): LocalePreference {
-  if (value === autoLocalePreference) {
-    return autoLocalePreference;
-  }
-
-  const locale = supportedLocales.find((supportedLocale) => supportedLocale === value);
-  if (locale !== undefined) {
-    return locale;
-  }
-
-  throw new Error(`Unsupported locale preference: ${value}`);
 }
 
 function formatLocalePreferenceLabel(
@@ -40,7 +28,7 @@ function formatLocalePreferenceLabel(
 }
 
 export function LanguageSettingsScreen(): ReactElement {
-  const { locale, localePreference, setLocalePreference, t } = useI18n();
+  const { locale, localePreference, t } = useI18n();
   const localeLabel = t(localeNameKey(locale));
   const localePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
 
@@ -57,25 +45,10 @@ export function LanguageSettingsScreen(): ReactElement {
               <strong className="panel-subtitle">{t("settingsDevice.languageCardTitle")}</strong>
               <p className="subtitle">{t("settingsDevice.languageCardDescription")}</p>
             </div>
-            <label className="cell-stack" htmlFor="settings-language-preference">
+            <div className="cell-stack">
               <span className="cell-secondary">{t("locale.labels.languageSelection")}</span>
-              <select
-                id="settings-language-preference"
-                className="settings-select"
-                value={localePreference}
-                data-testid="settings-language-preference-select"
-                onChange={(event) => {
-                  setLocalePreference(parseLocalePreference(event.target.value));
-                }}
-              >
-                <option value={autoLocalePreference}>{t("locale.preferenceAuto")}</option>
-                {supportedLocales.map((supportedLocale) => (
-                  <option key={supportedLocale} value={supportedLocale}>
-                    {t(localeNameKey(supportedLocale))}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <LanguagePicker />
+            </div>
           </article>
           <article className="content-card settings-summary-card">
             <span className="cell-secondary">{t("locale.labels.appLanguage")}</span>
