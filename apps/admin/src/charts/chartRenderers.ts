@@ -770,8 +770,9 @@ const funnelStepClipMarkDepth = 6;
 const funnelStepClipMarkToothWidth = 10;
 const funnelShareAxisFormatter = d3.format(".0%");
 
+/** An even tooth count starts and ends the zig-zag at its depth, inside the bar's rounded top corners. */
 function buildFunnelStepClipMarkPath(width: number): string {
-  const toothCount = Math.max(2, Math.round(width / funnelStepClipMarkToothWidth));
+  const toothCount = 2 * Math.max(1, Math.round(width / (2 * funnelStepClipMarkToothWidth)));
   const points = d3.range(toothCount + 1).map((index) => {
     const pointY = index % 2 === 0 ? funnelStepClipMarkDepth : 0;
     return `${(width * index) / toothCount},${pointY}`;
@@ -825,8 +826,9 @@ function getFunnelStepAriaLabel(step: FunnelStepBar, stepIndex: number, anchorIn
  * them, and a zero step keeps a thin muted stub so it still reads as a measured step. The labels sit
  * above the taller of the bar and its ghost so the ghost's dashed top edge never crosses them.
  * Each step's whole column is a toggle button that re-anchors the shares on it. A selected step with
- * visitors re-bases the chart: its count fills the plot, the axis reads as a share of it, it loses its
- * ghost, and steps before it turn grey, capped at the plot top with a zig-zag clip mark when taller.
+ * visitors re-bases the chart: its count fills the plot, the axis reads as a share of it, it and the
+ * steps before it lose their ghosts, and those earlier steps turn grey, capped at the plot top with a
+ * zig-zag clip mark when taller.
  * A redraw keeps keyboard focus on the column that held it.
  */
 export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): void {
@@ -963,10 +965,16 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("height", funnelChartHeight - (funnelStepHitEdgeInset + funnelStepFocusRingInset) * 2)
     .attr("rx", 4);
 
-  // The anchor's previous step lies outside the measured funnel, so the anchor draws no ghost.
-  const getGhostCount = (step: FunnelStepBar): number | null => (
-    hasAnchor && getStepIndex(step.label) === params.anchorIndex ? null : step.previousCount
-  );
+  // The anchor's previous step lies outside the measured funnel, so the anchor draws no ghost. A re-based
+  // chart also drops the grey steps' ghosts, whose dashed outline would show through the faded bar.
+  const getGhostCount = (step: FunnelStepBar): number | null => {
+    const index = getStepIndex(step.label);
+    if (hasAnchor && index === params.anchorIndex) {
+      return null;
+    }
+
+    return isRebased && index < params.anchorIndex ? null : step.previousCount;
+  };
   stepGroups.filter((step) => {
     const ghostCount = getGhostCount(step);
     return ghostCount !== null && ghostCount > step.count;
