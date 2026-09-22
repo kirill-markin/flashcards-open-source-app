@@ -17,6 +17,7 @@ import {
   buildCatalogInstallAttributionSql,
   buildCatalogInstalledDeckVersionsSql,
   buildConnectionCountrySamplesSql,
+  buildExcludedActorSqlLines,
   buildExcludedActorsFilterSql,
   buildTrustedActorRowsFilterSql,
 } from "./filterSql";
@@ -58,29 +59,6 @@ export type CatalogDeckOption = Readonly<{
   packageVersionId: string;
   packageSlug: string;
 }>;
-
-// The two exclusions every option list restates, so a value only a test account or an excluded actor
-// ever produced is not offered. The email side folds the stored side of its join for the reason
-// `buildReviewEventsByDateSql` states in full, and it asks whether any stored row of that actor is a
-// test address rather than joining them: an actor with two case-folded rows would otherwise keep the
-// value as soon as one of them carried a NULL or a real address. This helper carries those two
-// exclusions and no other: a caller whose own report also drops active admins restates that exclusion
-// itself right after calling this, as the packages list below does, while a caller whose own surface
-// still shows admins deliberately leaves it out, as the country list below does for the reason it
-// states there.
-function buildExcludedActorSqlLines(
-  actorIdSqlExpression: string,
-): ReadonlyArray<string> {
-  return [
-    "  AND NOT EXISTS (",
-    "    SELECT 1",
-    "    FROM org.user_settings AS excluded_settings",
-    `    WHERE pg_catalog.lower(excluded_settings.user_id) = ${actorIdSqlExpression}`,
-    "      AND LOWER(btrim(excluded_settings.email)) LIKE '%@example.com'",
-    "  )",
-    `  AND ${buildExcludedActorsFilterSql(actorIdSqlExpression)}`,
-  ];
-}
 
 // Every actor the General sections can show inside the range, with the review-event count the popup
 // prints next to them. The four sources are the four ways a person reaches a chart: review events,
@@ -292,8 +270,7 @@ function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRan
 // restates none of them.
 //
 // The delisted `test` fixture of `db/migrations/0111_delist_catalog_test_fixture.sql` is left out
-// here, as it is everywhere a deck is named; the four dimension lists below cannot name a deck and
-// leave it in.
+// here, as it is everywhere a deck is named.
 function buildAnalyticsFilterOptionCatalogDecksSql(): string {
   return [
     "SELECT",
@@ -318,11 +295,11 @@ function buildAnalyticsFilterOptionCatalogDecksSql(): string {
   ].join("\n");
 }
 
-// Every value one catalog attribution dimension carried on the originating click of a completed
+// Every value one catalog attribution dimension carried on the attributed click of a completed
 // install, read through the same lifetime fragment the four click-dimension predicates read, so this
-// list is unscoped by the selected range exactly as they are. What it offers is a strict subset of
-// what they match, because it restates `%@example.com` and the excluded actors while they restate
-// nothing; the active-admin exclusion is not restated, for the reason the country list above states.
+// list is unscoped by the selected range exactly as they are and offers exactly the values they can
+// match. Nothing is restated here: that fragment already applies the `test` slug guard and
+// `buildExcludedActorSqlLines` inside, so the list and the predicates share one set of exclusions.
 // A NULL is not offered: no selection can match it, and a person whose attributed clicks recorded only
 // NULLs is exactly the person a narrowed field drops.
 function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string): string {
@@ -332,7 +309,6 @@ function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string):
     buildCatalogInstallAttributionSql(),
     ") AS install_attribution",
     `WHERE install_attribution.${columnSqlName} IS NOT NULL`,
-    ...buildExcludedActorSqlLines("install_attribution.actor_id::text"),
     "ORDER BY option_value ASC",
   ].join("\n");
 }
@@ -343,9 +319,8 @@ function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string):
  * Funnels matches a click that never had to become anything, and its four predicates read the click's
  * own properties (`buildFunnelClickFilterSqlLines` in
  * `apps/admin/src/reports/catalogInstallFunnel/query.ts`), so this reads the same rows rather than the
- * install bridge the user-scoped areas read. That bridge joins on `install_journey_id`, which the
- * server install fact no longer carries, so sourcing this list from it would freeze these four fields
- * on pre-move history. The bridge stays where it is, on the person-level General and Audience filter.
+ * install bridge the user-scoped areas read, which offers only the values of clicks attributed to a
+ * completed install.
  *
  * Unscoped by the selected range, as the lists above are, so a value a narrowed range excludes keeps
  * being offered. What it restates is what the funnel's cohort applies to a click before a predicate
