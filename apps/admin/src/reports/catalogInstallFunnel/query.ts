@@ -81,6 +81,10 @@ export type CatalogInstallFailureBucket = Readonly<{
  * marketing-site page in range. Every other step needs `installClickedAt`, the install click on that
  * same deck version, and is null without it.
  *
+ * A row is not the funnel's unit: the section reduces these rows to people. Every step grows by at
+ * most one per person who reached it, and a person counts at a step only if the same person reached
+ * every earlier step, so a person with rows for several decks still adds at most +1 to each step.
+ *
  * The identity is `analytics.product_events_resolved.actor_id`. A row the browser sent with no
  * account credential - the page view, the site click, the signed-out import screens - resolves through the shared
  * `analytics_visitor` cookie in its `anonymous_id`, and onto the account once the web app records an
@@ -126,25 +130,21 @@ export type CatalogInstallFunnelVisit = Readonly<{
   failureBuckets: ReadonlyArray<CatalogInstallFailureBucket>;
 }>;
 
-export type CatalogInstallPreviewWithoutVisitCount = Readonly<{
-  packageVersionId: string;
-  visitorCount: number;
-}>;
-
 export type CatalogInstallFunnelReport = Readonly<{
   generatedAtUtc: string;
   from: string;
   to: string;
   visits: ReadonlyArray<CatalogInstallFunnelVisit>;
-  previewsWithoutVisitCounts: ReadonlyArray<CatalogInstallPreviewWithoutVisitCount>;
+  /** Distinct people with an import preview of a deck whose page they had not viewed in the selected dates. */
+  previewersWithoutVisitCount: number;
   /**
-   * Server installs on a selected UTC day whose identity viewed no page of that deck in the selected
-   * dates before the install, so no visit row can hold them. A view before the range counts as none
-   * here, exactly as the funnel treats it. It is one slice of the gap between real installs and the
+   * Distinct people with a server install on a selected UTC day of a deck whose page they had not
+   * viewed in the selected dates before the install, so no visit row can hold that install. A view
+   * before the range counts as none here, exactly as the funnel treats it. It is one slice of the gap between real installs and the
    * funnel rather than all of it: an install whose identity did view the page in range is equally
    * unheld whenever its click was dropped by a filter or its step chain is broken.
    */
-  installsWithoutVisitCount: number;
+  installersWithoutVisitCount: number;
   /**
    * The first UTC day visits count from: the later of the selected start and the first day the site
    * reported an identified deck page view. `null` when it had reported none by the end of the range.
@@ -270,32 +270,15 @@ function parseVisitRow(row: Readonly<Record<string, AdminQueryValue>>): CatalogI
   };
 }
 
-function parsePreviewWithoutVisitCounts(
-  resultSet: AdminQueryResultSet,
-): ReadonlyArray<CatalogInstallPreviewWithoutVisitCount> {
-  return resultSet.rows.map((row) => ({
-    packageVersionId: assertIsString(
-      row.package_version_id ?? null,
-      catalogInstallFunnelReportLabel,
-      "package_version_id",
-    ),
-    visitorCount: toInteger(
-      row.visitor_count ?? null,
-      catalogInstallFunnelReportLabel,
-      "visitor_count",
-    ),
-  }));
-}
-
-function parseInstallsWithoutVisitCount(resultSet: AdminQueryResultSet): number {
+function parsePersonCount(resultSet: AdminQueryResultSet, resultSetName: string): number {
   const row = resultSet.rows[0];
-  if (row === undefined) {
+  if (row === undefined || resultSet.rows.length !== 1) {
     throw new Error(
-      `${catalogInstallFunnelReportLabel} installs-without-visit result set must return one row. Got ${resultSet.rows.length}.`,
+      `${catalogInstallFunnelReportLabel} ${resultSetName} result set must return one row. Got ${resultSet.rows.length}.`,
     );
   }
 
-  return toInteger(row.install_count ?? null, catalogInstallFunnelReportLabel, "install_count");
+  return toInteger(row.person_count ?? null, catalogInstallFunnelReportLabel, `${resultSetName} person_count`);
 }
 
 function parseEffectiveFromDate(resultSet: AdminQueryResultSet): string | null {
@@ -906,8 +889,8 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
   // preview: the person reached the import screen and loaded the deck without a deck page view the
   // funnel could anchor on - a shared link, a bookmark, or a view older than the selected range,
   // which `deck_page_views` does not reach because it is bounded below by the range like the cohort
-  // is. Counted as distinct visitor identities per deck version, which is why it is outside the
-  // funnel's denominator rather than a step of it.
+  // is. Outside the funnel's denominator rather than a step of it, and counted as distinct people over
+  // every deck, so a person previewing several such decks adds one.
   const previewWithoutVisitQuery = [
     "WITH",
     ...buildEventWindowSql(from, to),
@@ -944,19 +927,16 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     ...buildExcludedActorFilterSqlLines(),
     ...buildFunnelPreviewFilterSqlLines(filters),
     ")",
-    "SELECT",
-    "  eligible_previews.package_version_id,",
-    "  COUNT(DISTINCT eligible_previews.actor_id)::int AS visitor_count",
+    "SELECT COUNT(DISTINCT eligible_previews.actor_id)::int AS person_count",
     "FROM eligible_previews",
-    "GROUP BY eligible_previews.package_version_id",
-    "ORDER BY visitor_count DESC, eligible_previews.package_version_id",
   ].join("\n");
 
   // Server installs the funnel can never place. Every step above is bridged by identity, so an
   // install whose identity viewed no page of that deck in the selected dates is invisible to all of
   // them - a view before the range included, since `deck_page_views` shares the cohort's lower bound -
   // and that absence is legitimate: an install link can be shared, bookmarked or reopened weeks later.
-  // This counts them so part of the gap is a number rather than a suspicion.
+  // This counts the distinct people behind them so part of the gap is a number rather than a
+  // suspicion, one per person however many such installs they made.
   //
   // IT IS A LOWER BOUND ON THAT GAP, NOT THE WHOLE OF IT, and the card and the doc say so. An install
   // whose identity did view the page in the selected dates is just as unheld by any installed step
@@ -973,7 +953,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
   const installWithoutVisitQuery = [
     "WITH",
     ...buildEventWindowSql(from, to),
-    "SELECT COUNT(*)::int AS install_count",
+    "SELECT COUNT(DISTINCT orphan_install.actor_id)::int AS person_count",
     "FROM server_installs AS orphan_install",
     "LEFT JOIN org.user_settings AS orphan_user_settings",
     "  ON pg_catalog.lower(orphan_user_settings.user_id) = orphan_install.actor_id::text",
@@ -1098,8 +1078,8 @@ export async function loadCatalogInstallFunnelReport(
     from: filters.dateRange.from,
     to: filters.dateRange.to,
     visits: visitsResultSet.rows.map(parseVisitRow),
-    previewsWithoutVisitCounts: parsePreviewWithoutVisitCounts(previewsWithoutVisitResultSet),
-    installsWithoutVisitCount: parseInstallsWithoutVisitCount(installsWithoutVisitResultSet),
+    previewersWithoutVisitCount: parsePersonCount(previewsWithoutVisitResultSet, "previews-without-visit"),
+    installersWithoutVisitCount: parsePersonCount(installsWithoutVisitResultSet, "installs-without-visit"),
     effectiveFromDate: parseEffectiveFromDate(effectiveFromResultSet),
   };
 }
