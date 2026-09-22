@@ -132,6 +132,13 @@ export type ProductAnalyticsEventRow = Readonly<{
   details: ProductAnalyticsEventDetails | null;
 }>;
 
+// A credential-free collector row with the server-derived daily visitor hash beside it. Only that
+// collector writes the column, so the hash is not on ProductAnalyticsEventRow and no other producer
+// has to carry it; db/migrations/0144_anonymous_client_daily_visitor_hash.sql owns the contract.
+export type AnonymousProductAnalyticsEventRow = ProductAnalyticsEventRow & Readonly<{
+  dailyVisitorHash: string | null;
+}>;
+
 // server_derived comes from the two places the backend observes the pair itself: the guest upgrade,
 // and the /guest-auth/identity/link route a signed-in account calls to claim the guest identity its
 // browser or install held. authenticated_client comes from an authenticated ingest request, which is
