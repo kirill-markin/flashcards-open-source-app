@@ -10,6 +10,14 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { catalogInstallConversionWindowDays } from "../catalogInstallFunnel/query";
+import {
+  buildFunnelAudienceActorSqlLines,
+  buildHashedPageViewFilterSqlLines,
+  buildHashedSiteRowSqlLines,
+  buildHashedVisitorDayRangeSqlLines,
+  buildHashedVisitorDaySql,
+  isFunnelHashedCohortRead,
+} from "../funnels/funnelAudienceSql";
 import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
 
 /** The marketing-site `page_kind` values a funnel on this page can start from. */
@@ -24,7 +32,16 @@ export const siteEntryFunnelStartDate = "2026-09-23";
 /** Where "studied it properly" is drawn, the same line the other funnels draw. */
 export const siteEntryEngagedReviewThreshold = 20;
 
-/** People per step, each step a subset of the one before it. */
+/**
+ * People per step, each step a subset of the one before it.
+ *
+ * The six step counts are the people with an identifier, which is every mode's cohort. The two
+ * `hashed` counts are the cookieless visitors of the `all` mode, counted separately because they are
+ * a separate cohort keyed on a daily hash rather than on an actor; the section adds the two together
+ * to get the step a reader sees. They are zero outside that mode and zero whenever a connection
+ * country is selected, and there is no hashed count for the steps below the site ones, because a hash
+ * names nobody the web app or the server could ever meet again.
+ */
 export type SiteEntryFunnelReport = Readonly<{
   generatedAtUtc: string;
   entryViewCount: number;
@@ -33,6 +50,8 @@ export type SiteEntryFunnelReport = Readonly<{
   oneReviewCount: number;
   engagedCount: number;
   engagedReturningCount: number;
+  hashedEntryViewCount: number;
+  hashedAppEntryClickCount: number;
   /** Entries whose seven-day window had not closed when the query ran. */
   maturingCount: number;
 }>;
@@ -44,6 +63,61 @@ function buildSiteFactSql(rowAlias: string, eventName: string): string {
     `${rowAlias}.origin = 'client'`,
     `${rowAlias}.trust_level = 'anonymous_client'`,
   ].join(" AND ");
+}
+
+/**
+ * The cookieless half of `all`, as the two CTEs the identified chain is extended with.
+ *
+ * ONE PERSON IS ONE HASH ON ONE UTC DAY, and both site steps are read on that same pair, so the
+ * funnel rule holds here exactly as it does above: `hashed_cohort` is one row per person, and
+ * `hashed_clicks` is a `DISTINCT` over those rows, so neither step can grow by more than one per
+ * person and the click is only counted for a person the entry already kept.
+ *
+ * The entry rule is the identified one with the part that cannot be asked removed. A hashed person
+ * enters when their first marketing-site page view of the day is a `pageKind` page, which is the same
+ * "first page they saw" test; there is no "and nothing trusted before it" arm, because a hash has no
+ * history to have anything before it, and no seven-day window, because the person ceases to exist at
+ * the end of their UTC day. The click is a `site_app_entry_clicked` for the web app at or after that
+ * entry, which is where these people stop: every step below reads a trusted in-app row, and a
+ * cookieless browser can produce none.
+ */
+function buildHashedSiteEntryCteSqlLines(
+  filters: AnalyticsFilterState,
+  pageKind: SiteEntryPageKind,
+  from: string,
+  to: string,
+): ReadonlyArray<string> {
+  const visitorDaySql = buildHashedVisitorDaySql("hashed_view");
+
+  return [
+    "), hashed_entries AS MATERIALIZED (",
+    "  SELECT",
+    "    hashed_view.daily_visitor_hash,",
+    `    ${visitorDaySql} AS visitor_day,`,
+    "    MIN(hashed_view.occurred_at) AS first_page_viewed_at,",
+    "    MIN(hashed_view.occurred_at) FILTER (",
+    `      WHERE hashed_view.event_properties ->> 'page_kind' = ${escapeSqlStringLiteral(pageKind)}`,
+    `        AND ${buildHashedPageViewFilterSqlLines("hashed_view", "hashed_view.platform", filters).join("\n        AND ")}`,
+    "    ) AS first_entry_viewed_at",
+    "  FROM analytics.product_events_resolved AS hashed_view",
+    `  WHERE ${buildHashedSiteRowSqlLines("hashed_view", "site_page_viewed").join("\n    AND ")}`,
+    `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_view", from, to).join("\n    AND ")}`,
+    `  GROUP BY hashed_view.daily_visitor_hash, ${visitorDaySql}`,
+    "), hashed_cohort AS MATERIALIZED (",
+    "  SELECT entry.*",
+    "  FROM hashed_entries AS entry",
+    "  WHERE entry.first_entry_viewed_at = entry.first_page_viewed_at",
+    "), hashed_clicks AS MATERIALIZED (",
+    "  SELECT DISTINCT entry.daily_visitor_hash, entry.visitor_day",
+    "  FROM hashed_cohort AS entry",
+    "  INNER JOIN analytics.product_events_resolved AS hashed_click",
+    "    ON hashed_click.daily_visitor_hash = entry.daily_visitor_hash",
+    `    AND ${buildHashedVisitorDaySql("hashed_click")} = entry.visitor_day`,
+    "    AND hashed_click.occurred_at >= entry.first_entry_viewed_at",
+    `  WHERE ${buildHashedSiteRowSqlLines("hashed_click", "site_app_entry_clicked").join("\n    AND ")}`,
+    "    AND hashed_click.event_properties ->> 'target' = 'web_app'",
+    `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_click", from, to).join("\n    AND ")}`,
+  ];
 }
 
 /**
@@ -78,6 +152,11 @@ function buildSiteFactSql(rowAlias: string, eventName: string): string {
  * `authenticated_client` row in the range. The review count runs from that first answer to the seven-day bound, and the
  * return day is one of those answers on a later UTC day than the entry. The in-app steps take
  * `buildTrustedActorRowsFilterSql`, so a credential-free claim never advances anybody.
+ *
+ * The audience mode reaches this in two places and nowhere else: `signed-in` adds one restriction to
+ * `cohort`, and `all` appends `buildHashedSiteEntryCteSqlLines` as a second, independent cohort whose
+ * two counts are returned beside these and added to the first two steps by the section. Neither
+ * changes anything above, so the default mode produces exactly the statement it produced before.
  */
 export function buildSiteEntryFunnelSql(
   filters: AnalyticsFilterState,
@@ -92,6 +171,9 @@ export function buildSiteEntryFunnelSql(
   const stepWindowEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`;
   const windowSql = `INTERVAL '${catalogInstallConversionWindowDays} days'`;
   const pageViewSql = buildSiteFactSql("resolved", "site_page_viewed");
+  // Left out of the statement entirely rather than executed and discarded, so the default mode costs
+  // what it cost before the modes existed and only `all` pays for the second pass over the site rows.
+  const isHashedCohortRead = isFunnelHashedCohortRead(filters);
 
   return [
     "WITH actor_first_events AS MATERIALIZED (",
@@ -123,6 +205,7 @@ export function buildSiteEntryFunnelSql(
     "  FROM entries AS candidate",
     "  WHERE TRUE",
     ...buildExcludedActorSqlLines("candidate.actor_id::text"),
+    ...buildFunnelAudienceActorSqlLines(filters, "candidate.actor_id::text"),
     `    AND ${buildConnectionCountriesFilterSql("candidate.actor_id::text", filters.connectionCountries, filters.dateRange)}`,
     `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
     "), step_events AS MATERIALIZED (",
@@ -189,6 +272,9 @@ export function buildSiteEntryFunnelSql(
     "    AND review.occurred_at >= first_review.first_review_at",
     "  WHERE review.step = 'review'",
     "  GROUP BY review.actor_id",
+    ...(isHashedCohortRead
+      ? buildHashedSiteEntryCteSqlLines(filters, pageKind, from, to)
+      : []),
     ")",
     "SELECT",
     "  COUNT(*)::int AS entry_view_count,",
@@ -204,7 +290,18 @@ export function buildSiteEntryFunnelSql(
     "  ))::int AS engaged_returning_count,",
     "  (COUNT(*) FILTER (",
     `    WHERE cohort.entered_at + ${windowSql} > now()`,
-    "  ))::int AS maturing_count",
+    "  ))::int AS maturing_count,",
+    // Uncorrelated scalars over the hashed relations, which are keyed on nothing this aggregate over
+    // `cohort` shares, so they are evaluated once each rather than per identified person.
+    ...(isHashedCohortRead
+      ? [
+        "  (SELECT COUNT(*) FROM hashed_cohort)::int AS hashed_entry_view_count,",
+        "  (SELECT COUNT(*) FROM hashed_clicks)::int AS hashed_app_entry_click_count",
+      ]
+      : [
+        "  0::int AS hashed_entry_view_count,",
+        "  0::int AS hashed_app_entry_click_count",
+      ]),
     "FROM cohort",
     "LEFT JOIN app_entry_clicks AS clicked ON clicked.actor_id = cohort.actor_id",
     "LEFT JOIN sessions AS signed_in ON signed_in.actor_id = cohort.actor_id",
@@ -241,6 +338,8 @@ export async function loadSiteEntryFunnelReport(
     oneReviewCount: count("one_review_count"),
     engagedCount: count("engaged_count"),
     engagedReturningCount: count("engaged_returning_count"),
+    hashedEntryViewCount: count("hashed_entry_view_count"),
+    hashedAppEntryClickCount: count("hashed_app_entry_click_count"),
     maturingCount: count("maturing_count"),
   };
 }
