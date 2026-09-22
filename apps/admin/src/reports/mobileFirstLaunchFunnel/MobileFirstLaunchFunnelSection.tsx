@@ -30,6 +30,8 @@ export const mobileFirstLaunchFunnelAnchor: FunnelAnchor<FunnelStepId> = {
   stepIds: funnelStepIds,
 };
 
+export const mobileFirstLaunchFunnelTitle = "Mobile first launch";
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected mobile first launch funnel error.";
 }
@@ -98,7 +100,7 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
     <section className="dashboard-section funnel-report">
       <header className="dashboard-section-header">
         <p className="eyebrow">Funnel report</p>
-        <h2>Mobile first launch</h2>
+        <h2>{mobileFirstLaunchFunnelTitle}</h2>
       </header>
 
       {props.filterRow}

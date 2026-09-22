@@ -481,6 +481,10 @@ h2 {
   gap: 16px;
 }
 
+.filter-panel-header h3 {
+  margin: 0;
+}
+
 /* Empty while idle, so it draws nothing but holds its height and the header cannot jump when a
    commit prints `Updating` in it. */
 .filter-status {

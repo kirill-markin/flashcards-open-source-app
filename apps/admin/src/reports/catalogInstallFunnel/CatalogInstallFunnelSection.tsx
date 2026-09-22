@@ -35,6 +35,8 @@ export const catalogInstallFunnelAnchor: FunnelAnchor<FunnelMainStepId> = {
   stepIds: funnelMainStepIds,
 };
 
+export const catalogInstallFunnelTitle = "Deck page to install";
+
 type StepCount = Readonly<{ label: string; count: number }>;
 type FailureTotal = CatalogInstallFailureBucket & Readonly<{ count: number }>;
 
@@ -217,7 +219,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
     <section className="dashboard-section funnel-report">
       <header className="dashboard-section-header">
         <p className="eyebrow">Funnel report</p>
-        <h2>Deck page to install</h2>
+        <h2>{catalogInstallFunnelTitle}</h2>
       </header>
 
       {props.filterRow}
@@ -265,7 +267,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
             <div className="funnel-detail-row"><span>Import previews with no deck page view in the selected dates (outside denominator)</span><strong>{previewsWithoutVisitCount.toLocaleString("en-US")}</strong></div>
             <div className="funnel-detail-row"><span>Server installs with no deck page view in the selected dates (outside denominator)</span><strong>{installsWithoutVisitCount.toLocaleString("en-US")}</strong></div>
             <div className="funnel-detail-row"><span>Visits still inside 7-day window</span><strong>{maturingCount.toLocaleString("en-US")}</strong></div>
-            <p>&ldquo;First seen&rdquo; is that identity having produced no trusted event at all before its deck page view, over every event name; rows the credential-free public collector wrote are evidence that an event happened, not evidence that a person exists, and are excluded from that test — including the anchoring page view itself, which is one of them. The two no-visit lines can use the date range, the installed deck, the client platform, the connection country and the app interface language, but none of the click dimensions, which a row with no click carries none of; narrowing placement, source, device category or browser language therefore leaves them wider than the funnel above. A deck page view before the first selected day counts as no visit on both lines, as it does in the funnel. Each is a lower bound on what the funnel cannot hold rather than the whole of it: a person whose click was dropped by a selection, or whose step chain is broken, is equally unheld and counted by neither. A server install carries no platform, so selecting any device platform empties its line.</p>
+            <p>&ldquo;First seen&rdquo; is that identity having produced no trusted event at all before its deck page view, over every event name; rows the credential-free public collector wrote are evidence that an event happened, not evidence that a person exists, and are excluded from that test — including the anchoring page view itself, which is one of them. The two no-visit lines can use the date range, the installed deck, the client platform, the connection country and the app interface language, but none of the click dimensions, which a row with no click carries none of; narrowing placement, source, device category or browser language therefore leaves them wider than the install-click step and the steps below it. A deck page view before the first selected day counts as no visit on both lines, as it does in the funnel. Each is a lower bound on what the funnel cannot hold rather than the whole of it: a person whose click was dropped by a selection, or whose step chain is broken, is equally unheld and counted by neither. A server install carries no platform, so selecting any device platform empties its line.</p>
           </details>
           <details className="funnel-detail-card">
             <summary><h3>Observed failures</h3></summary>

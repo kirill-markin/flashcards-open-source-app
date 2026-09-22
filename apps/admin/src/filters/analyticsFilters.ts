@@ -290,7 +290,7 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
 // scoped to the selected dates. The installed deck is not one of them, because its list is read from
 // the install alone and says so itself.
 const funnelsCatalogOptionCoverageTail =
-  "The values on offer are read from the clicks themselves and cover every day rather than only the selected ones, so a value that only clicks outside this range recorded is still listed and picking it empties the area.";
+  "The values on offer are read from the clicks themselves and cover every day rather than only the selected ones, so a value that only clicks outside this range recorded is still listed, and picking it zeroes the install-click step and everything below it while the deck page views stay.";
 
 // The deck funnel counts one visitor identity and deck version per row, anchored at that identity's
 // first view of the deck's page inside the selected range, so the deck and the platform read off that
