@@ -42,6 +42,7 @@ const {
   binaryPendingAttachmentExceedsSizeLimitMock,
   ChatAttachmentTooLargeErrorMock,
   isBinaryPendingAttachmentMock,
+  trackAnalyticsEventMock,
 } = vi.hoisted(() => ({
   ApiErrorMock: class ApiError extends Error {
     readonly statusCode: number;
@@ -190,6 +191,7 @@ const {
     }
   },
   isBinaryPendingAttachmentMock: vi.fn(),
+  trackAnalyticsEventMock: vi.fn(),
 }));
 
 vi.mock("../../../../appData", () => ({
@@ -211,6 +213,12 @@ vi.mock("../../../../api", () => ({
   createNewChatSession: createNewChatSessionMock,
   stopChatRun: stopChatRunMock,
   transcribeChatAudio: transcribeChatAudioMock,
+}));
+
+// The composer's dictation path reports `dictation_started` and `dictation_failed`. Only `track` is
+// replaced, so the real reason mapping still runs against the API error mocks above.
+vi.mock("../../../../analytics/client", () => ({
+  track: trackAnalyticsEventMock,
 }));
 
 vi.mock("../../../../observability/webObservability", () => ({
@@ -600,6 +608,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     recompressImageAttachmentMock.mockReset();
     binaryPendingAttachmentExceedsSizeLimitMock.mockReset();
     isBinaryPendingAttachmentMock.mockReset();
+    trackAnalyticsEventMock.mockReset();
 
     useChatLayoutMock.mockReturnValue({
       isOpen: true,

@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
@@ -53,7 +54,8 @@ internal class AiChatRuntime(
     currentServerConfiguration: () -> CloudServiceConfiguration,
     currentSyncStatus: () -> SyncStatus,
     currentUiLocaleTag: () -> String?,
-    observability: AppObservability
+    observability: AppObservability,
+    analytics: Analytics
 ) {
     private val context = AiChatRuntimeContext(
         scope = scope,
@@ -67,7 +69,8 @@ internal class AiChatRuntime(
         currentServerConfiguration = currentServerConfiguration,
         currentSyncStatus = currentSyncStatus,
         currentUiLocaleTag = currentUiLocaleTag,
-        observability = observability
+        observability = observability,
+        analytics = analytics
     )
     private lateinit var bootstrapCoordinator: AiChatBootstrapCoordinator
     private lateinit var liveStreamCoordinator: AiChatLiveStreamCoordinator

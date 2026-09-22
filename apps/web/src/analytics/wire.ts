@@ -119,9 +119,13 @@ export function toAnalyticsWireEvent(
     clientOccurredAt: toAnalyticsTimestamp(occurredAtMs),
     uiLocale: readAnalyticsUiLocale(),
     networkState: readAnalyticsNetworkState(),
-    // The two events the catalog marks `requiresScreen` carry a surface of their own; everything
+    // The three events the catalog marks `requiresScreen` carry a surface of their own; everything
     // else takes the surface the caller was on, if any.
-    screen: event.name === "screen_viewed" || event.name === "review_card_revealed"
+    screen: (
+      event.name === "screen_viewed"
+      || event.name === "review_card_revealed"
+      || event.name === "dictation_started"
+    )
       ? event.screen
       : currentSurface,
     properties: buildAnalyticsEventProperties(event),
