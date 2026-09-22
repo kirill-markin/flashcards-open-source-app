@@ -362,6 +362,7 @@ const skCatalog: TranslationCatalog = {
       ios: "QR kód odkazu na aplikáciu pre iOS",
       android: "QR kód odkazu na aplikáciu pre Android",
     },
+    qrCaption: "Naskenujte ho telefónom",
     mcp: {
       label: "Pre AI agenta",
       title: "Pripojenie cez MCP",

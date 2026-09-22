@@ -354,6 +354,7 @@ const isCatalog: TranslationCatalog = {
       ios: "QR-kóði fyrir tengil á iOS-forritið",
       android: "QR-kóði fyrir tengil á Android-forritið",
     },
+    qrCaption: "Skannaðu hann með símanum",
     mcp: {
       label: "Fyrir gervigreindarþjón",
       title: "Tengjast með MCP",

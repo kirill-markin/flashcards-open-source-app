@@ -354,6 +354,7 @@ const bnCatalog: TranslationCatalog = {
       ios: "iOS অ্যাপ লিঙ্কের QR কোড",
       android: "Android অ্যাপ লিঙ্কের QR কোড",
     },
+    qrCaption: "আপনার ফোন দিয়ে স্ক্যান করুন",
     mcp: {
       label: "এআই এজেন্টের জন্য",
       title: "MCP দিয়ে সংযুক্ত হোন",

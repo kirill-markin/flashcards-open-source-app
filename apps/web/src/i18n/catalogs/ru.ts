@@ -362,6 +362,7 @@ export const ruCatalog = {
       ios: "QR-код для ссылки на приложение iOS",
       android: "QR-код для ссылки на приложение Android",
     },
+    qrCaption: "Отсканируйте с телефона",
     mcp: {
       label: "Для AI-агента",
       title: "Подключение через MCP",

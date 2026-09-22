@@ -354,6 +354,7 @@ const fiCatalog: TranslationCatalog = {
       ios: "QR-koodi iOS-sovelluksen linkkiin",
       android: "QR-koodi Android-sovelluksen linkkiin",
     },
+    qrCaption: "Skannaa se puhelimellasi",
     mcp: {
       label: "Tekoälyagentille",
       title: "Yhdistä MCP:llä",

@@ -354,6 +354,7 @@ const trCatalog: TranslationCatalog = {
       ios: "iOS uygulama bağlantısının QR kodu",
       android: "Android uygulama bağlantısının QR kodu",
     },
+    qrCaption: "Telefonunuzla tarayın",
     mcp: {
       label: "AI Agent için",
       title: "MCP ile bağlan",

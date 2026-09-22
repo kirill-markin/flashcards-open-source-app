@@ -354,6 +354,7 @@ const koCatalog: TranslationCatalog = {
       ios: "iOS 앱 링크 QR 코드",
       android: "Android 앱 링크 QR 코드",
     },
+    qrCaption: "휴대폰으로 스캔하세요",
     mcp: {
       label: "AI 에이전트용",
       title: "MCP로 연결",

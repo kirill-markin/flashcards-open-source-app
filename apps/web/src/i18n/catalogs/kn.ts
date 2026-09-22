@@ -354,6 +354,7 @@ const knCatalog: TranslationCatalog = {
       ios: "iOS ಆ್ಯಪ್ ಲಿಂಕ್‌ಗಾಗಿ QR ಕೋಡ್",
       android: "Android ಆ್ಯಪ್ ಲಿಂಕ್‌ಗಾಗಿ QR ಕೋಡ್",
     },
+    qrCaption: "ನಿಮ್ಮ ಫೋನ್‌ನಿಂದ ಇದನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
     mcp: {
       label: "AI ಏಜೆಂಟ್‌ಗಾಗಿ",
       title: "MCP ಮೂಲಕ ಸಂಪರ್ಕಿಸಿ",
