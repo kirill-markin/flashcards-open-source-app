@@ -72,6 +72,17 @@ const productAnalyticsSitePageKinds = [
   "other",
 ] as const;
 
+// What an app-entry CTA on the marketing site is and where it leads. The click and the impression
+// below hold this one map rather than two equal literals, so neither the property set nor any
+// accepted value can drift apart and stop the two halves joining by equality.
+const productAnalyticsSiteAppEntryProperties = {
+  target: { kind: "enum", values: ["web_app", "app_store", "google_play"] },
+  page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+  placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
+  source: { kind: "enum", values: productAnalyticsSiteSources },
+  device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+} as const;
+
 // Platform-independent surfaces so funnels compare across clients. Each client maps its own
 // native screens onto these and never sends a native screen name.
 //
@@ -556,13 +567,31 @@ export const productAnalyticsEventCatalog = {
   site_app_entry_clicked: {
     serverOnly: false,
     requiresScreen: false,
-    properties: {
-      target: { kind: "enum", values: ["web_app", "app_store", "google_play"] },
-      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
-      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
-      source: { kind: "enum", values: productAnalyticsSiteSources },
-      device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
-    },
+    properties: productAnalyticsSiteAppEntryProperties,
+  },
+  // The impression half of `site_app_entry_clicked`, carrying exactly its properties so a click and
+  // the view it came from join by equality and the click rate is a rate rather than a bare count.
+  // The producer reports it at most once per target, placement and page kind per document load,
+  // after about a second of visibility, the way `store_qr_shown` below is keyed on the store rather
+  // than on the placement alone. Every property a click can vary on has to sit in that key, or the
+  // clicks differing on the missing one join to nothing: a site placement is a container, and the
+  // footer and the home platform grid each offer the web app, the App Store and Google Play side by
+  // side, so `target` varies within one placement, while a client-side navigation inside one
+  // document varies `page_kind`. The impression derives `source` and `device_category` exactly as
+  // the click does, from the document's own referrer and user agent rather than from the page a
+  // client-side navigation just left, which is what completes that three-property key: neither can
+  // change inside one document load, so an impression and the click it precedes always agree on
+  // them. A document that navigates between two pages of the same kind therefore reports one
+  // impression and can produce a click on each page, so the ratio is per document load and can
+  // exceed one in a multi-page visit. A CTA that stays visible across a client-side navigation has
+  // to report again under the new page kind, because the key includes it and a producer keyed on
+  // the element alone will not do so. The visibility delay keeps a CTA that only swept past during
+  // a fast scroll out of the denominator; a CTA scrolled back into view is already covered by the
+  // per-document key. The marketing site is its only producer.
+  site_app_entry_shown: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: productAnalyticsSiteAppEntryProperties,
   },
   // The catalog install facts. `install_journey_id` is optional everywhere it appears: no producer
   // mints one any more, and released clients that still send it stay valid.
