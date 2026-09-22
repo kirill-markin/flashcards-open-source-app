@@ -59,11 +59,11 @@ declaration and an explicit `false` are the same negative case, and only `true` 
 client that says nothing, or that always sends `false`, behaves exactly as before.
 
 Deliberately not covered, and still emitted for a marked installation: `ai_message_sent`,
-`catalog_deck_installed`, `guest_upgrade_completed`, `friend_invitation_created` and
-`friendship_created`, none of which is attributed to a replica, and any review answered through an
-`ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and which therefore carries
-no marker by design. A marked installation is not an installation that produces zero events; read
-residue as these producers rather than as a defect in the marker.
+`ai_run_failed`, `catalog_deck_installed`, `guest_upgrade_completed`, `friend_invitation_created`
+and `friendship_created`, none of which is attributed to a replica, and any review answered through
+an `ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and which therefore
+carries no marker by design. A marked installation is not an installation that produces zero events;
+read residue as these producers rather than as a defect in the marker.
 
 Also accepted rather than fixed: `sync.claim_installation` hands an installation to whoever presents
 its id with the matching platform, so a takeover can mark an installation that was somebody's real

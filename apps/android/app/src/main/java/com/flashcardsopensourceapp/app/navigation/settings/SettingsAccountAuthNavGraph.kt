@@ -62,6 +62,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
                     originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
+                    signInStepSurface = AnalyticsSurface.SIGNIN,
                     applicationContext = context.applicationContext
                 )
             )
@@ -120,6 +121,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
                     originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
+                    signInStepSurface = AnalyticsSurface.SIGNIN,
                     applicationContext = context.applicationContext
                 )
             )
@@ -169,6 +171,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
                     originSurface = signInOriginSurface(authGraphBackStackEntry = authGraphBackStackEntry),
+                    signInStepSurface = AnalyticsSurface.SIGNIN,
                     applicationContext = context.applicationContext
                 )
             )
