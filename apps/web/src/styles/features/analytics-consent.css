@@ -60,7 +60,9 @@
   color: var(--text-secondary);
 }
 
-/* Both answers are one click on the same layer, in the same style: neither is the easy one. */
+/* Both answers are one click on the same layer, at the same size. Allow carries the accent like
+   every primary action; Decline is the neutral button, but with full-contrast text rather than the
+   secondary grey a ghost button normally uses, so refusing is never the harder one to read. */
 .analytics-consent-banner-actions {
   display: flex;
   flex-wrap: wrap;
@@ -70,6 +72,11 @@
 .analytics-consent-banner-btn {
   min-width: 120px;
   flex: 1 1 auto;
+}
+
+.analytics-consent-banner-decline {
+  border-color: var(--panel-border-strong);
+  color: var(--text);
 }
 
 @media (max-width: 640px) {
