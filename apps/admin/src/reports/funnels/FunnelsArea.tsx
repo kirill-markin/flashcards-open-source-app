@@ -5,9 +5,17 @@ import type { UserColorScale } from "../../dashboard/userColors";
 import { AnalyticsFilterBar } from "../../filters/AnalyticsFilterBar";
 import type { AnalyticsDateRange, AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { AnalyticsFilterOptions } from "../../filters/optionsQuery";
+import { FunnelAudienceModeControl } from "./FunnelAudienceModeControl";
 import { funnelSections } from "./funnelSections";
 
-/** The Funnels area: every funnel in `funnelSections` order, each with its own filter row when it has one. */
+/**
+ * The Funnels area: the audience mode, then every funnel in `funnelSections` order, each with its own
+ * filter row when it has one.
+ *
+ * The mode sits above all of them and applies to all of them, because it answers a question the
+ * funnels have to agree on: a number from one funnel and a number from another can only be compared
+ * when both counted the same kind of person.
+ */
 export function FunnelsArea(
   props: Readonly<{
     config: AdminAppConfig;
@@ -25,6 +33,11 @@ export function FunnelsArea(
 ): JSX.Element {
   return (
     <>
+      <FunnelAudienceModeControl
+        filters={props.filters}
+        isReportLoading={props.isReportLoading}
+        onFiltersChange={props.onFiltersChange}
+      />
       {funnelSections.map((funnel) => (
         <funnel.Section
           key={funnel.anchor.funnelId}

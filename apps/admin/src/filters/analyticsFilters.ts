@@ -89,6 +89,47 @@ export function parseAcceptedMinimumCount(rawMinimumCount: string): number | und
 }
 
 /**
+ * WHO EACH FUNNEL COUNTS AS A PERSON. One choice, applied to all four funnels at once, widest first:
+ *
+ * - `all`: everybody `with-anonymous-id` counts, plus the cookieless visitors the site can only
+ *   count through `analytics.product_events_resolved.daily_visitor_hash`, one person per hash per UTC
+ *   day. Those people reach the site steps and nothing below them, because a hash names nobody the
+ *   app or the server could ever meet again;
+ * - `with-anonymous-id`: a person with an identifier - a site visitor cookie, a mobile guest id or an
+ *   account. It is the default, and it is what every funnel counted before the modes existed;
+ * - `signed-in`: only the people whose identity resolves to a real, non-guest account at any time up
+ *   to now, so a mobile guest who never registered is out and one who later registered is in.
+ *
+ * It is a single choice rather than a multi-select and it is offered only on the Funnels area, by
+ * `FunnelAudienceModeControl` beside the funnels rather than by the shared filter bar, which is why
+ * `AnalyticsFilterField` below excludes it: every member of that union is a multi-select the bar
+ * renders, and the bar has no control that could draw this one.
+ */
+export const funnelAudienceModes = ["all", "with-anonymous-id", "signed-in"] as const;
+
+export type FunnelAudienceMode = (typeof funnelAudienceModes)[number];
+
+/** Today's behaviour, so opening the area unchanged shows exactly the funnels it showed before. */
+export const defaultFunnelAudienceMode: FunnelAudienceMode = "with-anonymous-id";
+
+/** What each mode is called on screen, kept beside the values so a new mode cannot ship unnamed. */
+export const funnelAudienceModeLabels: Readonly<Record<FunnelAudienceMode, string>> = {
+  all: "All",
+  "with-anonymous-id": "With anonymous ID",
+  "signed-in": "Signed-in only",
+};
+
+/** What each mode counts, shown under the control, so the numbers can be read without this file. */
+export const funnelAudienceModeExplanations: Readonly<Record<FunnelAudienceMode, string>> = {
+  all:
+    "Everyone below, plus cookieless site visitors counted by their daily hash, drawn as the lighter part of each bar. A hash is one person for one UTC day and names nobody the app can meet again, so those people can only reach the site steps and are absent from every step below them.",
+  "with-anonymous-id":
+    "People carrying an identifier: a site visitor cookie, a mobile guest id, or an account. This is the default and what every funnel counts unless you change it.",
+  "signed-in":
+    "Only people whose identity resolves to a real, non-guest account at some point up to now. A mobile guest who never registered is left out, and one who registered later is counted, including their steps from before they registered.",
+};
+
+/**
  * The complete filter selection of one analytics area.
  *
  * An empty list on an option field means "every value", except on `userCohorts` and
@@ -108,9 +149,16 @@ export type AnalyticsFilterState = Readonly<{
   catalogSources: ReadonlyArray<CatalogInstallSource>;
   catalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
   catalogClickBrowserLanguages: ReadonlyArray<string>;
+  funnelAudienceMode: FunnelAudienceMode;
 }>;
 
-export type AnalyticsFilterField = keyof AnalyticsFilterState;
+/**
+ * Every field the shared filter bar offers, which is every field of the selection except the funnel
+ * audience mode. The exclusion names that one field rather than opting out of the exhaustiveness the
+ * records below rely on: any other field added to `AnalyticsFilterState` still stops this file
+ * compiling until it is given an order, an applicability, a label and an explanation.
+ */
+export type AnalyticsFilterField = Exclude<keyof AnalyticsFilterState, "funnelAudienceMode">;
 
 // The order the filter bar offers the fields in, written as a record rather than as a list: a field
 // added to `AnalyticsFilterState` stops this file compiling until it is given a place here, instead
@@ -397,7 +445,10 @@ export function getAnalyticsFilterFieldLabel(
     ?? analyticsFilterFieldLabels[field];
 }
 
-/** Every filter cleared on the supplied range: every user, every platform, and no threshold. */
+/**
+ * Every filter cleared on the supplied range: every user, every platform, no threshold, and the
+ * funnels on their default audience.
+ */
 export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange): AnalyticsFilterState {
   return {
     dateRange,
@@ -412,6 +463,7 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     catalogSources: [],
     catalogDeviceCategories: [],
     catalogClickBrowserLanguages: [],
+    funnelAudienceMode: defaultFunnelAudienceMode,
   };
 }
 

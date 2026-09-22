@@ -740,13 +740,26 @@ export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstall
 /** One funnel step as the step chart draws it; the shares arrive preformatted so the chart and its text alternative cannot disagree. */
 export type FunnelStepBar = Readonly<{
   label: string;
+  /** The whole step: people with an identifier plus `hashedCount`. Every share is measured on it. */
   count: number;
+  /**
+   * The part of `count` that is cookieless visitors counted by their daily hash, drawn as a lighter
+   * segment at the top of the bar. Zero outside the `all` audience mode, and zero on every step the
+   * hashed people cannot reach, which is every step below the site ones.
+   */
+  hashedCount: number;
   /** Null on the first step, which has nothing before it to drop off from. */
   previousCount: number | null;
   shareOfFirstLabel: string;
   /** "—" on a step before the anchor, which is not a subset of it. */
   shareOfAnchorLabel: string;
   shareOfPreviousLabel: string;
+  /**
+   * The two parts written under the total, one line each, or empty when there is no hashed part to
+   * split out. One line per part keeps the widest one to a single number plus a short word, which a
+   * step column holds at any count the funnels reach.
+   */
+  splitLabels: ReadonlyArray<string>;
 }>;
 
 export type RenderFunnelStepsChartParams = Readonly<{
@@ -761,6 +774,8 @@ const funnelChartHeight = 440;
 const funnelChartMargin = { top: 76, right: 24, bottom: 64, left: chartMargin.left } as const;
 const funnelStepLabelMaxLineLength = 18;
 const funnelStepLabelLineHeight = 15;
+/** One line of the identified/hashed split drawn under the total when a step has a hashed part. */
+const funnelStepSplitLineHeight = 17;
 /** Keeps the column's 1.5-unit selected stroke inside the viewBox, whose edges clip it. */
 const funnelStepHitEdgeInset = 2;
 /** Clears the column's selected stroke with the 2-unit focus ring drawn inside it. */
@@ -832,8 +847,13 @@ function getFunnelStepAriaLabel(step: FunnelStepBar, stepIndex: number, anchorIn
  * A redraw keeps keyboard focus on the column that held it.
  */
 export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): void {
+  // A split label adds lines above the bars, so the chart and its top margin both grow by as many
+  // rather than the plot shrinking: the bars stay the height they are without the split.
+  const splitLineCount = Math.max(0, ...params.steps.map((step) => step.splitLabels.length));
+  const chartHeight = funnelChartHeight + splitLineCount * funnelStepSplitLineHeight;
+  const marginTop = funnelChartMargin.top + splitLineCount * funnelStepSplitLineHeight;
   const innerWidth = chartWidth - funnelChartMargin.left - funnelChartMargin.right;
-  const innerHeight = funnelChartHeight - funnelChartMargin.top - funnelChartMargin.bottom;
+  const innerHeight = chartHeight - marginTop - funnelChartMargin.bottom;
   const peakCount = Math.max(1, ...params.steps.map((step) => step.count));
   const hasAnchor = params.anchorIndex > 0;
   const anchorCount = params.steps[params.anchorIndex]?.count ?? 0;
@@ -865,10 +885,10 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     return index;
   };
   svg.selectAll("*").remove();
-  svg.attr("viewBox", `0 0 ${chartWidth} ${funnelChartHeight}`);
+  svg.attr("viewBox", `0 0 ${chartWidth} ${chartHeight}`);
 
   const group = svg.append("g")
-    .attr("transform", `translate(${funnelChartMargin.left},${funnelChartMargin.top})`);
+    .attr("transform", `translate(${funnelChartMargin.left},${marginTop})`);
 
   group.append("g")
     .attr("class", "grid")
@@ -952,17 +972,17 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
   stepGroups.append("rect")
     .attr("class", "funnel-step-hit")
     .attr("x", -columnInset)
-    .attr("y", -funnelChartMargin.top + funnelStepHitEdgeInset)
+    .attr("y", -marginTop + funnelStepHitEdgeInset)
     .attr("width", x.step())
-    .attr("height", funnelChartHeight - funnelStepHitEdgeInset * 2)
+    .attr("height", chartHeight - funnelStepHitEdgeInset * 2)
     .attr("rx", 6);
   // The keyboard focus ring sits inside the column's own edge, so it shows alongside the anchor's accent stroke.
   stepGroups.append("rect")
     .attr("class", "funnel-step-focus-ring")
     .attr("x", -columnInset + funnelStepFocusRingInset)
-    .attr("y", -funnelChartMargin.top + funnelStepHitEdgeInset + funnelStepFocusRingInset)
+    .attr("y", -marginTop + funnelStepHitEdgeInset + funnelStepFocusRingInset)
     .attr("width", x.step() - funnelStepFocusRingInset * 2)
-    .attr("height", funnelChartHeight - (funnelStepHitEdgeInset + funnelStepFocusRingInset) * 2)
+    .attr("height", chartHeight - (funnelStepHitEdgeInset + funnelStepFocusRingInset) * 2)
     .attr("rx", 4);
 
   // The anchor's previous step lies outside the measured funnel, so the anchor draws no ghost. A re-based
@@ -996,20 +1016,51 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("height", (step) => (step.count === 0 ? emptyStepHeight : innerHeight - y(step.count)))
     .attr("rx", 4);
 
+  // The hashed part sits at the top of the bar the total already drew, so the bar's height stays the
+  // total and only its upper slice is lighter. `y` is clamped, so on a step capped by a re-based
+  // anchor both ends land on the plot top and the segment collapses to nothing rather than escaping it.
+  stepGroups.filter((step) => step.count > 0 && step.hashedCount > 0)
+    .append("rect")
+    .attr("class", "funnel-step-bar-hashed")
+    .attr("x", 0)
+    .attr("y", (step) => y(step.count))
+    .attr("width", bandWidth)
+    .attr("height", (step) => Math.max(0, y(step.count - step.hashedCount) - y(step.count)))
+    .attr("rx", 4);
+
   stepGroups.filter((step) => isRebased && getStepIndex(step.label) < params.anchorIndex && step.count > anchorCount)
     .append("path")
     .attr("class", "funnel-step-clip-mark")
     .attr("d", buildFunnelStepClipMarkPath(bandWidth));
 
+  // Each block's last baseline sits 10 units above its own bar, so the offset is the block's own
+  // height: a split line is added above the total rather than below the shares, which would push
+  // them into the bar. Every block floats with the bar it labels, so there is no cross-step
+  // alignment to keep by giving them all the tallest block's offset.
+  const getValueLabelTopOffset = (step: FunnelStepBar): number => (
+    47 + step.splitLabels.length * funnelStepSplitLineHeight
+  );
   const valueLabels = stepGroups.append("text")
     .attr("class", "funnel-step-value")
     .attr("text-anchor", "middle")
     .attr("x", bandWidth / 2)
-    .attr("y", (step) => y(Math.max(step.count, getGhostCount(step) ?? 0)) - 47);
+    .attr("y", (step) => y(Math.max(step.count, getGhostCount(step) ?? 0)) - getValueLabelTopOffset(step));
   valueLabels.append("tspan")
     .attr("class", "funnel-step-count")
     .attr("x", bandWidth / 2)
     .text((step) => numberFormatter(step.count));
+  // Only the steps that have a hashed part carry the split, so a step the hashed people cannot reach
+  // reads as the plain total it is rather than as "n + 0".
+  valueLabels.each(function appendSplitLines(step: FunnelStepBar): void {
+    const valueLabel = d3.select(this);
+    for (const splitLine of step.splitLabels) {
+      valueLabel.append("tspan")
+        .attr("class", "funnel-step-split")
+        .attr("x", bandWidth / 2)
+        .attr("dy", funnelStepSplitLineHeight)
+        .text(splitLine);
+    }
+  });
   valueLabels.append("tspan")
     .attr("class", "funnel-step-share")
     .attr("x", bandWidth / 2)
