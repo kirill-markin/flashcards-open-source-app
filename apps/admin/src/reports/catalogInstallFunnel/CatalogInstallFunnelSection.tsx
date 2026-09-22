@@ -3,6 +3,7 @@ import { renderFunnelStepsChart, type FunnelStepBar } from "../../charts/chartRe
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
+  funnelMainStepIds,
   parseFunnelAnchorStepId,
   writeFunnelAnchorToUrl,
   type FunnelMainStepId,
@@ -96,26 +97,28 @@ function buildMainStages(visits: ReadonlyArray<CatalogInstallFunnelVisit>): Read
     visits.filter(matches).length
   );
 
-  return [
-    { id: "site-visit", label: "Site visit", count: visits.length },
-    { id: "import-screen", label: "Import screen", count: countWhere((visit) => visit.importScreenAt !== null) },
-    { id: "import-confirm", label: "Import confirm", count: countWhere((visit) => visit.importConfirmAt !== null) },
-    { id: "install-started", label: "Install started", count: countWhere((visit) => visit.installStartedAt !== null) },
-    { id: "installed", label: "Installed (server)", count: countWhere((visit) => visit.installedAt !== null) },
-    { id: "one-review", label: "1+ review", count: countWhere((visit) => (visit.installReviewCount ?? 0) >= 1) },
-    {
-      id: "engaged",
+  // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelMainStepIds`,
+  // which is also where the URL codec reads its default, the first step.
+  const stages: Readonly<Record<FunnelMainStepId, FunnelStage>> = {
+    "site-visit": { label: "Site visit", count: visits.length },
+    "import-screen": { label: "Import screen", count: countWhere((visit) => visit.importScreenAt !== null) },
+    "import-confirm": { label: "Import confirm", count: countWhere((visit) => visit.importConfirmAt !== null) },
+    "install-started": { label: "Install started", count: countWhere((visit) => visit.installStartedAt !== null) },
+    installed: { label: "Installed (server)", count: countWhere((visit) => visit.installedAt !== null) },
+    "one-review": { label: "1+ review", count: countWhere((visit) => (visit.installReviewCount ?? 0) >= 1) },
+    engaged: {
       label: `${engagedReviewThreshold}+ reviews`,
       count: countWhere((visit) => (visit.installReviewCount ?? 0) >= engagedReviewThreshold),
     },
-    {
-      id: "engaged-returning",
+    "engaged-returning": {
       label: `${engagedReviewThreshold}+ reviews with a return day`,
       count: countWhere((visit) => (
         (visit.installReviewCount ?? 0) >= engagedReviewThreshold && visit.installHasReturnDay === true
       )),
     },
-  ];
+  };
+
+  return funnelMainStepIds.map((id) => ({ id, ...stages[id] }));
 }
 
 function buildAuthStages(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<FunnelStage> {

@@ -7,7 +7,7 @@
 // does not break links that are already shared. The parameter belongs to the Funnels area only: area
 // links carry a bare path, and the filter writer in `App.tsx` keeps it only on the Funnels route.
 
-/** The eight main funnel steps in chart order; `buildMainStages` draws them in exactly this order. */
+/** The eight main funnel steps in chart order; `buildMainStages` takes its order from this list. */
 export const funnelMainStepIds = [
   "site-visit",
   "import-screen",
