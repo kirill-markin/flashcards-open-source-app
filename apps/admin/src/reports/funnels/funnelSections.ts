@@ -13,6 +13,12 @@ import {
   MobileFirstLaunchFunnelSection,
   mobileFirstLaunchFunnelAnchor,
 } from "../mobileFirstLaunchFunnel/MobileFirstLaunchFunnelSection";
+import {
+  BlogToWebAppFunnelSection,
+  HomeToWebAppFunnelSection,
+  blogToWebAppFunnelAnchor,
+  homeToWebAppFunnelAnchor,
+} from "../siteEntryFunnel/SiteEntryFunnelSection";
 import type { FunnelAnchor } from "./funnelAnchorUrl";
 
 export type FunnelSectionProps = Readonly<{
@@ -45,8 +51,18 @@ export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
     Section: MobileFirstLaunchFunnelSection,
   },
   {
+    anchor: homeToWebAppFunnelAnchor,
+    filterFields: [],
+    Section: HomeToWebAppFunnelSection,
+  },
+  {
     anchor: catalogInstallFunnelAnchor,
     filterFields: catalogInstallFunnelFilterFields,
     Section: CatalogInstallFunnelSection,
+  },
+  {
+    anchor: blogToWebAppFunnelAnchor,
+    filterFields: [],
+    Section: BlogToWebAppFunnelSection,
   },
 ];
