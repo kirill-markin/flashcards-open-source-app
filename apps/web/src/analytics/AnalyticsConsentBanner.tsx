@@ -44,7 +44,8 @@ function persistAccountConsentInBackground(decision: AnalyticsConsentChoice): vo
  * because a banner that blocks the product is a banner people click through to get rid of, and an
  * answer given to make something go away is not much of an answer. Nothing is pre-selected,
  * dismissing it is not an option offered at all, and the two buttons sit side by side on one layer
- * so neither is the easy one.
+ * at the same size. Allow wears the accent like every primary action in the app; Decline stays a
+ * full button with full-contrast text, so refusing is never harder to find or to press than agreeing.
  *
  * Rendered at the app root, so a visitor on the public catalog, invite and share routes is asked on
  * the same terms as a signed-in person.
@@ -172,7 +173,7 @@ export function AnalyticsConsentBanner(): ReactElement | null {
             {t("analyticsConsentBanner.allow")}
           </button>
           <button
-            className="primary-btn analytics-consent-banner-btn"
+            className="ghost-btn analytics-consent-banner-btn analytics-consent-banner-decline"
             type="button"
             disabled={isSubmitting}
             onClick={() => void declineAnalytics()}
