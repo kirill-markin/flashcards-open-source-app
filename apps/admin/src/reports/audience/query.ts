@@ -7,7 +7,7 @@ import {
   buildConnectionCountriesFilterSql,
   buildConnectionCountrySamplesSql,
   buildEventPlatformsFilterSql,
-  buildExcludedActorsFilterSql,
+  buildExcludedActorSqlLines,
   buildMinimumEventCountsFilterSql,
   buildTrustedActorRowsFilterSql,
   buildUserCohortsFilterSql,
@@ -31,10 +31,9 @@ export type AudienceReport = Readonly<{
 
 // The cohort is everyone who opened the app inside the range, which is the "was here" definition of
 // the daily active users section rather than one of this section's own, so the two cannot disagree
-// about which day a person was new on. THE TWO DENOMINATORS STILL DIFFER, by exactly the admin
-// accounts: `history` below drops every user with an unrevoked `auth.admin_users` grant, which the
-// daily active users section keeps, and on production history admin activity is most of the traffic.
-// Reconciling this section's user count against that one's unique users has to allow for that gap.
+// about which day a person was new on. THE TWO DENOMINATORS NOW AGREE: `history` below applies
+// `buildExcludedActorSqlLines`, the one exclusion rule every section applies, so the admin gap that
+// used to separate this count from that section's unique users is gone.
 // A narrower population is a threshold rather than a mode: the people who answered at least one card
 // are `review_answered >= 1`.
 //
@@ -98,17 +97,11 @@ export function buildAudienceSql(filters: AnalyticsFilterState): string {
       MIN((events.occurred_at AT TIME ZONE 'UTC')::date) OVER (PARTITION BY events.actor_id) AS first_date
     FROM analytics.product_events_resolved AS events
     CROSS JOIN bounds
-    LEFT JOIN org.user_settings AS settings ON lower(settings.user_id) = events.actor_id::text
     WHERE events.event_name = 'app_opened'
       AND events.actor_id IS NOT NULL
       AND events.occurred_at < bounds.ends_at
-      AND COALESCE(lower(settings.email), '') NOT LIKE '%@example.com'
-      AND ${buildExcludedActorsFilterSql("events.actor_id::text")}
       AND ${buildTrustedActorRowsFilterSql("events.trust_level")}
-      AND NOT EXISTS (
-        SELECT 1 FROM auth.admin_users AS admins
-        WHERE lower(admins.email) = lower(settings.email) AND admins.revoked_at IS NULL
-      )
+${buildExcludedActorSqlLines("events.actor_id::text").join("\n")}
   ), cohort_events AS MATERIALIZED (
     SELECT history.actor_id, COALESCE(history.platform, 'unattributed') AS platform
     FROM history CROSS JOIN bounds

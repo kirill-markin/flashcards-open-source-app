@@ -10,7 +10,7 @@ import {
   buildAppUiLanguagesFilterSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
-  buildExcludedActorsFilterSql,
+  buildExcludedActorSqlLines,
   buildTrustedActorRowsFilterSql,
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
@@ -448,39 +448,6 @@ function buildEventWindowSql(from: string, to: string): ReadonlyArray<string> {
   ];
 }
 
-/**
- * The identity-level disqualifiers: a test address, an active admin, or an actor listed in
- * `analytics.excluded_actors`, as `AND` lines on `candidate.actor_id`, so a caller names the row it
- * filters `candidate`.
- *
- * The candidate row names its own actor, so these read it directly with no bridge to an install. A
- * click whose visitor cookie the web app has linked to an account resolves to that account, so the
- * exclusions reach a person's rows from before they signed in as well.
- *
- * A visitor who never signed in resolves to their own browser id, which is no account's user id, so
- * the address and admin tests find nothing for them. Only the exclusion list can reach such a row,
- * and only if the browser id itself was listed.
- */
-export function buildExcludedActorFilterSqlLines(): ReadonlyArray<string> {
-  return [
-    "    AND NOT EXISTS (",
-    "      SELECT 1",
-    "      FROM org.user_settings AS excluded_user_settings",
-    "      WHERE pg_catalog.lower(excluded_user_settings.user_id) = candidate.actor_id::text",
-    "        AND (",
-    "          LOWER(btrim(excluded_user_settings.email)) LIKE '%@example.com'",
-    "          OR EXISTS (",
-    "            SELECT 1",
-    "            FROM auth.admin_users AS excluded_admin",
-    "            WHERE excluded_admin.email = LOWER(btrim(excluded_user_settings.email))",
-    "              AND excluded_admin.revoked_at IS NULL",
-    "          )",
-    "        )",
-    "    )",
-    `    AND ${buildExcludedActorsFilterSql("candidate.actor_id::text")}`,
-  ];
-}
-
 /** The test deck, rejected on the candidate's own identity and deck version inside its window. */
 function buildTestDeckFilterSqlLines(): ReadonlyArray<string> {
   return [
@@ -561,7 +528,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  FROM cohort_visits AS candidate",
     "  WHERE TRUE",
     ...buildTestDeckFilterSqlLines(),
-    ...buildExcludedActorFilterSqlLines(),
+    ...buildExcludedActorSqlLines("candidate.actor_id::text"),
     ...buildFunnelVisitFilterSqlLines(filters),
     // Step two, the first install click on the same deck version within the window, as one hash join
     // rather than a per-visit read. Every later step chains from it, so the per-visit reads below run
@@ -919,7 +886,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "      AND page_view.occurred_at <= candidate.anchor_at",
     "  )",
     ...buildTestDeckFilterSqlLines(),
-    ...buildExcludedActorFilterSqlLines(),
+    ...buildExcludedActorSqlLines("candidate.actor_id::text"),
     ...buildFunnelPreviewFilterSqlLines(filters),
     ")",
     "SELECT COUNT(DISTINCT eligible_previews.actor_id)::int AS person_count",
@@ -950,8 +917,6 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     ...buildEventWindowSql(from, to),
     "SELECT COUNT(DISTINCT orphan_install.actor_id)::int AS person_count",
     "FROM server_installs AS orphan_install",
-    "LEFT JOIN org.user_settings AS orphan_user_settings",
-    "  ON pg_catalog.lower(orphan_user_settings.user_id) = orphan_install.actor_id::text",
     // A PRIOR page view, the same way the no-visit preview diagnostic reads one. The funnel requires
     // every step to be at or after the one above it, so a view made after the install anchors no
     // visit row this install could ever have landed on: without this bound such an install is
@@ -971,17 +936,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "  )",
     "  AND orphan_install.event_properties ->> 'package_slug' <> 'test'",
-    "  AND (",
-    "    orphan_user_settings.email IS NULL",
-    "    OR LOWER(btrim(orphan_user_settings.email)) NOT LIKE '%@example.com'",
-    "  )",
-    "  AND NOT EXISTS (",
-    "    SELECT 1",
-    "    FROM auth.admin_users AS orphan_admin",
-    "    WHERE orphan_admin.email = LOWER(btrim(orphan_user_settings.email))",
-    "      AND orphan_admin.revoked_at IS NULL",
-    "  )",
-    `  AND ${buildExcludedActorsFilterSql("orphan_install.actor_id::text")}`,
+    ...buildExcludedActorSqlLines("orphan_install.actor_id::text"),
     `  AND ${buildEventPlatformsFilterSql("COALESCE(orphan_install.platform, 'unattributed')", filters.eventPlatforms)}`,
     ...buildVisitDimensionFilterSqlLines(
       "orphan_install.event_properties ->> 'package_version_id'",
