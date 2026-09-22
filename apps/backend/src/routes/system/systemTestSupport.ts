@@ -27,7 +27,11 @@ import type { AppEnv } from "../../server/app";
 import type { RequestContext } from "../../server/requestContext";
 import { HttpError } from "../../shared/errors";
 import { createSystemRoutes } from "./index";
-import type { AccountPreferencesUpdate, LoadReviewPlatformSummaryFn } from "./types";
+import type {
+  AccountPreferencesUpdate,
+  LoadReviewPlatformSummaryFn,
+  UpdateGuestSessionAnalyticsConsentFn,
+} from "./types";
 
 type SystemTestAppOptions = Readonly<{
   transport: RequestContext["transport"];
@@ -35,6 +39,7 @@ type SystemTestAppOptions = Readonly<{
   enforceSessionCsrf?: boolean;
   getAccountPreferencesFn?: () => AccountPreferences;
   updateAccountPreferencesFn?: (userId: string, update: AccountPreferencesUpdate) => Promise<AccountPreferences>;
+  updateGuestSessionAnalyticsConsentFn?: UpdateGuestSessionAnalyticsConsentFn;
   ensurePublicProfileForUserFn?: (userId: string, localeHint: string) => Promise<PublicProfile>;
   updateLeaderboardParticipationFn?: (
     userId: string,
@@ -352,6 +357,7 @@ export function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv>
       };
     },
     updateAccountPreferencesFn: options.updateAccountPreferencesFn,
+    updateGuestSessionAnalyticsConsentFn: options.updateGuestSessionAnalyticsConsentFn,
     ensurePublicProfileForUserFn: options.ensurePublicProfileForUserFn,
     updateLeaderboardParticipationFn: options.updateLeaderboardParticipationFn,
     createFriendInvitationFn: options.createFriendInvitationFn,

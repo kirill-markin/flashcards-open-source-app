@@ -29,6 +29,9 @@ import com.flashcardsopensourceapp.core.observability.AndroidNotificationSchedul
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNotificationKind
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.review.loadTopActiveReviewCard
@@ -50,8 +53,11 @@ import com.flashcardsopensourceapp.data.local.notifications.buildFallbackInactiv
 import com.flashcardsopensourceapp.data.local.notifications.buildDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
+import com.flashcardsopensourceapp.data.local.notifications.mergeReportedScheduledNotifications
 import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationWorkLimit
+import com.flashcardsopensourceapp.data.local.notifications.reviewReminderScheduledNotificationIdentities
 import com.flashcardsopensourceapp.data.local.notifications.strictReminderWorkLimit
+import com.flashcardsopensourceapp.data.local.notifications.unreportedScheduledNotificationIdentities
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.feature.review.reviewTextProvider
 import kotlinx.coroutines.CancellationException
@@ -126,6 +132,7 @@ class ReviewNotificationsManager(
     private val attentionController: ReviewReminderAttentionController,
     private val notificationDeliveryGate: NotificationDeliveryGate,
     private val observability: AppObservability,
+    private val analytics: Analytics,
     private val appVersion: String?,
     private val versionCode: Int?
 ) {
@@ -490,6 +497,12 @@ class ReviewNotificationsManager(
             enqueuePayload(payload = payload, nowMillis = nowMillis)
         }
         reviewNotificationsStore.saveScheduledPayloads(payloads = payloads)
+        reportScheduledReviewNotifications(
+            mode = settings.selectedMode,
+            payloads = payloads,
+            zoneId = zoneId,
+            nowMillis = nowMillis
+        )
         val expectedWorkReadback: NotificationExpectedWorkInfoReadback = loadExpectedWorkInfoReadback(
             workManager = workManager,
             expectedUniqueWorkNames = payloads.map { payload ->
@@ -613,6 +626,48 @@ class ReviewNotificationsManager(
             ExistingWorkPolicy.REPLACE,
             request
         ).await()
+    }
+
+    /**
+     * Reports every reminder just enqueued that the ledger has not seen, then records it.
+     *
+     * The payloads are the enqueued set rather than a readback: `enqueueUniqueWork` is the act of
+     * scheduling on this platform, and the readback below exists to catch work WorkManager later
+     * dropped, which is not the same question as whether a reminder was scheduled.
+     */
+    private fun reportScheduledReviewNotifications(
+        mode: ReviewNotificationMode,
+        payloads: List<ScheduledReviewNotificationPayload>,
+        zoneId: ZoneId,
+        nowMillis: Long
+    ) {
+        val reported = reviewNotificationsStore.loadReportedScheduledReviewNotifications()
+        val identities = reviewReminderScheduledNotificationIdentities(
+            mode = mode,
+            payloads = payloads,
+            zoneId = zoneId
+        )
+        val unreported = unreportedScheduledNotificationIdentities(
+            identities = identities,
+            reported = reported
+        )
+        repeat(unreported.size) {
+            analytics.track(
+                event = AnalyticsEvent.NotificationScheduled(
+                    notificationKind = AnalyticsNotificationKind.REVIEW_REMINDER
+                )
+            )
+        }
+        val merged = mergeReportedScheduledNotifications(
+            reported = reported,
+            identities = identities,
+            nowMillis = nowMillis
+        )
+        // Reconciles run on every foreground, permission change, settings change, filter change and
+        // recorded review, and the steady state changes nothing, so the disk write is skipped.
+        if (merged != reported) {
+            reviewNotificationsStore.saveReportedScheduledReviewNotifications(reported = merged)
+        }
     }
 
     private suspend fun clearReviewScheduling() {

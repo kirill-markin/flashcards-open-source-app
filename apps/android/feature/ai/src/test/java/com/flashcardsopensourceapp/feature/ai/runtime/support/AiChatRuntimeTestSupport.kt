@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
+import com.flashcardsopensourceapp.core.observability.analytics.NoOpAnalytics
 import com.flashcardsopensourceapp.data.local.ai.remote.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAcceptedConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatActiveRun
@@ -94,7 +95,8 @@ internal fun makeRuntimeContextWithObservability(
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
         currentSyncStatus = { SyncStatus.Idle },
         currentUiLocaleTag = { testUiLocaleTag },
-        observability = observability
+        observability = observability,
+        analytics = NoOpAnalytics
     )
 }
 
@@ -129,7 +131,8 @@ internal fun makeRuntimeWithCloudState(
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
         currentSyncStatus = { SyncStatus.Idle },
         currentUiLocaleTag = { testUiLocaleTag },
-        observability = TestAppObservability
+        observability = TestAppObservability,
+        analytics = NoOpAnalytics
     )
 }
 
@@ -150,7 +153,8 @@ internal fun makeRuntimeWithObservability(
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
         currentSyncStatus = { SyncStatus.Idle },
         currentUiLocaleTag = { testUiLocaleTag },
-        observability = observability
+        observability = observability,
+        analytics = NoOpAnalytics
     )
 }
 

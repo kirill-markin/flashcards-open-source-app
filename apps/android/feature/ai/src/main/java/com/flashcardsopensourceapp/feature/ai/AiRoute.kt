@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsDictationFailureReason
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
@@ -27,6 +28,7 @@ fun AiRoute(
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
+    onDictationFailed: (AnalyticsDictationFailureReason) -> Unit,
     onCameraPermissionResult: (Boolean) -> Unit,
     onMicrophonePermissionResult: (Boolean) -> Unit,
     onScreenVisible: () -> Unit,
@@ -54,6 +56,7 @@ fun AiRoute(
         onStartDictationRecording = onStartDictationRecording,
         onTranscribeRecordedAudio = onTranscribeRecordedAudio,
         onCancelDictation = onCancelDictation,
+        onDictationFailed = onDictationFailed,
         onCameraPermissionResult = onCameraPermissionResult,
         onMicrophonePermissionResult = onMicrophonePermissionResult,
         onScreenVisible = onScreenVisible,

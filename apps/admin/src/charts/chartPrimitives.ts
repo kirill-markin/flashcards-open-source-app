@@ -88,6 +88,14 @@ const packageColorPalette: ReadonlyArray<string> = [...d3.schemeTableau10, ...d3
 /** A series that is not a value of its dimension: an unknown deck, a folded or unresolved funnel group. */
 export const neutralChartColor = "#8c8c8c";
 
+/**
+ * The value of `--text` in `../styles.css`, which this has to track by hand: the stylesheet washes
+ * the ungrouped hashed funnel segment with that variable, and `renderFunnelStepsChart` mixes a
+ * grouped segment toward the same colour, so a retuned palette has to be copied here or the two
+ * stop matching.
+ */
+export const funnelHashedSegmentMixColor = "#f6f6f8";
+
 // Both positional scales below outlive the render that reads them, and the `implicit` default of
 // `d3.scaleOrdinal` appends an unknown key to the domain and hands back the next palette colour, so
 // that key's colour would depend on which render asked for it first. An explicit unknown prevents that.

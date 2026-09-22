@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import type { AccountPreferences } from "../../../auth/ensureUser";
+import type { AccountPreferences, AnalyticsConsentChoice } from "../../../auth/ensureUser";
 import {
   createDefaultAccountPreferences,
   createSystemTestApp,
 } from "../systemTestSupport";
+import type { AccountPreferencesUpdate } from "../types";
 
 test("GET /me includes account preferences", async () => {
   const app = createSystemTestApp({
@@ -150,4 +151,95 @@ test("PATCH /me/preferences rejects ApiKey authentication", async () => {
     requestId: "request-1",
     code: "ACCOUNT_PREFERENCES_HUMAN_AUTH_REQUIRED",
   });
+});
+
+type RecordedGuestConsentWrite = Readonly<{
+  guestUserId: string;
+  guestSessionId: string;
+  analyticsConsent: AnalyticsConsentChoice;
+}>;
+
+test("PATCH /me/preferences from a guest stores the consent on the guest session, not on the account", async () => {
+  const guestConsentWrites: Array<RecordedGuestConsentWrite> = [];
+  const accountUpdates: Array<AccountPreferencesUpdate> = [];
+  const app = createSystemTestApp({
+    transport: "guest",
+    updateAccountPreferencesFn: async (userId, update) => {
+      assert.equal(userId, "user-1");
+      accountUpdates.push(update);
+      return {
+        reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled ?? true,
+        analyticsConsent: null,
+      };
+    },
+    updateGuestSessionAnalyticsConsentFn: async (guestUserId, guestSessionId, analyticsConsent) => {
+      guestConsentWrites.push({ guestUserId, guestSessionId, analyticsConsent });
+      return analyticsConsent;
+    },
+  });
+
+  const response = await app.request("http://localhost/me/preferences", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reviewReactionAnimationsEnabled: false,
+      analyticsConsent: "declined",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    preferences: {
+      reviewReactionAnimationsEnabled: false,
+      analyticsConsent: "declined",
+    },
+  });
+  assert.deepEqual(guestConsentWrites, [{
+    guestUserId: "user-1",
+    guestSessionId: "guest-session-1",
+    analyticsConsent: "declined",
+  }]);
+  // The account write must never carry the consent value: a guest owns no account column for it.
+  assert.deepEqual(accountUpdates, [{
+    reviewReactionAnimationsEnabled: false,
+    analyticsConsent: null,
+  }]);
+});
+
+test("PATCH /me/preferences from a guest with only a consent leaves org.user_settings untouched", async () => {
+  const guestConsentWrites: Array<RecordedGuestConsentWrite> = [];
+  let accountUpdateCalled = false;
+  const app = createSystemTestApp({
+    transport: "guest",
+    updateAccountPreferencesFn: async () => {
+      accountUpdateCalled = true;
+      return createDefaultAccountPreferences();
+    },
+    updateGuestSessionAnalyticsConsentFn: async (guestUserId, guestSessionId, analyticsConsent) => {
+      guestConsentWrites.push({ guestUserId, guestSessionId, analyticsConsent });
+      return analyticsConsent;
+    },
+  });
+
+  const response = await app.request("http://localhost/me/preferences", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      analyticsConsent: "declined",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    preferences: {
+      reviewReactionAnimationsEnabled: true,
+      analyticsConsent: "declined",
+    },
+  });
+  assert.equal(guestConsentWrites.length, 1);
+  assert.equal(accountUpdateCalled, false);
 });
