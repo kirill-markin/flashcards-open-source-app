@@ -156,14 +156,14 @@ export function buildExcludedActorSqlLines(
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-one entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty in this package and
- * one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-two entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, twenty-one in this package
+ * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (12).
+ * APPLIED (13).
  *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
  *     feeds.
  *   - `reports/audience/query.ts`, the `history` CTE and the cohort it feeds.
@@ -195,10 +195,13 @@ export function buildExcludedActorSqlLines(
  *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
  *     filter bar composes.
  *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
- *     `anonymous_client` row carries; read by the country filter, the country option list and the
- *     country and pair charts of `Audience`.
+ *     `anonymous_client` row carries; read by the country filter, the country option list, the
+ *     country and pair charts of `Audience`, and `buildActorConnectionCountrySql`, which reduces it
+ *     to the one country a funnel's `Group by` field places a person in.
  *   - `buildAppUiLanguagesFilterSql` below, over every event name, composed by every report's
  *     filter bar.
+ *   - `buildActorAppUiLanguageSql` below, the one UI language a funnel's `Group by` field places a
+ *     person in, over every event name and over the same rows the language filter reads.
  *   - `filters/optionsQuery.ts`, the `Users` option list.
  *   - `filters/optionsQuery.ts`, the `ui_locale` list, which otherwise gates on nothing but a
  *     non-NULL actor, so a locale only a signed-out visitor ever sent would be offered as a filter
@@ -461,8 +464,9 @@ export function buildMinimumEventCountsFilterSql(
 
 /**
  * The retained connection samples of one range, as one row per (actor, sampled country, event UI
- * locale). The audience report's country and pair dimensions, the country option list and the country
- * filter below all read this one fragment, so a country always means the same evidence.
+ * locale). The audience report's country and pair dimensions, the country option list, the country
+ * filter below and the per-actor country a funnel groups by all read this one fragment, so a country
+ * always means the same evidence.
  *
  * `eventPlatforms` narrows the samples to a platform selection, and `null` is every platform. The
  * filter and the option list both pass `null`, because a person's connection country is not a
@@ -554,6 +558,57 @@ export function buildConnectionCountriesFilterSql(
     "  ) AS country_samples",
     `  WHERE ${buildInPredicateSql("country_samples.country", connectionCountries)}`,
   ]);
+}
+
+/**
+ * One connection country per actor over the range, as `actor_id, country`, for a report that has to
+ * place a person somewhere rather than test a selection: the funnel `Group by` field reads it.
+ *
+ * `MIN` IS THE RULE, NOT AN APPROXIMATION OF ONE. A person whose retained samples name two countries
+ * in the range is placed in the alphabetically first of them, deliberately, so the group key is a
+ * function of the person and the range alone: it does not depend on which sample is read first, and
+ * it needs neither a most-recent nor an entry-time rule, both of which would cost another scan to
+ * decide something the dimension does not claim. The samples are the same fragment the country
+ * filter and the country option list read, across every platform, so a country means the same
+ * evidence here as everywhere else; a person with no retained sample yields no row at all, and the
+ * funnel's own `COALESCE` is what turns that into the `Unresolved` group.
+ *
+ * THE KEY IS NOT NARROWED BY `buildConnectionCountriesFilterSql`. That filter keeps a person when
+ * ANY of their samples matches the selection, while this places them at the alphabetically first of
+ * all of them, so a person kept by a `DE` selection can be grouped under an `AT` they were also seen
+ * in. A report that shows both says so where it shows them; `docs/admin-app.md` states it too.
+ */
+export function buildActorConnectionCountrySql(dateRange: AnalyticsDateRange): string {
+  return [
+    "SELECT country_samples.actor_id, MIN(country_samples.country) AS country",
+    "FROM (",
+    buildConnectionCountrySamplesSql(dateRange, null),
+    ") AS country_samples",
+    "GROUP BY country_samples.actor_id",
+  ].join("\n");
+}
+
+/**
+ * One app interface language per actor over the range, as `actor_id, ui_locale`, over exactly the
+ * trusted rows the language filter reads.
+ *
+ * `MIN` means the same thing it means for the country above, including that it is not narrowed by
+ * `buildAppUiLanguagesFilterSql`: a person whose events in range carry two locales is placed in the
+ * alphabetically first one, so the group key is a function of the person and the range alone. An old
+ * client and an old queued event carry no locale, and there is no `ui_locale IS NOT NULL` predicate
+ * here on purpose: such a person yields a row whose `ui_locale` is NULL rather than no row at all,
+ * which the funnel's `COALESCE` groups as `Unresolved` exactly as it does a missing row.
+ */
+export function buildActorAppUiLanguageSql(dateRange: AnalyticsDateRange): string {
+  return [
+    "SELECT ui_locale_events.actor_id, MIN(ui_locale_events.ui_locale) AS ui_locale",
+    "FROM analytics.product_events_resolved AS ui_locale_events",
+    "WHERE ui_locale_events.actor_id IS NOT NULL",
+    `  AND ${buildTrustedActorRowsFilterSql("ui_locale_events.trust_level")}`,
+    `  AND ui_locale_events.occurred_at >= ${buildRangeStartSql(dateRange)}`,
+    `  AND ui_locale_events.occurred_at < ${buildRangeEndSql(dateRange)}`,
+    "GROUP BY ui_locale_events.actor_id",
+  ].join("\n");
 }
 
 /**
