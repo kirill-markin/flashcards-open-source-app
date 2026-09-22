@@ -112,6 +112,14 @@ reconciled at sign-in by the client rather than by either store: the account ans
 exist, and an account that has none adopts the browser's
 ([web sync](../apps/web/src/analytics/accountConsent.ts)).
 
+A guest of the iOS or Android app answers on the same two endpoints, and the answer is kept on the
+guest session in `auth.guest_sessions.analytics_consent` instead: the transport picks the column, so
+each caller reads and writes whichever of the two they own. Upgrading such a guest into an account
+copies a recorded answer onto `org.user_settings.analytics_consent`, unless the account already
+holds one of its own ([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)). A signed-out
+browser is not part of this: its guest credential is refused on both endpoints
+([refusal](../apps/backend/src/guestAuth/webPlatform.ts)), and its answer stays in the cookie above.
+
 The banner is shown only to a browser that has stored no answer of its own, so the banner on a
 public catalog, invite or share route produces a first decision and never a change of one; changing
 it there is the withdrawal link's job, and that link appears only once the banner's question has
@@ -121,12 +129,13 @@ The banner writes the account directly only where a verified session owner is pu
 that answered it, which is inside the authenticated app; on the public routes it records the
 browser's answer and nothing else.
 
-That client sync is also what carries a guest's answer through the upgrade to an account. The
-upgrade copies no preference columns and deletes the guest row
-([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)), so the account arrives with no decision
-and adopts the one the browser is still holding. It is decided there rather than in the upgrade
-because the browser's own answer is the record that survives every account boundary, including the
-one a person crosses by signing in somewhere they never were a guest.
+The web has no guest upgrade path at all: the credential refused above is refused by guest upgrade
+too, so no upgrade ever runs for a browser and nothing is copied in either direction. A browser's
+answer reaches an account only through the client sync above, on the terms stated there: an account
+that already answered keeps its own answer, and an account that has none adopts the browser's. It is
+decided there rather than in an upgrade because the browser's own answer is the record that survives
+every account boundary, including the one a person crosses by signing in somewhere they never were a
+guest.
 
 A caller whose country cannot be resolved is treated as consent-required, so a browser reaching the
 API without an API Gateway source address — the local dev server, for instance — is never minted

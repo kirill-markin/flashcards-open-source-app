@@ -54,7 +54,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       email: row.email,
       locale: "en",
       review_reaction_animations_enabled: true,
-      analytics_consent: null,
+      analytics_consent: row.analytics_consent,
       created_at: "2026-04-02T13:00:00.000Z",
     } as unknown as Row]);
   }
@@ -117,6 +117,32 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       email,
     });
     return createQueryResult<Row>([]);
+  }
+
+  if (
+    text === "UPDATE org.user_settings SET analytics_consent = $2 WHERE user_id = $1 AND analytics_consent IS NULL"
+  ) {
+    const userId = String(params[0]);
+    const analyticsConsent = params[1];
+    if (analyticsConsent === "granted" || analyticsConsent === "declined") {
+      scope.requireCurrentUserScope(userId);
+      const current = state.userSettings.get(userId);
+      if (current !== undefined && current.analytics_consent === null) {
+        state.userSettings.set(userId, {
+          ...current,
+          analytics_consent: analyticsConsent,
+        });
+      }
+
+      return createQueryResult<Row>([]);
+    }
+
+    // The real column carries a CHECK constraint, so a value outside it fails at the statement that
+    // produced it instead of being stored as "no decision" and read back as a confusing assertion.
+    throw new Error(
+      `Unexpected analytics consent written to org.user_settings for ${userId}:`
+      + ` ${String(analyticsConsent)}. Only granted and declined are storable.`,
+    );
   }
 
   if (text === "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2") {
