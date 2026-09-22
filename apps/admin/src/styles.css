@@ -288,6 +288,48 @@ h2 {
   font-weight: 700;
 }
 
+.funnel-chart-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.funnel-step {
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.funnel-step-hit {
+  fill: transparent;
+}
+
+.funnel-step:hover .funnel-step-hit {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+.funnel-step-selected .funnel-step-hit {
+  fill: rgba(196, 75, 45, 0.12);
+  stroke: var(--accent-strong);
+  stroke-width: 1.5;
+}
+
+.funnel-step:focus-visible .funnel-step-hit {
+  stroke: rgba(255, 255, 255, 0.72);
+  stroke-width: 2;
+}
+
+.funnel-step-axis-label-selected {
+  fill: var(--accent-strong);
+}
+
+.funnel-step-before-anchor .funnel-step-bar,
+.funnel-step-before-anchor .funnel-step-ghost,
+.funnel-step-before-anchor .funnel-step-value,
+.funnel-step-faded {
+  opacity: 0.25;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
