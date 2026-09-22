@@ -19,6 +19,10 @@ import {
   parseFunnelAnchorStepId,
   withFunnelAnchorSearchParams,
 } from "./reports/funnels/funnelAnchorUrl";
+import {
+  readFunnelGroupByParam,
+  withFunnelGroupBySearchParams,
+} from "./reports/funnels/funnelGroupBy";
 import { funnelSections } from "./reports/funnels/funnelSections";
 import { buildDefaultReportRange } from "./reports/reportValues";
 import {
@@ -444,9 +448,11 @@ export default function App(): JSX.Element {
   // stepping through every click, and the single write this does on load is the canonicalization of a
   // hand-typed query string rather than a filter change of its own. The selection lives above the
   // areas, so switching area re-writes it onto the new path instead of being read back from it.
-  // The Funnels charts' anchors are the only area-specific parameters: each funnel owns its own, so on
-  // that route a valid value already in the URL is carried over and an invalid one is dropped, and on
-  // every other route they are left out, so they cannot leak into another area.
+  // The Funnels charts' anchors and group-by fields are the only area-specific parameters: each funnel
+  // owns its own pair, so on that route a value already in the URL is carried over and on every other
+  // route they are left out, so they cannot leak into another area. An anchor is validated here
+  // against the funnel's steps and an invalid one is dropped; a group-by value is only carried,
+  // because the option list is per funnel and lives with the funnel, which is what validates it.
   useEffect(() => {
     if (filterState === null || reportRanges === null || doesRouteUseAnalyticsFilters(route) === false) {
       return;
@@ -456,10 +462,14 @@ export default function App(): JSX.Element {
     const currentSearchParams = new URLSearchParams(window.location.search);
     const searchParams = route.kind === "analyticsArea" && route.area === "funnels"
       ? funnelSections.reduce(
-        (nextSearchParams, funnel) => withFunnelAnchorSearchParams(
-          nextSearchParams,
-          funnel.anchor,
-          parseFunnelAnchorStepId(currentSearchParams, funnel.anchor),
+        (nextSearchParams, funnel) => withFunnelGroupBySearchParams(
+          withFunnelAnchorSearchParams(
+            nextSearchParams,
+            funnel.anchor,
+            parseFunnelAnchorStepId(currentSearchParams, funnel.anchor),
+          ),
+          funnel.anchor.funnelId,
+          readFunnelGroupByParam(currentSearchParams, funnel.anchor.funnelId),
         ),
         filterSearchParams,
       )
