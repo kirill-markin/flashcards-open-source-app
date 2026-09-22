@@ -17,6 +17,7 @@ import { authenticateAgentApiKey } from "../agent/apiKeys";
 import { getAuthConfig } from "./config";
 import { HttpError } from "../shared/errors";
 import { authenticateGuestSession } from "../guestAuth/session/index";
+import type { AnalyticsConsentChoice } from "./ensureUser";
 import type { GuestSessionPlatform } from "../guestAuth/types";
 import { loadCognitoIdentityMapping } from "./userIdentities";
 
@@ -35,6 +36,9 @@ export type AuthResult = Readonly<{
   selectedWorkspaceId: string | null;
   guestSessionId: string | null;
   guestPlatform: GuestSessionPlatform | null;
+  // Only a guest carries one: a signed-in person's analytics decision is kept on the account and
+  // arrives with the rest of the profile instead.
+  guestAnalyticsConsent: AnalyticsConsentChoice | null;
 }>;
 
 export type AuthRequest = Readonly<{
@@ -328,6 +332,7 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: null,
       guestSessionId: null,
       guestPlatform: null,
+      guestAnalyticsConsent: null,
     };
   }
 
@@ -346,6 +351,7 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: auth.selectedWorkspaceId,
       guestSessionId: null,
       guestPlatform: null,
+      guestAnalyticsConsent: null,
     };
   }
 
@@ -365,6 +371,7 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: null,
       guestSessionId: null,
       guestPlatform: null,
+      guestAnalyticsConsent: null,
     };
   }
 
@@ -382,6 +389,7 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: null,
       guestSessionId: guestSession.sessionId,
       guestPlatform: guestSession.platform,
+      guestAnalyticsConsent: guestSession.analyticsConsent,
     };
   }
 
@@ -402,6 +410,7 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: null,
       guestSessionId: null,
       guestPlatform: null,
+      guestAnalyticsConsent: null,
     };
   }
 
