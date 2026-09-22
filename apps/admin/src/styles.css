@@ -288,6 +288,61 @@ h2 {
   font-weight: 700;
 }
 
+.funnel-chart-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.funnel-step {
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.funnel-step-hit {
+  fill: transparent;
+}
+
+.funnel-step:hover .funnel-step-hit {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+.funnel-step-selected .funnel-step-hit {
+  fill: rgba(196, 75, 45, 0.12);
+  stroke: var(--accent-strong);
+  stroke-width: 1.5;
+}
+
+/* Same specificity as the plain hover rule and later, so hovering the anchor deepens its fill instead of dropping it. */
+.funnel-step-selected:hover .funnel-step-hit {
+  fill: rgba(196, 75, 45, 0.18);
+}
+
+/* A separate inset ring, so focus never replaces the anchor's accent stroke. */
+.funnel-step-focus-ring {
+  fill: none;
+  stroke: none;
+  pointer-events: none;
+}
+
+.funnel-step:focus-visible .funnel-step-focus-ring {
+  stroke: rgba(255, 255, 255, 0.72);
+  stroke-width: 2;
+}
+
+/* Qualified with `.axis text` so it outranks that rule's muted fill. */
+.axis text.funnel-step-axis-label-selected {
+  fill: var(--accent-strong);
+}
+
+.funnel-step-before-anchor .funnel-step-bar,
+.funnel-step-before-anchor .funnel-step-ghost,
+.funnel-step-before-anchor .funnel-step-value,
+.funnel-step-faded {
+  opacity: 0.25;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
