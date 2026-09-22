@@ -130,6 +130,20 @@ export const funnelAudienceModeExplanations: Readonly<Record<FunnelAudienceMode,
 };
 
 /**
+ * What an empty funnel adds about the audience mode, or `null` when the mode cannot be the reason.
+ *
+ * `signed-in` is the only mode that removes people, and it is the one thing an empty funnel's "match
+ * these filters" wording cannot be pointing at: the mode is not in the filter bar and `Reset all`
+ * leaves it selected, so a reader told only about filters clears fields that were never the reason.
+ * `all` and `with-anonymous-id` only ever add people to the default, so neither can empty a funnel.
+ */
+export function buildFunnelAudienceEmptyStateNote(mode: FunnelAudienceMode): string | null {
+  return mode === "signed-in"
+    ? `The audience is set to "${funnelAudienceModeLabels["signed-in"]}", which is not one of these filters and stays selected through Reset all; widening it counts people who never registered.`
+    : null;
+}
+
+/**
  * The complete filter selection of one analytics area.
  *
  * An empty list on an option field means "every value", except on `userCohorts` and
@@ -300,7 +314,11 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   //   selection, so somebody with one app open on iOS and two on the web clears a threshold of three
   //   while only iOS is picked;
   // - catalog deck installs are counted here exactly as the Catalog deck installs section counts
-  //   them, so the delisted test deck and installs made by an active admin are left out here too.
+  //   them, so the delisted test deck is left out here too. It is the only exclusion the threshold
+  //   restates: every actor the one exclusion rule drops - an example.com account, anyone who has
+  //   ever held an admin grant, an actor on the exclusion list, an actor with an automated collector
+  //   row - is already gone from every set of users a threshold is applied to, by
+  //   `buildExcludedActorSqlLines` in `apps/admin/src/filters/filterSql.ts`.
   minimumEventCounts:
     "Keeps only users who produced at least the given number of each listed event inside the selected date range, and a user has to clear every listed threshold at once. It judges the person rather than the rows on screen and ignores the platform filter, so one app open on iOS and two on the web still clear a threshold of three app opens while only iOS is picked. App open counts mix live events with reconstructed history, so no range is free of people whose launches are under-counted.",
   // Cut from the on-screen text: a country is read from a retained connection sample matched to the
