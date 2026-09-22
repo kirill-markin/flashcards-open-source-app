@@ -25,6 +25,7 @@ import { cleanupGuestSessionSourceInExecutor } from "../delete/index";
 import { mergeGuestWorkspaceIntoTargetInExecutor } from "../merge/index";
 import {
   assertTargetWorkspaceAccessInExecutor,
+  carryGuestAnalyticsConsentToAccountInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestSessionWithUserSettingsLockInExecutor,
   loadGuestUpgradeReplayByGuestTokenInExecutor,
@@ -513,6 +514,15 @@ export async function completeGuestUpgradeInExecutor(
       );
     }
 
+    // The bound shape keeps the guest's own org.user_settings row, so the answer moves between two
+    // columns of the same person; the guest session it came from is never cleaned up here.
+    await carryGuestAnalyticsConsentToAccountInExecutor(
+      executor,
+      guestSession.userId,
+      guestSession.sessionId,
+      targetUserId,
+    );
+
     const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.userId);
     return {
       workspace: await loadWorkspaceSummaryInExecutor(executor, guestSession.userId, guestWorkspaceId),
@@ -613,7 +623,17 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.targetWorkspaceId,
   );
 
-  // Phase 12: revoke and delete guest source rows.
+  // Phase 12: carry the guest's analytics answer onto the destination account, while the guest
+  // session still exists. The cleanup below deletes the guest org.user_settings row, and the guest
+  // session cascades away with it, so a withdrawal not copied here is lost.
+  await carryGuestAnalyticsConsentToAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestSession.sessionId,
+    guestUpgradeResolution.targetUserId,
+  );
+
+  // Phase 13: revoke and delete guest source rows.
   await cleanupGuestSessionSourceInExecutor(
     executor,
     guestSession.userId,
@@ -621,7 +641,7 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.guestWorkspaceId,
   );
 
-  // Phase 13: load the final workspace summary for the response.
+  // Phase 14: load the final workspace summary for the response.
   return {
     workspace: await loadWorkspaceSummaryInExecutor(
       executor,

@@ -267,7 +267,11 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
         }.await()
     }
 
-    override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
+    override suspend fun verifyCode(
+        challenge: CloudOtpChallenge,
+        code: String,
+        onVerified: () -> Unit
+    ): CloudWorkspaceLinkContext {
         if (verifyCodeErrors.isNotEmpty()) {
             throw verifyCodeErrors.removeFirst()
         }
