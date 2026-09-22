@@ -59,6 +59,13 @@ const heCatalog: TranslationCatalog = {
       languagePreference: "העדפת שפה",
       languageSelection: "בחירת שפה",
     },
+    picker: {
+      empty: "לא נמצאו שפות",
+      listAriaLabel: "שפות האפליקציה",
+      openAriaLabel: "בחירת שפת האפליקציה",
+      searchLabel: "חיפוש",
+      searchPlaceholder: "חפש שפות",
+    },
     names: {
       en: "אנגלית",
       ar: "ערבית",

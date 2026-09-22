@@ -59,6 +59,13 @@ const fiCatalog: TranslationCatalog = {
       languagePreference: "Kieliasetus",
       languageSelection: "Kielen valinta",
     },
+    picker: {
+      empty: "Kieliä ei löytynyt",
+      listAriaLabel: "Sovelluksen kielet",
+      openAriaLabel: "Valitse sovelluksen kieli",
+      searchLabel: "Haku",
+      searchPlaceholder: "Hae kieliä",
+    },
     names: {
       en: "englanti",
       ar: "arabia",

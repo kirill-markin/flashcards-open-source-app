@@ -59,6 +59,13 @@ const hiCatalog: TranslationCatalog = {
       languagePreference: "भाषा वरीयता",
       languageSelection: "भाषा चयन",
     },
+    picker: {
+      empty: "कोई भाषा नहीं मिली",
+      listAriaLabel: "ऐप भाषाएँ",
+      openAriaLabel: "ऐप भाषा चुनें",
+      searchLabel: "खोजें",
+      searchPlaceholder: "भाषाएँ खोजें",
+    },
     names: {
       en: "अंग्रेज़ी",
       ar: "अरबी",

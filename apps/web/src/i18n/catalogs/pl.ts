@@ -65,6 +65,13 @@ const plCatalog: TranslationCatalog = {
       languagePreference: "Preferencja języka",
       languageSelection: "Wybór języka",
     },
+    picker: {
+      empty: "Nie znaleziono języków",
+      listAriaLabel: "Języki aplikacji",
+      openAriaLabel: "Wybierz język aplikacji",
+      searchLabel: "Szukaj",
+      searchPlaceholder: "Szukaj języków",
+    },
     names: {
       en: "Angielski",
       ar: "Arabski",

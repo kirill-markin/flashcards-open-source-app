@@ -65,6 +65,13 @@ const skCatalog: TranslationCatalog = {
       languagePreference: "Preferovaný jazyk",
       languageSelection: "Výber jazyka",
     },
+    picker: {
+      empty: "Nenašli sa žiadne jazyky",
+      listAriaLabel: "Jazyky aplikácie",
+      openAriaLabel: "Vybrať jazyk aplikácie",
+      searchLabel: "Hľadať",
+      searchPlaceholder: "Hľadať jazyky",
+    },
     names: {
       en: "angličtina",
       ar: "arabčina",
