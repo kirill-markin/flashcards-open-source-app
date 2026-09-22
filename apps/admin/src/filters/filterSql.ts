@@ -26,9 +26,9 @@ import {
  * THE ONE EXCLUSION RULE: the people no analytics number on this dashboard counts, as `AND` lines on
  * one actor. Every report, every filter option list and the catalog attribution fragment below compose
  * it into the rows their actors come from, and this is the only place it is written. The public daily
- * snapshot applies the same rule to its own identity column in
- * `apps/backend/src/globalMetrics/reporting.ts`, which this package cannot import from. An actor is
- * dropped when
+ * snapshot restates all four arms below against its own identity column in
+ * `apps/backend/src/globalMetrics/reporting.ts`, which this package cannot import from, so the two
+ * files must be changed together. An actor is dropped when
  *   - a stored `org.user_settings` row of that actor has an `@example.com` address, a test account;
  *   - a stored row of that actor has the address of any `auth.admin_users` row, whether or not the
  *     grant was revoked, so an admin's history never comes back into the numbers. That table's email
@@ -36,7 +36,13 @@ import {
  *     settings side is folded, and `reporting_readonly` reads it through
  *     `db/migrations/0125_reporting_readonly_admin_users.sql`;
  *   - `analytics.excluded_actors` lists the actor and no human restored it, `restored_at IS NULL`
- *     (`db/migrations/0140_analytics_excluded_actors.sql`).
+ *     (`db/migrations/0140_analytics_excluded_actors.sql`);
+ *   - any row of that actor carries the credential-free collector's automated verdict,
+ *     `automated_client IS TRUE` (`db/migrations/0145_anonymous_client_automated_marker.sql`): a bot,
+ *     a crawler, a headless browser, an HTTP library, or a request that sent no `User-Agent` at all.
+ *     NULL is kept, and `IS FALSE` is never asked for, because NULL means nothing assessed the row -
+ *     it was stored before the marker shipped, or on a trust level where no `User-Agent` is read -
+ *     rather than that a person sent it.
  *
  * THE ACTOR SIDE IS NEVER FOLDED HERE, and the stored sides are. Every caller passes
  * `analytics.product_events_resolved.actor_id::text`, which renders canonical lowercase hex, while
@@ -47,9 +53,49 @@ import {
  * carries a NULL or a real address.
  *
  * A visitor who never signed in resolves to their own browser id, which is no account's user id, so
- * the address and admin tests find nothing for them; only the exclusion list can reach such a row. A
- * visitor the web app later linked to an account resolves to that account, so the rule reaches that
- * person's rows from before they signed in as well.
+ * the address and admin tests find nothing for them; only the exclusion list and the automated
+ * verdict can reach such a row. A visitor the web app later linked to an account resolves to that
+ * account, so the rule reaches that person's rows from before they signed in as well.
+ *
+ * THE AUTOMATED VERDICT IS READ AT ACTOR LEVEL HERE, NOT AT ROW LEVEL, and that choice is why it
+ * belongs in this rule at all. The marker sits on the collector's rows only, while the identity
+ * behind them goes on producing trusted rows afterwards: a smoke run that browses the site and then
+ * signs into a real account resolves its marked site rows onto that account, so dropping the marked
+ * rows alone would leave every later app event of that run counted as a person. One marked row
+ * therefore removes the actor from every number on this dashboard. Where a read has no actor to test
+ * - the funnels' cookieless hashed cohort - the same verdict is applied to the row instead, by
+ * `buildNonAutomatedClientRowsFilterSql` below, which carries that list.
+ *
+ * THAT ARM HAS NO RESTORE PATH, and it is the only one that has none. `analytics.excluded_actors`
+ * carries `restored_at`, so a person listed by mistake comes back the moment a human clears it. There
+ * is no counterpart here: `analytics.product_events` is append-only, so a stored verdict can never be
+ * rewritten, and nothing overrides it on the read side. A missing or empty `User-Agent` counts as
+ * automated by `db/migrations/0145_anonymous_client_automated_marker.sql`, so one stripped-header
+ * request from a real person who later signs in takes that account out of every number on this
+ * dashboard and out of the public snapshot, permanently. Accepted as the cost of the actor level:
+ * undoing it means a new migration that lists the exception, not a change here.
+ *
+ * IT IS THE ONE ARM WRITTEN AS AN `ARRAY(...)` InitPlan rather than as a correlated `NOT EXISTS`, and
+ * the reason is the plan shape of the outer side, not of the subquery. Postgres does turn a top-level
+ * `NOT EXISTS` into an anti-join rather than a per-row subplan - but it still chooses the join method
+ * from the outer estimate, and the funnel cohorts compose this rule onto a CTE scan, which carries no
+ * column statistics and estimates at `rows=1`. On that estimate a nested-loop anti-join costs about
+ * what a hash anti-join costs, and `analytics.product_events_resolved.actor_id` can never become an
+ * index qual, so the loop the planner may pick re-scans the event store once per outer row. The
+ * remaining callers compose it onto a base or derived-table scan instead, whose estimate is a real
+ * one; nothing here is claimed about what the planner would choose for them.
+ * `buildSubqueryMembershipSql` below states that failure in full for the `= ANY` case; the InitPlan
+ * form removes the choice for every call site, because an uncorrelated subquery is evaluated exactly
+ * once however wrong that estimate is. It is written as a negated `= ANY (ARRAY(...))` rather than as `<> ALL (...)`
+ * deliberately: the planner's hashed array path exists for `= ANY` alone, so `<> ALL` forecloses it,
+ * while this form leaves it open. Nothing here is claimed about whether this call site actually
+ * receives it - that path also wants a constant array, and `ARRAY(SELECT ...)` reaches the comparison
+ * as an InitPlan parameter - and nothing here depends on the answer: the subquery is evaluated once
+ * either way, and the per-outer-row cost this rule was written to avoid is already gone with it. The
+ * two forms agree exactly here, because the subquery guards its `actor_id` as non-NULL. `db/migrations/0146_product_events_automated_client_index.sql`
+ * keeps the InitPlan itself off a whole-table scan. The array is small besides, though nothing
+ * enforces that: the site gives a browser no visitor cookie until it consents, so an unconsenting
+ * bot's rows resolve to no actor at all and are judged on the hashed side instead.
  */
 export function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
@@ -73,6 +119,21 @@ export function buildExcludedActorSqlLines(
     "    FROM analytics.excluded_actors AS excluded_actors",
     `    WHERE excluded_actors.actor_id = ${actorIdSqlExpression}`,
     "      AND excluded_actors.restored_at IS NULL",
+    "  )",
+    // The NULL arm keeps an unresolvable actor exactly as the two `NOT EXISTS` above keep it, which a
+    // bare comparison would not: `NOT (NULL = ANY (...))` is unknown and would drop such a row. A
+    // caller whose relation can hold one is rejecting it for its own reasons, never through this rule.
+    "  AND (",
+    `    ${actorIdSqlExpression} IS NULL`,
+    `    OR NOT (${actorIdSqlExpression} = ANY (ARRAY(`,
+    "      SELECT DISTINCT automated_events.actor_id::text",
+    "      FROM analytics.product_events_resolved AS automated_events",
+    "      WHERE automated_events.automated_client",
+    // A marked row nobody can be resolved behind names no actor to drop, and a NULL inside the array
+    // would make every comparison that does not match a listed actor unknown, so the caller would
+    // keep no row either way.
+    "        AND automated_events.actor_id IS NOT NULL",
+    "    )))",
     "  )",
   ];
 }
@@ -216,6 +277,40 @@ export function buildExcludedActorSqlLines(
  */
 export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string): string {
   return `${trustLevelSqlExpression} <> 'anonymous_client'`;
+}
+
+/**
+ * Drops one row the credential-free collector judged to come from an automated client, as a predicate
+ * on that row's own `automated_client`.
+ *
+ * TRUE is a bot, a crawler, a headless browser, an HTTP library or a request that sent no
+ * `User-Agent` at all, decided by the collector from that header alone at insert time
+ * (`db/migrations/0145_anonymous_client_automated_marker.sql`). `IS NOT TRUE` rather than `IS FALSE`
+ * is the whole contract: NULL means the code that stored the row did not assess it - a row stored
+ * before the marker shipped, or one on any other trust level - so reading NULL as automated would
+ * silently drop real people, and FALSE is in any case only the client's own unverified claim about
+ * itself.
+ *
+ * ROW LEVEL IS FOR THE READS THAT NAME NOBODY, AND THIS IS THE WHOLE LIST. Wherever a read has an
+ * actor to test, the verdict is applied to that actor by `buildExcludedActorSqlLines` above instead,
+ * which is the stronger rule: one marked row drops the person from every number rather than only the
+ * rows carrying the marker. So the identified site page views and install clicks of the funnels take
+ * nothing from here - their cohorts already compose that rule - and neither do the option lists over
+ * collector rows, which restate it too.
+ *   - `buildHashedSiteRowSqlLines` in `apps/admin/src/reports/funnels/funnelAudienceSql.ts`, the
+ *     cookieless hashed cohort of the two site-entry funnels and the deck funnel: every hashed page
+ *     view and every hashed click. Those rows carry a NULL `actor_id` by construction, so this is the
+ *     only level at which they can be judged at all, and a marked browser-day never becomes a person.
+ *   - `attribution_clicks` in `buildCatalogInstallAttributionSql` below, because its journey bridge
+ *     matches a click that claimed no visitor at all, whose own actor is therefore never the install's
+ *     and is never tested by the rule the install side applies.
+ *
+ * The two available-range probes are deliberately not on this list, exactly as they are not on
+ * `buildTrustedActorRowsFilterSql`'s: each is a `MIN(occurred_at)` that widens a date picker and
+ * decides nothing about a person.
+ */
+export function buildNonAutomatedClientRowsFilterSql(automatedClientSqlExpression: string): string {
+  return `${automatedClientSqlExpression} IS NOT TRUE`;
 }
 
 // The half-open UTC instants of a range, as the expressions a timestamp column is compared to. Each
@@ -584,7 +679,9 @@ export function buildInstalledDecksFilterSql(
  *
  * The install side drops the delisted `test` deck by the install's own slug and applies
  * `buildExcludedActorSqlLines` to the installing actor, so a value only such an install carried is
- * neither offered nor matched.
+ * neither offered nor matched. The click side drops a row marked as an automated client's, which is
+ * the one exclusion the install's actor cannot make for it on the journey bridge, where the click
+ * shares no identity with the install; on the actor bridge the install's own actor already carries it.
  *
  * Each side is read in one `MATERIALIZED` pass and both bridges are hash-joinable equalities on it,
  * because an equality on `actor_id` can never become an index qual on the view (see
@@ -632,6 +729,15 @@ export function buildCatalogInstallAttributionSql(): string {
     "  WHERE candidate_clicks.event_name = 'catalog_install_clicked'",
     "    AND candidate_clicks.origin = 'client'",
     "    AND candidate_clicks.trust_level = 'anonymous_client'",
+    // Load-bearing on the journey bridge alone, and kept for it. That bridge matches a click that
+    // claimed no visitor, whose actor is its own journey id and so is never the install's, so the
+    // exclusion rule the install side applies to the installing actor never reads that click: this
+    // predicate is the only thing that can drop it. Only rows written before the producers dropped
+    // `install_journey_id` reach it, and the query is deliberately unbounded in time, so that window
+    // is still read. On the actor bridge below it is redundant - a marked click actor equals the
+    // install's actor there, which `buildExcludedActorSqlLines` has already dropped above.
+    // See `buildNonAutomatedClientRowsFilterSql`.
+    `    AND ${buildNonAutomatedClientRowsFilterSql("candidate_clicks.automated_client")}`,
     ")",
     "SELECT DISTINCT ON (attributed.install_event_id)",
     "  attributed.actor_id,",
