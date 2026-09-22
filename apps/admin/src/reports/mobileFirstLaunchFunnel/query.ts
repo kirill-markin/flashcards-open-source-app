@@ -10,6 +10,7 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { catalogInstallConversionWindowDays } from "../catalogInstallFunnel/query";
+import { buildFunnelAudienceActorSqlLines } from "../funnels/funnelAudienceSql";
 import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
 
 export const mobileFirstLaunchFunnelReportLabel = "Mobile first launch funnel";
@@ -127,6 +128,9 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "  FROM first_launches AS candidate",
     "  WHERE TRUE",
     ...buildExcludedActorSqlLines("candidate.actor_id::text"),
+    // The one place the audience mode reaches this funnel. There are no cookieless people on mobile -
+    // the hash exists only on marketing-site rows - so `all` is the default mode here and adds nothing.
+    ...buildFunnelAudienceActorSqlLines(filters, "candidate.actor_id::text"),
     `    AND ${buildConnectionCountriesFilterSql("candidate.actor_id::text", filters.connectionCountries, filters.dateRange)}`,
     `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
     "), step_events AS MATERIALIZED (",

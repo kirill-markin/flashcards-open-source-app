@@ -154,6 +154,45 @@ h2 {
   color: var(--text);
 }
 
+/* The audience mode, above every funnel on the area. It reads as a panel rather than as another
+   filter row, because it redefines what the funnels count instead of narrowing them. */
+.funnel-audience-control {
+  margin: 24px 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.funnel-audience-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.funnel-audience-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.funnel-audience-modes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+}
+
+.funnel-audience-explanation {
+  margin: 12px 0 0;
+  max-width: 920px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .funnel-filter-panel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -268,6 +307,20 @@ h2 {
 
 .funnel-step-bar-empty {
   fill: var(--muted-soft);
+}
+
+/* The cookieless part of a step, drawn over the top of the bar the total already filled. It washes
+   the accent out rather than introducing a second hue, because it is a part of the same step and not
+   a second series; drawing it in the accent itself would be invisible over the accent beneath it. */
+.funnel-step-bar-hashed {
+  fill: var(--text);
+  fill-opacity: 0.38;
+}
+
+.funnel-step-split {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .funnel-step-ghost {
@@ -856,6 +909,17 @@ h2 {
   height: 34px;
   padding: 0 12px;
   font-size: 12px;
+}
+
+/*
+ * After `.filter-button`, which sets the same border and background at the same specificity. The
+ * second selector matches `.filter-button:not(:disabled):hover` above class for class, so hovering
+ * the selected mode keeps its accent border instead of dropping back to the neutral hover one.
+ */
+.funnel-audience-mode-selected,
+.funnel-audience-mode-selected:not(:disabled):hover {
+  border-color: var(--accent-strong);
+  background: var(--accent);
 }
 
 .filter-button-reset-all {

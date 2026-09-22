@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import { isFunnelHashedCohortRead, isFunnelHashedSplitShown } from "../funnels/funnelAudienceSql";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
@@ -161,14 +162,21 @@ function countPeopleAtEachStep<Step extends StepDefinition>(
 
 /**
  * The nine steps of one funnel, from the first deck page view to a person who kept studying, counted
- * as people by `countPeopleAtEachStep`.
+ * as people by `countPeopleAtEachStep`, then widened by the cookieless people of the `all` mode.
  *
  * The three engagement steps are measurable only on a row that reached a server install, so a
  * row with no install carries null review facts and is absent from all three. That keeps them
  * subsets of the install step above them rather than an independent test.
+ *
+ * The cookieless people arrive as two counts rather than as visit rows, because they have no actor,
+ * no deck they can be followed to and no step below the click; the query explains why. They are added
+ * onto the only two steps they can reach, so each step's `count` is the whole audience on screen and
+ * `hashedCount` is the part of it that no identifier is behind.
  */
 function buildMainStages(
   visits: ReadonlyArray<CatalogInstallFunnelVisit>,
+  hashedDeckPageViewCount: number,
+  hashedInstallClickCount: number,
 ): ReadonlyArray<FunnelStage<FunnelMainStepId>> {
   // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelMainStepIds`,
   // which is also where the URL codec reads its default, the first step.
@@ -190,7 +198,18 @@ function buildMainStages(
     },
   };
 
-  return countPeopleAtEachStep(visits, funnelMainStepIds.map((id) => ({ id, ...steps[id] })));
+  // Keyed by id so a renamed or reordered step cannot silently move the hashed people onto a step
+  // they could never have reached; every other step takes the zero.
+  const hashedCountByStepId: Readonly<Partial<Record<FunnelMainStepId, number>>> = {
+    "deck-page-view": hashedDeckPageViewCount,
+    "install-click": hashedInstallClickCount,
+  };
+
+  return countPeopleAtEachStep(visits, funnelMainStepIds.map((id) => ({ id, ...steps[id] })))
+    .map((stage) => {
+      const hashedCount = hashedCountByStepId[stage.id] ?? 0;
+      return { ...stage, count: stage.count + hashedCount, hashedCount };
+    });
 }
 
 /** The sign-in branch, counted as people by the same rule as the main steps. */
@@ -273,7 +292,12 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
 
   const report = loadState.status === "ready" ? loadState.report : null;
   const visits = report === null ? noVisits : report.visits;
-  const mainStages = useMemo(() => buildMainStages(visits), [visits]);
+  const hashedDeckPageViewCount = report === null ? 0 : report.hashedDeckPageViewCount;
+  const hashedInstallClickCount = report === null ? 0 : report.hashedInstallClickCount;
+  const mainStages = useMemo(
+    () => buildMainStages(visits, hashedDeckPageViewCount, hashedInstallClickCount),
+    [visits, hashedDeckPageViewCount, hashedInstallClickCount],
+  );
   const authStages = useMemo(() => buildAuthStages(visits), [visits]);
   const failureTotals = useMemo(() => buildFailureTotals(visits), [visits]);
 
@@ -286,8 +310,21 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
   const previewersWithoutVisitCount = report === null ? 0 : report.previewersWithoutVisitCount;
   const installersWithoutVisitCount = report === null ? 0 : report.installersWithoutVisitCount;
   const isReady = props.isRangeLoading === false && loadState.status === "ready";
-  const hasVisits = isReady && visits.length > 0;
+  // A range in which only cookieless visitors reached a deck page still has a funnel to draw, even
+  // though not one of them produced a visit row.
+  const hasVisits = isReady && (visits.length > 0 || hashedDeckPageViewCount > 0);
   const startDateNote = isReady ? buildStartDateNote(props.filters.dateRange) : null;
+  // The mode alone, never the chart's `showsHashedSplit` prop: that one is the read gate below,
+  // and the two differ exactly in the `all`-with-a-country case this note exists to explain.
+  const wantsHashedCohort = isFunnelHashedSplitShown(props.filters);
+  // What the query actually read, which is what every sentence and column about the cookieless
+  // segment is chosen on: with a country selected the mode is still `all` and the cohort is not read.
+  const readsHashedCohort = isFunnelHashedCohortRead(props.filters);
+  const hashedCountryNote = isReady
+    && wantsHashedCohort
+    && props.filters.connectionCountries.length > 0
+    ? "A connection country is selected, so the cookieless visitors are left out of these bars entirely: their rows carry no country, and keeping them would answer a country question with people whose country is unknown."
+    : null;
 
   return (
     <section className="dashboard-section funnel-report">
@@ -301,9 +338,12 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
       {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading deck page to install funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
-      {isReady && visits.length === 0 ? <div className="report-state"><strong>No identified deck page views match these filters.</strong><span>A page view from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates.</span></div> : null}
+      {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
+      {/* Chosen on the read gate, not the mode: with a country selected the cookieless rows were not read, and the note above already says so. */}
+      {isReady && hasVisits === false ? <div className="report-state"><strong>No deck page views match these filters.</strong><span>{readsHashedCohort ? "Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates." : "A page view from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates."}</span></div> : null}
 
-      {isReady ? <FunnelMaturingWarning maturingCount={maturingCount} entryCount={mainStages[0]?.count ?? 0} /> : null}
+      {/* The window belongs to the people who have one, so the denominator is the identified part of the first step. */}
+      {isReady ? <FunnelMaturingWarning maturingCount={maturingCount} entryCount={(mainStages[0]?.count ?? 0) - (mainStages[0]?.hashedCount ?? 0)} /> : null}
 
       {hasVisits ? (
         <FunnelStepsChart
@@ -312,6 +352,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           countLabel="Visitors"
           tableCaption="Deck page to install funnel steps"
           dateRange={props.filters.dateRange}
+          showsHashedSplit={readsHashedCohort}
         />
       ) : null}
 
@@ -324,7 +365,9 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           <p>The last three steps read the installing person&rsquo;s reviews anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck or card; say so wherever they are quoted. They are counted from the install to seven days after the page view, so a late install leaves less of that window, and the return day is a later UTC day than the install&rsquo;s. A person whose first deck page view is still inside its seven-day window is not a confirmed drop-off.</p>
           <p>The date range, the client platform and the installed deck are read off the anchoring page view; the site always reports as web, so a selection without web empties this funnel. The connection country and the app interface language keep an identity the way they keep a person on General, from their trusted events in the selected dates, so narrowing either keeps only people who signed in. <strong>The placement, source, device category and browser language describe the install click, so they narrow step two and everything below it, never the deck page views above it:</strong> a narrowed selection reads as a lower click rate, not a smaller top. Test-deck rows are excluded, and so is an identity belonging to an <code>@example.com</code> account, an admin or an actor on the analytics exclusion list — reaching backwards over every row of theirs, including the ones sent before they signed in.</p>
           <p>The import-screen, import-confirm, signed-out-gate and confirm-after-sign-in steps come from <code>screen_viewed</code>, which carries no deck, so a visitor who clicked two deck versions in range has those steps satisfied on both rows by the same view. Import confirm is that screen view rather than <code>catalog_install_preview_ready</code>, which marks the same moment: the screen view is reported by the signed-in app with the account&rsquo;s own credential, so it needs no identity link to meet the install.</p>
-          <p>A browser that refused consent is given no identifier at all and appears nowhere here.</p>
+          <p>&ldquo;Who the funnels count&rdquo; picks the audience. <strong>With anonymous ID</strong>, the default, is everything described above. <strong>Signed-in only</strong> keeps just the visits whose identity resolves to a real, non-guest account at some point up to now, read from a Cognito row in <code>auth.user_identities</code>; it narrows the two no-visit diagnostics the same way, so they stay comparable with the funnel. <strong>All</strong> adds cookieless visitors as the lighter part of the first two bars: where the site may not set a cookie it still reports a daily hash, and one hash on one UTC day is one person. They can reach the deck page view and an install click on a deck whose page they viewed — the same rule as above, on the hash — and nothing below it, because every later step needs an identity the app or the server can meet again. They carry no actor, so the exclusion list, the test-account and admin rules and the delisted <code>test</code> deck&rsquo;s rejection cannot reach them — that last one recognises the fixture by an app-side install start by the same person, which a cookieless browser never sends, and a deck page view carries no deck slug to test instead, so the fixture&rsquo;s own cookieless views and clicks are in these bars. The deck version, the platform, the four click dimensions and their own page view&rsquo;s language still narrow them, and a selected connection country removes them altogether.</p>
+          <p><strong>All counts people at most once per cohort, not once per person, so it is an upper bound.</strong> A hash and a cookie are never linked, by design: the daily salt is unreadable and no query may resolve one to the other. Where the site must ask before setting a cookie (the EEA and the UK), the same human sends hashed deck page views before consenting and cookie-bearing ones after, and on that day they can appear once in each part of step one, and of step two, and be added. Nothing here can subtract that overlap, which is why <strong>With anonymous ID</strong> is the default and <strong>All</strong> is a ceiling to read against it rather than a better count.</p>
+          <p>A browser that refused consent is given no identifier at all. It is counted only in the <strong>All</strong> audience, through its daily hash, and appears nowhere else here: it holds no visit row, no diagnostic and no median.</p>
         </details>
       ) : null}
 
