@@ -601,7 +601,7 @@ export function AppShell(): ReactElement {
           <div className="topbar">
             <div className="topbar-brand-block">
               <div className="topbar-brand-row">
-                <a className="topbar-brand" href={getPublicSiteHomeUrl(locale)}>
+                <a className="topbar-brand" href={getPublicSiteHomeUrl(locale)} rel="noreferrer" target="_blank">
                   <span className="brand-full">Nibomo</span>
                   <span className="brand-short">Nibomo</span>
                 </a>
