@@ -20,6 +20,9 @@ For the full cross-client rollout order and the locale tag each surface expects,
 - [apps/web/src/i18n/locales.ts](../apps/web/src/i18n/locales.ts)
   `localeDirections`, `primaryLanguageLocaleFallbacks` (browser tag to supported locale; Spanish and Chinese are resolved by region and script instead), and legacy stored-preference migration.
 
+- [apps/web/src/i18n/localeDisplayNames.ts](../apps/web/src/i18n/localeDisplayNames.ts)
+  `localeDisplayNames`, each locale's native name, English name, and search aliases, and `matchesLocaleSearch`, the language picker's search.
+
 - [apps/web/src/i18n/weekContext.ts](../apps/web/src/i18n/weekContext.ts)
   `localeFirstDayFallbacks`, the Progress-screen week start whenever `Intl.Locale` exposes no week info.
 
@@ -51,8 +54,9 @@ Use the iOS app tag for the language ([Locale tags per surface](add-language.md#
 5. add its primary language subtag to `primaryLanguageLocaleFallbacks`, so regional browser tags such as `fr-CA` resolve to it
 6. add it to `localeFirstDayFallbacks` with the first day of week its CLDR data defines, not the value of a neighboring row
 7. add `locale.names.<tag>` to every catalog, including the new one
+8. add its native name, English name (the `en.ts` `locale.names.<tag>` value), and common alternative names people type to `localeDisplayNames`
 
-The presence of steps 2 to 4, 6, and 7 is enforced by [scripts/checks/pr/check-web-localization-parity.mjs](../scripts/checks/pr/check-web-localization-parity.mjs), which runs in the required `Repository static checks` gate. It also fails a loader whose import specifier names another locale's module, because that still type-checks and would ship one language under another's name. Neither the step 6 weekday value nor step 5 is checked: without step 5 only the exact tag is detected from the browser.
+The presence of steps 2 to 4, 6, and 7 is enforced by [scripts/checks/pr/check-web-localization-parity.mjs](../scripts/checks/pr/check-web-localization-parity.mjs), which runs in the required `Repository static checks` gate. It also fails a loader whose import specifier names another locale's module, because that still type-checks and would ship one language under another's name. Neither the step 6 weekday value nor step 5 is checked: without step 5 only the exact tag is detected from the browser. Step 8 is enforced by the `Record<Locale, LocaleDisplayName>` type, not the script, so nothing checks that the English name matches `en.ts`.
 
 ### 2. Translate the catalog
 
