@@ -9,6 +9,7 @@ import type { UserColorScale } from "../dashboard/userColors";
 import {
   chartMargin,
   chartWidth,
+  funnelHashedSegmentMixColor,
   getPlatformColor,
   platformLabels,
   simpleChartHeight,
@@ -762,12 +763,45 @@ export type FunnelStepBar = Readonly<{
   splitLabels: ReadonlyArray<string>;
 }>;
 
+/**
+ * One coloured series inside every step band: one group's own steps, in the funnel's step order.
+ *
+ * An ungrouped funnel is one group, which is exactly the single accent bar per step the chart has
+ * always drawn, so the grouped and ungrouped charts are one code path rather than two renderers.
+ */
+export type FunnelStepGroupBars = Readonly<{
+  key: string;
+  label: string;
+  color: string;
+  steps: ReadonlyArray<FunnelStepBar>;
+}>;
+
 export type RenderFunnelStepsChartParams = Readonly<{
   svgElement: SVGSVGElement;
-  steps: ReadonlyArray<FunnelStepBar>;
+  /** At least one group, each carrying the funnel's full step list in the same order. */
+  groups: ReadonlyArray<FunnelStepGroupBars>;
+  /**
+   * A `Group by` dimension is selected, so the bars are its groups and are drawn and named as such.
+   * It is not `groups.length > 1`: a dimension that placed everybody in one group, or nobody
+   * anywhere, still has to draw its colour, its key and its table rather than pass for the plain
+   * funnel.
+   */
+  isGrouped: boolean;
+  /** What one counted row is, plural; the tooltip names the number with the same word the table does. */
+  countLabel: string;
   /** The step every later share is measured from; 0 is the default view. */
   anchorIndex: number;
   onSelectStep: (stepIndex: number) => void;
+  /** Grouped bars carry their numbers here, because a step band holding several has no room to write them. */
+  tooltipHandlers: ChartTooltipHandlers;
+}>;
+
+/** One group's bar at one step: everything the bar, its ghost and its tooltip are drawn from. */
+type FunnelStepGroupBar = Readonly<{
+  groupIndex: number;
+  group: FunnelStepGroupBars;
+  stepIndex: number;
+  step: FunnelStepBar;
 }>;
 
 const funnelChartHeight = 440;
@@ -783,7 +817,23 @@ const funnelStepFocusRingInset = 4;
 /** Depth of the zig-zag drawn inside a capped bar's top edge; it stays below the labels, whose last baseline sits 10 units above the plot. */
 const funnelStepClipMarkDepth = 6;
 const funnelStepClipMarkToothWidth = 10;
+/** The gap between two groups inside one step band; the band's own edges stay flush with the step column. */
+const funnelGroupBandPaddingInner = 0.16;
+const funnelHashedSegmentMixRatio = 0.55;
 const funnelShareAxisFormatter = d3.format(".0%");
+
+/**
+ * A grouped bar's hashed segment: that group's own colour, mixed toward the page's text.
+ *
+ * The stylesheet's wash cannot serve a grouped chart. It is one translucent `--text` over whatever
+ * is beneath, so every group's segment comes out the same colour, and on a step whose identified
+ * count is zero the segment is the whole bar and its group's colour is gone from the plot. Mixing
+ * the group's own colour instead keeps the segment that group one shade up, which is exactly what
+ * the wash does over the single accent bar of an ungrouped funnel.
+ */
+function buildFunnelHashedSegmentColor(groupColor: string): string {
+  return d3.interpolateLab(groupColor, funnelHashedSegmentMixColor)(funnelHashedSegmentMixRatio);
+}
 
 /** An even tooth count starts and ends the zig-zag at its depth, inside the bar's rounded top corners. */
 function buildFunnelStepClipMarkPath(width: number): string {
@@ -794,6 +844,51 @@ function buildFunnelStepClipMarkPath(width: number): string {
   });
 
   return `M${points.join("L")}`;
+}
+
+/**
+ * A rectangle with rounded top corners and independently rounded bottom ones, as a path.
+ *
+ * The hashed segment is drawn over the upper slice of the bar the total already drew, so its bottom
+ * edge is normally an internal boundary rather than the shape's end: rounding it would curve the
+ * lighter fill away from the accent underneath and leave a notch at each bottom corner, which a thin
+ * segment shows plainly. `rect` rounds all four corners or none, so that shape is drawn here instead.
+ *
+ * `bottomRadius` exists for the one case where that bottom edge is not internal. When the hashed count
+ * equals the total, the segment is the whole bar, and the bar's own `rx` has rounded the two bottom
+ * corners away: square ones there would paint outside the bar's silhouette and the composite would
+ * read as square-bottomed. The caller passes the bar's radius in that case and `0` otherwise. Each
+ * radius is clamped to the segment, so a segment shorter or narrower than its corners keeps clean
+ * edges, and both are clamped to half the height once the bottom is rounded, so opposite corners on a
+ * thin full-height segment cannot overlap.
+ *
+ * That clamp does not reproduce the bar's own corners exactly on a very short bar. `rect` clamps only
+ * `ry` to half the height and leaves `rx` at the radius, so its corners turn elliptical there, while
+ * these stay circular at the smaller radius and keep a sliver of fill the bar has already curved
+ * away. It is sub-pixel on the bars this renders and is left as is rather than switched to elliptical
+ * arcs; a full-height segment is otherwise inside the bar's silhouette, not square-bottomed over it.
+ */
+function buildRoundedBarSegmentPath(
+  width: number,
+  height: number,
+  topRadius: number,
+  bottomRadius: number,
+): string {
+  const heightLimit = bottomRadius > 0 ? height / 2 : height;
+  const top = Math.max(0, Math.min(topRadius, heightLimit, width / 2));
+  const bottom = Math.max(0, Math.min(bottomRadius, height / 2, width / 2));
+  return [
+    `M0,${height - bottom}`,
+    `L0,${top}`,
+    `A${top},${top} 0 0 1 ${top},0`,
+    `L${width - top},0`,
+    `A${top},${top} 0 0 1 ${width},${top}`,
+    `L${width},${height - bottom}`,
+    `A${bottom},${bottom} 0 0 1 ${width - bottom},${height}`,
+    `L${bottom},${height}`,
+    `A${bottom},${bottom} 0 0 1 0,${height - bottom}`,
+    "Z",
+  ].join("");
 }
 
 function wrapFunnelStepLabel(label: string): ReadonlyArray<string> {
@@ -820,8 +915,8 @@ function getFunnelStepAnchorShareText(step: FunnelStepBar, stepIndex: number, an
 }
 
 /**
- * Names the control only: the counts and shares live once, in the chart's visually hidden table,
- * so a screen reader does not hear every number twice.
+ * Names the control only: the counts and shares live once, in the chart's table - hidden while the
+ * chart is ungrouped, visible while it is grouped - so a screen reader does not hear every number twice.
  */
 function getFunnelStepAriaLabel(step: FunnelStepBar, stepIndex: number, anchorIndex: number): string {
   if (stepIndex === 0) {
@@ -835,47 +930,96 @@ function getFunnelStepAriaLabel(step: FunnelStepBar, stepIndex: number, anchorIn
   return `Measure from ${step.label}`;
 }
 
+/** Every share a grouped bar carries is that group's own, which is what the wording has to say. */
+function buildFunnelStepGroupTooltipHtml(
+  bar: FunnelStepGroupBar,
+  countLabel: string,
+  anchorIndex: number,
+): string {
+  return [
+    `<p class="tooltip-title">${escapeHtml(bar.group.label)}</p>`,
+    `<p class="tooltip-subtitle">${escapeHtml(bar.step.label)}</p>`,
+    `<div class="tooltip-metric"><span>${escapeHtml(countLabel)}</span><strong>${numberFormatter(bar.step.count)}</strong></div>`,
+    `<div class="tooltip-metric"><span>Of this group's first step</span><strong>${escapeHtml(bar.step.shareOfFirstLabel)}</strong></div>`,
+    ...(anchorIndex > 0
+      ? [`<div class="tooltip-metric"><span>Of this group's selected step</span><strong>${escapeHtml(bar.step.shareOfAnchorLabel)}</strong></div>`]
+      : []),
+    `<div class="tooltip-metric"><span>Of this group's previous step</span><strong>${escapeHtml(bar.step.shareOfPreviousLabel)}</strong></div>`,
+  ].join("");
+}
+
 /**
- * Vertical funnel bars with the exact count and both shares written above each bar. A faint ghost
- * at the previous step's height sits behind every later bar, so the drop-off reads as the gap between
- * them, and a zero step keeps a thin muted stub so it still reads as a measured step. The labels sit
- * above the taller of the bar and its ghost so the ghost's dashed top edge never crosses them.
- * Each step's whole column is a toggle button that re-anchors the shares on it. A selected step with
- * visitors re-bases the chart: its count fills the plot, the axis reads as a share of it, it and the
- * steps before it lose their ghosts, and those earlier steps turn grey, capped at the plot top with a
- * zig-zag clip mark when taller.
+ * Vertical funnel bars, one coloured bar per group inside every step band. A faint ghost at that
+ * group's own previous step sits behind each later bar, so the drop-off reads as the gap between
+ * them, and a zero step keeps a thin muted stub so it still reads as a measured step.
+ * Each step's whole column is a toggle button that re-anchors the shares on it, for every group at
+ * once. A selected step re-bases the chart: the axis reads as a share of it, EVERY GROUP IS THEN
+ * DRAWN AS A SHARE OF ITS OWN COUNT AT THAT STEP, which is what keeps two groups of very different
+ * size comparable, and the steps before it lose their ghosts, turn grey and are capped at the plot
+ * top with a zig-zag clip mark when taller.
  * A redraw keeps keyboard focus on the column that held it.
+ *
+ * THE UNGROUPED CHART IS THE ONE-GROUP CASE OF ALL OF THAT, and it alone writes the exact count, the
+ * identified/hashed split and both shares above each bar: a step band that may hold several bars has
+ * no room for any of it, so a grouped chart moves those numbers to the hover tooltip and to the
+ * visible table its component draws underneath, whether its dimension resolved to seven groups or
+ * to one.
  */
 export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): void {
+  const firstGroup = params.groups[0];
+  if (firstGroup === undefined) {
+    throw new Error("A funnel step chart needs at least one group to draw.");
+  }
+
+  const isGrouped = params.isGrouped;
+  const steps = firstGroup.steps;
   // A split label adds lines above the bars, so the chart and its top margin both grow by as many
-  // rather than the plot shrinking: the bars stay the height they are without the split.
-  const splitLineCount = Math.max(0, ...params.steps.map((step) => step.splitLabels.length));
+  // rather than the plot shrinking: the bars stay the height they are without the split. A grouped
+  // chart writes nothing above its bars, so it never asks for those lines.
+  const splitLineCount = isGrouped ? 0 : Math.max(0, ...steps.map((step) => step.splitLabels.length));
   const chartHeight = funnelChartHeight + splitLineCount * funnelStepSplitLineHeight;
   const marginTop = funnelChartMargin.top + splitLineCount * funnelStepSplitLineHeight;
   const innerWidth = chartWidth - funnelChartMargin.left - funnelChartMargin.right;
   const innerHeight = chartHeight - marginTop - funnelChartMargin.bottom;
-  const peakCount = Math.max(1, ...params.steps.map((step) => step.count));
+  const peakCount = Math.max(1, ...params.groups.flatMap((group) => group.steps.map((step) => step.count)));
   const hasAnchor = params.anchorIndex > 0;
-  const anchorCount = params.steps[params.anchorIndex]?.count ?? 0;
-  // An anchor with no visitors has nothing to scale to, so the chart keeps the visitor scale.
-  const isRebased = hasAnchor && anchorCount > 0;
+  const groupAnchorCounts = params.groups.map((group) => group.steps[params.anchorIndex]?.count ?? 0);
+  // An anchor no group has anybody at has nothing to scale to, so the chart keeps the visitor scale.
+  const isRebased = hasAnchor && Math.max(...groupAnchorCounts) > 0;
   const x = d3.scaleBand<string>()
-    .domain(params.steps.map((step) => step.label))
+    .domain(steps.map((step) => step.label))
     .range([0, innerWidth])
     .paddingInner(0.28)
     .paddingOuter(0.14);
-  // Clamping caps the steps before a re-based anchor at the plot top.
-  const y = d3.scaleLinear().domain([0, isRebased ? anchorCount : peakCount]).range([innerHeight, 0]).clamp(true);
-  const axisScale = isRebased ? d3.scaleLinear().domain([0, 1]).range([innerHeight, 0]) : y;
+  const bandWidth = x.bandwidth();
+  const groupX = d3.scaleBand<string>()
+    .domain(params.groups.map((group) => group.key))
+    .range([0, bandWidth])
+    .paddingInner(isGrouped ? funnelGroupBandPaddingInner : 0)
+    .paddingOuter(0);
+  // One scale for the plot and the axis: counts, or shares once a step is selected. Clamping caps the
+  // steps before a re-based anchor at the plot top.
+  const y = d3.scaleLinear().domain([0, isRebased ? 1 : peakCount]).range([innerHeight, 0]).clamp(true);
   const axisTicks = isRebased
-    ? axisScale.ticks(5)
+    ? y.ticks(5)
     : y.ticks(Math.min(6, peakCount + 1)).filter((tick) => Number.isInteger(tick));
   const axisTickFormatter = isRebased ? funnelShareAxisFormatter : numberFormatter;
+  /** A value's height inside its own group: a count, or that group's own share of its own anchor. */
+  const getGroupValueY = (groupIndex: number, value: number): number => {
+    if (isRebased === false) {
+      return y(value);
+    }
+
+    // A group with nobody at the anchor has no rate to draw, so anything it still has at an earlier
+    // step is capped at the plot top by the scale rather than divided by zero into nothing.
+    const anchorCount = groupAnchorCounts[groupIndex] ?? 0;
+    return y(value === 0 ? 0 : value / anchorCount);
+  };
 
   const svg = d3.select(params.svgElement);
   const focusedStepIndex = svg.selectAll<SVGGElement, FunnelStepBar>("g.funnel-step").nodes()
     .findIndex((node) => node === params.svgElement.ownerDocument.activeElement);
-  const stepIndexByLabel = new Map(params.steps.map((step, index) => [step.label, index]));
+  const stepIndexByLabel = new Map(steps.map((step, index) => [step.label, index]));
   const getStepIndex = (label: string): number => {
     const index = stepIndexByLabel.get(label);
     if (index === undefined) {
@@ -883,6 +1027,18 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     }
 
     return index;
+  };
+  /** Every group's bar at one step, in group order; each group carries the same steps in the same order. */
+  const getStepGroupBars = (stepLabel: string): ReadonlyArray<FunnelStepGroupBar> => {
+    const stepIndex = getStepIndex(stepLabel);
+    return params.groups.map((group, groupIndex) => {
+      const step = group.steps[stepIndex];
+      if (step === undefined) {
+        throw new Error(`Funnel group "${group.key}" is missing step ${stepIndex}.`);
+      }
+
+      return { groupIndex, group, stepIndex, step };
+    });
   };
   svg.selectAll("*").remove();
   svg.attr("viewBox", `0 0 ${chartWidth} ${chartHeight}`);
@@ -893,13 +1049,13 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
   group.append("g")
     .attr("class", "grid")
     .attr("aria-hidden", "true")
-    .call(d3.axisLeft(axisScale).tickValues(axisTicks).tickSize(-innerWidth).tickFormat(() => ""))
+    .call(d3.axisLeft(y).tickValues(axisTicks).tickSize(-innerWidth).tickFormat(() => ""))
     .call((grid) => grid.select(".domain").remove());
 
   group.append("g")
     .attr("class", "axis")
     .attr("aria-hidden", "true")
-    .call(d3.axisLeft(axisScale).tickValues(axisTicks).tickFormat((value) => axisTickFormatter(Number(value))));
+    .call(d3.axisLeft(y).tickValues(axisTicks).tickFormat((value) => axisTickFormatter(Number(value))));
 
   const xAxis = group.append("g")
     .attr("class", "axis")
@@ -937,9 +1093,8 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("text-anchor", "middle")
     .text(isRebased ? "% of selected" : "Visitors");
 
-  const bandWidth = x.bandwidth();
   const stepGroups = group.selectAll<SVGGElement, FunnelStepBar>("g.funnel-step")
-    .data(params.steps)
+    .data(steps)
     .join("g")
     .attr("class", (step) => {
       const index = getStepIndex(step.label);
@@ -966,7 +1121,7 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
       params.onSelectStep(getStepIndex(step.label));
     });
 
-  // The full column from the top edge to below the axis labels, drawn first so the bar and labels sit over it.
+  // The full column from the top edge to below the axis labels, drawn first so the bars and labels sit over it.
   // It stops short of the viewBox's top and bottom edges, which clip overflow, so its stroke is drawn whole.
   const columnInset = (x.step() - bandWidth) / 2;
   stepGroups.append("rect")
@@ -985,92 +1140,158 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("height", chartHeight - (funnelStepHitEdgeInset + funnelStepFocusRingInset) * 2)
     .attr("rx", 4);
 
+  const groupBandWidth = groupX.bandwidth();
+  const barGroups = stepGroups.selectAll<SVGGElement, FunnelStepGroupBar>("g.funnel-step-group")
+    .data((step) => getStepGroupBars(step.label))
+    .join("g")
+    .attr("class", "funnel-step-group")
+    .attr("transform", (bar) => `translate(${groupX(bar.group.key) ?? 0},0)`);
+
   // The anchor's previous step lies outside the measured funnel, so the anchor draws no ghost. A re-based
   // chart also drops the grey steps' ghosts, whose dashed outline would show through the faded bar.
-  const getGhostCount = (step: FunnelStepBar): number | null => {
-    const index = getStepIndex(step.label);
-    if (hasAnchor && index === params.anchorIndex) {
+  const getGhostCount = (bar: FunnelStepGroupBar): number | null => {
+    if (hasAnchor && bar.stepIndex === params.anchorIndex) {
       return null;
     }
 
-    return isRebased && index < params.anchorIndex ? null : step.previousCount;
+    return isRebased && bar.stepIndex < params.anchorIndex ? null : bar.step.previousCount;
   };
-  stepGroups.filter((step) => {
-    const ghostCount = getGhostCount(step);
-    return ghostCount !== null && ghostCount > step.count;
+  barGroups.filter((bar) => {
+    const ghostCount = getGhostCount(bar);
+    return ghostCount !== null && ghostCount > bar.step.count;
   })
     .append("rect")
     .attr("class", "funnel-step-ghost")
     .attr("x", 0)
-    .attr("y", (step) => y(getGhostCount(step) ?? 0))
-    .attr("width", bandWidth)
-    .attr("height", (step) => innerHeight - y(getGhostCount(step) ?? 0))
+    .attr("y", (bar) => getGroupValueY(bar.groupIndex, getGhostCount(bar) ?? 0))
+    .attr("width", groupBandWidth)
+    .attr("height", (bar) => innerHeight - getGroupValueY(bar.groupIndex, getGhostCount(bar) ?? 0))
     .attr("rx", 4);
 
   const emptyStepHeight = 2;
-  stepGroups.append("rect")
-    .attr("class", (step) => (step.count === 0 ? "funnel-step-bar funnel-step-bar-empty" : "funnel-step-bar"))
+  const bars = barGroups.append("rect")
+    .attr("class", (bar) => (bar.step.count === 0 ? "funnel-step-bar funnel-step-bar-empty" : "funnel-step-bar"))
     .attr("x", 0)
-    .attr("y", (step) => (step.count === 0 ? innerHeight - emptyStepHeight : y(step.count)))
-    .attr("width", bandWidth)
-    .attr("height", (step) => (step.count === 0 ? emptyStepHeight : innerHeight - y(step.count)))
+    .attr("y", (bar) => (
+      bar.step.count === 0 ? innerHeight - emptyStepHeight : getGroupValueY(bar.groupIndex, bar.step.count)
+    ))
+    .attr("width", groupBandWidth)
+    .attr("height", (bar) => (
+      bar.step.count === 0 ? emptyStepHeight : innerHeight - getGroupValueY(bar.groupIndex, bar.step.count)
+    ))
     .attr("rx", 4);
+  if (isGrouped) {
+    // An inline style rather than a `fill` attribute, which the stylesheet's own `.funnel-step-bar`
+    // rule would win over. Two bars keep that stylesheet fill on purpose: a zero step's stub, which
+    // is the absence of a count rather than a reading of the group, and a step before the anchor,
+    // which is outside the measured funnel and drops its colour the way the accent one does.
+    bars.style("fill", (bar) => (
+      bar.step.count === 0 || bar.stepIndex < params.anchorIndex ? null : bar.group.color
+    ));
+  }
 
   // The hashed part sits at the top of the bar the total already drew, so the bar's height stays the
-  // total and only its upper slice is lighter. `y` is clamped, so on a step capped by a re-based
+  // total and only its upper slice is lighter. The scale is clamped, so on a step capped by a re-based
   // anchor both ends land on the plot top and the segment collapses to nothing rather than escaping it.
-  stepGroups.filter((step) => step.count > 0 && step.hashedCount > 0)
-    .append("rect")
+  const funnelStepBarRadius = 4;
+  const hashedSegments = barGroups.filter((bar) => bar.step.count > 0 && bar.step.hashedCount > 0)
+    .append("path")
     .attr("class", "funnel-step-bar-hashed")
-    .attr("x", 0)
-    .attr("y", (step) => y(step.count))
-    .attr("width", bandWidth)
-    .attr("height", (step) => Math.max(0, y(step.count - step.hashedCount) - y(step.count)))
-    .attr("rx", 4);
+    .attr("transform", (bar) => `translate(0,${getGroupValueY(bar.groupIndex, bar.step.count)})`)
+    .attr("d", (bar) => {
+      const barTop = getGroupValueY(bar.groupIndex, bar.step.count);
+      const segmentHeight = Math.max(
+        0,
+        getGroupValueY(bar.groupIndex, bar.step.count - bar.step.hashedCount) - barTop,
+      );
+      // A step whose identified count is zero makes the segment the whole bar, whose own bottom
+      // corners are rounded, so it takes the bar's radius there rather than painting square corners
+      // outside that silhouette.
+      const isWholeBar = segmentHeight >= innerHeight - barTop;
+      return buildRoundedBarSegmentPath(
+        groupBandWidth,
+        segmentHeight,
+        funnelStepBarRadius,
+        isWholeBar ? funnelStepBarRadius : 0,
+      );
+    });
+  if (isGrouped) {
+    // Inline styles for the reason the bars above take one, and opaque, because the group's colour
+    // is already beneath the segment and a translucent one of the same hue would vanish into it. A
+    // step before the anchor keeps the stylesheet's wash, the way its bar keeps the stylesheet fill.
+    hashedSegments
+      .style("fill", (bar) => (
+        bar.stepIndex < params.anchorIndex ? null : buildFunnelHashedSegmentColor(bar.group.color)
+      ))
+      .style("fill-opacity", (bar) => (bar.stepIndex < params.anchorIndex ? null : 1));
+  }
 
-  stepGroups.filter((step) => isRebased && getStepIndex(step.label) < params.anchorIndex && step.count > anchorCount)
+  barGroups.filter((bar) => (
+    isRebased
+      && bar.stepIndex < params.anchorIndex
+      && bar.step.count > (groupAnchorCounts[bar.groupIndex] ?? 0)
+  ))
     .append("path")
     .attr("class", "funnel-step-clip-mark")
-    .attr("d", buildFunnelStepClipMarkPath(bandWidth));
+    .attr("d", buildFunnelStepClipMarkPath(groupBandWidth));
 
-  // Each block's last baseline sits 10 units above its own bar, so the offset is the block's own
-  // height: a split line is added above the total rather than below the shares, which would push
-  // them into the bar. Every block floats with the bar it labels, so there is no cross-step
-  // alignment to keep by giving them all the tallest block's offset.
-  const getValueLabelTopOffset = (step: FunnelStepBar): number => (
-    47 + step.splitLabels.length * funnelStepSplitLineHeight
-  );
-  const valueLabels = stepGroups.append("text")
-    .attr("class", "funnel-step-value")
-    .attr("text-anchor", "middle")
-    .attr("x", bandWidth / 2)
-    .attr("y", (step) => y(Math.max(step.count, getGhostCount(step) ?? 0)) - getValueLabelTopOffset(step));
-  valueLabels.append("tspan")
-    .attr("class", "funnel-step-count")
-    .attr("x", bandWidth / 2)
-    .text((step) => numberFormatter(step.count));
-  // Only the steps that have a hashed part carry the split, so a step the hashed people cannot reach
-  // reads as the plain total it is rather than as "n + 0".
-  valueLabels.each(function appendSplitLines(step: FunnelStepBar): void {
-    const valueLabel = d3.select(this);
-    for (const splitLine of step.splitLabels) {
-      valueLabel.append("tspan")
-        .attr("class", "funnel-step-split")
-        .attr("x", bandWidth / 2)
-        .attr("dy", funnelStepSplitLineHeight)
-        .text(splitLine);
-    }
-  });
-  valueLabels.append("tspan")
-    .attr("class", "funnel-step-share")
-    .attr("x", bandWidth / 2)
-    .attr("dy", 20)
-    .text((step) => getFunnelStepAnchorShareText(step, getStepIndex(step.label), params.anchorIndex));
-  valueLabels.append("tspan")
-    .attr("class", "funnel-step-share")
-    .attr("x", bandWidth / 2)
-    .attr("dy", 17)
-    .text((step) => `${step.shareOfPreviousLabel} of previous`);
+  if (isGrouped) {
+    barGroups
+      .on("mousemove", (event: MouseEvent, bar: FunnelStepGroupBar) => {
+        params.tooltipHandlers.showTooltip(
+          buildFunnelStepGroupTooltipHtml(bar, params.countLabel, params.anchorIndex),
+          event.clientX,
+          event.clientY,
+        );
+      })
+      .on("mouseleave", params.tooltipHandlers.hideTooltip);
+  }
+
+  // Only the ungrouped chart writes its numbers above the bars; a step band holding several has no
+  // room for them, so a grouped chart puts them in the hover tooltip and in its visible table.
+  if (isGrouped === false) {
+    // Each block's last baseline sits 10 units above its own bar, so the offset is the block's own
+    // height: a split line is added above the total rather than below the shares, which would push
+    // them into the bar. Every block floats with the bar it labels, so there is no cross-step
+    // alignment to keep by giving them all the tallest block's offset.
+    const getValueLabelTopOffset = (bar: FunnelStepGroupBar): number => (
+      47 + bar.step.splitLabels.length * funnelStepSplitLineHeight
+    );
+    const valueLabels = barGroups.append("text")
+      .attr("class", "funnel-step-value")
+      .attr("text-anchor", "middle")
+      .attr("x", groupBandWidth / 2)
+      .attr("y", (bar) => (
+        getGroupValueY(bar.groupIndex, Math.max(bar.step.count, getGhostCount(bar) ?? 0))
+          - getValueLabelTopOffset(bar)
+      ));
+    valueLabels.append("tspan")
+      .attr("class", "funnel-step-count")
+      .attr("x", groupBandWidth / 2)
+      .text((bar) => numberFormatter(bar.step.count));
+    // Only the steps that have a hashed part carry the split, so a step the hashed people cannot reach
+    // reads as the plain total it is rather than as "n + 0".
+    valueLabels.each(function appendSplitLines(bar: FunnelStepGroupBar): void {
+      const valueLabel = d3.select(this);
+      for (const splitLine of bar.step.splitLabels) {
+        valueLabel.append("tspan")
+          .attr("class", "funnel-step-split")
+          .attr("x", groupBandWidth / 2)
+          .attr("dy", funnelStepSplitLineHeight)
+          .text(splitLine);
+      }
+    });
+    valueLabels.append("tspan")
+      .attr("class", "funnel-step-share")
+      .attr("x", groupBandWidth / 2)
+      .attr("dy", 20)
+      .text((bar) => getFunnelStepAnchorShareText(bar.step, bar.stepIndex, params.anchorIndex));
+    valueLabels.append("tspan")
+      .attr("class", "funnel-step-share")
+      .attr("x", groupBandWidth / 2)
+      .attr("dy", 17)
+      .text((bar) => `${bar.step.shareOfPreviousLabel} of previous`);
+  }
 
   if (focusedStepIndex >= 0) {
     stepGroups.nodes()[focusedStepIndex]?.focus({ preventScroll: true });

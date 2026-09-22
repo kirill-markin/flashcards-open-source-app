@@ -78,6 +78,20 @@ enum AnalyticsEvent: Sendable, Equatable {
     /// so the two stay countable against each other. Build the reason with
     /// `analyticsMediaUploadFailureReason(error:)` rather than choosing one at a call site.
     case mediaUploadFailed(reason: AnalyticsMediaUploadFailureReason)
+    /**
+     * One reminder the OS accepted, reported once per distinct scheduled notification.
+     *
+     * Reconciliation runs on many triggers and re-schedules the same slots every time, so an emit
+     * site must report only the slots it has not reported before; a slot id is built from the
+     * reminder kind and the wall clock it fires at — except inactivity reminders, whose id is the
+     * local day and position — never from the scheduling request identifier, which is what makes
+     * that comparison a comparison of scheduled notifications rather than of reconciliation runs.
+     * The slot identity is defined in `ScheduledNotificationFactReporting`.
+     */
+    case notificationScheduled(notificationKind: AnalyticsNotificationKind)
+    /// A reminder tap that brought the person back, reported where the OS hands the response to the
+    /// app. It is the numerator `notificationScheduled` is the denominator of.
+    case notificationOpened(notificationKind: AnalyticsNotificationKind)
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
     /// Emit only through `Analytics.reportSyncFailure(reason:)`. Sync is retried on a timer, so a
     /// direct `track` measures poll cadence instead of failure incidence.
@@ -105,6 +119,10 @@ enum AnalyticsSurface: String, Sendable, Equatable, CaseIterable {
     case cards
     case progress
     case settings
+    // The legal and privacy screen, the one settings leaf the catalog names on its own, because the
+    // analytics opt-out promised in the privacy policy is exercised there. Nothing here reports it:
+    // `AccountLegalView` is still counted as `settings` like every other leaf.
+    case settingsLegal = "settings_legal"
     case ai
     // Workspace content management. These are pushed under Settings here only as a routing accident:
     // they act on the person's own decks, cards and tags, the same object family `cards`,
@@ -249,6 +267,12 @@ enum AnalyticsReviewAnswerFailureReason: String, Sendable, Equatable {
     case serverError = "server_error"
 }
 
+/// The two reminders this app schedules with `UNUserNotificationCenter`.
+enum AnalyticsNotificationKind: String, Sendable, Equatable {
+    case reviewReminder = "review_reminder"
+    case strictReminder = "strict_reminder"
+}
+
 enum AnalyticsCardCreateEntryPoint: String, Sendable, Equatable {
     case cards
     case deckDetail = "deck_detail"
@@ -330,6 +354,10 @@ extension AnalyticsEvent {
             return "media_attached"
         case .mediaUploadFailed:
             return "media_upload_failed"
+        case .notificationScheduled:
+            return "notification_scheduled"
+        case .notificationOpened:
+            return "notification_opened"
         case .cardCreateStarted:
             return "card_create_started"
         case .syncFailed:
@@ -406,6 +434,8 @@ extension AnalyticsEvent {
             return ["source": .string(source.rawValue)]
         case .mediaUploadFailed(let reason):
             return ["reason": .string(reason.rawValue)]
+        case .notificationScheduled(let notificationKind), .notificationOpened(let notificationKind):
+            return ["notification_kind": .string(notificationKind.rawValue)]
         case .cardCreateStarted(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
         case .syncFailed(let reason):

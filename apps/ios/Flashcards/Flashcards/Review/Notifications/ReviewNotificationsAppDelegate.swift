@@ -160,6 +160,7 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
             details: nil
         )
         logAppNotificationTapEvent(action: "notification_tap_received", metadata: receivedMetadata)
+        trackAppNotificationOpened(request: request)
 
         do {
             let envelope = try AppNotificationTapCoordinator.persist(
