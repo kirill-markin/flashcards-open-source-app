@@ -104,14 +104,14 @@ export function buildExcludedActorSqlLines(
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, nineteen in this package and
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-one entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, twenty in this package and
  * one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (11).
+ * APPLIED (12).
  *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
  *     feeds.
  *   - `reports/audience/query.ts`, the `history` CTE and the cohort it feeds.
@@ -132,6 +132,14 @@ export function buildExcludedActorSqlLines(
  *     the same identity would keep that person out. The second reads the client-reportable
  *     `screen_viewed` and `review_card_revealed` steps, so a credential-free claim would otherwise
  *     advance a cohort member through the funnel.
+ *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events` and `step_events`, read by the home
+ *     page and blog article funnels. The first decides whether a person was already here before their
+ *     first marketing-site page view, over every event name with no lower bound. The second reads
+ *     the in-app steps, the client-reportable web `app_opened` among them, so a credential-free claim
+ *     would otherwise advance a cohort member. Both also read `site_page_viewed` and
+ *     `site_app_entry_clicked` at `trust_level = 'anonymous_client'` only, on purpose: those are the
+ *     site's own facts, the cohort is keyed on the visitor identity they carry, and they never count
+ *     as the trusted evidence this rule is about.
  *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
  *     filter bar composes.
  *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
