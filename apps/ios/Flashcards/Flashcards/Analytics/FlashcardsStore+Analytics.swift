@@ -105,6 +105,35 @@ func analyticsSyncFailureReason(error: Error) -> AnalyticsSyncFailureReason {
 }
 
 /**
+ * Maps a failed dictation attempt onto the shared `dictation_failed` reasons.
+ *
+ * The recorder errors are the ones only a client can see, which is why the transcription route never
+ * reports this event: a microphone refusal and a cancelled recording never reach the server at all.
+ * Everything else is told apart exactly as the two mappers above do it, and lands in `.serverError`
+ * when it cannot be.
+ */
+func analyticsDictationFailureReason(error: Error) -> AnalyticsDictationFailureReason {
+    if error is CancellationError {
+        return .cancelled
+    }
+    if let recorderError = error as? AIChatVoiceRecorderError {
+        switch recorderError {
+        case .microphoneDenied, .microphoneBlocked:
+            return .permissionDenied
+        case .emptyRecording:
+            return .noSpeech
+        case .microphoneUnavailable, .invalidRecording, .recordingStartFailed:
+            return .serverError
+        }
+    }
+    if isRetryableNetworkTransportFailure(error: error) {
+        return flashcardsURLErrorCode(error: error, remainingDepth: 4) == .timedOut ? .timeout : .offline
+    }
+
+    return .serverError
+}
+
+/**
  * Maps a sign-in failure onto the shared `signin_failed` reasons, using the backend code where the
  * server named the cause and the local classification otherwise.
  *
