@@ -38,8 +38,10 @@ export function FunnelsArea(
             <AnalyticsFilterBar
               area="funnels"
               fields={funnel.filterFields}
-              title="This funnel"
+              title={`${funnel.title} filters`}
+              headingLevel={3}
               headingId={`funnel-${funnel.anchor.funnelId}-filters-title`}
+              resetAllLabel={`Reset all ${funnel.anchor.funnelId} funnel filters`}
               availableRange={props.availableRange}
               defaultRange={props.defaultRange}
               filters={props.filters}

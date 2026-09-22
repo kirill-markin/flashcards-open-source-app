@@ -8,16 +8,20 @@ import {
 import {
   CatalogInstallFunnelSection,
   catalogInstallFunnelAnchor,
+  catalogInstallFunnelTitle,
 } from "../catalogInstallFunnel/CatalogInstallFunnelSection";
 import {
   MobileFirstLaunchFunnelSection,
   mobileFirstLaunchFunnelAnchor,
+  mobileFirstLaunchFunnelTitle,
 } from "../mobileFirstLaunchFunnel/MobileFirstLaunchFunnelSection";
 import {
   BlogToWebAppFunnelSection,
   HomeToWebAppFunnelSection,
   blogToWebAppFunnelAnchor,
+  blogToWebAppFunnelTitle,
   homeToWebAppFunnelAnchor,
+  homeToWebAppFunnelTitle,
 } from "../siteEntryFunnel/SiteEntryFunnelSection";
 import type { FunnelAnchor } from "./funnelAnchorUrl";
 
@@ -34,6 +38,8 @@ export type FunnelSectionProps = Readonly<{
 
 export type FunnelSectionDefinition = Readonly<{
   anchor: FunnelAnchor<string>;
+  /** The funnel's section heading, which its filter row's heading repeats. */
+  title: string;
   /** Fields only this funnel applies, offered in its own row rather than in the area's shared bar. */
   filterFields: ReadonlyArray<AnalyticsFilterField>;
   Section: (props: FunnelSectionProps) => JSX.Element;
@@ -47,21 +53,25 @@ export type FunnelSectionDefinition = Readonly<{
 export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
   {
     anchor: mobileFirstLaunchFunnelAnchor,
+    title: mobileFirstLaunchFunnelTitle,
     filterFields: [],
     Section: MobileFirstLaunchFunnelSection,
   },
   {
     anchor: homeToWebAppFunnelAnchor,
+    title: homeToWebAppFunnelTitle,
     filterFields: [],
     Section: HomeToWebAppFunnelSection,
   },
   {
     anchor: catalogInstallFunnelAnchor,
+    title: catalogInstallFunnelTitle,
     filterFields: catalogInstallFunnelFilterFields,
     Section: CatalogInstallFunnelSection,
   },
   {
     anchor: blogToWebAppFunnelAnchor,
+    title: blogToWebAppFunnelTitle,
     filterFields: [],
     Section: BlogToWebAppFunnelSection,
   },

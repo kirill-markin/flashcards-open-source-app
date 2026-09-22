@@ -77,8 +77,12 @@ type AnalyticsFilterBarProps = Readonly<{
   area: AnalyticsArea;
   fields: ReadonlyArray<AnalyticsFilterField>;
   title: string;
-  /** Unique on the page, because a bar can render more than once there. */
+  /** 2 as an area's own bar, 3 inside a section that already has its h2. */
+  headingLevel: 2 | 3;
+  /** Unique on the page, because a bar can render more than once there; every id inside derives from it. */
   headingId: string;
+  /** The accessible name of `Reset all`, which says whose filters it resets when bars share a page. */
+  resetAllLabel: string;
   availableRange: AnalyticsDateRange;
   defaultRange: AnalyticsDateRange;
   filters: AnalyticsFilterState;
@@ -1222,13 +1226,14 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
   const fieldViews = props.fields
     .map((field) => ({ field, view: buildFilterFieldView(field) }));
+  const HeadingTag = props.headingLevel === 2 ? "h2" : "h3";
 
   return (
     <section className="filter-panel" aria-labelledby={props.headingId} ref={panelRef}>
       <div className="filter-panel-header">
         <div>
           <p className="eyebrow">Filters</p>
-          <h2 id={props.headingId}>{props.title}</h2>
+          <HeadingTag id={props.headingId}>{props.title}</HeadingTag>
         </div>
         {/*
           The range is stated by the page header and picked in the date field, so it is not repeated
@@ -1242,8 +1247,8 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
       <div className="filter-bar" aria-labelledby={props.headingId}>
         {fieldViews.map((entry, index) => {
-          const popoverId = `analytics-filter-${entry.field}-popover`;
-          const explanationId = `analytics-filter-${entry.field}-explanation`;
+          const popoverId = `${props.headingId}-${entry.field}-popover`;
+          const explanationId = `${props.headingId}-${entry.field}-explanation`;
           const fieldLabel = getAnalyticsFilterFieldLabel(props.area, entry.field);
 
           return (
@@ -1316,6 +1321,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
           className="filter-button filter-button-reset-all"
           type="button"
           disabled={props.isReportLoading}
+          aria-label={props.resetAllLabel}
           onClick={handleAllFiltersReset}
         >
           Reset all
