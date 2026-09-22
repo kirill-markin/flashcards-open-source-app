@@ -12,10 +12,10 @@ import Foundation
  * catalog — is gone; while it existed an event carrying it as its `screen` compiled and was
  * rejected `invalid_event`.
  *
- * The ten server-derived events are absent here on purpose, because a client batch that carries one
- * is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
+ * The eleven server-derived events are absent here on purpose, because a client batch that carries
+ * one is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `deck_created`, `deck_updated`, `friend_invitation_created`, `friendship_created`,
- * `ai_message_sent` and `catalog_deck_installed`.
+ * `ai_message_sent`, `ai_run_failed` and `catalog_deck_installed`.
  *
  * `onboarding_step_completed`, `review_session_started` and `review_session_ended` remain outside
  * the active catalog. The server keeps exact backend-only tombstones for old queued copies and
