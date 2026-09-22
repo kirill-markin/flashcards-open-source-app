@@ -28,11 +28,46 @@ import {
   type PendingAttachment,
 } from "./FileAttachment";
 import { isChatAttachmentUnsupportedTypeError } from "./attachmentMediaTypes";
+import { isImageFileCandidate } from "../../media/imagePreparation";
+import {
+  readCurrentAnalyticsSurface,
+  toAnalyticsMediaUploadFailureReason,
+  track,
+  type AnalyticsMediaSource,
+  type AnalyticsMediaUploadFailureReason,
+  type AnalyticsSurface,
+} from "../../analytics";
 
 type DraftAttachmentRequestBody = Readonly<{
   content: ReturnType<typeof buildContentParts>;
   sessionId?: string;
   timezone: string;
+}>;
+
+/**
+ * What became of one attachment.
+ *
+ * `abandoned` is not a failure: the composer went away or the app entered storage recovery
+ * underneath it, so nothing was attempted for a person to see fail and nothing is reported.
+ */
+type ChatAttachOutcome =
+  | Readonly<{ kind: "attached" }>
+  | Readonly<{ kind: "failed"; reason: AnalyticsMediaUploadFailureReason }>
+  | Readonly<{ kind: "abandoned" }>;
+
+/**
+ * What this client reports about one attachment, or null where it reports nothing about it.
+ *
+ * Holding both fields together is what keeps the two halves of the pair from drifting apart: a
+ * success this client cannot report and a failure it can would be read later as a failure rate
+ * rather than as the one-sided count it is, permanently, in an append-only table.
+ *
+ * Only the file chooser is reported, and only for an image. A drag and a clipboard paste have no
+ * honest `source` in the shared vocabulary, and a document is not the fact these two events record.
+ */
+type ChatAttachReport = Readonly<{
+  source: AnalyticsMediaSource;
+  screen: AnalyticsSurface;
 }>;
 
 type UseChatAttachmentsParams = Readonly<{
@@ -53,7 +88,14 @@ export type ChatAttachmentControls = Readonly<{
   handleDragOver: (event: DragEvent<HTMLDivElement>) => void;
   handleDrop: (event: DragEvent<HTMLDivElement>) => Promise<void>;
   handlePaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void;
-  ingestFiles: (files: ReadonlyArray<File>) => Promise<void>;
+  /**
+   * `attachSource` is what the person attached from, or null where the shared vocabulary has no
+   * honest value for it. It decides only what is reported; every file is ingested the same way.
+   */
+  ingestFiles: (
+    files: ReadonlyArray<File>,
+    attachSource: AnalyticsMediaSource | null,
+  ) => Promise<void>;
   isDragOver: boolean;
   removeAttachment: (index: number) => void;
 }>;
@@ -135,16 +177,16 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
   const canAttachDraftFilesRef = useRef<boolean>(false);
   canAttachDraftFilesRef.current = canAttachDraftFiles;
 
-  async function handleAttach(attachment: PendingAttachment): Promise<void> {
+  async function handleAttach(attachment: PendingAttachment): Promise<ChatAttachOutcome> {
     if (indexedDbOpenRecoveryState.hasFailed() || !canAttachDraftFilesRef.current) {
-      return;
+      return { kind: "abandoned" };
     }
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     let finalAttachment = attachment;
     if (binaryPendingAttachmentExceedsSizeLimit(finalAttachment)) {
       window.alert(attachmentLimitMessage);
-      return;
+      return { kind: "failed", reason: "too_large" };
     }
 
     let candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
@@ -169,16 +211,16 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
         indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
         if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-          return;
+          return { kind: "abandoned" };
         }
         onTechnicalError(error);
-        return;
+        return { kind: "failed", reason: toAnalyticsMediaUploadFailureReason(error) };
       }
 
       candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
       if (binaryPendingAttachmentExceedsSizeLimit(finalAttachment)) {
         window.alert(attachmentLimitMessage);
-        return;
+        return { kind: "failed", reason: "too_large" };
       }
       projectedSizeBytes = measureDraftRequestBodySize({
         attachments: candidateAttachments,
@@ -189,26 +231,50 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
     }
 
     if (indexedDbOpenRecoveryState.hasFailed() || !canAttachDraftFilesRef.current) {
-      return;
+      return { kind: "abandoned" };
     }
 
     if (projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       window.alert(attachmentLimitMessage);
-      return;
+      return { kind: "failed", reason: "too_large" };
     }
 
     setPendingAttachmentsState(candidateAttachments);
+    return { kind: "attached" };
   }
 
-  async function ingestFiles(files: ReadonlyArray<File>): Promise<void> {
+  async function ingestFiles(
+    files: ReadonlyArray<File>,
+    attachSource: AnalyticsMediaSource | null,
+  ): Promise<void> {
+    // The surface is read once, here, rather than at each report: the composer is the sidebar of
+    // whatever route is open, and preparing a large image spans seconds, so a route change mid-
+    // ingest would otherwise file the attachment against a screen the person had already left. A
+    // null surface names nothing the catalog accepts on `media_attached`, so an ingest started from
+    // one reports neither half rather than the failures alone.
+    const ingestScreen = readCurrentAnalyticsSurface();
+    const ingestReport: ChatAttachReport | null = attachSource !== null && ingestScreen !== null
+      ? { source: attachSource, screen: ingestScreen }
+      : null;
+
     for (const file of files) {
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
 
+      // The same predicate the preparation path decides image-ness with. A media type alone is
+      // narrower than it: a `.heic` or `.jpg` arrives with an empty `file.type` in several desktop
+      // browsers, and it is attached as an image, so it has to be counted as one.
+      const fileReport: ChatAttachReport | null = isImageFileCandidate(file)
+        ? ingestReport
+        : null;
+
       const sizeError = checkFileSize(file);
       if (sizeError !== null) {
         window.alert(attachmentLimitMessage);
+        if (fileReport !== null) {
+          track({ name: "media_upload_failed", reason: "too_large" });
+        }
         continue;
       }
 
@@ -216,11 +282,29 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
         indexedDbOpenRecoveryState.throwIfFailed();
         const attachment = await prepareAttachment(file);
         indexedDbOpenRecoveryState.throwIfFailed();
-        await handleAttach(attachment);
+        const outcome = await handleAttach(attachment);
         indexedDbOpenRecoveryState.throwIfFailed();
+        if (fileReport !== null && outcome.kind === "attached") {
+          // Emitted where the asset reaches the draft, never where the chooser opened.
+          track({
+            name: "media_attached",
+            source: fileReport.source,
+            screen: fileReport.screen,
+          });
+        }
+        if (fileReport !== null && outcome.kind === "failed") {
+          track({ name: "media_upload_failed", reason: outcome.reason });
+        }
       } catch (error) {
         if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
           return;
+        }
+
+        if (fileReport !== null) {
+          track({
+            name: "media_upload_failed",
+            reason: toAnalyticsMediaUploadFailureReason(error),
+          });
         }
 
         if (isChatAttachmentTooLargeError(error)) {
@@ -309,7 +393,9 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
       return;
     }
 
-    await ingestFiles(Array.from(event.dataTransfer.files));
+    // A dropped file is neither `photo_library` nor `camera`, so neither half of the pair is
+    // reported for it; see `ChatAttachReport`.
+    await ingestFiles(Array.from(event.dataTransfer.files), null);
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -344,7 +430,8 @@ export function useChatAttachments(params: UseChatAttachmentsParams): ChatAttach
     }
 
     event.preventDefault();
-    void ingestFiles(imageFiles);
+    // A pasted image has no origin the shared vocabulary can name either.
+    void ingestFiles(imageFiles, null);
   }
 
   return {
