@@ -24,9 +24,10 @@ rows live in `analytics.product_events`.
 | `catalog_deck_install_started` | web app | install intent, through the general collector | `package_slug` |
 | `catalog_deck_installed` | server | the installation completed | `package_slug`, `card_count` |
 
-Every one of them carries `package_version_id`. Entry into the import screen is `screen_viewed`, and
-the sign-in steps are the generic `signin_code_requested`, `signin_succeeded` and `signin_failed`
-facts; none of those is duplicated here.
+Every one of them carries `package_version_id`, and so does the site's `site_page_viewed` on a deck
+page ([marketing site facts](anonymous-client-analytics.md#the-marketing-site-facts)). Entry into the
+import screen is `screen_viewed`, and the sign-in steps are the generic `signin_code_requested`,
+`signin_succeeded` and `signin_failed` facts; none of those is duplicated here.
 
 Failure stages are `landing`, `signin`, `preview`, `preinstall_sync`, `install`, and
 `postinstall_sync`. Failure reasons are `invalid_link`, `package_unavailable`,
