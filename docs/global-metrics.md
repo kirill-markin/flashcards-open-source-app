@@ -103,7 +103,8 @@ The snapshot uses `content.review_events.reviewed_at_server` and UTC calendar da
 - `days` covers all complete UTC days from `from` through `to`.
 - Missing days are represented as explicit zero-value entries instead of being omitted.
 - `reviewEvents.byPlatform` contains `web`, `android`, and `ios`.
-- Actors held in `analytics.excluded_actors` with an active exclusion whose recorded id matches the reviewing account are left out of every counter, for past days as well as future ones, so excluding such an actor lowers already-published figures on the next run.
+- The snapshot excludes the same people the admin dashboard excludes, through the rule stated once in [`buildExcludedActorSqlLines`](../apps/admin/src/filters/filterSql.ts) and restated here for this query's own identity column in [`reporting.ts`](../apps/backend/src/globalMetrics/reporting.ts): accounts with an `@example.com` address, anyone who has ever held an `auth.admin_users` row whether or not it was revoked, and actors held in `analytics.excluded_actors` with an active exclusion whose recorded id matches the reviewing account.
+- Those exclusions apply to past days as well as future ones, so excluding an actor, or granting someone admin, lowers already-published figures on the next run.
 - Do not infer per-platform unique user counts from review-event volume.
 
 `uniqueReviewingUsers`, `newReviewingUsers`, and `returningReviewingUsers` are all derived from the current `sync.workspace_replicas.user_id` label attached to each joined `review_events.replica_id`.
