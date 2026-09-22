@@ -352,6 +352,106 @@ h2 {
   gap: 2px;
 }
 
+/* The funnel's own `Group by` field sits in the funnel's own filter row area, under its heading and
+   above everything the report's state can unmount: the field regroups this one funnel, so it belongs
+   to the funnel rather than to the shared bar, where every field narrows all four at once. */
+.funnel-group-by-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 20px;
+}
+
+.funnel-group-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A native control, so it takes the filter buttons' shape rather than a shape of its own. */
+.funnel-group-by-select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Busy rather than disabled: a disabled control loses the keyboard focus of the reader who just
+   used it, and picking again while a regroup is in flight is safe. */
+.funnel-group-by-select[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+/* The group colour key, on its own row above the plot. It is the platform key's markup, but it can
+   hold up to seven entries named by a country code or a locale, so it reads left to right. */
+.funnel-group-key {
+  justify-content: flex-start;
+  padding: 10px 18px 0;
+}
+
+/* Grouped, the bars have no room for their numbers, so this table is where they are read: visible,
+   and scrollable sideways rather than shrinking columns that hold formatted counts. */
+.funnel-group-table-shell {
+  overflow-x: auto;
+}
+
+.funnel-group-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.funnel-group-table caption {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.funnel-group-table th,
+.funnel-group-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--panel-border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.funnel-group-table thead {
+  color: var(--muted);
+}
+
+.funnel-group-table thead th:first-child,
+.funnel-group-table thead th:nth-child(2),
+.funnel-group-table tbody th,
+.funnel-group-table-name {
+  text-align: left;
+}
+
+.funnel-group-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 999px;
+}
+
 .funnel-step {
   cursor: pointer;
   outline: none;
