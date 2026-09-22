@@ -47,9 +47,15 @@ export class ChatAttachmentTooLargeError extends Error {
   }
 }
 
+/**
+ * Everything that stopped an image from becoming an attachment, presented the same way. It keeps the
+ * `cause` because one of them — a `HeicConverterUnavailableError` — is not a statement about the
+ * picked file, and the analytics mapping reports it as a failure of this client rather than as a
+ * refusal the person could act on.
+ */
 export class ChatImageAttachmentPreparationError extends Error {
-  constructor(fileName: string, causeMessage: string) {
-    super(`Failed to process image "${fileName}". ${causeMessage}`);
+  constructor(fileName: string, causeMessage: string, cause: unknown) {
+    super(`Failed to process image "${fileName}". ${causeMessage}`, { cause });
     this.name = "ChatImageAttachmentPreparationError";
   }
 }
@@ -206,6 +212,7 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
       throw new ChatImageAttachmentPreparationError(
         file.name,
         `Please try another image format or a smaller file. ${message}`,
+        error,
       );
     }
   }

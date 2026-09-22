@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsDictationFailureReason
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaSource
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion
@@ -24,6 +25,8 @@ fun AiRoute(
     onDismissAlert: () -> Unit,
     onAddPendingAttachment: (AiChatAttachment) -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
+    onMediaAttached: (AnalyticsMediaSource) -> Unit,
+    onMediaAttachmentFailed: (Throwable) -> Unit,
     onStartDictationPermissionRequest: () -> Unit,
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
@@ -52,6 +55,8 @@ fun AiRoute(
         onDismissAlert = onDismissAlert,
         onAddPendingAttachment = onAddPendingAttachment,
         onRemovePendingAttachment = onRemovePendingAttachment,
+        onMediaAttached = onMediaAttached,
+        onMediaAttachmentFailed = onMediaAttachmentFailed,
         onStartDictationPermissionRequest = onStartDictationPermissionRequest,
         onStartDictationRecording = onStartDictationRecording,
         onTranscribeRecordedAudio = onTranscribeRecordedAudio,

@@ -14,6 +14,9 @@ extension AIChatView {
             }
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 self.chatStore.showGeneralError(message: "Failed to read the selected photo.")
+                // A picked item that hands back no data is one this client cannot read, which is
+                // what `unsupportedType` means here; nothing has reached the network at this point.
+                Analytics.track(.mediaUploadFailed(reason: .unsupportedType), screen: .ai)
                 self.selectedPhotoItem = nil
                 return
             }
@@ -26,7 +29,13 @@ extension AIChatView {
                 mediaType: mediaType
             )
             self.chatStore.appendAttachment(attachment)
+            // Reported where the asset reaches the draft, never where the picker was presented.
+            Analytics.track(.mediaAttached(source: .photoLibrary, screen: .ai))
         } catch {
+            Analytics.track(
+                .mediaUploadFailed(reason: analyticsMediaUploadFailureReason(error: error)),
+                screen: .ai
+            )
             self.chatStore.showGeneralError(error: error)
         }
 
@@ -47,11 +56,19 @@ extension AIChatView {
                 mediaType: "image/jpeg"
             )
             self.chatStore.appendAttachment(attachment)
+            Analytics.track(.mediaAttached(source: .camera, screen: .ai))
         } catch {
+            Analytics.track(
+                .mediaUploadFailed(reason: analyticsMediaUploadFailureReason(error: error)),
+                screen: .ai
+            )
             self.chatStore.showGeneralError(error: error)
         }
     }
 
+    /// Reports neither half of the attachment pair: a document picked out of Files is neither
+    /// `photo_library` nor `camera`, and the catalog would rather count fewer attachments than store
+    /// an origin that is not true in a table that can never be repaired.
     func handleImportedFiles(_ urls: [URL]) async {
         do {
             guard self.chatStore.canAttachToDraft else {

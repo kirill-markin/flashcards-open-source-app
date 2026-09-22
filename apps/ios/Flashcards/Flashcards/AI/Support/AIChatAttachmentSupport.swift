@@ -22,6 +22,32 @@ private let aiChatCanonicalFileMediaTypesByExtension: [String: String] = [
     "yml": "application/x-yaml"
 ]
 
+let aiChatAttachmentErrorDomain: String = "AIChatAttachment"
+
+/**
+ * How the attachment builders below classify a refusal, carried as the error's code.
+ *
+ * Named rather than written as a literal at each throw site because the analytics failure mapping
+ * reads the classification the throw already made; matching on a localized message instead would
+ * break in every language but one.
+ */
+enum AIChatAttachmentErrorCode: Int {
+    case unsupportedType = 1
+    case tooLarge = 2
+    case imageEncodeFailed = 3
+    case imageDimensionsInvalid = 4
+}
+
+/// Nil for anything raised outside this file, which the callers treat as an unclassified failure.
+func aiChatAttachmentErrorCode(error: Error) -> AIChatAttachmentErrorCode? {
+    let nsError = error as NSError
+    guard nsError.domain == aiChatAttachmentErrorDomain else {
+        return nil
+    }
+
+    return AIChatAttachmentErrorCode(rawValue: nsError.code)
+}
+
 enum AIChatAttachmentMenuAction: String, CaseIterable, Identifiable {
     case takePhoto
     case choosePhoto
@@ -69,8 +95,8 @@ func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
     let fileExtension = url.pathExtension.lowercased()
     guard aiChatSupportedFileExtensions.contains(fileExtension) else {
         throw NSError(
-            domain: "AIChatAttachment",
-            code: 1,
+            domain: aiChatAttachmentErrorDomain,
+            code: AIChatAttachmentErrorCode.unsupportedType.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey: aiSettingsLocalizedFormat(
                     "ai.attachment.error.unsupportedType",
@@ -106,8 +132,8 @@ private func aiChatCanonicalFileAttachmentMediaType(fileExtension: String) throw
     let normalizedExtension = fileExtension.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     guard let mediaType = aiChatCanonicalFileMediaTypesByExtension[normalizedExtension] else {
         throw NSError(
-            domain: "AIChatAttachment",
-            code: 1,
+            domain: aiChatAttachmentErrorDomain,
+            code: AIChatAttachmentErrorCode.unsupportedType.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey: aiSettingsLocalizedFormat(
                     "ai.attachment.error.unsupportedType",
@@ -263,8 +289,8 @@ func aiChatIsFilePermissionError(error: Error) -> Bool {
 private func aiChatValidateAttachmentSize(data: Data) throws {
     if data.count > aiChatMaximumAttachmentBytes {
         throw NSError(
-            domain: "AIChatAttachment",
-            code: 2,
+            domain: aiChatAttachmentErrorDomain,
+            code: AIChatAttachmentErrorCode.tooLarge.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey: aiSettingsLocalized(
                     "ai.attachment.error.fileTooLarge",
@@ -352,8 +378,8 @@ private func aiChatCompressImage(
 
     guard let compressedData = renderedImage.jpegData(compressionQuality: policy.quality) else {
         throw NSError(
-            domain: "AIChatAttachment",
-            code: 3,
+            domain: aiChatAttachmentErrorDomain,
+            code: AIChatAttachmentErrorCode.imageEncodeFailed.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey: aiSettingsLocalized(
                     "ai.attachment.error.imageEncodeFailed",
@@ -372,8 +398,8 @@ private func aiChatScaledImageSize(
 ) throws -> CGSize {
     guard imageSize.width > 0, imageSize.height > 0 else {
         throw NSError(
-            domain: "AIChatAttachment",
-            code: 4,
+            domain: aiChatAttachmentErrorDomain,
+            code: AIChatAttachmentErrorCode.imageDimensionsInvalid.rawValue,
             userInfo: [
                 NSLocalizedDescriptionKey: aiSettingsLocalized(
                     "ai.attachment.error.imageDimensionsInvalid",

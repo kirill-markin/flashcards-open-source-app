@@ -182,6 +182,33 @@ enum class AnalyticsSignInFailureReason(val wireValue: String) {
     CANCELLED(wireValue = "cancelled")
 }
 
+/**
+ * Where an attached asset came from, spelled exactly as the matching [AnalyticsPermission] values so
+ * an attachment joins to its own permission answer by equality.
+ *
+ * The document picker has no value here and reports nothing: a file picked out of storage is neither
+ * of these two, and a per-source count is a floor under all attachments rather than the total.
+ */
+enum class AnalyticsMediaSource(val wireValue: String) {
+    PHOTO_LIBRARY(wireValue = "photo_library"),
+    CAMERA(wireValue = "camera")
+}
+
+/**
+ * Why an attachment did not happen. Deliberately narrower than the catalog, which also declares
+ * `offline`, `timeout` and `cancelled` for the upload path that will produce them: attaching is
+ * entirely local here — the asset is written to the draft or to the card and uploaded later by the
+ * media upload worker, which reports nothing — so nothing on these paths can observe a transport
+ * failure, and a picker a person backed out of attached nothing rather than failing. Leaving the
+ * three out is what stops one being constructed with no mapping behind it. The web and iOS mirrors
+ * are narrowed to the same three.
+ */
+enum class AnalyticsMediaUploadFailureReason(val wireValue: String) {
+    TOO_LARGE(wireValue = "too_large"),
+    UNSUPPORTED_TYPE(wireValue = "unsupported_type"),
+    SERVER_ERROR(wireValue = "server_error")
+}
+
 enum class AnalyticsReviewAnswerFailureReason(val wireValue: String) {
     OFFLINE(wireValue = "offline"),
     TIMEOUT(wireValue = "timeout"),
@@ -368,6 +395,46 @@ sealed interface AnalyticsEvent {
         override val screen: AnalyticsSurface? = AnalyticsSurface.REVIEW
     ) : AnalyticsEvent {
         override val eventName: String = "review_answer_failed"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "reason" to AnalyticsPropertyValue.Text(value = reason.wireValue)
+        )
+    }
+
+    /**
+     * An image reached the chat draft or the card being edited.
+     *
+     * The attachment itself, read against the `PHOTO_LIBRARY` and `CAMERA` answers
+     * [PermissionPromptAnswered] records on the clients whose OS asks: opening a picker is not the
+     * same fact as ending up with an image on a card. It is emitted where the asset is appended,
+     * never where a picker is launched, because a picker a person backs out of attached nothing.
+     *
+     * `screen` is required and has no default. The server rejects this event without one, and this
+     * app attaches from two different screens, so a default would file every attachment against
+     * whichever one was hardcoded.
+     */
+    data class MediaAttached(
+        val source: AnalyticsMediaSource,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "media_attached"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "source" to AnalyticsPropertyValue.Text(value = source.wireValue)
+        )
+    }
+
+    /**
+     * The failure half of [MediaAttached], emitted only on the paths that also report the success,
+     * so the two stay countable against each other.
+     *
+     * Build the reason with `analyticsMediaUploadFailureReason` rather than choosing one at a call
+     * site: the reason must be a distinction this client can prove, and that is the one place that
+     * knows which error types carry it.
+     */
+    data class MediaUploadFailed(
+        val reason: AnalyticsMediaUploadFailureReason,
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "media_upload_failed"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "reason" to AnalyticsPropertyValue.Text(value = reason.wireValue)
         )

@@ -19,6 +19,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCredent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCredentialProvider
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchType
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaUploadFailureReason
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReason
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
@@ -33,6 +34,10 @@ import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdTo
 import com.flashcardsopensourceapp.data.local.network.isLikelyTransientNetworkIoException
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.AnalyticsGuestSessionMinter
+import com.flashcardsopensourceapp.data.local.repository.media.ManagedMediaAuthoringImportException
+import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentEncodeFailedException
+import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentImportUserException
+import com.flashcardsopensourceapp.feature.ai.input.AiAttachmentTooLargeUserException
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
@@ -380,6 +385,57 @@ internal fun trackFriendInvitationDialogDismissed(
     restoredSurface: AnalyticsSurface
 ) {
     analytics.track(event = AnalyticsEvent.ScreenViewed(screen = restoredSurface))
+}
+
+/**
+ * Maps a failed attachment onto the `media_upload_failed` reasons this client can prove.
+ *
+ * Both attach paths are entirely local — the asset is written to the draft or to the card and
+ * uploaded later by the media upload worker, which reports nothing here — so no transport reason can
+ * reach this function, and the two reasons a person can act on are read off the type the throw site
+ * already chose rather than off a localized message.
+ *
+ * The technical types are matched over the whole cause chain before the refusal types, because the
+ * photo picker wraps an [AiAttachmentEncodeFailedException] in an [AiAttachmentImportUserException]
+ * to keep the dialog it has always shown; matching in declaration order would stop on that wrapper.
+ *
+ * [AiAttachmentImportUserException] and [ManagedMediaAuthoringImportException] are the two "this
+ * item cannot be attached" types: an animated or unsupported source, an unreadable frame, a name
+ * that cannot be resolved. [AiAttachmentTooLargeUserException] is the single one of them that names
+ * an oversized payload instead. [AiAttachmentEncodeFailedException] covers a refused JPEG encode on
+ * the chat photo-picker path, and the chat camera path reaches the same `server_error` through the
+ * catch-all because it keeps that failure untyped; the card editor raises the same encode failure as a
+ * [ManagedMediaAuthoringImportException] and therefore reports `unsupported_type`, matching how iOS
+ * splits the two surfaces. Everything else is the catch-all bucket, which here means the attachment
+ * could not be completed for a reason the person cannot act on.
+ */
+internal fun analyticsMediaUploadFailureReason(error: Throwable): AnalyticsMediaUploadFailureReason {
+    val causeChain: List<Throwable> = analyticsFailureCauseChain(error = error)
+    for (inspectedError in causeChain) {
+        when (inspectedError) {
+            is AiAttachmentTooLargeUserException -> return AnalyticsMediaUploadFailureReason.TOO_LARGE
+            is AiAttachmentEncodeFailedException -> return AnalyticsMediaUploadFailureReason.SERVER_ERROR
+            else -> Unit
+        }
+    }
+    for (inspectedError in causeChain) {
+        when (inspectedError) {
+            is AiAttachmentImportUserException,
+            is ManagedMediaAuthoringImportException -> return AnalyticsMediaUploadFailureReason.UNSUPPORTED_TYPE
+            else -> Unit
+        }
+    }
+    return AnalyticsMediaUploadFailureReason.SERVER_ERROR
+}
+
+private fun analyticsFailureCauseChain(error: Throwable): List<Throwable> {
+    val chain: MutableList<Throwable> = mutableListOf()
+    var currentError: Throwable? = error
+    while (currentError != null && chain.size < maxAnalyticsFailureCauseDepth) {
+        chain.add(currentError)
+        currentError = currentError.cause
+    }
+    return chain
 }
 
 /** Maps a sync failure onto the closed reason set the server catalog declares. */

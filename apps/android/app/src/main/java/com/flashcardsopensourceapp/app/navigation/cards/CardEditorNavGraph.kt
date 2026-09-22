@@ -18,11 +18,15 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import com.flashcardsopensourceapp.app.analytics.analyticsMediaUploadFailureReason
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.enqueueMediaUploadWorker
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaSource
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.feature.cards.R as CardsR
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
@@ -223,6 +227,14 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                             field = editorTextField,
                             markdown = authoringResult.markdown
                         )
+                        // Reported where the image reaches the card's text, never where the picker
+                        // was launched: a picker somebody backs out of attached nothing.
+                        appGraph.analytics.track(
+                            event = AnalyticsEvent.MediaAttached(
+                                source = AnalyticsMediaSource.PHOTO_LIBRARY,
+                                screen = AnalyticsSurface.CARD_EDITOR
+                            )
+                        )
                         enqueueMediaUploadWorker(
                             context = context.applicationContext,
                             initialDelayMillis = 0L
@@ -234,6 +246,12 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                             message = cardEditorImageInsertFailureMessage(
                                 context = context,
                                 error = error
+                            )
+                        )
+                        appGraph.analytics.track(
+                            event = AnalyticsEvent.MediaUploadFailed(
+                                reason = analyticsMediaUploadFailureReason(error = error),
+                                screen = AnalyticsSurface.CARD_EDITOR
                             )
                         )
                     } finally {

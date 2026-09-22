@@ -61,6 +61,24 @@ enum AnalyticsEvent: Sendable, Equatable {
      */
     case permissionPromptAnswered(permission: AnalyticsPermission, outcome: AnalyticsPermissionOutcome)
     /**
+     * An image reached the chat draft or the card being edited.
+     *
+     * The attachment itself, read against the `photoLibrary` and `camera` answers
+     * `permissionPromptAnswered` already records: granting the permission and opening the picker is
+     * not the same fact as ending up with an image on a card. It is emitted where the asset is
+     * appended, never where a picker is presented, because a picker a person backs out of attached
+     * nothing.
+     *
+     * The surface travels with the event because the catalog requires one and this app attaches from
+     * two screens, so leaving it to a `track(screen:)` a call site can forget would produce an event
+     * the server rejects `missing_screen`.
+     */
+    case mediaAttached(source: AnalyticsMediaSource, screen: AnalyticsSurface)
+    /// The failure half of `mediaAttached`, emitted only on the paths that also report the success,
+    /// so the two stay countable against each other. Build the reason with
+    /// `analyticsMediaUploadFailureReason(error:)` rather than choosing one at a call site.
+    case mediaUploadFailed(reason: AnalyticsMediaUploadFailureReason)
+    /**
      * One reminder the OS accepted, reported once per distinct scheduled notification.
      *
      * Reconciliation runs on many triggers and re-schedules the same slots every time, so an emit
@@ -213,6 +231,34 @@ enum AnalyticsPermissionOutcome: String, Sendable, Equatable {
 }
 
 /**
+ * Where an attached asset came from, spelled exactly as the matching `AnalyticsPermission` values so
+ * an attachment joins to its own permission answer by equality.
+ *
+ * The file importer has no value here and reports nothing: a document picked out of Files is neither
+ * of these two, and the catalog would rather count fewer attachments than store a wrong origin in an
+ * append-only table.
+ */
+enum AnalyticsMediaSource: String, Sendable, Equatable {
+    case photoLibrary = "photo_library"
+    case camera
+}
+
+/**
+ * Why an attachment did not happen. Deliberately narrower than the catalog, which also declares
+ * `offline`, `timeout` and `cancelled` for the upload path that will produce them: attaching is
+ * entirely local here — the asset is written to the draft or to the card and uploaded later by the
+ * media upload path, which reports nothing — so nothing on these paths can observe a transport
+ * failure, and the one cancellation this app raises is an import superseded by the next one rather
+ * than a person walking away. Leaving the three out is what stops one being constructed with no
+ * mapping behind it. The web and Android mirrors are narrowed to the same three.
+ */
+enum AnalyticsMediaUploadFailureReason: String, Sendable, Equatable {
+    case tooLarge = "too_large"
+    case unsupportedType = "unsupported_type"
+    case serverError = "server_error"
+}
+
+/**
  * `codeAlreadyUsed` is reported only by app versions whose mapping separates the auth service's
  * `OTP_CHALLENGE_CONSUMED` from an expired session. One that folds them reports `expiredCode` for
  * both, so an `expired_code` series is not like-for-like across that boundary.
@@ -341,6 +387,10 @@ extension AnalyticsEvent {
             return "prompt_answered"
         case .permissionPromptAnswered:
             return "permission_prompt_answered"
+        case .mediaAttached:
+            return "media_attached"
+        case .mediaUploadFailed:
+            return "media_upload_failed"
         case .notificationScheduled:
             return "notification_scheduled"
         case .notificationOpened:
@@ -382,6 +432,11 @@ extension AnalyticsEvent {
         // of being left to a `track(screen:)` a call site can forget.
         case .signInCodeRequested(let screen), .signInSucceeded(let screen):
             return screen
+        // The catalog requires a surface on the attachment, and this app attaches from the chat and
+        // from the card editor, so the screen is carried by the event rather than left to the call
+        // site: a caller that forgot it would produce an event the server rejects `missing_screen`.
+        case .mediaAttached(_, let screen):
+            return screen
         // The catalog requires a surface on the start, and dictation has no home on this client
         // other than the AI chat composer, so there is nothing for a call site to choose.
         case .dictationStarted:
@@ -420,6 +475,10 @@ extension AnalyticsEvent {
                 "permission": .string(permission.rawValue),
                 "outcome": .string(outcome.rawValue)
             ]
+        case .mediaAttached(let source, _):
+            return ["source": .string(source.rawValue)]
+        case .mediaUploadFailed(let reason):
+            return ["reason": .string(reason.rawValue)]
         case .notificationScheduled(let notificationKind), .notificationOpened(let notificationKind):
             return ["notification_kind": .string(notificationKind.rawValue)]
         case .cardCreateStarted(let entryPoint):

@@ -5,6 +5,7 @@ import { AppErrorDialogProvider } from "../../../../appError/AppErrorContext";
 import { I18nProvider, loadTranslationCatalog, resolveLocaleState, useI18n } from "../../../../i18n";
 import type { Locale, LocalePreference } from "../../../../i18n/types";
 import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../../../types";
+import type { AnalyticsSurface } from "../../../../analytics/events";
 import { defaultChatConfig } from "../../../sessionController/support/config";
 import { ChatDraftProvider } from "../../../composer/drafts/ChatDraftContext";
 import { AIChatPreferencesProvider } from "../../../preferences/AIChatPreferencesContext";
@@ -215,10 +216,14 @@ vi.mock("../../../../api", () => ({
   transcribeChatAudio: transcribeChatAudioMock,
 }));
 
-// The composer's dictation path reports `dictation_started` and `dictation_failed`. Only `track` is
-// replaced, so the real reason mapping still runs against the API error mocks above.
+// The composer's dictation path reports `dictation_started` and `dictation_failed`, and its
+// attachment path reports `media_attached` and `media_upload_failed`. Only `track` is replaced, so
+// the real reason mapping still runs against the API error mocks above, and the surface reads as
+// the one the chat composer sits on, so the attachment reports take their reporting path rather
+// than the null-surface one.
 vi.mock("../../../../analytics/client", () => ({
   track: trackAnalyticsEventMock,
+  readCurrentAnalyticsSurface: (): AnalyticsSurface => "ai",
 }));
 
 vi.mock("../../../../observability/webObservability", () => ({
