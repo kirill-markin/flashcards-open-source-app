@@ -872,7 +872,7 @@ const enCatalog = {
     title: "Analytics",
     subtitle: "Choose whether this browser may be measured.",
     toggleTitle: "Allow analytics cookies",
-    toggleDescription: "When this is off, this app gives this browser no identifier and stores nothing for analytics. While you are signed in, what is measured is still recorded against your account.",
+    toggleDescription: "When this is off, this app gives this browser no identifier and keeps nothing on it for analytics. Usage is still counted anonymously, and while you are signed in it is recorded against your account.",
     error: "That did not go through. Please try again.",
     unavailable: "Analytics is turned off for this app, so there is nothing to allow or withdraw here.",
   },

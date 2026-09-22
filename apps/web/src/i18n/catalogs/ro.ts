@@ -883,7 +883,7 @@ const roCatalog: TranslationCatalog = {
     title: "Analiză",
     subtitle: "Alege dacă acest browser poate fi măsurat.",
     toggleTitle: "Permite cookie-urile de analiză",
-    toggleDescription: "Când este dezactivat, aplicația nu atribuie niciun identificator acestui browser și nu stochează nimic pentru analiză. Cât timp ești autentificat, ce se măsoară este oricum înregistrat în contul tău.",
+    toggleDescription: "Când este dezactivat, aplicația nu atribuie niciun identificator acestui browser și nu stochează nimic în el pentru analiză. Utilizarea este în continuare numărată anonim, iar cât timp ești autentificat, este înregistrată în contul tău.",
     error: "Nu a funcționat. Încearcă din nou.",
     unavailable: "Analiza este dezactivată pentru această aplicație, deci nu ai ce permite sau retrage aici.",
   },

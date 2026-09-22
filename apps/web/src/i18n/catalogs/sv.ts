@@ -874,7 +874,7 @@ const svCatalog: TranslationCatalog = {
     title: "Analys",
     subtitle: "Välj om den här webbläsaren får mätas.",
     toggleTitle: "Tillåt analyscookies",
-    toggleDescription: "När det här är av ger appen webbläsaren ingen identifierare och sparar ingenting för analys. Så länge du är inloggad kopplas det som mäts ändå till ditt konto.",
+    toggleDescription: "När det här är av ger appen webbläsaren ingen identifierare och sparar ingenting i den för analys. Användningen räknas ändå anonymt, och så länge du är inloggad kopplas den till ditt konto.",
     error: "Det gick inte igenom. Försök igen.",
     unavailable: "Analys är avstängt i appen, så det finns ingenting att tillåta eller återkalla här.",
   },

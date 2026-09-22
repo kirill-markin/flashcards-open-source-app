@@ -874,7 +874,7 @@ const esEsCatalog: TranslationCatalog = {
     title: "Analítica",
     subtitle: "Elige si se puede medir este navegador.",
     toggleTitle: "Permitir cookies de analítica",
-    toggleDescription: "Con esto desactivado, esta aplicación no da ningún identificador a este navegador ni guarda nada para analítica. Mientras tengas la sesión iniciada, lo que se mide se sigue registrando en tu cuenta.",
+    toggleDescription: "Con esto desactivado, esta aplicación no da ningún identificador a este navegador ni guarda nada en él para analítica. El uso se sigue contando de forma anónima y, mientras tengas la sesión iniciada, se registra en tu cuenta.",
     error: "No ha funcionado. Inténtalo de nuevo.",
     unavailable: "La analítica está desactivada en esta aplicación, así que aquí no hay nada que permitir ni retirar.",
   },

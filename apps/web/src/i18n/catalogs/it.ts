@@ -874,7 +874,7 @@ const itCatalog: TranslationCatalog = {
     title: "Analisi",
     subtitle: "Scegli se questo browser può essere misurato.",
     toggleTitle: "Consenti i cookie di analisi",
-    toggleDescription: "Quando è disattivato, questa app non assegna alcun identificatore a questo browser e non memorizza nulla per l’analisi. Mentre hai effettuato l’accesso, ciò che viene misurato resta comunque registrato sul tuo account.",
+    toggleDescription: "Quando è disattivato, questa app non assegna alcun identificatore a questo browser e non vi memorizza nulla per l’analisi. L’utilizzo viene comunque conteggiato in forma anonima e, mentre hai effettuato l’accesso, viene registrato sul tuo account.",
     error: "Non ha funzionato. Riprova.",
     unavailable: "L’analisi è disattivata per questa app, quindi qui non c’è nulla da consentire o revocare.",
   },

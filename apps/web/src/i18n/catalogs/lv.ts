@@ -874,7 +874,7 @@ const lvCatalog: TranslationCatalog = {
     title: "Analītika",
     subtitle: "Izvēlieties, vai šo pārlūku drīkst mērīt.",
     toggleTitle: "Atļaut analītikas sīkfailus",
-    toggleDescription: "Ja tas ir izslēgts, šī lietotne nepiešķir šim pārlūkam identifikatoru un neko neglabā analītikas vajadzībām. Kamēr esat pierakstījies, mērītie dati joprojām tiek piesaistīti jūsu kontam.",
+    toggleDescription: "Ja tas ir izslēgts, šī lietotne nepiešķir šim pārlūkam identifikatoru un analītikas vajadzībām tajā neko neglabā. Lietojums joprojām tiek skaitīts anonīmi, un, kamēr esat pierakstījies, tas tiek piesaistīts jūsu kontam.",
     error: "Neizdevās. Lūdzu, mēģiniet vēlreiz.",
     unavailable: "Analītika šai lietotnei ir izslēgta, tāpēc šeit nav ko atļaut vai atsaukt.",
   },

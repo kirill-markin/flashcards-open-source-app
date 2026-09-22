@@ -883,7 +883,7 @@ const ltCatalog: TranslationCatalog = {
     title: "Analitika",
     subtitle: "Pasirinkite, ar šią naršyklę galima matuoti.",
     toggleTitle: "Leisti analitikos slapukus",
-    toggleDescription: "Kai tai išjungta, ši programėlė nesuteikia šiai naršyklei jokio identifikatoriaus ir nieko nesaugo analitikai. Kol esate prisijungę, tai, kas matuojama, vis tiek registruojama jūsų paskyroje.",
+    toggleDescription: "Kai tai išjungta, ši programėlė nesuteikia šiai naršyklei jokio identifikatoriaus ir nieko joje nesaugo analitikai. Naudojimas vis tiek skaičiuojamas anonimiškai, o kol esate prisijungę, jis registruojamas jūsų paskyroje.",
     error: "Nepavyko. Bandykite dar kartą.",
     unavailable: "Šioje programėlėje analitika išjungta, todėl čia nėra ko leisti ar atšaukti.",
   },

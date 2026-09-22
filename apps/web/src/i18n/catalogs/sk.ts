@@ -883,7 +883,7 @@ const skCatalog: TranslationCatalog = {
     title: "Analytika",
     subtitle: "Vyberte, či sa môže tento prehliadač merať.",
     toggleTitle: "Povoliť analytické cookies",
-    toggleDescription: "Keď je táto možnosť vypnutá, aplikácia tomuto prehliadaču nepriradí žiadny identifikátor a pre analytiku nič neukladá. Keď ste prihlásení, merané údaje sa aj tak zaznamenávajú k vášmu účtu.",
+    toggleDescription: "Keď je táto možnosť vypnutá, aplikácia tomuto prehliadaču nepriradí žiadny identifikátor a pre analytiku doň nič neukladá. Používanie sa naďalej počíta anonymne, a keď ste prihlásení, zaznamenáva sa k vášmu účtu.",
     error: "Nepodarilo sa to. Skúste to znova.",
     unavailable: "Analytika je pre túto aplikáciu vypnutá, takže tu nie je čo povoliť ani odvolať.",
   },

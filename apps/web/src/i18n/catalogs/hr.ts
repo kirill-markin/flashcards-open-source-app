@@ -883,7 +883,7 @@ const hrCatalog: TranslationCatalog = {
     title: "Analitika",
     subtitle: "Odaberite smije li se ovaj preglednik mjeriti.",
     toggleTitle: "Dopusti analitičke kolačiće",
-    toggleDescription: "Kad je ovo isključeno, aplikacija ovom pregledniku ne dodjeljuje identifikator i ništa ne pohranjuje za analitiku. Dok ste prijavljeni, ono što se mjeri i dalje se bilježi uz vaš račun.",
+    toggleDescription: "Kad je ovo isključeno, aplikacija ovom pregledniku ne dodjeljuje identifikator i u njega ništa ne pohranjuje za analitiku. Korištenje se i dalje broji anonimno, a dok ste prijavljeni, bilježi se uz vaš račun.",
     error: "To nije uspjelo. Pokušajte ponovno.",
     unavailable: "Analitika je isključena za ovu aplikaciju, pa ovdje nema ničega za dopuštanje ili povlačenje.",
   },
