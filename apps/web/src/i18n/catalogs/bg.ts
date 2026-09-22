@@ -59,6 +59,13 @@ const bgCatalog: TranslationCatalog = {
       languagePreference: "Предпочитан език",
       languageSelection: "Избор на език",
     },
+    picker: {
+      empty: "Няма намерени езици",
+      listAriaLabel: "Езици на приложението",
+      openAriaLabel: "Избор на език на приложението",
+      searchLabel: "Търсене",
+      searchPlaceholder: "Търсене на езици",
+    },
     names: {
       en: "Английски",
       ar: "Арабски",

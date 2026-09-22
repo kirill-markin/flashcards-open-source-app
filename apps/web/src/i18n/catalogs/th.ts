@@ -59,6 +59,13 @@ const thCatalog: TranslationCatalog = {
       languagePreference: "การตั้งค่าภาษา",
       languageSelection: "การเลือกภาษา",
     },
+    picker: {
+      empty: "ไม่พบภาษา",
+      listAriaLabel: "ภาษาของแอป",
+      openAriaLabel: "เลือกภาษาของแอป",
+      searchLabel: "ค้นหา",
+      searchPlaceholder: "ค้นหาภาษา",
+    },
     names: {
       en: "อังกฤษ",
       ar: "อาหรับ",

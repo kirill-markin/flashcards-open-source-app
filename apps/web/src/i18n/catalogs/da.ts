@@ -59,6 +59,13 @@ const daCatalog: TranslationCatalog = {
       languagePreference: "Sprogindstilling",
       languageSelection: "Valg af sprog",
     },
+    picker: {
+      empty: "Ingen sprog fundet",
+      listAriaLabel: "Appsprog",
+      openAriaLabel: "Vælg appsprog",
+      searchLabel: "Søg",
+      searchPlaceholder: "Søg efter sprog",
+    },
     names: {
       en: "Engelsk",
       ar: "Arabisk",
