@@ -594,6 +594,34 @@ export const productAnalyticsEventCatalog = {
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
     },
   },
+  // A click on a link that opens an app store. `placement` is spelled exactly as the store campaign
+  // bucket (`ct=` / `utm_campaign=`, see docs/marketing-links.md) the link carries, so a click joins
+  // to store-side campaign data by equality; the two spellings have to stay identical.
+  store_link_clicked: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      store: { kind: "enum", values: ["app_store", "google_play"] },
+      placement: {
+        kind: "enum",
+        values: ["web_app_header", "web_review_mobile_prompt", "catalog_import", "friend_invite", "share_app"],
+      },
+    },
+  },
+  // A store QR code that stays hidden until asked for was shown long enough to be read, about one
+  // second, reported at most once per store per page load. Always-visible QR codes, such as the
+  // platform links grid, never report it. `store` and `placement` read as on `store_link_clicked`.
+  store_qr_shown: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      store: { kind: "enum", values: ["app_store", "google_play"] },
+      placement: {
+        kind: "enum",
+        values: ["web_app_header", "web_review_mobile_prompt", "catalog_import", "friend_invite", "share_app"],
+      },
+    },
+  },
   analytics_events_dropped: {
     serverOnly: false,
     requiresScreen: false,
