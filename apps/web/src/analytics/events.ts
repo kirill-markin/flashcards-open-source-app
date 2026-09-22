@@ -17,6 +17,9 @@
  * notification pre-prompt, and a browser permission dialog is chrome whose outcome the page never
  * observes. That is a product difference from iOS and Android, not a gap.
  *
+ * `notification_scheduled` and `notification_opened` are omitted for the same reason: the web client
+ * has no reminders.
+ *
  * `signin_failed` is declared but never tracked from here. The web sign-in surface is the auth
  * service's own login page on a different origin, reached by a full page navigation, so this app
  * observes neither a sign-in attempt nor its dismissal.
