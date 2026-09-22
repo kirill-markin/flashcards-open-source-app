@@ -98,6 +98,16 @@ export type AnalyticsSyncFailureReason =
 
 export type AnalyticsDropReason = "queue_overflow" | "ttl_expired" | "rejected";
 
+export type AnalyticsStore = "app_store" | "google_play";
+
+/** Equals the campaign bucket the store link carries (docs/marketing-links.md). */
+export type AnalyticsStorePlacement =
+  | "web_app_header"
+  | "web_review_mobile_prompt"
+  | "catalog_import"
+  | "friend_invite"
+  | "share_app";
+
 /**
  * `screen` is a top-level event field on the wire, legal on every event and required for
  * `screen_viewed` and `review_card_revealed`. Those two declare it here; every other event is
@@ -169,6 +179,16 @@ export type AnalyticsEvent =
     name: "catalog_deck_install_started";
     packageSlug: string;
     packageVersionId: string | null;
+  }>
+  | Readonly<{
+    name: "store_link_clicked";
+    store: AnalyticsStore;
+    placement: AnalyticsStorePlacement;
+  }>
+  | Readonly<{
+    name: "store_qr_shown";
+    store: AnalyticsStore;
+    placement: AnalyticsStorePlacement;
   }>
   | Readonly<{
     name: "analytics_events_dropped";
@@ -264,6 +284,10 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
         package_slug: event.packageSlug,
         ...(event.packageVersionId === null ? {} : { package_version_id: event.packageVersionId }),
       };
+    case "store_link_clicked":
+      return { store: event.store, placement: event.placement };
+    case "store_qr_shown":
+      return { store: event.store, placement: event.placement };
     case "analytics_events_dropped":
       return { reason: event.reason, count: event.count };
     case "consent_granted":
