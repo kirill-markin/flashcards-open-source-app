@@ -188,10 +188,13 @@ function FunnelStepGroupTable(
                 {groupIndex === 0
                   ? <th scope="row" rowSpan={props.groups.length}>{firstGroupStep.label}</th>
                   : null}
-                <td className="funnel-group-table-name">
+                {/* A second row header beside the step's, which one row may carry: as a plain cell
+                    it left a screen reader announcing every count with its step and none with its
+                    group, which is the one thing this table exists to say. */}
+                <th scope="row" className="funnel-group-table-name">
                   <span className="funnel-group-swatch" style={{ backgroundColor: group.color }} />
                   {group.label}
-                </td>
+                </th>
                 <td>{formatCount(step.count)}</td>
                 {props.showsHashedSplit ? <td>{formatCount(step.count - step.hashedCount)}</td> : null}
                 {props.showsHashedSplit ? <td>{formatCount(step.hashedCount)}</td> : null}
