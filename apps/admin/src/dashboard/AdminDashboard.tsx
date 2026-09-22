@@ -109,7 +109,11 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         area={props.activeArea}
         fields={analyticsFilterFieldsByArea[props.activeArea]}
         title="Filters"
+        headingLevel={2}
         headingId="analytics-filters-title"
+        resetAllLabel={
+          props.activeArea === "funnels" ? "Reset all shared funnel filters" : "Reset all filters"
+        }
         availableRange={props.data.availableRange}
         defaultRange={props.data.defaultRange}
         filters={props.filters}
