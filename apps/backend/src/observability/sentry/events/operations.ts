@@ -746,6 +746,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"progress_active_days_backfill_completed", ProgressActiveDaysBackfillCompletedDetails>
   | EventByAction<"web_guest_reaper_completed", WebGuestReaperCompletedDetails>
   | EventByAction<"country_retention_completed", Readonly<{ deleted: number; cutoff: string; finished: boolean }>>
+  | EventByAction<"daily_visitor_hash_salt_expiry_completed", Readonly<{ deleted: number }>>
   | EventByAction<"synthetic_actor_excluded", SyntheticActorExcludedDetails>
   | EventByAction<"synthetic_actor_detector_completed", SyntheticActorDetectorCompletedDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
@@ -828,6 +829,7 @@ export type OperationsWarningEvent =
 
 export type OperationsExceptionEvent =
   | (EventByAction<"country_retention_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
+  | (EventByAction<"daily_visitor_hash_salt_expiry_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"global_metrics_snapshot_failed", GlobalMetricsSnapshotFailureDetails> & Readonly<{ error: Error }>)
   | (EventByAction<"catalog_dump_failed", CatalogDumpFailureDetails> & Readonly<{ error: Error }>)

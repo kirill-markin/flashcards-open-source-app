@@ -7,8 +7,10 @@ import {
   getRequestOrigin,
   type RequestOriginHeaders,
 } from "../auth/requestSecurity";
+import { getDirectRequestSourceIp } from "../geolocation/requestCountry";
 import { parseAnonymousEvent } from "../productAnalytics/anonymousEvent";
-import { insertProductAnalyticsEvents } from "../productAnalytics/writer";
+import { resolveDailyVisitorHash } from "../productAnalytics/dailyVisitorHash";
+import { insertAnonymousProductAnalyticsEvent } from "../productAnalytics/writer";
 import {
   addBackendBreadcrumb,
   createBackendObservationScope,
@@ -165,7 +167,11 @@ export function createAnonymousAnalyticsRoutes(
       );
       const serverReceivedAt = new Date();
       row = parseAnonymousEvent(body, serverReceivedAt, requestId);
-      const storedCount = await insertProductAnalyticsEvents([row]);
+      const dailyVisitorHash = await resolveDailyVisitorHash(row, {
+        sourceIp: getDirectRequestSourceIp(),
+        userAgent: context.req.header("user-agent") ?? null,
+      });
+      const storedCount = await insertAnonymousProductAnalyticsEvent({ ...row, dailyVisitorHash });
       addBackendBreadcrumb({
         action: "analytics_events_ingest",
         scope,
