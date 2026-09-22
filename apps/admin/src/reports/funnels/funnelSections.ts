@@ -9,6 +9,10 @@ import {
   CatalogInstallFunnelSection,
   catalogInstallFunnelAnchor,
 } from "../catalogInstallFunnel/CatalogInstallFunnelSection";
+import {
+  MobileFirstLaunchFunnelSection,
+  mobileFirstLaunchFunnelAnchor,
+} from "../mobileFirstLaunchFunnel/MobileFirstLaunchFunnelSection";
 import type { FunnelAnchor } from "./funnelAnchorUrl";
 
 export type FunnelSectionProps = Readonly<{
@@ -35,6 +39,11 @@ export type FunnelSectionDefinition = Readonly<{
  * place and nowhere else.
  */
 export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
+  {
+    anchor: mobileFirstLaunchFunnelAnchor,
+    filterFields: [],
+    Section: MobileFirstLaunchFunnelSection,
+  },
   {
     anchor: catalogInstallFunnelAnchor,
     filterFields: catalogInstallFunnelFilterFields,
