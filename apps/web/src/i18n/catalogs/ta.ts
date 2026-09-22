@@ -59,6 +59,13 @@ const taCatalog: TranslationCatalog = {
       languagePreference: "மொழி விருப்பம்",
       languageSelection: "மொழித் தேர்வு",
     },
+    picker: {
+      empty: "மொழிகள் எதுவும் கிடைக்கவில்லை",
+      listAriaLabel: "செயலி மொழிகள்",
+      openAriaLabel: "செயலி மொழியைத் தேர்ந்தெடு",
+      searchLabel: "தேடு",
+      searchPlaceholder: "மொழிகளைத் தேடு",
+    },
     names: {
       en: "ஆங்கிலம்",
       ar: "அரபு",

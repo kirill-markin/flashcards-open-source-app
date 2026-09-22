@@ -65,6 +65,13 @@ const ltCatalog: TranslationCatalog = {
       languagePreference: "Kalbos nuostata",
       languageSelection: "Kalbos pasirinkimas",
     },
+    picker: {
+      empty: "Kalbų nerasta",
+      listAriaLabel: "Programėlės kalbos",
+      openAriaLabel: "Pasirinkti programėlės kalbą",
+      searchLabel: "Paieška",
+      searchPlaceholder: "Ieškoti kalbų",
+    },
     names: {
       en: "Anglų",
       ar: "Arabų",

@@ -59,6 +59,13 @@ const swCatalog: TranslationCatalog = {
       languagePreference: "Lugha unayopendelea",
       languageSelection: "Uteuzi wa lugha",
     },
+    picker: {
+      empty: "Hakuna lugha zilizopatikana",
+      listAriaLabel: "Lugha za programu",
+      openAriaLabel: "Chagua lugha ya programu",
+      searchLabel: "Tafuta",
+      searchPlaceholder: "Tafuta lugha",
+    },
     names: {
       en: "Kiingereza",
       ar: "Kiarabu",

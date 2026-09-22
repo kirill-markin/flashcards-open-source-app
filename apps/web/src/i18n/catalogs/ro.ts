@@ -65,6 +65,13 @@ const roCatalog: TranslationCatalog = {
       languagePreference: "Preferință de limbă",
       languageSelection: "Selectarea limbii",
     },
+    picker: {
+      empty: "Nicio limbă găsită",
+      listAriaLabel: "Limbile aplicației",
+      openAriaLabel: "Alege limba aplicației",
+      searchLabel: "Caută",
+      searchPlaceholder: "Caută limbi",
+    },
     names: {
       en: "engleză",
       ar: "arabă",

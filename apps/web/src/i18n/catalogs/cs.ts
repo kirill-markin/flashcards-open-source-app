@@ -65,6 +65,13 @@ const csCatalog: TranslationCatalog = {
       languagePreference: "Předvolba jazyka",
       languageSelection: "Výběr jazyka",
     },
+    picker: {
+      empty: "Nenalezeny žádné jazyky",
+      listAriaLabel: "Jazyky aplikace",
+      openAriaLabel: "Vybrat jazyk aplikace",
+      searchLabel: "Hledat",
+      searchPlaceholder: "Hledat jazyky",
+    },
     names: {
       en: "angličtina",
       ar: "arabština",

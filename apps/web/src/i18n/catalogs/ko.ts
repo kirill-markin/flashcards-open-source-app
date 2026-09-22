@@ -59,6 +59,13 @@ const koCatalog: TranslationCatalog = {
       languagePreference: "언어 설정",
       languageSelection: "언어 선택",
     },
+    picker: {
+      empty: "언어를 찾을 수 없습니다",
+      listAriaLabel: "앱 언어 목록",
+      openAriaLabel: "앱 언어 선택",
+      searchLabel: "검색",
+      searchPlaceholder: "언어 검색",
+    },
     names: {
       en: "영어",
       ar: "아랍어",

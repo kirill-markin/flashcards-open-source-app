@@ -65,6 +65,13 @@ const hrCatalog: TranslationCatalog = {
       languagePreference: "Željeni jezik",
       languageSelection: "Odabir jezika",
     },
+    picker: {
+      empty: "Nisu pronađeni jezici",
+      listAriaLabel: "Jezici aplikacije",
+      openAriaLabel: "Odaberi jezik aplikacije",
+      searchLabel: "Pretraživanje",
+      searchPlaceholder: "Pretraži jezike",
+    },
     names: {
       en: "engleski",
       ar: "arapski",

@@ -59,6 +59,13 @@ const trCatalog: TranslationCatalog = {
       languagePreference: "Dil tercihi",
       languageSelection: "Dil seçimi",
     },
+    picker: {
+      empty: "Dil bulunamadı",
+      listAriaLabel: "Uygulama dilleri",
+      openAriaLabel: "Uygulama dilini seç",
+      searchLabel: "Ara",
+      searchPlaceholder: "Dil ara",
+    },
     names: {
       en: "İngilizce",
       ar: "Arapça",

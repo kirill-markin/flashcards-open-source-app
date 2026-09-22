@@ -59,6 +59,13 @@ const teCatalog: TranslationCatalog = {
       languagePreference: "భాషా ప్రాధాన్యం",
       languageSelection: "భాష ఎంపిక",
     },
+    picker: {
+      empty: "భాషలు ఏవీ దొరకలేదు",
+      listAriaLabel: "యాప్ భాషలు",
+      openAriaLabel: "యాప్ భాషను ఎంచుకోండి",
+      searchLabel: "శోధన",
+      searchPlaceholder: "భాషలను వెతకండి",
+    },
     names: {
       en: "ఇంగ్లీష్",
       ar: "అరబిక్",

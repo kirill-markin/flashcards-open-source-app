@@ -59,6 +59,13 @@ const esEsCatalog: TranslationCatalog = {
       languagePreference: "Preferencia de idioma",
       languageSelection: "Selección de idioma",
     },
+    picker: {
+      empty: "No se han encontrado idiomas",
+      listAriaLabel: "Idiomas de la app",
+      openAriaLabel: "Elegir el idioma de la app",
+      searchLabel: "Buscar",
+      searchPlaceholder: "Buscar idiomas",
+    },
     names: {
       en: "Inglés",
       ar: "Árabe",

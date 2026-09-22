@@ -59,6 +59,13 @@ const ptBrCatalog: TranslationCatalog = {
       languagePreference: "Preferência de idioma",
       languageSelection: "Seleção de idioma",
     },
+    picker: {
+      empty: "Nenhum idioma encontrado",
+      listAriaLabel: "Idiomas do app",
+      openAriaLabel: "Escolher o idioma do app",
+      searchLabel: "Buscar",
+      searchPlaceholder: "Buscar idiomas",
+    },
     names: {
       en: "Inglês",
       ar: "Árabe",

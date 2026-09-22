@@ -59,6 +59,13 @@ export const jaCatalog = {
       languagePreference: "言語設定",
       languageSelection: "言語の選択",
     },
+    picker: {
+      empty: "言語が見つかりません",
+      listAriaLabel: "アプリの言語一覧",
+      openAriaLabel: "アプリの言語を選択",
+      searchLabel: "検索",
+      searchPlaceholder: "言語を検索",
+    },
     names: {
       en: "英語",
       ar: "アラビア語",
