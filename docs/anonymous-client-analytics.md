@@ -167,6 +167,14 @@ this collector where waiting would have shipped them under their account
 
 `consent_granted` may carry the id the grant produced, and so may every other event.
 
+## The marketing site facts
+
+`site_page_viewed` and `site_app_entry_clicked` are what the marketing site reports about its own
+pages: a page was viewed, and a link into the web app or an app store was clicked. Their properties
+are in the [event catalog](../apps/backend/src/productAnalytics/catalog.ts). Neither is
+`identityFree`: like `catalog_install_clicked`, each carries the shared visitor id only once the
+visitor has consented, and none before.
+
 ## Manual acceptance
 
 1. Post a valid `consent_prompt_shown` from each configured origin and confirm `200`,
