@@ -59,6 +59,13 @@ const heCatalog: TranslationCatalog = {
       languagePreference: "העדפת שפה",
       languageSelection: "בחירת שפה",
     },
+    picker: {
+      empty: "לא נמצאו שפות",
+      listAriaLabel: "שפות האפליקציה",
+      openAriaLabel: "בחירת שפת האפליקציה",
+      searchLabel: "חיפוש",
+      searchPlaceholder: "חפש שפות",
+    },
     names: {
       en: "אנגלית",
       ar: "ערבית",
@@ -354,6 +361,7 @@ const heCatalog: TranslationCatalog = {
       ios: "קוד QR לקישור אפליקציית iOS",
       android: "קוד QR לקישור אפליקציית Android",
     },
+    qrCaption: "סרקו אותו מהטלפון",
     mcp: {
       label: "לסוכן AI",
       title: "התחברות דרך MCP",

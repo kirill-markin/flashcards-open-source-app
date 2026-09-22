@@ -57,6 +57,13 @@ const enCatalog = {
       languagePreference: "Language preference",
       languageSelection: "Language selection",
     },
+    picker: {
+      empty: "No languages found",
+      listAriaLabel: "App languages",
+      openAriaLabel: "Choose app language",
+      searchLabel: "Search",
+      searchPlaceholder: "Search languages",
+    },
     names: {
       en: "English",
       ar: "Arabic",
@@ -352,6 +359,7 @@ const enCatalog = {
       ios: "QR code for the iOS app link",
       android: "QR code for the Android app link",
     },
+    qrCaption: "Scan it from your phone",
     mcp: {
       label: "For AI Agent",
       title: "Connect with MCP",

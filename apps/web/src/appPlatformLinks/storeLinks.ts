@@ -25,3 +25,8 @@ export const friendInviteStoreLinks: AppPlatformStoreLinks = {
   ios: "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=friend_invite&mt=8",
   android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=friend_invite",
 };
+
+export const webAppHeaderStoreLinks: AppPlatformStoreLinks = {
+  ios: "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=web_app_header&mt=8",
+  android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=web_app_header",
+};

@@ -59,6 +59,13 @@ const koCatalog: TranslationCatalog = {
       languagePreference: "언어 설정",
       languageSelection: "언어 선택",
     },
+    picker: {
+      empty: "언어를 찾을 수 없습니다",
+      listAriaLabel: "앱 언어 목록",
+      openAriaLabel: "앱 언어 선택",
+      searchLabel: "검색",
+      searchPlaceholder: "언어 검색",
+    },
     names: {
       en: "영어",
       ar: "아랍어",
@@ -354,6 +361,7 @@ const koCatalog: TranslationCatalog = {
       ios: "iOS 앱 링크 QR 코드",
       android: "Android 앱 링크 QR 코드",
     },
+    qrCaption: "휴대폰으로 스캔하세요",
     mcp: {
       label: "AI 에이전트용",
       title: "MCP로 연결",

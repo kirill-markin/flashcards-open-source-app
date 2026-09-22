@@ -59,6 +59,13 @@ const mlCatalog: TranslationCatalog = {
       languagePreference: "ഭാഷാ മുൻഗണന",
       languageSelection: "ഭാഷ തിരഞ്ഞെടുക്കൽ",
     },
+    picker: {
+      empty: "ഭാഷകളൊന്നും കണ്ടെത്തിയില്ല",
+      listAriaLabel: "ആപ്പ് ഭാഷകൾ",
+      openAriaLabel: "ആപ്പ് ഭാഷ തിരഞ്ഞെടുക്കുക",
+      searchLabel: "തിരയൽ",
+      searchPlaceholder: "ഭാഷകൾ തിരയുക",
+    },
     names: {
       en: "ഇംഗ്ലീഷ്",
       ar: "അറബിക്",
@@ -354,6 +361,7 @@ const mlCatalog: TranslationCatalog = {
       ios: "iOS ആപ്പ് ലിങ്കിനുള്ള QR കോഡ്",
       android: "Android ആപ്പ് ലിങ്കിനുള്ള QR കോഡ്",
     },
+    qrCaption: "നിങ്ങളുടെ ഫോണിൽ ഇത് സ്കാൻ ചെയ്യുക",
     mcp: {
       label: "AI ഏജന്റിനായി",
       title: "MCP വഴി ബന്ധിപ്പിക്കുക",

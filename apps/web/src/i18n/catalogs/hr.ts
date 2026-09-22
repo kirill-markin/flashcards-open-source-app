@@ -65,6 +65,13 @@ const hrCatalog: TranslationCatalog = {
       languagePreference: "Željeni jezik",
       languageSelection: "Odabir jezika",
     },
+    picker: {
+      empty: "Nisu pronađeni jezici",
+      listAriaLabel: "Jezici aplikacije",
+      openAriaLabel: "Odaberi jezik aplikacije",
+      searchLabel: "Pretraživanje",
+      searchPlaceholder: "Pretraži jezike",
+    },
     names: {
       en: "engleski",
       ar: "arapski",
@@ -362,6 +369,7 @@ const hrCatalog: TranslationCatalog = {
       ios: "QR kôd za poveznicu na iOS aplikaciju",
       android: "QR kôd za poveznicu na Android aplikaciju",
     },
+    qrCaption: "Skenirajte ga telefonom",
     mcp: {
       label: "Za AI agenta",
       title: "Povežite se putem MCP-a",

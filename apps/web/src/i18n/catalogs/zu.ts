@@ -59,6 +59,13 @@ const zuCatalog: TranslationCatalog = {
       languagePreference: "Ulimi olukhethwayo",
       languageSelection: "Ukukhetha ulimi",
     },
+    picker: {
+      empty: "Azikho izilimi ezitholakele",
+      listAriaLabel: "Izilimi zohlelo lokusebenza",
+      openAriaLabel: "Khetha ulimi lohlelo lokusebenza",
+      searchLabel: "Sesha",
+      searchPlaceholder: "Sesha izilimi",
+    },
     names: {
       en: "isiNgisi",
       ar: "isi-Arabhu",
@@ -354,6 +361,7 @@ const zuCatalog: TranslationCatalog = {
       ios: "Ikhodi ye-QR yesixhumanisi sohlelo lokusebenza lwe-iOS",
       android: "Ikhodi ye-QR yesixhumanisi sohlelo lokusebenza lwe-Android",
     },
+    qrCaption: "Iskene ngefoni yakho",
     mcp: {
       label: "Okwe-AI Agent",
       title: "Xhuma nge-MCP",

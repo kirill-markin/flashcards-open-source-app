@@ -59,6 +59,13 @@ const thCatalog: TranslationCatalog = {
       languagePreference: "การตั้งค่าภาษา",
       languageSelection: "การเลือกภาษา",
     },
+    picker: {
+      empty: "ไม่พบภาษา",
+      listAriaLabel: "ภาษาของแอป",
+      openAriaLabel: "เลือกภาษาของแอป",
+      searchLabel: "ค้นหา",
+      searchPlaceholder: "ค้นหาภาษา",
+    },
     names: {
       en: "อังกฤษ",
       ar: "อาหรับ",
@@ -354,6 +361,7 @@ const thCatalog: TranslationCatalog = {
       ios: "โค้ด QR สำหรับลิงก์แอป iOS",
       android: "โค้ด QR สำหรับลิงก์แอป Android",
     },
+    qrCaption: "สแกนด้วยโทรศัพท์ของคุณ",
     mcp: {
       label: "สำหรับ AI Agent",
       title: "เชื่อมต่อด้วย MCP",

@@ -59,6 +59,13 @@ const esMxCatalog: TranslationCatalog = {
       languagePreference: "Preferencia de idioma",
       languageSelection: "Selección de idioma",
     },
+    picker: {
+      empty: "No se encontraron idiomas",
+      listAriaLabel: "Idiomas de la app",
+      openAriaLabel: "Elegir el idioma de la app",
+      searchLabel: "Buscar",
+      searchPlaceholder: "Buscar idiomas",
+    },
     names: {
       en: "Inglés",
       ar: "Árabe",
@@ -354,6 +361,7 @@ const esMxCatalog: TranslationCatalog = {
       ios: "Código QR para el enlace de la app de iOS",
       android: "Código QR para el enlace de la app de Android",
     },
+    qrCaption: "Escanéalo desde tu teléfono",
     mcp: {
       label: "Para agentes de IA",
       title: "Conecta con MCP",

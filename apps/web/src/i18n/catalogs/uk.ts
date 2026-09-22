@@ -65,6 +65,13 @@ const ukCatalog: TranslationCatalog = {
       languagePreference: "Налаштування мови",
       languageSelection: "Вибір мови",
     },
+    picker: {
+      empty: "Мов не знайдено",
+      listAriaLabel: "Мови застосунку",
+      openAriaLabel: "Вибрати мову застосунку",
+      searchLabel: "Пошук",
+      searchPlaceholder: "Пошук мов",
+    },
     names: {
       en: "Англійська",
       ar: "Арабська",
@@ -362,6 +369,7 @@ const ukCatalog: TranslationCatalog = {
       ios: "QR-код для посилання на застосунок iOS",
       android: "QR-код для посилання на застосунок Android",
     },
+    qrCaption: "Відскануйте телефоном",
     mcp: {
       label: "Для AI-агента",
       title: "Підключення через MCP",
