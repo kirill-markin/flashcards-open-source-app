@@ -492,6 +492,39 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: {},
   },
+  // The failure half of `ai_message_sent`, so a failed turn is countable against the turns that
+  // were sent. Server-derived like its counterpart and for a stronger reason: a client cannot tell
+  // a provider failure from its own dropped connection, and the run is finalized in the worker,
+  // where no client is watching at all. Nothing of the prompt or the response is reported.
+  //
+  // One row per run the worker stores as `failed`, and nothing else. A run that ends `interrupted`
+  // or `cancelled` reports nothing here by design: a stop the person asked for, a run past its
+  // deadline, and a run whose worker disappeared and is repaired later by the stale recovery in
+  // chat/runs/finalization.ts all reach a different terminal path. So this counts one terminal
+  // status, not every turn a person saw fail, and reads as a floor under the chat failure rate
+  // rather than the rate itself.
+  //
+  // `reason` repeats the category the worker already classifies the failure under in
+  // chat/runtime/providerErrors.ts, which is also the category its lifecycle log carries, so a row
+  // here and the log of the same run name the failure the same way. Every value is a distinction
+  // the backend can already make; none is defined here for a report to group by.
+  ai_run_failed: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      reason: {
+        kind: "enum",
+        values: [
+          "provider_abort",
+          "provider_auth",
+          "provider_rate_limited",
+          "provider_unavailable",
+          "provider_error",
+          "runtime_error",
+        ],
+      },
+    },
+  },
   sync_failed: {
     serverOnly: false,
     requiresScreen: false,

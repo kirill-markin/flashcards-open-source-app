@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
-import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelGroupByPicker } from "../funnels/FunnelGroupByPicker";
 import {
@@ -208,6 +208,7 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
     })));
   }, [groupByDimension, readyState]);
   const startDateNote = report === null ? null : buildStartDateNote(props.filters.dateRange);
+  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
 
   return (
     <section className="dashboard-section funnel-report">
@@ -235,7 +236,8 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
       {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading mobile first launch funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
-      {totals !== null && totals.firstOpenCount === 0 ? <div className="report-state"><strong>No first mobile app opens match these filters.</strong><span>Only a person whose first event anywhere is opening the iOS or Android app on a selected day enters this funnel.</span></div> : null}
+      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
+      {totals !== null && totals.firstOpenCount === 0 ? <div className="report-state"><strong>No first mobile app opens match these filters.</strong><span>Only a person whose first event anywhere is opening the iOS or Android app on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
       {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.firstOpenCount} /> : null}
 

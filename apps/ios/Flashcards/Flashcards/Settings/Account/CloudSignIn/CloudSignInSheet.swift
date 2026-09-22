@@ -100,6 +100,7 @@ struct CloudSignInSheet: View {
 
                 CloudOtpVerificationSheet(
                     attemptId: attemptId,
+                    signInStepSurface: self.presentationContext.signInStepSurface,
                     otpSheetState: $store.cloudSignInAttempt.otpSheetState,
                     onVerified: { verifiedContext in
                         self.handleVerifiedAuthContext(verifiedContext, attemptId: attemptId)
@@ -364,6 +365,12 @@ struct CloudSignInSheet: View {
 
                 switch sendCodeResult {
                 case .otpChallenge(let nextChallenge):
+                    // A code was sent. Reported at attempt level, where this request's failure is
+                    // reported too: the step guard below only decides what may be written into the
+                    // code step on screen, and a step that replaced this one does not make the code
+                    // the server sent untrue.
+                    Analytics.track(.signInCodeRequested(screen: self.presentationContext.signInStepSurface))
+
                     guard self.store.cloudSignInAttempt.otpSheetState?.id == nextOtpSheetState.id else {
                         return
                     }
@@ -461,7 +468,7 @@ struct CloudSignInSheet: View {
             return
         }
 
-        self.store.recordCloudSignInVerified()
+        self.store.recordCloudSignInVerified(screen: self.presentationContext.signInStepSurface)
 
         let loadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
         self.store.cloudSignInAttempt.otpSheetState = nil
