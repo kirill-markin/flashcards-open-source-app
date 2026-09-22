@@ -38,7 +38,7 @@ const analyticsPoolConnectionTimeoutMs = 2_000;
 // answers a saturated pool with. Re-check the string against pg-pool on every pg upgrade.
 const analyticsPoolAcquisitionTimeoutMessage = "timeout exceeded when trying to connect";
 
-type ProductAnalyticsParameterValue = string | number | Date | null;
+type ProductAnalyticsParameterValue = string | number | boolean | Date | null;
 
 type ProductAnalyticsInsertColumn<Row extends ProductAnalyticsEventRow> = Readonly<{
   columnName: string;
@@ -93,16 +93,18 @@ const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn<
   },
 ];
 
-// The credential-free collector's columns: the shared list plus the one column only that collector
-// writes. Keeping daily_visitor_hash out of the shared list is deliberate: every other producer, and
-// every integration test pinned by apps/backend/scripts/postgresIntegrations/boundaries.mjs to a
-// schema older than db/migrations/0144_anonymous_client_daily_visitor_hash.sql, inserts through the
-// shared list, and naming the column there would fail each of those writes.
+// The credential-free collector's columns: the shared list plus the two columns only that collector
+// writes. Keeping them out of the shared list is deliberate: every other producer, and every
+// integration test pinned by apps/backend/scripts/postgresIntegrations/boundaries.mjs to a schema
+// older than db/migrations/0144_anonymous_client_daily_visitor_hash.sql and
+// db/migrations/0145_anonymous_client_automated_marker.sql, inserts through the shared list, and
+// naming either column there would fail each of those writes.
 const anonymousProductAnalyticsInsertColumns: ReadonlyArray<
   ProductAnalyticsInsertColumn<AnonymousProductAnalyticsEventRow>
 > = [
   ...productAnalyticsInsertColumns,
   { columnName: "daily_visitor_hash", columnType: "text", readValue: (row) => row.dailyVisitorHash },
+  { columnName: "automated_client", columnType: "boolean", readValue: (row) => row.automatedClient },
 ];
 
 // unnest keeps the parameter count and the query plan stable no matter how many events a batch
@@ -504,8 +506,8 @@ export async function insertProductAnalyticsEvents(
   return runAnalyticsWrite((client) => insertEventRowsInTransaction(client, rows));
 }
 
-// The credential-free collector's write, the only one that stores daily_visitor_hash. Returns the
-// number of rows stored, 0 for a redelivered event_id.
+// The credential-free collector's write, the only one that stores daily_visitor_hash and
+// automated_client. Returns the number of rows stored, 0 for a redelivered event_id.
 export async function insertAnonymousProductAnalyticsEvent(
   row: AnonymousProductAnalyticsEventRow,
 ): Promise<number> {
