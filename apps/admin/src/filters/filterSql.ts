@@ -104,14 +104,14 @@ export function buildExcludedActorSqlLines(
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Nineteen entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, eighteen in this package and
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, nineteen in this package and
  * one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (10).
+ * APPLIED (11).
  *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
  *     feeds.
  *   - `reports/audience/query.ts`, the `history` CTE and the cohort it feeds.
@@ -125,6 +125,13 @@ export function buildExcludedActorSqlLines(
  *     makes it load-bearing rather than defensive: the site click that anchors the row is itself a
  *     collector row resolving onto that same identity, so without this predicate every installer
  *     would have an event at their own first visit and none would ever read as new.
+ *   - `reports/mobileFirstLaunchFunnel/query.ts`, `actor_first_events` and `step_events`. The first
+ *     decides whether a person's first-ever event is a mobile app open. It reads every event name with
+ *     no lower bound and lets through only a `card_created` at most 60 seconds before that open, which
+ *     is the seeded demo card. Without this predicate, a signed-out marketing-site visit resolving onto
+ *     the same identity would keep that person out. The second reads the client-reportable
+ *     `screen_viewed` and `review_card_revealed` steps, so a credential-free claim would otherwise
+ *     advance a cohort member through the funnel.
  *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
  *     filter bar composes.
  *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an

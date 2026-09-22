@@ -306,12 +306,12 @@ const funnelsAnalyticsFilterFieldExplanations: Readonly<
   // window" line under the funnel counts, so a short recent window reads as a drop-off when it is
   // only immature.
   dateRange:
-    "Selects who enters each funnel by the UTC calendar day of its first step rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for seven days after that first step, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. In the deck funnel the first step is a visitor's first catalog click for a deck inside the range.",
+    "Selects who enters each funnel by the UTC calendar day of its first step rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for seven days after that first step, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. In the mobile funnel the first step is a person's first app open on iOS or Android, and in the deck funnel it is a visitor's first catalog click for a deck inside the range.",
   // Cut from the on-screen text: the no-visit preview diagnostic keeps previews by the preview row's
   // own platform the same way, and the no-visit install diagnostic reads the install row's platform,
   // which is always unattributed, so it empties as soon as any device platform is picked.
   eventPlatforms:
-    "In the deck funnel, keeps only the site visits whose own catalog click row carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the click resolve to the same person. The public collector stamps every anonymous catalog click as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
+    "In the mobile funnel, keeps only the people whose first app open was on one of the platforms you pick, so a selection without iOS or Android empties it. In the deck funnel, keeps only the site visits whose own catalog click row carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the click resolve to the same person. The public collector stamps every anonymous catalog click as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
   // Offered because the funnels that start in the app can answer them; the deck funnel's filters all
   // read its anchoring catalog click, which carries neither, so it does not apply them and says so in
   // its own section whenever either is narrowed.

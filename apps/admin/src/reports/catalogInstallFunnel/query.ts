@@ -403,7 +403,8 @@ function buildEventWindowSql(from: string, to: string): ReadonlyArray<string> {
 
 /**
  * The identity-level disqualifiers: a test address, an active admin, or an actor listed in
- * `analytics.excluded_actors`.
+ * `analytics.excluded_actors`, as `AND` lines on `candidate.actor_id`, so a caller names the row it
+ * filters `candidate`.
  *
  * The candidate row names its own actor, so these read it directly with no bridge to an install. A
  * click whose visitor cookie the web app has linked to an account resolves to that account, so the
@@ -413,7 +414,7 @@ function buildEventWindowSql(from: string, to: string): ReadonlyArray<string> {
  * the address and admin tests find nothing for them. Only the exclusion list can reach such a row,
  * and only if the browser id itself was listed.
  */
-function buildExcludedActorFilterSqlLines(): ReadonlyArray<string> {
+export function buildExcludedActorFilterSqlLines(): ReadonlyArray<string> {
   return [
     "    AND NOT EXISTS (",
     "      SELECT 1",
