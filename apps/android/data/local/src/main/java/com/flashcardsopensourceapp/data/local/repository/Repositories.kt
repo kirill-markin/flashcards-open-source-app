@@ -196,7 +196,12 @@ interface CloudAccountRepository {
     suspend fun updateAccountPreferences(preferences: AccountPreferences): AccountPreferences
     suspend fun sendCode(email: String): CloudSendCodeResult
     suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext
-    suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext
+    /** [onVerified] runs where verification succeeds, never where its link context is published. */
+    suspend fun verifyCode(
+        challenge: CloudOtpChallenge,
+        code: String,
+        onVerified: () -> Unit
+    ): CloudWorkspaceLinkContext
     suspend fun completeCloudLink(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection

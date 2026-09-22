@@ -83,6 +83,13 @@ private val cloudVerifyCodeUserCorrectableErrorCodes: Set<String> = setOf(
  * It stays nullable regardless. The catalog leaves the set of sign-in entry points open on purpose:
  * a surface that grows a sign-in control and cannot be attributed must report no `screen` rather
  * than the nearest wrong one, because a wrong entry point is worse than a missing one.
+ *
+ * [signInStepSurface] is the other reading of `screen`, and the two are deliberately separate
+ * arguments rather than one: `signin_code_requested` and `signin_succeeded` say where the person is
+ * while the sign-in runs, which is the sign-in screen for every entry point that navigates to it
+ * and `credential_recovery` for the gate that replaces the app root instead. It is not nullable,
+ * because the catalog requires a surface on both steps and this client always knows which of the
+ * two it is showing.
  */
 class CloudSignInViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
@@ -90,6 +97,7 @@ class CloudSignInViewModel(
     private val messageController: TransientMessageController,
     private val analytics: Analytics,
     private val originSurface: AnalyticsSurface?,
+    private val signInStepSurface: AnalyticsSurface,
     private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -296,6 +304,10 @@ class CloudSignInViewModel(
                     if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                         return CloudSendCodeNavigationOutcome.NoNavigation
                     }
+                    trackSignInStep(
+                        authAttemptId = authAttemptId,
+                        event = AnalyticsEvent.SignInCodeRequested(screen = signInStepSurface)
+                    )
                     draftState.update { state ->
                         acceptCloudOtpChallenge(
                             state = state,
@@ -307,6 +319,10 @@ class CloudSignInViewModel(
                 }
 
                 is CloudSendCodeResult.Verified -> {
+                    trackSignInStep(
+                        authAttemptId = authAttemptId,
+                        event = AnalyticsEvent.SignInSucceeded(screen = signInStepSurface)
+                    )
                     val linkContext = cloudAccountRepository.prepareVerifiedSignIn(result.credentials)
                     val didPublish = publishVerifiedLinkContext(
                         authAttemptId = authAttemptId,
@@ -369,7 +385,13 @@ class CloudSignInViewModel(
         return try {
             val linkContext = cloudAccountRepository.verifyCode(
                 challenge = challenge,
-                code = draftState.value.code
+                code = draftState.value.code,
+                onVerified = {
+                    trackSignInStep(
+                        authAttemptId = authAttemptId,
+                        event = AnalyticsEvent.SignInSucceeded(screen = signInStepSurface)
+                    )
+                }
             )
             publishVerifiedLinkContext(
                 authAttemptId = authAttemptId,
@@ -575,6 +597,23 @@ class CloudSignInViewModel(
         }
 
         trackSignInFailed(reason = AnalyticsSignInFailureReason.CANCELLED)
+    }
+
+    /**
+     * Reports one middle funnel step under [trackSignInFailed]'s two guards, for the same reasons:
+     * a superseded attempt is not this attempt, and a request that outlives the surface must not
+     * append a step behind the abandonment row that already closed the attempt.
+     */
+    private fun trackSignInStep(authAttemptId: Long, event: AnalyticsEvent) {
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return
+        }
+
+        if (isSignInSurfacePresent.not()) {
+            return
+        }
+
+        analytics.track(event = event)
     }
 
     private fun trackSignInFailed(reason: AnalyticsSignInFailureReason) {
@@ -1011,6 +1050,7 @@ fun createCloudSignInViewModelFactory(
     messageController: TransientMessageController,
     analytics: Analytics,
     originSurface: AnalyticsSurface?,
+    signInStepSurface: AnalyticsSurface,
     applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
@@ -1021,6 +1061,7 @@ fun createCloudSignInViewModelFactory(
                 messageController = messageController,
                 analytics = analytics,
                 originSurface = originSurface,
+                signInStepSurface = signInStepSurface,
                 strings = createSettingsStringResolver(context = applicationContext)
             )
         }
