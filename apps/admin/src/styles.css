@@ -179,6 +179,11 @@ h2 {
   color: #ffb6a6;
 }
 
+.report-state-warning {
+  border-color: rgba(214, 160, 56, 0.55);
+  color: #ffd98f;
+}
+
 .report-state .filter-button {
   justify-self: start;
   margin-top: 6px;

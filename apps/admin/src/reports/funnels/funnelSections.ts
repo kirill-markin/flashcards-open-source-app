@@ -49,6 +49,13 @@ export type FunnelSectionDefinition = Readonly<{
  * Every funnel on the Funnels area, top to bottom. The order is fixed: mobile first launch, home page
  * to web app, deck page to install, blog article to web app. A new funnel is inserted here at its
  * place and nowhere else.
+ *
+ * THE FUNNEL RULE, which every funnel here follows: each step grows by at most one per person, and a
+ * person counts at a step only if the same person reached every earlier step. It covers people with an
+ * identifier; a visitor with no identifier is in no funnel.
+ *
+ * Each funnel also counts entries only from a fixed start date in its query, so no selection shows a
+ * partial first day, and warns while some entries are still inside their seven-day window.
  */
 export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
   {

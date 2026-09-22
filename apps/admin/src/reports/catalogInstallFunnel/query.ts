@@ -17,11 +17,18 @@ import { escapeSqlStringLiteral } from "../../sql";
 import {
   assertIsString,
   assertValidDateRange,
+  laterCalendarDate,
   toInteger,
 } from "../reportValues";
 
 export const catalogInstallFunnelReportLabel = "Deck page to install funnel";
 export const catalogInstallConversionWindowDays = 7;
+
+/**
+ * The first UTC day deck page views count from, whatever range is selected. The site began sending
+ * identified page views partway through 2026-09-22, so that day is partial and no day before it has any.
+ */
+export const catalogInstallFunnelStartDate = "2026-09-23";
 
 export const catalogInstallPlacements = ["top", "middle", "bottom"] as const;
 export const catalogInstallSources = [
@@ -145,11 +152,6 @@ export type CatalogInstallFunnelReport = Readonly<{
    * unheld whenever its click was dropped by a filter or its step chain is broken.
    */
   installersWithoutVisitCount: number;
-  /**
-   * The first UTC day visits count from: the later of the selected start and the first day the site
-   * reported an identified deck page view. `null` when it had reported none by the end of the range.
-   */
-  effectiveFromDate: string | null;
 }>;
 
 export type CatalogInstallFunnelRange = Readonly<{
@@ -279,20 +281,6 @@ function parsePersonCount(resultSet: AdminQueryResultSet, resultSetName: string)
   }
 
   return toInteger(row.person_count ?? null, catalogInstallFunnelReportLabel, `${resultSetName} person_count`);
-}
-
-function parseEffectiveFromDate(resultSet: AdminQueryResultSet): string | null {
-  const row = resultSet.rows[0];
-  if (row === undefined || resultSet.rows.length !== 1) {
-    throw new Error(
-      `${catalogInstallFunnelReportLabel} effective start result set must return one row. Got ${resultSet.rows.length}.`,
-    );
-  }
-
-  const value = row.effective_from_date ?? null;
-  return value === null
-    ? null
-    : assertIsString(value, catalogInstallFunnelReportLabel, "effective_from_date");
 }
 
 /**
@@ -531,8 +519,15 @@ function buildActorMembershipSql(relationName: string, actorIdSqlExpression: str
   ].join("\n");
 }
 
+/**
+ * The visit rows, then the two no-visit diagnostics, over the selected UTC days from
+ * `catalogInstallFunnelStartDate` on. The section reduces the rows to people by the funnel rule in
+ * `../funnels/funnelSections.ts`.
+ */
 export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): string {
-  const { from, to } = assertValidDateRange(filters.dateRange, catalogInstallFunnelReportLabel);
+  const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, catalogInstallFunnelReportLabel);
+  // A range ending before the start date leaves `from` after `to`, so no row and no diagnostic counts.
+  const from = laterCalendarDate(selectedFrom, catalogInstallFunnelStartDate);
 
   const cohortQuery = [
     "WITH",
@@ -995,30 +990,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     ...buildFunnelPersonFilterSqlLines("orphan_install.actor_id::text", filters),
   ].join("\n");
 
-  // The first UTC day visits count from, read from the data: the later of the selected start and the
-  // site's first identified deck page view. No visit can precede it, so it cuts nothing; it is
-  // returned so the section can say why an earlier range is empty instead of drawing a funnel from
-  // data the site was not yet sending.
-  const effectiveFromQuery = [
-    "SELECT",
-    "  CASE",
-    "    WHEN MIN(resolved.occurred_at) IS NULL THEN NULL",
-    "    ELSE to_char(",
-    "      GREATEST(",
-    `        ${escapeSqlStringLiteral(from)}::date,`,
-    "        (MIN(resolved.occurred_at) AT TIME ZONE 'UTC')::date",
-    "      ),",
-    "      'YYYY-MM-DD'",
-    "    )",
-    "  END AS effective_from_date",
-    "FROM analytics.product_events_resolved AS resolved",
-    `WHERE ${buildDeckPageViewSql("resolved")}`,
-    "  AND resolved.occurred_at < (",
-    `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    "  )",
-  ].join("\n");
-
-  return [cohortQuery, previewWithoutVisitQuery, installWithoutVisitQuery, effectiveFromQuery].join(";\n");
+  return [cohortQuery, previewWithoutVisitQuery, installWithoutVisitQuery].join(";\n");
 }
 
 export async function loadCatalogInstallFunnelAvailableRange(
@@ -1054,21 +1026,19 @@ export async function loadCatalogInstallFunnelReport(
   filters: AnalyticsFilterState,
 ): Promise<CatalogInstallFunnelReport> {
   const response = await runAdminQuery(config, buildCatalogInstallFunnelSql(filters));
-  if (response.resultSets.length !== 4) {
+  if (response.resultSets.length !== 3) {
     throw new Error(
-      `${catalogInstallFunnelReportLabel} must return exactly four result sets. Got ${response.resultSets.length}.`,
+      `${catalogInstallFunnelReportLabel} must return exactly three result sets. Got ${response.resultSets.length}.`,
     );
   }
 
   const visitsResultSet = response.resultSets[0];
   const previewsWithoutVisitResultSet = response.resultSets[1];
   const installsWithoutVisitResultSet = response.resultSets[2];
-  const effectiveFromResultSet = response.resultSets[3];
   if (
     visitsResultSet === undefined
     || previewsWithoutVisitResultSet === undefined
     || installsWithoutVisitResultSet === undefined
-    || effectiveFromResultSet === undefined
   ) {
     throw new Error(`${catalogInstallFunnelReportLabel} result sets are missing.`);
   }
@@ -1080,6 +1050,5 @@ export async function loadCatalogInstallFunnelReport(
     visits: visitsResultSet.rows.map(parseVisitRow),
     previewersWithoutVisitCount: parsePersonCount(previewsWithoutVisitResultSet, "previews-without-visit"),
     installersWithoutVisitCount: parsePersonCount(installsWithoutVisitResultSet, "installs-without-visit"),
-    effectiveFromDate: parseEffectiveFromDate(effectiveFromResultSet),
   };
 }
