@@ -354,6 +354,7 @@ const urCatalog: TranslationCatalog = {
       ios: "iOS ایپ کے لنک کا QR کوڈ",
       android: "Android ایپ کے لنک کا QR کوڈ",
     },
+    qrCaption: "اسے اپنے فون سے اسکین کریں",
     mcp: {
       label: "AI ایجنٹ کے لیے",
       title: "MCP سے جڑیں",

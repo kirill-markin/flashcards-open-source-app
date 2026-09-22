@@ -362,6 +362,7 @@ const ltCatalog: TranslationCatalog = {
       ios: "iOS programėlės nuorodos QR kodas",
       android: "Android programėlės nuorodos QR kodas",
     },
+    qrCaption: "Nuskenuokite jį telefonu",
     mcp: {
       label: "DI agentui",
       title: "Prisijungti per MCP",

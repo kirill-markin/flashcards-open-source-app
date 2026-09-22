@@ -354,6 +354,7 @@ const teCatalog: TranslationCatalog = {
       ios: "iOS యాప్ లింక్ కోసం QR కోడ్",
       android: "Android యాప్ లింక్ కోసం QR కోడ్",
     },
+    qrCaption: "మీ ఫోన్‌తో దీన్ని స్కాన్ చేయండి",
     mcp: {
       label: "AI ఏజెంట్ కోసం",
       title: "MCPతో కనెక్ట్ అవ్వండి",

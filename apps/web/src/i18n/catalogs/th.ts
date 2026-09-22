@@ -354,6 +354,7 @@ const thCatalog: TranslationCatalog = {
       ios: "โค้ด QR สำหรับลิงก์แอป iOS",
       android: "โค้ด QR สำหรับลิงก์แอป Android",
     },
+    qrCaption: "สแกนด้วยโทรศัพท์ของคุณ",
     mcp: {
       label: "สำหรับ AI Agent",
       title: "เชื่อมต่อด้วย MCP",

@@ -354,6 +354,7 @@ const svCatalog: TranslationCatalog = {
       ios: "QR-kod till länken för iOS-appen",
       android: "QR-kod till länken för Android-appen",
     },
+    qrCaption: "Skanna den med telefonen",
     mcp: {
       label: "För AI-agent",
       title: "Anslut med MCP",

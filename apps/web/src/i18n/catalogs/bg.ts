@@ -354,6 +354,7 @@ const bgCatalog: TranslationCatalog = {
       ios: "QR код за връзката към приложението за iOS",
       android: "QR код за връзката към приложението за Android",
     },
+    qrCaption: "Сканирайте го с телефона си",
     mcp: {
       label: "За ИИ агент",
       title: "Свързване чрез MCP",

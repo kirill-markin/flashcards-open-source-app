@@ -354,6 +354,7 @@ const paCatalog: TranslationCatalog = {
       ios: "iOS ਐਪ ਲਿੰਕ ਦਾ QR ਕੋਡ",
       android: "Android ਐਪ ਲਿੰਕ ਦਾ QR ਕੋਡ",
     },
+    qrCaption: "ਇਸਨੂੰ ਆਪਣੇ ਫ਼ੋਨ ਨਾਲ ਸਕੈਨ ਕਰੋ",
     mcp: {
       label: "AI ਏਜੰਟ ਲਈ",
       title: "MCP ਨਾਲ ਜੁੜੋ",

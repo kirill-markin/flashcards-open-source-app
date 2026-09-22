@@ -354,6 +354,7 @@ const huCatalog: TranslationCatalog = {
       ios: "QR-kód az iOS-alkalmazás hivatkozásához",
       android: "QR-kód az Android-alkalmazás hivatkozásához",
     },
+    qrCaption: "Olvasd be a telefonoddal",
     mcp: {
       label: "AI-ügynöknek",
       title: "Csatlakozás MCP-vel",

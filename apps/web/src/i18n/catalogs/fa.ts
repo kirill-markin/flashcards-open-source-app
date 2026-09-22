@@ -354,6 +354,7 @@ const faCatalog: TranslationCatalog = {
       ios: "کد QR پیوند برنامهٔ iOS",
       android: "کد QR پیوند برنامهٔ اندروید",
     },
+    qrCaption: "آن را با گوشی خود اسکن کنید",
     mcp: {
       label: "برای عامل هوش مصنوعی",
       title: "اتصال با MCP",

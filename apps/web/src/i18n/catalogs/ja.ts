@@ -354,6 +354,7 @@ export const jaCatalog = {
       ios: "iOS アプリリンクの QR コード",
       android: "Android アプリリンクの QR コード",
     },
+    qrCaption: "スマホで読み取ってください",
     mcp: {
       label: "AIエージェント向け",
       title: "MCP で接続",

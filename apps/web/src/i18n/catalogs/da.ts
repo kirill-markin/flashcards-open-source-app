@@ -354,6 +354,7 @@ const daCatalog: TranslationCatalog = {
       ios: "QR-kode til linket til iOS-appen",
       android: "QR-kode til linket til Android-appen",
     },
+    qrCaption: "Scan den med din telefon",
     mcp: {
       label: "Til AI-agent",
       title: "Forbind med MCP",

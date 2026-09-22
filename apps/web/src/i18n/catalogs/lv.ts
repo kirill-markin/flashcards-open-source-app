@@ -354,6 +354,7 @@ const lvCatalog: TranslationCatalog = {
       ios: "iOS lietotnes saites QR kods",
       android: "Android lietotnes saites QR kods",
     },
+    qrCaption: "Noskenējiet to ar tālruni",
     mcp: {
       label: "MI aģentam",
       title: "Savienot ar MCP",

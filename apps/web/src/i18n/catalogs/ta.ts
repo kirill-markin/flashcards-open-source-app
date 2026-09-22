@@ -354,6 +354,7 @@ const taCatalog: TranslationCatalog = {
       ios: "iOS செயலி இணைப்புக்கான QR குறியீடு",
       android: "Android செயலி இணைப்புக்கான QR குறியீடு",
     },
+    qrCaption: "உங்கள் ஃபோனில் இதை ஸ்கேன் செய்யுங்கள்",
     mcp: {
       label: "AI முகவருக்கு",
       title: "MCP வழியாக இணை",

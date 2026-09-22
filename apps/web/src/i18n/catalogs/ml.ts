@@ -354,6 +354,7 @@ const mlCatalog: TranslationCatalog = {
       ios: "iOS ആപ്പ് ലിങ്കിനുള്ള QR കോഡ്",
       android: "Android ആപ്പ് ലിങ്കിനുള്ള QR കോഡ്",
     },
+    qrCaption: "നിങ്ങളുടെ ഫോണിൽ ഇത് സ്കാൻ ചെയ്യുക",
     mcp: {
       label: "AI ഏജന്റിനായി",
       title: "MCP വഴി ബന്ധിപ്പിക്കുക",

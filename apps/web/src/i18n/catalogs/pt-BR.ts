@@ -354,6 +354,7 @@ const ptBrCatalog: TranslationCatalog = {
       ios: "QR code para o link do app iOS",
       android: "QR code para o link do app Android",
     },
+    qrCaption: "Escaneie com o celular",
     mcp: {
       label: "Para agente de IA",
       title: "Conectar com MCP",
