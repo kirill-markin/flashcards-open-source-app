@@ -77,15 +77,16 @@ What joins these facts into a flow is `analytics.product_events_resolved.actor_i
 events themselves. A row sent with no account credential carries the
 [analytics visitor identity](analytics-visitor-identity.md) as `anonymous_id`, and resolves onto the
 account once the web app records an `authenticated_client` identity link for it; the signed-in app's
-rows and the server install carry the account already. So the site click, the import flow's
-`screen_viewed` rows and the server install resolve onto one identity. The auth origin's sign-in
+rows and the server install carry the account already. So the deck page's `site_page_viewed`, the
+site click, the import flow's `screen_viewed` rows and the server install resolve onto one identity. The auth origin's sign-in
 rows do not: they are delivered on a guest credential whose `user_id` outranks the visitor cookie,
 and reach the account only through the `server_derived` link written after `signin_succeeded`
 inside a budget a first-ever sign-in usually overruns, so they cannot reliably be joined to the rest.
 A sign-in is read instead from the web app's first screen view that the same browser sends with an
 account credential. The sequence is assembled at analysis time
-from that identity and `occurred_at`; the admin funnel over it, and everything it can and cannot
-claim, is [Admin app](admin-app.md). **Only a click sent with the visitor identity joins anything:**
+from that identity and `occurred_at`. The admin funnel over it starts at the deck page view and
+takes the click as its second step, so its history begins when the site began sending page views;
+what it can and cannot claim is [Admin app](admin-app.md). **Only a click sent with the visitor identity joins anything:**
 a click body that claims no `anonymousId` is stored under its per-attempt `install_journey_id`, which
 matches no later row, and that is every click made before the site and the app shared one
 registrable domain.
@@ -102,10 +103,10 @@ Post-install engagement is reportable only on an install whose server `catalog_d
 exists, because that is where the install is a fact rather than an intent. `review_answered` carries
 no deck or card identity, so those reviews are the person's reviews anywhere in the product and never
 deck-level retention; say so wherever they are shown. Whether the installing identity is new is that
-actor having no trusted `analytics.product_events_resolved` row at all before the site visit, read
+actor having no trusted `analytics.product_events_resolved` row at all before the deck page view, read
 with no lower bound and over every event name. Trusted is what
 [`buildTrustedActorRowsFilterSql`](../apps/admin/src/filters/filterSql.ts) defines and states in
-full, and it is load-bearing here: the anchoring site click is itself a credential-free row on the
+full, and it is load-bearing here: the anchoring page view is itself a credential-free row on the
 same identity, so without the rule no installer would ever read as new.
 
 ## Manual acceptance
