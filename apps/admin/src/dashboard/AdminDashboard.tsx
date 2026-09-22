@@ -9,13 +9,13 @@ import { getPackageColorScale } from "../charts/chartPrimitives";
 import { formatDateRangeLabel } from "../charts/formatting";
 import type { AdminAppConfig } from "../config";
 import { AnalyticsFilterBar } from "../filters/AnalyticsFilterBar";
-import type { AnalyticsFilterState } from "../filters/analyticsFilters";
+import { analyticsFilterFieldsByArea, type AnalyticsFilterState } from "../filters/analyticsFilters";
 import type { AnalyticsFilterOptions } from "../filters/optionsQuery";
 import { AdminLink } from "../navigation/AdminLink";
 import { AudienceSection } from "../reports/audience/AudienceSection";
-import { CatalogInstallFunnelSection } from "../reports/catalogInstallFunnel/CatalogInstallFunnelSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
+import { FunnelsArea } from "../reports/funnels/FunnelsArea";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import { analyticsAreaLabels, getAnalyticsAreaPath, type AnalyticsArea } from "../routing";
@@ -101,15 +101,15 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     () => getPackageColorScale(filterOptions.catalogPackageSlugs),
     [filterOptions.catalogPackageSlugs],
   );
-  // Funnels matches a click that never had to become an install, so its four click dimensions offer
-  // the values clicks themselves carried; the user-scoped areas match a person through a completed
-  // install and offer what that bridge can reach.
-  const isFunnelsArea = props.activeArea === "funnels";
-
+  // The shared bar offers catalog fields only on the user-scoped areas, which match a person through a
+  // completed install and offer what that bridge can reach; a funnel offers its own in its section.
   return (
     <>
       <AnalyticsFilterBar
         area={props.activeArea}
+        fields={analyticsFilterFieldsByArea[props.activeArea]}
+        title="Filters"
+        headingId="analytics-filters-title"
         availableRange={props.data.availableRange}
         defaultRange={props.data.defaultRange}
         filters={props.filters}
@@ -117,10 +117,10 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         connectionCountryOptions={filterOptions.connectionCountries}
         appUiLanguageOptions={filterOptions.appUiLanguages}
         catalogDeckOptions={filterOptions.catalogDecks}
-        catalogPlacementOptions={isFunnelsArea ? filterOptions.funnelCatalogPlacements : filterOptions.catalogPlacements}
-        catalogSourceOptions={isFunnelsArea ? filterOptions.funnelCatalogSources : filterOptions.catalogSources}
-        catalogDeviceCategoryOptions={isFunnelsArea ? filterOptions.funnelCatalogDeviceCategories : filterOptions.catalogDeviceCategories}
-        catalogClickBrowserLanguageOptions={isFunnelsArea ? filterOptions.funnelCatalogClickBrowserLanguages : filterOptions.catalogClickBrowserLanguages}
+        catalogPlacementOptions={filterOptions.catalogPlacements}
+        catalogSourceOptions={filterOptions.catalogSources}
+        catalogDeviceCategoryOptions={filterOptions.catalogDeviceCategories}
+        catalogClickBrowserLanguageOptions={filterOptions.catalogClickBrowserLanguages}
         isReportLoading={props.isReportLoading}
         dateRangeError={props.dateRangeError}
         userColorScale={userColorScale}
@@ -157,10 +157,17 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         />
         </div> : null}
 
-      {props.activeArea === "funnels" ? <CatalogInstallFunnelSection
+      {props.activeArea === "funnels" ? <FunnelsArea
         config={props.config}
+        availableRange={props.data.availableRange}
+        defaultRange={props.data.defaultRange}
         filters={props.filters}
-        isRangeLoading={props.isReportLoading}
+        filterOptions={filterOptions}
+        userOptions={filterOptions.users}
+        userColorScale={userColorScale}
+        isReportLoading={props.isReportLoading}
+        dateRangeError={props.dateRangeError}
+        onFiltersChange={props.onFiltersChange}
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}
 

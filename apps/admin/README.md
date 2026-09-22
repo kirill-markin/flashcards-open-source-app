@@ -12,7 +12,7 @@ Supported browser entrypoints:
 - `/` - links to the analytics pages
 - `/analytics` - links to the three analytics areas
 - `/analytics/general` - the General report sections
-- `/analytics/funnels` - the catalog installation funnel
+- `/analytics/funnels` - the funnels, stacked in a fixed order
 - `/analytics/audience` - the audience report
 - any other path - the not-found page, naming the path as typed
 

@@ -135,9 +135,10 @@ export const analyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = Object
   analyticsFilterFieldOrder,
 ) as Array<AnalyticsFilterField>;
 
-// Funnels is keyed by the shared browser visitor identity and its top steps happen before sign-in,
-// so the five identity-derived fields, each of which asks something only an account answers, cannot
-// be answered there and are absent rather than empty. Every field takes a side here for the same
+// The Funnels bar is shared by every funnel on the area, so it offers only the fields they all
+// share; a field that belongs to one funnel lives in that funnel's own row instead. The users,
+// cohort and threshold fields ask something only an account answers, and a funnel's top steps happen
+// before sign-in, so they are absent rather than empty. Every field takes a side here for the same
 // reason the order above is exhaustive.
 const funnelsAnalyticsFilterFieldApplicability = {
   dateRange: true,
@@ -145,14 +146,23 @@ const funnelsAnalyticsFilterFieldApplicability = {
   userCohorts: false,
   eventPlatforms: true,
   minimumEventCounts: false,
-  connectionCountries: false,
-  appUiLanguages: false,
-  installedDecks: true,
-  catalogPlacements: true,
-  catalogSources: true,
-  catalogDeviceCategories: true,
-  catalogClickBrowserLanguages: true,
+  connectionCountries: true,
+  appUiLanguages: true,
+  installedDecks: false,
+  catalogPlacements: false,
+  catalogSources: false,
+  catalogDeviceCategories: false,
+  catalogClickBrowserLanguages: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
+
+/** The catalog installation funnel's own row: the deck version and the four catalog-click dimensions. */
+export const catalogInstallFunnelFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+  "installedDecks",
+  "catalogPlacements",
+  "catalogSources",
+  "catalogDeviceCategories",
+  "catalogClickBrowserLanguages",
+];
 
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
@@ -282,12 +292,12 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
 const funnelsCatalogOptionCoverageTail =
   "The values on offer are read from the clicks themselves and cover every day rather than only the selected ones, so a value that only clicks outside this range recorded is still listed and picking it empties the area.";
 
-// Funnels counts one visitor identity and deck version per row, anchored at that identity's first
-// catalog click for the deck inside the selected range, so the five catalog fields read off that
-// anchoring click instead of a person's lifetime install history, and the platform is the click's own
-// platform rather than every step's. The date range changes meaning too: it places a visit by its
-// anchoring click and then lets the later steps run past the range, so the shared "only events inside
-// these days" wording would be false here.
+// The deck funnel counts one visitor identity and deck version per row, anchored at that identity's
+// first catalog click for the deck inside the selected range, so the five catalog fields read off
+// that anchoring click instead of a person's lifetime install history, and the platform is the
+// click's own platform rather than every step's. The date range changes meaning on every funnel: it
+// places an entry by its first step and then lets the later steps run past the range, so the shared
+// "only events inside these days" wording would be false here.
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
@@ -296,12 +306,19 @@ const funnelsAnalyticsFilterFieldExplanations: Readonly<
   // window" line under the funnel counts, so a short recent window reads as a drop-off when it is
   // only immature.
   dateRange:
-    "Selects a site visit by the catalog click that opens it rather than bounding every event counted here: a visitor and deck belong to this range when they made a catalog click on a UTC calendar day inside it, with the first and the last day both included, and the visit is anchored at the first such click. Every later step still counts for seven days after that click, so any step from the import screen to the review steps can have happened past the last selected day. A range whose last clicks are less than seven days old is therefore still filling rather than finished.",
+    "Selects who enters each funnel by the UTC calendar day of its first step rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for seven days after that first step, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. In the deck funnel the first step is a visitor's first catalog click for a deck inside the range.",
   // Cut from the on-screen text: the no-visit preview diagnostic keeps previews by the preview row's
   // own platform the same way, and the no-visit install diagnostic reads the install row's platform,
   // which is always unattributed, so it empties as soon as any device platform is picked.
   eventPlatforms:
-    "Keeps only the site visits whose own catalog click row carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the click resolve to the same person. The public collector stamps every anonymous catalog click as web itself and no client can override it, so picking any other platform on its own empties this whole area.",
+    "In the deck funnel, keeps only the site visits whose own catalog click row carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the click resolve to the same person. The public collector stamps every anonymous catalog click as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
+  // Offered because the funnels that start in the app can answer them; the deck funnel's filters all
+  // read its anchoring catalog click, which carries neither, so it does not apply them and says so in
+  // its own section whenever either is narrowed.
+  connectionCountries:
+    "Narrows the funnels that apply it to people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. The deck funnel does not apply it. Picking nothing keeps every country.",
+  appUiLanguages:
+    "Narrows the funnels that apply it to people whose events recorded one of the app interface languages you pick. The deck funnel does not apply it. Picking nothing keeps every language.",
   // Cut from the on-screen text, in full, because it is the reason the option list and the matching
   // disagree: the list is built from deck versions somebody completed an install of, so three kinds
   // of version are missing from it while a click on them is still counted here - a version nobody
@@ -357,12 +374,12 @@ export function getAnalyticsFilterFieldExplanation(
 // A label has to be a full phrase somebody can read without opening this file, so a field whose
 // subject genuinely changes in an area is renamed here rather than neutralised into a name that fits
 // everywhere and says nothing. The date range is that field: on the user-scoped areas it bounds the
-// events being counted, while on `funnels` it only places a visit by its opening click and the
-// later steps run past it, which is what the explanation above says.
+// events being counted, while on `funnels` it only places an entry by its first step and the later
+// steps run past it, which is what the explanation above says.
 const funnelsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
-  dateRange: "Date range of the opening click",
+  dateRange: "Date range of the first step",
 };
 
 const analyticsFilterFieldLabelOverridesByArea: Readonly<
