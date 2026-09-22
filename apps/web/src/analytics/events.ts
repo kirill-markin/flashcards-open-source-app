@@ -88,6 +88,30 @@ export type AnalyticsCardCreateEntryPoint =
   | "ai"
   | "quick_action";
 
+/**
+ * Where an attached asset came from, spelled exactly as the catalog's matching `permission` values.
+ *
+ * `camera` is unreachable from this client, which has no capture surface, and is mirrored because
+ * the vocabulary is the shared contract rather than an inventory of what this app can do. The value
+ * this app does send stands for the browser's own file chooser over the person's stored files, which
+ * is the closest thing it has to a photo library; a drag or a clipboard paste is neither of these
+ * two and so reports nothing at all rather than the nearer of two wrong origins.
+ */
+export type AnalyticsMediaSource = "photo_library" | "camera";
+
+/**
+ * Why an attachment did not happen. Deliberately narrower than the catalog, which also declares
+ * `offline`, `timeout` and `cancelled` for the upload path that will produce them: attaching is
+ * local on both paths here — the composer holds the asset until the message is sent, and the card
+ * editor writes it locally for the media upload transfers to send later — so no code path on this
+ * side can observe any of the three, and leaving them out is what stops one being constructed. The
+ * iOS and Android mirrors are narrowed to the same three.
+ */
+export type AnalyticsMediaUploadFailureReason =
+  | "too_large"
+  | "unsupported_type"
+  | "server_error";
+
 export type AnalyticsSyncFailureReason =
   | "offline"
   | "timeout"
@@ -170,6 +194,30 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "card_create_started";
     entryPoint: AnalyticsCardCreateEntryPoint;
+  }>
+  /**
+   * One asset reaching the chat draft or the card being edited, and the failure that stands in its
+   * place.
+   *
+   * Emitted where the attachment is appended, never where the file chooser opens: a chooser someone
+   * backs out of attached nothing. Both halves come from the same paths — the chat composer's
+   * chooser and the card editor's — so the failure count is read against the attachments of those
+   * same paths and not against every attach this app can do.
+   *
+   * `media_attached` declares its own `screen` because the catalog requires one and one of its
+   * callers is not a screen: the composer is the sidebar of whatever route is open, so it passes the
+   * stamp it read when the ingest started and reports nothing while there is none. The card editor
+   * names `card_editor` outright, which is both what its own route resolves to and what the review
+   * screen's editor modal reports when it opens.
+   */
+  | Readonly<{
+    name: "media_attached";
+    source: AnalyticsMediaSource;
+    screen: AnalyticsSurface;
+  }>
+  | Readonly<{
+    name: "media_upload_failed";
+    reason: AnalyticsMediaUploadFailureReason;
   }>
   | Readonly<{
     name: "sync_failed";
@@ -277,6 +325,10 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
       return { reason: event.reason };
     case "card_create_started":
       return { entry_point: event.entryPoint };
+    case "media_attached":
+      return { source: event.source };
+    case "media_upload_failed":
+      return { reason: event.reason };
     case "sync_failed":
       return { reason: event.reason };
     case "catalog_deck_install_started":

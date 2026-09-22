@@ -442,6 +442,9 @@ private struct CardTextEditorScreen: View {
                         table: reviewCardsStringsTableName
                     )
                 )
+                // A picked item that hands back no data is one this client cannot read, which is
+                // what `unsupportedType` means here.
+                Analytics.track(.mediaUploadFailed(reason: .unsupportedType), screen: .cardEditor)
                 return
             }
 
@@ -467,13 +470,21 @@ private struct CardTextEditorScreen: View {
             )
             self.text = insertion.text
             self.textSelection = insertion.selection
+            // Reported where the image reaches the card's text, never where the picker was opened.
+            Analytics.track(.mediaAttached(source: .photoLibrary, screen: .cardEditor))
         } catch is CancellationError {
+            // Reports nothing: this import was superseded by the next one or by the editor going
+            // away, which is not a person cancelling an attachment.
             return
         } catch {
             guard self.isCurrentImageImport(editorSessionId: editorSessionId, importId: importId) else {
                 return
             }
             self.presentImageImportError(message: cardEditorImageImportFailureMessage(error: error))
+            Analytics.track(
+                .mediaUploadFailed(reason: analyticsMediaUploadFailureReason(error: error)),
+                screen: .cardEditor
+            )
         }
     }
 

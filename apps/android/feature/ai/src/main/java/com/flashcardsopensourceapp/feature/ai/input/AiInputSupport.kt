@@ -36,7 +36,31 @@ data class RecordedAiChatAudio(
     val audioBytes: ByteArray
 )
 
-class AiAttachmentImportUserException(
+/** An item this client will not attach, for a reason the person can act on by picking another. */
+open class AiAttachmentImportUserException(
+    message: String,
+    cause: Throwable?
+) : Exception(message, cause)
+
+/**
+ * The one refusal above that names its own cause: the payload is over the attachment limit even
+ * after the fallback compression. Split out so the analytics failure mapping can report `too_large`
+ * from a type rather than from a localized message, which would only match in one language.
+ */
+class AiAttachmentTooLargeUserException(
+    message: String,
+    cause: Throwable?
+) : AiAttachmentImportUserException(message = message, cause = cause)
+
+/**
+ * A JPEG encode the platform refused. Deliberately not an [AiAttachmentImportUserException]: nothing
+ * about the picked item is wrong and there is nothing to pick differently. Confined to the photo
+ * picker, which wraps it as an unreadable image and keeps the dialog it already showed, so the
+ * analytics mapping can find it in the cause chain and report `server_error`, which is what iOS
+ * reports for the same failure. [makeAiChatAttachmentFromCameraBitmap] converts it away again,
+ * because the camera surfaces the thrown class itself to the person and to Sentry.
+ */
+class AiAttachmentEncodeFailedException(
     message: String,
     cause: Throwable?
 ) : Exception(message, cause)
@@ -134,10 +158,19 @@ fun makeAiChatAttachmentFromCameraBitmap(
     bitmap: Bitmap,
     textProvider: AiTextProvider
 ): AiChatAttachment {
-    val bytes = compressBitmapForAiChatAttachment(
-        bitmap = bitmap,
-        textProvider = textProvider
-    )
+    // An encode failure leaves this path untyped: the camera renders the thrown class in its
+    // technical-details dialog and reports it to Sentry, and the analytics mapping buckets an
+    // unmatched throwable as `server_error`, the same reason the typed one carries.
+    val bytes = try {
+        compressBitmapForAiChatAttachment(
+            bitmap = bitmap,
+            textProvider = textProvider
+        )
+    } catch (error: AiAttachmentEncodeFailedException) {
+        // Keep the encode site's frames, so Sentry groups this by where the encode failed rather
+        // than by this rethrow.
+        throw IllegalArgumentException(error.message).apply { stackTrace = error.stackTrace }
+    }
     return makeAiChatAttachment(
         fileName = cameraAttachmentFileName,
         mediaType = cameraAttachmentMediaType,
@@ -300,7 +333,7 @@ private fun requireAiChatAttachmentSize(
     textProvider: AiTextProvider
 ) {
     if (byteCount > aiChatMaximumAttachmentBytes) {
-        throw AiAttachmentImportUserException(
+        throw AiAttachmentTooLargeUserException(
             message = textProvider.attachmentTooLarge,
             cause = null
         )
@@ -438,8 +471,11 @@ private fun compressBitmapToJpeg(
         quality,
         outputStream
     )
-    require(didCompress) {
-        textProvider.capturedPhotoEncodeFailed
+    if (didCompress.not()) {
+        throw AiAttachmentEncodeFailedException(
+            message = textProvider.capturedPhotoEncodeFailed,
+            cause = null
+        )
     }
 
     return outputStream.toByteArray()

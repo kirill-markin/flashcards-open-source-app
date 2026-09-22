@@ -889,11 +889,20 @@ struct AIChatView: View {
         self.handleCapturedPhotoData(data)
     }
 
+    /// The capture itself failed, so the camera half of the attachment pair ends here rather than in
+    /// `handleCapturedPhotoData`. The picker raises errors of its own, which the mapping cannot tell
+    /// apart, so these land on the catch-all reason.
     func handleCameraFailure(error: Error) {
         self.isCameraPresented = false
+        Analytics.track(
+            .mediaUploadFailed(reason: analyticsMediaUploadFailureReason(error: error)),
+            screen: .ai
+        )
         self.chatStore.showGeneralError(error: error)
     }
 
+    /// Closing the camera without taking a photo reports nothing: no attachment was attempted, and
+    /// the catalog's `cancelled` is a stopped upload rather than a picker somebody backed out of.
     func handleCameraCancel() {
         self.isCameraPresented = false
     }

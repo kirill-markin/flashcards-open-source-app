@@ -74,6 +74,41 @@ func analyticsReviewAnswerFailureReason(error: Error) -> AnalyticsReviewAnswerFa
 }
 
 /**
+ * Maps a failed attachment onto the shared `media_upload_failed` reasons.
+ *
+ * Both attach paths are entirely local — the asset is written to the draft or to the card and
+ * uploaded later by the media upload path, which reports nothing here — so no transport reason can
+ * reach this function, and the two reasons a person can act on are taken from the classification the
+ * throw site already made rather than from its message.
+ *
+ * The chat builders name their refusals apart, so an oversized payload is told apart from a file
+ * type this client will not take. The card editor's managed-image preparation does not: it raises
+ * `LocalStoreError.validation` for an unreadable frame, an animated or multi-page source, an
+ * oversized decoded pixel count and a failed encode alike, so all four are counted as
+ * `unsupportedType` — the oversized one included, which is the single distinction this client cannot
+ * make. Everything else is the catch-all bucket, which here means the attachment could not be
+ * completed for a reason the person cannot act on.
+ */
+func analyticsMediaUploadFailureReason(error: Error) -> AnalyticsMediaUploadFailureReason {
+    if let attachmentErrorCode = aiChatAttachmentErrorCode(error: error) {
+        switch attachmentErrorCode {
+        case .unsupportedType, .imageDimensionsInvalid:
+            return .unsupportedType
+        case .tooLarge:
+            return .tooLarge
+        case .imageEncodeFailed:
+            return .serverError
+        }
+    }
+
+    if let storeError = error as? LocalStoreError, case .validation = storeError {
+        return .unsupportedType
+    }
+
+    return .serverError
+}
+
+/**
  * Maps a cloud sync failure onto the shared `sync_failed` reasons. Everything the client can tell
  * apart locally is told apart here; anything else is a server error, which is what the remaining
  * bucket means on all three clients.

@@ -36,6 +36,7 @@ import {
   type GeneratedMediaLifecycleTextReplacements,
 } from "./cardFormMediaLifecycle";
 import { getExpectedCardMutationInlineErrorMessage } from "../cardMutationErrors";
+import { toAnalyticsMediaUploadFailureReason, track } from "../../../analytics";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../../../types";
 import { loadCardById } from "../../../localDb/cards/cards";
 import { loadWorkspaceTagsSummary } from "../../../localDb/cards/workspace";
@@ -714,11 +715,21 @@ export function CardFormScreen(): ReactElement {
       }, indexedDbOpenRecoveryState.throwIfFailed);
       indexedDbOpenRecoveryState.throwIfFailed();
       runMediaUploadTransfers();
+      // Reported where the image reaches the card's text, never where the file chooser opened: a
+      // chooser someone backs out of attached nothing. The guards above return before anything was
+      // attempted, so they report neither half.
+      track({ name: "media_attached", source: "photo_library", screen: "card_editor" });
       return result.markdown;
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return null;
       }
+
+      track({
+        name: "media_upload_failed",
+        reason: toAnalyticsMediaUploadFailureReason(error),
+      });
+
       if (error instanceof UnsupportedImagePreparationError) {
         setManagedMediaFieldError(request.field, t("cardForm.media.errors.unsupportedImage"));
         return null;
