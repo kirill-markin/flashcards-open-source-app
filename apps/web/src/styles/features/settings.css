@@ -30,6 +30,28 @@
   gap: 8px;
 }
 
+.settings-language-picker-trigger {
+  width: 100%;
+}
+
+/* The overlay's reference minimum width sets the used width, so the popover matches the trigger. */
+.settings-language-picker-menu {
+  width: 0;
+}
+
+.settings-language-picker-trigger-secondary {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.settings-language-picker-option-secondary {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
 .settings-toggle-card {
   display: flex;
   gap: 18px;
