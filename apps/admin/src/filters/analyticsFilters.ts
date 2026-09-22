@@ -155,7 +155,7 @@ const funnelsAnalyticsFilterFieldApplicability = {
   catalogClickBrowserLanguages: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
 
-/** The catalog installation funnel's own row: the deck version and the four catalog-click dimensions. */
+/** The deck funnel's own row: the deck version and the four catalog-click dimensions. */
 export const catalogInstallFunnelFilterFields: ReadonlyArray<AnalyticsFilterField> = [
   "installedDecks",
   "catalogPlacements",
@@ -293,9 +293,9 @@ const funnelsCatalogOptionCoverageTail =
   "The values on offer are read from the clicks themselves and cover every day rather than only the selected ones, so a value that only clicks outside this range recorded is still listed and picking it empties the area.";
 
 // The deck funnel counts one visitor identity and deck version per row, anchored at that identity's
-// first catalog click for the deck inside the selected range, so the five catalog fields read off
-// that anchoring click instead of a person's lifetime install history, and the platform is the
-// click's own platform rather than every step's. The date range changes meaning on every funnel: it
+// first view of the deck's page inside the selected range, so the deck and the platform read off that
+// page view, and the four click fields read off the install click that is its second step, instead of
+// a person's lifetime install history. The date range changes meaning on every funnel: it
 // places an entry by its first step and then lets the later steps run past the range, so the shared
 // "only events inside these days" wording would be false here.
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
@@ -306,39 +306,37 @@ const funnelsAnalyticsFilterFieldExplanations: Readonly<
   // window" line under the funnel counts, so a short recent window reads as a drop-off when it is
   // only immature.
   dateRange:
-    "Selects who enters each funnel by the UTC calendar day of its first step rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for seven days after that first step, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. In the mobile funnel the first step is a person's first app open on iOS or Android, in the home page and blog article funnels it is a person's first marketing-site page view, and in the deck funnel it is a visitor's first catalog click for a deck inside the range.",
+    "Selects who enters each funnel by the UTC calendar day of its first step rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for seven days after that first step, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. In the mobile funnel the first step is a person's first app open on iOS or Android, in the home page and blog article funnels it is a person's first marketing-site page view, and in the deck funnel it is a visitor's first view of a deck's page inside the range.",
   // Cut from the on-screen text: the no-visit preview diagnostic keeps previews by the preview row's
   // own platform the same way, and the no-visit install diagnostic reads the install row's platform,
   // which is always unattributed, so it empties as soon as any device platform is picked.
   eventPlatforms:
-    "In the mobile funnel, keeps only the people whose first app open was on one of the platforms you pick, so a selection without iOS or Android empties it. In the home page and blog article funnels, reads the entry page view, which the site always reports as web, so a selection without web empties them. In the deck funnel, keeps only the site visits whose own catalog click row carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the click resolve to the same person. The public collector stamps every anonymous catalog click as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
-  // Offered because the funnels that start in the app can answer them; the deck funnel's filters all
-  // read its anchoring catalog click, which carries neither, so it does not apply them and says so in
-  // its own section whenever either is narrowed.
+    "In the mobile funnel, keeps only the people whose first app open was on one of the platforms you pick, so a selection without iOS or Android empties it. In the home page and blog article funnels, reads the entry page view, which the site always reports as web, so a selection without web empties them. In the deck funnel, keeps only the visits whose own deck page view carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the page view resolve to the same person. The public collector stamps every anonymous site row as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
+  // Every funnel applies both, on the identity its entry resolves to, the way General applies them.
   connectionCountries:
-    "Narrows the funnels that apply it to people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. The deck funnel does not apply it. Picking nothing keeps every country.",
+    "Narrows every funnel to people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. Picking nothing keeps every country.",
   appUiLanguages:
-    "Narrows the funnels that apply it to people whose events recorded one of the app interface languages you pick. The deck funnel does not apply it. Picking nothing keeps every language.",
+    "Narrows every funnel to people whose events recorded one of the app interface languages you pick. Picking nothing keeps every language.",
   // Cut from the on-screen text, in full, because it is the reason the option list and the matching
   // disagree: the list is built from deck versions somebody completed an install of, so three kinds
-  // of version are missing from it while a click on them is still counted here - a version nobody
+  // of version are missing from it while a visit to them is still counted here - a version nobody
   // ever finished installing, a version whose only completed installs came from a test account or an
   // excluded actor, and the delisted `test` fixture, which is dropped from the list outright while an
   // visit aimed at it is excluded only when a matching install start inside the conversion window
-  // named that slug, so a test click that never reached install start is still counted.
+  // named that slug, so a test visit that never reached install start is still counted.
   installedDecks:
-    "Keeps only the site visits aimed at one of the deck versions you pick, read from the visit's own catalog click inside the selected date range. The versions on offer are the ones somebody completed an install of, so a version can be missing from the list and still match visits here.",
+    "Keeps only the visits to the page of one of the deck versions you pick, read from the visit's own deck page view inside the selected date range. The versions on offer are the ones somebody completed an install of, so a version can be missing from the list and still match visits here.",
   catalogPlacements:
-    "Keeps only the site visits whose own catalog click came from one of the page placements you pick, inside the selected date range."
+    "Counts an install click only when it came from one of the page placements you pick; the deck page views above it are not narrowed."
     + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogSources:
-    "Keeps only the site visits whose own catalog click was attributed to one of the traffic sources you pick, inside the selected date range."
+    "Counts an install click only when the click was attributed to one of the traffic sources you pick; the deck page views above it are not narrowed."
     + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogDeviceCategories:
-    "Keeps only the site visits whose own catalog click came from one of the device categories you pick, inside the selected date range."
+    "Counts an install click only when it came from one of the device categories you pick; the deck page views above it are not narrowed."
     + ` ${funnelsCatalogOptionCoverageTail}`,
   catalogClickBrowserLanguages:
-    "Keeps only the site visits whose own catalog click reported one of the browser languages you pick, inside the selected date range; it is the browser setting at click time rather than the language the app is used in."
+    "Counts an install click only when it reported one of the browser languages you pick; the deck page views above it are not narrowed. It is the browser setting at click time rather than the language the app is used in."
     + ` ${funnelsCatalogOptionCoverageTail}`,
 };
 
