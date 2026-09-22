@@ -59,6 +59,13 @@ const nlCatalog: TranslationCatalog = {
       languagePreference: "Taalvoorkeur",
       languageSelection: "Taalkeuze",
     },
+    picker: {
+      empty: "Geen talen gevonden",
+      listAriaLabel: "App-talen",
+      openAriaLabel: "App-taal kiezen",
+      searchLabel: "Zoeken",
+      searchPlaceholder: "Zoek talen",
+    },
     names: {
       en: "Engels",
       ar: "Arabisch",

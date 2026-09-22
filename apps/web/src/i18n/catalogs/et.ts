@@ -59,6 +59,13 @@ const etCatalog: TranslationCatalog = {
       languagePreference: "Keele eelistus",
       languageSelection: "Keele valik",
     },
+    picker: {
+      empty: "Keeli ei leitud",
+      listAriaLabel: "Rakenduse keeled",
+      openAriaLabel: "Vali rakenduse keel",
+      searchLabel: "Otsing",
+      searchPlaceholder: "Otsi keeli",
+    },
     names: {
       en: "inglise keel",
       ar: "araabia keel",

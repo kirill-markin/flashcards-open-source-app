@@ -59,6 +59,13 @@ const idCatalog: TranslationCatalog = {
       languagePreference: "Preferensi bahasa",
       languageSelection: "Pemilihan bahasa",
     },
+    picker: {
+      empty: "Bahasa tidak ditemukan",
+      listAriaLabel: "Bahasa aplikasi",
+      openAriaLabel: "Pilih bahasa aplikasi",
+      searchLabel: "Cari",
+      searchPlaceholder: "Cari bahasa",
+    },
     names: {
       en: "Inggris",
       ar: "Arab",

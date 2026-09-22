@@ -57,6 +57,13 @@ const enCatalog = {
       languagePreference: "Language preference",
       languageSelection: "Language selection",
     },
+    picker: {
+      empty: "No languages found",
+      listAriaLabel: "App languages",
+      openAriaLabel: "Choose app language",
+      searchLabel: "Search",
+      searchPlaceholder: "Search languages",
+    },
     names: {
       en: "English",
       ar: "Arabic",

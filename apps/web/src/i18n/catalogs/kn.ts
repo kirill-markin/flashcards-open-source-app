@@ -59,6 +59,13 @@ const knCatalog: TranslationCatalog = {
       languagePreference: "ಭಾಷೆಯ ಆದ್ಯತೆ",
       languageSelection: "ಭಾಷೆಯ ಆಯ್ಕೆ",
     },
+    picker: {
+      empty: "ಯಾವುದೇ ಭಾಷೆ ಕಂಡುಬಂದಿಲ್ಲ",
+      listAriaLabel: "ಆ್ಯಪ್ ಭಾಷೆಗಳು",
+      openAriaLabel: "ಆ್ಯಪ್ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      searchLabel: "ಹುಡುಕಿ",
+      searchPlaceholder: "ಭಾಷೆಗಳನ್ನು ಹುಡುಕಿ",
+    },
     names: {
       en: "ಇಂಗ್ಲಿಷ್",
       ar: "ಅರೇಬಿಕ್",

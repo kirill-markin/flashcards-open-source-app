@@ -65,6 +65,13 @@ const ukCatalog: TranslationCatalog = {
       languagePreference: "Налаштування мови",
       languageSelection: "Вибір мови",
     },
+    picker: {
+      empty: "Мов не знайдено",
+      listAriaLabel: "Мови застосунку",
+      openAriaLabel: "Вибрати мову застосунку",
+      searchLabel: "Пошук",
+      searchPlaceholder: "Пошук мов",
+    },
     names: {
       en: "Англійська",
       ar: "Арабська",

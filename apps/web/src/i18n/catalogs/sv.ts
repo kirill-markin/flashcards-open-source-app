@@ -59,6 +59,13 @@ const svCatalog: TranslationCatalog = {
       languagePreference: "Språkinställning",
       languageSelection: "Språkval",
     },
+    picker: {
+      empty: "Inga språk hittades",
+      listAriaLabel: "Appens språk",
+      openAriaLabel: "Välj appens språk",
+      searchLabel: "Sök",
+      searchPlaceholder: "Sök språk",
+    },
     names: {
       en: "Engelska",
       ar: "Arabiska",

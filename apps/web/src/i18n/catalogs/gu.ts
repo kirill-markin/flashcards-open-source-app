@@ -59,6 +59,13 @@ const guCatalog: TranslationCatalog = {
       languagePreference: "પસંદગીની ભાષા",
       languageSelection: "ભાષાની પસંદગી",
     },
+    picker: {
+      empty: "કોઈ ભાષા મળી નહીં",
+      listAriaLabel: "ઍપની ભાષાઓ",
+      openAriaLabel: "ઍપની ભાષા પસંદ કરો",
+      searchLabel: "શોધો",
+      searchPlaceholder: "ભાષાઓ શોધો",
+    },
     names: {
       en: "અંગ્રેજી",
       ar: "અરબી",

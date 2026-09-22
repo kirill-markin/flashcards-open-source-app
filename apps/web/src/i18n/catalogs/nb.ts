@@ -59,6 +59,13 @@ const nbCatalog: TranslationCatalog = {
       languagePreference: "Språkinnstilling",
       languageSelection: "Språkvalg",
     },
+    picker: {
+      empty: "Fant ingen språk",
+      listAriaLabel: "Appspråk",
+      openAriaLabel: "Velg appspråk",
+      searchLabel: "Søk",
+      searchPlaceholder: "Søk etter språk",
+    },
     names: {
       en: "Engelsk",
       ar: "Arabisk",
