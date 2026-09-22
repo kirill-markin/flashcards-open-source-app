@@ -426,10 +426,13 @@ export function buildSiteEntryFunnelSql(
   // count may not disappear with them; the outer aggregate then merges that row into the identified
   // group of the same key and every count stays summed exactly once. The key is `Unresolved` under
   // either dimension while one is selected, and the single ungrouped key while none is: a hashed
-  // person has no actor, so their country is unknowable, and while `hashed_cohort` does read their
-  // page view's own `ui_locale`, these funnels deliberately do not group them by it, because keying
-  // this row on a locale would make it an aggregate whose two uncorrelated hashed scalars would be
-  // attributed to every locale group at once.
+  // person has no actor, so their country is unknowable, and their locale never reaches this row at
+  // all, because `hashed_entries` projects only the hash, the day and the two timestamps and
+  // `hashed_cohort` is a `SELECT entry.*` over it. `ui_locale` stays on the underlying
+  // `site_page_viewed` rows, where `buildHashedPageViewFilterSqlLines` reads it only to emit the App
+  // interface language predicate, so an unfiltered query reads no locale for these people. Grouping
+  // them by it is deliberately out of scope: keying this row on a locale would make it an aggregate
+  // whose two uncorrelated hashed scalars would be attributed to every locale group at once.
   const hashedGroupKey = groupByDimension === null ? ungroupedSiteEntryGroupKey : unresolvedFunnelGroupKey;
 
   return [
