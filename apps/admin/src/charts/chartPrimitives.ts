@@ -81,13 +81,16 @@ export const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string
 };
 
 export type PackageColorScale = d3.ScaleOrdinal<string, string, string>;
+export type FunnelGroupColorScale = d3.ScaleOrdinal<string, string, string>;
 
 const packageColorPalette: ReadonlyArray<string> = [...d3.schemeTableau10, ...d3.schemeSet2];
 
-// The scale outlives the render that reads it, and the `implicit` default of `d3.scaleOrdinal`
-// appends an unknown deck to the domain and hands back the next palette colour, so that deck's
-// colour would depend on which render asked for it first. An explicit unknown value prevents that.
-const unknownPackageColor = "#8c8c8c";
+/** A series that is not a value of its dimension: an unknown deck, a folded or unresolved funnel group. */
+export const neutralChartColor = "#8c8c8c";
+
+// Both positional scales below outlive the render that reads them, and the `implicit` default of
+// `d3.scaleOrdinal` appends an unknown key to the domain and hands back the next palette colour, so
+// that key's colour would depend on which render asked for it first. An explicit unknown prevents that.
 
 /**
  * Catalog decks are an open-ended set the dashboard only learns from the loaded range, so unlike the
@@ -100,15 +103,50 @@ export function getPackageColorScale(packageSlugs: ReadonlyArray<string>): Packa
     .sort((leftSlug, rightSlug) => leftSlug.localeCompare(rightSlug));
 
   return d3.scaleOrdinal<string, string>(sortedPackageSlugs, packageColorPalette)
-    .unknown(unknownPackageColor);
+    .unknown(neutralChartColor);
+}
+
+/**
+ * The colours of one funnel group-by dimension whose values the dashboard only learns from the loaded
+ * range - a connection country, a UI language - built the same positional way, over its sorted keys.
+ * The platform dimension is the exception and takes the fixed platform colours instead, which
+ * `buildFunnelGroupColor` in `../reports/funnels/funnelGroupBy.ts` decides.
+ */
+export function getFunnelGroupColorScale(groupKeys: ReadonlyArray<string>): FunnelGroupColorScale {
+  const sortedGroupKeys = Array.from(new Set(groupKeys))
+    .sort((leftKey, rightKey) => leftKey.localeCompare(rightKey));
+
+  return d3.scaleOrdinal<string, string>(sortedGroupKeys, packageColorPalette)
+    .unknown(neutralChartColor);
+}
+
+/**
+ * Whether a key a report read out of a row is one of the fixed platforms.
+ *
+ * The two accessors below throw on anything else on purpose, because a chart of platforms drawing an
+ * unnamed series is a bug in the query behind it. A caller that must survive a key it did not choose
+ * - a funnel holding one render of the keys of the dimension it was grouped by a moment ago - asks
+ * this first and falls back, rather than letting a render throw.
+ */
+export function isReviewEventPlatform(platform: string): platform is ReviewEventPlatform {
+  return reviewEventPlatforms.includes(platform as ReviewEventPlatform);
 }
 
 export function getPlatformColor(platform: string): string {
-  if (reviewEventPlatforms.includes(platform as ReviewEventPlatform) === false) {
+  if (isReviewEventPlatform(platform) === false) {
     throw new Error(`Unsupported platform color key: ${platform}`);
   }
 
-  return platformColors[platform as ReviewEventPlatform];
+  return platformColors[platform];
+}
+
+/** The platform's name on screen, for a key a report read out of a row rather than out of the fixed list. */
+export function getPlatformLabel(platform: string): string {
+  if (isReviewEventPlatform(platform) === false) {
+    throw new Error(`Unsupported platform label key: ${platform}`);
+  }
+
+  return platformLabels[platform];
 }
 
 export function createTickDates(dates: ReadonlyArray<string>): ReadonlyArray<string> {
