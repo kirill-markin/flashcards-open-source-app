@@ -15,6 +15,14 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
+  buildFunnelAudienceActorSqlLines,
+  buildHashedPageViewFilterSqlLines,
+  buildHashedSiteRowSqlLines,
+  buildHashedVisitorDayRangeSqlLines,
+  buildHashedVisitorDaySql,
+  isFunnelHashedCohortRead,
+} from "../funnels/funnelAudienceSql";
+import {
   assertIsString,
   assertValidDateRange,
   laterCalendarDate,
@@ -152,6 +160,14 @@ export type CatalogInstallFunnelReport = Readonly<{
    * unheld whenever its click was dropped by a filter or its step chain is broken.
    */
   installersWithoutVisitCount: number;
+  /**
+   * The cookieless visitors of the `all` audience mode, one person per daily hash per UTC day: those
+   * who viewed any deck page, and those among them whose install click was on a deck whose page they
+   * had viewed. Both are zero outside that mode and whenever a connection country is selected, and
+   * there is no third count because every step below the click needs an identity a hash never has.
+   */
+  hashedDeckPageViewCount: number;
+  hashedInstallClickCount: number;
 }>;
 
 export type CatalogInstallFunnelRange = Readonly<{
@@ -342,11 +358,16 @@ function buildFunnelVisitFilterSqlLines(filters: AnalyticsFilterState): Readonly
   ];
 }
 
+// Everything that narrows an identity rather than a row, so the cohort, the no-visit preview
+// diagnostic and the no-visit install diagnostic all select the same people. The audience mode is one
+// of them: it decides who counts as a person here, so a line it leaves out of one of the three would
+// make a diagnostic count people the funnel above it does not.
 function buildFunnelPersonFilterSqlLines(
   actorIdSqlExpression: string,
   filters: AnalyticsFilterState,
 ): ReadonlyArray<string> {
   return [
+    ...buildFunnelAudienceActorSqlLines(filters, actorIdSqlExpression),
     `    AND ${buildConnectionCountriesFilterSql(actorIdSqlExpression, filters.connectionCountries, filters.dateRange)}`,
     `    AND ${buildAppUiLanguagesFilterSql(actorIdSqlExpression, filters.appUiLanguages, filters.dateRange)}`,
   ];
@@ -487,9 +508,84 @@ function buildActorMembershipSql(relationName: string, actorIdSqlExpression: str
 }
 
 /**
- * The visit rows, then the two no-visit diagnostics, over the selected UTC days from
- * `catalogInstallFunnelStartDate` on. The section reduces the rows to people by the funnel rule in
- * `../funnels/funnelSections.ts`.
+ * The cookieless half of `all`, as its own statement rather than more visit rows.
+ *
+ * A hashed person has no `actor_id`, no deck they can be followed to and no step below the click, so
+ * a `CatalogInstallFunnelVisit` could carry nothing but nulls for them and every reduction the
+ * section performs on those rows would have to learn to skip them. Two counts say the same thing and
+ * leave the visit-row contract alone.
+ *
+ * ONE PERSON IS ONE HASH ON ONE UTC DAY, and the two counts follow the funnel rule on that pair the
+ * way the identified steps follow it on an actor: the first is the distinct people who viewed any
+ * deck page, the second the distinct people among them whose click was on a deck whose page they had
+ * viewed, at or after viewing it. That is the identified rule of step two, keyed on the hash.
+ *
+ * THE DELISTED `test` DECK IS COUNTED HERE, and there is no way to reject it on these rows.
+ * `buildTestDeckFilterSqlLines` recognises the fixture by a matching `catalog_deck_install_started`
+ * by the same actor, an app-side row a cookieless browser can never produce, and `site_page_viewed`
+ * carries no `package_slug` to test instead. So the fixture's own page views and install clicks join
+ * the hashed counts, and the section says so beside the exclusion-list, test-account and admin gaps
+ * the cohort escapes for the same reason: it has no actor to test.
+ */
+function buildHashedCatalogInstallFunnelSql(
+  filters: AnalyticsFilterState,
+  from: string,
+  to: string,
+): string {
+  if (isFunnelHashedCohortRead(filters) === false) {
+    return ["SELECT", "  0::int AS hashed_view_count,", "  0::int AS hashed_click_count"].join("\n");
+  }
+
+  const visitorDaySql = buildHashedVisitorDaySql("candidate");
+  const packageVersionSql = "candidate.event_properties ->> 'package_version_id'";
+
+  return [
+    "WITH hashed_deck_views AS MATERIALIZED (",
+    "  SELECT",
+    "    candidate.daily_visitor_hash,",
+    `    ${visitorDaySql} AS visitor_day,`,
+    `    ${packageVersionSql} AS package_version_id,`,
+    "    MIN(candidate.occurred_at) AS viewed_at",
+    "  FROM analytics.product_events_resolved AS candidate",
+    `  WHERE ${buildHashedSiteRowSqlLines("candidate", "site_page_viewed").join("\n    AND ")}`,
+    "    AND candidate.event_properties ->> 'page_kind' = 'catalog_package'",
+    `    AND ${packageVersionSql} IS NOT NULL`,
+    `    AND ${buildHashedPageViewFilterSqlLines("candidate", "COALESCE(candidate.platform, 'unattributed')", filters).join("\n    AND ")}`,
+    ...buildVisitDimensionFilterSqlLines(packageVersionSql, filters.installedDecks),
+    `    AND ${buildHashedVisitorDayRangeSqlLines("candidate", from, to).join("\n    AND ")}`,
+    `  GROUP BY candidate.daily_visitor_hash, ${visitorDaySql}, ${packageVersionSql}`,
+    // The four click dimensions narrow this click exactly as they narrow the identified one, because
+    // they are properties the click row carries whether or not it names anybody.
+    "), hashed_deck_clicks AS MATERIALIZED (",
+    "  SELECT DISTINCT hashed_view.daily_visitor_hash, hashed_view.visitor_day",
+    "  FROM hashed_deck_views AS hashed_view",
+    "  INNER JOIN analytics.product_events_resolved AS click",
+    "    ON click.daily_visitor_hash = hashed_view.daily_visitor_hash",
+    `    AND ${buildHashedVisitorDaySql("click")} = hashed_view.visitor_day`,
+    "    AND click.event_properties ->> 'package_version_id' = hashed_view.package_version_id",
+    "    AND click.occurred_at >= hashed_view.viewed_at",
+    `  WHERE ${buildHashedSiteRowSqlLines("click", "catalog_install_clicked").join("\n    AND ")}`,
+    ...buildInstallClickFilterSqlLines(filters),
+    `    AND ${buildHashedVisitorDayRangeSqlLines("click", from, to).join("\n    AND ")}`,
+    ")",
+    "SELECT",
+    // One row per person, not per deck: `hashed_deck_views` is grouped by the deck version too, so a
+    // person who viewed two deck pages in their day is two rows there and one person here.
+    "  (",
+    "    SELECT COUNT(*)",
+    "    FROM (",
+    "      SELECT DISTINCT hashed_view.daily_visitor_hash, hashed_view.visitor_day",
+    "      FROM hashed_deck_views AS hashed_view",
+    "    ) AS distinct_hashed_viewers",
+    "  )::int AS hashed_view_count,",
+    "  (SELECT COUNT(*) FROM hashed_deck_clicks)::int AS hashed_click_count",
+  ].join("\n");
+}
+
+/**
+ * The visit rows, then the two no-visit diagnostics, then the cookieless counts, over the selected
+ * UTC days from `catalogInstallFunnelStartDate` on. The section reduces the rows to people by the
+ * funnel rule in `../funnels/funnelSections.ts`.
  */
 export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): string {
   const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, catalogInstallFunnelReportLabel);
@@ -945,7 +1041,12 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     ...buildFunnelPersonFilterSqlLines("orphan_install.actor_id::text", filters),
   ].join("\n");
 
-  return [cohortQuery, previewWithoutVisitQuery, installWithoutVisitQuery].join(";\n");
+  return [
+    cohortQuery,
+    previewWithoutVisitQuery,
+    installWithoutVisitQuery,
+    buildHashedCatalogInstallFunnelSql(filters, from, to),
+  ].join(";\n");
 }
 
 export async function loadCatalogInstallFunnelAvailableRange(
@@ -981,21 +1082,30 @@ export async function loadCatalogInstallFunnelReport(
   filters: AnalyticsFilterState,
 ): Promise<CatalogInstallFunnelReport> {
   const response = await runAdminQuery(config, buildCatalogInstallFunnelSql(filters));
-  if (response.resultSets.length !== 3) {
+  if (response.resultSets.length !== 4) {
     throw new Error(
-      `${catalogInstallFunnelReportLabel} must return exactly three result sets. Got ${response.resultSets.length}.`,
+      `${catalogInstallFunnelReportLabel} must return exactly four result sets. Got ${response.resultSets.length}.`,
     );
   }
 
   const visitsResultSet = response.resultSets[0];
   const previewsWithoutVisitResultSet = response.resultSets[1];
   const installsWithoutVisitResultSet = response.resultSets[2];
+  const hashedResultSet = response.resultSets[3];
   if (
     visitsResultSet === undefined
     || previewsWithoutVisitResultSet === undefined
     || installsWithoutVisitResultSet === undefined
+    || hashedResultSet === undefined
   ) {
     throw new Error(`${catalogInstallFunnelReportLabel} result sets are missing.`);
+  }
+
+  const hashedRow = hashedResultSet.rows[0];
+  if (hashedRow === undefined || hashedResultSet.rows.length !== 1) {
+    throw new Error(
+      `${catalogInstallFunnelReportLabel} hashed result set must return one row. Got ${hashedResultSet.rows.length}.`,
+    );
   }
 
   return {
@@ -1005,5 +1115,15 @@ export async function loadCatalogInstallFunnelReport(
     visits: visitsResultSet.rows.map(parseVisitRow),
     previewersWithoutVisitCount: parsePersonCount(previewsWithoutVisitResultSet, "previews-without-visit"),
     installersWithoutVisitCount: parsePersonCount(installsWithoutVisitResultSet, "installs-without-visit"),
+    hashedDeckPageViewCount: toInteger(
+      hashedRow.hashed_view_count ?? null,
+      catalogInstallFunnelReportLabel,
+      "hashed_view_count",
+    ),
+    hashedInstallClickCount: toInteger(
+      hashedRow.hashed_click_count ?? null,
+      catalogInstallFunnelReportLabel,
+      "hashed_click_count",
+    ),
   };
 }
