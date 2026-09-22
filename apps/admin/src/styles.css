@@ -343,6 +343,23 @@ h2 {
   opacity: 0.25;
 }
 
+/* Steps before the anchor are outside the measured funnel, so they drop the accent. */
+.funnel-step-before-anchor .funnel-step-bar {
+  fill: var(--muted-soft);
+}
+
+.funnel-step-before-anchor .funnel-step-count {
+  fill: var(--muted);
+}
+
+/* Unfaded, so the cap on a clipped bar stays legible over its faded fill. */
+.funnel-step-clip-mark {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
