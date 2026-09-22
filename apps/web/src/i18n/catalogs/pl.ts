@@ -369,6 +369,7 @@ const plCatalog: TranslationCatalog = {
       ios: "Kod QR z linkiem do aplikacji na iOS",
       android: "Kod QR z linkiem do aplikacji na Androida",
     },
+    qrCaption: "Zeskanuj go telefonem",
     mcp: {
       label: "Dla agenta AI",
       title: "Połącz przez MCP",

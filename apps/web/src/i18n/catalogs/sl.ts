@@ -377,6 +377,7 @@ const slCatalog: TranslationCatalog = {
       ios: "Koda QR za povezavo do aplikacije za iOS",
       android: "Koda QR za povezavo do aplikacije za Android",
     },
+    qrCaption: "Skenirajte ga s telefonom",
     mcp: {
       label: "Za agenta UI",
       title: "Povežite se prek MCP",

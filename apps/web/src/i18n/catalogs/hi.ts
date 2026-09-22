@@ -361,6 +361,7 @@ const hiCatalog: TranslationCatalog = {
       ios: "iOS ऐप लिंक का QR कोड",
       android: "Android ऐप लिंक का QR कोड",
     },
+    qrCaption: "इसे अपने फ़ोन से स्कैन करें",
     mcp: {
       label: "AI एजेंट के लिए",
       title: "MCP से कनेक्ट करें",

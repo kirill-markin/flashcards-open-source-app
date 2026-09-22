@@ -369,6 +369,7 @@ const csCatalog: TranslationCatalog = {
       ios: "QR kód pro odkaz na aplikaci pro iOS",
       android: "QR kód pro odkaz na aplikaci pro Android",
     },
+    qrCaption: "Naskenujte ho telefonem",
     mcp: {
       label: "Pro AI agenta",
       title: "Připojit přes MCP",

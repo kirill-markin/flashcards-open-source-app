@@ -369,6 +369,7 @@ const roCatalog: TranslationCatalog = {
       ios: "Cod QR pentru linkul aplicației iOS",
       android: "Cod QR pentru linkul aplicației Android",
     },
+    qrCaption: "Scanează-l cu telefonul",
     mcp: {
       label: "Pentru agenți AI",
       title: "Conectare prin MCP",

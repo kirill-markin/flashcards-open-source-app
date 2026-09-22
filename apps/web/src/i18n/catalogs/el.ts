@@ -361,6 +361,7 @@ const elCatalog: TranslationCatalog = {
       ios: "Κωδικός QR για τον σύνδεσμο της εφαρμογής iOS",
       android: "Κωδικός QR για τον σύνδεσμο της εφαρμογής Android",
     },
+    qrCaption: "Σαρώστε τον από το τηλέφωνό σας",
     mcp: {
       label: "Για πράκτορα ΤΝ",
       title: "Σύνδεση μέσω MCP",

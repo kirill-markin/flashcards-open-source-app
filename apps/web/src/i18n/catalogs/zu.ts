@@ -361,6 +361,7 @@ const zuCatalog: TranslationCatalog = {
       ios: "Ikhodi ye-QR yesixhumanisi sohlelo lokusebenza lwe-iOS",
       android: "Ikhodi ye-QR yesixhumanisi sohlelo lokusebenza lwe-Android",
     },
+    qrCaption: "Iskene ngefoni yakho",
     mcp: {
       label: "Okwe-AI Agent",
       title: "Xhuma nge-MCP",

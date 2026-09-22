@@ -361,6 +361,7 @@ const swCatalog: TranslationCatalog = {
       ios: "Msimbo wa QR wa kiungo cha programu ya iOS",
       android: "Msimbo wa QR wa kiungo cha programu ya Android",
     },
+    qrCaption: "Ichanganue kwa simu yako",
     mcp: {
       label: "Kwa Wakala wa AI",
       title: "Unganisha kwa MCP",

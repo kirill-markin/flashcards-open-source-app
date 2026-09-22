@@ -361,6 +361,7 @@ const arCatalog: TranslationCatalog = {
       ios: "رمز QR لرابط تطبيق iOS",
       android: "رمز QR لرابط تطبيق Android",
     },
+    qrCaption: "امسحه ضوئيًا من هاتفك",
     mcp: {
       label: "لوكيل الذكاء الاصطناعي",
       title: "الاتصال عبر MCP",

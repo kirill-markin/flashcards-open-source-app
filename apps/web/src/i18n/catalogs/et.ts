@@ -361,6 +361,7 @@ const etCatalog: TranslationCatalog = {
       ios: "iOS-i rakenduse lingi QR-kood",
       android: "Androidi rakenduse lingi QR-kood",
     },
+    qrCaption: "Skanni see oma telefoniga",
     mcp: {
       label: "Tehisintellekti agendile",
       title: "Ühenda MCP kaudu",

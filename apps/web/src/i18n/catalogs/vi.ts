@@ -361,6 +361,7 @@ const viCatalog: TranslationCatalog = {
       ios: "Mã QR cho liên kết ứng dụng iOS",
       android: "Mã QR cho liên kết ứng dụng Android",
     },
+    qrCaption: "Quét bằng điện thoại của bạn",
     mcp: {
       label: "Dành cho AI Agent",
       title: "Kết nối qua MCP",
