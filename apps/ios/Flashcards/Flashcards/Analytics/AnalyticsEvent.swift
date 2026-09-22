@@ -12,10 +12,10 @@ import Foundation
  * catalog — is gone; while it existed an event carrying it as its `screen` compiled and was
  * rejected `invalid_event`.
  *
- * The ten server-derived events are absent here on purpose, because a client batch that carries one
- * is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
+ * The eleven server-derived events are absent here on purpose, because a client batch that carries
+ * one is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `deck_created`, `deck_updated`, `friend_invitation_created`, `friendship_created`,
- * `ai_message_sent` and `catalog_deck_installed`.
+ * `ai_message_sent`, `ai_run_failed` and `catalog_deck_installed`.
  *
  * `signin_code_requested` and `signin_succeeded` are client-emittable and absent for a different
  * reason: this app reports neither of the two middle funnel steps. Adopting one is its own change —
