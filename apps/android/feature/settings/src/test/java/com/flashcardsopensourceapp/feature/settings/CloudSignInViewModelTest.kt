@@ -52,6 +52,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -120,6 +121,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -165,6 +167,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { message -> messages += message },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -248,6 +251,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { message -> messages += message },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -315,6 +319,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -364,6 +369,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { message -> messages.add(message) },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -415,6 +421,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { message -> messages += message },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -465,6 +472,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -517,6 +525,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -569,6 +578,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -618,6 +628,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -672,6 +683,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val postAuthCollection = backgroundScope.async {
@@ -726,6 +738,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -768,6 +781,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -803,6 +817,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -847,6 +862,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -885,6 +901,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -925,6 +942,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {
@@ -980,6 +998,7 @@ class CloudSignInViewModelTest {
             messageController = TransientMessageController { },
             analytics = NoOpAnalytics,
             originSurface = AnalyticsSurface.SETTINGS,
+            signInStepSurface = AnalyticsSurface.SIGNIN,
             strings = strings
         )
         val uiStateCollection = backgroundScope.async {

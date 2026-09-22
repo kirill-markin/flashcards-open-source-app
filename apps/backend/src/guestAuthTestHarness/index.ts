@@ -13,6 +13,8 @@ export {
 export {
   addWorkspaceMembership,
   membershipKey,
+  setGuestSessionAnalyticsConsent,
+  setUserSettingsAnalyticsConsent,
   type CardState,
   type DeckState,
   type GuestReplicaAliasState,

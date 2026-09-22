@@ -118,6 +118,7 @@ export function createDependencies(overrides: DependencyOverrides): ChatRuntimeD
     completeChatRun: async () => undefined,
     persistAssistantCancelled: async () => undefined,
     persistAssistantTerminalError: async () => undefined,
+    recordAiRunFailedAnalytics: async () => undefined,
     reconcileInactiveChatRun: async () => "ownership_lost",
     touchChatRunHeartbeat: async () => ({
       cancellationRequested: false,

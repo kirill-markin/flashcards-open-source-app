@@ -106,6 +106,7 @@ function createAuthResult(transport: AuthResult["transport"]): AuthResult {
     selectedWorkspaceId: "guest-workspace",
     guestSessionId: transport === "guest" ? "guest-session-1" : null,
     guestPlatform: transport === "guest" ? "ios" : null,
+    guestAnalyticsConsent: null,
   };
 }
 

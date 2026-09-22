@@ -14,6 +14,8 @@ import {
   GUEST_SYNC_NOT_DRAINED,
   isGuestUpgradeMergeOnlyExecutorQuery,
   membershipKey,
+  setGuestSessionAnalyticsConsent,
+  setUserSettingsAnalyticsConsent,
   type GuestUpgradeExecutorParam,
 } from "../../guestAuthTestHarness";
 
@@ -890,4 +892,119 @@ test("completeGuestUpgradeInExecutor with create_new creates and selects a new t
   assert.equal(state.userSettings.get(targetUserId)?.workspace_id, result.targetWorkspaceId);
   assert.equal(state.workspaces.get(result.targetWorkspaceId)?.name, "Guest workspace");
   assert.ok(state.workspaceMemberships.has(membershipKey(targetUserId, result.targetWorkspaceId)));
+});
+
+test("completeGuestUpgradeInExecutor carries a guest analytics withdrawal onto the merge target account", async () => {
+  const guestToken = "guest-token-consent-merge";
+  const guestUserId = "guest-user-consent-merge";
+  const guestWorkspaceId = "guest-workspace-consent-merge";
+  const targetUserId = "linked-user-consent-merge";
+  const targetWorkspaceId = "target-workspace-consent-merge";
+  const targetSubject = "cognito-subject-consent-merge";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-consent-merge",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-consent-merge",
+    installationId: "installation-consent-merge",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  setGuestSessionAnalyticsConsent(state, "declined");
+
+  const result = await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  assert.equal(result.targetUserId, targetUserId);
+  // NULL on the account column reads as collection allowed, so losing this is losing the withdrawal.
+  assert.equal(state.userSettings.get(targetUserId)?.analytics_consent, "declined");
+});
+
+test("completeGuestUpgradeInExecutor keeps the merge target's own analytics answer", async () => {
+  const guestToken = "guest-token-consent-merge-existing";
+  const guestUserId = "guest-user-consent-merge-existing";
+  const guestWorkspaceId = "guest-workspace-consent-merge-existing";
+  const targetUserId = "linked-user-consent-merge-existing";
+  const targetWorkspaceId = "target-workspace-consent-merge-existing";
+  const targetSubject = "cognito-subject-consent-merge-existing";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-consent-merge-existing",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-consent-merge-existing",
+    installationId: "installation-consent-merge-existing",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  setGuestSessionAnalyticsConsent(state, "declined");
+  setUserSettingsAnalyticsConsent(state, targetUserId, "granted");
+
+  await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  assert.equal(state.userSettings.get(targetUserId)?.analytics_consent, "granted");
+});
+
+test("completeGuestUpgradeInExecutor carries a guest analytics withdrawal on the same-user bound path", async () => {
+  const guestToken = "guest-token-consent-bound";
+  const guestUserId = "guest-user-consent-bound";
+  const guestWorkspaceId = "guest-workspace-consent-bound";
+  const linkedUserId = "linked-user-consent-bound";
+  const targetWorkspaceId = "target-workspace-consent-bound";
+  const targetSubject = "cognito-subject-consent-bound";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-consent-bound",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId: linkedUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-consent-bound",
+    installationId: "installation-consent-bound",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.identityMappings.set(targetSubject, guestUserId);
+  setGuestSessionAnalyticsConsent(state, "declined");
+
+  const result = await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    GUEST_SYNC_NOT_DRAINED,
+  );
+
+  assert.equal(result.targetUserId, guestUserId);
+  // The bound shape keeps both rows, so the answer now stands on the account column as well.
+  assert.equal(state.userSettings.get(guestUserId)?.analytics_consent, "declined");
+  assert.equal(state.guestSession?.analytics_consent, "declined");
 });

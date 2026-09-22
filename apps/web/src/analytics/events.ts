@@ -5,10 +5,10 @@
  * carries the catalog's whole surface list, so a well-typed event's `screen` is a value the server
  * accepts as well.
  *
- * Ten events are server-derived and deliberately absent, because a client batch that carries one is
- * rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
+ * Eleven events are server-derived and deliberately absent, because a client batch that carries one
+ * is rejected `server_only_event`: `guest_upgrade_completed`, `review_answered`, `card_created`,
  * `card_updated`, `deck_created`, `deck_updated`, `friend_invitation_created`, `friendship_created`,
- * `ai_message_sent` and `catalog_deck_installed`. `onboarding_step_completed`,
+ * `ai_message_sent`, `ai_run_failed` and `catalog_deck_installed`. `onboarding_step_completed`,
  * `review_session_started` and `review_session_ended` remain outside the active catalog. The server
  * keeps exact backend-only tombstones for old queued copies and rejects them `retired_event_name`.
  *
@@ -23,9 +23,10 @@
  */
 
 /**
- * Mirrors `productAnalyticsSurfaces` in catalog order. Two values are unreachable from this client
- * and are kept only so the mirror stays comparable to the catalog by eye: `notifications_pre_prompt`
- * and `signin_after_review_prompt`, the two prompts above that this app does not have.
+ * Mirrors `productAnalyticsSurfaces` in catalog order. Three values are kept only so the mirror
+ * stays comparable to the catalog by eye: `notifications_pre_prompt` and
+ * `signin_after_review_prompt`, the two prompts above that this app does not have, and
+ * `settings_legal`, a screen this app does have but never reports under its own value.
  *
  * `signin` and `credential_recovery` are reachable, from `resolveSessionGateSurface` in `App.tsx`.
  * The email and code steps of signing in do live on the auth service's origin, but the catalog
@@ -40,6 +41,10 @@ export type AnalyticsSurface =
   | "cards"
   | "progress"
   | "settings"
+  // The legal and privacy screen. Declared so the mirror stays comparable to the catalog, and not
+  // mapped: `resolveAnalyticsSurface` still reports `settings` for `/settings/legal`, as it does
+  // for every other settings leaf.
+  | "settings_legal"
   | "ai"
   | "decks"
   | "deck_editor"
