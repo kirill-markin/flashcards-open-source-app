@@ -83,10 +83,10 @@ export function registerAccountPreferencesRoutes(
     // transport picks the column; the request body and the response shape are the same either way,
     // and every other preference stays on org.user_settings, which a guest does own a row in.
     //
-    // The consent write goes first because it is the one that can fail - it refuses a pre-0146
+    // The consent write goes first because it is the one that can fail - it refuses a pre-0147
     // schema and a revoked session - and a failure must leave no other column already changed. A
     // request that only toggles another preference never reaches that column, not even to ask
-    // whether it exists, so it keeps working while migration 0146 is still pending; its stored
+    // whether it exists, so it keeps working while migration 0147 is still pending; its stored
     // answer was already read with the credential that authenticated this request.
     const analyticsConsent = preferencesUpdate.analyticsConsent === null
       ? requestContext.preferences.analyticsConsent

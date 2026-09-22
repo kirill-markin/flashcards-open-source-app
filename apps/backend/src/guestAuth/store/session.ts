@@ -161,7 +161,7 @@ type StoredGuestSessionAnalyticsConsentRow = Readonly<{
  *
  * Called only for a request that carries an answer, so it always writes one; nothing ever writes
  * NULL back, and a withdrawal is `declined`. Telling a client its withdrawal was stored when the
- * column is not there yet is the one outcome that must be impossible, so a pre-0146 schema raises
+ * column is not there yet is the one outcome that must be impossible, so a pre-0147 schema raises
  * instead of reporting a success the database did not take.
  */
 export async function updateGuestSessionAnalyticsConsent(
@@ -176,7 +176,7 @@ export async function updateGuestSessionAnalyticsConsent(
         throw new Error(
           `Cannot store guest analytics consent "${analyticsConsent}": column`
           + " auth.guest_sessions.analytics_consent does not exist yet, because migration"
-          + " 0146_guest_session_analytics_consent has not been applied in this environment.",
+          + " 0147_guest_session_analytics_consent has not been applied in this environment.",
         );
       }
 
@@ -208,7 +208,7 @@ export async function updateGuestSessionAnalyticsConsent(
  * itself keeps its own answer, which is why the copy lands only on a target row still holding NULL.
  *
  * Runs in both upgrade shapes and therefore before the merge shape deletes the guest row. On the
- * pre-0146 schema there is nothing to carry, because no guest session can hold an answer yet.
+ * pre-0147 schema there is nothing to carry, because no guest session can hold an answer yet.
  */
 export async function carryGuestAnalyticsConsentToAccountInExecutor(
   executor: DatabaseExecutor,

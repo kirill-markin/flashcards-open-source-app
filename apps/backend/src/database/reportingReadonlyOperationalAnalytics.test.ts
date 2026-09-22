@@ -50,10 +50,10 @@ test("0066 migration grants reporting access to operational analytics metadata o
   assert.equal(sql.includes("sync.changes"), false);
 });
 
-test("0146 migration grants reporting access to the guest analytics consent column", () => {
+test("0147 migration grants reporting access to the guest analytics consent column", () => {
   const migrationPath = resolve(
     process.cwd(),
-    "../../db/migrations/0146_guest_session_analytics_consent.sql",
+    "../../db/migrations/0147_guest_session_analytics_consent.sql",
   );
   const sql = readFileSync(migrationPath, "utf8").replace(/\s+/g, " ");
 

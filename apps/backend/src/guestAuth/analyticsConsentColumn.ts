@@ -8,7 +8,7 @@ let guestSessionAnalyticsConsentColumnKnownPresent = false;
 
 /**
  * Guards reads and writes of auth.guest_sessions.analytics_consent during the rollout of migration
- * 0146, which the release applies after the new Lambda code is already serving traffic.
+ * 0147, which the release applies after the new Lambda code is already serving traffic.
  *
  * Deliberately its own probe and its own cache rather than a reuse of
  * `guestSessionPlatformColumnExistsInExecutor`: that one latched true releases ago and would wave
