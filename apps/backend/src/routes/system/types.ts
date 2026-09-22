@@ -28,6 +28,7 @@ export type SystemRoutesOptions = Readonly<{
   loadProgressLeaderboardFn?: typeof loadProgressLeaderboard;
   loadStreakLeaderboardFn?: typeof loadStreakLeaderboard;
   updateAccountPreferencesFn?: UpdateAccountPreferencesFn;
+  updateGuestSessionAnalyticsConsentFn?: UpdateGuestSessionAnalyticsConsentFn;
   ensurePublicProfileForUserFn?: EnsurePublicProfileForUserFn;
   updateLeaderboardParticipationFn?: UpdateLeaderboardParticipationFn;
   createFriendInvitationFn?: CreateFriendInvitationFn;
@@ -57,6 +58,13 @@ export type UpdateAccountPreferencesFn = (
   userId: string,
   update: AccountPreferencesUpdate,
 ) => Promise<AccountPreferences>;
+
+/** No null here, unlike above: an omitted field must leave the guest consent column untouched. */
+export type UpdateGuestSessionAnalyticsConsentFn = (
+  guestUserId: string,
+  guestSessionId: string,
+  analyticsConsent: AnalyticsConsentChoice,
+) => Promise<AnalyticsConsentChoice>;
 
 export type EnsurePublicProfileForUserFn = (userId: string, localeHint: string) => Promise<PublicProfile>;
 

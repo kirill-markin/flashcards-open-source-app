@@ -64,6 +64,7 @@ export function createUserSettingsState(userId: string, workspaceId: string | nu
     user_id: userId,
     workspace_id: workspaceId,
     email,
+    analytics_consent: null,
     progress_time_zone: null,
   };
 }
@@ -138,6 +139,7 @@ export function createMergeState(params: Readonly<{
       session_secret_hash: hashGuestToken(params.guestToken),
       user_id: params.guestUserId,
       platform: "ios",
+      analytics_consent: null,
       revoked_at: null,
     },
     deletedSubjectHashes: new Set<string>(),
