@@ -64,7 +64,7 @@ async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow 
   const sessionSecretHash = hashGuestToken(guestToken);
   if (await guestSessionPlatformColumnExistsInExecutor(unsafeGuestSessionExecutor)) {
     // Each added column answers for itself: the platform probe above is cached true in production
-    // and says nothing about the column migration 0146 has yet to add in this same release.
+    // and says nothing about the column migration 0147 has yet to add in this same release.
     if (await guestSessionAnalyticsConsentColumnExistsInExecutor(unsafeGuestSessionExecutor)) {
       const result = await unsafeQuery<GuestSessionRow>(
         [
