@@ -36,7 +36,7 @@ For the full cross-client rollout order and the locale tag each surface expects,
   The English-only panel shown when a catalog chunk cannot load at boot, with a "Continue in English" escape.
 
 - [apps/web/src/screens/settings/LanguageSettingsScreen.tsx](../apps/web/src/screens/settings/LanguageSettingsScreen.tsx)
-  The browser-local language picker. It lists `supportedLocales` and labels each with `locale.names.<tag>`.
+  The browser-local language picker. It lists `supportedLocales` and labels rows with the native and English names from `localeDisplayNames.ts`.
 
 - [apps/web/src/api/authUrls.ts](../apps/web/src/api/authUrls.ts)
   The login locale hint. `AuthUiLocale` is the web `Locale`, so every web tag is forwarded to auth as-is.
