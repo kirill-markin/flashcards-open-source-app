@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import { parseAnonymousEvent } from "./anonymousEvent";
+import { isAutomatedUserAgent } from "./automatedClient";
 import { computeDailyVisitorHash, resolveDailyVisitorHash } from "./dailyVisitorHash";
 import { deleteEndedDailyVisitorHashSalts, insertAnonymousProductAnalyticsEvent } from "./writer";
 
@@ -14,6 +15,11 @@ type SaltRow = Readonly<{
 type StoredHashRow = Readonly<{
   event_id: string;
   daily_visitor_hash: string | null;
+}>;
+
+type StoredAutomatedClientRow = Readonly<{
+  event_id: string;
+  automated_client: boolean | null;
 }>;
 
 function requireOwnerDatabaseUrl(): string {
@@ -99,8 +105,15 @@ test("a cookieless collector row stores a daily visitor hash and a consent row d
     const consentHash = await resolveDailyVisitorHash(consentRow, inputs);
     assert.ok(pageViewHash !== null);
     assert.equal(consentHash, null);
-    assert.equal(await insertAnonymousProductAnalyticsEvent({ ...pageViewRow, dailyVisitorHash: pageViewHash }), 1);
-    assert.equal(await insertAnonymousProductAnalyticsEvent({ ...consentRow, dailyVisitorHash: consentHash }), 1);
+    const automatedClient = isAutomatedUserAgent(inputs.userAgent);
+    assert.equal(
+      await insertAnonymousProductAnalyticsEvent({ ...pageViewRow, dailyVisitorHash: pageViewHash, automatedClient }),
+      1,
+    );
+    assert.equal(
+      await insertAnonymousProductAnalyticsEvent({ ...consentRow, dailyVisitorHash: consentHash, automatedClient }),
+      1,
+    );
 
     const salts = await readSalts(ownerPool);
     // Resolving today's salt deleted the earlier day's, so no hash from that day can be recomputed.
@@ -128,6 +141,7 @@ test("a cookieless collector row stores a daily visitor hash and a consent row d
         ...consentRow,
         eventId: createEventId(),
         dailyVisitorHash: pageViewHash,
+        automatedClient,
       }),
       { code: "23514", constraint: "product_events_daily_visitor_hash_shape" },
     );
@@ -149,6 +163,83 @@ test("a cookieless collector row stores a daily visitor hash and a consent row d
       "DELETE FROM analytics.daily_visitor_hash_salts WHERE utc_day IN ($1::date, $2::date, $3::date)",
       [earlierUtcDay, endedUtcDay, utcDay],
     );
+    await ownerPool.end();
+  }
+});
+
+// The second column only the credential-free collector writes; contract in
+// db/migrations/0145_anonymous_client_automated_marker.sql.
+test("a collector row records whether the reporting request announced itself as automated", async () => {
+  const ownerPool = new pg.Pool({
+    connectionString: requireOwnerDatabaseUrl(),
+    application_name: "automated-client-integration-owner",
+  });
+  const serverReceivedAt = new Date();
+  const sentAt = serverReceivedAt.toISOString();
+  const headlessUserAgent =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/140.0.0.0 Safari/537.36";
+  const browserUserAgent =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
+  // A real handset brand whose model name carries the "bot" marker: a person, and a verdict this
+  // append-only table could never correct.
+  const collidingDeviceUserAgent =
+    "Mozilla/5.0 (Linux; Android 13; CUBOT NOTE 30) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+  const pageViewProperties = { page_kind: "home", source: "direct", device_category: "desktop" };
+  const headlessRow = parseAnonymousEvent(
+    createCollectorBody(createEventId(), "site_page_viewed", pageViewProperties, sentAt),
+    serverReceivedAt,
+    randomUUID(),
+  );
+  const browserRow = parseAnonymousEvent(
+    createCollectorBody(createEventId(), "site_page_viewed", pageViewProperties, sentAt),
+    serverReceivedAt,
+    randomUUID(),
+  );
+  const collidingDeviceRow = parseAnonymousEvent(
+    createCollectorBody(createEventId(), "site_page_viewed", pageViewProperties, sentAt),
+    serverReceivedAt,
+    randomUUID(),
+  );
+  const eventIds = [headlessRow.eventId, browserRow.eventId, collidingDeviceRow.eventId];
+
+  try {
+    assert.equal(
+      await insertAnonymousProductAnalyticsEvent({
+        ...headlessRow,
+        dailyVisitorHash: null,
+        automatedClient: isAutomatedUserAgent(headlessUserAgent),
+      }),
+      1,
+    );
+    assert.equal(
+      await insertAnonymousProductAnalyticsEvent({
+        ...browserRow,
+        dailyVisitorHash: null,
+        automatedClient: isAutomatedUserAgent(browserUserAgent),
+      }),
+      1,
+    );
+    assert.equal(
+      await insertAnonymousProductAnalyticsEvent({
+        ...collidingDeviceRow,
+        dailyVisitorHash: null,
+        automatedClient: isAutomatedUserAgent(collidingDeviceUserAgent),
+      }),
+      1,
+    );
+
+    const stored = await ownerPool.query<StoredAutomatedClientRow>(
+      `SELECT event_id::text AS event_id, automated_client
+       FROM analytics.product_events_resolved
+       WHERE event_id = ANY($1::uuid[])`,
+      [eventIds],
+    );
+    const storedByEventId = new Map(stored.rows.map((row) => [row.event_id, row.automated_client]));
+    assert.equal(storedByEventId.get(headlessRow.eventId), true);
+    assert.equal(storedByEventId.get(browserRow.eventId), false);
+    assert.equal(storedByEventId.get(collidingDeviceRow.eventId), false);
+  } finally {
+    await ownerPool.query("DELETE FROM analytics.product_events WHERE event_id = ANY($1::uuid[])", [eventIds]);
     await ownerPool.end();
   }
 });
