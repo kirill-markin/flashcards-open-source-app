@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffRequest
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
+import com.flashcardsopensourceapp.app.notifications.analyticsNotificationKind
 import com.flashcardsopensourceapp.app.observability.AndroidObservabilityStartup
 import com.flashcardsopensourceapp.app.observability.startAndroidObservability
 import com.flashcardsopensourceapp.app.runtime.isAndroidRuntimeSupported
@@ -142,7 +143,18 @@ class FlashcardsApplication : Application(), Configuration.Provider {
         return currentAppGraph.startupState.value is AppStartupState.Loading
     }
 
+    /**
+     * The single point every reminder tap passes through, whether it launched the process or arrived
+     * at a running one, which is why `notification_opened` is reported here rather than at either
+     * activity entry point. The extras are cleared as the intent is consumed, so a configuration
+     * change that re-delivers the same intent does not report the tap twice.
+     */
     fun requestAppNotificationTap(request: AppNotificationTapRequest) {
+        appGraphOrNull?.analytics?.track(
+            event = AnalyticsEvent.NotificationOpened(
+                notificationKind = analyticsNotificationKind(type = request.type)
+            )
+        )
         appNotificationTapStateMutable.value = AppNotificationTapHandoffRequest(
             requestId = nextAppNotificationTapRequestId.incrementAndGet(),
             request = request
