@@ -882,7 +882,7 @@ const nbCatalog: TranslationCatalog = {
     title: "Analyse",
     subtitle: "Velg om denne nettleseren kan måles.",
     toggleTitle: "Tillat analyseinformasjonskapsler",
-    toggleDescription: "Når dette er av, gir appen denne nettleseren ingen identifikator og lagrer ingenting til analyse. Så lenge du er logget inn, blir det som måles, likevel registrert på kontoen din.",
+    toggleDescription: "Når dette er av, gir appen denne nettleseren ingen identifikator og lagrer ingenting i den til analyse. Bruken telles fortsatt anonymt, og så lenge du er logget inn, blir den registrert på kontoen din.",
     error: "Det gikk ikke gjennom. Prøv igjen.",
     unavailable: "Analyse er slått av for denne appen, så det er ingenting å tillate eller trekke tilbake her.",
   },

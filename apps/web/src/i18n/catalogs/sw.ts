@@ -882,7 +882,7 @@ const swCatalog: TranslationCatalog = {
     title: "Uchanganuzi",
     subtitle: "Chagua kama kivinjari hiki kinaweza kupimwa.",
     toggleTitle: "Ruhusu vidakuzi vya uchanganuzi",
-    toggleDescription: "Hili likiwa limezimwa, programu hii haitoi kitambulisho chochote kwa kivinjari hiki na haihifadhi chochote kwa ajili ya uchanganuzi. Ukiwa umeingia, kinachopimwa bado hurekodiwa kwenye akaunti yako.",
+    toggleDescription: "Hili likiwa limezimwa, programu hii haitoi kitambulisho chochote kwa kivinjari hiki na haihifadhi chochote ndani yake kwa ajili ya uchanganuzi. Matumizi bado huhesabiwa bila kujulikana, na ukiwa umeingia, hurekodiwa kwenye akaunti yako.",
     error: "Hilo halikufanikiwa. Tafadhali jaribu tena.",
     unavailable: "Uchanganuzi umezimwa kwa programu hii, kwa hiyo hakuna cha kuruhusu wala kuondoa hapa.",
   },

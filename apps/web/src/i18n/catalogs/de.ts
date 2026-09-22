@@ -882,7 +882,7 @@ const deCatalog: TranslationCatalog = {
     title: "Analyse",
     subtitle: "Lege fest, ob dieser Browser gemessen werden darf.",
     toggleTitle: "Analyse-Cookies erlauben",
-    toggleDescription: "Wenn das aus ist, gibt diese App diesem Browser keine Kennung und speichert nichts für die Analyse. Solange du angemeldet bist, wird das Gemessene weiterhin deinem Konto zugeordnet.",
+    toggleDescription: "Wenn das aus ist, gibt diese App diesem Browser keine Kennung und speichert darin nichts für die Analyse. Die Nutzung wird weiterhin anonym gezählt, und solange du angemeldet bist, wird sie deinem Konto zugeordnet.",
     error: "Das hat nicht geklappt. Bitte versuche es erneut.",
     unavailable: "Analysen sind für diese App abgeschaltet, hier gibt es also nichts zu erlauben oder zu widerrufen.",
   },

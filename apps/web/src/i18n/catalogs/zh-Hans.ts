@@ -882,7 +882,7 @@ export const zhHansCatalog = {
     title: "使用分析",
     subtitle: "选择是否可以统计此浏览器。",
     toggleTitle: "允许分析 Cookie",
-    toggleDescription: "关闭后，本应用不会给此浏览器任何标识符，也不会为统计保存任何内容。但在你登录期间，统计到的内容仍会记录在你的账号下。",
+    toggleDescription: "关闭后，本应用不会给此浏览器任何标识符，也不会为统计在其中保存任何内容。使用情况仍会以匿名方式统计；在你登录期间，这些内容会记录在你的账号下。",
     error: "没有成功，请再试一次。",
     unavailable: "本应用已关闭分析统计，因此这里没有可允许或撤回的内容。",
   },

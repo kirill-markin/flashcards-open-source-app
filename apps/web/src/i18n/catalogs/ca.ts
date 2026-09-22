@@ -882,7 +882,7 @@ const caCatalog: TranslationCatalog = {
     title: "Analítica",
     subtitle: "Tria si aquest navegador es pot mesurar.",
     toggleTitle: "Permet les galetes d'analítica",
-    toggleDescription: "Quan està desactivat, aquesta app no dona cap identificador a aquest navegador i no desa res per a l'analítica. Mentre tinguis la sessió iniciada, el que es mesura continua registrant-se al teu compte.",
+    toggleDescription: "Quan està desactivat, aquesta app no dona cap identificador a aquest navegador i no hi desa res per a l'analítica. L'ús es continua comptant de manera anònima i, mentre tinguis la sessió iniciada, es registra al teu compte.",
     error: "No ha funcionat. Torna-ho a provar.",
     unavailable: "L'analítica està desactivada en aquesta app, així que aquí no hi ha res a permetre ni a retirar.",
   },

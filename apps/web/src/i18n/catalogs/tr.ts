@@ -882,7 +882,7 @@ const trCatalog: TranslationCatalog = {
     title: "Analiz",
     subtitle: "Bu tarayıcının ölçülüp ölçülemeyeceğini seçin.",
     toggleTitle: "Analiz çerezlerine izin ver",
-    toggleDescription: "Bu kapalıyken uygulama bu tarayıcıya hiçbir tanımlayıcı vermez ve analiz için hiçbir şey saklamaz. Giriş yaptığınız sürece ölçülenler yine hesabınıza kaydedilir.",
+    toggleDescription: "Bu kapalıyken uygulama bu tarayıcıya hiçbir tanımlayıcı vermez ve analiz için tarayıcıda hiçbir şey saklamaz. Kullanım yine de anonim olarak sayılır ve giriş yaptığınız sürece hesabınıza kaydedilir.",
     error: "Bu işlem tamamlanamadı. Lütfen tekrar deneyin.",
     unavailable: "Bu uygulamada analiz kapalı; burada izin verilecek veya geri alınacak bir şey yok.",
   },

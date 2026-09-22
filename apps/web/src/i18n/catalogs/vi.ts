@@ -882,7 +882,7 @@ const viCatalog: TranslationCatalog = {
     title: "Phân tích",
     subtitle: "Chọn xem trình duyệt này có được đo lường hay không.",
     toggleTitle: "Cho phép cookie phân tích",
-    toggleDescription: "Khi tắt, ứng dụng không gán định danh nào cho trình duyệt này và không lưu gì cho mục đích phân tích. Khi bạn đã đăng nhập, những gì được đo vẫn được ghi nhận theo tài khoản của bạn.",
+    toggleDescription: "Khi tắt, ứng dụng không gán định danh nào cho trình duyệt này và không lưu gì trên đó cho mục đích phân tích. Việc sử dụng vẫn được đếm ẩn danh, và khi bạn đã đăng nhập, dữ liệu này được ghi nhận theo tài khoản của bạn.",
     error: "Thao tác không thành công. Vui lòng thử lại.",
     unavailable: "Phân tích đã tắt cho ứng dụng này, nên ở đây không có gì để cho phép hay thu hồi.",
   },

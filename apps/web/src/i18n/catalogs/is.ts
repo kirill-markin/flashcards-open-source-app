@@ -882,7 +882,7 @@ const isCatalog: TranslationCatalog = {
     title: "Greining",
     subtitle: "Veldu hvort mæla megi þennan vafra.",
     toggleTitle: "Leyfa greiningarvafrakökur",
-    toggleDescription: "Þegar slökkt er á þessu gefur forritið þessum vafra ekkert auðkenni og geymir ekkert vegna greiningar. Á meðan þú ert innskráð(ur) er það sem mælt er samt skráð á aðganginn þinn.",
+    toggleDescription: "Þegar slökkt er á þessu gefur forritið þessum vafra ekkert auðkenni og geymir ekkert í honum vegna greiningar. Notkun er samt talin nafnlaust og á meðan þú ert innskráð(ur) er hún skráð á aðganginn þinn.",
     error: "Það tókst ekki. Reyndu aftur.",
     unavailable: "Slökkt er á greiningu í þessu forriti, svo hér er ekkert til að leyfa eða afturkalla.",
   },
