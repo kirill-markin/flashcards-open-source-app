@@ -120,9 +120,9 @@ export function buildExcludedActorSqlLines(
  *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
  *   - `reports/catalogInstallFunnel/query.ts`, `install_actor_first_event`: whether the installing
  *     identity is new, which is a different rule from the cohort above - the absence of any trusted
- *     row before the anchoring site visit, read with no lower bound and, by design, no event-name
+ *     row before the anchoring deck page view, read with no lower bound and, by design, no event-name
  *     restriction at all, so it sees every name the collector accepts. The shared visitor identity
- *     makes it load-bearing rather than defensive: the site click that anchors the row is itself a
+ *     makes it load-bearing rather than defensive: the page view that anchors the row is itself a
  *     collector row resolving onto that same identity, so without this predicate every installer
  *     would have an event at their own first visit and none would ever read as new.
  *   - `reports/mobileFirstLaunchFunnel/query.ts`, `actor_first_events` and `step_events`. The first
@@ -174,7 +174,7 @@ export function buildExcludedActorSqlLines(
  *     five option lists. The attribution fragment reads `anonymous_client` clicks deliberately, but
  *     a click decides nobody: every actor it emits is the server-origin install's own, which a click
  *     can only be matched to.
- *   - `reports/catalogInstallFunnel/query.ts`, the installs-without-site-visit diagnostic, which
+ *   - `reports/catalogInstallFunnel/query.ts`, the installs-without-deck-page-view diagnostic, which
  *     applies the actor exclusions to a server-origin `catalog_deck_installed`. By event name.
  *   - `filters/optionsQuery.ts`, the deck-slug list (`catalog_deck_installed`). By event name.
  *
@@ -190,12 +190,15 @@ export function buildExcludedActorSqlLines(
  *     suppress one.
  *
  * NOT AN ENTRY EITHER, AND THE ONE THAT MOST LOOKS LIKE ONE. The catalog install funnel's cohort
- * keys a row on the identity an `anonymous_client` click carries, and reads that identity through
- * every later step. Applying this predicate there would empty the report, because the marketing-site
- * click is credential-free by construction. It stays out because what the funnel counts is browser
- * visitor identities arriving at a deck, which is what it calls them on screen and in
- * `docs/admin-app.md`; that number is never merged into a count of people, and the one place inside
- * the funnel that does decide a person - `install_actor_first_event` - is in the applied list above.
+ * keys a row on the identity an `anonymous_client` deck page view (`site_page_viewed`) carries, reads
+ * its second step from the `anonymous_client` install click on that identity, and reads that identity
+ * through every later step; its two no-visit diagnostics read the same page views only to ask whether
+ * an identity had one. Applying this predicate there would empty the report, because the
+ * marketing-site page view and click are credential-free by construction. It stays out because what
+ * the funnel counts is browser visitor identities arriving at a deck, which is what it calls them on
+ * screen and in `docs/admin-app.md`; that number is never merged into a count of people, and the one
+ * place inside the funnel that does decide a person - `install_actor_first_event` - is in the applied
+ * list above.
  *
  * That funnel's `surface_events` is not an entry either, one step further on. It derives per-actor
  * step facts over `screen_viewed`, which is not `serverOnly`, and reads the import screens at every
@@ -207,9 +210,10 @@ export function buildExcludedActorSqlLines(
  * credential-free by construction.
  *
  * NOT ENTRIES, AND NOT OMISSIONS. The two available-range probes,
- * `buildReviewEventsByDateAvailableRangeSql` and `buildCatalogInstallFunnelAvailableRangeSql`, read
- * the same view but derive no actor fact at all - each is a `MIN(occurred_at)` over event names - so
- * neither needs this predicate, and the funnel's reads `anonymous_client` rows on purpose. The
+ * `buildReviewEventsByDateAvailableRangeSql` and `buildCatalogInstallFunnelAvailableRangeSql`, and the
+ * catalog install funnel's effective-start statement read the same view but derive no actor fact at
+ * all - each is a `MIN(occurred_at)` over event names - so none needs this predicate, and the funnel's
+ * two read `anonymous_client` deck page views on purpose. The
  * review-events one is still the one surface a credential-free `app_opened` row can move: it reads
  * that name with no trust predicate, so such a row pulls the earliest selectable date backwards.
  * That widens a date picker rather than deciding anything about a person, so it stays out of this
