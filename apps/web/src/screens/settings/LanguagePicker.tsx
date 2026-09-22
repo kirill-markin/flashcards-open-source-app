@@ -47,7 +47,7 @@ function LocaleName(props: Readonly<{ locale: Locale; secondaryClassName: string
       {englishName === nativeName ? null : (
         <>
           {" "}
-          <span className={props.secondaryClassName}>{englishName}</span>
+          <span className={props.secondaryClassName} lang="en">{englishName}</span>
         </>
       )}
     </>
