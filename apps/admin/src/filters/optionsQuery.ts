@@ -18,7 +18,6 @@ import {
   buildCatalogInstalledDeckVersionsSql,
   buildConnectionCountrySamplesSql,
   buildExcludedActorSqlLines,
-  buildExcludedActorsFilterSql,
   buildTrustedActorRowsFilterSql,
 } from "./filterSql";
 import { getUserFilterLabel } from "./userFilters";
@@ -62,11 +61,9 @@ export type CatalogDeckOption = Readonly<{
 
 // Every actor the General sections can show inside the range, with the review-event count the popup
 // prints next to them. The four sources are the four ways a person reaches a chart: review events,
-// community activity, active days and catalog installs. Each source restates the exclusions of the
-// report it stands for, so a person offered here is a person some section can really show:
-// `%@example.com` and the excluded actors of `analytics.excluded_actors` everywhere, and the delisted
-// `test` fixture plus active admins on installs alone - an admin who opened the app is still an active
-// user and stays in the list.
+// community activity, active days and catalog installs. Every source applies the shared exclusion
+// rule of `buildExcludedActorSqlLines`, and the install source drops the delisted `test` fixture on
+// top of it, so a person offered here is a person some section can really show.
 //
 // `friendship_created` is the one source that reaches back before the range, because the community
 // chart carries a running friendship total: a friendship created earlier still shows on every day in
@@ -76,11 +73,7 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
   const toLiteral = escapeSqlStringLiteral(dateRange.to);
 
   return [
-    "WITH active_admin_emails AS (",
-    "  SELECT admin_users.email",
-    "  FROM auth.admin_users AS admin_users",
-    "  WHERE admin_users.revoked_at IS NULL",
-    "),",
+    "WITH",
     // One stored email per actor key. The email join is folded on the stored side for the reason
     // `buildReviewEventsByDateSql` states in full, and that note also states what folding two stored
     // rows together costs: the join fans every event row out once per folded row, which "silently
@@ -102,12 +95,7 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
     "    resolved.event_name,",
     "    (resolved.occurred_at AT TIME ZONE 'UTC')::date AS event_date,",
     "    resolved.event_properties ->> 'package_slug' AS package_slug,",
-    "    user_emails.email,",
-    "    EXISTS (",
-    "      SELECT 1",
-    "      FROM active_admin_emails",
-    "      WHERE active_admin_emails.email = LOWER(user_emails.email)",
-    "    ) AS is_active_admin",
+    "    user_emails.email",
     "  FROM analytics.product_events_resolved AS resolved",
     "  LEFT JOIN user_emails ON user_emails.user_key = resolved.actor_id::text",
     // `db/migrations/0115_product_analytics_resolved_view.sql` resolves `actor_id` down to
@@ -135,11 +123,7 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
     `        (${fromLiteral}::date)::timestamp AT TIME ZONE 'UTC'`,
     "      )",
     "    )",
-    "    AND (",
-    "      user_emails.email IS NULL",
-    "      OR LOWER(user_emails.email) NOT LIKE '%@example.com'",
-    "    )",
-    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
+    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     // The popup offers people, so it drops the credential-free collector's rows for the reason
     // `buildTrustedActorRowsFilterSql` states: that collector accepts `app_opened` like every other
     // client-reportable name, and an unverified visitor UUID offered here would be a selectable
@@ -161,7 +145,6 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
     "    OR (",
     "      option_events.event_name = 'catalog_deck_installed'",
     "      AND option_events.package_slug <> 'test'",
-    "      AND option_events.is_active_admin = FALSE",
     "    )",
     "  ))",
     "GROUP BY option_events.actor_id, option_events.email",
@@ -171,9 +154,7 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
 
 // The decks the installs chart can colour inside the range. Same exclusions as
 // `buildCatalogInstallsSql`, which states why they exist; the colour scale sorts the slugs itself, so
-// this returns the set rather than an order. Both are asked as `NOT EXISTS` over the stored rows of
-// the actor, like every other list here, so an actor with two case-folded rows cannot keep a slug
-// just because one of those rows carries a NULL or a non-test address.
+// this returns the set rather than an order.
 function buildAnalyticsFilterOptionPackagesSql(dateRange: AnalyticsDateRange): string {
   return [
     "SELECT DISTINCT resolved.event_properties ->> 'package_slug' AS package_slug",
@@ -187,14 +168,6 @@ function buildAnalyticsFilterOptionPackagesSql(dateRange: AnalyticsDateRange): s
     "  )",
     "  AND resolved.event_properties ->> 'package_slug' <> 'test'",
     ...buildExcludedActorSqlLines("resolved.actor_id::text"),
-    "  AND NOT EXISTS (",
-    "    SELECT 1",
-    "    FROM org.user_settings AS admin_settings",
-    "    JOIN auth.admin_users AS admin_users",
-    "      ON admin_users.email = LOWER(btrim(admin_settings.email))",
-    "    WHERE pg_catalog.lower(admin_settings.user_id) = resolved.actor_id::text",
-    "      AND admin_users.revoked_at IS NULL",
-    "  )",
   ].join("\n");
 }
 
@@ -204,11 +177,8 @@ function buildAnalyticsFilterOptionPackagesSql(dateRange: AnalyticsDateRange): s
 // narrowed to the selected platforms instead, so a country offered here can still chart as `unknown`
 // there.
 //
-// Like the users list above, this restates the two exclusions every report applies, `%@example.com`
-// and `analytics.excluded_actors`, so a country only a test account or an excluded actor was ever
-// seen connecting from is not offered. The active-admin exclusion is deliberately not restated:
-// Audience drops admins but the General sections show them, so a country only an admin connected from
-// is a country some section can really display.
+// Like the users list above, this restates the shared exclusion rule every report applies, so a
+// country only an excluded person was ever seen connecting from is not offered.
 function buildAnalyticsFilterOptionCountriesSql(dateRange: AnalyticsDateRange): string {
   return [
     "SELECT DISTINCT country_samples.country AS country",
@@ -227,8 +197,8 @@ function buildAnalyticsFilterOptionCountriesSql(dateRange: AnalyticsDateRange): 
 // which is how the language filter reads it; the audience report narrows the same locales to the
 // selected platforms, so a locale offered here can still chart as `unknown` there. A NULL locale is
 // not offered: no selection can match it, and a person whose events carry only NULLs is exactly the
-// person a narrowed language filter drops. `%@example.com`, the excluded actors and the trust rule
-// are restated and the active-admin exclusion is not, for the reason the country list above states.
+// person a narrowed language filter drops. The shared exclusion rule and the trust rule are restated,
+// for the reason the country list above states.
 function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRange): string {
   return [
     "SELECT DISTINCT resolved.ui_locale AS ui_locale",
@@ -266,8 +236,8 @@ function buildAnalyticsFilterOptionAppUiLanguagesSql(dateRange: AnalyticsDateRan
 // was never recorded are both offered here. This list and the four below are the one group of option
 // lists the selected range does not scope, because neither the installed-deck filter nor the
 // click-attribution filter is scoped by it either. What this offers is a strict subset of what the
-// installed-deck filter matches, because it restates the three exclusions below and that filter
-// restates none of them.
+// installed-deck filter matches, because it restates the exclusions below and that filter restates
+// none of them.
 //
 // The delisted `test` fixture of `db/migrations/0111_delist_catalog_test_fixture.sql` is left out
 // here, as it is everywhere a deck is named.
@@ -324,7 +294,7 @@ function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string):
  *
  * Unscoped by the selected range, as the lists above are, so a value a narrowed range excludes keeps
  * being offered. What it restates is what the funnel's cohort applies to a click before a predicate
- * sees it: a resolvable actor, the three identity exclusions, and the reduction to the first click
+ * sees it: a resolvable actor, the shared exclusion rule, and the reduction to the first click
  * of an identity and deck version. The funnel takes that first click inside the selected range, so
  * the clicks any range can anchor are exactly the first ones of their identity and deck version on
  * their own UTC day, and those are the rows read here. The one cohort rule not restated is the `test`
@@ -357,14 +327,6 @@ function buildAnalyticsFilterOptionCatalogClickSql(valueSqlExpression: string): 
     ") AS clicked",
     `WHERE ${valueSqlExpression} IS NOT NULL`,
     ...buildExcludedActorSqlLines("clicked.actor_id::text"),
-    "  AND NOT EXISTS (",
-    "    SELECT 1",
-    "    FROM org.user_settings AS admin_settings",
-    "    JOIN auth.admin_users AS admin_users",
-    "      ON admin_users.email = LOWER(btrim(admin_settings.email))",
-    "    WHERE pg_catalog.lower(admin_settings.user_id) = clicked.actor_id::text",
-    "      AND admin_users.revoked_at IS NULL",
-    "  )",
     "ORDER BY option_value ASC",
   ].join("\n");
 }
