@@ -230,6 +230,24 @@ enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {
     QUICK_ACTION(wireValue = "quick_action")
 }
 
+/**
+ * Why one dictation attempt ended without a transcript.
+ *
+ * [PERMISSION_DENIED] is the microphone refusal, both the answer to the OS dialog and a refusal the
+ * system already holds; [NO_SPEECH] a recording that contained nothing; [CANCELLED] the attempt
+ * being stopped, which here is the dictation job being cancelled; and [SERVER_ERROR] the remaining
+ * bucket, with the reading it carries on [AnalyticsSyncFailureReason] — the attempt could not
+ * complete for a reason the person cannot act on, a `MediaRecorder` that refused to start included.
+ */
+enum class AnalyticsDictationFailureReason(val wireValue: String) {
+    PERMISSION_DENIED(wireValue = "permission_denied"),
+    OFFLINE(wireValue = "offline"),
+    TIMEOUT(wireValue = "timeout"),
+    SERVER_ERROR(wireValue = "server_error"),
+    CANCELLED(wireValue = "cancelled"),
+    NO_SPEECH(wireValue = "no_speech")
+}
+
 enum class AnalyticsSyncFailureReason(val wireValue: String) {
     OFFLINE(wireValue = "offline"),
     TIMEOUT(wireValue = "timeout"),
@@ -470,6 +488,37 @@ sealed interface AnalyticsEvent {
         override val eventName: String = "card_create_started"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "entry_point" to AnalyticsPropertyValue.Text(value = entryPoint.wireValue)
+        )
+    }
+
+    /**
+     * Voice input reached the microphone: the recorder really started, not the control being
+     * tapped, so a microphone the person refuses produces [DictationFailed] and no start at all.
+     * Nothing about the recording is reported here or on the failure — a transcript is content a
+     * person spoke.
+     *
+     * `screen` is fixed for the reason [ReviewCardRevealed]'s is. The server rejects
+     * `dictation_started` without a surface, and the AI chat composer is the only place this app
+     * dictates from, so there is nothing for a call site to choose.
+     */
+    data object DictationStarted : AnalyticsEvent {
+        override val eventName: String = "dictation_started"
+        override val screen: AnalyticsSurface = AnalyticsSurface.AI
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
+    /**
+     * The server allows this one to carry no surface, but it names `AI` all the same: dictation
+     * exists nowhere else on this client, so the failure names the same surface its start declares.
+     * Web takes the caller's route instead, because its composer opens over one.
+     */
+    data class DictationFailed(
+        val reason: AnalyticsDictationFailureReason
+    ) : AnalyticsEvent {
+        override val eventName: String = "dictation_failed"
+        override val screen: AnalyticsSurface = AnalyticsSurface.AI
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "reason" to AnalyticsPropertyValue.Text(value = reason.wireValue)
         )
     }
 

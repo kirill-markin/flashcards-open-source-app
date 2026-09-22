@@ -34,7 +34,8 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                 cloudAccountRepository = appGraph.cloudAccountRepository,
                 appVersion = appGraph.appPackageInfo.versionName,
                 versionCode = appGraph.appPackageInfo.longVersionCode.toInt(),
-                observability = appGraph.observability
+                observability = appGraph.observability,
+                analytics = appGraph.analytics
             )
         )
         val uiState by aiViewModel.uiState.collectAsStateWithLifecycle()
@@ -159,6 +160,9 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             onStartDictationRecording = aiViewModel::startDictationRecording,
             onTranscribeRecordedAudio = aiViewModel::transcribeRecordedAudio,
             onCancelDictation = aiViewModel::cancelDictation,
+            onDictationFailed = { reason ->
+                appGraph.analytics.track(event = AnalyticsEvent.DictationFailed(reason = reason))
+            },
             // The per-capability screen under settings asks for these same two permissions, and
             // `permission_prompt_answered` carries no property naming the asker: its surface is the
             // event's own `screen`. Each entry point therefore names where its own person is, so an
