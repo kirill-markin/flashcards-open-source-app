@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsDictationFailureReason
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaSource
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
@@ -71,6 +72,7 @@ import com.flashcardsopensourceapp.feature.ai.input.AttachmentSheet
 import com.flashcardsopensourceapp.feature.ai.input.aiAttachmentImportAlert
 import com.flashcardsopensourceapp.feature.ai.input.aiCapabilityPresentationResult
 import com.flashcardsopensourceapp.feature.ai.input.aiChatDocumentPickerMimeTypes
+import com.flashcardsopensourceapp.feature.ai.input.dictationAccessAlertFailureReason
 import com.flashcardsopensourceapp.feature.ai.input.handleAttachmentAction
 import com.flashcardsopensourceapp.feature.ai.input.handleCameraAction
 import com.flashcardsopensourceapp.feature.ai.input.handleDictationToggle
@@ -110,6 +112,12 @@ internal fun AiRouteContent(
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
+    /**
+     * One dictation attempt ended without a transcript. Reported from here rather than from the
+     * runtime because these branches — a refused microphone, a recorder that would not start or
+     * stop — never reach it: the screen owns the recorder.
+     */
+    onDictationFailed: (AnalyticsDictationFailureReason) -> Unit,
     // The OS answers to the two runtime permissions this screen asks for, granted or refused. Only
     // the caller knows which surface the person is on, so neither is reported from here.
     onCameraPermissionResult: (Boolean) -> Unit,
@@ -141,6 +149,7 @@ internal fun AiRouteContent(
     val currentScreenVisibleAction by rememberUpdatedState(onScreenVisible)
     val currentScreenHiddenAction by rememberUpdatedState(onScreenHidden)
     val currentShowAlertAction by rememberUpdatedState(onShowAlert)
+    val currentDictationFailedAction by rememberUpdatedState(onDictationFailed)
     val dismissComposerFocus: () -> Unit = {
         focusManager.clearFocus(force = true)
     }
@@ -278,6 +287,7 @@ internal fun AiRouteContent(
     ) { isGranted ->
         onMicrophonePermissionResult(isGranted)
         if (activity == null) {
+            currentDictationFailedAction(AnalyticsDictationFailureReason.SERVER_ERROR)
             currentCancelDictationAction()
             return@rememberLauncherForActivityResult
         }
@@ -304,15 +314,20 @@ internal fun AiRouteContent(
                     textProvider = textProvider,
                     onStartDictationRecording = onStartDictationRecording,
                     onShowAlert = currentShowAlertAction,
-                    onCancelDictation = currentCancelDictationAction
+                    onCancelDictation = currentCancelDictationAction,
+                    onDictationFailed = currentDictationFailedAction
                 )
             }
 
             AiCapabilityPresentationResult.StopSilently -> {
+                currentDictationFailedAction(AnalyticsDictationFailureReason.PERMISSION_DENIED)
                 currentCancelDictationAction()
             }
 
             is AiCapabilityPresentationResult.ShowAlert -> {
+                currentDictationFailedAction(
+                    dictationAccessAlertFailureReason(status = requestedStatus)
+                )
                 currentCancelDictationAction()
                 currentShowAlertAction(result.alert)
             }
@@ -332,9 +347,30 @@ internal fun AiRouteContent(
     }
 
     DisposableEffect(lifecycleOwner, dictationRecorder) {
+        // A recording torn down by the lifecycle is the only cancel that reports its own reason:
+        // `cancelDictation` cancels the transcription job, which does not exist yet while the
+        // recorder runs, so without this the attempt would leave `dictation_started` unpaired and
+        // read as a transcript forever. A recording is reported once even though `ON_STOP` and
+        // `onDispose` can both run before a recomposition refreshes `currentDictationState`.
+        var hasReportedAbandonedDictation = false
+        val abandonActiveDictation: () -> Unit = {
+            val isRecording = currentDictationState == AiChatDictationState.RECORDING
+            if (isRecording && hasReportedAbandonedDictation.not()) {
+                hasReportedAbandonedDictation = true
+                currentDictationFailedAction(AnalyticsDictationFailureReason.CANCELLED)
+            }
+            if (
+                isRecording
+                || currentDictationState == AiChatDictationState.REQUESTING_PERMISSION
+            ) {
+                dictationRecorder.cancelRecording()
+                currentCancelDictationAction()
+            }
+        }
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
+                    hasReportedAbandonedDictation = false
                     currentScreenVisibleAction()
                     if (currentConsentRequired.not()) {
                         currentWarmUpAction()
@@ -343,13 +379,7 @@ internal fun AiRouteContent(
 
                 Lifecycle.Event.ON_STOP -> {
                     currentScreenHiddenAction()
-                    if (
-                        currentDictationState == AiChatDictationState.RECORDING
-                        || currentDictationState == AiChatDictationState.REQUESTING_PERMISSION
-                    ) {
-                        dictationRecorder.cancelRecording()
-                        currentCancelDictationAction()
-                    }
+                    abandonActiveDictation()
                 }
 
                 else -> Unit
@@ -360,13 +390,7 @@ internal fun AiRouteContent(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             currentScreenHiddenAction()
-            if (
-                currentDictationState == AiChatDictationState.RECORDING
-                || currentDictationState == AiChatDictationState.REQUESTING_PERMISSION
-            ) {
-                dictationRecorder.cancelRecording()
-                currentCancelDictationAction()
-            }
+            abandonActiveDictation()
         }
     }
 
@@ -477,6 +501,7 @@ internal fun AiRouteContent(
                                 onStartDictationRecording = onStartDictationRecording,
                                 onTranscribeRecordedAudio = onTranscribeRecordedAudio,
                                 onCancelDictation = onCancelDictation,
+                                onDictationFailed = onDictationFailed,
                                 onShowAlert = onShowAlert,
                                 onShowErrorMessage = onShowErrorMessage,
                                 microphonePermissionLauncher = microphonePermissionLauncher

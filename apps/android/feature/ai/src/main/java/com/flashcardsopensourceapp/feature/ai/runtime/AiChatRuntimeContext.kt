@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatResumeDiagnostics
@@ -50,7 +51,8 @@ internal class AiChatRuntimeContext(
     val currentServerConfiguration: () -> CloudServiceConfiguration,
     val currentSyncStatus: () -> SyncStatus,
     val currentUiLocaleTag: () -> String?,
-    observability: AppObservability
+    observability: AppObservability,
+    val analytics: Analytics
 ) {
     val appVersion: String = appVersion
     val observability: AppObservability = createAiChatRuntimeObservability(

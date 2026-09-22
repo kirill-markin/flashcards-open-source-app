@@ -120,6 +120,23 @@ export type AnalyticsMediaUploadFailureReason =
   | "unsupported_type"
   | "server_error";
 
+/**
+ * Why one dictation attempt ended without a transcript.
+ *
+ * `permission_denied` is the browser refusing the microphone, `no_speech` a recording that came back
+ * empty, `cancelled` an attempt aborted from this app — the composer discarding it or the panel
+ * unmounting — and `server_error` the remaining bucket, with the reading it already has on
+ * `AnalyticsSyncFailureReason`: the attempt could not complete for a reason the person cannot act
+ * on, a `MediaRecorder` that failed mid-recording included.
+ */
+export type AnalyticsDictationFailureReason =
+  | "permission_denied"
+  | "offline"
+  | "timeout"
+  | "server_error"
+  | "cancelled"
+  | "no_speech";
+
 export type AnalyticsSyncFailureReason =
   | "offline"
   | "timeout"
@@ -226,6 +243,29 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "media_upload_failed";
     reason: AnalyticsMediaUploadFailureReason;
+  }>
+  /**
+   * Voice input reached the microphone: the `MediaRecorder` really started, not the button being
+   * pressed, so a refused permission is a `dictation_failed` and never a start with no end.
+   *
+   * `screen` is declared rather than taken from the surface the person is on, and it is always `ai`.
+   * The composer is the only place this app dictates from, and it is rendered both by `/chat` and by
+   * the AI sidebar, which leaves the route's own screen stamped underneath it — on a route with no
+   * value in the enum that stamp is null, and the catalog requires a surface here.
+   */
+  | Readonly<{
+    name: "dictation_started";
+    screen: AnalyticsSurface;
+  }>
+  /**
+   * The catalog allows no surface here, so this one takes the surface the person is on like every
+   * other event. On this client that is not always the `ai` its start asserts: with the sidebar
+   * open over another route, the failure is filed against the route and the start against `ai`. The
+   * two are joined by time and person rather than by screen.
+   */
+  | Readonly<{
+    name: "dictation_failed";
+    reason: AnalyticsDictationFailureReason;
   }>
   | Readonly<{
     name: "sync_failed";
@@ -336,6 +376,10 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "media_attached":
       return { source: event.source };
     case "media_upload_failed":
+      return { reason: event.reason };
+    case "dictation_started":
+      return null;
+    case "dictation_failed":
       return { reason: event.reason };
     case "sync_failed":
       return { reason: event.reason };
