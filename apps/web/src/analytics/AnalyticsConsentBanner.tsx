@@ -96,7 +96,9 @@ export function AnalyticsConsentBanner(): ReactElement | null {
     }
 
     const observer = new ResizeObserver(publishBannerHeight);
-    observer.observe(measuredBanner);
+    // The border box, which is what `offsetHeight` reports: the fixed layer's own bottom inset is
+    // part of what covers the page, and the narrow-screen breakpoint changes only that padding.
+    observer.observe(measuredBanner, { box: "border-box" });
     return (): void => {
       observer.disconnect();
       rootStyle.removeProperty(bannerHeightCustomProperty);
@@ -182,10 +184,10 @@ export function AnalyticsConsentBanner(): ReactElement | null {
             {t("analyticsConsentBanner.decline")}
           </button>
         </div>
+        {errorMessage === "" ? null : (
+          <p className="error-banner analytics-consent-banner-error" role="alert" data-testid="analytics-consent-error">{errorMessage}</p>
+        )}
       </div>
-      {errorMessage === "" ? null : (
-        <p className="error-banner" role="alert" data-testid="analytics-consent-error">{errorMessage}</p>
-      )}
     </aside>
   );
 }
