@@ -59,6 +59,13 @@ const deCatalog: TranslationCatalog = {
       languagePreference: "Spracheinstellung",
       languageSelection: "Sprachauswahl",
     },
+    picker: {
+      empty: "Keine Sprachen gefunden",
+      listAriaLabel: "App-Sprachen",
+      openAriaLabel: "App-Sprache auswählen",
+      searchLabel: "Suchen",
+      searchPlaceholder: "Sprachen suchen",
+    },
     names: {
       en: "Englisch",
       ar: "Arabisch",

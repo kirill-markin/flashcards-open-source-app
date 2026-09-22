@@ -59,6 +59,13 @@ const urCatalog: TranslationCatalog = {
       languagePreference: "زبان کی ترجیح",
       languageSelection: "زبان کا انتخاب",
     },
+    picker: {
+      empty: "کوئی زبان نہیں ملی",
+      listAriaLabel: "ایپ کی زبانیں",
+      openAriaLabel: "ایپ کی زبان منتخب کریں",
+      searchLabel: "تلاش",
+      searchPlaceholder: "زبانیں تلاش کریں",
+    },
     names: {
       en: "انگریزی",
       ar: "عربی",

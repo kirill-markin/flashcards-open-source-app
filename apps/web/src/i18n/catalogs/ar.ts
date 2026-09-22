@@ -59,6 +59,13 @@ const arCatalog: TranslationCatalog = {
       languagePreference: "تفضيل اللغة",
       languageSelection: "اختيار اللغة",
     },
+    picker: {
+      empty: "لم يتم العثور على لغات",
+      listAriaLabel: "لغات التطبيق",
+      openAriaLabel: "اختر لغة التطبيق",
+      searchLabel: "بحث",
+      searchPlaceholder: "ابحث عن لغة",
+    },
     names: {
       en: "الإنجليزية",
       ar: "العربية",

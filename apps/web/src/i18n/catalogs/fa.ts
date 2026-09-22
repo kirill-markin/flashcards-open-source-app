@@ -59,6 +59,13 @@ const faCatalog: TranslationCatalog = {
       languagePreference: "ترجیح زبان",
       languageSelection: "انتخاب زبان",
     },
+    picker: {
+      empty: "زبانی پیدا نشد",
+      listAriaLabel: "زبان‌های برنامه",
+      openAriaLabel: "انتخاب زبان برنامه",
+      searchLabel: "جست‌وجو",
+      searchPlaceholder: "جست‌وجوی زبان‌ها",
+    },
     names: {
       en: "انگلیسی",
       ar: "عربی",

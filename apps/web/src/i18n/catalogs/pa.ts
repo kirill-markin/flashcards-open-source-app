@@ -59,6 +59,13 @@ const paCatalog: TranslationCatalog = {
       languagePreference: "ਭਾਸ਼ਾ ਦੀ ਤਰਜੀਹ",
       languageSelection: "ਭਾਸ਼ਾ ਦੀ ਚੋਣ",
     },
+    picker: {
+      empty: "ਕੋਈ ਭਾਸ਼ਾ ਨਹੀਂ ਮਿਲੀ",
+      listAriaLabel: "ਐਪ ਦੀਆਂ ਭਾਸ਼ਾਵਾਂ",
+      openAriaLabel: "ਐਪ ਦੀ ਭਾਸ਼ਾ ਚੁਣੋ",
+      searchLabel: "ਖੋਜ",
+      searchPlaceholder: "ਭਾਸ਼ਾਵਾਂ ਲੱਭੋ",
+    },
     names: {
       en: "ਅੰਗਰੇਜ਼ੀ",
       ar: "ਅਰਬੀ",

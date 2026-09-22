@@ -59,6 +59,13 @@ const mrCatalog: TranslationCatalog = {
       languagePreference: "भाषेची पसंती",
       languageSelection: "भाषेची निवड",
     },
+    picker: {
+      empty: "कोणतीही भाषा सापडली नाही",
+      listAriaLabel: "ॲपच्या भाषा",
+      openAriaLabel: "ॲपची भाषा निवडा",
+      searchLabel: "शोध",
+      searchPlaceholder: "भाषा शोधा",
+    },
     names: {
       en: "इंग्रजी",
       ar: "अरबी",

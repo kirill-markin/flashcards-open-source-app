@@ -59,6 +59,13 @@ const lvCatalog: TranslationCatalog = {
       languagePreference: "Valodas izvēle",
       languageSelection: "Valodas atlase",
     },
+    picker: {
+      empty: "Valodas nav atrastas",
+      listAriaLabel: "Lietotnes valodas",
+      openAriaLabel: "Izvēlēties lietotnes valodu",
+      searchLabel: "Meklēt",
+      searchPlaceholder: "Meklēt valodas",
+    },
     names: {
       en: "Angļu",
       ar: "Arābu",

@@ -59,6 +59,13 @@ const caCatalog: TranslationCatalog = {
       languagePreference: "Preferència d'idioma",
       languageSelection: "Selecció d'idioma",
     },
+    picker: {
+      empty: "No s'ha trobat cap idioma",
+      listAriaLabel: "Idiomes de l'app",
+      openAriaLabel: "Tria l'idioma de l'app",
+      searchLabel: "Cerca",
+      searchPlaceholder: "Cerca idiomes",
+    },
     names: {
       en: "anglès",
       ar: "àrab",

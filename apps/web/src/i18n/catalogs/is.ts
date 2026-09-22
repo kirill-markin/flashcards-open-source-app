@@ -59,6 +59,13 @@ const isCatalog: TranslationCatalog = {
       languagePreference: "Tungumálastilling",
       languageSelection: "Val á tungumáli",
     },
+    picker: {
+      empty: "Engin tungumál fundust",
+      listAriaLabel: "Tungumál forrits",
+      openAriaLabel: "Velja tungumál forrits",
+      searchLabel: "Leita",
+      searchPlaceholder: "Leita að tungumálum",
+    },
     names: {
       en: "Enska",
       ar: "Arabíska",
