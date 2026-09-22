@@ -353,17 +353,17 @@ The same split applies to Sentry projects: backend source map uploads use `SENTR
 
 For AWS-backed changes, the main-branch order is:
 
-1. detect whether AWS-related paths changed
-2. run the pre-deploy build/test checks inside `AWS/Web Release`, including the auth route tests
-3. deploy backend, auth, infra, web, and admin hosting to production
-4. publish `apps/web` and `apps/admin` assets after CDK deploy
-5. run the deployed API/custom-domain checks after the full release is in place
-6. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
-7. run the external agent API smoke in `scripts/checks/check-agent-api-smoke.sh`
-8. finish green only if the post-deploy checks pass
+1. select the `platform`, `web`, and `admin` components that changed since their last successful release ([component selection](./release-gates.md#component-selection))
+2. run the selected components' pre-deploy build/test checks inside `AWS/Web Release`, including the auth route tests when auth changed
+3. deploy the platform through CDK when selected
+4. publish `apps/web` and `apps/admin` assets when selected
+5. run the deployed API health check when the platform deployed, and the public custom-domain checks, including the hosted web and admin roots, on every run that deploys a component
+6. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts` when web or the platform deployed
+7. run the external agent API and MCP smokes when the platform deployed
+8. record each component's released SHA and finish green only if the selected post-deploy checks pass
 9. finish red if a post-deploy smoke fails, without rolling production back
 
-Manual `workflow_dispatch` runs use the same embedded pre-deploy checks before the release starts.
+Manual `workflow_dispatch` runs deploy every component after the same embedded pre-deploy checks.
 
 This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signals are the real Playwright web smoke, which drives the merge commit's web client against the deployed backend and auth, and the real agent API smoke, which calls the deployed API directly; see [docs/release-gates.md](./release-gates.md) for the exact scope of each. Any additional non-smoke tests should stay targeted to important module boundaries or contracts.
 

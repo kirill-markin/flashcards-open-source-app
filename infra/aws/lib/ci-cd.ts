@@ -163,6 +163,15 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       actions: ["cloudfront:CreateInvalidation"],
       resources: [props.adminDistribution.distributionArn],
     }),
+    // Per-component release bookkeeping read and written by
+    // .github/workflows/aws-web-release.yml.
+    new iam.PolicyStatement({
+      sid: "RecordDeployedReleaseShas",
+      actions: ["ssm:DeleteParameter", "ssm:GetParameters", "ssm:PutParameter"],
+      resources: ["platform", "web", "admin"].map((component) =>
+        `arn:aws:ssm:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:parameter/${cdk.Stack.of(scope).stackName}/release/deployed-sha/${component}`
+      ),
+    }),
   ];
 
   if (props.demoPasswordSecretArn !== undefined) {

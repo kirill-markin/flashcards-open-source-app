@@ -98,9 +98,9 @@ bundles: [Xcode Cloud data access](xcode-cloud-data-access.md).
 
 ## Web and Backend
 
-`AWS/Web Release` deploys from `main` automatically when relevant files change.
-Verify the release commit's applicable deployment and Web, Agent API, and MCP
-smoke jobs succeeded. Fix failures before declaring this platform complete;
+`AWS/Web Release` deploys from `main` automatically when relevant files change,
+limited to the components that changed since their last release.
+Verify the release commit's applicable deployment and smoke jobs succeeded. Fix failures before declaring this platform complete;
 AWS deploys and their artifacts stay in CI/CD.
 
 Completion: the applicable automatic release/checks are green. See
