@@ -27,7 +27,9 @@ import {
 // changing either rule for the leaderboard means writing a NEW migration that redefines
 // the function - not editing 0071 or 0061. A fourth supported platform or a second test
 // email domain that stops at this file and the admin builders leaves leaderboard
-// eligibility on the old rule, silently.
+// eligibility on the old rule, silently. The admin exclusion added to the email fragment
+// below is deliberately not part of those leaderboard copies: an admin stays eligible for
+// the leaderboard and is only kept out of the published counters.
 //
 // The admin dashboard is no longer one of the restatement sites for
 // `clientInstallationActivityWhereSqlFragments`. It reads
@@ -36,11 +38,13 @@ import {
 // diverged: the snapshot counts raw review rows, the dashboard counts resolved actors,
 // and their numbers are not expected to agree.
 //
-// It does still restate `exampleComEmailExclusionSqlFragments`. The admin query at
-// `apps/admin/src/reports/reviewEventsByDate/query.ts` lives in a separate package and
-// cannot import these, so it repeats the same exclusion inline against its own
-// `org.user_settings` join in both `buildReviewEventsByDateSql` and
-// `buildReviewEventsByDateCommunitySql`.
+// It does still carry the same exclusion rule as the admin dashboard: an `@example.com`
+// address, an admin, or an actor listed in `analytics.excluded_actors`. That dashboard
+// lives in a separate package and cannot import these fragments, so it writes the rule
+// once of its own in `buildExcludedActorSqlLines`
+// (`apps/admin/src/filters/filterSql.ts`) and every one of its reports and filter option
+// lists reads it from there. The two surfaces exclude the same people and must be changed
+// together.
 
 // WHERE-fragment that restricts review activity to real client-app installations on
 // supported user-facing platforms (excludes system actors and the 'system' platform).
@@ -49,11 +53,19 @@ const clientInstallationActivityWhereSqlFragments = [
   "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
 ] as const;
 
-// SQL fragments that exclude users whose known email ends with `@example.com`.
+// SQL fragments that exclude users whose known email ends with `@example.com` and users
+// who have ever been an admin.
 // `joinFragments` and `whereFragments` MUST be spread together into the same query:
-// the WHERE fragment references `user_settings.email`, which is only in scope after
+// the WHERE fragments reference `user_settings.email`, which is only in scope after
 // the JOIN fragment brings `org.user_settings` in.
-const exampleComEmailExclusionSqlFragments = {
+//
+// AN ADMIN IS ANY `auth.admin_users` ROW FOR THAT ADDRESS, revoked or not, so an admin's
+// activity never returns to these counters. That table's email is lower/btrim normalized
+// by the `admin_users_email_normalized` CHECK in `db/migrations/0045_admin_users.sql`, so
+// only the `org.user_settings` side is folded, and `reporting_readonly` reads the column
+// through `db/migrations/0125_reporting_readonly_admin_users.sql`. Without that grant
+// deployed the snapshot fails outright rather than silently publishing admin activity.
+const accountEmailExclusionSqlFragments = {
   joinFragments: [
     "LEFT JOIN org.user_settings AS user_settings",
     "  ON user_settings.user_id = workspace_replicas.user_id",
@@ -62,6 +74,11 @@ const exampleComEmailExclusionSqlFragments = {
     "  AND (",
     "    user_settings.email IS NULL",
     "    OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
+    "  )",
+    "  AND NOT EXISTS (",
+    "    SELECT 1",
+    "    FROM auth.admin_users AS admin_users",
+    "    WHERE admin_users.email = LOWER(btrim(user_settings.email))",
     "  )",
   ],
 } as const;
@@ -119,10 +136,10 @@ function buildGlobalMetricsSnapshotHistoricalStartDateSql(): string {
     "FROM content.review_events AS review_events",
     "INNER JOIN sync.workspace_replicas AS workspace_replicas",
     "  ON workspace_replicas.replica_id = review_events.replica_id",
-    ...exampleComEmailExclusionSqlFragments.joinFragments,
+    ...accountEmailExclusionSqlFragments.joinFragments,
     "WHERE review_events.reviewed_at_server < $1::timestamptz",
     ...clientInstallationActivityWhereSqlFragments,
-    ...exampleComEmailExclusionSqlFragments.whereFragments,
+    ...accountEmailExclusionSqlFragments.whereFragments,
     ...excludedActorWhereSqlFragments,
   ].join(" ");
 }
@@ -138,10 +155,10 @@ function buildGlobalMetricsSnapshotTotalsSql(): string {
     "FROM content.review_events AS review_events",
     "INNER JOIN sync.workspace_replicas AS workspace_replicas",
     "  ON workspace_replicas.replica_id = review_events.replica_id",
-    ...exampleComEmailExclusionSqlFragments.joinFragments,
+    ...accountEmailExclusionSqlFragments.joinFragments,
     "WHERE review_events.reviewed_at_server < $1::timestamptz",
     ...clientInstallationActivityWhereSqlFragments,
-    ...exampleComEmailExclusionSqlFragments.whereFragments,
+    ...accountEmailExclusionSqlFragments.whereFragments,
     ...excludedActorWhereSqlFragments,
   ].join(" ");
 }
@@ -155,10 +172,10 @@ function buildGlobalMetricsSnapshotDaysSql(): string {
     "  FROM content.review_events AS review_events",
     "  INNER JOIN sync.workspace_replicas AS workspace_replicas",
     "    ON workspace_replicas.replica_id = review_events.replica_id",
-    ...exampleComEmailExclusionSqlFragments.joinFragments,
+    ...accountEmailExclusionSqlFragments.joinFragments,
     "  WHERE review_events.reviewed_at_server < $2::timestamptz",
     ...clientInstallationActivityWhereSqlFragments,
-    ...exampleComEmailExclusionSqlFragments.whereFragments,
+    ...accountEmailExclusionSqlFragments.whereFragments,
     ...excludedActorWhereSqlFragments,
     "  GROUP BY workspace_replicas.user_id",
     "), daily_user_activity AS (",
@@ -173,13 +190,13 @@ function buildGlobalMetricsSnapshotDaysSql(): string {
     "  FROM content.review_events AS review_events",
     "  INNER JOIN sync.workspace_replicas AS workspace_replicas",
     "    ON workspace_replicas.replica_id = review_events.replica_id",
-    ...exampleComEmailExclusionSqlFragments.joinFragments,
+    ...accountEmailExclusionSqlFragments.joinFragments,
     "  INNER JOIN user_first_review_date",
     "    ON user_first_review_date.user_id = workspace_replicas.user_id",
     "  WHERE review_events.reviewed_at_server >= $1::timestamptz",
     "    AND review_events.reviewed_at_server < $2::timestamptz",
     ...clientInstallationActivityWhereSqlFragments,
-    ...exampleComEmailExclusionSqlFragments.whereFragments,
+    ...accountEmailExclusionSqlFragments.whereFragments,
     ...excludedActorWhereSqlFragments,
     "  GROUP BY (review_events.reviewed_at_server AT TIME ZONE 'UTC')::date, workspace_replicas.user_id, user_first_review_date.first_review_date",
     ")",

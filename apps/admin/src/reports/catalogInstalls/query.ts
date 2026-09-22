@@ -15,7 +15,7 @@ import {
   buildCatalogAttributionFiltersSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
-  buildExcludedActorsFilterSql,
+  buildExcludedActorSqlLines,
   buildMinimumEventCountsFilterSql,
   buildTrustedActorRowsFilterSql,
   buildUserCohortsFilterSql,
@@ -163,12 +163,11 @@ const catalogInstallCohortSqlExpression = [
 //
 // The shape mirrors `buildReviewEventsByDateSql`: the `org.user_settings` email join folded with
 // `pg_catalog.lower` because `actor_id` renders canonical lowercase hex while
-// `org.user_settings.user_id` is an unconstrained TEXT primary key, the `%@example.com` exclusion
-// restated inline because this package cannot import
-// `exampleComEmailExclusionSqlFragments` from `apps/backend/src/globalMetrics/reporting.ts`, and
-// grouping by `actor_id` so a guest and the account that guest became are one person. Unlike that
-// query the install CTE is bounded on both sides, because an install's cohort is not derived from a
-// first-install day at all.
+// `org.user_settings.user_id` is an unconstrained TEXT primary key - here it only supplies the
+// displayed address, since the people this section refuses to count are dropped by
+// `buildExcludedActorSqlLines` - and grouping by `actor_id` so a guest and the account that guest
+// became are one person. Unlike that query the install CTE is bounded on both sides, because an
+// install's cohort is not derived from a first-install day at all.
 //
 // NEW VERSUS RETURNING IS THE INSTALLER'S FIRST TRUSTED `app_opened` DAY, which is the cohort
 // definition of the daily active users section rather than one of this section's own, so the two
@@ -193,11 +192,10 @@ const catalogInstallCohortSqlExpression = [
 //   * The delisted test fixture is dropped by slug `'test'` only, the fixture
 //     `db/migrations/0111_delist_catalog_test_fixture.sql` delisted. Package status is not read,
 //     because that needs a `catalog` grant this report deliberately does not take.
-//   * Installs by active admins are dropped. `auth.admin_users.email` is already lower/btrim
-//     normalized by its own CHECK constraint, so only the `org.user_settings` side is folded, and
-//     `revoked_at IS NULL` is what an active grant means. `reporting_readonly` reads that column pair
-//     through `db/migrations/0125_reporting_readonly_admin_users.sql`; without that grant deployed
-//     the whole query fails as HTTP 500 `INTERNAL_ERROR` rather than as a readable permission error.
+//   * The shared actor exclusions of `buildExcludedActorSqlLines`, which drop every admin among much
+//     else. `reporting_readonly` reads `auth.admin_users` through
+//     `db/migrations/0125_reporting_readonly_admin_users.sql`; without that grant deployed the whole
+//     query fails as HTTP 500 `INTERNAL_ERROR` rather than as a readable permission error.
 // Almost every install in production history is an admin install, so a near-empty chart is the
 // intended default rather than a defect.
 //
@@ -238,17 +236,7 @@ export function buildCatalogInstallsSql(filters: AnalyticsFilterState): string {
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
     "    AND resolved.event_properties ->> 'package_slug' <> 'test'",
-    "    AND (",
-    "      user_settings.email IS NULL",
-    "      OR LOWER(btrim(user_settings.email)) NOT LIKE '%@example.com'",
-    "    )",
-    "    AND NOT EXISTS (",
-    "      SELECT 1",
-    "      FROM auth.admin_users AS admin_users",
-    "      WHERE admin_users.email = LOWER(btrim(user_settings.email))",
-    "        AND admin_users.revoked_at IS NULL",
-    "    )",
-    `    AND ${buildExcludedActorsFilterSql("resolved.actor_id::text")}`,
+    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
     "),",
     // Only the installers' own app opens are read: an install row has already settled which actors
     // this section counts at all, and the same actor carries the same email and the same exclusion
