@@ -882,7 +882,7 @@ const idCatalog: TranslationCatalog = {
     title: "Analitik",
     subtitle: "Pilih apakah peramban ini boleh diukur.",
     toggleTitle: "Izinkan cookie analitik",
-    toggleDescription: "Saat opsi ini nonaktif, aplikasi ini tidak memberi identifier apa pun pada peramban ini dan tidak menyimpan apa pun untuk analitik. Selama Anda masuk, hal yang diukur tetap dicatat pada akun Anda.",
+    toggleDescription: "Saat opsi ini nonaktif, aplikasi ini tidak memberi identifier apa pun pada peramban ini dan tidak menyimpan apa pun di dalamnya untuk analitik. Penggunaan tetap dihitung secara anonim, dan selama Anda masuk, penggunaan itu dicatat pada akun Anda.",
     error: "Tindakan itu tidak berhasil. Silakan coba lagi.",
     unavailable: "Analitik dimatikan untuk aplikasi ini, jadi tidak ada yang bisa diizinkan atau ditarik di sini.",
   },

@@ -882,7 +882,7 @@ const ptBrCatalog: TranslationCatalog = {
     title: "Análise de uso",
     subtitle: "Escolha se este navegador pode ser medido.",
     toggleTitle: "Permitir cookies de análise",
-    toggleDescription: "Com isso desligado, este app não dá identificador nenhum a este navegador e não guarda nada para análise. Enquanto você estiver conectado, o que é medido continua sendo registrado na sua conta.",
+    toggleDescription: "Com isso desligado, este app não dá identificador nenhum a este navegador e não guarda nada nele para análise. O uso continua sendo contado de forma anônima e, enquanto você estiver conectado, é registrado na sua conta.",
     error: "Não deu certo. Tente de novo.",
     unavailable: "A análise está desativada neste aplicativo, então não há nada para permitir ou retirar aqui.",
   },

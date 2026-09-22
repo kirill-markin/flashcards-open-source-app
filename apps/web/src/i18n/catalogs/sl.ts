@@ -900,7 +900,7 @@ const slCatalog: TranslationCatalog = {
     title: "Analitika",
     subtitle: "Izberite, ali se sme ta brskalnik meriti.",
     toggleTitle: "Dovoli analitične piškotke",
-    toggleDescription: "Ko je to izklopljeno, ta aplikacija temu brskalniku ne dodeli identifikatorja in za analitiko ne shranjuje ničesar. Dokler ste prijavljeni, se izmerjeno še vedno beleži pod vašim računom.",
+    toggleDescription: "Ko je to izklopljeno, ta aplikacija temu brskalniku ne dodeli identifikatorja in vanj za analitiko ne shranjuje ničesar. Uporaba se še vedno šteje anonimno, dokler ste prijavljeni, pa se beleži pod vašim računom.",
     error: "To ni uspelo. Poskusite znova.",
     unavailable: "Analitika je za to aplikacijo izklopljena, zato tu ni ničesar za dovoliti ali preklicati.",
   },

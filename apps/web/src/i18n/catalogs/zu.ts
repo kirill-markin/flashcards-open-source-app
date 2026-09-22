@@ -882,7 +882,7 @@ const zuCatalog: TranslationCatalog = {
     title: "Ukuhlaziya",
     subtitle: "Khetha ukuthi lesi siphequluli singakalwa yini.",
     toggleTitle: "Vumela amakhukhi okuhlaziya",
-    toggleDescription: "Uma lokhu kuvaliwe, lolu hlelo lokusebenza aluniki lesi siphequluli isihlonzi futhi alugcini lutho lokuhlaziya. Ngenkathi ungenile, okukalwayo kusarekhodwa ku-akhawunti yakho.",
+    toggleDescription: "Uma lokhu kuvaliwe, lolu hlelo lokusebenza aluniki lesi siphequluli isihlonzi futhi alugcini lutho kuso lokuhlaziya. Ukusetshenziswa kusabalwa ngokungaziwa, futhi ngenkathi ungenile kurekhodwa ku-akhawunti yakho.",
     error: "Lokho akuphumelelanga. Sicela uzame futhi.",
     unavailable: "Ukuhlaziya kuvaliwe kulolu hlelo lokusebenza, ngakho akukho okufanele ukuvumele noma ukuhoxise lapha.",
   },

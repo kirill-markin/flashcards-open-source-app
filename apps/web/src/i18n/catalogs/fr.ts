@@ -882,7 +882,7 @@ const frCatalog: TranslationCatalog = {
     title: "Mesure d'audience",
     subtitle: "Choisissez si ce navigateur peut être mesuré.",
     toggleTitle: "Autoriser les cookies de mesure",
-    toggleDescription: "Quand c'est désactivé, cette application ne donne aucun identifiant à ce navigateur et ne stocke rien pour la mesure. Tant que vous êtes connecté, ce qui est mesuré reste enregistré sur votre compte.",
+    toggleDescription: "Quand c'est désactivé, cette application ne donne aucun identifiant à ce navigateur et n'y stocke rien pour la mesure. L'usage reste compté de façon anonyme et, tant que vous êtes connecté, il est enregistré sur votre compte.",
     error: "Ça n'a pas marché. Réessayez.",
     unavailable: "Les statistiques sont désactivées pour cette application : il n'y a donc rien à autoriser ni à retirer ici.",
   },

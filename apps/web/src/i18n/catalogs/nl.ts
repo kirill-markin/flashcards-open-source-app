@@ -882,7 +882,7 @@ const nlCatalog: TranslationCatalog = {
     title: "Analyse",
     subtitle: "Kies of deze browser gemeten mag worden.",
     toggleTitle: "Analytische cookies toestaan",
-    toggleDescription: "Als dit uit staat, geeft deze app deze browser geen identificatie en slaat hij niets op voor analyse. Zolang je bent aangemeld, wordt wat er gemeten wordt nog steeds aan je account gekoppeld.",
+    toggleDescription: "Als dit uit staat, geeft deze app deze browser geen identificatie en slaat hij er niets in op voor analyse. Het gebruik wordt nog steeds anoniem geteld, en zolang je bent aangemeld, wordt het aan je account gekoppeld.",
     error: "Dat is niet gelukt. Probeer het opnieuw.",
     unavailable: "Analyse staat uit voor deze app, dus er valt hier niets toe te staan of in te trekken.",
   },

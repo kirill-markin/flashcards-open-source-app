@@ -882,7 +882,7 @@ const daCatalog: TranslationCatalog = {
     title: "Analyse",
     subtitle: "Vælg om denne browser må måles.",
     toggleTitle: "Tillad analysecookies",
-    toggleDescription: "Når det er slået fra, giver appen ikke denne browser en identifikator og gemmer intet til analyse. Så længe du er logget ind, bliver det målte stadig registreret på din konto.",
+    toggleDescription: "Når det er slået fra, giver appen ikke denne browser en identifikator og gemmer intet i den til analyse. Brugen tælles stadig anonymt, og så længe du er logget ind, bliver den registreret på din konto.",
     error: "Det gik ikke igennem. Prøv igen.",
     unavailable: "Analyse er slået fra i denne app, så der er intet at tillade eller trække tilbage her.",
   },
