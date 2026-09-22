@@ -13,6 +13,11 @@ import {
   isExpectedBrowserMediaPermissionError,
   queryBrowserPermissionState,
 } from "../../../access/browserAccess";
+// The two analytics modules directly rather than the barrel: the barrel also carries the consent
+// UI and the account-preferences calls, which would pull the whole analytics delivery graph into
+// every chat bundle and test that renders the composer.
+import { track } from "../../../analytics/client";
+import { toAnalyticsDictationFailureReason } from "../../../analytics/failureReasons";
 import type { TranslationKey, TranslationValues } from "../../../i18n";
 import {
   insertDictationTranscriptIntoDraft,
@@ -22,6 +27,9 @@ import {
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type ChatDictationTechnicalOperation = "chat_dictation_start" | "chat_dictation_transcribe";
+// One object per `stopDictation` invocation, so the abandonment mark belongs to the attempt that
+// carries it and a later attempt cannot clear it while an earlier request is still in flight.
+type ChatDictationAttempt = { abandoned: boolean };
 
 type UseChatDictationCaptureParams = Readonly<{
   activeWorkspaceId: string | null;
@@ -165,6 +173,8 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   const transcriptionAbortControllerRef = useRef<AbortController | null>(null);
   const recordedChunksRef = useRef<Array<Blob>>([]);
   const currentSessionIdRef = useRef<string | null>(currentSessionId);
+  const dictationStateRef = useRef<ChatDictationState>("idle");
+  const currentDictationAttemptRef = useRef<ChatDictationAttempt | null>(null);
   const draftSelectionRef = useRef<ChatDraftSelection | null>(null);
   const pendingTextareaSelectionRef = useRef<ChatDraftSelection | null>(null);
   const pendingComposerFocusRestoreRef = useRef<boolean>(false);
@@ -181,9 +191,57 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
     cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
   }, []);
 
+  /**
+   * The terminal report for an abandoned attempt, called from the only two paths that abandon one:
+   * `discardDictation` and the unmount cleanup. While the recorder is running nothing else could
+   * report it — there is no in-flight request to abort — so `dictation_started` would stay unpaired
+   * and the abandonment would read as a transcript forever; the event is emitted here.
+   *
+   * While transcribing, `stopDictation` is still awaiting the recorder or the request, so this
+   * marks that attempt, hands the shared resources back, and leaves the invocation holding it to
+   * report from whichever branch it reaches:
+   * `cancelled` instead of the `no_speech` its dropped chunks would produce, `cancelled` instead of
+   * the transport reason its failing request would map to, and `cancelled` when the request
+   * succeeds but the transcript reaches no draft. A marked attempt whose transcript does land in
+   * the draft stays eventless on purpose: the person received the text, so it did not fail.
+   *
+   * `dictationStateRef` is written back here rather than left to the effect below: a discard
+   * followed by an unmount in the same commit never re-renders, so both would otherwise still read
+   * `recording`.
+   */
+  const reportDictationAbandoned = useCallback((): void => {
+    if (dictationStateRef.current === "transcribing") {
+      // Null in three windows, none of which has anything left to mark: between a terminal report
+      // and the state effect that clears `transcribing`, after an IndexedDB recovery return, which
+      // clears the attempt with the state still `transcribing` and reports nothing on purpose, and
+      // after an earlier abandonment released the attempt just below.
+      const abandonedAttempt = currentDictationAttemptRef.current;
+      if (abandonedAttempt !== null) {
+        abandonedAttempt.abandoned = true;
+        // Ownership ends here, not at the next `stopDictation`: the caller releases the recorder,
+        // the stream and the dictation state in the same tick, so a recording started before the
+        // marked invocation settles must not be cleaned up by it. Its own `attempt` closure carries
+        // the mark, so every terminal report still fires.
+        currentDictationAttemptRef.current = null;
+      }
+      return;
+    }
+
+    if (dictationStateRef.current !== "recording") {
+      return;
+    }
+
+    dictationStateRef.current = "idle";
+    track({ name: "dictation_failed", reason: "cancelled" });
+  }, []);
+
   useEffect(() => {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
+
+  useEffect(() => {
+    dictationStateRef.current = dictationState;
+  }, [dictationState]);
 
   useEffect(() => {
     if (
@@ -258,9 +316,10 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
+      reportDictationAbandoned();
       stopActiveDictationResources();
     };
-  }, [stopActiveDictationResources]);
+  }, [reportDictationAbandoned, stopActiveDictationResources]);
 
   function updateTrackedDraftSelection(textarea: HTMLTextAreaElement): void {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -285,6 +344,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   }
 
   function discardDictation(): void {
+    reportDictationAbandoned();
     stopActiveDictationResources();
     draftSelectionRef.current = null;
     pendingTextareaSelectionRef.current = null;
@@ -309,13 +369,17 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       }
       : null;
 
+    // A browser that cannot record at all lands in `server_error`, the catalog's remaining bucket:
+    // the attempt ended for a reason that is neither the person's answer nor the transport.
     if (typeof MediaRecorder === "undefined") {
+      track({ name: "dictation_failed", reason: "server_error" });
       window.alert(t("chatPanel.alerts.microphoneUnavailable"));
       return;
     }
 
     const mediaDevices = navigator.mediaDevices;
     if (mediaDevices === undefined || typeof mediaDevices.getUserMedia !== "function") {
+      track({ name: "dictation_failed", reason: "server_error" });
       window.alert(t("chatPanel.alerts.microphoneUnavailable"));
       return;
     }
@@ -341,6 +405,10 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       mediaRecorderRef.current = recorder;
       mediaStreamRef.current = stream;
       if (isMountedRef.current) {
+        // The recorder is running, which is what `dictation_started` means. Reporting the button
+        // click instead would count a refused microphone as a start with no end. An unmounted
+        // composer reports nothing either: it is left with a recorder no cancel path can end.
+        track({ name: "dictation_started", screen: "ai" });
         setDictationState("recording");
       }
     } catch (error) {
@@ -353,6 +421,11 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       if (isRecoveryActive) {
         return;
       }
+      // Reported here rather than beside each alert below, because the branches that stay silent —
+      // an auth redirect, an unmounted panel — failed the attempt just as much as the ones that
+      // speak. The IndexedDB recovery return above is the exception: it replaces the whole app
+      // rather than ending a dictation.
+      track({ name: "dictation_failed", reason: toAnalyticsDictationFailureReason(error) });
       const permissionState = await queryBrowserPermissionState("microphone");
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
@@ -377,11 +450,20 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
 
     const recorder = mediaRecorderRef.current;
     if (recorder === null || recorder.state === "inactive") {
+      // Only reachable while the state says `recording`, so the recorder stopped on its own —
+      // a revoked permission, a device taken away — and the attempt ended with no audio to send.
+      track({ name: "dictation_failed", reason: "server_error" });
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
       setDictationState("idle");
       return;
     }
 
+    // The stream this invocation recorded with, read before the first await: a discard during the
+    // recorder flush lets a later recording own `mediaStreamRef`, and stopping that would cut a
+    // live recording.
+    const ownedStream = mediaStreamRef.current;
+    const attempt: ChatDictationAttempt = { abandoned: false };
+    currentDictationAttemptRef.current = attempt;
     setDictationState("transcribing");
 
     let transcriptionAbortController: AbortController | null = null;
@@ -389,8 +471,12 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       indexedDbOpenRecoveryState.throwIfFailed();
       const audioBlob = await stopMediaRecorder(recorder, recordedChunksRef);
       indexedDbOpenRecoveryState.throwIfFailed();
-      stopMediaStream(mediaStreamRef.current);
+      stopMediaStream(ownedStream);
       if (audioBlob.size <= 0) {
+        track({
+          name: "dictation_failed",
+          reason: attempt.abandoned ? "cancelled" : "no_speech",
+        });
         if (isMountedRef.current) {
           setDictationState("idle");
         }
@@ -417,30 +503,44 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         throw new Error(t("chatPanel.errors.transcriptionUnexpectedSessionId"));
       }
 
-      if (currentSessionIdRef.current !== sessionId) {
+      // The transcript reaches the draft only while the composer is mounted and still on the
+      // session it was recorded for; a composer that left either one drops it.
+      if (currentSessionIdRef.current !== sessionId || isMountedRef.current === false) {
+        // A dropped transcript alone is not a failure and stays eventless. An abandoned attempt is:
+        // its request was created too late to be aborted and resolved anyway, so nobody received
+        // the text and this is the only branch left to pair its `dictation_started`.
+        if (attempt.abandoned) {
+          track({ name: "dictation_failed", reason: "cancelled" });
+        }
         return;
       }
 
-      if (isMountedRef.current) {
-        updateInputText((currentText) => {
-          const insertionResult = insertDictationTranscriptIntoDraft(
-            currentText,
-            transcription.text,
-            draftSelectionRef.current,
-          );
-          const nextSelection = shouldRestoreTextareaFocusAfterDictationRef.current
-            ? insertionResult.selection
-            : null;
-          draftSelectionRef.current = nextSelection;
-          pendingTextareaSelectionRef.current = nextSelection;
-          return insertionResult.text;
-        });
-      }
+      updateInputText((currentText) => {
+        const insertionResult = insertDictationTranscriptIntoDraft(
+          currentText,
+          transcription.text,
+          draftSelectionRef.current,
+        );
+        const nextSelection = shouldRestoreTextareaFocusAfterDictationRef.current
+          ? insertionResult.selection
+          : null;
+        draftSelectionRef.current = nextSelection;
+        pendingTextareaSelectionRef.current = nextSelection;
+        return insertionResult.text;
+      });
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;
       }
 
+      // An attempt abandoned before the request existed has no abort to raise `AbortError`, so the
+      // request it left running maps to a transport reason the person never experienced.
+      track({
+        name: "dictation_failed",
+        reason: attempt.abandoned
+          ? "cancelled"
+          : toAnalyticsDictationFailureReason(error),
+      });
       if (isMountedRef.current) {
         if (error instanceof Error && error.message === "MICROPHONE_RECORDING_FAILED") {
           window.alert(t("chatPanel.alerts.microphoneUnavailable"));
@@ -458,9 +558,18 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       if (transcriptionAbortControllerRef.current === transcriptionAbortController) {
         transcriptionAbortControllerRef.current = null;
       }
-      cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
-      if (isMountedRef.current && indexedDbOpenRecoveryState.hasFailed() === false) {
-        setDictationState("idle");
+      // The shared recorder and dictation state belong to whoever owns the current attempt. A
+      // discard or an unmount releases this invocation's ownership as it marks the attempt, so an
+      // abandoned one owns neither: it would stop a later recording's live stream and its `idle`
+      // reset would strand that recording's `dictation_started` with no path left to pair it. The
+      // discard already stopped the resources this invocation had and set `idle` itself.
+      const ownsAttempt = currentDictationAttemptRef.current === attempt;
+      if (ownsAttempt) {
+        currentDictationAttemptRef.current = null;
+        cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+        if (isMountedRef.current && indexedDbOpenRecoveryState.hasFailed() === false) {
+          setDictationState("idle");
+        }
       }
     }
   }
