@@ -15,6 +15,9 @@ struct CloudOtpVerificationSheet: View {
     /// hosts a new code step for every code it sends, so each request below also carries the
     /// `CloudOtpSheetState.id` it was started for before it writes the step's own state.
     let attemptId: String
+    /// The surface this code step's `signin_code_requested` carries, decided by the presenter that
+    /// opened the sign-in rather than by the step, which is the same on both of them.
+    let signInStepSurface: AnalyticsSurface
     @Binding var otpSheetState: CloudOtpSheetState?
     let onVerified: (CloudVerifiedAuthContext) -> Void
     let onReturnToEmail: () -> Void
@@ -24,11 +27,13 @@ struct CloudOtpVerificationSheet: View {
 
     init(
         attemptId: String,
+        signInStepSurface: AnalyticsSurface,
         otpSheetState: Binding<CloudOtpSheetState?>,
         onVerified: @escaping (CloudVerifiedAuthContext) -> Void,
         onReturnToEmail: @escaping () -> Void
     ) {
         self.attemptId = attemptId
+        self.signInStepSurface = signInStepSurface
         self._otpSheetState = otpSheetState
         self.onVerified = onVerified
         self.onReturnToEmail = onReturnToEmail
@@ -328,11 +333,18 @@ struct CloudOtpVerificationSheet: View {
 
                 switch sendCodeResult {
                 case .otpChallenge(let nextChallenge):
+                    guard self.store.cloudSignInAttempt.id == self.attemptId else {
+                        return
+                    }
+
+                    // Another code was sent, which is another `signin_code_requested`. Reported at
+                    // attempt level, where this request's failure is reported too.
+                    Analytics.track(.signInCodeRequested(screen: self.signInStepSurface))
+
                     // The challenge and the empty entry state it comes with belong to the code step
                     // this resend was started for. A step that replaced it is holding a newer
                     // challenge of its own, which this one must neither overwrite nor clear.
-                    guard self.store.cloudSignInAttempt.id == self.attemptId,
-                          self.store.cloudSignInAttempt.otpSheetState?.id == otpSheetStateId else {
+                    guard self.store.cloudSignInAttempt.otpSheetState?.id == otpSheetStateId else {
                         return
                     }
 
