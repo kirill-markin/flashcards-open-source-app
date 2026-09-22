@@ -867,6 +867,17 @@ extension FlashcardsStore {
             )
         }
         self.persistScheduledStrictReminders(payloads: acceptedExpectedPayloads)
+        // Only what Notification Center was read back as holding: a planned payload the add or the
+        // readback lost is not a scheduled reminder and must not enter the denominator.
+        self.reportScheduledNotifications(
+            notificationKind: .strictReminder,
+            ledgerKey: reportedScheduledStrictRemindersUserDefaultsKey,
+            identities: strictReminderScheduledNotificationIdentities(
+                payloads: acceptedExpectedPayloads,
+                calendar: Calendar.autoupdatingCurrent
+            ),
+            nowMillis: Int64(readbackNow.timeIntervalSince1970 * 1000)
+        )
         self.addNotificationForegroundOperationBreadcrumb(
             notificationKind: .strictReminder,
             stage: "strict_reconcile",
