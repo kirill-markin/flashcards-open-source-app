@@ -33,6 +33,21 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
     return createQueryResult<Row>([]);
   }
 
+  // Keyed by session id, unlike the token-hash lookup below it.
+  if (text.startsWith("SELECT analytics_consent") && text.includes("FROM auth.guest_sessions")) {
+    const requestedSessionId = params[0];
+    const requestedUserId = params[1];
+    const guestSession = state.guestSession;
+    const rows = (
+      guestSession !== null
+      && requestedSessionId === guestSession.session_id
+      && requestedUserId === guestSession.user_id
+    )
+      ? [{ analytics_consent: guestSession.analytics_consent } as unknown as Row]
+      : [];
+    return createQueryResult<Row>(rows);
+  }
+
   if (text.includes("FROM auth.guest_sessions")) {
     const requestedHash = params[0];
     const guestSession = state.guestSession;
