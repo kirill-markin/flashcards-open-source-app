@@ -314,12 +314,25 @@ h2 {
   stroke-width: 1.5;
 }
 
-.funnel-step:focus-visible .funnel-step-hit {
+/* Same specificity as the plain hover rule and later, so hovering the anchor deepens its fill instead of dropping it. */
+.funnel-step-selected:hover .funnel-step-hit {
+  fill: rgba(196, 75, 45, 0.18);
+}
+
+/* A separate inset ring, so focus never replaces the anchor's accent stroke. */
+.funnel-step-focus-ring {
+  fill: none;
+  stroke: none;
+  pointer-events: none;
+}
+
+.funnel-step:focus-visible .funnel-step-focus-ring {
   stroke: rgba(255, 255, 255, 0.72);
   stroke-width: 2;
 }
 
-.funnel-step-axis-label-selected {
+/* Qualified with `.axis text` so it outranks that rule's muted fill. */
+.axis text.funnel-step-axis-label-selected {
   fill: var(--accent-strong);
 }
 

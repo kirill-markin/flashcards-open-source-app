@@ -761,6 +761,10 @@ const funnelChartHeight = 440;
 const funnelChartMargin = { top: 76, right: 24, bottom: 64, left: chartMargin.left } as const;
 const funnelStepLabelMaxLineLength = 18;
 const funnelStepLabelLineHeight = 15;
+/** Keeps the column's 1.5-unit selected stroke inside the viewBox, whose edges clip it. */
+const funnelStepHitEdgeInset = 2;
+/** Clears the column's selected stroke with the 2-unit focus ring drawn inside it. */
+const funnelStepFocusRingInset = 4;
 
 function wrapFunnelStepLabel(label: string): ReadonlyArray<string> {
   const lines: Array<string> = [];
@@ -785,16 +789,20 @@ function getFunnelStepAnchorShareText(step: FunnelStepBar, stepIndex: number, an
   return `${step.shareOfAnchorLabel} of selected`;
 }
 
+/**
+ * Names the control only: the counts and shares live once, in the chart's visually hidden table,
+ * so a screen reader does not hear every number twice.
+ */
 function getFunnelStepAriaLabel(step: FunnelStepBar, stepIndex: number, anchorIndex: number): string {
-  const parts = [
-    `${step.label}: ${numberFormatter(step.count)} visitors`,
-    getFunnelStepAnchorShareText(step, stepIndex, anchorIndex),
-  ];
-  if (step.previousCount !== null) {
-    parts.push(`${step.shareOfPreviousLabel} of previous`);
+  if (stepIndex === 0) {
+    return `Measure from ${step.label} (default start)`;
   }
 
-  return parts.join(", ");
+  if (stepIndex === anchorIndex) {
+    return `Measure from ${step.label} (current start; press again to reset)`;
+  }
+
+  return `Measure from ${step.label}`;
 }
 
 /**
@@ -913,14 +921,23 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     });
 
   // The full column from the top edge to below the axis labels, drawn first so the bar and labels sit over it.
+  // It stops short of the viewBox's top and bottom edges, which clip overflow, so its stroke is drawn whole.
   const columnInset = (x.step() - bandWidth) / 2;
   stepGroups.append("rect")
     .attr("class", "funnel-step-hit")
     .attr("x", -columnInset)
-    .attr("y", -funnelChartMargin.top)
+    .attr("y", -funnelChartMargin.top + funnelStepHitEdgeInset)
     .attr("width", x.step())
-    .attr("height", funnelChartHeight)
+    .attr("height", funnelChartHeight - funnelStepHitEdgeInset * 2)
     .attr("rx", 6);
+  // The keyboard focus ring sits inside the column's own edge, so it shows alongside the anchor's accent stroke.
+  stepGroups.append("rect")
+    .attr("class", "funnel-step-focus-ring")
+    .attr("x", -columnInset + funnelStepFocusRingInset)
+    .attr("y", -funnelChartMargin.top + funnelStepHitEdgeInset + funnelStepFocusRingInset)
+    .attr("width", x.step() - funnelStepFocusRingInset * 2)
+    .attr("height", funnelChartHeight - (funnelStepHitEdgeInset + funnelStepFocusRingInset) * 2)
+    .attr("rx", 4);
 
   stepGroups.filter((step) => step.previousCount !== null && step.previousCount > step.count)
     .append("rect")
