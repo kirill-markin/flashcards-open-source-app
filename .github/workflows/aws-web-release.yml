@@ -18,6 +18,7 @@ on:
       - 'scripts/checks/check-public-endpoints.sh'
       - 'scripts/deploy/deploy-admin.sh'
       - 'scripts/deploy/deploy-web.sh'
+      - 'scripts/deploy/select-release-components.sh'
       - 'scripts/generate/generate-catalog-dump.sh'
       - 'scripts/generate/generate-global-metrics-snapshot.sh'
       - 'scripts/deploy/migrate-aws.sh'
@@ -42,124 +43,121 @@ env:
 
 jobs:
   changes:
-    name: Detect changed areas
+    name: Select release components
     runs-on: ubuntu-24.04
+    # A failed selection step deploys every component instead of skipping one.
     outputs:
-      aws_changed: ${{ steps.detect.outputs.aws_changed }}
-      auth_changed: ${{ steps.detect.outputs.auth_changed }}
-      backend_changed: ${{ steps.detect.outputs.backend_changed }}
-      web_changed: ${{ steps.detect.outputs.web_changed }}
-      admin_changed: ${{ steps.detect.outputs.admin_changed }}
-      infra_changed: ${{ steps.detect.outputs.infra_changed }}
-      changed_files: ${{ steps.detect.outputs.changed_files }}
+      deploy_platform: ${{ steps.select.outcome == 'success' && steps.select.outputs.deploy_platform || 'true' }}
+      deploy_web: ${{ steps.select.outcome == 'success' && steps.select.outputs.deploy_web || 'true' }}
+      deploy_admin: ${{ steps.select.outcome == 'success' && steps.select.outputs.deploy_admin || 'true' }}
+      deploy_any: ${{ steps.select.outcome == 'success' && steps.select.outputs.deploy_any || 'true' }}
+      auth_changed: ${{ steps.select.outcome == 'success' && steps.select.outputs.auth_changed || 'true' }}
+      backend_changed: ${{ steps.select.outcome == 'success' && steps.select.outputs.backend_changed || 'true' }}
+      infra_changed: ${{ steps.select.outcome == 'success' && steps.select.outputs.infra_changed || 'true' }}
+      # The values read at selection time; the record job writes a new SHA only
+      # while SSM still holds them.
+      platform_read_sha: ${{ steps.deployed.outputs.platform_sha || 'unreadable' }}
+      web_read_sha: ${{ steps.deployed.outputs.web_sha || 'unreadable' }}
+      admin_read_sha: ${{ steps.deployed.outputs.admin_sha || 'unreadable' }}
 
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Detect changed files
-        id: detect
+      - name: Configure AWS credentials (OIDC)
+        id: aws_credentials
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Each value is the component's last successfully released SHA, "missing"
+      # when the parameter does not exist yet, or "unreadable" when SSM could not
+      # be read. The selection step deploys the component for both sentinels.
+      - name: Read deployed component SHAs
+        id: deployed
+        continue-on-error: true
         env:
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          AWS_CREDENTIALS_OUTCOME: ${{ steps.aws_credentials.outcome }}
         run: |
           set -euo pipefail
 
-          aws_release_script_pattern='^scripts/(geolite/[^/]+\.sh|checks/(check-agent-api-smoke|check-api-health|check-demo-cognito-users|check-mcp-smoke|check-multipart-completion-reconciliation-schedule|check-public-endpoints)\.sh|deploy/(deploy-admin|deploy-web|migrate-aws)\.sh|generate/(generate-catalog-dump\.sh|generate-global-metrics-snapshot\.sh|write-ci-cdk-context\.py))$'
+          parameter_prefix="/${STACK_NAME}/release/deployed-sha"
+          platform_sha="unreadable"
+          web_sha="unreadable"
+          admin_sha="unreadable"
 
-          changed_files_path="${RUNNER_TEMP}/changed-files.txt"
-          before_sha="${PUSH_BEFORE_SHA:-}"
-
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            printf '%s\n' 'workflow_dispatch (forced AWS deploy)' > "${changed_files_path}"
-          elif [[ "${GITHUB_EVENT_NAME}" == "push" ]] && [[ -n "${before_sha}" ]] && [[ "${before_sha}" != "0000000000000000000000000000000000000000" ]]; then
-            git diff --name-only "${before_sha}" "${GITHUB_SHA}" > "${changed_files_path}"
-          elif git rev-parse HEAD^ >/dev/null 2>&1; then
-            git diff --name-only HEAD^ HEAD > "${changed_files_path}"
+          if [[ "${AWS_CREDENTIALS_OUTCOME}" != "success" ]]; then
+            echo "::warning::AWS credentials are unavailable, so every component deploys."
+          elif ! response="$(aws ssm get-parameters \
+            --names "${parameter_prefix}/platform" "${parameter_prefix}/web" "${parameter_prefix}/admin" \
+            --output json)"; then
+            echo "::warning::Reading ${parameter_prefix}/* from SSM failed, so every component deploys."
           else
-            git ls-files > "${changed_files_path}"
-          fi
-
-          aws_changed=false
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            aws_changed=true
-          elif grep -Eq "^(apps/auth/|apps/backend/|apps/web/|apps/admin/|db/|infra/|\\.github/workflows/aws-web-release\\.yml$)" "${changed_files_path}" || grep -Eq "${aws_release_script_pattern}" "${changed_files_path}"; then
-            aws_changed=true
-          fi
-
-          auth_changed=false
-          backend_changed=false
-          web_changed=false
-          admin_changed=false
-          infra_changed=false
-
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            auth_changed=true
-            backend_changed=true
-            web_changed=true
-            admin_changed=true
-            infra_changed=true
-          else
-            if grep -Eq '^(apps/auth/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-              auth_changed=true
+            # Errexit does not reach inside $(...), so every failure returns
+            # explicitly and the caller maps it to "unreadable", never to
+            # "missing".
+            read_parameter() {
+              local name="$1"
+              local value
+              if ! value="$(jq -r --arg name "${name}" '.Parameters[] | select(.Name == $name) | .Value' <<< "${response}")"; then
+                return 1
+              fi
+              if [[ -z "${value}" ]]; then
+                value="missing"
+              fi
+              printf '%s' "${value}"
+            }
+            if ! platform_sha="$(read_parameter "${parameter_prefix}/platform")"; then
+              platform_sha="unreadable"
             fi
-
-            if grep -Eq '^(apps/backend/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-              backend_changed=true
+            if ! web_sha="$(read_parameter "${parameter_prefix}/web")"; then
+              web_sha="unreadable"
             fi
-
-            if grep -Eq '^(apps/web/|apps/backend/src/scheduling/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-              web_changed=true
+            if ! admin_sha="$(read_parameter "${parameter_prefix}/admin")"; then
+              admin_sha="unreadable"
             fi
-
-            if grep -Eq '^(apps/admin/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-              admin_changed=true
-            fi
-
-            if grep -Eq '^(infra/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-              infra_changed=true
+            if [[ "${platform_sha}" == "unreadable" || "${web_sha}" == "unreadable" || "${admin_sha}" == "unreadable" ]]; then
+              echo "::warning::Parsing the SSM response failed, so every unreadable component deploys."
             fi
           fi
 
           {
-            echo "aws_changed=${aws_changed}"
-            echo "auth_changed=${auth_changed}"
-            echo "backend_changed=${backend_changed}"
-            echo "web_changed=${web_changed}"
-            echo "admin_changed=${admin_changed}"
-            echo "infra_changed=${infra_changed}"
-            echo 'changed_files<<EOF'
-            cat "${changed_files_path}"
-            echo 'EOF'
+            echo "platform_sha=${platform_sha}"
+            echo "web_sha=${web_sha}"
+            echo "admin_sha=${admin_sha}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Summarize changed areas
+      - name: Select components to deploy
+        id: select
+        continue-on-error: true
         env:
-          CHANGED_FILES: ${{ steps.detect.outputs.changed_files }}
+          PLATFORM_DEPLOYED_SHA: ${{ steps.deployed.outputs.platform_sha || 'unreadable' }}
+          WEB_DEPLOYED_SHA: ${{ steps.deployed.outputs.web_sha || 'unreadable' }}
+          ADMIN_DEPLOYED_SHA: ${{ steps.deployed.outputs.admin_sha || 'unreadable' }}
+        run: |
+          bash scripts/deploy/select-release-components.sh \
+            --event-name "${GITHUB_EVENT_NAME}" \
+            --target-sha "${GITHUB_SHA}" \
+            --platform-deployed-sha "${PLATFORM_DEPLOYED_SHA}" \
+            --web-deployed-sha "${WEB_DEPLOYED_SHA}" \
+            --admin-deployed-sha "${ADMIN_DEPLOYED_SHA}"
+
+      - name: Summarize selection fallback
+        if: ${{ steps.select.outcome != 'success' }}
         run: |
           {
-            echo "## Release scope"
+            echo "## Release components"
             echo ""
-            echo "- AWS changed: \`${{ steps.detect.outputs.aws_changed }}\`"
-            echo "- Auth changed: \`${{ steps.detect.outputs.auth_changed }}\`"
-            echo "- Backend changed: \`${{ steps.detect.outputs.backend_changed }}\`"
-            echo "- Web changed: \`${{ steps.detect.outputs.web_changed }}\`"
-            echo "- Admin changed: \`${{ steps.detect.outputs.admin_changed }}\`"
-            echo "- Infra changed: \`${{ steps.detect.outputs.infra_changed }}\`"
-            echo ""
-            echo "### Changed files"
-            echo ""
-            if [[ -n "${CHANGED_FILES}" ]]; then
-              printf '%s\n' "${CHANGED_FILES}"
-            else
-              echo "No changed files detected."
-            fi
+            echo "Component selection failed, so every component deploys (full deploy). See the \`Select components to deploy\` step log."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   pre_deploy_checks:
     name: Pre-deploy checks
     needs: changes
-    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
+    if: ${{ needs.changes.outputs.deploy_any == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     services:
@@ -191,13 +189,20 @@ jobs:
             apps/admin/package-lock.json
             infra/aws/package-lock.json
 
-      - name: Install dependencies
+      - name: Install platform dependencies
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
-          npm ci --prefix apps/web
-          npm ci --prefix apps/admin
           npm ci --prefix infra/aws
+
+      - name: Install web dependencies
+        if: ${{ needs.changes.outputs.deploy_web == 'true' }}
+        run: npm ci --prefix apps/web
+
+      - name: Install admin dependencies
+        if: ${{ needs.changes.outputs.deploy_admin == 'true' }}
+        run: npm ci --prefix apps/admin
 
       - name: Build auth app
         if: ${{ needs.changes.outputs.auth_changed == 'true' }}
@@ -220,16 +225,17 @@ jobs:
         run: npm run test:mcp --prefix apps/backend
 
       - name: Test PostgreSQL 18 lifecycle and 0096 to 0097 security boundaries
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         env:
           POSTGRES_INTEGRATION_ADMIN_URL: postgresql://postgres_integration:postgres-integration-${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/postgres?sslmode=disable
         run: npm run test:postgres-integration --prefix apps/backend
 
       - name: Build web app
-        if: ${{ needs.changes.outputs.web_changed == 'true' }}
+        if: ${{ needs.changes.outputs.deploy_web == 'true' }}
         run: npm run build --prefix apps/web
 
       - name: Build admin app
-        if: ${{ needs.changes.outputs.admin_changed == 'true' }}
+        if: ${{ needs.changes.outputs.deploy_admin == 'true' }}
         run: npm run build --prefix apps/admin
 
       - name: Build infra
@@ -241,11 +247,13 @@ jobs:
         run: npm run test --prefix infra/aws
 
       - name: Set up Docker QEMU for CDK bundling
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
       - name: Synthesize infra
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         working-directory: infra/aws
         env:
           AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
@@ -304,7 +312,7 @@ jobs:
     needs:
       - changes
       - pre_deploy_checks
-    if: ${{ needs.changes.outputs.aws_changed == 'true' && needs.pre_deploy_checks.result == 'success' }}
+    if: ${{ needs.changes.outputs.deploy_any == 'true' && needs.pre_deploy_checks.result == 'success' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
 
@@ -322,15 +330,23 @@ jobs:
             apps/admin/package-lock.json
             infra/aws/package-lock.json
 
-      - name: Install dependencies
+      - name: Install platform dependencies
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
-          npm ci --prefix apps/web
-          npm ci --prefix apps/admin
           npm ci --prefix infra/aws
 
+      - name: Install web dependencies
+        if: ${{ needs.changes.outputs.deploy_web == 'true' }}
+        run: npm ci --prefix apps/web
+
+      - name: Install admin dependencies
+        if: ${{ needs.changes.outputs.deploy_admin == 'true' }}
+        run: npm ci --prefix apps/admin
+
       - name: Build web app
+        if: ${{ needs.changes.outputs.deploy_web == 'true' }}
         env:
           VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
           VITE_SENTRY_ENVIRONMENT: production
@@ -343,6 +359,7 @@ jobs:
         run: npm run build --prefix apps/web
 
       - name: Build admin app
+        if: ${{ needs.changes.outputs.deploy_admin == 'true' }}
         run: npm run build --prefix apps/admin
 
       - name: Configure AWS credentials (OIDC)
@@ -352,6 +369,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: CDK deploy with migration-gated runtime and reconciliation schedule disabled
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         working-directory: infra/aws
         env:
           AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
@@ -414,12 +432,14 @@ jobs:
             -c multipartCompletionReconciliationScheduleState=DISABLED
 
       - name: Verify required database migration
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |
           bash scripts/deploy/migrate-aws.sh \
             --stack-name ${{ env.STACK_NAME }} \
             --require-latest-migration
 
       - name: CDK deploy with reconciliation schedule enabled
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         working-directory: infra/aws
         env:
           SENTRY_UPLOAD_BACKEND_SOURCEMAPS: false
@@ -430,35 +450,47 @@ jobs:
             -c multipartCompletionReconciliationScheduleState=ENABLED
 
       - name: Verify cleanup-capable reconciliation schedules are enabled
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: |
           bash scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
             --stack-name ${{ env.STACK_NAME }} \
             --region ${{ env.AWS_REGION }}
 
       - name: Refresh private GeoLite Country database
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         env:
           MAXMIND_ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
           MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
         run: bash scripts/geolite/refresh-country.sh
 
       - name: Check demo Cognito users
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/checks/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
 
       - name: Seed global metrics snapshot
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/generate/generate-global-metrics-snapshot.sh --stack-name ${{ env.STACK_NAME }}
 
+      # No schedule rebuilds the dump; only catalog publication events do, so
+      # every release reseeds it whatever the components.
       - name: Seed public catalog dump
         run: bash scripts/generate/generate-catalog-dump.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Deploy web assets
+        if: ${{ needs.changes.outputs.deploy_web == 'true' }}
         run: bash scripts/deploy/deploy-web.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Deploy admin assets
+        if: ${{ needs.changes.outputs.deploy_admin == 'true' }}
         run: bash scripts/deploy/deploy-admin.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Check API health
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/checks/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
 
+      # Runs for every component: it is the only probe of the hosted web and
+      # admin roots, and it reads the existing stack outputs, so it needs no
+      # platform deploy in this run.
       - name: Check public custom domains
         run: bash scripts/checks/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
 
@@ -468,11 +500,13 @@ jobs:
             echo "## AWS deploy"
             echo ""
             echo "- Deployed SHA: \`${GITHUB_SHA}\`"
-            echo "- Web post-deploy smoke: pending next job"
-            echo "- Agent API post-deploy smoke: pending next job"
-            echo "- MCP post-deploy smoke: pending next job"
+            echo "- Platform deployed: \`${{ needs.changes.outputs.deploy_platform }}\`"
+            echo "- Web deployed: \`${{ needs.changes.outputs.deploy_web }}\`"
+            echo "- Admin deployed: \`${{ needs.changes.outputs.deploy_admin }}\`"
             echo ""
-            echo "Manual admin smoke remains required for \`https://admin.<domain>\`."
+            if [[ "${{ needs.changes.outputs.deploy_admin }}" == "true" ]]; then
+              echo "Manual admin smoke remains required for \`https://admin.<domain>\`."
+            fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
   # Scope note: this job never loads the deployed web assets. It builds `dist`
@@ -480,13 +514,14 @@ jobs:
   # `/etc/hosts`, and serves that fresh build over a self-signed certificate.
   # Only `auth.` and `api.` reach real deployed infrastructure, so a green run
   # means the merge commit's web client works against the deployed backend, not
-  # that the hosted web deployment is healthy.
+  # that the hosted web deployment is healthy. It also runs when only the
+  # platform deployed, to check the web client against the new backend.
   web_smoke:
     name: Web post-deploy smoke
     needs:
       - changes
       - aws_deploy
-    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
+    if: ${{ needs.changes.outputs.deploy_web == 'true' || needs.changes.outputs.deploy_platform == 'true' }}
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
@@ -639,7 +674,7 @@ jobs:
     needs:
       - changes
       - aws_deploy
-    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
+    if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -675,7 +710,7 @@ jobs:
     needs:
       - changes
       - aws_deploy
-    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
+    if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -743,6 +778,184 @@ jobs:
             echo "- Result: \`${{ steps.mcp_smoke.outcome }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  # A component's SHA advances only after its deploy and its smokes pass. The
+  # platform needs the agent API, MCP and web smokes; web needs the web smoke.
+  # The main-release concurrency group serializes runs, including reruns, so
+  # the next run reads these values only after this job has finished.
+  #
+  # A selected component that may have changed production without being
+  # verified is cleared: its parameter is deleted, so the next run deploys it in
+  # full. Keeping the old SHA would be wrong, because reverting the bad commit
+  # makes the tree equal that SHA again and the diff would select nothing. This
+  # covers a failed smoke and an `aws_deploy` job that failed or was cancelled
+  # after its deploy steps may have run. When `changes` fails, `aws_deploy`
+  # cannot run and nothing reached production, so this job is skipped.
+  #
+  # Each write is a compare-and-set against the value the `changes` job read. A
+  # rerun of an older run keeps that run's selection, so after a newer run has
+  # recorded its SHA the stored value no longer matches; the parameter is then
+  # deleted instead of moved back, and the next run deploys that component.
+  record_deployed_shas:
+    name: Record deployed component SHAs
+    needs:
+      - changes
+      - aws_deploy
+      - web_smoke
+      - agent_api_smoke
+      - mcp_smoke
+    if: ${{ always() && needs.changes.result == 'success' && needs.aws_deploy.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Record deployed SHAs in SSM
+        env:
+          DEPLOY_PLATFORM: ${{ needs.changes.outputs.deploy_platform }}
+          DEPLOY_WEB: ${{ needs.changes.outputs.deploy_web }}
+          DEPLOY_ADMIN: ${{ needs.changes.outputs.deploy_admin }}
+          AWS_DEPLOY_RESULT: ${{ needs.aws_deploy.result }}
+          WEB_SMOKE_RESULT: ${{ needs.web_smoke.result }}
+          AGENT_API_SMOKE_RESULT: ${{ needs.agent_api_smoke.result }}
+          MCP_SMOKE_RESULT: ${{ needs.mcp_smoke.result }}
+          PLATFORM_READ_SHA: ${{ needs.changes.outputs.platform_read_sha }}
+          WEB_READ_SHA: ${{ needs.changes.outputs.web_read_sha }}
+          ADMIN_READ_SHA: ${{ needs.changes.outputs.admin_read_sha }}
+        run: |
+          set -euo pipefail
+
+          parameter_prefix="/${STACK_NAME}/release/deployed-sha"
+          summary_rows=""
+          write_failed="false"
+
+          # Prints the parameter value, or "missing" when it does not exist.
+          # Errexit does not reach inside $(...), so an SSM or jq failure
+          # returns nonzero instead of reading as "missing".
+          read_current_sha() {
+            local name="$1"
+            local response
+            local value
+            if ! response="$(aws ssm get-parameters --names "${name}" --output json)"; then
+              return 1
+            fi
+            if ! value="$(jq -r --arg name "${name}" '.Parameters[] | select(.Name == $name) | .Value' <<< "${response}")"; then
+              return 1
+            fi
+            if [[ -z "${value}" ]]; then
+              value="missing"
+            fi
+            printf '%s' "${value}"
+          }
+
+          # Deletes the parameter so the next run deploys the component in
+          # full. An already absent parameter counts as cleared.
+          clear_component() {
+            local component="$1"
+            local name="$2"
+            local reason="$3"
+            local output
+            if output="$(aws ssm delete-parameter --name "${name}" 2>&1)" \
+              || [[ "${output}" == *ParameterNotFound* ]]; then
+              summary_rows="${summary_rows}| ${component} | cleared: ${reason}; the next run deploys it |"$'\n'
+            else
+              echo "::error::Clearing ${name} failed, so it may still name a SHA production no longer runs: ${output}"
+              summary_rows="${summary_rows}| ${component} | clear failed: ${reason} |"$'\n'
+              write_failed="true"
+            fi
+          }
+
+          # Empty when the deployed component was verified, otherwise why not.
+          verification_failure() {
+            local component="$1"
+            if [[ "${AWS_DEPLOY_RESULT}" != "success" ]]; then
+              echo "deploy job ended \`${AWS_DEPLOY_RESULT}\`, so production may run an unverified build"
+              return
+            fi
+            case "${component}" in
+              platform)
+                if [[ "${WEB_SMOKE_RESULT}" != "success" ]]; then
+                  echo "web smoke did not pass (\`${WEB_SMOKE_RESULT}\`), which blocks the platform"
+                elif [[ "${AGENT_API_SMOKE_RESULT}" != "success" ]]; then
+                  echo "agent API smoke did not pass (\`${AGENT_API_SMOKE_RESULT}\`)"
+                elif [[ "${MCP_SMOKE_RESULT}" != "success" ]]; then
+                  echo "MCP smoke did not pass (\`${MCP_SMOKE_RESULT}\`)"
+                fi
+                ;;
+              web)
+                if [[ "${WEB_SMOKE_RESULT}" != "success" ]]; then
+                  echo "web smoke did not pass (\`${WEB_SMOKE_RESULT}\`)"
+                fi
+                ;;
+            esac
+          }
+
+          for component in platform web admin; do
+            case "${component}" in
+              platform) selected="${DEPLOY_PLATFORM}"; read_sha="${PLATFORM_READ_SHA}" ;;
+              web) selected="${DEPLOY_WEB}"; read_sha="${WEB_READ_SHA}" ;;
+              admin) selected="${DEPLOY_ADMIN}"; read_sha="${ADMIN_READ_SHA}" ;;
+            esac
+            parameter_name="${parameter_prefix}/${component}"
+
+            if [[ "${selected}" != "true" ]]; then
+              summary_rows="${summary_rows}| ${component} | unchanged: not deployed in this run |"$'\n'
+              continue
+            fi
+
+            reason="$(verification_failure "${component}")"
+            if [[ -n "${reason}" ]]; then
+              echo "::warning::Clearing ${parameter_name}: ${reason}."
+              clear_component "${component}" "${parameter_name}" "${reason}"
+              continue
+            fi
+
+            # An unknown current value cannot pass compare-and-set, and a
+            # write could move a newer SHA back. Clearing is always safe: the
+            # worst case is one extra full deploy of this component.
+            if ! current_sha="$(read_current_sha "${parameter_name}")"; then
+              echo "::warning::Reading ${parameter_name} failed, so the compare-and-set cannot run and the parameter is cleared."
+              clear_component "${component}" "${parameter_name}" "reading the stored SHA failed"
+              continue
+            fi
+
+            # "unreadable" at selection time only proves the parameter was
+            # absent when it is still absent now.
+            if [[ "${current_sha}" == "${GITHUB_SHA}" \
+              || "${current_sha}" == "${read_sha}" \
+              || ( "${current_sha}" == "missing" && "${read_sha}" == "unreadable" ) ]]; then
+              if aws ssm put-parameter \
+                --name "${parameter_name}" \
+                --type String \
+                --value "${GITHUB_SHA}" \
+                --overwrite >/dev/null; then
+                summary_rows="${summary_rows}| ${component} | recorded \`${GITHUB_SHA}\` |"$'\n'
+              else
+                echo "::error::Writing ${parameter_name} failed."
+                summary_rows="${summary_rows}| ${component} | record failed; still \`${current_sha}\` |"$'\n'
+                write_failed="true"
+              fi
+            else
+              echo "::warning::${parameter_name} changed from \`${read_sha}\` to \`${current_sha}\` since this run selected components, so it is cleared."
+              clear_component "${component}" "${parameter_name}" "changed from \`${read_sha}\` to \`${current_sha}\` since selection"
+            fi
+          done
+
+          {
+            echo "## Recorded deployed SHAs"
+            echo ""
+            echo "| Component | \`${parameter_prefix}/<component>\` |"
+            echo "| --- | --- |"
+            printf '%s' "${summary_rows}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          if [[ "${write_failed}" == "true" ]]; then
+            exit 1
+          fi
+
   aws_release_status:
     name: Resolve AWS release outcome
     needs:
@@ -752,30 +965,38 @@ jobs:
       - web_smoke
       - agent_api_smoke
       - mcp_smoke
+      - record_deployed_shas
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     outputs:
       aws_release_status: ${{ steps.resolve.outputs.aws_release_status }}
 
     steps:
+      # A smoke skipped because its component was not selected is not a failure.
       - name: Resolve AWS release status
         id: resolve
         run: |
           set -euo pipefail
 
+          deploy_platform="${{ needs.changes.outputs.deploy_platform }}"
+          deploy_web="${{ needs.changes.outputs.deploy_web }}"
           aws_release_status="no_aws_changes"
 
-          if [[ "${{ needs.changes.outputs.aws_changed }}" == "true" ]]; then
+          if [[ "${{ needs.changes.result }}" != "success" ]]; then
+            aws_release_status="component_selection_failed"
+          elif [[ "${{ needs.changes.outputs.deploy_any }}" == "true" ]]; then
             if [[ "${{ needs.pre_deploy_checks.result }}" != "success" ]]; then
               aws_release_status="pre_deploy_checks_failed"
             elif [[ "${{ needs.aws_deploy.result }}" != "success" ]]; then
               aws_release_status="deployment_failed"
-            elif [[ "${{ needs.web_smoke.result }}" != "success" ]]; then
+            elif [[ ( "${deploy_web}" == "true" || "${deploy_platform}" == "true" ) && "${{ needs.web_smoke.result }}" != "success" ]]; then
               aws_release_status="web_smoke_failed"
-            elif [[ "${{ needs.agent_api_smoke.result }}" != "success" ]]; then
+            elif [[ "${deploy_platform}" == "true" && "${{ needs.agent_api_smoke.result }}" != "success" ]]; then
               aws_release_status="agent_api_smoke_failed"
-            elif [[ "${{ needs.mcp_smoke.result }}" != "success" ]]; then
+            elif [[ "${deploy_platform}" == "true" && "${{ needs.mcp_smoke.result }}" != "success" ]]; then
               aws_release_status="mcp_smoke_failed"
+            elif [[ "${{ needs.record_deployed_shas.result }}" != "success" ]]; then
+              aws_release_status="deployed_sha_record_failed"
             else
               aws_release_status="released"
             fi
@@ -801,6 +1022,7 @@ jobs:
       - web_smoke
       - agent_api_smoke
       - mcp_smoke
+      - record_deployed_shas
       - aws_release_status
     runs-on: ubuntu-24.04
 
@@ -810,13 +1032,16 @@ jobs:
           {
             echo "## AWS/Web release summary"
             echo ""
-            echo "- AWS changed: \`${{ needs.changes.outputs.aws_changed }}\`"
+            echo "- Platform selected: \`${{ needs.changes.outputs.deploy_platform }}\`"
+            echo "- Web selected: \`${{ needs.changes.outputs.deploy_web }}\`"
+            echo "- Admin selected: \`${{ needs.changes.outputs.deploy_admin }}\`"
             echo "- Pre-deploy checks job: \`${{ needs.pre_deploy_checks.result }}\`"
             echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
             echo "- AWS deploy job: \`${{ needs.aws_deploy.result }}\`"
             echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
             echo "- Agent API smoke job: \`${{ needs.agent_api_smoke.result }}\`"
             echo "- MCP smoke job: \`${{ needs.mcp_smoke.result }}\`"
+            echo "- Record deployed SHAs job: \`${{ needs.record_deployed_shas.result }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
