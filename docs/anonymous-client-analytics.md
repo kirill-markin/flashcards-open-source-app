@@ -221,11 +221,12 @@ this collector where waiting would have shipped them under their account
 
 ## The marketing site facts
 
-`site_page_viewed` and `site_app_entry_clicked` are what the marketing site reports about its own
-pages: a page was viewed, and a link into the web app or an app store was clicked. Their properties
-are in the [event catalog](../apps/backend/src/productAnalytics/catalog.ts). Neither is
-`identityFree`: like `catalog_install_clicked`, each carries the shared visitor id only once the
-visitor has consented, and none before.
+`site_page_viewed`, `site_app_entry_shown` and `site_app_entry_clicked` are what the marketing site
+reports about its own pages: a page was viewed, a link into the web app or an app store was seen,
+and one was clicked. Their properties are in the
+[event catalog](../apps/backend/src/productAnalytics/catalog.ts), which also owns how an impression
+is deduplicated. None of them is `identityFree`: like `catalog_install_clicked`, each carries the
+shared visitor id only once the visitor has consented, and none before.
 
 ## Manual acceptance
 
