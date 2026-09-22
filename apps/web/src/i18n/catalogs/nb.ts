@@ -361,6 +361,7 @@ const nbCatalog: TranslationCatalog = {
       ios: "QR-kode for lenken til iOS-appen",
       android: "QR-kode for lenken til Android-appen",
     },
+    qrCaption: "Skann den med telefonen",
     mcp: {
       label: "For AI-agent",
       title: "Koble til med MCP",

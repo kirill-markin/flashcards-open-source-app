@@ -361,6 +361,7 @@ export const zhHansCatalog = {
       ios: "iOS 应用链接的二维码",
       android: "Android 应用链接的二维码",
     },
+    qrCaption: "用手机扫描",
     mcp: {
       label: "面向 AI 代理",
       title: "通过 MCP 连接",

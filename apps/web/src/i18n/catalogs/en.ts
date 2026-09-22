@@ -359,6 +359,7 @@ const enCatalog = {
       ios: "QR code for the iOS app link",
       android: "QR code for the Android app link",
     },
+    qrCaption: "Scan it from your phone",
     mcp: {
       label: "For AI Agent",
       title: "Connect with MCP",

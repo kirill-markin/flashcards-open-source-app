@@ -361,6 +361,7 @@ const heCatalog: TranslationCatalog = {
       ios: "קוד QR לקישור אפליקציית iOS",
       android: "קוד QR לקישור אפליקציית Android",
     },
+    qrCaption: "סרקו אותו מהטלפון",
     mcp: {
       label: "לסוכן AI",
       title: "התחברות דרך MCP",
