@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import {
   funnelGroupByNoneValue,
-  type FunnelGroupByDimension,
+  type FunnelGroupByField,
 } from "./funnelGroupBy";
 
 /**
@@ -18,16 +18,20 @@ import {
  * IT IS MOUNTED BY THE SECTION RATHER THAN BY THE CHART, in every state the section can be in: a
  * funnel draws no chart while it loads and none at all when nothing matches the filters, and a field
  * that vanishes on its own use cannot be focused, watched, or set back to `None`.
+ *
+ * Generic over the dimension, so a funnel hands back its own dimension type rather than the shared
+ * one: the field only ever reads an id and a label, and a funnel that groups in the browser carries
+ * a row reader beside them that its own `onSelect` needs to keep.
  */
-export function FunnelGroupByPicker(
+export function FunnelGroupByPicker<Dimension extends FunnelGroupByField>(
   props: Readonly<{
     funnelId: string;
     /** The funnel's own dimensions, offered in declared order. */
-    dimensions: ReadonlyArray<FunnelGroupByDimension>;
+    dimensions: ReadonlyArray<Dimension>;
     selectedDimensionId: string | null;
     isReportLoading: boolean;
     /** The picked dimension, or `null` for the ungrouped default. */
-    onSelect: (dimension: FunnelGroupByDimension | null) => void;
+    onSelect: (dimension: Dimension | null) => void;
   }>,
 ): JSX.Element {
   const fieldId = `funnel-${props.funnelId}-group-by`;
