@@ -9,8 +9,9 @@ at all. Authenticated clients keep batching through `POST /v1/analytics/events`.
   [CORS allowlist](../apps/backend/src/server/app.ts)
 - [Event contract](../apps/backend/src/productAnalytics/anonymousEvent.ts) and the
   [event catalog](../apps/backend/src/productAnalytics/catalog.ts) it derives from
-- [Storage contract](../db/migrations/0143_anonymous_client_identity_free_rows.sql) and the
-  [daily visitor hash](../db/migrations/0144_anonymous_client_daily_visitor_hash.sql)
+- [Storage contract](../db/migrations/0143_anonymous_client_identity_free_rows.sql), the
+  [daily visitor hash](../db/migrations/0144_anonymous_client_daily_visitor_hash.sql) and the
+  [automated client marker](../db/migrations/0145_anonymous_client_automated_marker.sql)
 - [Route registration](../infra/aws/lib/gateways/api-gateway.ts)
 - The identity a producer sends: [analytics visitor identity](analytics-visitor-identity.md)
 - The facts the catalog install flow reports: [catalog install facts](catalog-install-funnel.md)
@@ -106,6 +107,32 @@ deletes the salt at 00:00 UTC, and an event whose day has already ended gets no 
 `User-Agent` leaves it NULL
 ([storage contract](../db/migrations/0144_anonymous_client_daily_visitor_hash.sql),
 [code](../apps/backend/src/productAnalytics/dailyVisitorHash.ts)).
+
+## Automated clients
+
+Every row this collector stores carries `automated_client`: TRUE when the request's `User-Agent`
+announced a bot, crawler, headless browser or HTTP library, FALSE when it did not, and a missing or
+empty `User-Agent` counts as TRUE. The marker list and the verdict are the backend's alone
+([code](../apps/backend/src/productAnalytics/automatedClient.ts)). No `User-Agent` is stored in
+`analytics.product_events` or any other analytics table — only the verdict is. Outside the analytics
+store the API Gateway access log records the verbatim `User-Agent` of every request to this route
+and keeps it for one week
+([format](../infra/aws/lib/gateways/api-gateway-access-log.ts),
+[retention](../infra/aws/lib/gateways/api-gateway.ts)).
+
+The three consent facts are marked like every other row: one boolean about bot-ness is not an
+identity, so it takes nothing back from the identity-free rules above, and exempting those facts
+would leave a way to report one unmarked.
+
+Such traffic is marked rather than refused, so it stays countable and each report decides. The
+column's NULL is not FALSE: it means the code that stored the row did not assess it. The cases seen
+so far are a row stored before the assessment existed, a row on another trust level, where no
+`User-Agent` is read, and a collector row stored by a backend build that does not fill the column —
+in a normal deploy the window between the migration being applied and the backend that fills the
+column being deployed over it, which one deploy does in that order. A report that excludes
+automated traffic therefore excludes
+`automated_client IS TRUE`, never `IS FALSE`
+([storage contract](../db/migrations/0145_anonymous_client_automated_marker.sql)).
 
 ## How these rows are counted
 
@@ -211,3 +238,10 @@ visitor has consented, and none before.
     `subject_user_id`, `workspace_id`, `guest_session_id`, `session_id` and `auth_transport`.
 11. Open the admin dashboard and confirm `daily-active-users` and `Audience` are unchanged by every
     row just written, including any `app_opened` posted to this collector.
+12. Post three valid events, each with its own fresh `eventId` — step 2 stores only one row per id —
+    one with a `HeadlessChrome` `User-Agent`, one with an ordinary Chrome one and one with no
+    `User-Agent` header at all, and confirm the stored rows carry `automated_client` TRUE, FALSE and
+    TRUE.
+13. Post a fourth, with its own fresh `eventId`, with the Chrome `User-Agent` of a Cubot handset —
+    `Mozilla/5.0 (Linux; Android 13; CUBOT NOTE 30) ... Chrome/120.0.0.0 Mobile Safari/537.36` — and
+    confirm it stores FALSE: the `bot` marker must not fire on a device model.
