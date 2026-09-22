@@ -874,7 +874,7 @@ const etCatalog: TranslationCatalog = {
     title: "Analüütika",
     subtitle: "Vali, kas seda brauserit tohib mõõta.",
     toggleTitle: "Luba analüütikaküpsised",
-    toggleDescription: "Kui see on välja lülitatud, ei anna see rakendus sellele brauserile identifikaatorit ega salvesta analüütika jaoks midagi. Kui oled sisse logitud, salvestatakse mõõdetav siiski sinu konto juurde.",
+    toggleDescription: "Kui see on välja lülitatud, ei anna see rakendus sellele brauserile identifikaatorit ega salvesta sinna analüütika jaoks midagi. Kasutust loetakse siiski anonüümselt ja kui oled sisse logitud, salvestatakse see sinu konto juurde.",
     error: "See ei õnnestunud. Palun proovi uuesti.",
     unavailable: "Analüütika on selles rakenduses välja lülitatud, seega pole siin midagi lubada ega tagasi võtta.",
   },

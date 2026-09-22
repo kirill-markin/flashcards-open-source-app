@@ -874,7 +874,7 @@ const fiCatalog: TranslationCatalog = {
     title: "Analytiikka",
     subtitle: "Valitse, saako tätä selainta mitata.",
     toggleTitle: "Salli analytiikkaevästeet",
-    toggleDescription: "Kun tämä on pois päältä, sovellus ei anna tälle selaimelle tunnistetta eikä tallenna mitään analytiikkaa varten. Kirjautuneena mitattavat asiat kirjataan edelleen tilillesi.",
+    toggleDescription: "Kun tämä on pois päältä, sovellus ei anna tälle selaimelle tunnistetta eikä tallenna siihen mitään analytiikkaa varten. Käyttö lasketaan silti nimettömästi, ja kirjautuneena se kirjataan tilillesi.",
     error: "Tämä ei mennyt läpi. Yritä uudelleen.",
     unavailable: "Analytiikka on poissa käytöstä tässä sovelluksessa, joten täällä ei ole mitään sallittavaa tai peruttavaa.",
   },

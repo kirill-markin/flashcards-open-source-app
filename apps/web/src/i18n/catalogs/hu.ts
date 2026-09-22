@@ -874,7 +874,7 @@ const huCatalog: TranslationCatalog = {
     title: "Analitika",
     subtitle: "Döntsd el, mérhető-e ez a böngésző.",
     toggleTitle: "Analitikai sütik engedélyezése",
-    toggleDescription: "Ha ez ki van kapcsolva, az alkalmazás nem ad azonosítót ennek a böngészőnek, és semmit nem tárol analitikai célból. Amíg be vagy jelentkezve, a mért adatok továbbra is a fiókodhoz kerülnek.",
+    toggleDescription: "Ha ez ki van kapcsolva, az alkalmazás nem ad azonosítót ennek a böngészőnek, és semmit nem tárol benne analitikai célból. A használatot továbbra is névtelenül számoljuk, és amíg be vagy jelentkezve, a fiókodhoz kerül.",
     error: "Ez nem sikerült. Kérlek, próbáld újra.",
     unavailable: "Az analitika ki van kapcsolva ebben az alkalmazásban, így itt nincs mit engedélyezni vagy visszavonni.",
   },

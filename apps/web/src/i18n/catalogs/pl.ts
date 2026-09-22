@@ -883,7 +883,7 @@ const plCatalog: TranslationCatalog = {
     title: "Analityka",
     subtitle: "Zdecyduj, czy ta przeglądarka może być mierzona.",
     toggleTitle: "Zezwalaj na pliki cookie analityczne",
-    toggleDescription: "Gdy ta opcja jest wyłączona, aplikacja nie nadaje tej przeglądarce żadnego identyfikatora i nic nie zapisuje na potrzeby analityki. Gdy jesteś zalogowany, pomiary są nadal zapisywane przy Twoim koncie.",
+    toggleDescription: "Gdy ta opcja jest wyłączona, aplikacja nie nadaje tej przeglądarce żadnego identyfikatora i nic w niej nie zapisuje na potrzeby analityki. Korzystanie jest nadal liczone anonimowo, a gdy jesteś zalogowany, jest zapisywane przy Twoim koncie.",
     error: "Nie udało się. Spróbuj ponownie.",
     unavailable: "Analityka jest wyłączona w tej aplikacji, więc nie ma tu na co zezwalać ani czego wycofywać.",
   },

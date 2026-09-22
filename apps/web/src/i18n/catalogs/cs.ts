@@ -883,7 +883,7 @@ const csCatalog: TranslationCatalog = {
     title: "Analytika",
     subtitle: "Zvolte, zda smí být tento prohlížeč měřen.",
     toggleTitle: "Povolit analytické cookies",
-    toggleDescription: "Když je tato možnost vypnutá, aplikace tomuto prohlížeči nepřiděluje žádný identifikátor a pro analytiku nic neukládá. Dokud jste přihlášeni, měřené údaje se stále zaznamenávají k vašemu účtu.",
+    toggleDescription: "Když je tato možnost vypnutá, aplikace tomuto prohlížeči nepřiděluje žádný identifikátor a nic do něj pro analytiku neukládá. Používání se dál počítá anonymně, a dokud jste přihlášeni, zaznamenává se k vašemu účtu.",
     error: "Nepodařilo se to. Zkuste to prosím znovu.",
     unavailable: "Analytika je pro tuto aplikaci vypnutá, takže tu není co povolit ani odvolat.",
   },
