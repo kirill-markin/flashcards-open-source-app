@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import { renderFunnelStepsChart, type FunnelStepBar } from "../../charts/chartRenderers";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import {
+  parseFunnelAnchorStepId,
+  writeFunnelAnchorToUrl,
+  type FunnelMainStepId,
+} from "./funnelAnchorUrl";
 import {
   catalogInstallConversionWindowDays,
   loadCatalogInstallFunnelReport,
@@ -16,6 +21,8 @@ type FunnelLoadState =
   | Readonly<{ status: "ready"; report: CatalogInstallFunnelReport }>;
 
 type FunnelStage = Readonly<{ label: string; count: number }>;
+/** A main-funnel step; its `id` is what the URL stores as the anchor, so a label can change freely. */
+type MainFunnelStage = FunnelStage & Readonly<{ id: FunnelMainStepId }>;
 type FailureTotal = CatalogInstallFailureBucket & Readonly<{ count: number }>;
 
 /** Where "studied it properly" is drawn, rather than merely opened the deck once. */
@@ -84,23 +91,25 @@ function getMedianInstallSeconds(visits: ReadonlyArray<CatalogInstallFunnelVisit
  * subsets of the install step above them rather than an independent test, and the last one carries
  * both its conditions together for the same reason.
  */
-function buildMainStages(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<FunnelStage> {
+function buildMainStages(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<MainFunnelStage> {
   const countWhere = (matches: (visit: CatalogInstallFunnelVisit) => boolean): number => (
     visits.filter(matches).length
   );
 
   return [
-    { label: "Site visit", count: visits.length },
-    { label: "Import screen", count: countWhere((visit) => visit.importScreenAt !== null) },
-    { label: "Import confirm", count: countWhere((visit) => visit.importConfirmAt !== null) },
-    { label: "Install started", count: countWhere((visit) => visit.installStartedAt !== null) },
-    { label: "Installed (server)", count: countWhere((visit) => visit.installedAt !== null) },
-    { label: "1+ review", count: countWhere((visit) => (visit.installReviewCount ?? 0) >= 1) },
+    { id: "site-visit", label: "Site visit", count: visits.length },
+    { id: "import-screen", label: "Import screen", count: countWhere((visit) => visit.importScreenAt !== null) },
+    { id: "import-confirm", label: "Import confirm", count: countWhere((visit) => visit.importConfirmAt !== null) },
+    { id: "install-started", label: "Install started", count: countWhere((visit) => visit.installStartedAt !== null) },
+    { id: "installed", label: "Installed (server)", count: countWhere((visit) => visit.installedAt !== null) },
+    { id: "one-review", label: "1+ review", count: countWhere((visit) => (visit.installReviewCount ?? 0) >= 1) },
     {
+      id: "engaged",
       label: `${engagedReviewThreshold}+ reviews`,
       count: countWhere((visit) => (visit.installReviewCount ?? 0) >= engagedReviewThreshold),
     },
     {
+      id: "engaged-returning",
       label: `${engagedReviewThreshold}+ reviews with a return day`,
       count: countWhere((visit) => (
         (visit.installReviewCount ?? 0) >= engagedReviewThreshold && visit.installHasReturnDay === true
@@ -133,8 +142,10 @@ function buildFailureTotals(visits: ReadonlyArray<CatalogInstallFunnelVisit>): R
   ));
 }
 
-function buildFunnelStepBars(stages: ReadonlyArray<FunnelStage>): ReadonlyArray<FunnelStepBar> {
+/** Every step is a subset of the one before it, so a later step's count over the anchor's is a conversion rate. */
+function buildFunnelStepBars(stages: ReadonlyArray<FunnelStage>, anchorIndex: number): ReadonlyArray<FunnelStepBar> {
   const firstCount = stages[0]?.count ?? 0;
+  const anchorCount = stages[anchorIndex]?.count ?? 0;
   return stages.map((stage, index) => {
     const previousCount = index === 0 ? null : (stages[index - 1]?.count ?? 0);
     return {
@@ -142,19 +153,27 @@ function buildFunnelStepBars(stages: ReadonlyArray<FunnelStage>): ReadonlyArray<
       count: stage.count,
       previousCount,
       shareOfFirstLabel: formatPercentage(stage.count, firstCount),
+      shareOfAnchorLabel: index < anchorIndex ? "—" : formatPercentage(stage.count, anchorCount),
       shareOfPreviousLabel: previousCount === null ? "—" : formatPercentage(stage.count, previousCount),
     };
   });
 }
 
 /** The chart's text alternative: the same numbers the bars carry, for screen readers only. */
-function FunnelStepTable(props: Readonly<{ steps: ReadonlyArray<FunnelStepBar> }>): JSX.Element {
+function FunnelStepTable(props: Readonly<{ steps: ReadonlyArray<FunnelStepBar>; anchorIndex: number }>): JSX.Element {
+  const anchorLabel = props.anchorIndex > 0 ? (props.steps[props.anchorIndex]?.label ?? null) : null;
   return (
     <div className="visually-hidden">
       <table>
         <caption>Catalog installation funnel steps</caption>
         <thead>
-          <tr><th scope="col">Step</th><th scope="col">Visitors</th><th scope="col">Of first step</th><th scope="col">Of previous step</th></tr>
+          <tr>
+            <th scope="col">Step</th>
+            <th scope="col">Visitors</th>
+            <th scope="col">Of first step</th>
+            {anchorLabel === null ? null : <th scope="col">Of selected step ({anchorLabel})</th>}
+            <th scope="col">Of previous step</th>
+          </tr>
         </thead>
         <tbody>
           {props.steps.map((step) => (
@@ -162,6 +181,7 @@ function FunnelStepTable(props: Readonly<{ steps: ReadonlyArray<FunnelStepBar> }
               <th scope="row">{step.label}</th>
               <td>{step.count.toLocaleString("en-US")}</td>
               <td>{step.shareOfFirstLabel}</td>
+              {anchorLabel === null ? null : <td>{step.shareOfAnchorLabel}</td>}
               <td>{step.shareOfPreviousLabel}</td>
             </tr>
           ))}
@@ -183,6 +203,11 @@ export function CatalogInstallFunnelSection(
 ): JSX.Element {
   const [loadRevision, setLoadRevision] = useState<number>(0);
   const [loadState, setLoadState] = useState<FunnelLoadState>({ status: "loading" });
+  // The anchor is read from the URL once, when the section mounts, and is kept across filter changes
+  // and report reloads; only a click moves it. `null` is the default view, measured from the first step.
+  const [anchorStepId, setAnchorStepId] = useState<FunnelMainStepId | null>(
+    () => parseFunnelAnchorStepId(new URLSearchParams(window.location.search)),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -210,7 +235,16 @@ export function CatalogInstallFunnelSection(
 
   const report = loadState.status === "ready" ? loadState.report : null;
   const visits = report === null ? noVisits : report.visits;
-  const mainStepBars = useMemo(() => buildFunnelStepBars(buildMainStages(visits)), [visits]);
+  const mainStages = useMemo(() => buildMainStages(visits), [visits]);
+  const anchorIndex = Math.max(0, mainStages.findIndex((stage) => stage.id === anchorStepId));
+  const mainStepBars = useMemo(() => buildFunnelStepBars(mainStages, anchorIndex), [mainStages, anchorIndex]);
+  /** Selecting the current anchor or the first step returns to the default view and clears the URL. */
+  const selectAnchorStep = useCallback((stepIndex: number): void => {
+    const selectedStepId = mainStages[stepIndex]?.id ?? null;
+    const nextStepId = stepIndex === 0 || selectedStepId === anchorStepId ? null : selectedStepId;
+    setAnchorStepId(nextStepId);
+    writeFunnelAnchorToUrl(nextStepId);
+  }, [anchorStepId, mainStages]);
   const authStages = useMemo(() => buildAuthStages(visits), [visits]);
   const failureTotals = useMemo(() => buildFailureTotals(visits), [visits]);
 
@@ -235,8 +269,13 @@ export function CatalogInstallFunnelSection(
       return;
     }
 
-    renderFunnelStepsChart({ svgElement: funnelSvgElement, steps: mainStepBars });
-  }, [hasVisits, mainStepBars]);
+    renderFunnelStepsChart({
+      svgElement: funnelSvgElement,
+      steps: mainStepBars,
+      anchorIndex,
+      onSelectStep: selectAnchorStep,
+    });
+  }, [anchorIndex, hasVisits, mainStepBars, selectAnchorStep]);
 
   return (
     <section className="dashboard-section funnel-report">
@@ -253,16 +292,19 @@ export function CatalogInstallFunnelSection(
         <section className="chart-column funnel-chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>Visitors reaching each step</span>
+              <div className="funnel-chart-heading">
+                <span>Visitors reaching each step</span>
+                <span>Click a step to measure from it</span>
+              </div>
               <div className="chart-meta-right">
                 <span>{props.filters.dateRange.from} to {props.filters.dateRange.to}, inclusive</span>
               </div>
             </div>
             <div className="chart-scroll">
-              <svg ref={funnelChartRef} className="funnel-steps-chart" aria-hidden="true" />
+              <svg ref={funnelChartRef} className="funnel-steps-chart" role="group" aria-label="Funnel steps; select a step to measure later steps from it" />
             </div>
           </div>
-          <FunnelStepTable steps={mainStepBars} />
+          <FunnelStepTable steps={mainStepBars} anchorIndex={anchorIndex} />
         </section>
       ) : null}
 
