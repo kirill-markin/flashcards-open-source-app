@@ -27,6 +27,11 @@ export function parseCalendarDate(date: string, reportLabel: string): Date {
   return parsedDate;
 }
 
+/** The later of two `YYYY-MM-DD` dates, which sort lexically. */
+export function laterCalendarDate(left: string, right: string): string {
+  return left > right ? left : right;
+}
+
 export function formatCalendarDate(date: Date): string {
   const year = date.getUTCFullYear();
   const month = `${date.getUTCMonth() + 1}`.padStart(2, "0");

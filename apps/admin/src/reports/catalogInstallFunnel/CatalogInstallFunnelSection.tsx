@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
+import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import { formatPercentage, FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
 import {
   catalogInstallConversionWindowDays,
+  catalogInstallFunnelStartDate,
   loadCatalogInstallFunnelReport,
   type CatalogInstallFailureBucket,
   type CatalogInstallFunnelReport,
@@ -51,14 +54,14 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected deck page to install funnel error.";
 }
 
-/** The short note shown when the site's deck page views start after the selected range does, or `null`. */
-function buildLateSiteFactsNote(report: CatalogInstallFunnelReport, selectedFrom: string): string | null {
-  if (report.effectiveFromDate === null) {
-    return "The site had not begun reporting deck page views by the end of the selected range, so no people are counted.";
+/** The short note shown when the selected range starts before `catalogInstallFunnelStartDate`, or `null`. */
+function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): string | null {
+  if (dateRange.to < catalogInstallFunnelStartDate) {
+    return `People count from ${catalogInstallFunnelStartDate}, the site's first full day of identified deck page views, so the selected range has no data.`;
   }
 
-  return report.effectiveFromDate > selectedFrom
-    ? `The site began reporting deck page views on ${report.effectiveFromDate}, so nobody is counted before that day.`
+  return dateRange.from < catalogInstallFunnelStartDate
+    ? `People count from ${catalogInstallFunnelStartDate}, the site's first full day of identified deck page views, so there is no data before that day.`
     : null;
 }
 
@@ -89,7 +92,14 @@ function getFirstInstallVisitByPerson(
     }
 
     const current = firstInstallByActor.get(visit.actorId);
-    if (current === undefined || (current.installedAt !== null && visit.installedAt < current.installedAt)) {
+    // Compared as instants: the admin API writes whole seconds without `.000`, so the strings do not sort.
+    if (
+      current === undefined
+      || (
+        current.installedAt !== null
+        && new Date(visit.installedAt).getTime() < new Date(current.installedAt).getTime()
+      )
+    ) {
       firstInstallByActor.set(visit.actorId, visit);
     }
   }
@@ -122,9 +132,7 @@ function getMedianInstallSeconds(firstInstallVisits: ReadonlyArray<CatalogInstal
 }
 
 /**
- * People per step. Every step grows by at most one per person who reached it, and a person counts at a
- * step only if the same person reached every earlier step. A known person therefore adds +1 to each
- * step up to the last one they reached, never more than +1 per step.
+ * People per step, by the funnel rule in `../funnels/funnelSections.ts`.
  *
  * A person's rows are one per deck version they viewed, so the person's last step is the furthest any
  * one of those rows got through every step in order: the click, and all below it, must be on a deck
@@ -279,9 +287,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
   const installersWithoutVisitCount = report === null ? 0 : report.installersWithoutVisitCount;
   const isReady = props.isRangeLoading === false && loadState.status === "ready";
   const hasVisits = isReady && visits.length > 0;
-  const lateSiteFactsNote = isReady && report !== null
-    ? buildLateSiteFactsNote(report, props.filters.dateRange.from)
-    : null;
+  const startDateNote = isReady ? buildStartDateNote(props.filters.dateRange) : null;
 
   return (
     <section className="dashboard-section funnel-report">
@@ -294,8 +300,10 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
 
       {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading deck page to install funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
-      {lateSiteFactsNote !== null ? <p className="report-state" aria-live="polite">{lateSiteFactsNote}</p> : null}
+      {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
       {isReady && visits.length === 0 ? <div className="report-state"><strong>No identified deck page views match these filters.</strong><span>A page view from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates.</span></div> : null}
+
+      {isReady ? <FunnelMaturingWarning maturingCount={maturingCount} entryCount={mainStages[0]?.count ?? 0} /> : null}
 
       {hasVisits ? (
         <FunnelStepsChart
@@ -312,7 +320,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           <summary>How it&rsquo;s counted</summary>
           <div className="funnel-detail-row funnel-explainer-figure"><span>Median page view to install</span><strong>{formatDuration(getMedianInstallSeconds(firstInstallVisits))}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it. Step one is a person who viewed the page of any deck; below it, a person counts at a step when one deck whose page they viewed carried them through every step down to it, so their install click has to be on a deck whose page they viewed. The median page view to install is each person&rsquo;s earliest server install, measured from that deck&rsquo;s page view. Underneath, one row is one visitor identity and one deck version, anchored at that identity&rsquo;s first <code>site_page_viewed</code> of that deck&rsquo;s marketing-site page (<code>page_kind = &apos;catalog_package&apos;</code>) in the selected UTC dates. Step two is a <code>catalog_install_clicked</code> on the same deck version. Every step is joined by that same identity — the shared <code>analytics_visitor</code> cookie the site and the app both send, which resolves to the person&rsquo;s account once the app has linked it to a sign-in — and must arrive within seven days of the page view, each at or after the step above it. Only server-origin <code>catalog_deck_installed</code> is success.</p>
-          <p>People count from the first UTC day the site reported an identified deck page view, so an earlier range shows a note rather than drop-off. Earlier click-only history is not shown here: this funnel starts at the page view. Pre-consent visits cannot join: where the site has to ask first (the EEA and the UK), a page viewed before the visitor consents carries no visitor id, so it is not in this funnel at all.</p>
+          <p>People count from {catalogInstallFunnelStartDate}, the first full UTC day the site reported identified deck page views, so an earlier range shows a note rather than drop-off. Earlier click-only history is not shown here: this funnel starts at the page view. Pre-consent visits cannot join: where the site has to ask first (the EEA and the UK), a page viewed before the visitor consents carries no visitor id, so it is not in this funnel at all.</p>
           <p>The last three steps read the installing person&rsquo;s reviews anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck or card; say so wherever they are quoted. They are counted from the install to seven days after the page view, so a late install leaves less of that window, and the return day is a later UTC day than the install&rsquo;s. A person whose first deck page view is still inside its seven-day window is not a confirmed drop-off.</p>
           <p>The date range, the client platform and the installed deck are read off the anchoring page view; the site always reports as web, so a selection without web empties this funnel. The connection country and the app interface language keep an identity the way they keep a person on General, from their trusted events in the selected dates, so narrowing either keeps only people who signed in. <strong>The placement, source, device category and browser language describe the install click, so they narrow step two and everything below it, never the deck page views above it:</strong> a narrowed selection reads as a lower click rate, not a smaller top. Test-deck rows are excluded, and so is an identity belonging to an <code>@example.com</code> account, an active admin or an actor on the analytics exclusion list — reaching backwards over every row of theirs, including the ones sent before they signed in.</p>
           <p>The import-screen, import-confirm, signed-out-gate and confirm-after-sign-in steps come from <code>screen_viewed</code>, which carries no deck, so a visitor who clicked two deck versions in range has those steps satisfied on both rows by the same view. Import confirm is that screen view rather than <code>catalog_install_preview_ready</code>, which marks the same moment: the screen view is reported by the signed-in app with the account&rsquo;s own credential, so it needs no identity link to meet the install.</p>
