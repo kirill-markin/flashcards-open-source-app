@@ -88,8 +88,20 @@ func isActiveReviewOrderBucket(bucket: ReviewOrderBucket) -> Bool {
     }
 }
 
+// Downstream tag normalization is quadratic in the number of names it receives, so
+// each stored spelling is emitted once. The key is scalar-exact because a Set<String>
+// would merge canonically equivalent NFC/NFD spellings that the byte-exact SQLite
+// card_tags.tag IN (...) lookup treats as distinct tags.
 private func activeTagNames(cards: [Card]) -> [String] {
-    deriveActiveCards(cards: cards).flatMap(\.tags)
+    var seenTagScalars = Set<[Unicode.Scalar]>()
+    var tagNames = [String]()
+    for card in deriveActiveCards(cards: cards) {
+        for tagName in card.tags where seenTagScalars.insert(Array(tagName.unicodeScalars)).inserted {
+            tagNames.append(tagName)
+        }
+    }
+
+    return tagNames
 }
 
 // Keep iOS in-memory review ordering aligned with:
