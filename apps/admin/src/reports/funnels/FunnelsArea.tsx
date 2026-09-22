@@ -44,6 +44,7 @@ export function FunnelsArea(
           config={props.config}
           filters={props.filters}
           isRangeLoading={props.isReportLoading}
+          catalogDeckOptions={props.filterOptions.catalogDecks}
           onTerminalAdminError={props.onTerminalAdminError}
           filterRow={funnel.filterFields.length === 0 ? null : (
             // A funnel matches any click rather than a completed install, so its click dimensions

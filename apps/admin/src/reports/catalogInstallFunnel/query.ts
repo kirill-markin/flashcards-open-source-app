@@ -7,6 +7,8 @@ import type {
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
+  buildActorAppUiLanguageSql,
+  buildActorConnectionCountrySql,
   buildAppUiLanguagesFilterSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
@@ -143,6 +145,32 @@ export type CatalogInstallFunnelVisit = Readonly<{
   signedInAt: string | null;
   signedOutImportConfirmAt: string | null;
   failureBuckets: ReadonlyArray<CatalogInstallFailureBucket>;
+  /**
+   * The four values only the funnel's `Group by` field reads, on every row of every load rather
+   * than with the dimension that reads them: the field regroups the rows the browser already holds
+   * instead of reloading the report, so a column that arrived only with its own dimension selected
+   * would never arrive at all.
+   *
+   * `connectionCountry` and `appUiLanguage` are the identity's over the selected dates, from the
+   * same per-actor fragments the two filter fields of those names read, and null for an identity
+   * neither can place. `clickPlacement` and `clickBrowserLanguage` belong to the install click that
+   * is step two, so they are null on exactly the rows that never reached it.
+   *
+   * `clickPlacement` IS A PLAIN STRING HERE, not the `CatalogInstallPlacement` the filter field
+   * offers, and it is deliberately the one catalog column this parser does not hold to its declared
+   * values. The strict ones are read by name somewhere - the failure stage and reason name a bucket,
+   * the diagnostics line tests `source = 'direct'` - so an undeclared value there would be silently
+   * misread and has to be loud instead. This one is only ever a group key and is drawn as it comes,
+   * so the day the site ships a fourth placement it should become its own bar rather than throw
+   * away all four result sets of a report whose statements share one request. The filter's own
+   * option list refuses that same unknown value on purpose (`buildCatalogAttributionEnumOptions` in
+   * `../../filters/optionsQuery.ts`): a value that cannot be selected costs one popover entry,
+   * while a value that cannot be grouped costs the page.
+   */
+  connectionCountry: string | null;
+  appUiLanguage: string | null;
+  clickPlacement: string | null;
+  clickBrowserLanguage: string | null;
 }>;
 
 export type CatalogInstallFunnelReport = Readonly<{
@@ -186,6 +214,14 @@ function assertEnumValue<Value extends string>(
   }
 
   return parsedValue as Value;
+}
+
+function assertNullableString(value: AdminQueryValue, fieldName: string): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  return assertIsString(value, catalogInstallFunnelReportLabel, fieldName);
 }
 
 function assertTimestamp(value: AdminQueryValue, fieldName: string): string {
@@ -285,6 +321,13 @@ function parseVisitRow(row: Readonly<Record<string, AdminQueryValue>>): CatalogI
       "signed_out_import_confirm_at",
     ),
     failureBuckets: parseFailureBuckets(row.failure_buckets ?? null),
+    connectionCountry: assertNullableString(row.connection_country ?? null, "connection_country"),
+    appUiLanguage: assertNullableString(row.app_ui_language ?? null, "app_ui_language"),
+    clickPlacement: assertNullableString(row.click_placement ?? null, "click_placement"),
+    clickBrowserLanguage: assertNullableString(
+      row.click_browser_language ?? null,
+      "click_browser_language",
+    ),
   };
 }
 
@@ -635,10 +678,18 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // instead (`readAnonymousId` in `apps/backend/src/productAnalytics/anonymousEvent.ts`), an
     // identity nothing else shares.
     "), visit_clicks AS MATERIALIZED (",
-    "  SELECT",
+    // `DISTINCT ON` rather than `MIN(click.occurred_at)`, which picks the same first click: the
+    // placement and the browser language of that one click come back with it, so the two click
+    // dimensions of the `Group by` field read the very row step two was counted on rather than a
+    // second click of the same visit. `event_id` decides a tie, as it does everywhere here.
+    "  SELECT DISTINCT ON (visit.actor_id, visit.package_version_id)",
     "    visit.actor_id,",
     "    visit.package_version_id,",
-    "    MIN(click.occurred_at) AS clicked_at",
+    "    click.occurred_at AS clicked_at,",
+    "    click.event_properties ->> 'placement' AS click_placement,",
+    // The same `NULLIF` the click filter and the General attribution fragment apply, so an empty
+    // locale is the absence of a reported browser language here too, and groups as `Unresolved`.
+    "    NULLIF(click.device_locale, '') AS click_browser_language",
     "  FROM eligible_visits AS visit",
     "  INNER JOIN client_events AS click",
     "    ON click.actor_id = visit.actor_id",
@@ -647,10 +698,21 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     `    AND click.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
     "  WHERE click.event_name = 'catalog_install_clicked'",
     ...buildInstallClickFilterSqlLines(filters),
-    "  GROUP BY visit.actor_id, visit.package_version_id",
+    "  ORDER BY visit.actor_id, visit.package_version_id, click.occurred_at, click.event_id",
     "), cohort_actors AS (",
     "  SELECT DISTINCT visit_clicks.actor_id",
     "  FROM visit_clicks",
+    // The same cohort by identity alone, for the two per-actor `Group by` sources to be probed
+    // against. `DISTINCT` is the whole point of it: `eligible_visits` holds an actor once per deck
+    // version they viewed, and the array an InitPlan produces is not a `Const`, so the planner
+    // cannot hash the `= ANY (...)` and probes it linearly - and this is the largest cohort the
+    // pattern is handed anywhere in the query, one row per identity and deck version rather than
+    // per click or per install, so every duplicate would be one more comparison for every row of
+    // the source being filtered. The two `SELECT DISTINCT` relations above and below are distinct
+    // for the same reason.
+    "), visit_actors AS (",
+    "  SELECT DISTINCT eligible_visits.actor_id",
+    "  FROM eligible_visits",
     // The surface steps, restricted to the identities that reached the click. `screen_viewed` names
     // no deck and carries no properties at all, so nothing but the identity and the clock can place
     // it. The three import screens are read at every trust level, because the gate is credential-free
@@ -688,6 +750,8 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  visit.package_version_id,",
     "  visit.anchor_at AS visited_at,",
     "  clicked.clicked_at AS install_clicked_at,",
+    "  clicked.click_placement,",
+    "  clicked.click_browser_language,",
     "  import_screen.occurred_at AS import_screen_at,",
     "  import_confirm.occurred_at AS import_confirm_at,",
     "  install_started.occurred_at AS install_started_at,",
@@ -913,7 +977,11 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  visit.anchor_at AS visited_at,",
     "  visit.source,",
     "  visit.device_category,",
+    "  actor_country.country AS connection_country,",
+    "  actor_language.ui_locale AS app_ui_language,",
     "  stepped.install_clicked_at,",
+    "  stepped.click_placement,",
+    "  stepped.click_browser_language,",
     "  stepped.import_screen_at,",
     "  stepped.import_confirm_at,",
     "  stepped.install_started_at,",
@@ -940,6 +1008,38 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  AND engagement.package_version_id = visit.package_version_id",
     "LEFT JOIN install_actor_first_event AS first_event",
     "  ON first_event.actor_id = visit.actor_id",
+    // BOTH PER-ACTOR SOURCES ON EVERY LOAD, never only the one a selected dimension reads, which is
+    // where this funnel departs from the mobile one. Its `Group by` field reloads the report and can
+    // therefore join the one source its key needs; this one regroups rows the browser already holds,
+    // so a column joined only while its own dimension is selected would never be there to read.
+    //
+    // WHAT MAKES THAT AFFORDABLE IS THE MEMBERSHIP PREDICATE ON EACH OF THEM, so the cost follows
+    // this funnel's own cohort rather than the range. Unbounded, the country source cross-joins the
+    // retained connection samples to two endpoints each and hash-joins the view again, and the
+    // language source is a second full pass of the view over the range, for every actor in it and
+    // not only the ones a visit row can name - on a statement group whose 30 s timeout fails the
+    // visits, both no-visit diagnostics and the cookieless counts together.
+    //
+    // The predicate sits inside each subquery rather than in this query's own WHERE for two
+    // reasons: a qual on the nullable side of a `LEFT JOIN` cannot be pushed into it at all, and a
+    // row here must survive with a NULL country or locale. `buildActorMembershipSql` yields
+    // `actor_id = ANY (ARRAY(...))`, an uncorrelated subselect the planner evaluates once as an
+    // InitPlan and leaves in the qual as a plain parameter, which is what lets it push on down
+    // through the source's own `GROUP BY` onto the scan that feeds it.
+    "LEFT JOIN (",
+    "  SELECT cohort_country.actor_id, cohort_country.country",
+    "  FROM (",
+    buildActorConnectionCountrySql(filters.dateRange),
+    "  ) AS cohort_country",
+    `  WHERE ${buildActorMembershipSql("visit_actors", "cohort_country.actor_id")}`,
+    ") AS actor_country ON actor_country.actor_id = visit.actor_id",
+    "LEFT JOIN (",
+    "  SELECT cohort_language.actor_id, cohort_language.ui_locale",
+    "  FROM (",
+    buildActorAppUiLanguageSql(filters.dateRange),
+    "  ) AS cohort_language",
+    `  WHERE ${buildActorMembershipSql("visit_actors", "cohort_language.actor_id")}`,
+    ") AS actor_language ON actor_language.actor_id = visit.actor_id",
     "ORDER BY visit.anchor_at, visit.actor_id, visit.package_version_id",
   ].join("\n");
 
