@@ -49,6 +49,29 @@ export const productAnalyticsUuidPattern =
 // text either.
 export const productAnalyticsExperimentTokenPattern = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/u;
 
+// The marketing site's own placement ids, which it names in snake_case. Bound to that shape so the
+// property cannot carry free text.
+const productAnalyticsSitePlacementPattern = /^[a-z0-9](?:[a-z0-9_]{0,62}[a-z0-9])?$/u;
+
+// Acquisition context the marketing site reports on its own facts, derived on the site from the
+// referrer and the user agent, which are never sent raw.
+const productAnalyticsSiteSources = ["direct", "search", "social", "referral", "internal", "unknown"] as const;
+const productAnalyticsSiteDeviceCategories = ["desktop", "mobile", "tablet", "unknown"] as const;
+
+// The kind of marketing site page an event happened on.
+const productAnalyticsSitePageKinds = [
+  "home",
+  "blog_article",
+  "blog_index",
+  "catalog_package",
+  "catalog_index",
+  "catalog_other",
+  "pricing",
+  "features",
+  "docs",
+  "other",
+] as const;
+
 // Platform-independent surfaces so funnels compare across clients. Each client maps its own
 // native screens onto these and never sends a native screen name.
 //
@@ -479,6 +502,28 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  // The marketing site facts. `package_version_id` is sent only on a `catalog_package` page.
+  site_page_viewed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+      package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
+      source: { kind: "enum", values: productAnalyticsSiteSources },
+      device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+    },
+  },
+  site_app_entry_clicked: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      target: { kind: "enum", values: ["web_app", "app_store", "google_play"] },
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
+      source: { kind: "enum", values: productAnalyticsSiteSources },
+      device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+    },
+  },
   // The catalog install facts. `install_journey_id` is optional everywhere it appears: no producer
   // mints one any more, and released clients that still send it stay valid.
   catalog_install_clicked: {
@@ -488,14 +533,8 @@ export const productAnalyticsEventCatalog = {
       install_journey_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern },
       placement: { kind: "enum", values: ["top", "middle", "bottom"] },
-      source: {
-        kind: "enum",
-        values: ["direct", "search", "social", "referral", "internal", "unknown"],
-      },
-      device_category: {
-        kind: "enum",
-        values: ["desktop", "mobile", "tablet", "unknown"],
-      },
+      source: { kind: "enum", values: productAnalyticsSiteSources },
+      device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
     },
   },
   // The four names below have no producer left: `catalog_install_landed` duplicated `screen_viewed`
