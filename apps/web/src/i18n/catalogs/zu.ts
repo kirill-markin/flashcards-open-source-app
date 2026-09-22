@@ -59,6 +59,13 @@ const zuCatalog: TranslationCatalog = {
       languagePreference: "Ulimi olukhethwayo",
       languageSelection: "Ukukhetha ulimi",
     },
+    picker: {
+      empty: "Azikho izilimi ezitholakele",
+      listAriaLabel: "Izilimi zohlelo lokusebenza",
+      openAriaLabel: "Khetha ulimi lohlelo lokusebenza",
+      searchLabel: "Sesha",
+      searchPlaceholder: "Sesha izilimi",
+    },
     names: {
       en: "isiNgisi",
       ar: "isi-Arabhu",

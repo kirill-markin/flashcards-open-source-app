@@ -65,6 +65,13 @@ export const ruCatalog = {
       languagePreference: "Языковая настройка",
       languageSelection: "Выбор языка",
     },
+    picker: {
+      empty: "Языки не найдены",
+      listAriaLabel: "Языки приложения",
+      openAriaLabel: "Выбрать язык приложения",
+      searchLabel: "Поиск",
+      searchPlaceholder: "Искать языки",
+    },
     names: {
       en: "Английский",
       ar: "Арабский",

@@ -59,6 +59,13 @@ const elCatalog: TranslationCatalog = {
       languagePreference: "Προτίμηση γλώσσας",
       languageSelection: "Επιλογή γλώσσας",
     },
+    picker: {
+      empty: "Δεν βρέθηκαν γλώσσες",
+      listAriaLabel: "Γλώσσες εφαρμογής",
+      openAriaLabel: "Επιλογή γλώσσας εφαρμογής",
+      searchLabel: "Αναζήτηση",
+      searchPlaceholder: "Αναζήτηση γλωσσών",
+    },
     names: {
       en: "Αγγλικά",
       ar: "Αραβικά",
