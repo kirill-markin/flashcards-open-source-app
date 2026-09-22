@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.input
 
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsDictationFailureReason
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiDictationNoSpeechException
@@ -109,6 +110,7 @@ internal fun handleDictationToggle(
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
+    onDictationFailed: (AnalyticsDictationFailureReason) -> Unit,
     onShowAlert: (AiAlertState) -> Unit,
     onShowErrorMessage: (String) -> Unit,
     microphonePermissionLauncher: ActivityResultLauncher<String>
@@ -122,10 +124,12 @@ internal fun handleDictationToggle(
                 recordedAudio.audioBytes
             )
         } catch (_: AiDictationNoSpeechException) {
+            onDictationFailed(AnalyticsDictationFailureReason.NO_SPEECH)
             dictationRecorder.cancelRecording()
             onCancelDictation()
             onShowAlert(textProvider.generalError(message = textProvider.noSpeechRecorded))
         } catch (error: Exception) {
+            onDictationFailed(AnalyticsDictationFailureReason.SERVER_ERROR)
             dictationRecorder.cancelRecording()
             onCancelDictation()
             onShowAlert(
@@ -139,18 +143,20 @@ internal fun handleDictationToggle(
     }
 
     if (activity == null) {
+        onDictationFailed(AnalyticsDictationFailureReason.SERVER_ERROR)
         onShowErrorMessage(textProvider.microphoneUnavailableInHost)
         onCancelDictation()
         return
     }
 
+    val hasRequestedMicrophonePermission = hasRequestedAccessPermission(
+        context = activity,
+        capability = AccessCapability.MICROPHONE
+    )
     val status = resolveAccessStatus(
         activity = activity,
         capability = AccessCapability.MICROPHONE,
-        hasRequestedPermission = hasRequestedAccessPermission(
-            context = activity,
-            capability = AccessCapability.MICROPHONE
-        )
+        hasRequestedPermission = hasRequestedMicrophonePermission
     )
     when (
         val result = aiCapabilityPresentationResult(
@@ -181,18 +187,67 @@ internal fun handleDictationToggle(
                 textProvider = textProvider,
                 onStartDictationRecording = onStartDictationRecording,
                 onShowAlert = onShowAlert,
-                onCancelDictation = onCancelDictation
+                onCancelDictation = onCancelDictation,
+                onDictationFailed = onDictationFailed
             )
         }
 
+        // This branch shows nothing at all, and with `requestedStatus = null` it is where an
+        // `ASK_EVERY_TIME` microphone lands — which covers both a person who declined once and a
+        // person this app has never asked. Only the first is a refusal, so the first tap on a
+        // fresh install reports nothing rather than filing the commonest case as one.
         AiCapabilityPresentationResult.StopSilently -> {
+            if (
+                isDictationPermissionRefusal(
+                    status = status,
+                    hasRequestedPermission = hasRequestedMicrophonePermission
+                )
+            ) {
+                onDictationFailed(AnalyticsDictationFailureReason.PERMISSION_DENIED)
+            }
             onCancelDictation()
         }
 
         is AiCapabilityPresentationResult.ShowAlert -> {
+            onDictationFailed(dictationAccessAlertFailureReason(status = status))
             onCancelDictation()
             onShowAlert(result.alert)
         }
+    }
+}
+
+/**
+ * Whether a microphone status that stopped the flow without a word is a refusal. `BLOCKED` always
+ * is; `ASK_EVERY_TIME` only once this app has asked, because until then the OS has been shown
+ * nothing to refuse.
+ */
+internal fun isDictationPermissionRefusal(
+    status: AccessStatus,
+    hasRequestedPermission: Boolean
+): Boolean {
+    return when (status) {
+        AccessStatus.BLOCKED -> true
+        AccessStatus.ASK_EVERY_TIME -> hasRequestedPermission
+        AccessStatus.ALLOWED,
+        AccessStatus.SYSTEM_PICKER,
+        AccessStatus.UNAVAILABLE -> false
+    }
+}
+
+/**
+ * The reason behind an alerting microphone access status. Only the statuses that produce an alert
+ * reach it: `BLOCKED` is the refusal a person has to undo in Settings, and the rest mean the device
+ * has no microphone to offer, which is the catalog's remaining bucket rather than an answer.
+ */
+internal fun dictationAccessAlertFailureReason(
+    status: AccessStatus
+): AnalyticsDictationFailureReason {
+    return when (status) {
+        AccessStatus.BLOCKED -> AnalyticsDictationFailureReason.PERMISSION_DENIED
+        AccessStatus.ALLOWED,
+        AccessStatus.ASK_EVERY_TIME,
+        AccessStatus.SYSTEM_PICKER,
+        AccessStatus.UNAVAILABLE -> AnalyticsDictationFailureReason.SERVER_ERROR
     }
 }
 
@@ -201,12 +256,14 @@ internal fun startDictationRecording(
     textProvider: AiTextProvider,
     onStartDictationRecording: () -> Unit,
     onShowAlert: (AiAlertState) -> Unit,
-    onCancelDictation: () -> Unit
+    onCancelDictation: () -> Unit,
+    onDictationFailed: (AnalyticsDictationFailureReason) -> Unit
 ) {
     try {
         dictationRecorder.startRecording()
         onStartDictationRecording()
     } catch (error: Exception) {
+        onDictationFailed(AnalyticsDictationFailureReason.SERVER_ERROR)
         dictationRecorder.cancelRecording()
         onCancelDictation()
         onShowAlert(

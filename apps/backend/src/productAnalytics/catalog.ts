@@ -83,6 +83,11 @@ const productAnalyticsSiteAppEntryProperties = {
   device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
 } as const;
 
+// The reminders a client schedules with the OS. `review_reminder` is the daily or inactivity review
+// nudge, `strict_reminder` the streak reminder; the web app schedules neither and reports no
+// notification fact at all.
+const productAnalyticsNotificationKinds = ["review_reminder", "strict_reminder"] as const;
+
 // Platform-independent surfaces so funnels compare across clients. Each client maps its own
 // native screens onto these and never sends a native screen name.
 //
@@ -456,6 +461,59 @@ export const productAnalyticsEventCatalog = {
       reason: { kind: "enum", values: ["offline", "timeout", "sync_conflict", "server_error"] },
     },
   },
+  // The reminder loop, one pair read against itself: `notification_scheduled` is the denominator
+  // and `notification_opened` the return it produced. Neither OS tells an app whether a local
+  // notification it accepted was ever shown, so delivery is not observed and the scheduled fact is
+  // the only denominator there is; the gap between the two therefore folds "never delivered"
+  // together with "delivered and ignored", and cannot separate them. The two clients also count
+  // different sets: Android reports the reminders it enqueued, iOS only the ones Notification
+  // Center read back as pending, so a per-platform gap between scheduled and opened partly reflects
+  // scheduler drops that iOS excludes by construction.
+  //
+  // A client reconciles its reminders on many triggers — a permission change, a schedule edit, a
+  // sync, a foreground return, every recorded review — and re-schedules the same slots every time,
+  // so the producer owes exactly one row per distinct slot it schedules and nothing when
+  // reconciliation re-schedules a slot it already reported. Without that the event would measure
+  // reconciliation frequency rather than reminders. A slot is a fixed clock position for a daily or
+  // strict reminder; an inactivity reminder is a chain re-anchored by every review, so its slot is
+  // the local day and the position within that day, and a day already counted reports nothing when
+  // its chain shifts — which under-counts a reminder that fires and is replaced the same day.
+  //
+  // That slot ledger is never cleared when the person on the device changes, so after a sign-out,
+  // an account deletion or a server switch the arriving subject does not re-count the slots the
+  // departing subject already reported: they stay uncounted until they expire, which under-counts
+  // by at most one scheduling horizon per boundary. The direction is deliberate. Clearing the
+  // ledger at the identity boundary would instead re-report live slots and inflate the
+  // denominator, and `analytics.product_events` is append-only, so an inflated denominator has no
+  // repair path while a missing row simply stays missing.
+  //
+  // `notification_opened` is its own name rather than a property on `app_opened` because migrations
+  // 0121 and 0126 reconstructed `app_opened` rows from stored activity: a property added there would
+  // read as a gap on every reconstructed row instead of as "this launch was not from a reminder".
+  //
+  // One spike is permanent and is named here rather than left to be rediscovered. The ledger that
+  // carries those already-reported slot ids starts empty, so on every install the first reconcile
+  // after the release that shipped this event reports the reminders the install already had pending
+  // — up to seven review reminders in daily mode, as many as the review pending-request limit
+  // allows in inactivity mode (26 with strict reminders on and 50 without on Android, 40 and 64 on
+  // iOS), plus up to twenty-four strict — as newly scheduled. Nothing on the row separates them
+  // from reminders scheduled for the first time, and the data that would is held only by the OS,
+  // which does not say when it accepted a pending request. That is not corrected: the spike is one
+  // release boundary wide, and `analytics.product_events` is append-only with no repair path.
+  notification_scheduled: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      notification_kind: { kind: "enum", values: productAnalyticsNotificationKinds },
+    },
+  },
+  notification_opened: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      notification_kind: { kind: "enum", values: productAnalyticsNotificationKinds },
+    },
+  },
   card_create_started: {
     serverOnly: false,
     requiresScreen: false,
@@ -540,6 +598,44 @@ export const productAnalyticsEventCatalog = {
           "provider_error",
           "runtime_error",
         ],
+      },
+    },
+  },
+  // Voice input, which `permission_prompt_answered` could not stand in for: a granted microphone
+  // permission says nothing about whether dictation is then used, and a dictation that fails after
+  // the grant is invisible in that event entirely. Neither entry carries anything about the
+  // recording — no transcript, no length, no duration, no confidence — because a transcript is
+  // content a person spoke and this table is append-only.
+  //
+  // `dictation_started` is the attempt that reached the microphone. A producer emits it where
+  // recording actually begins and never where the control was pressed, so a refused permission is a
+  // failure below rather than a start with no end. It requires a surface because a person has to be
+  // on the screen they are speaking into, so that surface is always known here, and voice usage is
+  // only comparable between the places dictation is offered from if every producer names one.
+  dictation_started: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {},
+  },
+  // Why one attempt ended without a transcript. Each value names a terminal branch a client really
+  // reaches: `permission_denied` is the OS refusing the microphone or having already refused it,
+  // `no_speech` a recording that contained nothing, `cancelled` the person stopping the attempt or
+  // leaving the surface it was running on, `offline` and `timeout` the transport, and
+  // `server_error` the remaining bucket — the same reading it carries on `sync_failed` and
+  // `review_answer_failed`, so a recorder that refused to start is in it alongside a backend that
+  // failed.
+  //
+  // It requires no surface, unlike the start above, and the producers fill it differently on
+  // purpose. iOS and Android assert `ai`, the only surface those clients dictate from. Web takes
+  // the surface the person is on, because its composer can be open over another route, so a
+  // failure there can be filed against a route while its own start named `ai`.
+  dictation_failed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      reason: {
+        kind: "enum",
+        values: ["permission_denied", "offline", "timeout", "server_error", "cancelled", "no_speech"],
       },
     },
   },

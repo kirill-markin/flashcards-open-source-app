@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.notifications
 
 import android.content.Intent
 import android.util.Log
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNotificationKind
 
 const val appNotificationTapTypeDataKey: String = "notificationType"
 const val appNotificationTapExtraPrefix: String = "app-notification-extra"
@@ -28,6 +29,14 @@ enum class AppNotificationTapType(
 data class AppNotificationTapRequest(
     val type: AppNotificationTapType
 )
+
+/** The `notification_kind` a resolved tap reports, mirroring the backend catalog's enum. */
+fun analyticsNotificationKind(type: AppNotificationTapType): AnalyticsNotificationKind {
+    return when (type) {
+        AppNotificationTapType.REVIEW_REMINDER -> AnalyticsNotificationKind.REVIEW_REMINDER
+        AppNotificationTapType.STRICT_REMINDER -> AnalyticsNotificationKind.STRICT_REMINDER
+    }
+}
 
 data class AppNotificationTapFallback(
     val stage: String,
