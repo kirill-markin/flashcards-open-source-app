@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
+import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import { FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
 import {
   loadSiteEntryFunnelReport,
   siteEntryEngagedReviewThreshold,
+  siteEntryFunnelStartDate,
   type SiteEntryFunnelReport,
   type SiteEntryPageKind,
 } from "./query";
@@ -66,14 +69,14 @@ function getErrorMessage(error: unknown, definition: SiteEntryFunnelDefinition):
   return error instanceof Error ? error.message : `Unexpected ${definition.title} funnel error.`;
 }
 
-/** The short note shown when the site's page views start after the selected range does, or `null`. */
-function buildLateSiteFactsNote(report: SiteEntryFunnelReport, selectedFrom: string): string | null {
-  if (report.effectiveFromDate === null) {
-    return "The site had not begun reporting page views by the end of the selected range, so no visits are counted.";
+/** The short note shown when the selected range starts before `siteEntryFunnelStartDate`, or `null`. */
+function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): string | null {
+  if (dateRange.to < siteEntryFunnelStartDate) {
+    return `Visits count from ${siteEntryFunnelStartDate}, the site's first full day of identified page views, so the selected range has no data.`;
   }
 
-  return report.effectiveFromDate > selectedFrom
-    ? `The site began reporting page views on ${report.effectiveFromDate}, so there are no visits to count before that day.`
+  return dateRange.from < siteEntryFunnelStartDate
+    ? `Visits count from ${siteEntryFunnelStartDate}, the site's first full day of identified page views, so there is no data before that day.`
     : null;
 }
 
@@ -130,7 +133,7 @@ function SiteEntryFunnelSection(
 
   const report = props.isRangeLoading === false && loadState.status === "ready" ? loadState.report : null;
   const stages = useMemo(() => (report === null ? [] : buildStages(report, definition)), [report, definition]);
-  const lateSiteFactsNote = report === null ? null : buildLateSiteFactsNote(report, props.filters.dateRange.from);
+  const startDateNote = report === null ? null : buildStartDateNote(props.filters.dateRange);
 
   return (
     <section className="dashboard-section funnel-report">
@@ -143,8 +146,10 @@ function SiteEntryFunnelSection(
 
       {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading {definition.title.toLowerCase()} funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
-      {lateSiteFactsNote !== null ? <p className="report-state" aria-live="polite">{lateSiteFactsNote}</p> : null}
+      {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
       {report !== null && report.entryViewCount === 0 ? <div className="report-state"><strong>No first visits on a {definition.pageName} match these filters.</strong><span>Only a person whose first site page is a {definition.pageName} viewed on a selected day enters this funnel.</span></div> : null}
+
+      {report !== null ? <FunnelMaturingWarning maturingCount={report.maturingCount} entryCount={report.entryViewCount} /> : null}
 
       {report !== null && report.entryViewCount > 0 ? (
         <FunnelStepsChart
@@ -159,8 +164,9 @@ function SiteEntryFunnelSection(
       {report !== null ? (
         <details className="funnel-explainer">
           <summary>How it&rsquo;s counted</summary>
-          <div className="funnel-detail-row funnel-explainer-figure"><span>Visits still inside 7-day window</span><strong>{report.maturingCount.toLocaleString("en-US")}</strong></div>
-          <p>One row is one person, anchored at their first <code>site_page_viewed</code> on the marketing site, and only when that first page is a {definition.pageName} (<code>page_kind = &apos;{definition.pageKind}&apos;</code>) viewed in the selected UTC dates, with no trusted event anywhere before it. The person is the site&rsquo;s visitor cookie, which the web app on the same domain reports under too. Someone who was already using the product is not here once their cookie resolves to their account. Visits count from the first UTC day the site reported a page view with a visitor id, so an earlier range shows a note rather than drop-off.</p>
+          <div className="funnel-detail-row funnel-explainer-figure"><span>People still inside 7-day window</span><strong>{report.maturingCount.toLocaleString("en-US")}</strong></div>
+          <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
+          <p>One row is one person, anchored at their first <code>site_page_viewed</code> on the marketing site, and only when that first page is a {definition.pageName} (<code>page_kind = &apos;{definition.pageKind}&apos;</code>) viewed in the selected UTC dates, with no trusted event anywhere before it. The person is the site&rsquo;s visitor cookie, which the web app on the same domain reports under too. Someone who was already using the product is not here once their cookie resolves to their account. Visits count from {siteEntryFunnelStartDate}, the first full UTC day the site reported page views with a visitor id, so an earlier range shows a note rather than drop-off.</p>
           <p>Pre-consent visits cannot join: where the site has to ask first (the EEA and the UK), a page viewed before the visitor consents carries no visitor id, so it is not in this funnel at all, and such a visitor enters at the first page they view after consenting.</p>
           <p>Every later step is that same person within seven days of the entry, each at or after the step above it: a <code>site_app_entry_clicked</code> with <code>target = &apos;web_app&apos;</code> from any site page, a web <code>app_opened</code> sent on a signed-in account, then a first <code>review_answered</code>. The review count runs from that first answer, the return day is one of those answers on a later UTC day than the entry, and neither is limited to the web. A person still inside their seven-day window is not a confirmed drop-off.</p>
           <p>The site and the app join only through sign-in. The web app&rsquo;s first analytics batch sent on the account carries the visitor cookie and links it to that account; until then the in-app steps have nothing trusted to read. Opening the web app and signing in are one step, &ldquo;Signed in on the web app&rdquo;, because a signed-out web app open is held in the browser and reported under the account only after the sign-in, and the web app has no guest mode, so every open that can be counted is already a signed-in one. If the browser&rsquo;s cookie was already linked to another account, its visits stay with that first account.</p>

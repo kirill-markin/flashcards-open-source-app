@@ -84,7 +84,7 @@ and reach the account only through the `server_derived` link written after `sign
 inside a budget a first-ever sign-in usually overruns, so they cannot reliably be joined to the rest.
 A sign-in is read instead from the web app's first screen view that the same browser sends with an
 account credential. The sequence is assembled at analysis time
-from that identity and `occurred_at`. The admin funnel over it starts at the deck page view and
+from that identity and `occurred_at`. The admin funnel over it counts people, starts at the deck page view and
 takes the click as its second step, so its history begins when the site began sending page views;
 what it can and cannot claim is [Admin app](admin-app.md). **Only a click sent with the visitor identity joins anything:**
 a click body that claims no `anonymousId` is stored under its per-attempt `install_journey_id`, which
