@@ -299,6 +299,7 @@ class AppGraph(
         attentionController = reviewReminderAttentionController,
         notificationDeliveryGate = notificationDeliveryGate,
         observability = observability,
+        analytics = analytics,
         appVersion = appPackageInfo.versionName,
         versionCode = appPackageInfo.longVersionCode.toInt()
     )
@@ -315,6 +316,7 @@ class AppGraph(
         },
         zoneIdProvider = ZoneId::systemDefault,
         observability = observability,
+        analytics = analytics,
         appVersion = appPackageInfo.versionName,
         versionCode = appPackageInfo.longVersionCode.toInt()
     )

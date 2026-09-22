@@ -716,6 +716,18 @@ extension FlashcardsStore {
             )
         }
         self.persistScheduledReviewNotifications(payloads: acceptedExpectedPayloads)
+        // Only what Notification Center was read back as holding: a planned payload the add or the
+        // readback lost is not a scheduled reminder and must not enter the denominator.
+        self.reportScheduledNotifications(
+            notificationKind: .reviewReminder,
+            ledgerKey: reportedScheduledReviewNotificationsUserDefaultsKey,
+            identities: reviewReminderScheduledNotificationIdentities(
+                mode: snapshot.settings.selectedMode,
+                payloads: acceptedExpectedPayloads,
+                calendar: Calendar.autoupdatingCurrent
+            ),
+            nowMillis: Int64(readbackNow.timeIntervalSince1970 * 1000)
+        )
         self.addNotificationForegroundOperationBreadcrumb(
             notificationKind: .reviewReminder,
             stage: "review_reconcile",

@@ -55,6 +55,20 @@ enum AnalyticsEvent: Sendable, Equatable {
      * arrives, and only the latter is what `screen` means here.
      */
     case permissionPromptAnswered(permission: AnalyticsPermission, outcome: AnalyticsPermissionOutcome)
+    /**
+     * One reminder the OS accepted, reported once per distinct scheduled notification.
+     *
+     * Reconciliation runs on many triggers and re-schedules the same slots every time, so an emit
+     * site must report only the slots it has not reported before; a slot id is built from the
+     * reminder kind and the wall clock it fires at — except inactivity reminders, whose id is the
+     * local day and position — never from the scheduling request identifier, which is what makes
+     * that comparison a comparison of scheduled notifications rather than of reconciliation runs.
+     * The slot identity is defined in `ScheduledNotificationFactReporting`.
+     */
+    case notificationScheduled(notificationKind: AnalyticsNotificationKind)
+    /// A reminder tap that brought the person back, reported where the OS hands the response to the
+    /// app. It is the numerator `notificationScheduled` is the denominator of.
+    case notificationOpened(notificationKind: AnalyticsNotificationKind)
     case cardCreateStarted(entryPoint: AnalyticsCardCreateEntryPoint)
     /// Emit only through `Analytics.reportSyncFailure(reason:)`. Sync is retried on a timer, so a
     /// direct `track` measures poll cadence instead of failure incidence.
@@ -198,6 +212,12 @@ enum AnalyticsReviewAnswerFailureReason: String, Sendable, Equatable {
     case serverError = "server_error"
 }
 
+/// The two reminders this app schedules with `UNUserNotificationCenter`.
+enum AnalyticsNotificationKind: String, Sendable, Equatable {
+    case reviewReminder = "review_reminder"
+    case strictReminder = "strict_reminder"
+}
+
 enum AnalyticsCardCreateEntryPoint: String, Sendable, Equatable {
     case cards
     case deckDetail = "deck_detail"
@@ -271,6 +291,10 @@ extension AnalyticsEvent {
             return "prompt_answered"
         case .permissionPromptAnswered:
             return "permission_prompt_answered"
+        case .notificationScheduled:
+            return "notification_scheduled"
+        case .notificationOpened:
+            return "notification_opened"
         case .cardCreateStarted:
             return "card_create_started"
         case .syncFailed:
@@ -330,6 +354,8 @@ extension AnalyticsEvent {
                 "permission": .string(permission.rawValue),
                 "outcome": .string(outcome.rawValue)
             ]
+        case .notificationScheduled(let notificationKind), .notificationOpened(let notificationKind):
+            return ["notification_kind": .string(notificationKind.rawValue)]
         case .cardCreateStarted(let entryPoint):
             return ["entry_point": .string(entryPoint.rawValue)]
         case .syncFailed(let reason):

@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AndroidWorkInfoStateCounts
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
+import com.flashcardsopensourceapp.core.observability.analytics.NoOpAnalytics
 import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledStrictReminderPayload
@@ -44,6 +45,7 @@ class StrictRemindersManagerTest {
             currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
+            analytics = NoOpAnalytics,
             appVersion = testAppVersion,
             versionCode = testVersionCode
         )
@@ -88,6 +90,7 @@ class StrictRemindersManagerTest {
             currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
+            analytics = NoOpAnalytics,
             appVersion = testAppVersion,
             versionCode = testVersionCode
         )
@@ -146,6 +149,7 @@ class StrictRemindersManagerTest {
             currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
+            analytics = NoOpAnalytics,
             appVersion = testAppVersion,
             versionCode = testVersionCode
         )
@@ -204,6 +208,7 @@ class StrictRemindersManagerTest {
             currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
+            analytics = NoOpAnalytics,
             appVersion = testAppVersion,
             versionCode = testVersionCode
         )
@@ -235,6 +240,7 @@ class StrictRemindersManagerTest {
             currentWorkspaceIdProvider = { testWorkspaceId },
             zoneIdProvider = { zoneId },
             observability = FakeAppObservability(),
+            analytics = NoOpAnalytics,
             appVersion = testAppVersion,
             versionCode = testVersionCode
         )
@@ -269,6 +275,8 @@ private class FakeStrictRemindersStore : StrictRemindersStore {
     var lastCompletedReviewAtMillis: Long? = null
     @Volatile
     var scheduledPayloads: List<ScheduledStrictReminderPayload> = emptyList()
+    @Volatile
+    var reportedScheduledStrictReminders: Map<String, Long> = emptyMap()
 
     override fun loadStrictRemindersSettings(): StrictRemindersSettings {
         return settings
@@ -296,6 +304,14 @@ private class FakeStrictRemindersStore : StrictRemindersStore {
 
     override fun saveScheduledStrictReminderPayloads(payloads: List<ScheduledStrictReminderPayload>) {
         scheduledPayloads = payloads
+    }
+
+    override fun loadReportedScheduledStrictReminders(): Map<String, Long> {
+        return reportedScheduledStrictReminders
+    }
+
+    override fun saveReportedScheduledStrictReminders(reported: Map<String, Long>) {
+        reportedScheduledStrictReminders = reported
     }
 
     override fun clearStrictRemindersIdentityState() {
