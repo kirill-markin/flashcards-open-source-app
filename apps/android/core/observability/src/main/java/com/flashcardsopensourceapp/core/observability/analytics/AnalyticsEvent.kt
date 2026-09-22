@@ -24,11 +24,6 @@ package com.flashcardsopensourceapp.core.observability.analytics
  * `onboarding_step_completed`, `review_session_started` and `review_session_ended` remain outside
  * the active catalog. The server keeps exact backend-only tombstones for old queued copies and
  * rejects them `retired_event_name`.
- *
- * Two client events the catalog declares are absent because this client does not observe them yet
- * rather than because it may not send them: `signin_code_requested` and `signin_succeeded`.
- * Whoever wires the Android sign-in funnel adds each one here and at its emit site together, and
- * reads the catalog entry for the shape.
  */
 
 /** Named because the delivery path has to recognise a batch that carries nothing else. */
@@ -245,6 +240,28 @@ sealed interface AnalyticsEvent {
         override val screen: AnalyticsSurface
     ) : AnalyticsEvent {
         override val eventName: String = "screen_viewed"
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
+    /**
+     * The two middle steps of the sign-in funnel, read against [SignInFailed].
+     *
+     * `screen` is required and defaulted nowhere, for the reason [PermissionPromptAnswered] refuses
+     * a default: the sign-in runs on the sign-in screen and on the credential-recovery gate, and
+     * the surface is the only thing that tells those two funnels apart. It is `screen` in its
+     * ordinary reading — where the person is now — and never [SignInFailed]'s entry point.
+     */
+    data class SignInCodeRequested(
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "signin_code_requested"
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
+    data class SignInSucceeded(
+        override val screen: AnalyticsSurface
+    ) : AnalyticsEvent {
+        override val eventName: String = "signin_succeeded"
         override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
     }
 

@@ -53,9 +53,11 @@ class LocalCloudAccountRepositoryInvalidRecoveryStateTest {
         val linkContext = restartedRuntime.repository.prepareVerifiedSignIn(
             credentials = createStoredCloudCredentials(idTokenExpiresAtMillis = Long.MAX_VALUE)
         )
+        var verifiedCalls = 0
         val otpLinkContext = restartedRuntime.repository.verifyCode(
             challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456"
+            code = "123456",
+            onVerified = { verifiedCalls += 1 }
         )
 
         assertEquals(CloudCredentialRecoveryReason.INVALID_STORED_STATE, loadedRecoveryState.reason)
@@ -64,6 +66,7 @@ class LocalCloudAccountRepositoryInvalidRecoveryStateTest {
         assertEquals(CloudWorkspacePostAuthRoute.INVALID_STORED_STATE, otpLinkContext.postAuthRoute)
         assertEquals(0, remoteGateway.fetchCloudAccountCalls)
         assertEquals(0, remoteGateway.verifyCodeCalls)
+        assertEquals(0, verifiedCalls)
         try {
             restartedRuntime.repository.completeCloudLink(
                 linkContext = linkContext,
