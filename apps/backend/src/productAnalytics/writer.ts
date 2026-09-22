@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import pg from "pg";
 import { sampleInstallationCountryInTransaction } from "./installationCountry";
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../database";
@@ -16,6 +17,7 @@ import {
   productAnalyticsSchemaVersion,
 } from "./catalog";
 import type {
+  AnonymousProductAnalyticsEventRow,
   ProductAnalyticsEventRow,
   ProductAnalyticsIdentityLink,
   ProductAnalyticsInstallationObservation,
@@ -38,15 +40,15 @@ const analyticsPoolAcquisitionTimeoutMessage = "timeout exceeded when trying to 
 
 type ProductAnalyticsParameterValue = string | number | Date | null;
 
-type ProductAnalyticsInsertColumn = Readonly<{
+type ProductAnalyticsInsertColumn<Row extends ProductAnalyticsEventRow> = Readonly<{
   columnName: string;
   columnType: string;
-  readValue: (row: ProductAnalyticsEventRow) => ProductAnalyticsParameterValue;
+  readValue: (row: Row) => ProductAnalyticsParameterValue;
 }>;
 
 // One ordered source for the column list, the array casts, and the parameter values, so a new
 // column cannot silently shift the positional mapping between them.
-const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn> = [
+const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn<ProductAnalyticsEventRow>> = [
   { columnName: "event_id", columnType: "uuid", readValue: (row) => row.eventId },
   { columnName: "schema_version", columnType: "smallint", readValue: (row) => row.schemaVersion },
   { columnName: "event_name", columnType: "text", readValue: (row) => row.eventName },
@@ -91,19 +93,63 @@ const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn>
   },
 ];
 
+// The credential-free collector's columns: the shared list plus the one column only that collector
+// writes. Keeping daily_visitor_hash out of the shared list is deliberate: every other producer, and
+// every integration test pinned by apps/backend/scripts/postgresIntegrations/boundaries.mjs to a
+// schema older than db/migrations/0144_anonymous_client_daily_visitor_hash.sql, inserts through the
+// shared list, and naming the column there would fail each of those writes.
+const anonymousProductAnalyticsInsertColumns: ReadonlyArray<
+  ProductAnalyticsInsertColumn<AnonymousProductAnalyticsEventRow>
+> = [
+  ...productAnalyticsInsertColumns,
+  { columnName: "daily_visitor_hash", columnType: "text", readValue: (row) => row.dailyVisitorHash },
+];
+
 // unnest keeps the parameter count and the query plan stable no matter how many events a batch
 // carries, which expanded VALUES tuples would not. The multi-argument form is FROM-clause syntax
 // that PostgreSQL expands into ROWS FROM, and that expansion only fires for a bare, unaliased
 // unnest without a column definition list, so it must not be schema-qualified.
-const insertProductAnalyticsEventsSql = [
-  "INSERT INTO analytics.product_events (",
-  productAnalyticsInsertColumns.map((column) => column.columnName).join(", "),
-  ") SELECT * FROM unnest(",
-  productAnalyticsInsertColumns
-    .map((column, columnIndex) => `$${columnIndex + 1}::${column.columnType}[]`)
-    .join(", "),
-  ") ON CONFLICT (event_id) DO NOTHING",
-].join("");
+function buildInsertProductAnalyticsEventsSql<Row extends ProductAnalyticsEventRow>(
+  columns: ReadonlyArray<ProductAnalyticsInsertColumn<Row>>,
+): string {
+  return [
+    "INSERT INTO analytics.product_events (",
+    columns.map((column) => column.columnName).join(", "),
+    ") SELECT * FROM unnest(",
+    columns
+      .map((column, columnIndex) => `$${columnIndex + 1}::${column.columnType}[]`)
+      .join(", "),
+    ") ON CONFLICT (event_id) DO NOTHING",
+  ].join("");
+}
+
+const insertProductAnalyticsEventsSql = buildInsertProductAnalyticsEventsSql(productAnalyticsInsertColumns);
+const insertAnonymousProductAnalyticsEventsSql = buildInsertProductAnalyticsEventsSql(
+  anonymousProductAnalyticsInsertColumns,
+);
+
+// One salt per UTC day, created by whichever request needs it first, and deleted when its day ends by
+// the scheduled expiry job; see db/migrations/0144_anonymous_client_daily_visitor_hash.sql. Creating a
+// salt and expiring salts both hold this transaction-scoped advisory lock and then read the database
+// clock only once they hold it, so whichever of the two runs first, no request can create a salt for
+// a day that has already ended or that a later day's salt has replaced. A refused day gets no hash.
+const lockDailyVisitorHashSaltsSql =
+  "SELECT pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('analytics.daily_visitor_hash_salts'))";
+const selectDailyVisitorHashSaltDayOpenSql =
+  "SELECT $1::date >= (pg_catalog.clock_timestamp() AT TIME ZONE 'UTC')::date"
+  + " AND NOT EXISTS (SELECT 1 FROM analytics.daily_visitor_hash_salts AS salts WHERE salts.utc_day > $1::date)"
+  + " AS is_open";
+const insertDailyVisitorHashSaltSql =
+  "INSERT INTO analytics.daily_visitor_hash_salts (utc_day, salt) VALUES ($1::date, $2::bytea)"
+  + " ON CONFLICT (utc_day) DO NOTHING";
+const selectDailyVisitorHashSaltSql =
+  "SELECT salt FROM analytics.daily_visitor_hash_salts WHERE utc_day = $1::date";
+const deleteEarlierDailyVisitorHashSaltsSql =
+  "DELETE FROM analytics.daily_visitor_hash_salts WHERE utc_day < $1::date";
+const deleteEndedDailyVisitorHashSaltsSql =
+  "DELETE FROM analytics.daily_visitor_hash_salts"
+  + " WHERE utc_day < (pg_catalog.clock_timestamp() AT TIME ZONE 'UTC')::date";
+const dailyVisitorHashSaltByteLength = 32;
 
 // A link is a fact about one anonymous_id and one account, so a repeated observation of the same
 // pair is not a new fact. The first link keeps its linked_at, which is what bounds how far back the
@@ -252,10 +298,11 @@ async function rollbackAnalyticsTransaction(client: pg.PoolClient): Promise<Erro
   }
 }
 
-function buildInsertParameters(
-  rows: ReadonlyArray<ProductAnalyticsEventRow>,
+function buildInsertParameters<Row extends ProductAnalyticsEventRow>(
+  columns: ReadonlyArray<ProductAnalyticsInsertColumn<Row>>,
+  rows: ReadonlyArray<Row>,
 ): Array<Array<ProductAnalyticsParameterValue>> {
-  return productAnalyticsInsertColumns.map(
+  return columns.map(
     (column) => rows.map((row) => column.readValue(row)),
   );
 }
@@ -289,7 +336,10 @@ async function insertEventRowsInTransaction(
   client: pg.PoolClient,
   rows: ReadonlyArray<ProductAnalyticsEventRow>,
 ): Promise<number> {
-  const result = await client.query(insertProductAnalyticsEventsSql, buildInsertParameters(rows));
+  const result = await client.query(
+    insertProductAnalyticsEventsSql,
+    buildInsertParameters(productAnalyticsInsertColumns, rows),
+  );
   return result.rowCount ?? 0;
 }
 
@@ -452,6 +502,59 @@ export async function insertProductAnalyticsEvents(
   }
 
   return runAnalyticsWrite((client) => insertEventRowsInTransaction(client, rows));
+}
+
+// The credential-free collector's write, the only one that stores daily_visitor_hash. Returns the
+// number of rows stored, 0 for a redelivered event_id.
+export async function insertAnonymousProductAnalyticsEvent(
+  row: AnonymousProductAnalyticsEventRow,
+): Promise<number> {
+  assertProductAnalyticsRowMatchesCatalog(row);
+
+  return runAnalyticsWrite(async (client) => {
+    const result = await client.query(
+      insertAnonymousProductAnalyticsEventsSql,
+      buildInsertParameters(anonymousProductAnalyticsInsertColumns, [row]),
+    );
+    return result.rowCount ?? 0;
+  });
+}
+
+// utcDay is a YYYY-MM-DD UTC date. Returns null when that day has ended by the database clock or a
+// later day's salt exists, so a late request never recreates a deleted salt. Otherwise creates the
+// day's salt when no request has yet, and deletes every earlier day's salt before returning.
+export async function loadDailyVisitorHashSalt(utcDay: string): Promise<Buffer | null> {
+  return runAnalyticsWrite(async (client) => {
+    await client.query(lockDailyVisitorHashSaltsSql);
+    const dayOpen = await client.query<{ is_open: boolean }>(selectDailyVisitorHashSaltDayOpenSql, [utcDay]);
+    if (dayOpen.rows[0]?.is_open !== true) {
+      return null;
+    }
+
+    await client.query(insertDailyVisitorHashSaltSql, [
+      utcDay,
+      randomBytes(dailyVisitorHashSaltByteLength),
+    ]);
+    const result = await client.query<{ salt: Buffer }>(selectDailyVisitorHashSaltSql, [utcDay]);
+    const salt = result.rows[0]?.salt;
+    if (salt === undefined) {
+      throw new Error(
+        `analytics.daily_visitor_hash_salts has no salt for the day it was just inserted for. utcDay=${utcDay}`,
+      );
+    }
+    await client.query(deleteEarlierDailyVisitorHashSaltsSql, [utcDay]);
+    return salt;
+  });
+}
+
+// The scheduled expiry: deletes every salt whose UTC day has ended by the database clock, whether or
+// not any request arrived since. Returns the number of salts deleted.
+export async function deleteEndedDailyVisitorHashSalts(): Promise<number> {
+  return runAnalyticsWrite(async (client) => {
+    await client.query(lockDailyVisitorHashSaltsSql);
+    const result = await client.query(deleteEndedDailyVisitorHashSaltsSql);
+    return result.rowCount ?? 0;
+  });
 }
 
 export type ProductAnalyticsClientBatchResult = Readonly<{

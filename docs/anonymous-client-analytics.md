@@ -9,7 +9,8 @@ at all. Authenticated clients keep batching through `POST /v1/analytics/events`.
   [CORS allowlist](../apps/backend/src/server/app.ts)
 - [Event contract](../apps/backend/src/productAnalytics/anonymousEvent.ts) and the
   [event catalog](../apps/backend/src/productAnalytics/catalog.ts) it derives from
-- [Storage contract](../db/migrations/0143_anonymous_client_identity_free_rows.sql)
+- [Storage contract](../db/migrations/0143_anonymous_client_identity_free_rows.sql) and the
+  [daily visitor hash](../db/migrations/0144_anonymous_client_daily_visitor_hash.sql)
 - [Route registration](../infra/aws/lib/gateways/api-gateway.ts)
 - The identity a producer sends: [analytics visitor identity](analytics-visitor-identity.md)
 - The facts the catalog install flow reports: [catalog install facts](catalog-install-funnel.md)
@@ -95,6 +96,16 @@ a per-event override on the route would be a second contract beside the catalog.
 A row with no identity at all resolves to `actor_id` NULL in `analytics.product_events_resolved`. It
 is an event that belongs to no actor, not an event that is missing one, and a query that counts
 actors must exclude it rather than treat NULL as a person.
+
+A row whose `anonymous_id` stays empty and that is not one of the three consent facts gets a
+`daily_visitor_hash`: the server hashes the request's source IP and `User-Agent` with a random salt
+for that UTC day. It links one browser's cookieless events within that day only. It is written to no
+browser, stores no raw IP, is never part of `actor_id`, and is never linked to the visitor id or an
+account. A [scheduled job](../infra/aws/lib/scheduled-jobs/daily-visitor-hash-salt-expiry.ts)
+deletes the salt at 00:00 UTC, and an event whose day has already ended gets no hash. Missing IP or
+`User-Agent` leaves it NULL
+([storage contract](../db/migrations/0144_anonymous_client_daily_visitor_hash.sql),
+[code](../apps/backend/src/productAnalytics/dailyVisitorHash.ts)).
 
 ## How these rows are counted
 
