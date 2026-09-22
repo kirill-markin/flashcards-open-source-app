@@ -18,9 +18,8 @@ import type {
   CatalogInstallPlacement,
   CatalogInstallSource,
 } from "../reports/catalogInstallFunnel/query";
-import { analyticsAreaLabels, type AnalyticsArea } from "../routing";
+import type { AnalyticsArea } from "../routing";
 import {
-  analyticsFilterFieldsByArea,
   analyticsThresholdEventTypeLabels,
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
@@ -46,10 +45,11 @@ import {
   type SearchableUserFilterOption,
 } from "./userFilters";
 
-// The one filter bar every analytics area renders. It offers exactly the fields the filter model
-// declares applicable to the active area, so a later field is wired in `buildFilterFieldView` rather
-// than by editing this layout, and a field that does not apply to the area is absent rather than
-// shown disabled.
+// The filter bar every analytics area renders, and every funnel with fields of its own renders again
+// inside its section. It offers exactly the fields its caller lists, so a later field is wired in
+// `buildFilterFieldView` rather than by editing this layout, and a field that does not apply is
+// absent rather than shown disabled. `Reset all` resets those fields and leaves the rest of the
+// selection alone.
 //
 // Every field reads the same way: its full label alone on the closed button, colour and a dot once
 // its selection differs from the default, and a popover carrying the selection in words, its
@@ -73,7 +73,12 @@ const searchableFilterOptionCount = 15;
 const deckVersionDiscriminatorLength = 8;
 
 type AnalyticsFilterBarProps = Readonly<{
+  /** Chooses the wording of each field; the fields themselves are `fields`. */
   area: AnalyticsArea;
+  fields: ReadonlyArray<AnalyticsFilterField>;
+  title: string;
+  /** Unique on the page, because a bar can render more than once there. */
+  headingId: string;
   availableRange: AnalyticsDateRange;
   defaultRange: AnalyticsDateRange;
   filters: AnalyticsFilterState;
@@ -233,6 +238,17 @@ function withMinimumEventCount(
 
     return entries.filter((entry) => entry.eventType === option);
   });
+}
+
+function withDefaultFields(
+  filters: AnalyticsFilterState,
+  defaultFilters: AnalyticsFilterState,
+  fields: ReadonlyArray<AnalyticsFilterField>,
+): AnalyticsFilterState {
+  return fields.reduce<AnalyticsFilterState>(
+    (nextFilters, field) => ({ ...nextFilters, [field]: defaultFilters[field] }),
+    filters,
+  );
 }
 
 // One checkbox per value, and a search once a list is too long to scan - decks and locale tags can be
@@ -666,16 +682,16 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     }
   }
 
-  // The applicable fields differ by area, so moving to an area that does not render the open field
-  // would hide its popover while the outside-click and Escape effect below stayed armed on a control
-  // nobody can see or dismiss.
+  // The fields differ by area, so moving to an area that does not render the open field would hide
+  // its popover while the outside-click and Escape effect below stayed armed on a control nobody can
+  // see or dismiss.
   useEffect(() => {
     setOpenField((currentField) => (
-      currentField === null || analyticsFilterFieldsByArea[props.area].includes(currentField)
+      currentField === null || props.fields.includes(currentField)
         ? currentField
         : null
     ));
-  }, [props.area]);
+  }, [props.fields]);
 
   useEffect(() => {
     if (openField === null) {
@@ -872,7 +888,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
   function handleAllFiltersReset(): void {
     setUserSearchValue("");
-    props.onFiltersChange(defaultFilters);
+    props.onFiltersChange(withDefaultFields(props.filters, defaultFilters, props.fields));
 
     if (openField !== null) {
       closeField(openField, true);
@@ -1204,15 +1220,15 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     return assertEveryFilterFieldIsWired(field);
   }
 
-  const fieldViews = analyticsFilterFieldsByArea[props.area]
+  const fieldViews = props.fields
     .map((field) => ({ field, view: buildFilterFieldView(field) }));
 
   return (
-    <section className="filter-panel" aria-labelledby="analytics-filters-title" ref={panelRef}>
+    <section className="filter-panel" aria-labelledby={props.headingId} ref={panelRef}>
       <div className="filter-panel-header">
         <div>
           <p className="eyebrow">Filters</p>
-          <h2 id="analytics-filters-title">Filters</h2>
+          <h2 id={props.headingId}>{props.title}</h2>
         </div>
         {/*
           The range is stated by the page header and picked in the date field, so it is not repeated
@@ -1224,7 +1240,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         </span>
       </div>
 
-      <div className="filter-bar" aria-label={`${analyticsAreaLabels[props.area]} filters`}>
+      <div className="filter-bar" aria-labelledby={props.headingId}>
         {fieldViews.map((entry, index) => {
           const popoverId = `analytics-filter-${entry.field}-popover`;
           const explanationId = `analytics-filter-${entry.field}-explanation`;
@@ -1306,7 +1322,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         </button>
       </div>
 
-      {props.dateRangeError !== "" && openField !== "dateRange" ? (
+      {props.fields.includes("dateRange") && props.dateRangeError !== "" && openField !== "dateRange" ? (
         <p className="filter-error" role="alert">{props.dateRangeError}</p>
       ) : null}
     </section>
