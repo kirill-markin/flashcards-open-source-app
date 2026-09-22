@@ -42,6 +42,17 @@ export const CARD_IMAGE_PREPARATION_OPTIONS: ImageCanvasOutputOptions = {
   backgroundColor: "#f1f3f4",
 };
 
+/**
+ * The lazily loaded HEIC decoder could not be obtained. Not a statement about the picked file: the
+ * chunk fetch is a network request, so an offline tab or a purged deploy lands here.
+ */
+export class HeicConverterUnavailableError extends Error {
+  constructor(causeMessage: string) {
+    super(`HEIC converter is unavailable. ${causeMessage}`);
+    this.name = "HeicConverterUnavailableError";
+  }
+}
+
 export class UnsupportedImagePreparationError extends Error {
   constructor(fileName: string, causeMessage: string) {
     super(`Unsupported image "${fileName}". ${causeMessage}`);
@@ -207,14 +218,23 @@ export async function compressImageBlobToJpegBlob(
   };
 }
 
-export async function convertHeicToJpegBlob(file: File): Promise<Blob> {
-  const heicToModule = await import("heic-to/csp");
+async function loadHeicToFunction(): Promise<HeicToFunction> {
+  // The chunk fetch, not the decode: an offline tab or a purged deploy fails here.
+  const heicToModule = await import("heic-to/csp").catch<never>((error: unknown) => {
+    throw new HeicConverterUnavailableError(
+      error instanceof Error ? error.message : String(error),
+    );
+  });
   const candidate = "heicTo" in heicToModule ? heicToModule.heicTo : null;
   if (typeof candidate !== "function") {
-    throw new Error("HEIC converter is unavailable");
+    throw new HeicConverterUnavailableError("The loaded module exposes no heicTo entry point.");
   }
 
-  const heicTo = candidate as HeicToFunction;
+  return candidate as HeicToFunction;
+}
+
+export async function convertHeicToJpegBlob(file: File): Promise<Blob> {
+  const heicTo = await loadHeicToFunction();
   const conversionResult = await heicTo({
     blob: file,
     type: "image/jpeg",

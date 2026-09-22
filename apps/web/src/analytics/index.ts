@@ -4,6 +4,7 @@ export {
   grantAnalyticsConsent,
   isAnalyticsEnabledForCurrentRuntime,
   readAnalyticsSessionOwnerId,
+  readCurrentAnalyticsSurface,
   registerAnalyticsSessionOwnerPublisher,
   reportIdentityFreeAnalyticsEvent,
   reset,
@@ -14,8 +15,15 @@ export {
   trackScreenViewed,
   trackScreenViewedOnDismiss,
 } from "./client";
-export type { AnalyticsEvent, AnalyticsSurface, AnalyticsSyncFailureReason } from "./events";
+export type {
+  AnalyticsEvent,
+  AnalyticsMediaSource,
+  AnalyticsMediaUploadFailureReason,
+  AnalyticsSurface,
+  AnalyticsSyncFailureReason,
+} from "./events";
 export {
+  toAnalyticsMediaUploadFailureReason,
   toAnalyticsReviewAnswerFailureReason,
   toAnalyticsSyncFailureReason,
 } from "./failureReasons";

@@ -36,6 +36,16 @@ export function setCurrentAnalyticsSurface(surface: AnalyticsSurface | null): vo
 }
 
 /**
+ * The stamp every tracked event carries, for the one event the catalog requires a surface on and
+ * whose caller is not a screen of its own: the chat composer, which is the sidebar of whatever route
+ * is open. A caller that reads null has no surface to name and reports nothing, because the server
+ * rejects that event without one.
+ */
+export function readCurrentAnalyticsSurface(): AnalyticsSurface | null {
+  return currentSurface;
+}
+
+/**
  * Reports one entry into a screen: stamps it as the current surface, so every event tracked from it
  * carries it, and emits the `screen_viewed` that records the entry.
  *

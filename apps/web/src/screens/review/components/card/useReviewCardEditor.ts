@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { trackScreenViewed, trackScreenViewedOnDismiss } from "../../../../analytics";
+import {
+  toAnalyticsMediaUploadFailureReason,
+  track,
+  trackScreenViewed,
+  trackScreenViewedOnDismiss,
+} from "../../../../analytics";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
@@ -652,11 +657,20 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
       }, indexedDbOpenRecoveryState.throwIfFailed);
       indexedDbOpenRecoveryState.throwIfFailed();
       runMediaUploadTransfers();
+      // The same pair `CardFormScreen`'s copy of this handler reports, on the same surface: this
+      // modal is what `handleOpenEditor` reports as `card_editor`, and it stays on `/review`.
+      track({ name: "media_attached", source: "photo_library", screen: "card_editor" });
       return result.markdown;
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return null;
       }
+
+      track({
+        name: "media_upload_failed",
+        reason: toAnalyticsMediaUploadFailureReason(error),
+      });
+
       if (error instanceof UnsupportedImagePreparationError) {
         setManagedMediaFieldError(request.field, t("cardForm.media.errors.unsupportedImage"));
         return null;

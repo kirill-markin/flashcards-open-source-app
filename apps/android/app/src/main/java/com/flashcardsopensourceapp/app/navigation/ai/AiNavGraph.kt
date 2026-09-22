@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.flashcardsopensourceapp.app.analytics.analyticsMediaUploadFailureReason
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
@@ -136,6 +137,24 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             onDismissAlert = aiViewModel::dismissAlert,
             onAddPendingAttachment = aiViewModel::addPendingAttachment,
             onRemovePendingAttachment = aiViewModel::removePendingAttachment,
+            // The attachment itself, reported from here for the same reason the permission results
+            // below are: this is where the surface the person is on is known.
+            onMediaAttached = { source ->
+                appGraph.analytics.track(
+                    event = AnalyticsEvent.MediaAttached(
+                        source = source,
+                        screen = AnalyticsSurface.AI
+                    )
+                )
+            },
+            onMediaAttachmentFailed = { error ->
+                appGraph.analytics.track(
+                    event = AnalyticsEvent.MediaUploadFailed(
+                        reason = analyticsMediaUploadFailureReason(error = error),
+                        screen = AnalyticsSurface.AI
+                    )
+                )
+            },
             onStartDictationPermissionRequest = aiViewModel::startDictationPermissionRequest,
             onStartDictationRecording = aiViewModel::startDictationRecording,
             onTranscribeRecordedAudio = aiViewModel::transcribeRecordedAudio,

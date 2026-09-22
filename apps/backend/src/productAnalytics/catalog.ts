@@ -327,6 +327,60 @@ export const productAnalyticsEventCatalog = {
       outcome: { kind: "enum", values: ["granted", "denied", "dismissed"] },
     },
   },
+  // The attachment itself, read against the `photo_library` and `camera` answers above: a person can
+  // grant the permission, open the picker and still never attach anything, and until now the answer
+  // was the last thing we knew about them.
+  //
+  // It is the asset landing on the draft or on the card, never the picker opening. A picker someone
+  // backs out of is not an attachment, and analytics.product_events is append-only, so a row that
+  // counted one could not be taken back.
+  //
+  // `source` repeats two of the `permission` values verbatim, so an attachment joins to its own
+  // permission answer by equality; the two spellings have to stay identical for that join to keep
+  // working. It names only the two origins an OS permission stands in front of, so an attach path
+  // with no honest value here — a document import, a drag, a clipboard paste — reports nothing at
+  // all rather than the nearest wrong one, and a per-source count is a floor under all attachments
+  // rather than the total.
+  //
+  // Nothing describing the asset is reported: no file name, no dimensions, no byte size, no media
+  // type. That an attachment happened is the fact; everything else is content a person chose.
+  media_attached: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      source: { kind: "enum", values: ["photo_library", "camera"] },
+    },
+  },
+  // The failure half, so an attachment that did not happen is countable against the ones that did.
+  // A client reports both halves of a path or neither: a failure whose successes go unreported would
+  // read as a failure rate rather than as the one-sided count it is.
+  //
+  // It carries no `source`, and no surface is required either, because a client only reports what it
+  // observed: the preparation that fails is often already off the screen's own path, and the shared
+  // rule is that a client which cannot name where the person is now sends no `screen` rather than a
+  // guess. Every client that can name it stamps it as usual.
+  //
+  // `reason` is one value per terminal branch, and a client reports only the values its own code can
+  // tell apart. `too_large` and `unsupported_type` come from a refusal the person can act on, and a
+  // client that raises one error type for both reports the one it can prove; `server_error` is the
+  // catch-all the other failure vocabularies here already use, meaning the attachment could not be
+  // completed for a reason the person cannot act on. Every client mirror declares only the three
+  // values its own code can reach, so an unreachable one cannot be typed at a call site.
+  //
+  // `offline`, `timeout` and `cancelled` are declared here with no producer yet. They belong to the
+  // upload that reaches the network, which today is the media upload path and reports nothing here;
+  // they stay in the vocabulary for it to fill. Until it does, a near-zero count on any of the three
+  // is a producer that does not exist yet rather than a measurement.
+  media_upload_failed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      reason: {
+        kind: "enum",
+        values: ["offline", "timeout", "too_large", "unsupported_type", "server_error", "cancelled"],
+      },
+    },
+  },
   // The analytics consent decision, which every other event in this catalog depends on having been
   // taken. They are three names rather than one answer with an outcome property because the shown
   // fact and the two answers are reported at different moments by different code paths, and because

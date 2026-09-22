@@ -516,7 +516,9 @@ export function ChatPanel(props: Props): ReactElement {
         <div className="chat-controls">
           <div className="chat-controls-right">
             <FileAttachment
-              onFiles={ingestFiles}
+              // The file chooser is this client's stand-in for a photo library: it opens over the
+              // person's stored files, which is what that value names here.
+              onFiles={(files) => ingestFiles(files, "photo_library")}
               disabled={!canAttachDraftFiles}
             />
             <button

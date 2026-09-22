@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsMediaSource
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.AppTechnicalErrorController
 import com.flashcardsopensourceapp.core.ui.components.AppTechnicalErrorDialog
@@ -100,6 +101,11 @@ internal fun AiRouteContent(
     onDismissAlert: () -> Unit,
     onAddPendingAttachment: (AiChatAttachment) -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
+    // The two halves of the attachment fact. Like the permission results below, they are reported by
+    // the caller: only it knows which surface the person is on and how an error maps onto the shared
+    // reason vocabulary.
+    onMediaAttached: (AnalyticsMediaSource) -> Unit,
+    onMediaAttachmentFailed: (Throwable) -> Unit,
     onStartDictationPermissionRequest: () -> Unit,
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
@@ -148,6 +154,12 @@ internal fun AiRouteContent(
         (uiState.isConversationLoading && hasLocalConversationContent)
     val showComposer = uiState.isConsentRequired.not() && showConversation
 
+    // The camera pair is complete on its success half and incomplete on its failure half, by an OS
+    // limitation rather than by choice: `TakePicturePreview` hands back only a bitmap or null, so a
+    // capture that genuinely failed is indistinguishable from a person backing out of the camera,
+    // and both end here reporting nothing. iOS can tell them apart and reports the failure. So an
+    // Android camera capture that fails is never reported at all, and `media_upload_failed` carries
+    // no `source` to look the gap up by.
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
@@ -162,6 +174,8 @@ internal fun AiRouteContent(
                     textProvider = textProvider
                 )
             )
+            // Reported where the asset reaches the draft, never where the camera was launched.
+            onMediaAttached(AnalyticsMediaSource.CAMERA)
         } catch (error: Exception) {
             currentShowAlertAction(
                 aiAttachmentImportAlert(
@@ -170,6 +184,7 @@ internal fun AiRouteContent(
                     textProvider = textProvider
                 )
             )
+            onMediaAttachmentFailed(error)
         }
     }
     val choosePhotoLauncher = rememberLauncherForActivityResult(
@@ -187,6 +202,7 @@ internal fun AiRouteContent(
                     textProvider = textProvider
                 )
             )
+            onMediaAttached(AnalyticsMediaSource.PHOTO_LIBRARY)
         } catch (error: Exception) {
             currentShowAlertAction(
                 aiAttachmentImportAlert(
@@ -195,8 +211,12 @@ internal fun AiRouteContent(
                     textProvider = textProvider
                 )
             )
+            onMediaAttachmentFailed(error)
         }
     }
+    // Reports neither half of the attachment fact: a document picked out of storage is neither
+    // `photo_library` nor `camera`, and the catalog would rather count fewer attachments than store
+    // an origin that is not true in a table that can never be repaired.
     val chooseDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
