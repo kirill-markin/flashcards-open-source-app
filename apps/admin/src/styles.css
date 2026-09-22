@@ -311,7 +311,10 @@ h2 {
 
 /* The cookieless part of a step, drawn over the top of the bar the total already filled. It washes
    the accent out rather than introducing a second hue, because it is a part of the same step and not
-   a second series; drawing it in the accent itself would be invisible over the accent beneath it. */
+   a second series; drawing it in the accent itself would be invisible over the accent beneath it.
+   A grouped chart overrides both declarations per group inline in `renderFunnelStepsChart`, with the
+   colour `buildFunnelHashedSegmentColor` mixes there, because one shared wash paints every group's
+   segment the same colour. */
 .funnel-step-bar-hashed {
   fill: var(--text);
   fill-opacity: 0.38;
@@ -439,8 +442,17 @@ h2 {
 
 .funnel-group-table thead th:first-child,
 .funnel-group-table thead th:nth-child(2),
-.funnel-group-table tbody th,
-.funnel-group-table-name {
+.funnel-group-table tbody th {
+  text-align: left;
+}
+
+/* A row header, so it is bold by default; the group name is read as data beside its counts, and the
+   step header down the left is the one heading that carries weight here. Scoped by the table, so it
+   also outweighs the right alignment every cell of this table takes and the column reads left
+   whichever element carries it; as a bare class it lost that, and on a plain `td` the name rendered
+   right. */
+.funnel-group-table .funnel-group-table-name {
+  font-weight: 400;
   text-align: left;
 }
 
