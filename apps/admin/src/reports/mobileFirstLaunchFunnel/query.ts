@@ -12,9 +12,16 @@ import {
   buildExcludedActorFilterSqlLines,
   catalogInstallConversionWindowDays,
 } from "../catalogInstallFunnel/query";
-import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
+import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
 
 export const mobileFirstLaunchFunnelReportLabel = "Mobile first launch funnel";
+
+/**
+ * The first UTC day first opens count from, whatever range is selected: the first day on which the
+ * iOS and Android apps both reported the review-screen `screen_viewed` and `review_card_revealed`.
+ * Before it a first open would fall out at step two although the person may have studied.
+ */
+export const mobileFirstLaunchFunnelStartDate = "2026-09-01";
 
 /** Where "studied it properly" is drawn, the same line the deck funnel draws. */
 export const mobileFirstLaunchEngagedReviewThreshold = 20;
@@ -30,11 +37,6 @@ export type MobileFirstLaunchFunnelReport = Readonly<{
   engagedReturningCount: number;
   /** First opens whose seven-day window had not closed when the query ran. */
   maturingCount: number;
-  /**
-   * The first UTC day the cohort counts from: the later of the selected start and the first day the
-   * apps reported both step facts. `null` when they had not reported both by the end of the range.
-   */
-  effectiveFromDate: string | null;
 }>;
 
 /**
@@ -50,8 +52,9 @@ export type MobileFirstLaunchFunnelReport = Readonly<{
 export const mobileFirstLaunchDemoCardAllowanceSeconds = 60;
 
 /**
- * One row per person whose first-ever trusted event is a mobile `app_opened` on a selected UTC day,
- * reduced in SQL to one row of step counts.
+ * One row per person whose first-ever trusted event is a mobile `app_opened` on a selected UTC day
+ * from `mobileFirstLaunchFunnelStartDate` on, reduced in SQL to one row of step counts that follow the
+ * funnel rule in `../funnels/funnelSections.ts`.
  *
  * NO STEP HERE JOINS A COHORT TO `analytics.product_events_resolved` BY MEMBERSHIP, and that is what
  * keeps a long range inside the 30 s statement timeout. The view's `actor_id` is a computed
@@ -67,12 +70,6 @@ export const mobileFirstLaunchDemoCardAllowanceSeconds = 60;
  *   The allowance is not simply "any `card_created`": a person whose first activity was creating cards
  *   through the agent API or MCP must not pass as new. Trusted is `buildTrustedActorRowsFilterSql`,
  *   so a marketing-site visit sent through the credential-free collector is not an earlier event.
- * - `step_facts_start` is the first UTC day on which the apps had reported both the review-screen
- *   `screen_viewed` and `review_card_revealed` on iOS or Android, the later of the two first days,
- *   read from two more minimums in that same pass. Before that day the apps did not send those step
- *   facts, so a first open then would fall out at step two although the person may have studied.
- *   `first_launches` therefore counts only first opens from the later of the selected start and that
- *   day, and counts none when the pass holds no such facts, that is, when the range ends before them.
  * - `step_events` hash-joins the step event rows in the range to `actor_first_events`. That relation
  *   is the per-actor aggregate, and it is scanned with no filter of its own, so the planner never sees
  *   the one-row guess that would make it rescan the view per person. Each row is bounded to its own
@@ -91,7 +88,9 @@ export const mobileFirstLaunchDemoCardAllowanceSeconds = 60;
  * same microsecond on different platforms count as a mobile first open.
  */
 export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): string {
-  const { from, to } = assertValidDateRange(filters.dateRange, mobileFirstLaunchFunnelReportLabel);
+  const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, mobileFirstLaunchFunnelReportLabel);
+  // A range ending before the start date leaves `from` after `to`, so nobody enters.
+  const from = laterCalendarDate(selectedFrom, mobileFirstLaunchFunnelStartDate);
   const rangeStartSql = `(${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`;
   const rangeEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`;
   const stepWindowEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`;
@@ -108,38 +107,16 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     `        AND ${buildEventPlatformsFilterSql("resolved.platform", filters.eventPlatforms)}`,
     "    ) AS first_selected_mobile_opened_at,",
     "    MIN(resolved.occurred_at) FILTER (WHERE resolved.event_name = 'card_created') AS first_card_created_at,",
-    "    MIN(resolved.occurred_at) FILTER (WHERE resolved.event_name <> 'card_created') AS first_other_event_at,",
-    "    MIN(resolved.occurred_at) FILTER (",
-    "      WHERE resolved.event_name = 'screen_viewed'",
-    "        AND resolved.screen = 'review'",
-    "        AND resolved.platform IN ('ios', 'android')",
-    "    ) AS first_review_screen_fact_at,",
-    "    MIN(resolved.occurred_at) FILTER (",
-    "      WHERE resolved.event_name = 'review_card_revealed'",
-    "        AND resolved.platform IN ('ios', 'android')",
-    "    ) AS first_reveal_fact_at",
+    "    MIN(resolved.occurred_at) FILTER (WHERE resolved.event_name <> 'card_created') AS first_other_event_at",
     "  FROM analytics.product_events_resolved AS resolved",
     "  WHERE resolved.actor_id IS NOT NULL",
     `    AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
     `    AND resolved.occurred_at < ${rangeEndSql}`,
     "  GROUP BY resolved.actor_id",
-    "), step_facts_start AS MATERIALIZED (",
-    // `GREATEST` skips a NULL, so the explicit branch keeps a missing fact from being ignored.
-    "  SELECT CASE",
-    "    WHEN MIN(history.first_review_screen_fact_at) IS NULL OR MIN(history.first_reveal_fact_at) IS NULL THEN NULL",
-    "    ELSE GREATEST(",
-    `      ${escapeSqlStringLiteral(from)}::date,`,
-    "      (GREATEST(MIN(history.first_review_screen_fact_at), MIN(history.first_reveal_fact_at)) AT TIME ZONE 'UTC')::date",
-    "    )",
-    "  END AS effective_from_date",
-    "  FROM actor_first_events AS history",
     "), first_launches AS MATERIALIZED (",
     "  SELECT history.actor_id, history.first_opened_at",
     "  FROM actor_first_events AS history",
-    "  CROSS JOIN step_facts_start AS facts",
-    // A NULL start matches nobody: the apps sent no step facts before the range ended.
-    "  WHERE history.first_opened_at >= facts.effective_from_date::timestamp AT TIME ZONE 'UTC'",
-    `    AND history.first_opened_at >= ${rangeStartSql}`,
+    `  WHERE history.first_opened_at >= ${rangeStartSql}`,
     "    AND history.first_selected_mobile_opened_at = history.first_opened_at",
     // `first_other_event_at` includes the first app open itself, so equality is "nothing earlier".
     "    AND history.first_other_event_at >= history.first_opened_at",
@@ -222,8 +199,7 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "  ))::int AS engaged_returning_count,",
     "  (COUNT(*) FILTER (",
     `    WHERE cohort.first_opened_at + ${windowSql} > now()`,
-    "  ))::int AS maturing_count,",
-    "  (SELECT facts.effective_from_date::text FROM step_facts_start AS facts) AS effective_from_date",
+    "  ))::int AS maturing_count",
     "FROM cohort",
     "LEFT JOIN review_screens AS review_screen ON review_screen.actor_id = cohort.actor_id",
     "LEFT JOIN reveals AS revealed ON revealed.actor_id = cohort.actor_id",
@@ -250,7 +226,6 @@ export async function loadMobileFirstLaunchFunnelReport(
     );
   }
 
-  const effectiveFromDate = row.effective_from_date ?? null;
   const count = (fieldName: string): number => (
     toInteger(row[fieldName] ?? null, mobileFirstLaunchFunnelReportLabel, fieldName)
   );
@@ -264,8 +239,5 @@ export async function loadMobileFirstLaunchFunnelReport(
     engagedCount: count("engaged_count"),
     engagedReturningCount: count("engaged_returning_count"),
     maturingCount: count("maturing_count"),
-    effectiveFromDate: effectiveFromDate === null
-      ? null
-      : assertIsString(effectiveFromDate, mobileFirstLaunchFunnelReportLabel, "effective_from_date"),
   };
 }
