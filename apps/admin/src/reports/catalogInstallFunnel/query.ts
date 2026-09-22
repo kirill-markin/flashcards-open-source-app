@@ -401,8 +401,8 @@ function buildInstallClickFilterSqlLines(filters: AnalyticsFilterState): Readonl
  * The same selection on the no-visit diagnostic, which counts app-side previews whose identity viewed
  * no deck page this report can see. Only what such a row answers itself can narrow it: the deck
  * version it names, its own client platform and its identity. The four click dimensions are absent
- * from it by definition, so the diagnostic stays wider than the funnel whenever one of them is
- * narrowed, and the section says so.
+ * from it by definition, so the diagnostic stays wider than the install-click step and the steps
+ * below it whenever one of them is narrowed, and the section says so.
  */
 function buildFunnelPreviewFilterSqlLines(filters: AnalyticsFilterState): ReadonlyArray<string> {
   return [

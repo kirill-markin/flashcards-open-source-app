@@ -45,17 +45,20 @@ export const blogToWebAppFunnelAnchor: FunnelAnchor<FunnelStepId> = {
   stepIds: funnelStepIds,
 };
 
+export const homeToWebAppFunnelTitle = "Home page to web app";
+export const blogToWebAppFunnelTitle = "Blog article to web app";
+
 const homeToWebAppFunnel: SiteEntryFunnelDefinition = {
   pageKind: "home",
   anchor: homeToWebAppFunnelAnchor,
-  title: "Home page to web app",
+  title: homeToWebAppFunnelTitle,
   pageName: "home page",
 };
 
 const blogToWebAppFunnel: SiteEntryFunnelDefinition = {
   pageKind: "blog_article",
   anchor: blogToWebAppFunnelAnchor,
-  title: "Blog article to web app",
+  title: blogToWebAppFunnelTitle,
   pageName: "blog article",
 };
 
