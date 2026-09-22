@@ -1,14 +1,26 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
-import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
-import { isFunnelHashedCohortRead, isFunnelHashedSplitShown } from "../funnels/funnelAudienceSql";
+import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
+import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
+import { isFunnelAllAudienceSelected, isFunnelHashedCohortRead } from "../funnels/funnelAudienceSql";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
+import { FunnelGroupByPicker } from "../funnels/FunnelGroupByPicker";
+import {
+  buildFunnelGroupLabel,
+  foldFunnelGroups,
+  parseFunnelGroupByDimension,
+  writeFunnelGroupByToUrl,
+  type FunnelGroup,
+  type FunnelGroupByDimension,
+} from "../funnels/funnelGroupBy";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import { FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
 import {
   loadSiteEntryFunnelReport,
   siteEntryEngagedReviewThreshold,
+  siteEntryFunnelGroupByDimensions,
   siteEntryFunnelStartDate,
+  type SiteEntryFunnelCounts,
+  type SiteEntryFunnelGroup,
   type SiteEntryFunnelReport,
   type SiteEntryPageKind,
 } from "./query";
@@ -16,7 +28,15 @@ import {
 type FunnelLoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; report: SiteEntryFunnelReport }>;
+  /**
+   * The report and the dimension it was loaded with, which are only meaningful together: the group
+   * keys in the report are that dimension's, and nothing else may read them as another's.
+   */
+  | Readonly<{
+    status: "ready";
+    report: SiteEntryFunnelReport;
+    dimension: FunnelGroupByDimension | null;
+  }>;
 
 /** The six funnel steps in chart order; `buildStages` takes its order from this list. */
 const funnelStepIds = [
@@ -82,14 +102,14 @@ function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): strin
 }
 
 /**
- * The six steps, each as the whole audience the mode asks for.
+ * The six steps of one group, or of the funnel as a whole, each as the audience the mode asks for.
  *
  * The query returns the identified cohort and the cookieless one separately, so a step's `count` is
  * their sum and its `hashedCount` is the cookieless part. Only the two site steps can have one: the
  * steps below them all read a trusted in-app row, which a browser with no cookie never produces.
  */
 function buildStages(
-  report: SiteEntryFunnelReport,
+  counts: SiteEntryFunnelCounts,
   definition: SiteEntryFunnelDefinition,
 ): ReadonlyArray<FunnelStage<FunnelStepId>> {
   // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelStepIds`.
@@ -98,24 +118,24 @@ function buildStages(
   > = {
     "entry-view": {
       label: `First page: ${definition.pageName}`,
-      count: report.entryViewCount + report.hashedEntryViewCount,
-      hashedCount: report.hashedEntryViewCount,
+      count: counts.entryViewCount + counts.hashedEntryViewCount,
+      hashedCount: counts.hashedEntryViewCount,
     },
     "app-entry-click": {
       label: "Web app link clicked",
-      count: report.appEntryClickCount + report.hashedAppEntryClickCount,
-      hashedCount: report.hashedAppEntryClickCount,
+      count: counts.appEntryClickCount + counts.hashedAppEntryClickCount,
+      hashedCount: counts.hashedAppEntryClickCount,
     },
-    "signed-in": { label: "Signed in on the web app", count: report.signedInCount, hashedCount: 0 },
-    "one-review": { label: "1+ review", count: report.oneReviewCount, hashedCount: 0 },
+    "signed-in": { label: "Signed in on the web app", count: counts.signedInCount, hashedCount: 0 },
+    "one-review": { label: "1+ review", count: counts.oneReviewCount, hashedCount: 0 },
     engaged: {
       label: `${siteEntryEngagedReviewThreshold}+ reviews`,
-      count: report.engagedCount,
+      count: counts.engagedCount,
       hashedCount: 0,
     },
     "engaged-returning": {
       label: `${siteEntryEngagedReviewThreshold}+ reviews with a return day`,
-      count: report.engagedReturningCount,
+      count: counts.engagedReturningCount,
       hashedCount: 0,
     },
   };
@@ -123,12 +143,53 @@ function buildStages(
   return funnelStepIds.map((id) => ({ id, ...stages[id] }));
 }
 
+/**
+ * The funnel as a whole. The groups are a partition of both cohorts, so every funnel-wide figure -
+ * the empty state, the maturing warning and the explainer - is their sum, whichever way `Group by`
+ * is set.
+ */
+function sumFunnelGroups(groups: ReadonlyArray<SiteEntryFunnelGroup>): SiteEntryFunnelCounts {
+  return groups.reduce<SiteEntryFunnelCounts>((totals, group) => ({
+    entryViewCount: totals.entryViewCount + group.entryViewCount,
+    appEntryClickCount: totals.appEntryClickCount + group.appEntryClickCount,
+    signedInCount: totals.signedInCount + group.signedInCount,
+    oneReviewCount: totals.oneReviewCount + group.oneReviewCount,
+    engagedCount: totals.engagedCount + group.engagedCount,
+    engagedReturningCount: totals.engagedReturningCount + group.engagedReturningCount,
+    hashedEntryViewCount: totals.hashedEntryViewCount + group.hashedEntryViewCount,
+    hashedAppEntryClickCount: totals.hashedAppEntryClickCount + group.hashedAppEntryClickCount,
+    maturingCount: totals.maturingCount + group.maturingCount,
+  }), {
+    entryViewCount: 0,
+    appEntryClickCount: 0,
+    signedInCount: 0,
+    oneReviewCount: 0,
+    engagedCount: 0,
+    engagedReturningCount: 0,
+    hashedEntryViewCount: 0,
+    hashedAppEntryClickCount: 0,
+    maturingCount: 0,
+  });
+}
+
 function SiteEntryFunnelSection(
   props: FunnelSectionProps & Readonly<{ definition: SiteEntryFunnelDefinition }>,
 ): JSX.Element {
   const { definition } = props;
+  const funnelId = definition.anchor.funnelId;
   const [loadRevision, setLoadRevision] = useState<number>(0);
   const [loadState, setLoadState] = useState<FunnelLoadState>({ status: "loading" });
+  // The field is this funnel's own, seeded from the URL on mount and written back on every pick, so
+  // a reload or a shared link reopens the same grouping; `null` is the ungrouped default. Both site
+  // funnels are this one component, so every read and write of the field goes through the funnel's
+  // own id and picking on one never moves the other.
+  const [groupByDimension, setGroupByDimension] = useState<FunnelGroupByDimension | null>(
+    () => parseFunnelGroupByDimension(
+      new URLSearchParams(window.location.search),
+      funnelId,
+      siteEntryFunnelGroupByDimensions,
+    ),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -137,10 +198,16 @@ function SiteEntryFunnelSection(
       return () => { cancelled = true; };
     }
 
-    void loadSiteEntryFunnelReport(props.config, props.filters, definition.pageKind, `${definition.title} funnel`)
+    void loadSiteEntryFunnelReport(
+      props.config,
+      props.filters,
+      definition.pageKind,
+      `${definition.title} funnel`,
+      groupByDimension,
+    )
       .then((report) => {
         if (cancelled === false) {
-          setLoadState({ status: "ready", report });
+          setLoadState({ status: "ready", report, dimension: groupByDimension });
         }
       })
       .catch((error: unknown) => {
@@ -152,21 +219,60 @@ function SiteEntryFunnelSection(
       });
 
     return () => { cancelled = true; };
-  }, [definition, loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
+  }, [
+    definition,
+    groupByDimension,
+    loadRevision,
+    props.config,
+    props.filters,
+    props.isRangeLoading,
+    props.onTerminalAdminError,
+  ]);
 
-  const report = props.isRangeLoading === false && loadState.status === "ready" ? loadState.report : null;
-  const stages = useMemo(() => (report === null ? [] : buildStages(report, definition)), [report, definition]);
-  const startDateNote = report === null ? null : buildStartDateNote(props.filters.dateRange);
+  // The group key is a property of the person, so regrouping re-reads the cohort rather than
+  // re-cutting numbers the browser already has.
+  const selectGroupByDimension = useCallback((dimension: FunnelGroupByDimension | null): void => {
+    setGroupByDimension(dimension);
+    writeFunnelGroupByToUrl(funnelId, dimension?.id ?? null);
+  }, [funnelId]);
+
+  // The report and the dimension it was loaded with, read as the pair they are.
+  const readyState = props.isRangeLoading === false && loadState.status === "ready" ? loadState : null;
+  const report = readyState === null ? null : readyState.report;
+  // The groups partition both cohorts, so the funnel-wide numbers are their sum.
+  const totals = useMemo(() => (report === null ? null : sumFunnelGroups(report.groups)), [report]);
+  const stages = useMemo(() => (totals === null ? [] : buildStages(totals, definition)), [totals, definition]);
+  // THE LOADED DIMENSION RATHER THAN THE SELECTED ONE DECIDES WHETHER THERE ARE GROUPS TO DRAW.
+  // Picking one re-renders this section before the load effect runs, so for that one render the
+  // field already says `Connection country` while the report in hand is still the previous
+  // dimension's - or the ungrouped `all` - and reading those keys as the new dimension's would name
+  // and colour them as countries they never were. The chart keeps its ungrouped shape for that
+  // render, until the report the field asked for arrives. The funnel-wide totals above are
+  // unaffected, because the groups of any dimension are a partition of the same people.
+  const groups = useMemo<ReadonlyArray<FunnelGroup<FunnelStepId>> | null>(() => {
+    const loadedDimension = readyState === null ? null : readyState.dimension;
+    if (readyState === null || loadedDimension === null || loadedDimension !== groupByDimension) {
+      return null;
+    }
+
+    return foldFunnelGroups(loadedDimension, readyState.report.groups.map((group) => ({
+      key: group.key,
+      label: buildFunnelGroupLabel(loadedDimension, group.key),
+      stages: buildStages(group, definition),
+    })));
+  }, [definition, groupByDimension, readyState]);
+  const startDateNote = totals === null ? null : buildStartDateNote(props.filters.dateRange);
   // The whole first step, so a range in which only cookieless visitors arrived draws the funnel
   // instead of claiming nobody came.
-  const entryCount = report === null ? 0 : report.entryViewCount + report.hashedEntryViewCount;
+  const entryCount = totals === null ? 0 : totals.entryViewCount + totals.hashedEntryViewCount;
   // The mode alone, never the chart's `showsHashedSplit` prop: that one is the read gate below,
   // and the two differ exactly in the `all`-with-a-country case this note exists to explain.
-  const wantsHashedCohort = isFunnelHashedSplitShown(props.filters);
+  const wantsHashedCohort = isFunnelAllAudienceSelected(props.filters);
   // What the query actually read, which is what every sentence and column about the cookieless
   // segment is chosen on: with a country selected the mode is still `all` and the cohort is not read.
   const readsHashedCohort = isFunnelHashedCohortRead(props.filters);
-  const hashedCountryNote = report !== null
+  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
+  const hashedCountryNote = totals !== null
     && wantsHashedCohort
     && props.filters.connectionCountries.length > 0
     ? "A connection country is selected, so the cookieless visitors are left out of these bars entirely: their rows carry no country, and keeping them would answer a country question with people whose country is unknown."
@@ -181,18 +287,34 @@ function SiteEntryFunnelSection(
 
       {props.filterRow}
 
+      {/* OUTSIDE EVERY STATE GATE BELOW, because the chart is not mounted while the report loads and
+          not mounted at all while the funnel is empty. A field that unmounts on its own use drops
+          keyboard focus on every pick, and once a narrowed range leaves nobody a grouping already in
+          the URL could only be cleared by editing the URL by hand. */}
+      <div className="funnel-group-by-row">
+        <FunnelGroupByPicker
+          funnelId={funnelId}
+          dimensions={siteEntryFunnelGroupByDimensions}
+          selectedDimensionId={groupByDimension === null ? null : groupByDimension.id}
+          isReportLoading={props.isRangeLoading || loadState.status === "loading"}
+          onSelect={selectGroupByDimension}
+        />
+      </div>
+
       {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading {definition.title.toLowerCase()} funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
       {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
-      {report !== null && entryCount === 0 ? <div className="report-state"><strong>No first visits on a {definition.pageName} match these filters.</strong><span>Only a person whose first site page is a {definition.pageName} viewed on a selected day enters this funnel.</span></div> : null}
+      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
+      {totals !== null && entryCount === 0 ? <div className="report-state"><strong>No first visits on a {definition.pageName} match these filters.</strong><span>Only a person whose first site page is a {definition.pageName} viewed on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
-      {report !== null ? <FunnelMaturingWarning maturingCount={report.maturingCount} entryCount={report.entryViewCount} /> : null}
+      {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.entryViewCount} /> : null}
 
-      {report !== null && entryCount > 0 ? (
+      {totals !== null && entryCount > 0 ? (
         <FunnelStepsChart
           anchor={definition.anchor}
           stages={stages}
+          groups={groups ?? undefined}
           countLabel="People"
           tableCaption={`${definition.title} funnel steps`}
           dateRange={props.filters.dateRange}
@@ -200,10 +322,10 @@ function SiteEntryFunnelSection(
         />
       ) : null}
 
-      {report !== null ? (
+      {totals !== null ? (
         <details className="funnel-explainer">
           <summary>How it&rsquo;s counted</summary>
-          <div className="funnel-detail-row funnel-explainer-figure"><span>People still inside 7-day window</span><strong>{report.maturingCount.toLocaleString("en-US")}</strong></div>
+          <div className="funnel-detail-row funnel-explainer-figure"><span>People still inside 7-day window</span><strong>{totals.maturingCount.toLocaleString("en-US")}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
           <p>One row is one person, anchored at their first <code>site_page_viewed</code> on the marketing site, and only when that first page is a {definition.pageName} (<code>page_kind = &apos;{definition.pageKind}&apos;</code>) viewed in the selected UTC dates, with no trusted event anywhere before it. The person is the site&rsquo;s visitor cookie, which the web app on the same domain reports under too. Someone who was already using the product is not here once their cookie resolves to their account. Visits count from {siteEntryFunnelStartDate}, the first full UTC day the site reported page views with a visitor id, so an earlier range shows a note rather than drop-off.</p>
           <p>Pre-consent visits cannot join: where the site has to ask first (the EEA and the UK), a page viewed before the visitor consents carries no visitor id, so it is not in this funnel at all, and such a visitor enters at the first page they view after consenting.</p>
@@ -212,6 +334,7 @@ function SiteEntryFunnelSection(
           <p>The date range, the client platform, the connection country and the app interface language are applied in SQL. The platform is the entry page view&rsquo;s, and the site always reports as web, so a selection without web empties this funnel. The country and language keep a person the way they do on General, from their trusted events in the selected dates, so narrowing either keeps only people who signed in. An <code>@example.com</code> account, an admin and an actor on the analytics exclusion list are excluded. The seven-day note above counts only people with an identifier, who are the only ones with a window still to fill.</p>
           <p>&ldquo;Who the funnels count&rdquo; picks the audience. <strong>With anonymous ID</strong>, the default, is everything described above: a person is the visitor cookie. <strong>Signed-in only</strong> keeps just the people whose identity resolves to a real, non-guest account at some point up to now, read from a Cognito row in <code>auth.user_identities</code>; their steps from before they registered still count, and somebody who has since deleted their account does not. <strong>All</strong> adds the cookieless visitors, drawn as the lighter part of the first two bars: where the site may not set a cookie it still reports a daily hash, and one hash on one UTC day is one person. Those people can reach the page view and the web app link click and nothing else, because every step below reads a trusted in-app row that a browser with no cookie never sends, so their segment ends there by construction rather than as drop-off. They also carry no actor, so the exclusion list and the test-account and admin rules cannot reach them, and their language is the one their own page view recorded.</p>
           <p><strong>All counts people at most once per cohort, not once per person, so it is an upper bound.</strong> A hash and a visitor cookie are never linked, by design: the daily salt is unreadable and no query may resolve one to the other. Where the site must ask before setting a cookie (the EEA and the UK), the same human sends hashed page views before consenting and cookie-bearing ones after, and when the first page they see after consenting is a {definition.pageName} they can enter once in each part of step one, and of the click step, and be added. Nothing here can subtract that overlap, which is why <strong>With anonymous ID</strong> is the default and <strong>All</strong> is a ceiling to read against it rather than a better count.</p>
+          <p><strong>Group by</strong> splits exactly those people and measures each group inside itself: one bar per group at every step, every percentage taken from that group&rsquo;s own first step, and a selected step re-bases each group on its own count there, so two groups of very different size are compared by their rates. The key is a property of the person over the selected dates - the alphabetically first connection country or app interface language their trusted events in range carry - so the groups always sum back to the numbers above. The client platform is not offered here, because the entry is a site page view and the site always reports as web. The key comes from a person&rsquo;s trusted events in the range, so somebody who never signed in carries neither a country nor a language here and is kept in <strong>Unresolved</strong> rather than dropped, and beyond the five largest groups the rest are summed into <strong>Other</strong>. The cookieless visitors of <strong>All</strong> are in <strong>Unresolved</strong> under either dimension, and keep their lighter segment there: their country is genuinely unknowable, and the language their own page view recorded is not grouped on here. So under <strong>App interface language</strong> every language group is short by the cookieless visitors who carry that language - they are counted in <strong>Unresolved</strong>, not left without a language. A group key is not narrowed by the filter of the same name: a person whose events in range carry two countries is kept by a <strong>Connection country</strong> selection that matches either of them and is still grouped under the alphabetically first, so a grouped chart can show a country - or a language - that the filter above it did not select.</p>
         </details>
       ) : null}
     </section>

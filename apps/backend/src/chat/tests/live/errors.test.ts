@@ -132,6 +132,7 @@ test("handleLiveRequest uses the authoritative Cognito profile for downstream ac
         selectedWorkspaceId: null,
         guestSessionId: null,
         guestPlatform: null,
+        guestAnalyticsConsent: null,
       }),
       ensureCognitoUserProfileFn: async (subjectUserId, email) => {
         assert.equal(subjectUserId, "cognito-subject");

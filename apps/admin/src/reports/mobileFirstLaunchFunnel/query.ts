@@ -2,6 +2,8 @@ import { runAdminQuery } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
+  buildActorAppUiLanguageSql,
+  buildActorConnectionCountrySql,
   buildAppUiLanguagesFilterSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
@@ -11,7 +13,12 @@ import {
 import { escapeSqlStringLiteral } from "../../sql";
 import { catalogInstallConversionWindowDays } from "../catalogInstallFunnel/query";
 import { buildFunnelAudienceActorSqlLines } from "../funnels/funnelAudienceSql";
-import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
+import {
+  platformFunnelGroupByDimensionId,
+  unresolvedFunnelGroupKey,
+  type FunnelGroupByDimension,
+} from "../funnels/funnelGroupBy";
+import { assertIsString, assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
 
 export const mobileFirstLaunchFunnelReportLabel = "Mobile first launch funnel";
 
@@ -25,9 +32,8 @@ export const mobileFirstLaunchFunnelStartDate = "2026-09-01";
 /** Where "studied it properly" is drawn, the same line the deck funnel draws. */
 export const mobileFirstLaunchEngagedReviewThreshold = 20;
 
-/** People per step, each step a subset of the one before it. */
-export type MobileFirstLaunchFunnelReport = Readonly<{
-  generatedAtUtc: string;
+/** People per step, each step a subset of the one before it: one group's, or the funnel's own sum. */
+export type MobileFirstLaunchFunnelCounts = Readonly<{
   firstOpenCount: number;
   reviewScreenCount: number;
   revealedCount: number;
@@ -38,6 +44,65 @@ export type MobileFirstLaunchFunnelReport = Readonly<{
   /** First opens whose seven-day window had not closed when the query ran. */
   maturingCount: number;
 }>;
+
+/**
+ * One group's counts under the key the SQL produced: the dimension's own value,
+ * `unresolvedFunnelGroupKey` for a person it cannot place, or `ungroupedMobileFirstLaunchGroupKey`
+ * while no dimension is selected.
+ */
+export type MobileFirstLaunchFunnelGroup = MobileFirstLaunchFunnelCounts & Readonly<{ key: string }>;
+
+/**
+ * One entry per group, and exactly one while no dimension is selected.
+ *
+ * EVERY COUNT IS GROUPED, so a range nobody entered returns no groups at all rather than a row of
+ * zeros; the section sums the groups it did get, which is zero people and its own empty state.
+ */
+export type MobileFirstLaunchFunnelReport = Readonly<{
+  generatedAtUtc: string;
+  groups: ReadonlyArray<MobileFirstLaunchFunnelGroup>;
+}>;
+
+/** The one key of the ungrouped funnel. Nothing reads it: with no dimension there is one group. */
+const ungroupedMobileFirstLaunchGroupKey = "all";
+
+/**
+ * The two dimensions whose key is not on the cohort row but in a per-actor source joined beside it.
+ * The ids are named here because the dimension that declares one and the join that supplies it have
+ * to agree, and they are written in two places.
+ */
+const connectionCountryGroupByDimensionId = "country";
+const appUiLanguageGroupByDimensionId = "language";
+
+/**
+ * What this funnel offers in its `Group by` field, in picker order.
+ *
+ * Each expression yields exactly one key per person in the cohort, so the groups partition the
+ * funnel and still sum to it. Country and language read the per-actor sources joined beside the
+ * cohort, and both can be NULL for somebody they cannot place, which the query folds into the
+ * `Unresolved` group.
+ */
+export const mobileFirstLaunchFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDimension> = [
+  {
+    id: platformFunnelGroupByDimensionId,
+    label: "Platform",
+    // The FIRST open's platform rather than any later one, which is what the funnel is anchored on.
+    // A person the cohort kept opened on iOS or Android first, so an iOS open at that same instant
+    // means iOS and anything else means Android; two opens at the same microsecond on both
+    // platforms read as iOS, the same tie the cohort itself already accepts.
+    buildGroupKeySql: () => "CASE WHEN cohort.first_ios_opened_at = cohort.first_opened_at THEN 'ios' ELSE 'android' END",
+  },
+  {
+    id: connectionCountryGroupByDimensionId,
+    label: "Connection country",
+    buildGroupKeySql: () => "actor_country.country",
+  },
+  {
+    id: appUiLanguageGroupByDimensionId,
+    label: "App interface language",
+    buildGroupKeySql: () => "actor_language.ui_locale",
+  },
+];
 
 /**
  * How long before the first app open a `card_created` may be and still not count as earlier activity.
@@ -52,9 +117,51 @@ export type MobileFirstLaunchFunnelReport = Readonly<{
 export const mobileFirstLaunchDemoCardAllowanceSeconds = 60;
 
 /**
+ * The per-actor source the selected dimension's key expression reads, joined to the cohort, or no
+ * lines for a dimension whose key is already on the cohort row.
+ *
+ * ONE SOURCE, NEVER BOTH. Each of the two is a scan of its own - the country one cross-joins the
+ * retained connection samples to their endpoints and hash-joins the view again, the language one is
+ * another full pass over the range - and this query is shaped around the 30 s statement timeout, so
+ * a join whose alias the group key never mentions is paid for nothing. `platform` reads
+ * `cohort.first_ios_opened_at` and needs neither, and it is both the cheapest dimension and the
+ * likeliest first pick. The alias each case supplies is the one the matching dimension's
+ * `buildGroupKeySql` names, which is why the two are written against the same id constants.
+ */
+function buildGroupSourceJoinSqlLines(
+  groupByDimension: FunnelGroupByDimension | null,
+  dateRange: AnalyticsFilterState["dateRange"],
+): ReadonlyArray<string> {
+  if (groupByDimension?.id === connectionCountryGroupByDimensionId) {
+    return [
+      "LEFT JOIN (",
+      buildActorConnectionCountrySql(dateRange),
+      ") AS actor_country ON actor_country.actor_id = cohort.actor_id",
+    ];
+  }
+
+  if (groupByDimension?.id === appUiLanguageGroupByDimensionId) {
+    return [
+      "LEFT JOIN (",
+      buildActorAppUiLanguageSql(dateRange),
+      ") AS actor_language ON actor_language.actor_id = cohort.actor_id",
+    ];
+  }
+
+  // `None` and `platform` both land here: neither reads anything outside the cohort row.
+  return [];
+}
+
+/**
  * One row per person whose first-ever trusted event is a mobile `app_opened` on a selected UTC day
- * from `mobileFirstLaunchFunnelStartDate` on, reduced in SQL to one row of step counts that follow the
- * funnel rule in `../funnels/funnelSections.ts`.
+ * from `mobileFirstLaunchFunnelStartDate` on, reduced in SQL to one row of step counts per group
+ * that follow the funnel rule in `../funnels/funnelSections.ts`.
+ *
+ * THE GROUP KEY IS A PROPERTY OF THE PERSON, never of a step: it is computed once per cohort row and
+ * every count is taken inside it, so the groups partition the funnel and sum back to it step by
+ * step, `maturing_count` included. `None` groups by one literal, so there is one group of everybody
+ * and no dimension source is joined at all, and any other dimension joins only the one source its
+ * own key reads.
  *
  * NO STEP HERE JOINS A COHORT TO `analytics.product_events_resolved` BY MEMBERSHIP, and that is what
  * keeps a long range inside the 30 s statement timeout. The view's `actor_id` is a computed
@@ -88,7 +195,10 @@ export const mobileFirstLaunchDemoCardAllowanceSeconds = 60;
  * the server's fact and carries no platform, so an answer given on another device of the same person
  * counts. Two app opens at the same microsecond on different platforms count as a mobile first open.
  */
-export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): string {
+export function buildMobileFirstLaunchFunnelSql(
+  filters: AnalyticsFilterState,
+  groupByDimension: FunnelGroupByDimension | null,
+): string {
   const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, mobileFirstLaunchFunnelReportLabel);
   // A range ending before the start date leaves `from` after `to`, so nobody enters.
   const from = laterCalendarDate(selectedFrom, mobileFirstLaunchFunnelStartDate);
@@ -96,6 +206,15 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
   const rangeEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`;
   const stepWindowEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`;
   const windowSql = `INTERVAL '${catalogInstallConversionWindowDays} days'`;
+  // Every count is grouped, always: with no dimension the key is one literal, so the shape of the
+  // query is the same whichever way the field is set and `None` is simply one group of everybody.
+  // `::text` on both branches, deliberately rather than by default: the key is also the `GROUP BY`
+  // target and is read back as a string, so nothing here depends on how Postgres resolves the type
+  // of a bare literal or of a `COALESCE` over one.
+  const groupKeySql = groupByDimension === null
+    ? `${escapeSqlStringLiteral(ungroupedMobileFirstLaunchGroupKey)}::text`
+    : `COALESCE(${groupByDimension.buildGroupKeySql(filters)}, ${escapeSqlStringLiteral(unresolvedFunnelGroupKey)})::text`;
+  const groupSourceJoinSqlLines = buildGroupSourceJoinSqlLines(groupByDimension, filters.dateRange);
 
   return [
     "WITH actor_first_events AS MATERIALIZED (",
@@ -107,6 +226,11 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "        AND resolved.platform IN ('ios', 'android')",
     `        AND ${buildEventPlatformsFilterSql("resolved.platform", filters.eventPlatforms)}`,
     "    ) AS first_selected_mobile_opened_at,",
+    // Only the `platform` group key reads this: it names which of the two mobile platforms the
+    // first open was on, without a second pass over the events to find that one row again.
+    "    MIN(resolved.occurred_at) FILTER (",
+    "      WHERE resolved.event_name = 'app_opened' AND resolved.platform = 'ios'",
+    "    ) AS first_ios_opened_at,",
     "    MIN(resolved.occurred_at) FILTER (WHERE resolved.event_name = 'card_created') AS first_card_created_at,",
     "    MIN(resolved.occurred_at) FILTER (WHERE resolved.event_name <> 'card_created') AS first_other_event_at",
     "  FROM analytics.product_events_resolved AS resolved",
@@ -115,7 +239,7 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     `    AND resolved.occurred_at < ${rangeEndSql}`,
     "  GROUP BY resolved.actor_id",
     "), first_launches AS MATERIALIZED (",
-    "  SELECT history.actor_id, history.first_opened_at",
+    "  SELECT history.actor_id, history.first_opened_at, history.first_ios_opened_at",
     "  FROM actor_first_events AS history",
     `  WHERE history.first_opened_at >= ${rangeStartSql}`,
     "    AND history.first_selected_mobile_opened_at = history.first_opened_at",
@@ -126,7 +250,7 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     `      OR history.first_card_created_at >= history.first_opened_at - INTERVAL '${mobileFirstLaunchDemoCardAllowanceSeconds} seconds'`,
     "    )",
     "), cohort AS MATERIALIZED (",
-    "  SELECT candidate.actor_id, candidate.first_opened_at",
+    "  SELECT candidate.actor_id, candidate.first_opened_at, candidate.first_ios_opened_at",
     "  FROM first_launches AS candidate",
     "  WHERE TRUE",
     ...buildExcludedActorSqlLines("candidate.actor_id::text"),
@@ -186,6 +310,7 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "  GROUP BY review.actor_id",
     ")",
     "SELECT",
+    `  ${groupKeySql} AS group_key,`,
     "  COUNT(*)::int AS first_open_count,",
     "  COUNT(review_screen.review_screen_at)::int AS review_screen_count,",
     "  COUNT(revealed.revealed_at)::int AS revealed_count,",
@@ -204,40 +329,47 @@ export function buildMobileFirstLaunchFunnelSql(filters: AnalyticsFilterState): 
     "LEFT JOIN reveals AS revealed ON revealed.actor_id = cohort.actor_id",
     "LEFT JOIN first_reviews AS first_review ON first_review.actor_id = cohort.actor_id",
     "LEFT JOIN person_engagement AS engagement ON engagement.actor_id = cohort.actor_id",
+    ...groupSourceJoinSqlLines,
+    "GROUP BY group_key",
   ].join("\n");
 }
 
 export async function loadMobileFirstLaunchFunnelReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
+  groupByDimension: FunnelGroupByDimension | null,
 ): Promise<MobileFirstLaunchFunnelReport> {
-  const response = await runAdminQuery(config, buildMobileFirstLaunchFunnelSql(filters));
+  const response = await runAdminQuery(
+    config,
+    buildMobileFirstLaunchFunnelSql(filters, groupByDimension),
+  );
   if (response.resultSets.length !== 1) {
     throw new Error(
       `${mobileFirstLaunchFunnelReportLabel} must return exactly one result set. Got ${response.resultSets.length}.`,
     );
   }
 
-  const row = response.resultSets[0]?.rows[0];
-  if (row === undefined || response.resultSets[0]?.rows.length !== 1) {
-    throw new Error(
-      `${mobileFirstLaunchFunnelReportLabel} must return exactly one row. Got ${response.resultSets[0]?.rows.length ?? 0}.`,
-    );
-  }
-
-  const count = (fieldName: string): number => (
-    toInteger(row[fieldName] ?? null, mobileFirstLaunchFunnelReportLabel, fieldName)
-  );
+  // No row is a legal answer and means nobody entered the funnel, because every count is grouped.
+  const rows = response.resultSets[0]?.rows ?? [];
 
   return {
     generatedAtUtc: response.executedAtUtc,
-    firstOpenCount: count("first_open_count"),
-    reviewScreenCount: count("review_screen_count"),
-    revealedCount: count("revealed_count"),
-    oneReviewCount: count("one_review_count"),
-    twoReviewsCount: count("two_reviews_count"),
-    twoReviewDaysCount: count("two_review_days_count"),
-    engagedReturningCount: count("engaged_returning_count"),
-    maturingCount: count("maturing_count"),
+    groups: rows.map((row) => {
+      const count = (fieldName: string): number => (
+        toInteger(row[fieldName] ?? null, mobileFirstLaunchFunnelReportLabel, fieldName)
+      );
+
+      return {
+        key: assertIsString(row.group_key ?? null, mobileFirstLaunchFunnelReportLabel, "group_key"),
+        firstOpenCount: count("first_open_count"),
+        reviewScreenCount: count("review_screen_count"),
+        revealedCount: count("revealed_count"),
+        oneReviewCount: count("one_review_count"),
+        twoReviewsCount: count("two_reviews_count"),
+        twoReviewDaysCount: count("two_review_days_count"),
+        engagedReturningCount: count("engaged_returning_count"),
+        maturingCount: count("maturing_count"),
+      };
+    }),
   };
 }

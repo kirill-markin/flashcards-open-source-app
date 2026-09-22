@@ -3,6 +3,7 @@ export type GuestSessionState = Readonly<{
   session_secret_hash: string;
   user_id: string;
   platform: "ios" | "android" | null;
+  analytics_consent: "granted" | "declined" | null;
   revoked_at: string | null;
 }>;
 
@@ -10,6 +11,7 @@ export type UserSettingsState = Readonly<{
   user_id: string;
   workspace_id: string | null;
   email: string | null;
+  analytics_consent: "granted" | "declined" | null;
   progress_time_zone: string | null;
 }>;
 
@@ -255,6 +257,39 @@ export type GuestUpgradeHandlerContext = Readonly<{
 
 export function membershipKey(userId: string, workspaceId: string): string {
   return `${userId}:${workspaceId}`;
+}
+
+/** Records on the fixture's guest session the analytics answer a person with no account gave. */
+export function setGuestSessionAnalyticsConsent(
+  state: MutableState,
+  analyticsConsent: "granted" | "declined",
+): void {
+  const guestSession = state.guestSession;
+  if (guestSession === null) {
+    throw new Error("Cannot set analytics consent: the fixture holds no guest session.");
+  }
+
+  state.guestSession = {
+    ...guestSession,
+    analytics_consent: analyticsConsent,
+  };
+}
+
+/** Records on the fixture's account row an analytics answer the upgrade must not overwrite. */
+export function setUserSettingsAnalyticsConsent(
+  state: MutableState,
+  userId: string,
+  analyticsConsent: "granted" | "declined",
+): void {
+  const current = state.userSettings.get(userId);
+  if (current === undefined) {
+    throw new Error(`Cannot set analytics consent: the fixture holds no user_settings row for ${userId}.`);
+  }
+
+  state.userSettings.set(userId, {
+    ...current,
+    analytics_consent: analyticsConsent,
+  });
 }
 
 export function addWorkspaceMembership(

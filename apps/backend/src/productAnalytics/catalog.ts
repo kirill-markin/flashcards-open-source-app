@@ -72,6 +72,11 @@ const productAnalyticsSitePageKinds = [
   "other",
 ] as const;
 
+// The reminders a client schedules with the OS. `review_reminder` is the daily or inactivity review
+// nudge, `strict_reminder` the streak reminder; the web app schedules neither and reports no
+// notification fact at all.
+const productAnalyticsNotificationKinds = ["review_reminder", "strict_reminder"] as const;
+
 // Platform-independent surfaces so funnels compare across clients. Each client maps its own
 // native screens onto these and never sends a native screen name.
 //
@@ -80,8 +85,9 @@ const productAnalyticsSitePageKinds = [
 // table: a screen earns a value when it is a destination of its own, meaning a tab, a public route,
 // a prompt a person has to answer, an abandonable step of a flow, or one of the content objects the
 // enum already names, while the app preference and account leaves that all three clients nest under
-// their settings screen collapse into `settings`. A client whose screen has no value here sends no
-// `screen` at all rather than the nearest wrong one.
+// their settings screen collapse into `settings`, with `settings_legal` below the single named
+// exception. A client whose screen has no value here sends no `screen` at all rather than the
+// nearest wrong one.
 //
 // `screen` carries two readings, deliberately. On `screen_viewed` and on every other event it is
 // where the person is now. On `signin_failed` alone it is the entry point: the surface that owned
@@ -99,6 +105,12 @@ export const productAnalyticsSurfaces = [
   "cards",
   "progress",
   "settings",
+  // The legal and privacy screen, and the only settings leaf that does not collapse into
+  // `settings`. The analytics opt-out promised in the published privacy policy is exercised there
+  // and nowhere else, so how many people reach it is a question about whether that promise is
+  // reachable rather than about navigation, and it cannot be answered while every settings leaf
+  // reports one value. Every other leaf stays collapsed for exactly the reason it always was.
+  "settings_legal",
   "ai",
   // Workspace content management. These sit under the settings screen on all three clients only as
   // a routing accident: they act on the person's own decks, cards and tags, which is the same
@@ -490,6 +502,59 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: {
       reason: { kind: "enum", values: ["offline", "timeout", "sync_conflict", "server_error"] },
+    },
+  },
+  // The reminder loop, one pair read against itself: `notification_scheduled` is the denominator
+  // and `notification_opened` the return it produced. Neither OS tells an app whether a local
+  // notification it accepted was ever shown, so delivery is not observed and the scheduled fact is
+  // the only denominator there is; the gap between the two therefore folds "never delivered"
+  // together with "delivered and ignored", and cannot separate them. The two clients also count
+  // different sets: Android reports the reminders it enqueued, iOS only the ones Notification
+  // Center read back as pending, so a per-platform gap between scheduled and opened partly reflects
+  // scheduler drops that iOS excludes by construction.
+  //
+  // A client reconciles its reminders on many triggers — a permission change, a schedule edit, a
+  // sync, a foreground return, every recorded review — and re-schedules the same slots every time,
+  // so the producer owes exactly one row per distinct slot it schedules and nothing when
+  // reconciliation re-schedules a slot it already reported. Without that the event would measure
+  // reconciliation frequency rather than reminders. A slot is a fixed clock position for a daily or
+  // strict reminder; an inactivity reminder is a chain re-anchored by every review, so its slot is
+  // the local day and the position within that day, and a day already counted reports nothing when
+  // its chain shifts — which under-counts a reminder that fires and is replaced the same day.
+  //
+  // That slot ledger is never cleared when the person on the device changes, so after a sign-out,
+  // an account deletion or a server switch the arriving subject does not re-count the slots the
+  // departing subject already reported: they stay uncounted until they expire, which under-counts
+  // by at most one scheduling horizon per boundary. The direction is deliberate. Clearing the
+  // ledger at the identity boundary would instead re-report live slots and inflate the
+  // denominator, and `analytics.product_events` is append-only, so an inflated denominator has no
+  // repair path while a missing row simply stays missing.
+  //
+  // `notification_opened` is its own name rather than a property on `app_opened` because migrations
+  // 0121 and 0126 reconstructed `app_opened` rows from stored activity: a property added there would
+  // read as a gap on every reconstructed row instead of as "this launch was not from a reminder".
+  //
+  // One spike is permanent and is named here rather than left to be rediscovered. The ledger that
+  // carries those already-reported slot ids starts empty, so on every install the first reconcile
+  // after the release that shipped this event reports the reminders the install already had pending
+  // — up to seven review reminders in daily mode, as many as the review pending-request limit
+  // allows in inactivity mode (26 with strict reminders on and 50 without on Android, 40 and 64 on
+  // iOS), plus up to twenty-four strict — as newly scheduled. Nothing on the row separates them
+  // from reminders scheduled for the first time, and the data that would is held only by the OS,
+  // which does not say when it accepted a pending request. That is not corrected: the spike is one
+  // release boundary wide, and `analytics.product_events` is append-only with no repair path.
+  notification_scheduled: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      notification_kind: { kind: "enum", values: productAnalyticsNotificationKinds },
+    },
+  },
+  notification_opened: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      notification_kind: { kind: "enum", values: productAnalyticsNotificationKinds },
     },
   },
   card_create_started: {
