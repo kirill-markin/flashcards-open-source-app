@@ -33,6 +33,8 @@ private const val reviewNotificationsPromptStateKey: String = "review-notificati
 private const val reviewNotificationsSuccessfulReviewCountKey: String = "review-notifications-successful-review-count"
 private const val reviewNotificationsLastActiveAtKey: String = "review-notifications-last-active-at"
 private const val reviewReminderAttentionStateKey: String = "review-reminder-attention-state"
+private const val reportedScheduledReviewNotificationsKey: String = "reported-scheduled-review-notifications"
+private const val reportedScheduledStrictRemindersKey: String = "reported-scheduled-strict-reminders"
 private const val reviewNotificationsModeDaily: String = "daily"
 private const val reviewNotificationsModeInactivity: String = "inactivity"
 private const val reviewFilterKindKey: String = "kind"
@@ -170,6 +172,8 @@ interface ReviewNotificationsStore {
     fun clearReviewReminderAttention()
     fun loadScheduledPayloads(): List<ScheduledReviewNotificationPayload>
     fun saveScheduledPayloads(payloads: List<ScheduledReviewNotificationPayload>)
+    fun loadReportedScheduledReviewNotifications(): Map<String, Long>
+    fun saveReportedScheduledReviewNotifications(reported: Map<String, Long>)
 }
 
 interface StrictRemindersStore {
@@ -180,6 +184,8 @@ interface StrictRemindersStore {
     fun clearLastCompletedReviewAtMillis()
     fun loadScheduledStrictReminderPayloads(): List<ScheduledStrictReminderPayload>
     fun saveScheduledStrictReminderPayloads(payloads: List<ScheduledStrictReminderPayload>)
+    fun loadReportedScheduledStrictReminders(): Map<String, Long>
+    fun saveReportedScheduledStrictReminders(reported: Map<String, Long>)
     fun clearStrictRemindersIdentityState()
 }
 
@@ -408,11 +414,52 @@ class SharedPreferencesReviewNotificationsStore(
         }
     }
 
+    override fun loadReportedScheduledReviewNotifications(): Map<String, Long> {
+        return loadReportedScheduledNotifications(key = reportedScheduledReviewNotificationsKey)
+    }
+
+    override fun saveReportedScheduledReviewNotifications(reported: Map<String, Long>) {
+        saveReportedScheduledNotifications(
+            key = reportedScheduledReviewNotificationsKey,
+            reported = reported
+        )
+    }
+
+    override fun loadReportedScheduledStrictReminders(): Map<String, Long> {
+        return loadReportedScheduledNotifications(key = reportedScheduledStrictRemindersKey)
+    }
+
+    override fun saveReportedScheduledStrictReminders(reported: Map<String, Long>) {
+        saveReportedScheduledNotifications(
+            key = reportedScheduledStrictRemindersKey,
+            reported = reported
+        )
+    }
+
     override fun clearStrictRemindersIdentityState() {
         preferences.edit(commit = true) {
             remove(strictRemindersScheduledPayloadsKey)
         }
         clearLastCompletedReviewAtMillis()
+    }
+
+    private fun loadReportedScheduledNotifications(key: String): Map<String, Long> {
+        val rawValue = preferences.getString(key, null) ?: return emptyMap()
+
+        return try {
+            decodeReportedScheduledNotifications(rawValue = rawValue)
+        } catch (_: Exception) {
+            preferences.edit(commit = true) {
+                remove(key)
+            }
+            emptyMap()
+        }
+    }
+
+    private fun saveReportedScheduledNotifications(key: String, reported: Map<String, Long>) {
+        preferences.edit(commit = true) {
+            putString(key, encodeReportedScheduledNotifications(reported = reported))
+        }
     }
 }
 
@@ -951,6 +998,22 @@ private fun decodeScheduledStrictReminderPayloads(rawValue: String): List<Schedu
             ),
             requestId = payload.getString("requestId")
         )
+    }
+}
+
+private fun encodeReportedScheduledNotifications(reported: Map<String, Long>): String {
+    return JSONObject().apply {
+        reported.forEach { (slotId, expiresAtMillis) ->
+            put(slotId, expiresAtMillis)
+        }
+    }.toString()
+}
+
+private fun decodeReportedScheduledNotifications(rawValue: String): Map<String, Long> {
+    val reported = JSONObject(rawValue)
+
+    return reported.keys().asSequence().associateWith { slotId ->
+        reported.getLong(slotId)
     }
 }
 
