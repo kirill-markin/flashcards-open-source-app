@@ -314,7 +314,8 @@ h2 {
    a second series; drawing it in the accent itself would be invisible over the accent beneath it.
    A grouped chart overrides both declarations per group inline in `renderFunnelStepsChart`, with the
    colour `buildFunnelHashedSegmentColor` mixes there, because one shared wash paints every group's
-   segment the same colour. */
+   segment the same colour - except on a step before a selected anchor, where that override is `null`
+   and the segment keeps this wash, the way its bar keeps the stylesheet fill. */
 .funnel-step-bar-hashed {
   fill: var(--text);
   fill-opacity: 0.38;
