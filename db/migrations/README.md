@@ -98,8 +98,9 @@ that migration's "does not exist yet" as superseded. It is exactly the caller th
 
 The rest of that header still holds, and is what keeps the call safe: `DELETE` is granted for that
 one caller and is still never a way to unexclude, and the erasure runs only once `org.user_settings`
-is gone, which is what lets the restore guard pass for a restored row. And the database copy's
-closing sentence survives for one path: `eraseAnalyticsExclusionsInExecutor` is called from
+is gone, which is what lets the restore guard pass for a restored row. The outcome its closing
+sentence described also survives on one path, though the premise it rested on — "until that step is
+written" — is gone: `eraseAnalyticsExclusionsInExecutor` is called from
 `deleteRealAccountDataInExecutor` alone, so a demo-account reset — which keeps its Cognito identity
 and signs in again under the same account id — still keeps whatever row here names it, restore
 included.
@@ -124,27 +125,32 @@ about the switch is true. What they say about account deletion is not: nothing e
 and account deletion least of all.
 
 `anonymizeProductAnalyticsInExecutor` (`apps/backend/src/auth/accountDeletion.ts`) rewrites them in
-place. It deletes the person's `analytics.installation_profiles` rows, `UPDATE`s every
+place. It deletes `analytics.installation_profiles` rows matched three ways — the person's own
+`user_id`, every `(anonymous_id, platform)` pair their events carry, and every `anonymous_id` an
+`authenticated_client` link names, so a device they shared loses its profile in full, because its
+first country and sparse history may predate the latest owner — `UPDATE`s every
 `analytics.product_events` row belonging to any user id that person ever reported under — guest
 phase included, walked through `auth.guest_upgrade_history` and the `server_derived`
 `analytics.identity_links` — onto a single `randomUUID()` pseudonym, generated per deletion and kept
 in no mapping table, nulls every remaining joinable column (`anonymous_id`, `session_id`,
-`guest_session_id`, `workspace_id`, `request_id`, the device, locale and `country` columns), sets
-`identity_state = 'anonymized'`, and only then deletes `analytics.identity_links` so nothing can
-resolve the pseudonym back. The pseudonym itself is written into `user_id` and `subject_user_id` on
-every row it touches and stays visible: the rows survive and keep being counted, and
-`docs/admin-app.md` describes a deleted person surfacing as a `(no email)` actor whose raw UUID the
-user filter and tooltips show. The person behind them is what is gone.
+`guest_session_id`, `workspace_id`, `request_id`, `device_model`, `os_version`, `timezone`,
+`device_locale`, `ui_locale` and `country`), sets `identity_state = 'anonymized'`, and only then
+deletes `analytics.identity_links` so nothing can resolve the pseudonym back. The pseudonym itself
+is written into `user_id` and `subject_user_id` on every row it touches and stays visible: the rows
+survive and keep being counted, and `docs/admin-app.md` describes a deleted person surfacing as a
+`(no email)` actor whose raw UUID the user filter and tooltips show. The person behind them is what
+is gone.
 
-One row is erased rather than rewritten, because it names the person by the real actor id, which the
-`UPDATE` above never touches: `analytics.excluded_actors`. That delete is
-`eraseAnalyticsExclusionsInExecutor`, and it runs from `deleteRealAccountDataInExecutor` only, never
-from the demo-account reset path, which anonymizes and deliberately leaves any exclusion row naming
-that id in place. The `analytics.installation_profiles` and `analytics.identity_links` rows above go
-too, but as parts of the anonymization rather than beside it: they are what would otherwise resolve
-the pseudonym back. `0140_analytics_excluded_actors.sql` granted `backend_app` the `DELETE` for this
-one caller while stating that the call did not exist yet; that statement is false now and has its
-own entry above.
+One table is erased rather than rewritten, because its rows name the person by the real actor id,
+which the `UPDATE` above never touches: `analytics.excluded_actors`. That delete matches every
+person-wide id at once, so it takes whatever rows — none, one or several — still name that person.
+It is `eraseAnalyticsExclusionsInExecutor`, and it runs from `deleteRealAccountDataInExecutor` only,
+never from the demo-account reset path, which anonymizes and deliberately leaves any exclusion row
+naming that id in place. The `analytics.installation_profiles` and `analytics.identity_links` rows
+above go too, but as parts of the anonymization rather than beside it: they are what would otherwise
+resolve the pseudonym back. `0140_analytics_excluded_actors.sql` granted `backend_app` the `DELETE`
+for this one caller while stating that the call did not exist yet; that statement is false now and
+has its own entry above.
 
 "Append-only" is the same slip, narrowed. `0114_product_analytics_storage.sql` grants `backend_app`
 `UPDATE` on this table for this path alone and calls the table append-only "for every other writer".
@@ -154,5 +160,6 @@ The rest of that header still holds, the switch's own behavior included: it writ
 stops future collection only, and leaves everything already stored exactly where it is. What was
 never true is the name the header gave to what happens to those rows afterwards.
 
-`docs/analytics-visitor-identity.md` had repeated the sentence and is corrected in place; that file
-is editable, so it carries no entry here.
+`docs/analytics-visitor-identity.md` had carried the same claim in wording of its own, close to the
+database copy and identical to neither, and is corrected in place; that file is editable, so it
+carries no entry here.
