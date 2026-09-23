@@ -147,7 +147,12 @@ function hasExactManagedImageUrl(text: string, url: string): boolean {
   return extractMarkdownImageDestinationUrls(text).some((candidate) => candidate === url);
 }
 
-function appendMarkdownBlock(text: string, markdownBlock: string): string {
+/**
+ * Where a managed image goes when the server puts one on a card side: a trailing block, separated
+ * from whatever is already there by exactly one blank line. ./managedImageSnapshotMerge.ts reuses
+ * it so a restored reference lands where the original append would have put it.
+ */
+export function appendMarkdownBlock(text: string, markdownBlock: string): string {
   const separator = text === "" || text.endsWith("\n\n")
     ? ""
     : text.endsWith("\n") ? "\n" : "\n\n";

@@ -116,8 +116,18 @@ export const boundaryDefinitions = Object.freeze([
     // an ambiguous column or a RETURNING list that stopped matching CARD_COLUMNS would otherwise
     // first be seen in production. Nothing ties the two files in this entry together, so moving
     // either one later does not free the other.
+    //
+    // managedMedia/managedImageSnapshotMerge is here for the same reason and is tied to neither of
+    // the others. It runs the real managed-image settlement and the real snapshot upsert against
+    // one card in sequence, which is the only way to prove a rule whose inputs are the stored
+    // front_text/back_text and the stored last_modified_by_replica_id rather than anything in the
+    // request. Its own floor is far below this migration - it names no column newer than the card
+    // and replica tables have had for a long time - but it is pinned at the newest boundary on
+    // purpose, because it exists to pin what production runs and the snapshot UPDATE it drives has
+    // to keep matching CARD_COLUMNS.
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
+      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
     ]),

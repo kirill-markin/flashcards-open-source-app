@@ -808,9 +808,20 @@ export const productAnalyticsEventCatalog = {
   //    Backend managed-image append and settlement
   //    (../cards/managedMedia/managedImageSettlement.ts) opens the same window from the server
   //    side, and is one instance of the mechanism rather than its cause - much rarer, because it
-  //    needs that AI feature. It is the one instance where the revert also drops the image
-  //    reference out of the card, which is a product defect tracked on its own and not something
-  //    this series can see.
+  //    needs that AI feature. That one instance now has a narrow exception: the snapshot write puts
+  //    back managed-image references the stored row still holds before it stores anything
+  //    (../cards/managedMedia/managedImageSnapshotMerge.ts), so a stale push whose ONLY difference
+  //    from the stored text was the missing reference reproduces that text and the comparison sees
+  //    no change at all. Where it stops: the reference is put back as a trailing block, which
+  //    reproduces the stored text only while the image is still the last thing on its side, so a
+  //    later chat turn's prose, another device's note, or a partly removed second image after it
+  //    all leave merged text that matches neither side, and one row is stored for a push that
+  //    authored nothing. It also does not reach the device-to-device case above, where the server
+  //    holds no reference to put back, or a stale push that also reverts a genuine edit. What it
+  //    removes is the silent loss of the image behind the over-count in that window, not every
+  //    managed-image loss: a stale snapshot of the same card in a LATER request is still honoured,
+  //    and a push carrying the pending marker over a settled reference still stores the marker.
+  //    Both are named at the merge.
   //  - A LEGACY EFFORT LEVEL BECOMES A TAG ON THE WAY IN, so a push that authored nothing can store
   //    an edit. The sync contract translates an older client's `effortLevel` on a card, and an
   //    older client's `effortLevels` inside a deck's filter, into ordinary tags before any write
@@ -820,6 +831,21 @@ export const productAnalyticsEventCatalog = {
   //    `deck_updated` is stored for a snapshot carrying nothing a person changed. Bounded and
   //    legacy-only: modern clients send `fast`, which is never appended, and once the tag is stored
   //    the next push of that entity matches. One row per affected entity.
+  //  - REMOVING A MANAGED IMAGE CAN GO UNCOUNTED THE FIRST TIME. This one is an under-count and it
+  //    belongs to the merge above rather than to the list higher up, because the merge is what
+  //    creates it. The server cannot tell a device that never pulled an image from a person who
+  //    deleted one - nothing records what a replica has been sent - so it resolves the ambiguity by
+  //    restoring once, and only against a stored row the pushing device did not itself write. That
+  //    leaves the ordinary single-device case counted normally: pull the settled card, review it
+  //    once, and that push already stamped the row with this device's replica, so the removal after
+  //    it is honoured on the first attempt and reports its row. The restore fires when the stored
+  //    row is someone else's - the settlement write itself, or another device - and even then the
+  //    removal is silent only if the merged text comes back byte-identical to the stored text. That
+  //    needs both conditions from the bullet above: the missing reference was the ONLY difference,
+  //    and the image was still the trailing block on its side. Remove the image and edit a word in
+  //    the same save, or leave anything after the image, and the first removal reports a row too.
+  //    The second removal always stands and reports one. Bounded by how often anyone deletes an
+  //    AI-generated image.
   //  - DROPPING A STORED DUPLICATE TAG COUNTS AS AN EDIT, once per affected card. The snapshot
   //    write path dedupes the tags it stores (`normalizeCardSnapshotInput` in
   //    ../cards/mutations.ts), so the first push that reaches a row written before that dedupe

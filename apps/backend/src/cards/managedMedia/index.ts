@@ -1,4 +1,12 @@
 export {
+  createManagedImageRestoreLedger,
+} from "./managedImageSnapshotMerge";
+
+export type {
+  ManagedImageRestoreLedger,
+} from "./managedImageSnapshotMerge";
+
+export {
   appendManagedImageToCardSideInExecutor,
   appendManagedImageToCardText,
   appendPendingManagedImageToCardSideInExecutor,
