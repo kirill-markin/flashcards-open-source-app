@@ -171,21 +171,6 @@ enum class AnalyticsPermissionOutcome(val wireValue: String) {
 }
 
 /**
- * [CODE_ALREADY_USED] is reported only by app versions whose mapping separates the auth service's
- * `OTP_CHALLENGE_CONSUMED` from an expired session. One that folds them reports [EXPIRED_CODE] for
- * both, so an `expired_code` series is not like-for-like across that boundary.
- */
-enum class AnalyticsSignInFailureReason(val wireValue: String) {
-    INVALID_CODE(wireValue = "invalid_code"),
-    EXPIRED_CODE(wireValue = "expired_code"),
-    CODE_ALREADY_USED(wireValue = "code_already_used"),
-    RATE_LIMITED(wireValue = "rate_limited"),
-    OFFLINE(wireValue = "offline"),
-    SERVER_ERROR(wireValue = "server_error"),
-    CANCELLED(wireValue = "cancelled")
-}
-
-/**
  * Where an attached asset came from, spelled exactly as the matching [AnalyticsPermission] values so
  * an attachment joins to its own permission answer by equality.
  *
@@ -210,6 +195,21 @@ enum class AnalyticsMediaUploadFailureReason(val wireValue: String) {
     TOO_LARGE(wireValue = "too_large"),
     UNSUPPORTED_TYPE(wireValue = "unsupported_type"),
     SERVER_ERROR(wireValue = "server_error")
+}
+
+/**
+ * [CODE_ALREADY_USED] is reported only by app versions whose mapping separates the auth service's
+ * `OTP_CHALLENGE_CONSUMED` from an expired session. One that folds them reports [EXPIRED_CODE] for
+ * both, so an `expired_code` series is not like-for-like across that boundary.
+ */
+enum class AnalyticsSignInFailureReason(val wireValue: String) {
+    INVALID_CODE(wireValue = "invalid_code"),
+    EXPIRED_CODE(wireValue = "expired_code"),
+    CODE_ALREADY_USED(wireValue = "code_already_used"),
+    RATE_LIMITED(wireValue = "rate_limited"),
+    OFFLINE(wireValue = "offline"),
+    SERVER_ERROR(wireValue = "server_error"),
+    CANCELLED(wireValue = "cancelled")
 }
 
 enum class AnalyticsReviewAnswerFailureReason(val wireValue: String) {
@@ -279,7 +279,12 @@ sealed interface AnalyticsPropertyValue {
 sealed interface AnalyticsEvent {
     val eventName: String
 
-    /** Top-level event field, never a property. Legal on every event, required on `screen_viewed`. */
+    /**
+     * Top-level event field, never a property. Legal on every event, and required on the ones the
+     * server catalog marks `requiresScreen`. An implementation below may also narrow it to a
+     * non-null [AnalyticsSurface] of its own so that no call site can omit it, and that narrowing is
+     * not limited to the events the catalog requires a surface on.
+     */
     val screen: AnalyticsSurface?
 
     val properties: Map<String, AnalyticsPropertyValue>
