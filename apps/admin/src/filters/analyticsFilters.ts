@@ -21,6 +21,9 @@ import type { AnalyticsArea } from "../routing";
 // and a field that does not apply to an area is not rendered there at all rather than rendered
 // disabled.
 
+// Shared by deck-version filter summaries and funnel legends so both abbreviate UUIDs alike.
+export const deckVersionDiscriminatorLength = 8;
+
 export type AnalyticsDateRange = Readonly<{
   from: string;
   to: string;
