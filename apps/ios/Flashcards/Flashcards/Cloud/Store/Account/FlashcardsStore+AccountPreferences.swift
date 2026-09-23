@@ -2,16 +2,70 @@ import Foundation
 
 private let accountPreferencesCacheUserDefaultsKey: String = "account-preferences-cache"
 
+/// The most sends one drain will make before leaving the rest owed to the next refresh. A response
+/// that keeps disagreeing with the answer this device holds is a server that is not taking the
+/// value, and repeating forever would pin the settings screen on a request that cannot succeed.
+private let maxProductAnalyticsPushAttempts: Int = 3
+
+/// Why a drain ended with the answer still owed to the identity it was made under.
+private enum ProductAnalyticsPushUnsettledReason: String {
+    /// Every attempt this drain has was sent and the identity's column still disagrees.
+    case attemptsExhausted = "attempts_exhausted"
+    /// The identity moved while this push waited for the serialized slot or while a body was in
+    /// flight, so the debt is not this push's to pay and stays owed to the identity it was made under.
+    case identityChanged = "identity_changed"
+    /// The install holds a cloud identity this push cannot address, so nothing here is the right
+    /// carrier for the answer and no server was asked at all.
+    case carrierUnavailable = "carrier_unavailable"
+}
+
+/**
+ * A drain that ended with the identity's column still not holding the answer this device owes it.
+ *
+ * Distinct from a transport failure on purpose: every send may have succeeded, so nothing else in
+ * the result says the choice was not stored. Without it an exhausted drain is indistinguishable from
+ * a settled one, and the toggle reports a refused privacy choice as saved while the refresh paths
+ * report nothing at all.
+ */
+private struct ProductAnalyticsPushUnsettledError: LocalizedError {
+    let reason: ProductAnalyticsPushUnsettledReason
+
+    var errorDescription: String? {
+        "Product analytics preference was not stored for this identity (\(self.reason.rawValue))"
+    }
+}
+
+/// Carries one serialized push's failure back out of the task that ran it, so the toggle can throw
+/// what the refresh paths only report.
+@MainActor
+private final class ProductAnalyticsPushOutcome {
+    var failure: Error?
+}
+
 private struct PersistedAccountPreferencesCache: Codable, Hashable {
     var preferencesByIdentityKey: [String: AccountPreferences]
 }
 
-private func makeAccountPreferencesIdentityKey(
-    userId: String,
-    configurationMode: CloudServiceConfigurationMode,
-    apiBaseUrl: String
-) -> String {
-    "\(configurationMode.rawValue)|\(apiBaseUrl)|\(userId)"
+/**
+ * The identity an answer belongs to, and the two different keys it is stored under.
+ *
+ * They differ on purpose. Cached preferences are a per-host copy of what one host reported, so their
+ * key carries the host. The answer this device still owes the person is not: the official hosts front
+ * the same backend and the same account, so a build that changes the configured host must not turn an
+ * unpushed opt-out into a debt owed to an identity that no longer matches anything.
+ */
+private struct AccountPreferencesIdentity: Hashable {
+    var userId: String
+    var configurationMode: CloudServiceConfigurationMode
+    var apiBaseUrl: String
+
+    var storageKey: String {
+        "\(self.configurationMode.rawValue)|\(self.apiBaseUrl)|\(self.userId)"
+    }
+
+    var productAnalyticsKey: String {
+        "\(self.configurationMode.rawValue)|\(self.userId)"
+    }
 }
 
 @MainActor
@@ -30,10 +84,15 @@ extension FlashcardsStore {
             return
         }
         guard let session = try await self.cloudSessionForAccountContextRefresh() else {
+            // No cloud session, and for most people there never is one: the only identity this install
+            // holds is the analytics-only guest credential. An answer owed to it still has to reach
+            // the server, so it goes out here. Its failure is reported rather than thrown: a refresh
+            // that only carries a retry must not turn an offline stretch into an error on screen.
+            _ = await self.pushProductAnalyticsPreferenceToAnalyticsOnlyGuest()
             return
         }
         let refreshGeneration = self.accountPreferencesRefreshGeneration
-        let refreshIdentityKey = makeAccountPreferencesIdentityKey(
+        let refreshIdentity = AccountPreferencesIdentity(
             userId: session.userId,
             configurationMode: session.configurationMode,
             apiBaseUrl: session.apiBaseUrl
@@ -48,8 +107,12 @@ extension FlashcardsStore {
             accountContext: accountContext,
             session: session,
             refreshGeneration: refreshGeneration,
-            refreshIdentityKey: refreshIdentityKey
+            refreshIdentityKey: refreshIdentity.storageKey
         )
+        // After the read, never before it. The read is what decides whether anything is owed: an
+        // identity with no answer of its own is handed the one this device holds just above, and an
+        // identity with its own answer is left alone, because this device keeps its own either way.
+        await self.pushPendingProductAnalyticsPreferenceIfNeeded(identity: refreshIdentity)
     }
 
     func triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: Bool) {
@@ -64,10 +127,519 @@ extension FlashcardsStore {
         }
     }
 
+    /**
+     * The product-analytics off switch.
+     *
+     * The local answer is written and applied to the client before the network is touched, because a
+     * refused request must not leave the app recording after the user said no, and because the choice
+     * has to hold offline and at the next cold start. The server copy follows when an identity exists;
+     * until it accepts it, the answer stays marked as owed and is pushed again by the next account
+     * context refresh.
+     *
+     * The push itself waits for the serialized slot, so the body it sends is read from the debt rather
+     * than from `isEnabled`: by then the user may have answered again, and the newest answer is the
+     * one the server has to end up holding.
+     */
+    func updateProductAnalyticsEnabled(isEnabled: Bool) async throws {
+        guard self.isProductAnalyticsPreferenceStoredRemotely else {
+            // Ahead of the local write, not only of the remote one: recording the answer would also
+            // record a debt, and a later normal launch of the same container would then push a
+            // UI-test toggle onto the shared review account.
+            self.applyStoredProductAnalyticsPreference()
+            return
+        }
+
+        let identity = self.currentAccountPreferencesIdentity()
+        ProductAnalyticsPreference.recordLocalAnswer(
+            isEnabled: isEnabled,
+            identityKey: identity?.productAnalyticsKey,
+            userDefaults: self.userDefaults
+        )
+        self.applyStoredProductAnalyticsPreference()
+
+        guard self.canPersistAccountPreferences, let identity else {
+            // No account and no guest session to store it on. The analytics-only guest credential is
+            // the only identity such an install has, and the server keys its refusal on that
+            // credential's stored answer, so the push goes there instead. Thrown rather than only
+            // reported, unlike the refresh path: this is the user's own tap, and for an install that
+            // never signs in this is the whole server side of the answer.
+            if let failure = await self.pushProductAnalyticsPreferenceToAnalyticsOnlyGuest() {
+                throw failure
+            }
+
+            return
+        }
+
+        // The same invalidation the animations path uses, for the same hazard: this screen starts an
+        // account-context refresh on appear, and a `/me` already in flight would otherwise land after
+        // the PATCH and report the value the user just replaced.
+        let rollbackIdentityKey = self.accountPreferencesIdentityKey
+        self.accountPreferencesRefreshGeneration += 1
+        let updateGeneration = self.accountPreferencesRefreshGeneration
+        self.isAccountPreferencesUpdateInFlight = true
+
+        let outcome = ProductAnalyticsPushOutcome()
+        await self.serializedProductAnalyticsPush {
+            outcome.failure = await self.drainOwedProductAnalyticsAnswer(
+                identityKey: identity.productAnalyticsKey,
+                send: { owedAnswer in
+                    try await self.updateCloudAccountPreferences(
+                        patch: AccountPreferencesPatchRequest(productAnalyticsEnabled: owedAnswer),
+                        validateResolvedSession: { session in
+                            try self.requireProductAnalyticsIdentity(
+                                expectedIdentityKey: identity.productAnalyticsKey,
+                                session: session
+                            )
+                        }
+                    )
+                },
+                applyAcknowledged: { preferences, session in
+                    guard self.isCurrentAccountPreferencesUpdate(
+                        identityKey: rollbackIdentityKey,
+                        updateGeneration: updateGeneration
+                    ) else {
+                        return
+                    }
+
+                    self.applyCloudAccountPreferences(preferences: preferences, session: session)
+                }
+            )
+        }
+        self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
+
+        if let failure = outcome.failure {
+            // The local answer is deliberately not rolled back, unlike the animations path: a refused
+            // request must not leave the app recording after the user said no. It stays owed to this
+            // identity instead, and the next refresh pushes it again.
+            //
+            // Thrown unreported and unwrapped on purpose, with no captured-marker handshake like the
+            // sync failure path's: this is the user's own attempt, presentation captures it, and an
+            // earlier scheduled push that already reported `pending_retry` was a different attempt
+            // whose record must not leave this one unrecorded.
+            throw failure
+        }
+    }
+
+    /**
+     * A UI-test launch stores nothing server-side.
+     *
+     * The suites sign into the shared review account, and the client is force-disabled for the whole
+     * process anyway, so a smoke or screenshot flow driving this toggle would write a permanent
+     * opt-out onto that account for a switch that was never really on.
+     */
+    private var isProductAnalyticsPreferenceStoredRemotely: Bool {
+        isFlashcardsUITestLaunch(processInfo: ProcessInfo.processInfo) == false
+    }
+
+    /// Hands the client kill switch the answer this device now holds, and publishes the value the
+    /// switch actually took — which a UI-test launch forces off regardless of the stored answer, so
+    /// the settings surfaces cannot read "On" while nothing is being recorded.
+    func applyStoredProductAnalyticsPreference() {
+        let isEnabled = ProductAnalyticsPreference.effectiveIsEnabled(
+            userDefaults: self.userDefaults,
+            processInfo: ProcessInfo.processInfo
+        )
+        self.isProductAnalyticsEnabled = isEnabled
+        Analytics.setEnabled(isEnabled)
+    }
+
+    /// Best effort, and deliberately not fatal to the refresh that calls it: a failed push leaves the
+    /// answer owed, so the next refresh sends it again. The answer itself is safe either way, because
+    /// it was given on this device and nothing the server reports replaces one of those.
+    private func pushPendingProductAnalyticsPreferenceIfNeeded(
+        identity: AccountPreferencesIdentity
+    ) async {
+        guard self.isProductAnalyticsPreferenceStoredRemotely else {
+            return
+        }
+        let productAnalyticsIdentityKey = identity.productAnalyticsKey
+        guard ProductAnalyticsPreference.answerOwed(
+            toIdentityKey: productAnalyticsIdentityKey,
+            userDefaults: self.userDefaults
+        ) != nil else {
+            return
+        }
+
+        let outcome = ProductAnalyticsPushOutcome()
+        await self.serializedProductAnalyticsPush {
+            // Read inside the slot rather than before it: this push may have waited for another one,
+            // and the guard is about what changed while *this* body was in flight.
+            let pushGeneration = self.accountPreferencesRefreshGeneration
+            let pushIdentityKey = self.accountPreferencesIdentityKey
+            outcome.failure = await self.drainOwedProductAnalyticsAnswer(
+                identityKey: productAnalyticsIdentityKey,
+                send: { owedAnswer in
+                    // Resolved here rather than reused from the refresh that reached this push: the
+                    // wait for the slot is unbounded, and a bearer captured before it can already be
+                    // expired by the time the body goes out. Which is also why the identity is
+                    // re-checked on the resolved session — resolving it suspends, and the identity
+                    // can move inside that suspension.
+                    try await self.updateCloudAccountPreferences(
+                        patch: AccountPreferencesPatchRequest(productAnalyticsEnabled: owedAnswer),
+                        validateResolvedSession: { session in
+                            try self.requireProductAnalyticsIdentity(
+                                expectedIdentityKey: productAnalyticsIdentityKey,
+                                session: session
+                            )
+                        }
+                    )
+                },
+                applyAcknowledged: { preferences, acknowledgedSession in
+                    guard self.isCurrentAccountPreferencesUpdate(
+                        identityKey: pushIdentityKey,
+                        updateGeneration: pushGeneration
+                    ) else {
+                        return
+                    }
+
+                    self.applyCloudAccountPreferences(
+                        preferences: preferences,
+                        session: acknowledgedSession
+                    )
+                }
+            )
+        }
+
+        guard let failure = outcome.failure else {
+            return
+        }
+
+        let stage: String = failure is ProductAnalyticsPushUnsettledError
+            ? "pending_unsettled"
+            : "pending_retry"
+        self.reportProductAnalyticsPushFailure(error: failure, stage: stage)
+    }
+
+    /**
+     * One report per stage for the life of the process, and nothing at all for a failure that only
+     * says the network was unreachable.
+     *
+     * Every stage here runs on a schedule rather than on a user action: an install whose answer is
+     * still owed retries it on every launch and every foreground. Unguarded, an opted-out install that
+     * cannot settle — offline, or holding a revoked credential — turns one offline stretch into a
+     * Sentry issue per launch across that whole cohort, which is exactly what the guard on the
+     * analytics guest credential's background path exists to prevent.
+     *
+     * The unsettled stages still report. They are not transport failures, and an answer the server
+     * keeps refusing to hold is the thing worth knowing about; the dedupe alone is what keeps them
+     * from repeating per launch.
+     *
+     * Returns whether this stage now has a Sentry record — true when this call captured, and also
+     * true when the dedupe suppressed it because the same stage already captured in this process.
+     * False means nothing was recorded and nothing ever will be for this failure, which is the only
+     * answer a caller may not wrap as already observed: doing so would both hide it from Sentry and
+     * blind every classifier downstream, and the transport failures filtered here are exactly the
+     * ones the surfaces want to recognise so they can say "the network" instead of raising a
+     * technical dialog.
+     */
+    @discardableResult
+    private func reportProductAnalyticsPushFailure(error: Error, stage: String) -> Bool {
+        if isRequestCancellationError(error: error) {
+            return false
+        }
+        if isSilentlyIgnorableNetworkTransportFailure(error: error) {
+            return false
+        }
+        guard self.reportedProductAnalyticsPushFailureStages.contains(stage) == false else {
+            return true
+        }
+
+        self.reportedProductAnalyticsPushFailureStages.insert(stage)
+        self.captureAccountPreferencesSilentFailure(
+            error: error,
+            action: "product_analytics_preference_push",
+            stage: stage
+        )
+        return true
+    }
+
+    /**
+     * The answer for an install whose only identity is the analytics-only guest credential.
+     *
+     * That is the common case for someone who never signed in: `cloudState` stays `.disconnected`, so
+     * nothing above this can store the answer. The server keys its ingest-time refusal on the stored
+     * answer of the credential a request carries, so without this push the backstop could never
+     * engage for that whole cohort and the debt would never be settled.
+     *
+     * Returns the failure for the caller that must not report the answer as stored. It is marked as
+     * captured only when the report above actually reached Sentry, so presenting it cannot report it
+     * a second time; a failure the reporter deliberately records nothing for is returned unwrapped,
+     * so the settings screen can still recognise a plain network problem and say so softly. Nil means
+     * nothing was owed, the column now holds it, or nothing could carry it yet — which is not the
+     * same as this being the wrong credential to ask, and the two are told apart below.
+     */
+    private func pushProductAnalyticsPreferenceToAnalyticsOnlyGuest() async -> Error? {
+        guard self.isProductAnalyticsPreferenceStoredRemotely else {
+            return nil
+        }
+        guard ProductAnalyticsPreference.answerOwed(
+            toIdentityKey: nil,
+            userDefaults: self.userDefaults
+        ) != nil else {
+            return nil
+        }
+
+        let storedGuestSession: StoredGuestCloudSession?
+        do {
+            storedGuestSession = try self.loadAnalyticsOnlyGuestSessionForCurrentConfiguration()
+        } catch {
+            // A Keychain read failure is not a transport failure, so it reports on its first
+            // occurrence in this process and reaches the dialog wrapped; nothing is sent on this
+            // path, so the report here is the only one it will ever get.
+            let didCapture = self.reportProductAnalyticsPushFailure(
+                error: error,
+                stage: "analytics_guest_load"
+            )
+            return didCapture ? markTechnicalErrorObserved(error: error) : error
+        }
+        guard storedGuestSession != nil else {
+            // Two different situations, and only one of them is harmless. A `.disconnected` install
+            // has no analytics-only credential minted yet, so nothing could carry the answer and the
+            // next refresh tries again. A `.guest` or `.linked` install reaches here only because its
+            // own user id has not resolved, and the analytics-only credential is not that identity's
+            // carrier at all — no server was asked, and reporting success would tell the person their
+            // refusal was stored when nothing holds it.
+            guard self.canPersistAccountPreferences else {
+                return nil
+            }
+
+            let unsettledError = ProductAnalyticsPushUnsettledError(reason: .carrierUnavailable)
+            let didCapture = self.reportProductAnalyticsPushFailure(
+                error: unsettledError,
+                stage: "analytics_guest_carrier_unavailable"
+            )
+            return didCapture ? markTechnicalErrorObserved(error: unsettledError) : unsettledError
+        }
+
+        let outcome = ProductAnalyticsPushOutcome()
+        await self.serializedProductAnalyticsPush {
+            outcome.failure = await self.drainOwedProductAnalyticsAnswer(
+                identityKey: nil,
+                send: { owedAnswer in
+                    // Re-read here rather than reused from the load above, for the same reason the
+                    // linked path resolves its session at send time: the wait for the slot is
+                    // unbounded, and an identity reset landing in that window replaces the very
+                    // credential this answer has to reach.
+                    guard let guestSession = try self.loadAnalyticsOnlyGuestSessionForCurrentConfiguration() else {
+                        throw LocalStoreError.uninitialized("Analytics-only guest credential is unavailable")
+                    }
+
+                    return try await self.updateCloudAccountPreferences(
+                        patch: AccountPreferencesPatchRequest(productAnalyticsEnabled: owedAnswer),
+                        session: CloudLinkedSession(
+                            userId: guestSession.userId,
+                            workspaceId: guestSession.workspaceId,
+                            email: nil,
+                            configurationMode: guestSession.configurationMode,
+                            apiBaseUrl: guestSession.apiBaseUrl,
+                            authorization: .guest(guestSession.guestToken)
+                        )
+                    )
+                },
+                // Deliberately not applied to `accountPreferences`: this credential is not a cloud
+                // session and owns no account-preferences identity, so only the debt is settled here.
+                applyAcknowledged: { _, _ in }
+            )
+        }
+
+        guard let failure = outcome.failure,
+            isRequestCancellationError(error: failure) == false else {
+            return nil
+        }
+
+        let stage: String = failure is ProductAnalyticsPushUnsettledError
+            ? "analytics_guest_unsettled"
+            : "analytics_guest_retry"
+        let didCapture = self.reportProductAnalyticsPushFailure(error: failure, stage: stage)
+        return didCapture ? markTechnicalErrorObserved(error: failure) : failure
+    }
+
+    /**
+     * Runs one product-analytics push after every push already queued, and makes the next one wait
+     * for it.
+     *
+     * Nothing else keeps the push paths apart: the settings screen's `task` starts a refresh that
+     * reaches a push while the toggle runs `updateProductAnalyticsEnabled` on a different code path,
+     * and for a `.disconnected` install the two never exclude each other at all. Two PATCH bodies
+     * carrying opposite answers would then be outstanding at once, the backend would keep whichever
+     * arrived last, and the newer response would clear the debt that was the only thing left to
+     * repair it. With the slot, at most one PATCH is ever outstanding and the last body sent is the
+     * last answer made.
+     */
+    private func serializedProductAnalyticsPush(
+        _ body: @escaping @Sendable @MainActor () async -> Void
+    ) async {
+        while let inFlight = self.productAnalyticsPushTask {
+            await inFlight.value
+            if self.productAnalyticsPushTask == inFlight {
+                self.productAnalyticsPushTask = nil
+            }
+        }
+
+        let push = Task { @MainActor in
+            await body()
+        }
+        self.productAnalyticsPushTask = push
+        await push.value
+        if self.productAnalyticsPushTask == push {
+            self.productAnalyticsPushTask = nil
+        }
+    }
+
+    /**
+     * Sends the answer this device owes `identityKey` until that identity's column holds it.
+     *
+     * Runs inside the serialized slot, so no other product-analytics PATCH is outstanding while it
+     * does. The loop is the other half of that guarantee: the user can still answer again while a body
+     * is in flight, because the local write happens before the slot is taken, and the response then
+     * acknowledges a value this device no longer holds. Sending the newer answer right here, before
+     * the slot is released, is what keeps the server from settling on a value nobody chose — the debt
+     * is cleared only once the acknowledged value and the owed answer agree, so a mismatch or a
+     * failure always leaves a retry behind for the next refresh.
+     *
+     * Which answer wins is decided from the identity-scoped debt alone, never from
+     * `accountPreferencesRefreshGeneration`: that counter is shared with the animations switch, so
+     * toggling animations mid-flight would otherwise throw away a settled analytics answer. The
+     * generation still guards the shared `accountPreferences` the caller applies, which is the state
+     * a stale response really can corrupt.
+     *
+     * Returns nil only once a response has confirmed that `identityKey`'s column holds the answer. A
+     * drain that ran every attempt it has without the column agreeing, or that stopped because the
+     * identity moved, returns `ProductAnalyticsPushUnsettledError` instead of falling out silently:
+     * the answer is not stored, and a caller that cannot tell that apart from success reports a
+     * refused privacy choice as saved.
+     *
+     * "Nothing is owed to `identityKey` any more" is deliberately not read as success. An identity
+     * reset landing while a body is in flight re-owes the answer to the credential this install holds
+     * next, which empties this identity's debt without any server having taken the value, and the
+     * drain would otherwise close on an empty debt and report the choice as saved.
+     */
+    private func drainOwedProductAnalyticsAnswer(
+        identityKey: String?,
+        send: (Bool) async throws -> (preferences: AccountPreferences, session: CloudLinkedSession),
+        applyAcknowledged: (AccountPreferences, CloudLinkedSession) -> Void
+    ) async -> Error? {
+        var failure: Error?
+        var didSend = false
+        var didSettle = false
+        var unsettledReason: ProductAnalyticsPushUnsettledReason = .attemptsExhausted
+
+        drainLoop: for _ in 0 ..< maxProductAnalyticsPushAttempts {
+            guard let owedAnswer = ProductAnalyticsPreference.answerOwed(
+                toIdentityKey: identityKey,
+                userDefaults: self.userDefaults
+            ) else {
+                // Nothing is owed to this identity before an attempt was even made. Either no debt
+                // exists anywhere, which means an earlier push already stored it, or the debt moved
+                // to another identity while this one waited for the slot — and that stored nothing.
+                if ProductAnalyticsPreference.isAnswerOwedToAnyIdentity(userDefaults: self.userDefaults) {
+                    unsettledReason = .identityChanged
+                } else {
+                    didSettle = true
+                }
+                break drainLoop
+            }
+            // Checked at send time rather than once before the slot: this push may have waited behind
+            // another one, and a sign-in or a guest upgrade landing in that window moves the identity
+            // the send would now resolve. A debt made under the identity that left must never be
+            // PATCHed onto the one that replaced it, so it stays owed and this drain reports it.
+            guard self.currentAccountPreferencesIdentity()?.productAnalyticsKey == identityKey else {
+                unsettledReason = .identityChanged
+                break drainLoop
+            }
+
+            let updateResult: (preferences: AccountPreferences, session: CloudLinkedSession)
+            do {
+                // The identity goes into the send rather than staying behind in the guard above: the
+                // send suspends for a credential refresh and resolves the session from whatever
+                // identity is current afterwards, so a sign-out and sign-in completing inside that
+                // window would otherwise PATCH this debt onto the account that replaced it and
+                // overwrite that person's own answer.
+                updateResult = try await send(owedAnswer)
+            } catch {
+                failure = error
+                break drainLoop
+            }
+
+            didSend = true
+            applyAcknowledged(updateResult.preferences, updateResult.session)
+            switch ProductAnalyticsPreference.settlePush(
+                acknowledged: updateResult.preferences.productAnalyticsEnabled,
+                identityKey: identityKey,
+                userDefaults: self.userDefaults
+            ) {
+            case .settled:
+                didSettle = true
+                break drainLoop
+            case .debtMoved:
+                unsettledReason = .identityChanged
+                break drainLoop
+            case .disagreed:
+                continue drainLoop
+            }
+        }
+
+        if didSend {
+            // On every push path rather than only the ones that apply preferences. A push never writes
+            // the stored answer any more, so this only republishes it — and it is what stops the
+            // switch on screen from drifting away from the answer this device holds.
+            self.applyStoredProductAnalyticsPreference()
+        }
+
+        if let failure {
+            return failure
+        }
+        guard didSettle else {
+            return ProductAnalyticsPushUnsettledError(reason: unsettledReason)
+        }
+
+        return nil
+    }
+
+    /**
+     * Releases the in-flight flag whenever this update still owns it.
+     *
+     * Guarded on the generation alone, unlike the write itself: every update bumps the generation
+     * before raising the flag, so an unchanged generation means nobody else took it over. The identity
+     * key is deliberately not part of this check, because a sign-in landing mid-flight moves it
+     * without bumping the generation — leaving nobody to own the flag, and
+     * `refreshCloudAccountContextIfActive` returning at its first guard for the rest of the process.
+     */
+    private func releaseAccountPreferencesUpdateInFlight(updateGeneration: Int) {
+        guard self.accountPreferencesRefreshGeneration == updateGeneration else {
+            return
+        }
+
+        self.isAccountPreferencesUpdateInFlight = false
+    }
+
+    /**
+     * The stored answer for this identity, as the server reports it.
+     *
+     * The settled rule decides what happens to it: the answer given on this device wins on this
+     * device, so a reported value is adopted only over a mirror of an earlier one or over nothing, and
+     * an identity that reports none is handed the answer this device gave. A remote change made on
+     * another device therefore does not re-enable recording here; this device's own switch does.
+     */
+    private func adoptServerProductAnalyticsPreference(
+        preferences: AccountPreferences,
+        productAnalyticsIdentityKey: String
+    ) {
+        ProductAnalyticsPreference.adoptServerAnswer(
+            preferences.productAnalyticsEnabled,
+            identityKey: productAnalyticsIdentityKey,
+            userDefaults: self.userDefaults
+        )
+        self.applyStoredProductAnalyticsPreference()
+    }
+
     func updateReviewReactionAnimationsEnabled(isEnabled: Bool) async throws {
         let previousPreferences = self.accountPreferences
         let rollbackIdentityKey = self.accountPreferencesIdentityKey
-        let nextPreferences = AccountPreferences(reviewReactionAnimationsEnabled: isEnabled)
+        let nextPreferences = AccountPreferences(
+            reviewReactionAnimationsEnabled: isEnabled,
+            productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled
+        )
         self.accountPreferencesRefreshGeneration += 1
         let updateGeneration = self.accountPreferencesRefreshGeneration
         self.accountPreferences = nextPreferences
@@ -75,23 +647,23 @@ extension FlashcardsStore {
 
         do {
             let updateResult = try await self.updateCloudAccountPreferences(
-                preferences: nextPreferences
+                patch: AccountPreferencesPatchRequest(reviewReactionAnimationsEnabled: isEnabled)
             )
+            self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
             if self.isCurrentAccountPreferencesUpdate(
                 identityKey: rollbackIdentityKey,
                 updateGeneration: updateGeneration
             ) {
                 self.applyCloudAccountPreferences(preferences: updateResult.preferences, session: updateResult.session)
-                self.isAccountPreferencesUpdateInFlight = false
                 self.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
             }
         } catch {
+            self.releaseAccountPreferencesUpdateInFlight(updateGeneration: updateGeneration)
             if self.isCurrentAccountPreferencesUpdate(
                 identityKey: rollbackIdentityKey,
                 updateGeneration: updateGeneration
             ) {
                 self.accountPreferences = previousPreferences
-                self.isAccountPreferencesUpdateInFlight = false
             }
             throw error
         }
@@ -102,16 +674,16 @@ extension FlashcardsStore {
             return
         }
 
-        let identityKey = makeAccountPreferencesIdentityKey(
+        let identity = AccountPreferencesIdentity(
             userId: account.userId,
             configurationMode: configuration.mode,
             apiBaseUrl: configuration.apiBaseUrl
         )
-        guard self.currentAccountPreferencesIdentityKey() == identityKey else {
+        guard self.currentAccountPreferencesIdentity() == identity else {
             return
         }
 
-        self.applyCloudAccountPreferences(preferences: account.preferences, identityKey: identityKey)
+        self.applyCloudAccountPreferences(preferences: account.preferences, identity: identity)
     }
 
     func applyCloudAccountPreferences(
@@ -137,25 +709,26 @@ extension FlashcardsStore {
         configurationMode: CloudServiceConfigurationMode,
         apiBaseUrl: String
     ) {
-        let identityKey = makeAccountPreferencesIdentityKey(
+        let identity = AccountPreferencesIdentity(
             userId: userId,
             configurationMode: configurationMode,
             apiBaseUrl: apiBaseUrl
         )
-        guard self.currentAccountPreferencesIdentityKey() == identityKey else {
+        guard self.currentAccountPreferencesIdentity() == identity else {
             return
         }
-        self.applyCloudAccountPreferences(preferences: preferences, identityKey: identityKey)
+        self.applyCloudAccountPreferences(preferences: preferences, identity: identity)
     }
 
     func reloadCachedAccountPreferencesForCurrentIdentity() {
         let previousIdentityKey = self.accountPreferencesIdentityKey
-        guard let identityKey = self.currentAccountPreferencesIdentityKey() else {
+        guard let identity = self.currentAccountPreferencesIdentity() else {
             self.accountPreferencesIdentityKey = nil
             self.accountPreferences = makeDefaultAccountPreferences()
             return
         }
 
+        let identityKey = identity.storageKey
         self.accountPreferencesIdentityKey = identityKey
         let cache = self.loadPersistedAccountPreferencesCache()
         if let preferences = self.cachedAccountPreferences(cache: cache, identityKey: identityKey) {
@@ -166,9 +739,17 @@ extension FlashcardsStore {
     }
 
     func resetAccountPreferencesForCloudIdentityReset() {
+        // An answer given on this device is deliberately not cleared with the rest: it is the
+        // person's own privacy choice, so it survives the identity change instead of silently
+        // reverting to the default, and becomes owed to the credential this install obtains next. A
+        // value only mirrored from the identity that left is dropped with it, which is what the
+        // republish below is for.
+        ProductAnalyticsPreference.clearIdentityBindingForCloudIdentityReset(userDefaults: self.userDefaults)
+        self.applyStoredProductAnalyticsPreference()
         self.accountPreferencesIdentityKey = nil
         self.accountPreferencesRefreshGeneration += 1
         self.isAccountPreferencesUpdateInFlight = false
+        self.clearProductAnalyticsPushFailureReportsForCloudIdentityReset()
         self.accountPreferences = makeDefaultAccountPreferences()
         self.userDefaults.removeObject(forKey: accountPreferencesCacheUserDefaultsKey)
         self.communityProfileRefreshGeneration += 1
@@ -176,20 +757,76 @@ extension FlashcardsStore {
         self.communityPublicProfile = nil
     }
 
+    /**
+     * Re-arms the per-stage push-failure dedupe at a cloud identity boundary.
+     *
+     * Suppression state belongs to the identity that is leaving, exactly as it does for the sync
+     * failure reporter `Analytics.reset` re-arms at this same boundary: the debt is re-owed to
+     * whatever credential this install obtains next, and a stage reported under the outgoing identity
+     * must not silence that new identity's first genuinely unsettled push. A suppressed report is
+     * also returned as captured, so leaving the set alone would additionally wrap such a failure on
+     * the toggle path and rob presentation of its own capture.
+     *
+     * Every site that clears the answer's identity binding calls this too: this reset,
+     * `switchCloudServer`, and the credential reconciliation in `FlashcardsStore+CloudSync`. All
+     * three are one-shot, so re-arming there cannot reopen the per-launch flood the dedupe exists to
+     * prevent.
+     */
+    func clearProductAnalyticsPushFailureReportsForCloudIdentityReset() {
+        self.reportedProductAnalyticsPushFailureStages = []
+    }
+
     private func updateCloudAccountPreferences(
-        preferences: AccountPreferences
+        patch: AccountPreferencesPatchRequest
+    ) async throws -> (preferences: AccountPreferences, session: CloudLinkedSession) {
+        try await self.updateCloudAccountPreferences(
+            patch: patch,
+            validateResolvedSession: { _ in }
+        )
+    }
+
+    /**
+     * Resolves the session, lets the caller reject it, and only then sends the body.
+     *
+     * The hook exists for the product-analytics debt, which is owed to one identity and must never be
+     * paid onto another. Resolving a `.linked` session suspends for a credential refresh and comes
+     * back with whatever identity is current after that suspension, so a check made before this call
+     * does not hold across it. This one does, because it runs on the very session the PATCH goes out
+     * under.
+     */
+    private func updateCloudAccountPreferences(
+        patch: AccountPreferencesPatchRequest,
+        validateResolvedSession: (CloudLinkedSession) throws -> Void
     ) async throws -> (preferences: AccountPreferences, session: CloudLinkedSession) {
         switch self.cloudSettings?.cloudState {
         case .linked:
             _ = try await self.linkedCloudSessionForAccountContextRefresh()
             return try await self.withAuthenticatedCloudSession { session in
-                try await self.updateCloudAccountPreferences(preferences: preferences, session: session)
+                try validateResolvedSession(session)
+                return try await self.updateCloudAccountPreferences(patch: patch, session: session)
             }
         case .guest:
             let session = try self.guestCloudSessionForAccountContextRefresh()
-            return try await self.updateCloudAccountPreferences(preferences: preferences, session: session)
+            try validateResolvedSession(session)
+            return try await self.updateCloudAccountPreferences(patch: patch, session: session)
         case .disconnected, .linkingReady, nil:
             throw LocalStoreError.uninitialized("Cloud account is unavailable")
+        }
+    }
+
+    /// Refuses a resolved session that is not the identity the owed answer was made under, so the debt
+    /// stays owed to that identity instead of overwriting the answer of the one that replaced it.
+    private func requireProductAnalyticsIdentity(
+        expectedIdentityKey: String,
+        session: CloudLinkedSession
+    ) throws {
+        let resolvedIdentityKey = AccountPreferencesIdentity(
+            userId: session.userId,
+            configurationMode: session.configurationMode,
+            apiBaseUrl: session.apiBaseUrl
+        ).productAnalyticsKey
+        guard resolvedIdentityKey == expectedIdentityKey else {
+            throw ProductAnalyticsPushUnsettledError(reason: .identityChanged)
         }
     }
 
@@ -202,14 +839,14 @@ extension FlashcardsStore {
     }
 
     private func updateCloudAccountPreferences(
-        preferences: AccountPreferences,
+        patch: AccountPreferencesPatchRequest,
         session: CloudLinkedSession
     ) async throws -> (preferences: AccountPreferences, session: CloudLinkedSession) {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
         let updatedPreferences = try await cloudSyncService.updateAccountPreferences(
             apiBaseUrl: session.apiBaseUrl,
             authorizationHeader: session.authorizationHeaderValue,
-            preferences: preferences
+            patch: patch
         )
         return (updatedPreferences, session)
     }
@@ -325,11 +962,11 @@ extension FlashcardsStore {
         }
 
         for apiBaseUrl in equivalentStoredCloudApiBaseUrls(configuration: configuration) {
-            let candidateKey = makeAccountPreferencesIdentityKey(
+            let candidateKey = AccountPreferencesIdentity(
                 userId: userId,
                 configurationMode: configuration.mode,
                 apiBaseUrl: apiBaseUrl
-            )
+            ).storageKey
             if let preferences = cache.preferencesByIdentityKey[candidateKey] {
                 return preferences
             }
@@ -338,7 +975,7 @@ extension FlashcardsStore {
         return nil
     }
 
-    private func currentAccountPreferencesIdentityKey() -> String? {
+    private func currentAccountPreferencesIdentity() -> AccountPreferencesIdentity? {
         guard let cloudSettings = self.cloudSettings else {
             return nil
         }
@@ -352,7 +989,7 @@ extension FlashcardsStore {
             return nil
         }
 
-        return makeAccountPreferencesIdentityKey(
+        return AccountPreferencesIdentity(
             userId: userId,
             configurationMode: configuration.mode,
             apiBaseUrl: configuration.apiBaseUrl
@@ -363,21 +1000,26 @@ extension FlashcardsStore {
         preferences: AccountPreferences,
         session: CloudLinkedSession
     ) {
-        let identityKey = makeAccountPreferencesIdentityKey(
+        let identity = AccountPreferencesIdentity(
             userId: session.userId,
             configurationMode: session.configurationMode,
             apiBaseUrl: session.apiBaseUrl
         )
-        self.applyCloudAccountPreferences(preferences: preferences, identityKey: identityKey)
+        self.applyCloudAccountPreferences(preferences: preferences, identity: identity)
     }
 
     private func applyCloudAccountPreferences(
         preferences: AccountPreferences,
-        identityKey: String
+        identity: AccountPreferencesIdentity
     ) {
+        let identityKey = identity.storageKey
         self.accountPreferences = preferences
         self.accountPreferencesIdentityKey = identityKey
         self.cacheAccountPreferences(preferences: preferences, identityKey: identityKey)
+        self.adoptServerProductAnalyticsPreference(
+            preferences: preferences,
+            productAnalyticsIdentityKey: identity.productAnalyticsKey
+        )
     }
 
     private func loadPersistedAccountPreferencesCache() -> PersistedAccountPreferencesCache {

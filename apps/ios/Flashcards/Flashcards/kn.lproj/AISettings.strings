@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯಲ್ಲಿ ನನ್ನನ್ನು ತೋರಿಸಿ";
 "settings.leaderboardParticipation.description" = "ಇದು ನಿಷ್ಕ್ರಿಯವಾಗಿದ್ದರೆ, ನಿಮ್ಮ ಅನಾಮಧೇಯ ಚಟುವಟಿಕೆ ಶ್ರೇಯಾಂಕಪಟ್ಟಿಯಲ್ಲಿ ಕಾಣುವುದಿಲ್ಲ.";
 "settings.leaderboardParticipation.signInRequired" = "ಶ್ರೇಯಾಂಕಪಟ್ಟಿ ಭಾಗವಹಿಸುವಿಕೆಯನ್ನು ನಿರ್ವಹಿಸಲು ಕ್ಲೌಡ್ ಸಿಂಕ್ ಸಂಪರ್ಕಿಸಿ.";
+"settings.productAnalytics.title" = "ಉತ್ಪನ್ನ ವಿಶ್ಲೇಷಣೆ";
+"settings.productAnalytics.toggle" = "ಉತ್ಪನ್ನ ವಿಶ್ಲೇಷಣೆಯನ್ನು ಹಂಚಿಕೊಳ್ಳಿ";
+"settings.productAnalytics.footer" = "ಜನರು ಆ್ಯಪ್‌ನ ಯಾವ ಭಾಗಗಳನ್ನು ಬಳಸುತ್ತಾರೆ ಎಂಬುದನ್ನು ಉತ್ಪನ್ನ ವಿಶ್ಲೇಷಣೆ ನಮಗೆ ತಿಳಿಸುತ್ತದೆ; ನಿಮ್ಮ ಕಾರ್ಡ್‌ಗಳಲ್ಲಿ ಏನಿದೆ ಎಂಬುದನ್ನಲ್ಲ. ಇದು ಆಫ್ ಆಗಿದ್ದಾಗ ಆ್ಯಪ್ ಏನನ್ನೂ ದಾಖಲಿಸುವುದಿಲ್ಲ ಮತ್ತು ಕಳುಹಿಸುವುದಿಲ್ಲ. ಕ್ರ್ಯಾಶ್ ಮತ್ತು ದೋಷ ವರದಿಗಳಿಗೆ ಇದರಿಂದ ಪರಿಣಾಮವಿಲ್ಲ.";
 "settings.language.title" = "ಭಾಷೆ";
 "settings.language.systemDescription" = "ಆ್ಯಪ್ ಭಾಷೆಯನ್ನು iOS ನಿಯಂತ್ರಿಸುತ್ತದೆ. iOS ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ Nibomo ತೆರೆಯಿರಿ ಮತ್ತು ಆದ್ಯತೆಯ ಭಾಷೆ ಬಳಸಿ. ಆದ್ಯತೆಯ ಭಾಷೆ ಕಾಣದಿದ್ದರೆ ಮೊದಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಸಾಮಾನ್ಯ > ಭಾಷೆ ಮತ್ತು ಪ್ರದೇಶದಲ್ಲಿ ಮತ್ತೊಂದು ಭಾಷೆ ಸೇರಿಸಿ.";
 "settings.language.action.openAppSettings" = "Nibomo ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ";

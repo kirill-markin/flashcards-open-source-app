@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "লিডারবোর্ডে আমাকে দেখান";
 "settings.leaderboardParticipation.description" = "এটি বন্ধ থাকলে, আপনার বেনামী কার্যকলাপ লিডারবোর্ডে প্রদর্শিত হবে না।";
 "settings.leaderboardParticipation.signInRequired" = "লিডারবোর্ডে অংশগ্রহণ পরিচালনা করতে ক্লাউড সিঙ্ক সংযুক্ত করুন।";
+"settings.productAnalytics.title" = "প্রোডাক্ট অ্যানালিটিক্স";
+"settings.productAnalytics.toggle" = "প্রোডাক্ট অ্যানালিটিক্স শেয়ার করুন";
+"settings.productAnalytics.footer" = "প্রোডাক্ট অ্যানালিটিক্স আমাদের জানায় অ্যাপের কোন অংশ মানুষ ব্যবহার করে, আপনার কার্ডে কী আছে তা নয়। এটি বন্ধ থাকলে অ্যাপ কিছুই রেকর্ড করে না এবং পাঠায় না। ক্র্যাশ ও ত্রুটির রিপোর্ট এতে প্রভাবিত হয় না।";
 "settings.language.title" = "ভাষা";
 "settings.language.systemDescription" = "iOS অ্যাপের ভাষা নিয়ন্ত্রণ করে। iOS সেটিংসে, Nibomo খুলুন এবং পছন্দের ভাষা ব্যবহার করুন। পছন্দের ভাষা দেখানো না হলে, প্রথমে সেটিংস > সাধারণ > ভাষা ও অঞ্চলে অন্য ভাষা যোগ করুন।";
 "settings.language.action.openAppSettings" = "Nibomo সেটিংস খুলুন";

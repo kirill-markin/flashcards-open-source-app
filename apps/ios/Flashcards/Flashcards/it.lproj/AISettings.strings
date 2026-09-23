@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Mostrami nella classifica";
 "settings.leaderboardParticipation.description" = "Se disattivato, la tua attività anonima non apparirà nella classifica.";
 "settings.leaderboardParticipation.signInRequired" = "Collega la sincronizzazione cloud per gestire la partecipazione alla classifica.";
+"settings.productAnalytics.title" = "Analisi del prodotto";
+"settings.productAnalytics.toggle" = "Condividi l'analisi del prodotto";
+"settings.productAnalytics.footer" = "L'analisi del prodotto ci dice quali parti dell'app vengono usate, mai cosa c'è sulle tue carte. Quando è disattivata, l'app non registra e non invia nulla. I rapporti su arresti anomali ed errori non sono interessati.";
 "settings.language.title" = "Lingua";
 "settings.language.systemDescription" = "iOS gestisce la lingua dell’app. Nelle Impostazioni di iOS, apri Nibomo e usa Lingua preferita. Se Lingua preferita non compare, aggiungi prima un’altra lingua in Impostazioni > Generali > Lingua e zona.";
 "settings.language.action.openAppSettings" = "Apri impostazioni di Nibomo";

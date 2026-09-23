@@ -50,6 +50,19 @@ extension FlashcardsStore {
         self.clearCloudCredentialRecoveryState()
         try self.cloudRuntime.clearCredentials()
         try self.dependencies.guestCredentialStore.clearGuestSession()
+        // The analytics answer survives the switch, because it is this person's privacy choice on
+        // this device, but its binding to the identity being left does not: the next identity lives
+        // on another backend entirely, and an answer is only ever handed to one that has none.
+        //
+        // Below the clears, like the other caller of this reset, so the debt is re-armed only once
+        // the credential it was made under is gone — a clear that throws must not leave it owed to
+        // a credential that already accepted the answer. The republish is what the other branch
+        // needs: a merely mirrored answer is dropped outright, and nothing else here restores the
+        // published switch, so without it the screen keeps showing a value stored nowhere and flips
+        // itself back at the next unrelated republish.
+        ProductAnalyticsPreference.clearIdentityBindingForCloudIdentityReset(userDefaults: self.userDefaults)
+        self.applyStoredProductAnalyticsPreference()
+        self.clearProductAnalyticsPushFailureReportsForCloudIdentityReset()
         self.clearPendingGuestUpgradeStateAndUnblockMutations()
         try context.database.clearCloudSyncState(workspaceId: context.workspaceId)
         try context.database.updateCloudSettings(

@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "मला क्रमवारीत दाखवा";
 "settings.leaderboardParticipation.description" = "हे बंद असताना तुमची अनामिक क्रिया क्रमवारीत दिसणार नाही.";
 "settings.leaderboardParticipation.signInRequired" = "क्रमवारीतील सहभाग व्यवस्थापित करण्यासाठी क्लाउड समक्रमण जोडा.";
+"settings.productAnalytics.title" = "प्रॉडक्ट अॅनालिटिक्स";
+"settings.productAnalytics.toggle" = "प्रॉडक्ट अॅनालिटिक्स शेअर करा";
+"settings.productAnalytics.footer" = "लोक अॅपचे कोणते भाग वापरतात हे प्रॉडक्ट अॅनालिटिक्स आम्हाला सांगते, तुमच्या कार्डांवर काय आहे ते कधीच नाही. हे बंद असताना अॅप काहीही नोंदवत नाही आणि पाठवत नाही. क्रॅश व त्रुटी अहवालांवर याचा परिणाम होत नाही.";
 "settings.language.title" = "भाषा";
 "settings.language.systemDescription" = "iOS अ‍ॅपची भाषा ठरवते. iOS सेटिंग्जमध्ये Nibomo उघडा आणि पसंतीची भाषा निवडा. पसंतीची भाषा दिसत नसल्यास आधी सेटिंग्ज > सामान्य > भाषा आणि प्रदेश येथे दुसरी भाषा जोडा.";
 "settings.language.action.openAppSettings" = "Nibomo सेटिंग्ज उघडा";
