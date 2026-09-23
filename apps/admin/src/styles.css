@@ -358,7 +358,7 @@ h2 {
 
 /* The funnel's own `Group by` field sits in the funnel's own filter row area, under its heading and
    above everything the report's state can unmount: the field regroups this one funnel, so it belongs
-   to the funnel rather than to the shared bar, where every field narrows all four at once. */
+   to the funnel rather than to the shared bar, where every field narrows them all at once. */
 .funnel-group-by-row {
   display: flex;
   flex-wrap: wrap;

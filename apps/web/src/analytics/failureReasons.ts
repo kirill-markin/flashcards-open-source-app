@@ -100,11 +100,11 @@ export function toAnalyticsMediaUploadFailureReason(
  * server. `no_speech` has no branch here because an empty recording throws nothing — the composer
  * observes an empty blob and reports that reason directly.
  *
- * The fallthrough is `server_error` outright, where the two neighbouring mappers —
- * `toAnalyticsSyncFailureReason` and `toAnalyticsReviewAnswerFailureReason` — first ask whether the
- * browser is offline. Everything that reaches this one without being an `ApiError` is a local
- * recorder or validation failure, and connectivity does not make one of those a network failure;
- * the transport is already told apart above.
+ * The fallthrough is `server_error` outright, where `toAnalyticsSyncFailureReason` and
+ * `toAnalyticsReviewAnswerFailureReason` end theirs by asking whether the browser is offline.
+ * Everything that reaches this one without being an `ApiError` is a local recorder or validation
+ * failure, and connectivity does not make one of those a network failure; the transport is already
+ * told apart above.
  */
 export function toAnalyticsDictationFailureReason(error: unknown): AnalyticsDictationFailureReason {
   if (error instanceof DOMException) {

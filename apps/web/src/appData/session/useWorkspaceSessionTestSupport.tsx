@@ -108,6 +108,7 @@ export const seededSession: SessionInfo = {
   preferences: {
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
+    productAnalyticsEnabled: null,
   },
   profile: {
     email: "user@example.com",
@@ -199,6 +200,7 @@ export function buildSessionResponseForUser(userId: string, selectedWorkspaceId:
     preferences: {
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
+      productAnalyticsEnabled: null,
     },
     profile: {
       email: "user@example.com",

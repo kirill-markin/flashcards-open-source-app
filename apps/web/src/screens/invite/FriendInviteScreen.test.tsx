@@ -54,6 +54,7 @@ function createSession(): SessionInfo {
     preferences: {
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
+      productAnalyticsEnabled: null,
     },
     profile: {
       email: "user@example.com",
