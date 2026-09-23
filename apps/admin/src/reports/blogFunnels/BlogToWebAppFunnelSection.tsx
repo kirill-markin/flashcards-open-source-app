@@ -13,11 +13,12 @@ import {
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import { FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
+import { siteEntryEngagedReviewThreshold } from "../siteEntryFunnel/query";
 import {
-  siteEntryEngagedReviewThreshold,
-  siteEntryFunnelGroupByDimensions,
-} from "../siteEntryFunnel/query";
-import { blogFunnelStartDate, buildBlogFunnelStartDateNote } from "./blogFunnelEntry";
+  blogFunnelGroupByDimensions,
+  blogFunnelStartDate,
+  buildBlogFunnelStartDateNote,
+} from "./blogFunnelEntry";
 import {
   loadBlogToWebAppFunnelReport,
   type BlogToWebAppFunnelCounts,
@@ -130,7 +131,7 @@ export function BlogToWebAppFunnelSection(props: FunnelSectionProps): JSX.Elemen
     () => parseFunnelGroupByDimension(
       new URLSearchParams(window.location.search),
       funnelId,
-      siteEntryFunnelGroupByDimensions,
+      blogFunnelGroupByDimensions,
     ),
   );
 
@@ -218,7 +219,7 @@ export function BlogToWebAppFunnelSection(props: FunnelSectionProps): JSX.Elemen
       <div className="funnel-group-by-row">
         <FunnelGroupByPicker
           funnelId={funnelId}
-          dimensions={siteEntryFunnelGroupByDimensions}
+          dimensions={blogFunnelGroupByDimensions}
           selectedDimensionId={groupByDimension === null ? null : groupByDimension.id}
           isReportLoading={props.isRangeLoading || loadState.status === "loading"}
           onSelect={selectGroupByDimension}
@@ -256,7 +257,7 @@ export function BlogToWebAppFunnelSection(props: FunnelSectionProps): JSX.Elemen
           <p>The site and the app join only through sign-in. The web app&rsquo;s first analytics batch sent on the account carries the visitor cookie and links it to that account; until then the in-app steps have nothing trusted to read. Opening the web app and signing in are one step, &ldquo;Signed in on the web app&rdquo;, because a signed-out web app open is held in the browser and reported under the account only after the sign-in, and the web app has no guest mode. If the browser&rsquo;s cookie was already linked to another account, its visits stay with that first account.</p>
           <p>The date range, the client platform, the connection country and the app interface language are applied in SQL. The platform is the blog page view&rsquo;s, and the site always reports as web, so a selection without web empties this funnel. The country and language keep a person the way they do on General, from their trusted events in the selected dates, so narrowing either keeps only people who signed in. An <code>@example.com</code> account, an admin and an actor on the analytics exclusion list are excluded.</p>
           <p>&ldquo;Who the funnels count&rdquo; picks the audience. <strong>With anonymous ID</strong>, the default, is everything described above: a person is the site&rsquo;s visitor cookie. <strong>Signed-in only</strong> keeps just the people whose identity resolves to a real, non-guest account at some point up to now, read from a Cognito row in <code>auth.user_identities</code>; their steps from before they registered still count. <strong>All</strong> counts exactly the same people here as the default: a cookieless visitor reports a daily hash rather than a cookie, so they can produce the click and nothing below it, and adding their clicks to the first step would raise the base of four steps they can never appear in and read as a collapse in activation. They are counted in the platform-choice funnel above, where every step is a marketing-site fact they can reach.</p>
-          <p><strong>Group by</strong> splits exactly these people and measures each group inside itself: one bar per group at every step, every percentage taken from that group&rsquo;s own first step, so two groups of very different size are compared by their rates. <strong>Entry page language</strong> is the one dimension here, and its key is the language the blog article was read in, taken off that very page view, exactly as on the funnels above. Everyone enters on exactly one page view, so the groups always sum back to the numbers above; only a visit whose page view reported no language at all is <strong>Unresolved</strong>, and beyond the five largest groups the rest are summed into <strong>Other</strong>. A group in which nobody clicked is not drawn at all, because the click is this funnel&rsquo;s first step. Neither a person&rsquo;s connection country nor their app interface language is offered: both read trusted events, so under either dimension the readers who never signed in would all be <strong>Unresolved</strong>. The groups are not the <strong>App interface language</strong> filter&rsquo;s answer either: that field reads the locale of a person&rsquo;s trusted events in the dates, so narrowing it keeps only people who signed in, while their group is the article&rsquo;s own language.</p>
+          <p><strong>Group by</strong> splits exactly these people and measures each group inside itself: one bar per group at every step, every percentage taken from that group&rsquo;s own first step, so two groups of very different size are compared by their rates. There are two dimensions, and both are read off the blog article the person entered on rather than off anything in their history. <strong>Entry page language</strong> is the language that page view was read in, taken off that very row, exactly as on the funnels above. <strong>Entry article</strong> is the post itself, keyed on that same row&rsquo;s own <code>page_path</code> — the route the site reports with its locale prefix already stripped, lowercase and with a leading and a trailing slash, so one post is one group across every language — which is how this funnel answers which posts bring the readers who go on to activate. Everyone enters on exactly one page view, so whichever dimension is selected the groups always sum back to the numbers above; <strong>Unresolved</strong> is a visit whose page view reported no language at all under the first dimension and no path at all under the second, and beyond the five largest groups the rest are summed into <strong>Other</strong>. Neither dimension places a cookieless visitor here, unlike on the platform-choice funnel above, because this funnel does not read that cohort at all. A group in which nobody clicked is not drawn at all, because the click is this funnel&rsquo;s first step. Neither a person&rsquo;s connection country nor their app interface language is offered: both read trusted events, so under either dimension the readers who never signed in would all be <strong>Unresolved</strong>. The groups are not the <strong>App interface language</strong> filter&rsquo;s answer either: that field reads the locale of a person&rsquo;s trusted events in the dates, so narrowing it keeps only people who signed in, while their group is the article&rsquo;s own language.</p>
         </details>
       ) : null}
     </section>

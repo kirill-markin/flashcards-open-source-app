@@ -57,8 +57,9 @@ export type BlogPlatformChoiceFunnelCounts = Readonly<{
 }>;
 
 /**
- * One group's counts under the key the SQL produced, keyed exactly as the home funnel's groups are:
- * the entry page view's own locale, on both cohorts.
+ * One group's counts under the key the SQL produced, keyed on the entry page view itself and on both
+ * cohorts alike: the locale that page was read in, or the path of the article it was
+ * (`blogFunnelGroupByDimensions` in `./blogFunnelEntry.ts`).
  */
 export type BlogPlatformChoiceFunnelGroup = BlogPlatformChoiceFunnelCounts & Readonly<{ key: string }>;
 
@@ -164,7 +165,7 @@ function buildGroupCountSqlLines(
  * The per-target breakdown is one row per person in `platform_click_targets`, the target of the very
  * click that `platform_clicks` counted, so the three numbers are a partition of the step and sum to it.
  * `MIN` over the target resolves the only tie it can have - two clicks of that one person at the same
- * instant on different targets - the same way `entry_locales` resolves a tied locale, so the answer is
+ * instant on different targets - the same way `entry_group_keys` resolves a tied locale, so the answer is
  * the same on every run.
  */
 export function buildBlogPlatformChoiceFunnelSql(
