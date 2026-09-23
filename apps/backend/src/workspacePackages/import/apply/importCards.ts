@@ -9,7 +9,10 @@ import type {
   DatabaseExecutor,
   WorkspaceDatabaseScope,
 } from "../../../database";
-import { transactionWithWorkspaceScopeReportingContentCreations } from "../../../productAnalytics/serverFacts/contentCreations";
+import {
+  declareContentCreationSource,
+  transactionWithWorkspaceScopeReportingContentWrites,
+} from "../../../productAnalytics/serverFacts/contentWrites";
 import { HttpError } from "../../../shared/errors";
 import { workspacePackageImportZipDefaultMaxCards } from "../importZip";
 import {
@@ -178,6 +181,11 @@ export async function persistWorkspacePackageImportCardsWithDependencies(
       workspaceId: input.workspaceId,
     },
     async (executor): Promise<WorkspacePackageImportCardPersistenceResult> => {
+      // Every card this transaction writes came out of a package file rather than out of authoring,
+      // and the replica it writes through is the person's own installation, which would otherwise
+      // report the channel as `app`. This transaction creates nothing else, so one declaration
+      // covers all of it.
+      declareContentCreationSource(executor, "package_import");
       const cards: Array<Card> = [];
 
       for (const [batchIndex, batch] of batches.entries()) {
@@ -216,7 +224,7 @@ export async function persistWorkspacePackageImportCards(
       scope: WorkspaceDatabaseScope,
       callback: (executor: DatabaseExecutor) => Promise<WorkspacePackageImportCardPersistenceResult>,
     ): Promise<WorkspacePackageImportCardPersistenceResult> => (
-      transactionWithWorkspaceScopeReportingContentCreations(scope, callback)
+      transactionWithWorkspaceScopeReportingContentWrites(scope, callback)
     ),
   });
 }

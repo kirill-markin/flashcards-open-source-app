@@ -24,6 +24,7 @@ type ExistingFeedbackRow = Readonly<{
 type StoredFeedbackSubmissionRow = Readonly<{
   feedback_submission_id: string;
   created_at_server: Date | string;
+  workspace_id: string | null;
 }>;
 
 function toIsoString(value: Date | string): string {
@@ -200,7 +201,7 @@ async function findExistingSubmissionInExecutor(
 ): Promise<StoredFeedbackSubmissionRow | null> {
   const result = await executor.query<StoredFeedbackSubmissionRow>(
     [
-      "SELECT feedback_submission_id, created_at_server",
+      "SELECT feedback_submission_id, created_at_server, workspace_id",
       "FROM support.feedback_submissions",
       "WHERE feedback_submission_id = $1",
       "AND user_id = $2",
@@ -307,6 +308,9 @@ export async function storeFeedbackSubmissionForUser(
       return {
         feedbackSubmissionId: existingRow.feedback_submission_id,
         createdAtServer: toIsoString(existingRow.created_at_server),
+        // The stored workspace id, never the body's: this branch returns before the references of
+        // this request are checked, so the body's workspace id has been validated for nobody.
+        workspaceId: existingRow.workspace_id,
         emailNotificationRequired: false,
       };
     }
@@ -322,7 +326,7 @@ export async function storeFeedbackSubmissionForUser(
         "app_version, locale, timezone, trigger, message, created_at_client, country",
         ") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
         "ON CONFLICT (feedback_submission_id) DO NOTHING",
-        "RETURNING feedback_submission_id, created_at_server",
+        "RETURNING feedback_submission_id, created_at_server, workspace_id",
       ].join(" "),
       [
         input.feedbackSubmissionId,
@@ -346,6 +350,7 @@ export async function storeFeedbackSubmissionForUser(
       return {
         feedbackSubmissionId: insertedRow.feedback_submission_id,
         createdAtServer: toIsoString(insertedRow.created_at_server),
+        workspaceId: insertedRow.workspace_id,
         emailNotificationRequired: true,
       };
     }
@@ -354,6 +359,7 @@ export async function storeFeedbackSubmissionForUser(
     return {
       feedbackSubmissionId: conflictExistingRow.feedback_submission_id,
       createdAtServer: toIsoString(conflictExistingRow.created_at_server),
+      workspaceId: conflictExistingRow.workspace_id,
       emailNotificationRequired: false,
     };
   });

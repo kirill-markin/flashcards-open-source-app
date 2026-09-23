@@ -582,12 +582,37 @@ export const productAnalyticsEventCatalog = {
   // the client that intended it. An offline-first client queues a write and syncs it later, so the
   // server is the only place that knows a card or a deck really exists; `card_create_started` above
   // stays a client event precisely because it reports the intent, which is the other half of the
-  // pair. Carrying no properties is deliberate: the row is the fact, and anything describing what
-  // was written would be content a person typed.
+  // pair. Nothing describing what was written is carried, because that would be content a person
+  // typed; `card_created.source` is the one property here and it names the channel the server
+  // observed the write through rather than anything about the card.
   card_created: {
     serverOnly: true,
     requiresScreen: false,
-    properties: {},
+    properties: {
+      // The channel the card was written through, which `platform` does not carry: the app's own
+      // authoring, the in-app AI chat, an external agent, or a workspace package the person
+      // imported. It is spelled exactly as `review_answered.source` where the two overlap, so a
+      // creation and an answer from the same channel join by equality, and it is resolved the same
+      // way - from the replica's actor kind - except where the writing transaction names its own
+      // channel, which only the workspace-package import does.
+      //
+      // `catalog_install` has no producer and keeps none while installing stays separate from
+      // authoring: an installed card is written by the install's own SQL and never reaches the
+      // creation producer at all (../catalog/distribution/install/persistence.ts), so the whole
+      // install is reported once as `catalog_deck_installed` rather than as one creation per card.
+      // The value is declared because it names the one channel this vocabulary would otherwise
+      // leave unspellable, and a zero count on it is that decision rather than a measurement.
+      //
+      // Optional because the producer omits it wherever the channel cannot be resolved - a replica
+      // the scoped read did not reach, an actor kind that is no channel a person writes through -
+      // and because rows stored before it existed carry none. It is never guessed: `app` means a
+      // client installation replica and nothing else.
+      source: {
+        kind: "enum",
+        values: ["app", "ai_chat", "agent", "catalog_install", "package_import"],
+        optional: true,
+      },
+    },
   },
   card_updated: {
     serverOnly: true,
@@ -600,6 +625,132 @@ export const productAnalyticsEventCatalog = {
     properties: {},
   },
   deck_updated: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  // The other end of a card's or a deck's life, derived from the tombstone the write left behind
+  // rather than from the client that asked for it, exactly as the creations above are.
+  //
+  // One row per entity the server first saw tombstoned, keyed on the entity alone. The agent SQL
+  // tool's single and bulk card and deck deletes are the only callers of the per-entity delete
+  // path; every deletion a person makes on a client instead arrives as a snapshot carrying a
+  // tombstone - a sync push, a bootstrap snapshot, or a guest merge - and is counted when it lands,
+  // which is what keeps the offline-first clients inside the count at all. An entity created and
+  // deleted before it ever synced alive arrives as a first write that is already a tombstone and
+  // reports both its creation and its deletion, so those entities do not leave `card_created` minus
+  // `card_deleted` overstating the live library.
+  //
+  // A tombstone for an entity the server already had tombstoned changes nothing and reports
+  // nothing, so a client re-syncing its whole library cannot count one deletion twice. The same key
+  // sets the one boundary in the other direction: an entity a client brings back by pushing a
+  // snapshot with the tombstone cleared, and then deletes again, is still one row here, so these
+  // count entities ever deleted rather than deletion actions.
+  //
+  // Nothing that removes content as a side effect is counted here. Deleting a workspace or an
+  // account drops the workspace row and takes its cards and decks with it; those two decisions
+  // report `workspace_deleted` and `account_deleted` below and a cascade never inflates these.
+  // They carry no properties: anything describing what was deleted would be content a person typed,
+  // and unlike `card_created` there is no channel worth naming, because the tombstone reaches the
+  // server over whichever connection happened to sync it rather than over the one it was made on.
+  card_deleted: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  deck_deleted: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  // The three destructive decisions a person can take about their own data, each reported by the
+  // backend that carried it out and by nothing else. None carries a property: what was destroyed is
+  // the person's own content, and the decision is the whole fact.
+  //
+  // `account_deleted` is the one event here that is stored and then rewritten by the transaction
+  // that stored it. Account deletion collapses every row the person ever produced onto a single
+  // anonymized user id and clears the identity columns beside them, so this row is written just
+  // before that sweep and is swept with the rest; a row written after it would be the only one left
+  // carrying the ids the deletion exists to remove. What that costs is countability by actor: each
+  // deleted person's rows share a pseudonym minted for that one deletion and stored nowhere, so the
+  // number of deletions is the number of rows and never a count of distinct users. It is also the
+  // one event whose event_id is random rather than derived, because a derived id is a reproducible
+  // function of its inputs and this catalog is public, so deriving it from the ids being erased
+  // would hand anyone holding a user id a way back to that person's anonymized history.
+  account_deleted: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  // One workspace the person deleted, which takes its cards, decks and review history with it. The
+  // workspace row is gone by the time this is reported, so `workspace_id` names a workspace that no
+  // longer exists and joins to nothing outside this table.
+  workspace_deleted: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  // Every scheduling state in one workspace put back to new, keeping the cards themselves. Reported
+  // only when the reset had something to reset: a confirmed reset of a workspace with nothing
+  // scheduled writes nothing and reports nothing, so this counts resets that changed cards rather
+  // than confirmations. The reset leaves no row of its own to key on, so the event is keyed on the
+  // workspace and the instant: two resets of one workspace inside the same millisecond would count
+  // as one, and nothing else can collide.
+  study_progress_reset: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  // The product's own portability path, which nothing else in this catalog reports. An import also
+  // produces one `card_created` per card carrying source `package_import`, so the two are readable
+  // against each other everywhere the key below holds; an export produces no other fact at all,
+  // because it writes nothing.
+  //
+  // `card_count` is what the import actually persisted, which makes it comparable with
+  // `catalog_deck_installed.card_count`. The export carries nothing: the bytes leave the server and
+  // what they hold is the person's own content, while the decision to take them is the fact.
+  //
+  // Neither operation is idempotent, so each entry counts what its key can enforce rather than what
+  // a person decided. An import is keyed on the client's import id and counts distinct import ids:
+  // the import mints fresh card ids on every call, so a client that retries one id writes a second
+  // full library of cards and stores no second row here, and that is the one case where
+  // `card_count` covers less than the creations carrying `package_import`. An export has no id and
+  // no server state that makes a repeat a no-op, so it is keyed on the workspace and the instant
+  // and counts export requests that produced bytes: a deliberate second export and a transport
+  // retry of one whose response never arrived are alike two rows, and only two exports of one
+  // workspace inside the same millisecond would collapse into one.
+  workspace_package_imported: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {
+      card_count: { kind: "nonNegativeInteger" },
+    },
+  },
+  workspace_package_exported: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  // A person creating an API key for the terminal / AI-agent client, which is the moment that client
+  // becomes usable for them at all. It is the connection being created and never a request the agent
+  // later makes, so a key created and never used is still counted once here. Revoking one reports
+  // nothing. The row carries no platform: the connection is created from a human-authenticated
+  // client whose platform is a request header claim, and `agent` belongs to the facts that client
+  // goes on to produce rather than to its creation.
+  agent_connection_created: {
+    serverOnly: true,
+    requiresScreen: false,
+    properties: {},
+  },
+  // One in-app feedback message that reached support.feedback_submissions. The prompt events the
+  // same surface records are deliberately not reported: this counts the message a person chose to
+  // send. Nothing about it is carried - the message is theirs, and the trigger, platform and locale
+  // stored beside it are client claims that belong to the submission row rather than here.
+  //
+  // The submission is idempotent on the client's own id, so a resend is one message and not two.
+  // The cost of that boundary is the other direction: a submission stored on a request that then
+  // failed is counted only when the client sends it again, and not at all if it never does.
+  feedback_submitted: {
     serverOnly: true,
     requiresScreen: false,
     properties: {},
