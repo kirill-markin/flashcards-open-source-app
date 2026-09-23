@@ -13,6 +13,13 @@ export type AccountPreferences = Readonly<{
 }>;
 
 /**
+ * Who asked for an analytics preference write. `user_action` is the person answering on this
+ * browser; `reconciliation` is this browser carrying over an answer it read somewhere earlier,
+ * which nothing in the request can order against the stored one.
+ */
+export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
+
+/**
  * One `PATCH /me/preferences` body. A field this type leaves out is a field the request does not
  * write, which is why it cannot be a loaded `AccountPreferences`: null means "no decision recorded"
  * there and the route refuses it rather than reading it as "leave alone", so every caller names the
@@ -22,6 +29,16 @@ export type AccountPreferencesUpdate = Readonly<{
   reviewReactionAnimationsEnabled?: boolean;
   analyticsConsent?: AnalyticsConsentChoice;
   productAnalyticsEnabled?: boolean;
+  /**
+   * Who asked for the value beside it, one field per decision because one body can carry a person's
+   * press on one and a reconciled answer on the other. Omitted is `user_action` on the route, which
+   * is what every control a person presses wants, so only a reconciliation carrying an answer it
+   * read earlier has to name it: the route refuses to overwrite a stored `declined` with a
+   * `reconciliation` `granted`, and a stored `false` with a `reconciliation` `true`, because the two
+   * answers cannot be ordered.
+   */
+  analyticsConsentOrigin?: AnalyticsPreferenceWriteOrigin;
+  productAnalyticsEnabledOrigin?: AnalyticsPreferenceWriteOrigin;
 }>;
 
 export type AccountPreferencesEnvelope = Readonly<{

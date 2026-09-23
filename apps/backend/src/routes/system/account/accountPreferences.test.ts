@@ -215,10 +215,13 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
     },
   }]);
   // The account write must never carry the consent value: a guest owns no account column for it.
+  // The origins ride along and decide nothing while the value beside each of them is null.
   assert.deepEqual(accountUpdates, [{
     reviewReactionAnimationsEnabled: false,
     analyticsConsent: null,
+    analyticsConsentOrigin: "user_action",
     productAnalyticsEnabled: null,
+    productAnalyticsEnabledOrigin: "user_action",
   }]);
 });
 

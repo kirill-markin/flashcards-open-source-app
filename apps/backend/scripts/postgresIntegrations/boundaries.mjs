@@ -96,11 +96,18 @@ export const boundaryDefinitions = Object.freeze([
   // real guest session against its boundary database.
   // Moving a test retires the older-schema coverage it used to give, because each test runs only at
   // its pinned boundary and there is no full-schema pass.
+  // accountPreferences joins this boundary rather than an older one because it exercises both
+  // analytics columns of org.user_settings in one statement: analytics_consent, which 0142 added,
+  // and product_analytics_enabled, which this migration adds, so 0149 is the earliest schema its
+  // SQL can run against at all. It is pinned here rather than left unlisted because an unlisted
+  // integration file is never executed by any workflow, and the stickiness guards it covers are
+  // invisible to the route's unit tests, which hold a mock of the update function.
   Object.freeze({
     migrationFileName: "0149_product_analytics_off_switch.sql",
     expectedMigrationCount: 151,
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
+      "src/routes/system/account/accountPreferences.postgres.integration.ts",
     ]),
   }),
   // 0145 adds analytics.product_events.automated_client, beside the daily_visitor_hash and

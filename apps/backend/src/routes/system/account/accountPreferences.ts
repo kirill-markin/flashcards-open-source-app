@@ -35,6 +35,34 @@ function mapAccountPreferencesRow(row: AccountPreferencesRow): AccountPreference
   };
 }
 
+/**
+ * Writes the preferences a PATCH named, and answers with what is stored afterwards.
+ *
+ * Two rules are not a plain overwrite, one per analytics column, and both say the same thing: an
+ * answer that loosens a stored refusal is refused when it came from a client's reconciliation
+ * rather than from a person, and the stored refusal stands. An account is read by several devices,
+ * neither column carries a timestamp, and a device that read the account before a withdrawal on
+ * another device cannot be ordered against it - so it would otherwise carry its older answer back
+ * in silently, on every device the account has. A person's own answer is never refused, so both
+ * switches stay reversible by the control that moved them.
+ *
+ * What a reverted refusal costs is not the same on the two columns, and only one of them is about
+ * collection. On product_analytics_enabled a reverted FALSE resumes collection outright, because
+ * ingest reads that column. On analytics_consent a reverted 'declined' restores the shared visitor
+ * identifier and nothing else: refusing the cookie never stopped collection, which is what the
+ * banner copy promises and what db/migrations/0149_product_analytics_off_switch.sql means by
+ * forbidding either column to be derived from the other.
+ *
+ * The restrictive value differs per column, which is why the two branches are not one: on
+ * analytics_consent it is 'declined', on product_analytics_enabled it is FALSE. NULL means nobody
+ * answered on either (db/migrations/0142_analytics_consent_choice.sql and
+ * db/migrations/0149_product_analytics_off_switch.sql), and a NULL row must still adopt an incoming
+ * answer, including a reconciled one - that is the only way an answer given before signing in ever
+ * reaches the account.
+ *
+ * The returned row is what the caller is told, so a client whose value was refused learns the
+ * stored one from its own write rather than from a later read.
+ */
 export async function updateAccountPreferences(
   userId: string,
   update: AccountPreferencesUpdate,
@@ -45,8 +73,21 @@ export async function updateAccountPreferences(
       // A null parameter is a field the request left out, so the stored value survives the write.
       "UPDATE org.user_settings",
       "SET review_reaction_animations_enabled = COALESCE($2::BOOLEAN, review_reaction_animations_enabled),",
-      "analytics_consent = COALESCE($3::TEXT, analytics_consent),",
-      "product_analytics_enabled = COALESCE($4::BOOLEAN, product_analytics_enabled)",
+      // `analytics_consent = 'declined'` is unknown rather than false for a stored NULL, so an
+      // account nobody answered on falls through to the write, which is what this needs.
+      "analytics_consent = CASE",
+      "WHEN $3::TEXT IS NULL THEN analytics_consent",
+      "WHEN $4::BOOLEAN AND $3::TEXT = 'granted' AND analytics_consent = 'declined'",
+      "THEN analytics_consent",
+      "ELSE $3::TEXT END,",
+      // `IS FALSE` rather than `= FALSE`: a stored NULL falls through either way, and stating it
+      // leaves nothing resting on three-valued logic for the column where the guard being wrong
+      // resumes collection rather than only restoring an identifier.
+      "product_analytics_enabled = CASE",
+      "WHEN $5::BOOLEAN IS NULL THEN product_analytics_enabled",
+      "WHEN $6::BOOLEAN AND $5::BOOLEAN AND product_analytics_enabled IS FALSE",
+      "THEN product_analytics_enabled",
+      "ELSE $5::BOOLEAN END",
       "WHERE user_id = $1",
       "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled",
     ].join(" "),
@@ -54,7 +95,9 @@ export async function updateAccountPreferences(
       userId,
       update.reviewReactionAnimationsEnabled,
       update.analyticsConsent,
+      update.analyticsConsentOrigin === "reconciliation",
       update.productAnalyticsEnabled,
+      update.productAnalyticsEnabledOrigin === "reconciliation",
     ],
   );
 
@@ -99,6 +142,22 @@ export function registerAccountPreferencesRoutes(
     // landed. A request that only toggles another preference never reaches either column, not even
     // to ask whether it exists, so it keeps working while migration 0147 is still pending; its
     // stored answers were already read with the credential that authenticated this request.
+    //
+    // The origins the body may carry are not weighed on this branch, and neither column below is
+    // guarded the way the account ones above are. The guard above exists because an account is
+    // written by several devices that cannot see each other's answers; a guest session row belongs
+    // to one credential on one device, and every writer either column has today is that device's
+    // own PATCH - the iOS and Android off switches, falling back to the guest credential when the
+    // install has no account to store the answer on.
+    //
+    // That is a census of the writers that exist, not a property of the column. A device can write
+    // a value it merely adopted from somewhere else - an answer read off an account it has since
+    // signed out of, say - and republish it onto a guest row that already holds a stricter one, and
+    // on product_analytics_enabled that resumes ingest immediately. Neither mobile client can do it
+    // in that direction today, because the only answer either re-sends without a person giving it
+    // again is an opt-out. A client that starts pushing an adopted opt-in, or reconciles a guest
+    // column from a remembered one, has to decide whether the same CASE belongs here, and must not
+    // read this comment as saying it does not.
     const storedGuestPreferences = (
       preferencesUpdate.analyticsConsent === null
       && preferencesUpdate.productAnalyticsEnabled === null
@@ -133,8 +192,12 @@ export function registerAccountPreferencesRoutes(
 
     const accountPreferences = await options.updateAccountPreferencesFn(requestContext.userId, {
       reviewReactionAnimationsEnabled: preferencesUpdate.reviewReactionAnimationsEnabled,
+      // Both analytics columns are the guest session's on this branch, so neither is written here.
+      // The origins ride along and decide nothing while the value beside them is null.
       analyticsConsent: null,
+      analyticsConsentOrigin: preferencesUpdate.analyticsConsentOrigin,
       productAnalyticsEnabled: null,
+      productAnalyticsEnabledOrigin: preferencesUpdate.productAnalyticsEnabledOrigin,
     });
 
     return context.json({

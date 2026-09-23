@@ -52,11 +52,33 @@ export type ProgressRequestedParameters = Readonly<{
   to: string | null;
 }>;
 
-/** One PATCH body: a field the request left out is null here and keeps its stored value. */
+/**
+ * Who asked for an analytics preference write.
+ *
+ * "user_action" is the person answering on the client that sends it. "reconciliation" is a client
+ * carrying over an answer it read somewhere earlier, which nothing in the request can order against
+ * the stored one: the device read the record before the write it would undo, and neither column has
+ * a timestamp. A body that names no origin is "user_action", which is what every client sent before
+ * this field existed.
+ */
+export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
+
+/**
+ * One PATCH body: a field the request left out is null here and keeps its stored value.
+ *
+ * The two origins are per column rather than one for the body, because the two columns answer
+ * different questions (db/migrations/0149_product_analytics_off_switch.sql forbids deriving either
+ * from the other) and one PATCH can carry a person's press on one and a reconciled answer on the
+ * other. One shared origin would have to be wrong about one of them: "reconciliation" would refuse
+ * a person's own switch, and "user_action" would let a stale answer through, which is the defect
+ * this field exists to stop.
+ */
 export type AccountPreferencesUpdate = Readonly<{
   reviewReactionAnimationsEnabled: boolean | null;
   analyticsConsent: AnalyticsConsentChoice | null;
+  analyticsConsentOrigin: AnalyticsPreferenceWriteOrigin;
   productAnalyticsEnabled: boolean | null;
+  productAnalyticsEnabledOrigin: AnalyticsPreferenceWriteOrigin;
 }>;
 
 export type UpdateAccountPreferencesFn = (
