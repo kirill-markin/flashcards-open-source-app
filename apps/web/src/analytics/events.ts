@@ -161,9 +161,9 @@ export type AnalyticsStorePlacement =
   | "share_app";
 
 /**
- * `screen` is a top-level event field on the wire, legal on every event and required for
- * `screen_viewed` and `review_card_revealed`. Those two declare it here; every other event is
- * stamped with the surface the user is on when it is tracked.
+ * `screen` is a top-level event field on the wire, legal on every event and required on the ones
+ * the catalog marks `requiresScreen`. Every member below that names a `screen` of its own is one of
+ * those; every other event is stamped with the surface the user is on when it is tracked.
  */
 export type AnalyticsEvent =
   | Readonly<{

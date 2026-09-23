@@ -144,8 +144,11 @@ func analyticsSyncFailureReason(error: Error) -> AnalyticsSyncFailureReason {
  *
  * The recorder errors are the ones only a client can see, which is why the transcription route never
  * reports this event: a microphone refusal and a cancelled recording never reach the server at all.
- * Everything else is told apart exactly as the two mappers above do it, and lands in `.serverError`
- * when it cannot be.
+ * Everything else is told apart by the same retryable-network split
+ * `analyticsReviewAnswerFailureReason` and `analyticsSyncFailureReason` use, and lands in
+ * `.serverError` when it cannot be. That split is where this mapper stops: it reads no HTTP status,
+ * so a gateway timeout the server did answer is `.serverError` here where
+ * `analyticsSyncFailureReason` would call it `.timeout`.
  */
 func analyticsDictationFailureReason(error: Error) -> AnalyticsDictationFailureReason {
     if error is CancellationError {
