@@ -29,9 +29,35 @@ struct CloudAuthInlineErrorView: View {
     }
 }
 
+/**
+ * The log out button shared by the two post-auth sheets that offer one.
+ *
+ * The log out behind it waits for the analytics queue to drain before it clears the credentials,
+ * and the sheet stays on screen for that wait, so the button has to say it is working.
+ */
+private struct CloudPostAuthLogoutButton: View {
+    let isInFlight: Bool
+    let onLogout: () -> Void
+
+    var body: some View {
+        Button(role: .destructive) {
+            self.onLogout()
+        } label: {
+            HStack(spacing: 8) {
+                if self.isInFlight {
+                    ProgressView()
+                }
+                Text(aiSettingsLocalized("settings.account.status.logOut", "Log out"))
+            }
+        }
+        .disabled(self.isInFlight)
+    }
+}
+
 struct CloudPostAuthRecoveryNeededSheet: View {
     let state: CloudPostAuthRecoveryNeededState
     let allowsLogoutAction: Bool
+    let isLogoutInFlight: Bool
     let onClose: () -> Void
     let onLogout: () -> Void
 
@@ -55,11 +81,16 @@ struct CloudPostAuthRecoveryNeededSheet: View {
                         Button(aiSettingsLocalized("common.close", "Close")) {
                             self.onClose()
                         }
+                        // Closing during the sign-out would dismiss this sheet while the
+                        // credentials are still on the device, so the interface would say done
+                        // before it is.
+                        .disabled(self.isLogoutInFlight)
 
                         if self.allowsLogoutAction {
-                            Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
-                                self.onLogout()
-                            }
+                            CloudPostAuthLogoutButton(
+                                isInFlight: self.isLogoutInFlight,
+                                onLogout: self.onLogout
+                            )
                         }
                     }
                 }
@@ -67,6 +98,7 @@ struct CloudPostAuthRecoveryNeededSheet: View {
             .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureScreen)
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled(self.isLogoutInFlight)
         }
     }
 }
@@ -79,12 +111,19 @@ struct CloudPostAuthFailureSheet: View {
     let isRetryDisabled: Bool
     let allowsCloseAction: Bool
     let allowsLogoutAction: Bool
+    let isLogoutInFlight: Bool
     let onRetry: () -> Void
     let onClose: () -> Void
     let onLogout: () -> Void
 
     private var isRetryButtonDisabled: Bool {
         if self.isRetryDisabled {
+            return true
+        }
+
+        // A retry started here is destroyed by the teardown the log out is already running, so the
+        // control that starts it is closed for the length of that wait.
+        if self.isLogoutInFlight {
             return true
         }
 
@@ -135,12 +174,17 @@ struct CloudPostAuthFailureSheet: View {
                             Button(aiSettingsLocalized("common.close", "Close")) {
                                 self.onClose()
                             }
+                            // Closing during the sign-out would dismiss this sheet while the
+                            // credentials are still on the device, so the interface would say done
+                            // before it is.
+                            .disabled(self.isLogoutInFlight)
                         }
 
                         if self.allowsLogoutAction {
-                            Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
-                                self.onLogout()
-                            }
+                            CloudPostAuthLogoutButton(
+                                isInFlight: self.isLogoutInFlight,
+                                onLogout: self.onLogout
+                            )
                         }
                     }
                 }

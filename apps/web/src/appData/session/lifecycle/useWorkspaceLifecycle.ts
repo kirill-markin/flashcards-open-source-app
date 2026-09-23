@@ -223,6 +223,15 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           // the reason stated at the other confirmation site
           // (`accountDeletion/AccountDeletionRecoveryGate.tsx`). The resume above is not a third
           // site: it runs on a later load of a browser that has already retired both.
+          //
+          // Nothing is reported here, and that is a decision rather than an omission. There is no
+          // usable credential — `getSession()` has just answered `410 ACCOUNT_DELETED` — and the
+          // resume two statements below runs `clearConfirmedUserScopedState`, which resets
+          // analytics and discards the queue with `shouldReportDiscard`. A `signed_out` row written
+          // here would therefore be destroyed before any flush could carry it, and would add one
+          // more to the boundary-loss signal on every single confirmed resume, teaching that
+          // observability number to read a designed outcome as a loss. The fact itself is reported
+          // at the site that dispatched the deletion and drained before it.
           clearAnalyticsVisitorCookie();
           resetAnalyticsSession();
           indexedDbOpenRecoveryState.throwIfFailed();

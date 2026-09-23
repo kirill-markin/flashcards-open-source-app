@@ -1,6 +1,7 @@
 export {
   declineAnalyticsConsent,
   flush,
+  flushBeforeIdentityTeardown,
   grantAnalyticsConsent,
   isAnalyticsEnabledForCurrentRuntime,
   readAnalyticsSessionOwnerId,

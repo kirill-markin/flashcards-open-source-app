@@ -60,7 +60,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onFailureAction = {},
                     onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
-                    canNavigateBack = true
+                    canNavigateBack = true,
+                    isFailureActionInFlight = false
                 )
             }
         }
@@ -120,7 +121,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onFailureAction = {},
                     onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
-                    canNavigateBack = true
+                    canNavigateBack = true,
+                    isFailureActionInFlight = false
                 )
             }
         }
@@ -173,7 +175,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
-                    canNavigateBack = true
+                    canNavigateBack = true,
+                    isFailureActionInFlight = false
                 )
             }
         }
@@ -220,7 +223,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onFailureAction = {},
                     onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
-                    canNavigateBack = true
+                    canNavigateBack = true,
+                    isFailureActionInFlight = false
                 )
             }
         }
@@ -271,7 +275,8 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onShowTechnicalDetails = { _, _ -> },
                     onBack = {},
-                    canNavigateBack = true
+                    canNavigateBack = true,
+                    isFailureActionInFlight = false
                 )
             }
         }

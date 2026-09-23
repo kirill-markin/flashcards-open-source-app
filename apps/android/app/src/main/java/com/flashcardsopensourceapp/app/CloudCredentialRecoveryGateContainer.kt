@@ -55,6 +55,7 @@ internal fun CloudCredentialRecoveryGateContainer(
             syncRepository = appGraph.syncRepository,
             messageController = appGraph.appMessageBus,
             analytics = appGraph.analytics,
+            pendingSignOutReport = appGraph.pendingSignOutReport,
             // The gate is itself the entry point `signin_failed` reports: it replaces the app root
             // rather than opening from a screen, which is exactly the case the catalog added
             // `credential_recovery` for.

@@ -166,7 +166,9 @@ fun CloudCredentialRecoveryGateRoute(
                 onFailureAction = {},
                 onShowTechnicalDetails = onShowTechnicalDetails,
                 onBack = onBackToOverview,
-                canNavigateBack = isRecoveryStateActive
+                canNavigateBack = isRecoveryStateActive,
+                // The gate hides the log out entirely (`canLogout = false`), so nothing here waits.
+                isFailureActionInFlight = false
             )
         }
     }

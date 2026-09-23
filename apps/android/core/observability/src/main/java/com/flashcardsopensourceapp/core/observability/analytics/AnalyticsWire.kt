@@ -36,6 +36,21 @@ internal const val analyticsPeriodicFlushIntervalMillis: Long = 5L * 60L * 1000L
 internal const val analyticsSustainedServerErrorReportAfterMillis: Long = 60L * 60L * 1000L
 
 /**
+ * How long a pressed control waits for the queue to drain before it destroys the credential behind
+ * it — the sign-out and the account deletion. On expiry the teardown goes ahead and whatever did not
+ * leave is lost, which is the accepted direction: the table is append-only and has no repair path.
+ *
+ * Two seconds, and the same two seconds on web and iOS. Nothing that nobody pressed ever waits here,
+ * so this is a pure interaction budget rather than a compromise with a background path: a person is
+ * looking at a progress indicator on the control they just used, which is the range where a wait
+ * reads as work rather than as a hang. What has to fit inside it is one round trip for one session's
+ * events — far below [analyticsMaxEventsPerBatch] — and a queue that needs longer is one that is
+ * offline or backed off, where no bound short enough to put in front of a person would have
+ * delivered it either.
+ */
+internal const val analyticsPressedControlDrainBoundMillis: Long = 2_000L
+
+/**
  * UTC with a literal `Z`. `OffsetDateTime` readily renders `+02:00` instead, which the server
  * rejects outright: a bad `clientSentAt` 400s the whole batch and a bad `clientOccurredAt` costs
  * that event. The formatter is pinned to [ZoneOffset.UTC] with a quoted `Z` so no device time zone

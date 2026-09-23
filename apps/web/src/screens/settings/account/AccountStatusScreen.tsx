@@ -4,6 +4,7 @@ import {
 } from "../../../api";
 import { useAppData } from "../../../appData";
 import { useI18n } from "../../../i18n";
+import { SignOutLink } from "../../../SignOutLink";
 import { SettingsShell } from "../SettingsShared";
 
 function formatCloudStateTitle(cloudState: string | null, t: (key: "accountStatus.states.linked" | "accountStatus.states.linkingReady" | "accountStatus.states.disconnected") => string): string {
@@ -64,9 +65,11 @@ export function AccountStatusScreen(): ReactElement {
       </div>
 
       <div className="screen-actions">
-        <a className="ghost-btn" href={buildLogoutUrl()}>
-          {t("accountStatus.logout")}
-        </a>
+        <SignOutLink
+          className="ghost-btn"
+          href={buildLogoutUrl()}
+          label={t("accountStatus.logout")}
+        />
       </div>
     </SettingsShell>
   );
