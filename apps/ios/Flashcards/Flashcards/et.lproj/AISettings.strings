@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Näita mind edetabelis";
 "settings.leaderboardParticipation.description" = "Kui see on välja lülitatud, ei ilmu sinu anonüümne tegevus edetabelisse.";
 "settings.leaderboardParticipation.signInRequired" = "Edetabelis osalemise haldamiseks ühenda pilvesünkroonimine.";
+"settings.productAnalytics.title" = "Tootestatistika";
+"settings.productAnalytics.toggle" = "Jaga tootestatistikat";
+"settings.productAnalytics.footer" = "Tootestatistika näitab meile, milliseid rakenduse osi kasutatakse, mitte kunagi seda, mis on sinu kaartidel. Kui see on välja lülitatud, ei salvesta ega saada rakendus midagi. Krahhi- ja veateated jäävad puutumata.";
 "settings.language.title" = "Keel";
 "settings.language.systemDescription" = "iOS määrab rakenduse keele. Ava iOS-i seadetes Nibomo ja vali eelistatud keel. Kui eelistatud keele valikut ei kuvata, lisa esmalt teine keel asukohas Seaded > Üldine > Keel ja piirkond.";
 "settings.language.action.openAppSettings" = "Ava Nibomo seaded";

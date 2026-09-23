@@ -61,6 +61,10 @@ final class FlashcardsStore {
     var schedulerSettings: WorkspaceSchedulerSettings?
     var cloudSettings: CloudSettings?
     var accountPreferences: AccountPreferences
+    /// The product-analytics switch as the client actually holds it, which is the stored answer except
+    /// in a UI-test launch, where it is forced off. Read at init so it is right offline and before the
+    /// launch's first `/me`; see `ProductAnalyticsPreference`.
+    var isProductAnalyticsEnabled: Bool
     var cards: [Card]
     var decks: [Deck]
     var deckItems: [DeckListItem]
@@ -130,6 +134,9 @@ final class FlashcardsStore {
     @ObservationIgnored var accountPreferencesRefreshGeneration: Int
     @ObservationIgnored var communityProfileRefreshGeneration: Int
     @ObservationIgnored var isAccountPreferencesUpdateInFlight: Bool
+    /// The product-analytics PATCH currently in flight, if any. Every push waits for it before
+    /// sending, so two bodies carrying opposite answers can never race to be the server's last writer.
+    @ObservationIgnored var productAnalyticsPushTask: Task<Void, Never>?
     @ObservationIgnored var isAccountDeletionRunning: Bool
     @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
     /// Whether the presented sign-in sheet still owes one `signin_failed`.
@@ -148,6 +155,11 @@ final class FlashcardsStore {
     /// The analytics guest credential stages that have already reported a failure in this process, so
     /// a stage that repeats every flush or every launch costs one report rather than one per attempt.
     @ObservationIgnored var reportedAnalyticsGuestCredentialFailureStages: Set<String>
+    /// The product-analytics push stages that have already reported a failure in this process. These
+    /// stages run on every launch and every foreground for any install whose answer is still owed, so
+    /// an install that cannot settle its debt would otherwise cost one Sentry event per launch,
+    /// indefinitely, across that whole cohort.
+    @ObservationIgnored var reportedProductAnalyticsPushFailureStages: Set<String>
     @ObservationIgnored var cachedAIChatStore: AIChatStore?
     @ObservationIgnored var currentVisibleTab: AppTab
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
@@ -408,6 +420,10 @@ final class FlashcardsStore {
         self.schedulerSettings = nil
         self.cloudSettings = nil
         self.accountPreferences = makeDefaultAccountPreferences()
+        self.isProductAnalyticsEnabled = ProductAnalyticsPreference.effectiveIsEnabled(
+            userDefaults: userDefaults,
+            processInfo: ProcessInfo.processInfo
+        )
         self.cards = []
         self.decks = []
         self.deckItems = []
@@ -512,6 +528,7 @@ final class FlashcardsStore {
         self.accountPreferencesRefreshGeneration = 0
         self.communityProfileRefreshGeneration = 0
         self.isAccountPreferencesUpdateInFlight = false
+        self.productAnalyticsPushTask = nil
         self.isAccountDeletionRunning = false
         self.isGuestUpgradeLocalOutboxMutationBlocked = false
         self.isCloudSignInAttemptOpen = false
@@ -519,6 +536,7 @@ final class FlashcardsStore {
         self.wasCredentialRecoveryGateActiveAtSignInStart = false
         self.isAnalyticsGuestIdentityLinkResumeRunning = false
         self.reportedAnalyticsGuestCredentialFailureStages = []
+        self.reportedProductAnalyticsPushFailureStages = []
         self.currentVisibleTab = .review
         self.lastImmediateCloudSyncTriggerAt = nil
         self.activeReviewNotificationsRescheduleTask = nil

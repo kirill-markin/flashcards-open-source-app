@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Ngibonise ebhodini labahamba phambili";
 "settings.leaderboardParticipation.description" = "Uma lokhu kuvaliwe, umsebenzi wakho ongaziwa ngeke uvele ebhodini labahamba phambili.";
 "settings.leaderboardParticipation.signInRequired" = "Xhuma ukuvumelanisa kwefu ukuze uphathe ukubamba iqhaza ebhodini labahamba phambili.";
+"settings.productAnalytics.title" = "Ukuhlaziywa komkhiqizo";
+"settings.productAnalytics.toggle" = "Yabelana ngokuhlaziywa komkhiqizo";
+"settings.productAnalytics.footer" = "Ukuhlaziywa komkhiqizo kusitshela ukuthi abantu basebenzisa iziphi izingxenye ze-app, hhayi okusemakhadini akho. Uma kuvaliwe, i-app ayirekhodi futhi ayithumeli lutho. Imibiko yokuphahlazeka namaphutha ayithinteki.";
 "settings.language.title" = "Ulimi";
 "settings.language.systemDescription" = "iOS ilawula ulimi lohlelo lokusebenza. Ezilungiselelweni ze-iOS, vula i-Nibomo bese usebenzisa Ulimi olukhethwayo. Uma lungaboniswa, qala ngokwengeza olunye ulimi kokuthi Izilungiselelo > Okuvamile > Ulimi Nesifunda.";
 "settings.language.action.openAppSettings" = "Vula izilungiselelo ze-Nibomo";
