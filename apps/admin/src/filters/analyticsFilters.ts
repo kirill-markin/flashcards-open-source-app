@@ -93,7 +93,7 @@ export function parseAcceptedMinimumCount(rawMinimumCount: string): number | und
 }
 
 /**
- * WHO EACH FUNNEL COUNTS AS A PERSON. One choice, applied to all four funnels at once, widest first:
+ * WHO EACH FUNNEL COUNTS AS A PERSON. One choice, applied to every funnel at once, widest first:
  *
  * - `all`: everybody `with-anonymous-id` counts, plus the cookieless visitors the site can only
  *   count through `analytics.product_events_resolved.daily_visitor_hash`, one person per hash per UTC
@@ -366,8 +366,9 @@ const funnelsCatalogOptionCoverageTail =
 // first view of the deck's page inside the selected range, so the deck and the platform read off that
 // page view, and the four click fields read off the install click that is its second step, instead of
 // a person's lifetime install history. The date range changes meaning on every funnel: it
-// places an entry by its first step and then lets the later steps run past the range, so the shared
-// "only events inside these days" wording would be false here.
+// places an entry by the page view or app open that anchors it, which is not always that funnel's
+// own first step, and then lets the later steps run past the range, so the shared "only events
+// inside these days" wording would be false here.
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
@@ -376,7 +377,7 @@ const funnelsAnalyticsFilterFieldExplanations: Readonly<
   // window" line under the funnel counts, so a short recent window reads as a drop-off when it is
   // only immature.
   dateRange:
-    "Selects who enters each funnel by the UTC calendar day of its first step rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for seven days after that first step, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. In the mobile funnel the first step is a person's first app open on iOS or Android, in the home page and blog article funnels it is a person's first marketing-site page view, and in the deck funnel it is a visitor's first view of a deck's page inside the range.",
+    "Selects who enters each funnel by the UTC calendar day of the page view or app open that anchors them rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. In the mobile funnel the anchor is a person's first app open on iOS or Android, in the home page and the blog article to platform choice funnels it is a person's first marketing-site page view, which is also their first step, in the blog article to web app funnel it is that same entry page view while the funnel's own first step is the web app click below it, so a person who clicks late in that seven-day window has less of it left for the steps under the click, and in the deck funnel it is a visitor's first view of a deck's page inside the range.",
   // Cut from the on-screen text: the no-visit preview diagnostic keeps previews by the preview row's
   // own platform the same way, and the no-visit install diagnostic reads the install row's platform,
   // which is always unattributed, so it empties as soon as any device platform is picked.
@@ -442,12 +443,13 @@ export function getAnalyticsFilterFieldExplanation(
 // A label has to be a full phrase somebody can read without opening this file, so a field whose
 // subject genuinely changes in an area is renamed here rather than neutralised into a name that fits
 // everywhere and says nothing. The date range is that field: on the user-scoped areas it bounds the
-// events being counted, while on `funnels` it only places an entry by its first step and the later
-// steps run past it, which is what the explanation above says.
+// events being counted, while on `funnels` it only places an entry by the event that anchors it,
+// which is not always that funnel's own first step, and the later steps run past it, which is what
+// the explanation above says.
 const funnelsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
-  dateRange: "Date range of the first step",
+  dateRange: "Date range of the entry",
 };
 
 const analyticsFilterFieldLabelOverridesByArea: Readonly<
