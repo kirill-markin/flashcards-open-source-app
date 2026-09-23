@@ -7,7 +7,11 @@ import { expectBoolean } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
 import type { AuthTransport } from "../../auth";
 import type { AnalyticsConsentChoice } from "../../auth/ensureUser";
-import type { AccountPreferencesUpdate, ProgressRequestedParameters } from "./types";
+import type {
+  AccountPreferencesUpdate,
+  AnalyticsPreferenceWriteOrigin,
+  ProgressRequestedParameters,
+} from "./types";
 
 export function readRequestedProgressParameters(requestUrl: URL): ProgressRequestedParameters {
   return {
@@ -84,6 +88,30 @@ const accountPreferenceFieldNames: ReadonlyArray<string> = [
   "productAnalyticsEnabled",
 ];
 
+/**
+ * Not preferences: each says who asked for the value beside it, and stores nothing of its own.
+ *
+ * Kept out of the list above so the "at least one preference field is required" check still means
+ * what it says - a body carrying only origins writes nothing and is refused as empty - and so the
+ * error naming the writable fields does not offer these two as things to write.
+ */
+const accountPreferencesRequestFieldNames: ReadonlyArray<string> = [
+  ...accountPreferenceFieldNames,
+  "analyticsConsentOrigin",
+  "productAnalyticsEnabledOrigin",
+];
+
+function expectAnalyticsPreferenceWriteOrigin(
+  value: unknown,
+  fieldName: string,
+): AnalyticsPreferenceWriteOrigin {
+  if (value === "user_action" || value === "reconciliation") {
+    return value;
+  }
+
+  throw new HttpError(400, `${fieldName} must be "user_action" or "reconciliation"`);
+}
+
 /** Null is refused rather than accepted as an erasure: a withdrawn consent is "declined". */
 function expectAnalyticsConsentChoice(value: unknown, fieldName: string): AnalyticsConsentChoice {
   if (value === "granted" || value === "declined") {
@@ -94,7 +122,9 @@ function expectAnalyticsConsentChoice(value: unknown, fieldName: string): Analyt
 }
 
 export function parseAccountPreferencesInput(body: Record<string, unknown>): AccountPreferencesUpdate {
-  const unexpectedKey = Object.keys(body).find((key) => !accountPreferenceFieldNames.includes(key));
+  const unexpectedKey = Object.keys(body).find(
+    (key) => !accountPreferencesRequestFieldNames.includes(key),
+  );
   if (unexpectedKey !== undefined) {
     throw new HttpError(
       400,
@@ -110,12 +140,23 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
     analyticsConsent: "analyticsConsent" in body
       ? expectAnalyticsConsentChoice(body.analyticsConsent, "analyticsConsent")
       : null,
+    // Defaulted rather than required, so a client that never heard of the field keeps the behaviour
+    // it was written against: its write is the person's and overwrites whatever is stored.
+    analyticsConsentOrigin: "analyticsConsentOrigin" in body
+      ? expectAnalyticsPreferenceWriteOrigin(body.analyticsConsentOrigin, "analyticsConsentOrigin")
+      : "user_action",
     // expectBoolean refuses an explicit null, so switching the collection off is `false` and never
     // an erasure back to "never answered". A separate field from analyticsConsent on purpose: the
     // cookie decision and the analytics off switch are two different questions.
     productAnalyticsEnabled: "productAnalyticsEnabled" in body
       ? expectBoolean(body.productAnalyticsEnabled, "productAnalyticsEnabled")
       : null,
+    productAnalyticsEnabledOrigin: "productAnalyticsEnabledOrigin" in body
+      ? expectAnalyticsPreferenceWriteOrigin(
+        body.productAnalyticsEnabledOrigin,
+        "productAnalyticsEnabledOrigin",
+      )
+      : "user_action",
   };
 
   if (

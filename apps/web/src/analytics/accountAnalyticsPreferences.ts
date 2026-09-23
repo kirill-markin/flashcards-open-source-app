@@ -106,9 +106,21 @@ async function runAnalyticsPreferencesAccountSync(
   // Only the fields this browser has an answer for are written. A whole preferences object would
   // carry a stored null back as a value the route refuses, and the parser needs at least one
   // writable field.
+  //
+  // Both origins are `reconciliation`, because that is what every write from this module is: the
+  // browser carrying over an answer it read from its own storage, given at a time nothing in the
+  // request records and possibly before this account existed. Omitting them means `user_action` on
+  // the route, which would say a person is answering right now and let a remembered answer
+  // overwrite a refusal taken since on another device. They are sent whether or not the value
+  // beside them travels: an origin names who asked, and the route ignores the one whose field the
+  // body leaves out. The controls a person actually presses are elsewhere — the settings screen,
+  // the banner, the public panel — and send no origin, so they keep the `user_action` default they
+  // want and both switches stay reversible by the control that moved them.
   const update: AccountPreferencesUpdate = {
     ...(consentToCarryUp === null ? {} : { analyticsConsent: consentToCarryUp }),
     ...(collectionToCarryUp === null ? {} : { productAnalyticsEnabled: collectionToCarryUp }),
+    analyticsConsentOrigin: "reconciliation",
+    productAnalyticsEnabledOrigin: "reconciliation",
   };
   await updateAccountPreferences(update);
 }
