@@ -219,6 +219,18 @@ this collector where waiting would have shipped them under their account
 
 `consent_granted` may carry the id the grant produced, and so may every other event.
 
+## The analytics off switch does not reach this collector
+
+The product-analytics off switch
+([migration](../db/migrations/0149_product_analytics_off_switch.sql)) is a different decision from
+the consent facts above, and it is enforced on the authenticated batch route rather than here. That
+route has a credential to look an answer up by; this one reads none, by design, so a request arrives
+with nothing to match a stored answer against. What stops these events is the client: a browser that
+holds the switch off sends nothing here. Deriving an identity from the request in order to enforce
+it — by IP, User-Agent or the daily visitor hash — would build the identification the identity-free
+rows exist to avoid, so it is deliberately not done
+([route](../apps/backend/src/routes/anonymousAnalytics.ts)).
+
 ## The marketing site facts
 
 `site_page_viewed`, `site_app_entry_shown` and `site_app_entry_clicked` are what the marketing site

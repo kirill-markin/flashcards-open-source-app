@@ -11,25 +11,27 @@ import {
 import type {
   AccountPreferencesUpdate,
   UpdateAccountPreferencesFn,
-  UpdateGuestSessionAnalyticsConsentFn,
+  UpdateGuestSessionAnalyticsPreferencesFn,
 } from "../types";
 
 type AccountPreferencesRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn: typeof loadRequestContextFromRequest;
   updateAccountPreferencesFn: UpdateAccountPreferencesFn;
-  updateGuestSessionAnalyticsConsentFn: UpdateGuestSessionAnalyticsConsentFn;
+  updateGuestSessionAnalyticsPreferencesFn: UpdateGuestSessionAnalyticsPreferencesFn;
 }>;
 
 type AccountPreferencesRow = Readonly<{
   review_reaction_animations_enabled: boolean;
   analytics_consent: AnalyticsConsentChoice | null;
+  product_analytics_enabled: boolean | null;
 }>;
 
 function mapAccountPreferencesRow(row: AccountPreferencesRow): AccountPreferences {
   return {
     reviewReactionAnimationsEnabled: row.review_reaction_animations_enabled,
     analyticsConsent: row.analytics_consent,
+    productAnalyticsEnabled: row.product_analytics_enabled,
   };
 }
 
@@ -43,11 +45,17 @@ export async function updateAccountPreferences(
       // A null parameter is a field the request left out, so the stored value survives the write.
       "UPDATE org.user_settings",
       "SET review_reaction_animations_enabled = COALESCE($2::BOOLEAN, review_reaction_animations_enabled),",
-      "analytics_consent = COALESCE($3::TEXT, analytics_consent)",
+      "analytics_consent = COALESCE($3::TEXT, analytics_consent),",
+      "product_analytics_enabled = COALESCE($4::BOOLEAN, product_analytics_enabled)",
       "WHERE user_id = $1",
-      "RETURNING review_reaction_animations_enabled, analytics_consent",
+      "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled",
     ].join(" "),
-    [userId, update.reviewReactionAnimationsEnabled, update.analyticsConsent],
+    [
+      userId,
+      update.reviewReactionAnimationsEnabled,
+      update.analyticsConsent,
+      update.productAnalyticsEnabled,
+    ],
   );
 
   const row = result.rows[0];
@@ -79,22 +87,37 @@ export function registerAccountPreferencesRoutes(
       });
     }
 
-    // A guest has no account, so its analytics answer is stored beside its credential instead. The
-    // transport picks the column; the request body and the response shape are the same either way,
-    // and every other preference stays on org.user_settings, which a guest does own a row in.
+    // A guest has no account, so both of its analytics answers are stored beside its credential
+    // instead. The transport picks the column; the request body and the response shape are the same
+    // either way, and every other preference stays on org.user_settings, which a guest does own a
+    // row in.
     //
-    // The consent write goes first because it is the one that can fail - it refuses a pre-0147
-    // schema and a revoked session - and a failure must leave no other column already changed. A
-    // request that only toggles another preference never reaches that column, not even to ask
-    // whether it exists, so it keeps working while migration 0147 is still pending; its stored
-    // answer was already read with the credential that authenticated this request.
-    const analyticsConsent = preferencesUpdate.analyticsConsent === null
-      ? requestContext.preferences.analyticsConsent
-      : await options.updateGuestSessionAnalyticsConsentFn(
+    // The guest-session write goes first because it is the one that can fail - it refuses a
+    // pre-0147 schema and a revoked session - and a failure must leave no other column already
+    // changed. Both guest columns are written by that single call, in one transaction, so a request
+    // carrying both answers stores both or neither and never returns a 500 over an answer that
+    // landed. A request that only toggles another preference never reaches either column, not even
+    // to ask whether it exists, so it keeps working while migration 0147 is still pending; its
+    // stored answers were already read with the credential that authenticated this request.
+    const storedGuestPreferences = (
+      preferencesUpdate.analyticsConsent === null
+      && preferencesUpdate.productAnalyticsEnabled === null
+    )
+      ? null
+      : await options.updateGuestSessionAnalyticsPreferencesFn(
         requestContext.userId,
         guestSessionId,
-        preferencesUpdate.analyticsConsent,
+        {
+          analyticsConsent: preferencesUpdate.analyticsConsent,
+          productAnalyticsEnabled: preferencesUpdate.productAnalyticsEnabled,
+        },
       );
+    // Null from that call is a column the request left out, so the stored answer the credential
+    // already carried is what the response reports.
+    const analyticsConsent = storedGuestPreferences?.analyticsConsent
+      ?? requestContext.preferences.analyticsConsent;
+    const productAnalyticsEnabled = storedGuestPreferences?.productAnalyticsEnabled
+      ?? requestContext.preferences.productAnalyticsEnabled;
 
     if (preferencesUpdate.reviewReactionAnimationsEnabled === null) {
       // Nothing left for org.user_settings to store, and writing anyway would rewrite the row for
@@ -103,6 +126,7 @@ export function registerAccountPreferencesRoutes(
         preferences: {
           ...requestContext.preferences,
           analyticsConsent,
+          productAnalyticsEnabled,
         },
       });
     }
@@ -110,12 +134,14 @@ export function registerAccountPreferencesRoutes(
     const accountPreferences = await options.updateAccountPreferencesFn(requestContext.userId, {
       reviewReactionAnimationsEnabled: preferencesUpdate.reviewReactionAnimationsEnabled,
       analyticsConsent: null,
+      productAnalyticsEnabled: null,
     });
 
     return context.json({
       preferences: {
         ...accountPreferences,
         analyticsConsent,
+        productAnalyticsEnabled,
       },
     });
   });
