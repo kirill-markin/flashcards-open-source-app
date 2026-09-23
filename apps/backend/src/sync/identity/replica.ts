@@ -4,7 +4,7 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
-import { declareContentCreationReplicaFacts } from "../../productAnalytics/serverFacts/contentCreations";
+import { declareContentWriteReplicaFacts } from "../../productAnalytics/serverFacts/contentWrites";
 import { HttpError } from "../../shared/errors";
 import { lockWorkspaceAccessLifecycleInExecutor } from "../../workspaces/accessLocks";
 
@@ -202,14 +202,14 @@ async function markInstallationAutomationInExecutor(
  * Both branches pin actor_kind and platform - the insert writes them, the update matches on them and
  * refuses a row that disagrees with either - so on success those two facts are known of the stored
  * row rather than assumed of it, which is what makes declaring them sound. See
- * declareContentCreationReplicaFacts.
+ * declareContentWriteReplicaFacts.
  *
  * The automation marker travels with them for the same reason: the caller passes the marker the
  * installation it just claimed really carries - what the claim read back, with this request's own
  * declaration folded in - so it is known of the stored row rather than assumed of it too.
  *
  * A declaration is live only in a transaction opened through one of the reporting wrappers in
- * ../../productAnalytics/serverFacts/contentCreations.ts, and dies with the executor it is keyed on
+ * ../../productAnalytics/serverFacts/contentWrites.ts, and dies with the executor it is keyed on
  * anywhere else. There it answers for every creation stamped with this replica id - today every card
  * and deck the transaction writes, for the three that ensure a replica here: the sync push
  * (../replication/push.ts), the sync bootstrap push (../replication/bootstrap.ts) and the guest
@@ -246,7 +246,7 @@ async function upsertWorkspaceReplicaInExecutor(
   signal?.throwIfAborted();
 
   if (insertResult.rows.length === 1) {
-    declareContentCreationReplicaFacts(executor, replicaId, { actorKind, platform, isAutomation });
+    declareContentWriteReplicaFacts(executor, replicaId, { actorKind, platform, isAutomation });
     return replicaId;
   }
 
@@ -268,7 +268,7 @@ async function upsertWorkspaceReplicaInExecutor(
   signal?.throwIfAborted();
 
   if (updateResult.rows.length === 1) {
-    declareContentCreationReplicaFacts(executor, replicaId, { actorKind, platform, isAutomation });
+    declareContentWriteReplicaFacts(executor, replicaId, { actorKind, platform, isAutomation });
     return replicaId;
   }
 

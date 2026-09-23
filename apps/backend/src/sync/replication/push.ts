@@ -7,7 +7,7 @@ import {
   type CurrentUserPublicProfileResolver,
 } from "../../community/reviewActivityFacts";
 import type { DatabaseExecutor } from "../../database";
-import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/serverFacts/contentCreations";
+import { transactionWithWorkspaceScopeReportingContentWrites } from "../../productAnalytics/serverFacts/contentWrites";
 import { createPostCommitAnalyticsBudget } from "../../productAnalytics/serverFacts/postCommitBudget";
 import { runTransactionReportingReviewAnswers } from "../../productAnalytics/serverFacts/reviewAnswers";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
@@ -344,7 +344,7 @@ export async function processSyncPush(
   const operationResults = await runTransactionReportingReviewAnswers<ReadonlyArray<SyncPushOperationResult>>(
     analyticsBudget,
     null,
-    (runInTransaction) => transactionWithWorkspaceScopeReportingContentCreations(
+    (runInTransaction) => transactionWithWorkspaceScopeReportingContentWrites(
       { userId, workspaceId },
       runInTransaction,
       analyticsBudget,

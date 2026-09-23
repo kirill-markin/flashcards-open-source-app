@@ -36,7 +36,7 @@ export type WorkspaceReplicaAttribution = Readonly<{
  * The analytics platform one replica acted under, or null where none can be justified.
  *
  * Shared by the server-derived producers that resolve a replica - ./reviewAnswers.ts and
- * ./contentCreations.ts - so that one replica cannot be read two ways, and by the writers that
+ * ./contentWrites.ts - so that one replica cannot be read two ways, and by the writers that
  * already hold the facts they ensured the replica with, so that a platform named up front and one
  * read back later cannot disagree. The one reader that bypasses it is ./reviewAnswers.ts for an
  * ai_chat replica: a chat review takes its platform from its chat run rather than from the replica,

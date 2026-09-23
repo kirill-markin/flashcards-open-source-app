@@ -14,6 +14,7 @@ import {
   lockCognitoIdentityLifecycleInExecutor,
 } from "./userIdentities";
 import { isConfiguredDemoEmail } from "./demoEmailAccess";
+import { recordAccountDeletedAnalytics } from "../productAnalytics/serverFacts/decisionFacts";
 import { HttpError } from "../shared/errors";
 import {
   lockUserWorkspaceAccessLifecyclesInExecutor,
@@ -220,11 +221,16 @@ async function eraseAnalyticsExclusionsInExecutor(
   );
 }
 
-/** Returns the person-wide analytics ids whose data this cleared. */
+/**
+ * Clears one account's product data, leaving its analytics history for the caller to anonymize.
+ *
+ * The anonymization is the caller's because only a real deletion reports itself to analytics first,
+ * and that report has to be stored before the sweep to be swept with everything else.
+ */
 async function deleteAccountDataInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
-): Promise<Array<string>> {
+): Promise<void> {
   const userSettingsResult = await executor.query<UserSettingsEmailRow>(
     "SELECT email FROM org.user_settings WHERE user_id = $1 FOR UPDATE",
     [appUserId],
@@ -282,8 +288,6 @@ async function deleteAccountDataInExecutor(
     [appUserId, email],
   );
   await executor.query("DELETE FROM org.user_settings WHERE user_id = $1", [appUserId]);
-
-  return await anonymizeProductAnalyticsInExecutor(executor, appUserId);
 }
 
 /**
@@ -299,7 +303,12 @@ async function deleteRealAccountDataInExecutor(
   appUserId: string,
   authSubjectUserId: string,
 ): Promise<void> {
-  const personUserIds = await deleteAccountDataInExecutor(executor, appUserId);
+  await deleteAccountDataInExecutor(executor, appUserId);
+  // Reported before the sweep below, never after it: the analytics writer commits on its own
+  // connection, so the row is already stored when the sweep runs and is collapsed onto the same
+  // pseudonym as the rest of this person's history. See recordAccountDeletedAnalytics.
+  await recordAccountDeletedAnalytics(appUserId);
+  const personUserIds = await anonymizeProductAnalyticsInExecutor(executor, appUserId);
   await eraseAnalyticsExclusionsInExecutor(executor, personUserIds);
   await markDeletedSubjectInExecutor(executor, authSubjectUserId);
 }
@@ -313,12 +322,17 @@ async function deleteRealAccountDataInExecutor(
  *
  * The account id survives the reset and signs in again, so no person is erased here
  * and any analytics exclusion row naming that id stays, restore included.
+ *
+ * It reports no `account_deleted` for the same reason: nobody left, and the same review account is
+ * reset again on every review cycle, so counting these would make the deletion metric a measure of
+ * how often the review accounts are recycled.
  */
 async function deleteDemoAccountDataInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
 ): Promise<void> {
   await deleteAccountDataInExecutor(executor, appUserId);
+  await anonymizeProductAnalyticsInExecutor(executor, appUserId);
 }
 
 async function deleteCognitoIdentity(

@@ -1,7 +1,7 @@
 import { transactionWithWorkspaceScopeDeadline, type DatabaseExecutor } from "../../database";
 import { getDatabaseErrorFields } from "../../database/transient";
 // Report through `observability/runtime`, never through `observability/sentry`. This is the shared
-// discipline for product analytics producers, spelled out at length in contentCreations.ts:
+// discipline for product analytics producers, spelled out at length in contentWrites.ts:
 // `entrypoints/directImageIngestion/lambda.test.ts` walks the direct image ingestion Lambda's
 // runtime import graph and fails the build if it reaches an `observability/sentry/capture`, `config`
 // or `tracing` module. That graph already holds ./serverEvents.ts, which the drain below calls, so a

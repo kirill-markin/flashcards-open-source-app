@@ -594,29 +594,29 @@ export type ProductAnalyticsReviewAnsweredPlatformResolutionIncompleteDetails = 
   answerCount: number;
 }>;
 
-// The same two records for the content creations producer, which resolves the same replicas through
+// The same two records for the content writes producer, which resolves the same replicas through
 // the same scoped read; the review-answered pair above states why they are two actions and what each
 // number is for. Both counts are narrower here, because that producer reads back only the replicas
 // its own transaction did not name: replicaIdCount is the replicas left to read rather than every
-// replica of the drain, and creationCount the cards and decks waiting on them - what separates one
+// replica of the drain, and writeCount the cards and decks waiting on them - what separates one
 // card written in the app from a 5,000-card workspace-package import.
-export type ProductAnalyticsContentCreationPlatformResolutionFailureDetails = Readonly<{
+export type ProductAnalyticsContentWritePlatformResolutionFailureDetails = Readonly<{
   replicaIdCount: number;
-  // Nothing was resolved, so every creation waiting on the read is stored with a null platform: here
+  // Nothing was resolved, so every write waiting on the read is stored with a null platform: here
   // the count is exactly what this failure left with no platform.
-  creationCount: number;
+  writeCount: number;
   sqlState: string | null;
   errorClass: string;
   errorMessage: string;
 }>;
 
-export type ProductAnalyticsContentCreationPlatformResolutionIncompleteDetails = Readonly<{
+export type ProductAnalyticsContentWritePlatformResolutionIncompleteDetails = Readonly<{
   replicaIdCount: number;
   matchedReplicaCount: number;
-  // Only the creations behind the replicaIdCount - matchedReplicaCount rows that did not come back
+  // Only the writes behind the replicaIdCount - matchedReplicaCount rows that did not come back
   // lose their platform, the rest resolve normally, so this bounds the loss rather than counting it -
   // as answerCount does on the review-answered record above.
-  creationCount: number;
+  writeCount: number;
 }>;
 
 // A deliberate skip, not a dropped write: the upgrade committed and its guest_upgrade_completed event
@@ -762,7 +762,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"media_asset_storage_retry", MediaAssetStorageRetryDetails>
   | EventByAction<"media_asset_storage_terminal", MediaAssetStorageTerminalDetails>
   | EventByAction<
-    "product_analytics_content_creation_automation_suppressed",
+    "product_analytics_content_write_automation_suppressed",
     ProductAnalyticsAutomationSuppressionDetails
   >
   | EventByAction<
@@ -784,7 +784,7 @@ export type OperationsWarningEvent =
   | EventByAction<"feedback_notification_email_failed", FeedbackEmailFailureDetails>
   | EventByAction<"reporting_read_only_transaction_rollback_failed", DatabaseRollbackFailureDetails>
   | EventByAction<"product_analytics_server_event_write_failed", ProductAnalyticsServerEventWriteFailureDetails>
-  | EventByAction<"product_analytics_content_creation_drain_aborted", ProductAnalyticsDrainAbortedDetails>
+  | EventByAction<"product_analytics_content_write_drain_aborted", ProductAnalyticsDrainAbortedDetails>
   | EventByAction<"product_analytics_review_answered_drain_aborted", ProductAnalyticsDrainAbortedDetails>
   | EventByAction<
     "product_analytics_review_answered_platform_resolution_failed",
@@ -795,12 +795,12 @@ export type OperationsWarningEvent =
     ProductAnalyticsReviewAnsweredPlatformResolutionIncompleteDetails
   >
   | EventByAction<
-    "product_analytics_content_creation_platform_resolution_failed",
-    ProductAnalyticsContentCreationPlatformResolutionFailureDetails
+    "product_analytics_content_write_platform_resolution_failed",
+    ProductAnalyticsContentWritePlatformResolutionFailureDetails
   >
   | EventByAction<
-    "product_analytics_content_creation_platform_resolution_incomplete",
-    ProductAnalyticsContentCreationPlatformResolutionIncompleteDetails
+    "product_analytics_content_write_platform_resolution_incomplete",
+    ProductAnalyticsContentWritePlatformResolutionIncompleteDetails
   >
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>

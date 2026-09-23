@@ -3,7 +3,7 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
-import { transactionWithWorkspaceScopeReportingContentCreations } from "../../productAnalytics/serverFacts/contentCreations";
+import { transactionWithWorkspaceScopeReportingContentWrites } from "../../productAnalytics/serverFacts/contentWrites";
 import { upsertDeckSnapshotInExecutor } from "../../decks";
 import { HttpError } from "../../shared/errors";
 import {
@@ -179,7 +179,7 @@ export async function processSyncBootstrap(
   input: SyncBootstrapInput,
 ): Promise<SyncBootstrapPullResult | SyncBootstrapPushResult> {
   if (input.mode === "push") {
-    return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
+    return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
       const replicaId = await ensureWorkspaceReplicaInExecutor(executor, {
         workspaceId,
         userId,

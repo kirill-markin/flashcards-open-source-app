@@ -21,6 +21,14 @@ export type FeedbackRequestUser = Readonly<{
   email: string | null;
 }>;
 
+// The response and the one stored field that is not on it. Reporting the submission needs the
+// workspace id the row actually holds rather than the one the request body claimed, and the wire
+// response is not the place to carry it.
+export type SubmittedFeedback = Readonly<{
+  response: FeedbackSubmissionResponse;
+  storedWorkspaceId: string | null;
+}>;
+
 export type FeedbackServiceDependencies = Readonly<{
   loadFeedbackStateForUserFn: typeof loadFeedbackStateForUser;
   recordFeedbackPromptEventForUserFn: typeof recordFeedbackPromptEventForUser;
@@ -168,7 +176,7 @@ export async function submitFeedbackForRequest(
   scope: BackendObservationScope,
   withTransientDatabaseRetryFn: WithTransientDatabaseRetry,
   dependencies: FeedbackServiceDependencies,
-): Promise<FeedbackSubmissionResponse> {
+): Promise<SubmittedFeedback> {
   const storedSubmission = await withTransientDatabaseRetryFn(
     async () => dependencies.storeFeedbackSubmissionForUserFn(user.userId, user.email, input),
     () => scope,
@@ -188,9 +196,12 @@ export async function submitFeedbackForRequest(
 
   const feedbackState = await loadFeedbackStateForRequest(user, scope, withTransientDatabaseRetryFn, dependencies);
   return {
-    feedbackSubmissionId: storedSubmission.feedbackSubmissionId,
-    createdAtServer: storedSubmission.createdAtServer,
-    feedbackState,
+    response: {
+      feedbackSubmissionId: storedSubmission.feedbackSubmissionId,
+      createdAtServer: storedSubmission.createdAtServer,
+      feedbackState,
+    },
+    storedWorkspaceId: storedSubmission.workspaceId,
   };
 }
 

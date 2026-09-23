@@ -24,6 +24,7 @@ import {
   normalizeCaughtError,
 } from "../../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../../observability/reporting";
+import { recordWorkspacePackageExportedAnalytics } from "../../productAnalytics/serverFacts/decisionFacts";
 import { HttpError } from "../../shared/errors";
 import type { AppEnv } from "../../server/app";
 import {
@@ -219,6 +220,14 @@ export function createWorkspacePackageExportRoutes(options: WorkspacePackageExpo
           statusCode: 200,
           bytesCount: packageExport.bytes.byteLength,
         },
+      });
+      // After the package was built, which is everything an export commits: it writes no row, so
+      // the bytes existing is the whole fact. Nothing about their contents is reported.
+      await recordWorkspacePackageExportedAnalytics({
+        userId: requestContext.userId,
+        subjectUserId: requestContext.subjectUserId,
+        guestSessionId: requestContext.guestSessionId,
+        workspaceId,
       });
 
       context.header("Content-Disposition", createContentDispositionHeader(packageExport));

@@ -46,6 +46,11 @@ export type FeedbackSubmissionInput = Readonly<{
 export type StoredFeedbackSubmission = Readonly<{
   feedbackSubmissionId: string;
   createdAtServer: string;
+  // support.feedback_submissions.workspace_id as the row holds it. Only the request that inserted
+  // the row had its workspace id checked against the person's memberships, so a resend of an
+  // already-stored submission id carries an unvalidated one in its body and this is the only
+  // workspace id a caller may attribute the submission to.
+  workspaceId: string | null;
   emailNotificationRequired: boolean;
 }>;
 
