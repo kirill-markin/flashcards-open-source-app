@@ -85,7 +85,11 @@ function createSession(): SessionInfo {
     selectedWorkspaceId: "workspace-1",
     authTransport: "session",
     csrfToken: "csrf-token-1",
-    preferences: { reviewReactionAnimationsEnabled: true, analyticsConsent: null },
+    preferences: {
+      reviewReactionAnimationsEnabled: true,
+      analyticsConsent: null,
+      productAnalyticsEnabled: null,
+    },
     profile: {
       email: "user@example.com",
       locale: "en",

@@ -40,6 +40,12 @@ is signed in on this browser. Read [analytics visitor identity](../../docs/analy
 touching the banner, either withdrawal entry, or anything in `src/analytics/` that runs before a
 decision exists.
 
+The banner decides only that identifier. Whether this person is measured at all is a second, separate
+switch beside it on the same two surfaces: on, because the basis is legitimate interest, and while it
+is off the client sends nothing, queues nothing and holds nothing. Refusing the cookie is not
+refusing analytics, and neither answer is ever read into the other
+(`src/analytics/productAnalyticsCollection.ts`).
+
 Which transport an event leaves on follows from whether a credential exists. A signed-in browser
 batches through the authenticated ingest; a signed-out one reports one event per request through the
 credential-free collector, [anonymous client analytics](../../docs/anonymous-client-analytics.md).
