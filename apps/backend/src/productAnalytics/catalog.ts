@@ -53,6 +53,13 @@ export const productAnalyticsExperimentTokenPattern = /^[a-z0-9](?:[a-z0-9_-]{0,
 // property cannot carry free text.
 const productAnalyticsSitePlacementPattern = /^[a-z0-9](?:[a-z0-9_]{0,62}[a-z0-9])?$/u;
 
+// A marketing site route with its locale prefix already stripped on the site, so one page reads as
+// one path across every language, lowercase and with a leading and a trailing slash: `/`,
+// `/blog/<slug>/`, `/catalog/packages/<slug>/`. The pattern is the shape rule only; the length rule
+// stays `productAnalyticsPropertyStringMaxLength`, and that is the binding one, because the segment
+// quantifiers below admit paths well past it.
+const productAnalyticsSitePagePathPattern = /^\/(?:[a-z0-9][a-z0-9._-]{0,78}\/){0,6}$/u;
+
 // Acquisition context the marketing site reports on its own facts, derived on the site from the
 // referrer and the user agent, which are never sent raw.
 const productAnalyticsSiteSources = ["direct", "search", "social", "referral", "internal", "unknown"] as const;
@@ -598,7 +605,7 @@ export const productAnalyticsEventCatalog = {
       //
       // `catalog_install` has no producer and keeps none while installing stays separate from
       // authoring: an installed card is written by the install's own SQL and never reaches the
-      // creation producer at all (../catalog/distribution/install/persistence.ts), so the whole
+      // content writes producer at all (../catalog/distribution/install/persistence.ts), so the whole
       // install is reported once as `catalog_deck_installed` rather than as one creation per card.
       // The value is declared because it names the one channel this vocabulary would otherwise
       // leave unspellable, and a zero count on it is that decision rather than a measurement.
@@ -834,6 +841,21 @@ export const productAnalyticsEventCatalog = {
   // purpose. iOS and Android assert `ai`, the only surface those clients dictate from. Web takes
   // the surface the person is on, because its composer can be open over another route, so a
   // failure there can be filed against a route while its own start named `ai`.
+  //
+  // An unpaired `dictation_started` is not a measure of anything, on any client. There is no success
+  // counterpart in this event set — a transcript reaching the draft reports nothing — so a start with
+  // no `dictation_failed` after it is normally a dictation that worked. Deliberate abandonment is
+  // not in the unpaired set either: it is the `cancelled` reason above, reported here rather than
+  // left as a start with nothing after it.
+  //
+  // What web actually loses is narrower than both. An attempt already transcribing when the app's
+  // IndexedDB recovery fires reports nothing at all: the in-flight call returns through the recovery
+  // branch, and the unmount that the recovery causes only marks that attempt rather than reporting
+  // it (apps/web/src/chat/composer/dictation/useChatDictationCapture.ts). A recording that has not
+  // been stopped yet is still paired `cancelled` by the same unmount, and a session whose recovery
+  // already failed cannot start a dictation at all. Nothing in the event set marks the attempts that
+  // are lost, so their starts are indistinguishable from successful ones, and an unpaired-start
+  // count bounds neither abandonment nor loss.
   dictation_failed: {
     serverOnly: false,
     requiresScreen: false,
@@ -855,11 +877,17 @@ export const productAnalyticsEventCatalog = {
     },
   },
   // The marketing site facts. `package_version_id` is sent only on a `catalog_package` page.
+  // `page_path` names which page of a kind was viewed, where `page_kind` names only the kind. It is
+  // optional because the site bundles already released send no path at all, and a page whose
+  // locale-stripped route does not fit the pattern reports none rather than a truncated one.
+  // Reporting none means leaving the key out: an explicit `null` or `""` is a value the property
+  // does not allow, and that refuses the whole event rather than just the path.
   site_page_viewed: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
       page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+      page_path: { kind: "string", pattern: productAnalyticsSitePagePathPattern, optional: true },
       package_version_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       source: { kind: "enum", values: productAnalyticsSiteSources },
       device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
@@ -893,6 +921,26 @@ export const productAnalyticsEventCatalog = {
     serverOnly: false,
     requiresScreen: false,
     properties: productAnalyticsSiteAppEntryProperties,
+  },
+  // A marketing site CTA that leads to another marketing page instead of into the product, which is
+  // why it is a fact of its own: a funnel that counted it as an app entry would credit an entry to a
+  // visit that never left the site. It shares `page_kind`, `placement`, `source` and
+  // `device_category` with the app-entry click value for value, so the two clicks compare directly on
+  // those, while `target` names a different destination space and the two are disjoint on it by
+  // design. It does not hold the app-entry map either: that map is shared only by the app-entry
+  // click and its impression half, and this event has no impression half. `target` is an enum of one
+  // because the site has exactly one such destination today, and naming it keeps the property set
+  // from changing shape the day a second internal destination appears.
+  site_internal_cta_clicked: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      target: { kind: "enum", values: ["home"] },
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+      placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
+      source: { kind: "enum", values: productAnalyticsSiteSources },
+      device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+    },
   },
   // The catalog install facts. `install_journey_id` is optional everywhere it appears: no producer
   // mints one any more, and released clients that still send it stay valid.
