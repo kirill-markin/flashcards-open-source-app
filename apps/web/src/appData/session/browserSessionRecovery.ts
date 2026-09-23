@@ -1,5 +1,5 @@
 import { isAccountDeletionAttemptStorageKey } from "../../accountDeletion/accountDeletionAttempt";
-import { analyticsEnabledStorageKey } from "../../analytics/identity";
+import { analyticsEnabledStorageKey, productAnalyticsCollectionStorageKey } from "../../analytics/identity";
 import { AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY } from "../../chat/preferences/AIChatPreferencesContext";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
@@ -29,6 +29,7 @@ const PRESERVED_BROWSER_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   AI_CHAT_COMPOSER_SUGGESTIONS_STORAGE_KEY,
   TEST_MODE_STORAGE_KEY,
   analyticsEnabledStorageKey,
+  productAnalyticsCollectionStorageKey,
 ];
 
 type BrowserStorageKeyPredicate = (storageKey: string) => boolean;
@@ -232,11 +233,13 @@ export function clearAuthResetRequired(): void {
  * UI preferences, local tester tooling, and an explicit analytics opt-out across
  * re-login while still clearing application data.
  *
- * The stored analytics consent answer is retained for the same reason, account
- * deletion included: it is this browser's answer rather than the account's, it is
- * given by visitors who have no account at all, and discarding it would make a
- * browser that refused askable and re-mintable again
- * (docs/analytics-visitor-identity.md).
+ * Both stored analytics answers are retained for the same reason, account
+ * deletion included: they are this browser's answers rather than the account's,
+ * they are given by visitors who have no account at all, and discarding them
+ * would make a browser that refused the cookie askable and re-mintable again
+ * (docs/analytics-visitor-identity.md) and would return a browser that turned
+ * product analytics off to the unanswered state, which reads as on. A signed-out
+ * visitor has no account copy either answer could be restored from.
  */
 export async function clearAllLocalBrowserData(
   reason: LocalBrowserDataCleanupReason,

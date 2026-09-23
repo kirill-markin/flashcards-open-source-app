@@ -195,6 +195,9 @@
 "settings.leaderboardParticipation.toggle" = "إظهاري في لوحة الصدارة";
 "settings.leaderboardParticipation.description" = "عند إيقاف هذا الخيار، لن يظهر نشاطك المجهول في لوحة الصدارة.";
 "settings.leaderboardParticipation.signInRequired" = "اتصل بالمزامنة السحابية لإدارة المشاركة في لوحة الصدارة.";
+"settings.productAnalytics.title" = "تحليلات المنتج";
+"settings.productAnalytics.toggle" = "مشاركة تحليلات المنتج";
+"settings.productAnalytics.footer" = "تُخبرنا تحليلات المنتج بأجزاء التطبيق التي يستخدمها الناس، وليس بما يوجد على بطاقاتك. عند إيقافها، لا يسجّل التطبيق أي شيء ولا يرسل أي شيء. لا يؤثر ذلك على تقارير الأعطال والأخطاء.";
 "settings.language.title" = "اللغة";
 "settings.language.systemDescription" = "يتحكم iOS في لغة التطبيق. في إعدادات iOS، افتح Nibomo واستخدم اللغة المفضلة. إذا لم تظهر اللغة المفضلة، فأضف لغة أخرى أولاً من الإعدادات > عام > اللغة والمنطقة.";
 "settings.language.action.openAppSettings" = "افتح إعدادات Nibomo";

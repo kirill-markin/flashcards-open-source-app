@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Pokaži me na lestvici";
 "settings.leaderboardParticipation.description" = "Ko je to izklopljeno, vaša anonimna dejavnost ne bo prikazana na lestvici.";
 "settings.leaderboardParticipation.signInRequired" = "Za upravljanje sodelovanja na lestvici povežite sinhronizacijo z oblakom.";
+"settings.productAnalytics.title" = "Analitika izdelka";
+"settings.productAnalytics.toggle" = "Deli analitiko izdelka";
+"settings.productAnalytics.footer" = "Analitika izdelka nam pove, katere dele aplikacije ljudje uporabljajo, nikoli pa, kaj je na vaših karticah. Ko je izklopljena, aplikacija ničesar ne beleži in ne pošilja. Na poročila o sesutjih in napakah to ne vpliva.";
 "settings.language.title" = "Jezik";
 "settings.language.systemDescription" = "Jezik aplikacije določa iOS. V Nastavitvah iOS odprite Nibomo in uporabite Prednostni jezik. Če Prednostni jezik ni prikazan, najprej dodajte drug jezik v Nastavitve > Splošno > Jezik in regija.";
 "settings.language.action.openAppSettings" = "Odpri nastavitve Nibomo";

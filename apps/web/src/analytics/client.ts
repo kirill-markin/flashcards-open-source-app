@@ -36,10 +36,17 @@ export function setCurrentAnalyticsSurface(surface: AnalyticsSurface | null): vo
 }
 
 /**
- * The stamp every tracked event carries, for the one event the catalog requires a surface on and
- * whose caller is not a screen of its own: the chat composer, which is the sidebar of whatever route
- * is open. A caller that reads null has no surface to name and reports nothing, because the server
- * rejects that event without one.
+ * The stamp every tracked event carries. The chat composer reads it once per attachment ingest,
+ * because the catalog requires a surface on `media_attached` and the composer is the sidebar of
+ * whatever route is open rather than a screen of its own. That one read gates both halves of the
+ * ingest: a null surface names nothing the server accepts on `media_attached`, so the ingest reports
+ * neither the attachment nor the `media_upload_failed` that would stand in its place
+ * (`../chat/attachments/useChatAttachments.ts`).
+ *
+ * `dictation_started` is the other event this app reports from the composer that the catalog
+ * requires a surface on, and it deliberately does not read this stamp: the composer is the only
+ * place this client dictates from, so it asserts `ai` outright rather than dropping the start on a
+ * route with no value in the enum.
  */
 export function readCurrentAnalyticsSurface(): AnalyticsSurface | null {
   return currentSurface;
@@ -153,6 +160,15 @@ export function grantAnalyticsConsent(): Promise<boolean> {
 
 export function declineAnalyticsConsent(): Promise<void> {
   return deliveryRuntime.applyAnalyticsConsentDecline();
+}
+
+/**
+ * Records the person's answer to the product-analytics setting for this browser and carries it out.
+ * The caller writes the same answer to the account where there is a credential; this is the half
+ * that decides what this load collects.
+ */
+export function setProductAnalyticsCollection(isCollectionEnabled: boolean): void {
+  deliveryRuntime.applyProductAnalyticsCollection(isCollectionEnabled);
 }
 
 /**

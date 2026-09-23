@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Показувати мене в таблиці лідерів";
 "settings.leaderboardParticipation.description" = "Коли вимкнено, ваша анонімна активність не відображається в таблиці лідерів.";
 "settings.leaderboardParticipation.signInRequired" = "Підключіть хмарну синхронізацію, щоб керувати участю в таблиці лідерів.";
+"settings.productAnalytics.title" = "Аналітика продукту";
+"settings.productAnalytics.toggle" = "Надсилати аналітику продукту";
+"settings.productAnalytics.footer" = "Аналітика продукту показує нам, якими частинами застосунку користуються, і ніколи — що написано на ваших картках. Коли вона вимкнена, застосунок нічого не записує й не надсилає. На звіти про збої та помилки це не впливає.";
 "settings.language.title" = "Мова";
 "settings.language.systemDescription" = "iOS керує мовою застосунку. У Параметрах iOS відкрийте Nibomo та виберіть бажану мову. Якщо цей пункт не показано, спершу додайте іншу мову в Параметри > Загальні > Мова і регіон.";
 "settings.language.action.openAppSettings" = "Відкрити параметри Nibomo";

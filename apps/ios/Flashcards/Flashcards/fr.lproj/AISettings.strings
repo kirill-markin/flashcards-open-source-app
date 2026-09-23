@@ -195,6 +195,9 @@
 "settings.leaderboardParticipation.toggle" = "M’afficher dans le classement";
 "settings.leaderboardParticipation.description" = "Lorsque ce réglage est désactivé, votre activité anonyme n’apparaît pas dans le classement.";
 "settings.leaderboardParticipation.signInRequired" = "Connectez la synchronisation cloud pour gérer votre participation au classement.";
+"settings.productAnalytics.title" = "Analyses du produit";
+"settings.productAnalytics.toggle" = "Partager les analyses du produit";
+"settings.productAnalytics.footer" = "Les analyses du produit nous indiquent quelles parties de l'app sont utilisées, jamais le contenu de vos cartes. Lorsque cette option est désactivée, l'app n'enregistre et n'envoie rien. Les rapports de plantage et d'erreur ne sont pas concernés.";
 "settings.language.title" = "Langue";
 "settings.language.systemDescription" = "iOS contrôle la langue de l’app. Dans les Réglages iOS, ouvrez Nibomo et utilisez Langue préférée. Si Langue préférée n’apparaît pas, ajoutez d’abord une autre langue dans Réglages > Général > Langue et région.";
 "settings.language.action.openAppSettings" = "Ouvrir les réglages Nibomo";

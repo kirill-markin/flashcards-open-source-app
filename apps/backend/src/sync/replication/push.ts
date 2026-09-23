@@ -337,7 +337,7 @@ export async function processSyncPush(
   // The whole push batch is one transaction, so the review_answered rows its review events collect
   // are emitted together once it has committed, and a batch that fails partway emits nothing.
   //
-  // A push reports two producers in sequence - the content creations drain inside the wrapper, then
+  // A push reports two producers in sequence - the content writes drain inside the wrapper, then
   // the review answers drain - so both draw on one post-commit analytics budget created here.
   // Separate budgets would sum, which is the whole reason this one is threaded rather than defaulted.
   const analyticsBudget = createPostCommitAnalyticsBudget();

@@ -195,6 +195,9 @@
 "settings.leaderboardParticipation.toggle" = "Mich in der Bestenliste anzeigen";
 "settings.leaderboardParticipation.description" = "Wenn diese Einstellung aus ist, erscheint deine anonyme Aktivität nicht in der Bestenliste.";
 "settings.leaderboardParticipation.signInRequired" = "Verbinde die Cloud-Synchronisierung, um die Bestenlisten-Teilnahme zu verwalten.";
+"settings.productAnalytics.title" = "Produktanalyse";
+"settings.productAnalytics.toggle" = "Produktanalyse teilen";
+"settings.productAnalytics.footer" = "Die Produktanalyse zeigt uns, welche Teile der App genutzt werden, niemals den Inhalt Ihrer Karten. Wenn sie aus ist, zeichnet die App nichts auf und sendet nichts. Absturz- und Fehlerberichte sind davon nicht betroffen.";
 "settings.language.title" = "Sprache";
 "settings.language.systemDescription" = "iOS steuert die App-Sprache. Öffne in den iOS-Einstellungen Nibomo und verwende Bevorzugte Sprache. Wenn Bevorzugte Sprache nicht angezeigt wird, füge zuerst unter Einstellungen > Allgemein > Sprache & Region eine weitere Sprache hinzu.";
 "settings.language.action.openAppSettings" = "Einstellungen für Nibomo öffnen";

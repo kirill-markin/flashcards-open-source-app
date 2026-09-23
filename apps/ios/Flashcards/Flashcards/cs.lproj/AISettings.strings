@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Zobrazovat mě v žebříčku";
 "settings.leaderboardParticipation.description" = "Když je tato možnost vypnutá, vaše anonymní aktivita se v žebříčku nezobrazí.";
 "settings.leaderboardParticipation.signInRequired" = "Pro správu účasti v žebříčku připojte cloudovou synchronizaci.";
+"settings.productAnalytics.title" = "Analytika produktu";
+"settings.productAnalytics.toggle" = "Sdílet analytiku produktu";
+"settings.productAnalytics.footer" = "Analytika produktu nám ukazuje, které části aplikace lidé používají, nikdy obsah vašich kartiček. Když je vypnutá, aplikace nic nezaznamenává ani neodesílá. Hlášení pádů a chyb tím nejsou dotčena.";
 "settings.language.title" = "Jazyk";
 "settings.language.systemDescription" = "Jazyk aplikace určuje iOS. V Nastavení iOS otevřete Nibomo a použijte Preferovaný jazyk. Pokud se tato volba nezobrazuje, nejprve přidejte další jazyk v Nastavení > Obecné > Jazyk a oblast.";
 "settings.language.action.openAppSettings" = "Otevřít nastavení Nibomo";

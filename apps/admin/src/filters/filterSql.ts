@@ -184,8 +184,8 @@ export function buildExcludedActorSqlLines(
  *     the same identity would keep that person out. The second reads the client-reportable
  *     `screen_viewed` and `review_card_revealed` steps, so a credential-free claim would otherwise
  *     advance a cohort member through the funnel.
- *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events` and `step_events`, read by the home
- *     page and blog article funnels. The first decides whether a person was already here before their
+ *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events` and its step CTEs, read by the home
+ *     page funnel and, through the fragments that module exports, by both blog funnels. The first decides whether a person was already here before their
  *     first marketing-site page view, over every event name with no lower bound. The second reads
  *     the in-app steps, the client-reportable web `app_opened` among them, so a credential-free claim
  *     would otherwise advance a cohort member. Both also read `site_page_viewed` and
@@ -301,9 +301,11 @@ export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string):
  * nothing from here - their cohorts already compose that rule - and neither do the option lists over
  * collector rows, which restate it too.
  *   - `buildHashedSiteRowSqlLines` in `apps/admin/src/reports/funnels/funnelAudienceSql.ts`, the
- *     cookieless hashed cohort of the two site-entry funnels and the deck funnel: every hashed page
- *     view and every hashed click. Those rows carry a NULL `actor_id` by construction, so this is the
- *     only level at which they can be judged at all, and a marked browser-day never becomes a person.
+ *     cookieless hashed cohort of the site-entry funnels that read it - the home page funnel and the
+ *     blog platform-choice funnel, while the blog web-app funnel deliberately reads none - and of the
+ *     deck funnel: every hashed page view and every hashed click. Those rows carry a NULL `actor_id`
+ *     by construction, so this is the only level at which they can be judged at all, and a marked
+ *     browser-day never becomes a person.
  *   - `attribution_clicks` in `buildCatalogInstallAttributionSql` below, because its journey bridge
  *     matches a click that claimed no visitor at all, whose own actor is therefore never the install's
  *     and is never tested by the rule the install side applies.
