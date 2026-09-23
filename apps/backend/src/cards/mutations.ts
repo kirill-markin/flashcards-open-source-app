@@ -19,6 +19,10 @@ import {
   createSyncConflictHttpError,
   findSyncConflictWorkspaceIdInExecutor,
 } from "../sync/conflicts/fork";
+import {
+  mergeManagedImageReferencesIntoCardSnapshot,
+  type ManagedImageRestoreLedger,
+} from "./managedMedia/managedImageSnapshotMerge";
 import { assertConsistentFsrsState } from "./review/fsrs";
 import {
   authoredTagsChanged,
@@ -305,11 +309,23 @@ async function resolveCardSnapshotInsertConflictInExecutor(
   return existingRow;
 }
 
+/**
+ * Per-request state a snapshot upsert needs and cannot derive from its own arguments.
+ *
+ * Only the sync push supplies one, because it is the only caller that can write the same card twice
+ * in one request: the bootstrap push refuses a workspace that already holds anything, and the guest
+ * merge walks each card once.
+ */
+export type CardSnapshotUpsertOptions = Readonly<{
+  managedImageRestoreLedger?: ManagedImageRestoreLedger;
+}>;
+
 export async function upsertCardSnapshotInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
   input: CardSnapshotInput,
   metadata: CardMutationMetadata,
+  options?: CardSnapshotUpsertOptions,
 ): Promise<CardMutationResult> {
   const hotChangeWriteLock = await lockWorkspaceSyncMetadataForHotChangesInExecutor(executor, workspaceId);
   const normalizedInput = normalizeCardSnapshotInput(input);
@@ -376,6 +392,27 @@ export async function upsertCardSnapshotInExecutor(
     };
   }
 
+  // The snapshot wins last-write-wins, and that is not the same as the device knowing what it is
+  // overwriting. A managed image the backend wrote into this card's text would be erased here by a
+  // device that never pulled it, so those references are put back into the text about to be stored.
+  // ./managedMedia/managedImageSnapshotMerge.ts owns the rule and the reasoning, including what it
+  // does when the person removed the image on purpose.
+  //
+  // It returns the `client_updated_at` to store as well, and that is not cosmetic: a restore has to
+  // outrank the row the pushing device still holds, or iOS skips its own merged card on the next
+  // pull and the reference dies on the push after this one. The merge returns the client's own
+  // stamp untouched whenever it restored nothing.
+  const mergedCardWrite = mergeManagedImageReferencesIntoCardSnapshot(
+    existingRow,
+    {
+      frontText: normalizedInput.frontText,
+      backText: normalizedInput.backText,
+      clientUpdatedAt: normalizedMetadata.clientUpdatedAt,
+    },
+    normalizedMetadata.lastModifiedByReplicaId,
+    options?.managedImageRestoreLedger,
+  );
+
   const updateResult = await executor.query<CardRow>(
     [
       "UPDATE content.cards",
@@ -388,8 +425,8 @@ export async function upsertCardSnapshotInExecutor(
       CARD_COLUMNS,
     ].join(" "),
     [
-      normalizedInput.frontText,
-      normalizedInput.backText,
+      mergedCardWrite.frontText,
+      mergedCardWrite.backText,
       normalizedInput.cardType ?? existingCard.cardType,
       JSON.stringify(normalizedInput.metadata ?? existingCard.metadata),
       normalizedInput.tags,
@@ -403,7 +440,7 @@ export async function upsertCardSnapshotInExecutor(
       normalizedInput.fsrsLastReviewedAt,
       normalizedInput.fsrsScheduledDays,
       normalizedInput.deletedAt,
-      normalizedMetadata.clientUpdatedAt,
+      mergedCardWrite.clientUpdatedAt,
       normalizedMetadata.lastModifiedByReplicaId,
       normalizedMetadata.lastOperationId,
       workspaceId,
@@ -454,7 +491,12 @@ export async function upsertCardSnapshotInExecutor(
   // server-side writer is needed for any of it: phone edits, laptop is behind, laptop reviews and
   // pushes. Backend managed-image append and settlement opens the same window from the server side
   // (./managedMedia/managedImageSettlement.ts) and is one instance of the mechanism rather than its
-  // cause. ../productAnalytics/catalog.ts discloses both to readers of the table.
+  // cause - and the one instance this no longer counts, because the merge a few lines above puts
+  // those references back, so a stale push whose only difference from the stored text was the
+  // missing reference now reproduces that text and reports nothing. Only that case: the restore
+  // appends a trailing block, so once anything was written after the image on that side the merged
+  // text matches neither side, one row is stored, and it is the ordinary over-count again.
+  // ../productAnalytics/catalog.ts discloses all of it to readers of the table.
   //
   // `updatedCard.deletedAt === null` is what keeps deletion and authoring apart. A write that
   // tombstoned the card is the deletion collected just above and nothing else, even if it also
