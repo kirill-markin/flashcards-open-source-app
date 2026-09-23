@@ -61,6 +61,10 @@ struct FlashcardsApp: App {
             // drive the same flows, so the kill switch goes on before anything can be recorded.
             Analytics.setEnabled(false)
         } else {
+            // The stored answer, before anything is recorded. The cold `app_opened` below is emitted
+            // ahead of the first `/me` of the launch, so this mirror is the only thing that can tell
+            // an opted-out install not to record it.
+            Analytics.setEnabled(ProductAnalyticsPreference.isEnabled(userDefaults: .standard))
             Analytics.configure(
                 credentialsProvider: { [weak store] in
                     store?.analyticsCredentials()

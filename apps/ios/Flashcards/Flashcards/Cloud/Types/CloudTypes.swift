@@ -68,10 +68,23 @@ enum CloudAuthorization: Hashable, Sendable {
 
 struct AccountPreferences: Codable, Hashable, Sendable {
     let reviewReactionAnimationsEnabled: Bool
+    /// What this identity's column holds, as the server reports it. Nil is "nobody answered".
+    ///
+    /// Deliberately not resolved to an effective on/off here: the value that decides whether this
+    /// install records anything is `FlashcardsStore.isProductAnalyticsEnabled`, which reads the answer
+    /// stored on this device and is forced off in a UI-test launch. Reading a switch state off this
+    /// snapshot would bypass both.
+    let productAnalyticsEnabled: Bool?
 }
 
 func makeDefaultAccountPreferences() -> AccountPreferences {
-    AccountPreferences(reviewReactionAnimationsEnabled: true)
+    AccountPreferences(reviewReactionAnimationsEnabled: true, productAnalyticsEnabled: nil)
+}
+
+/// One PATCH /me/preferences body. A nil field is left out of the JSON and keeps its stored value.
+struct AccountPreferencesPatchRequest: Encodable, Hashable, Sendable {
+    var reviewReactionAnimationsEnabled: Bool?
+    var productAnalyticsEnabled: Bool?
 }
 
 /// Client-safe community profile from GET/PATCH /me/community/profile.

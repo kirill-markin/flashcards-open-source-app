@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Arată-mă în clasament";
 "settings.leaderboardParticipation.description" = "Când această opțiune este dezactivată, activitatea ta anonimă nu va apărea în clasament.";
 "settings.leaderboardParticipation.signInRequired" = "Conectează sincronizarea în cloud pentru a gestiona participarea la clasament.";
+"settings.productAnalytics.title" = "Analize despre produs";
+"settings.productAnalytics.toggle" = "Partajează analizele despre produs";
+"settings.productAnalytics.footer" = "Analizele despre produs ne arată ce părți ale aplicației sunt folosite, niciodată ce scrie pe cardurile tale. Când sunt dezactivate, aplicația nu înregistrează și nu trimite nimic. Rapoartele de blocare și de eroare nu sunt afectate.";
 "settings.language.title" = "Limbă";
 "settings.language.systemDescription" = "iOS controlează limba aplicației. În Configurări iOS, deschide Nibomo și folosește Limbă preferată. Dacă opțiunea nu apare, adaugă mai întâi o altă limbă în Configurări > General > Limbă și regiune.";
 "settings.language.action.openAppSettings" = "Deschide configurările Nibomo";

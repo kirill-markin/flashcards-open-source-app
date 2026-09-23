@@ -11,6 +11,8 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
         return [.aiChatSuggestions]
     case .leaderboardParticipation:
         return [.leaderboardParticipation]
+    case .productAnalytics:
+        return [.productAnalytics]
     case .language:
         return [.language]
     case .feedback:

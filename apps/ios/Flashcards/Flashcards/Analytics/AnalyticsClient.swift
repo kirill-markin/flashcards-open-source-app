@@ -601,6 +601,13 @@ actor AnalyticsRuntime {
         // picked up by the next trigger.
         var drainIterationCount = 0
         while Task.isCancelled == false, drainIterationCount < analyticsMaximumDrainIterationsPerFlush {
+            // Re-read, not read once at the top: the loop suspends at the credential read and at the
+            // delivery, and `setEnabled(false)` only flips this flag and schedules a discard, which
+            // cannot recall a batch this flush has already loaded. Whatever is left behind stays
+            // queued for the discard to remove.
+            guard Analytics.enabledState.isEnabled() else {
+                return
+            }
             drainIterationCount += 1
             let anonymousIdBeforeCredentials = self.identity.currentAnonymousId()
             self.drainPendingDropEvents(now: Date(), anonymousId: anonymousIdBeforeCredentials)
@@ -635,6 +642,12 @@ actor AnalyticsRuntime {
             }
             self.identityBoundaryDiscardedCount += batchLoad.boundaryDiscardedCount
             guard let batch = batchLoad.batch else {
+                return
+            }
+
+            // The last check before anything leaves the device: an opt-out that landed while the batch
+            // was being loaded must stop this post, not the next one.
+            guard Analytics.enabledState.isEnabled() else {
                 return
             }
 
@@ -706,6 +719,11 @@ actor AnalyticsRuntime {
      * permanent guest identity for events that are never sent.
      */
     private func mintGuestCredentials(anonymousId: String) async -> AnalyticsCredentials? {
+        // A mint is a permanent server-side user, workspace and membership, so an opt-out that landed
+        // mid-flush must not buy one for a person who has just asked to be left alone.
+        guard Analytics.enabledState.isEnabled() else {
+            return nil
+        }
         guard self.hasSpentGuestCredentialMintAttempt == false,
               let guestCredentialMinter = self.guestCredentialMinter else {
             return nil
