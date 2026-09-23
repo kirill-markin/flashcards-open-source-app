@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Rodyti mane lyderių lentelėje";
 "settings.leaderboardParticipation.description" = "Kai išjungta, jūsų anoniminė veikla nebus rodoma lyderių lentelėje.";
 "settings.leaderboardParticipation.signInRequired" = "Įjunkite debesijos sinchronizavimą, kad valdytumėte dalyvavimą lyderių lentelėje.";
+"settings.productAnalytics.title" = "Produkto analitika";
+"settings.productAnalytics.toggle" = "Bendrinti produkto analitiką";
+"settings.productAnalytics.footer" = "Produkto analitika rodo mums, kurias programos dalis žmonės naudoja, o ne tai, kas parašyta jūsų kortelėse. Kai ji išjungta, programa nieko neįrašo ir nieko nesiunčia. Strigčių ir klaidų ataskaitoms tai neturi įtakos.";
 "settings.language.title" = "Kalba";
 "settings.language.systemDescription" = "iOS valdo programėlės kalbą. iOS nustatymuose atidarykite Nibomo ir pasirinkite pageidaujamą kalbą. Jei šio pasirinkimo nėra, pirmiausia pridėkite kitą kalbą: Nustatymai > Bendra > Kalba ir regionas.";
 "settings.language.action.openAppSettings" = "Atidaryti Nibomo nustatymus";

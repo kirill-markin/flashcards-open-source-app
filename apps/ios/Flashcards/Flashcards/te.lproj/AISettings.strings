@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "నన్ను లీడర్‌బోర్డ్‌లో చూపు";
 "settings.leaderboardParticipation.description" = "ఇది ఆఫ్‌లో ఉన్నప్పుడు మీ అనామక కార్యకలాపం లీడర్‌బోర్డ్‌లో కనిపించదు.";
 "settings.leaderboardParticipation.signInRequired" = "లీడర్‌బోర్డ్ భాగస్వామ్యాన్ని నిర్వహించడానికి క్లౌడ్ సింక్‌ను అనుసంధానించండి.";
+"settings.productAnalytics.title" = "ఉత్పత్తి విశ్లేషణలు";
+"settings.productAnalytics.toggle" = "ఉత్పత్తి విశ్లేషణలను పంచుకోండి";
+"settings.productAnalytics.footer" = "యాప్‌లోని ఏ భాగాలను ప్రజలు ఉపయోగిస్తున్నారో ఉత్పత్తి విశ్లేషణలు మాకు తెలియజేస్తాయి; మీ కార్డులలో ఏముందో ఎప్పుడూ కాదు. ఇది ఆఫ్‌లో ఉన్నప్పుడు యాప్ ఏదీ రికార్డ్ చేయదు, పంపదు. క్రాష్ మరియు ఎర్రర్ నివేదికలపై దీని ప్రభావం ఉండదు.";
 "settings.language.title" = "భాష";
 "settings.language.systemDescription" = "iOS యాప్ భాషను నియంత్రిస్తుంది. iOS సెట్టింగ్‌లలో Nibomo తెరిచి ప్రాధాన్య భాషను ఉపయోగించండి. ప్రాధాన్య భాష కనిపించకపోతే ముందుగా సెట్టింగ్‌లు > సాధారణం > భాష మరియు ప్రాంతంలో మరో భాషను చేర్చండి.";
 "settings.language.action.openAppSettings" = "Nibomo సెట్టింగ్‌లను తెరువు";

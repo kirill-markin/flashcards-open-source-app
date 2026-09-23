@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "แสดงฉันในตารางอันดับ";
 "settings.leaderboardParticipation.description" = "เมื่อปิด กิจกรรมแบบไม่ระบุตัวตนของคุณจะไม่ปรากฏในตารางอันดับ";
 "settings.leaderboardParticipation.signInRequired" = "เชื่อมต่อการซิงค์คลาวด์เพื่อจัดการการเข้าร่วมตารางอันดับ";
+"settings.productAnalytics.title" = "การวิเคราะห์ผลิตภัณฑ์";
+"settings.productAnalytics.toggle" = "แชร์การวิเคราะห์ผลิตภัณฑ์";
+"settings.productAnalytics.footer" = "การวิเคราะห์ผลิตภัณฑ์บอกเราว่าผู้คนใช้ส่วนใดของแอป ไม่ใช่สิ่งที่อยู่บนการ์ดของคุณ เมื่อปิดอยู่ แอปจะไม่บันทึกและไม่ส่งข้อมูลใด ๆ รายงานข้อขัดข้องและข้อผิดพลาดไม่ได้รับผลกระทบ";
 "settings.language.title" = "ภาษา";
 "settings.language.systemDescription" = "iOS เป็นผู้กำหนดภาษาของแอป ในการตั้งค่า iOS ให้เปิด Nibomo แล้วเลือกภาษาที่ต้องการ หากไม่แสดงตัวเลือกนี้ ให้เพิ่มภาษาในการตั้งค่า > ทั่วไป > ภาษาและภูมิภาคก่อน";
 "settings.language.action.openAppSettings" = "เปิดการตั้งค่า Nibomo";

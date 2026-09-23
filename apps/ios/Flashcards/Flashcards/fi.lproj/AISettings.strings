@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Näytä minut tulostaulukossa";
 "settings.leaderboardParticipation.description" = "Kun tämä on pois päältä, anonyymi toimintasi ei näy tulostaulukossa.";
 "settings.leaderboardParticipation.signInRequired" = "Yhdistä pilvisynkronointi hallitaksesi tulostaulukkoon osallistumista.";
+"settings.productAnalytics.title" = "Tuoteanalytiikka";
+"settings.productAnalytics.toggle" = "Jaa tuoteanalytiikkaa";
+"settings.productAnalytics.footer" = "Tuoteanalytiikka kertoo meille, mitä sovelluksen osia käytetään, ei koskaan sitä, mitä korteissasi lukee. Kun tämä on pois päältä, sovellus ei tallenna eikä lähetä mitään. Kaatumis- ja virheraportteihin tämä ei vaikuta.";
 "settings.language.title" = "Kieli";
 "settings.language.systemDescription" = "iOS määrittää sovelluksen kielen. Avaa iOS-asetuksista Nibomo ja valitse ensisijainen kieli. Jos valintaa ei näy, lisää ensin toinen kieli kohdassa Asetukset > Yleiset > Kieli ja alue.";
 "settings.language.action.openAppSettings" = "Avaa Nibomon asetukset";

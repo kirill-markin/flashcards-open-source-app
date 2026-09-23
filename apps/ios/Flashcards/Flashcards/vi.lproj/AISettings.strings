@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Hiển thị tôi trên bảng xếp hạng";
 "settings.leaderboardParticipation.description" = "Khi tắt, hoạt động ẩn danh của bạn sẽ không xuất hiện trên bảng xếp hạng.";
 "settings.leaderboardParticipation.signInRequired" = "Kết nối đồng bộ đám mây để quản lý việc tham gia bảng xếp hạng.";
+"settings.productAnalytics.title" = "Phân tích sản phẩm";
+"settings.productAnalytics.toggle" = "Chia sẻ phân tích sản phẩm";
+"settings.productAnalytics.footer" = "Phân tích sản phẩm cho chúng tôi biết mọi người dùng những phần nào của ứng dụng, chứ không bao giờ là nội dung trên thẻ của bạn. Khi tắt, ứng dụng không ghi lại và không gửi bất kỳ thứ gì. Báo cáo sự cố và lỗi không bị ảnh hưởng.";
 "settings.language.title" = "Ngôn ngữ";
 "settings.language.systemDescription" = "iOS quản lý ngôn ngữ ứng dụng. Trong Cài đặt iOS, mở Nibomo và chọn Ngôn ngữ ưu tiên. Nếu không thấy mục này, trước tiên hãy thêm ngôn ngữ khác trong Cài đặt > Cài đặt chung > Ngôn ngữ & Vùng.";
 "settings.language.action.openAppSettings" = "Mở cài đặt Nibomo";

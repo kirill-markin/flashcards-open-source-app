@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Beni sıralamada göster";
 "settings.leaderboardParticipation.description" = "Kapalıyken anonim etkinliğiniz sıralamada görünmez.";
 "settings.leaderboardParticipation.signInRequired" = "Sıralamaya katılımı yönetmek için bulut eşzamanlamasını bağlayın.";
+"settings.productAnalytics.title" = "Ürün analitiği";
+"settings.productAnalytics.toggle" = "Ürün analitiğini paylaş";
+"settings.productAnalytics.footer" = "Ürün analitiği bize uygulamanın hangi bölümlerinin kullanıldığını gösterir, kartlarınızda ne yazdığını asla değil. Kapalıyken uygulama hiçbir şey kaydetmez ve göndermez. Çökme ve hata raporları bundan etkilenmez.";
 "settings.language.title" = "Dil";
 "settings.language.systemDescription" = "iOS uygulama dilini yönetir. iOS Ayarları’nda Nibomo’yu açıp Tercih Edilen Dil’i kullanın. Tercih Edilen Dil görünmüyorsa önce Ayarlar > Genel > Dil ve Bölge’den başka bir dil ekleyin.";
 "settings.language.action.openAppSettings" = "Nibomo ayarlarını aç";

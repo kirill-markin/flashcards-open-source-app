@@ -195,6 +195,9 @@
 "settings.leaderboardParticipation.toggle" = "Показывать меня в таблице лидеров";
 "settings.leaderboardParticipation.description" = "Когда настройка выключена, ваша обезличенная активность не появляется в таблице лидеров.";
 "settings.leaderboardParticipation.signInRequired" = "Подключите облачную синхронизацию, чтобы управлять участием в таблице лидеров.";
+"settings.productAnalytics.title" = "Аналитика продукта";
+"settings.productAnalytics.toggle" = "Передавать аналитику продукта";
+"settings.productAnalytics.footer" = "Аналитика продукта показывает нам, какими частями приложения пользуются, и никогда — что написано на ваших карточках. Когда она выключена, приложение ничего не записывает и не отправляет. На отчёты о сбоях и ошибках это не влияет.";
 "settings.language.title" = "Язык";
 "settings.language.systemDescription" = "iOS управляет языком приложения. В настройках iOS откройте Nibomo и используйте «Предпочитаемый язык». Если «Предпочитаемый язык» не отображается, сначала добавьте другой язык в «Настройки» > «Основные» > «Язык и регион».";
 "settings.language.action.openAppSettings" = "Открыть настройки Nibomo";

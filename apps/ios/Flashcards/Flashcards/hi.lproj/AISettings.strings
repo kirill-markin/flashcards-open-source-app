@@ -195,6 +195,9 @@
 "settings.leaderboardParticipation.toggle" = "मुझे लीडरबोर्ड पर दिखाएँ";
 "settings.leaderboardParticipation.description" = "यह बंद होने पर आपकी गुमनाम गतिविधि लीडरबोर्ड पर नहीं दिखेगी.";
 "settings.leaderboardParticipation.signInRequired" = "लीडरबोर्ड भागीदारी प्रबंधित करने के लिए क्लाउड सिंक कनेक्ट करें.";
+"settings.productAnalytics.title" = "प्रोडक्ट एनालिटिक्स";
+"settings.productAnalytics.toggle" = "प्रोडक्ट एनालिटिक्स साझा करें";
+"settings.productAnalytics.footer" = "प्रोडक्ट एनालिटिक्स हमें बताता है कि लोग ऐप के किन हिस्सों का उपयोग करते हैं, आपके कार्ड में क्या है यह कभी नहीं। बंद होने पर ऐप कुछ भी रिकॉर्ड नहीं करता और कुछ भी नहीं भेजता। क्रैश और त्रुटि रिपोर्ट पर इसका असर नहीं पड़ता।";
 "settings.language.title" = "भाषा";
 "settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Nibomo खोलें और पसंदीदा भाषा इस्तेमाल करें। अगर पसंदीदा भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में कोई दूसरी भाषा जोड़ें।";
 "settings.language.action.openAppSettings" = "Nibomo सेटिंग्स खोलें";

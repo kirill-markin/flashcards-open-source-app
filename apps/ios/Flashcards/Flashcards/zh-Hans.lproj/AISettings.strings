@@ -195,6 +195,9 @@
 "settings.leaderboardParticipation.toggle" = "在排行榜中显示我";
 "settings.leaderboardParticipation.description" = "关闭后，你的匿名活动不会显示在排行榜中。";
 "settings.leaderboardParticipation.signInRequired" = "连接云同步后即可管理排行榜参与。";
+"settings.productAnalytics.title" = "产品分析";
+"settings.productAnalytics.toggle" = "共享产品分析";
+"settings.productAnalytics.footer" = "产品分析告诉我们人们使用了应用的哪些部分，绝不会包含你卡片上的内容。关闭后，应用不会记录也不会发送任何内容。崩溃和错误报告不受影响。";
 "settings.language.title" = "语言";
 "settings.language.systemDescription" = "iOS 控制 App 语言。在 iOS 设置中打开 Nibomo，并使用“首选语言”。如果没有显示“首选语言”，请先在“设置”>“通用”>“语言与地区”中添加另一种语言。";
 "settings.language.action.openAppSettings" = "打开 Nibomo 设置";
