@@ -11,6 +11,8 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHist
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
+import com.flashcardsopensourceapp.data.local.model.sync.applyAccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
@@ -478,8 +480,12 @@ internal class FakeCloudRemoteGateway private constructor(
     override suspend fun updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
-        preferences: AccountPreferences
+        update: AccountPreferencesUpdate
     ): AccountPreferences {
+        val preferences = applyAccountPreferencesUpdate(
+            preferences = accountSnapshot.preferences,
+            update = update
+        )
         accountSnapshot = accountSnapshot.copy(preferences = preferences)
         return preferences
     }

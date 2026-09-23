@@ -69,6 +69,7 @@ import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.sync.isProductAnalyticsEnabled
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesStoreReviewRequestStore
@@ -117,7 +118,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import java.time.ZoneId
@@ -175,6 +178,7 @@ class AppGraph(
     private var startupJob: Job? = null
     private var cloudIdentityObserverJob: Job? = null
     private var analyticsGuestIdentityLinkJob: Job? = null
+    private var productAnalyticsPreferenceJob: Job? = null
     private var reviewHistoryAppliedObserverJob: Job? = null
     private var notificationsWorkspaceObserverJob: Job? = null
 
@@ -411,7 +415,8 @@ class AppGraph(
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
         appVersion = appPackageInfo.versionName,
-        onAnalyticsGuestIdentityLinkRequested = ::requestAnalyticsGuestIdentityLink
+        onAnalyticsGuestIdentityLinkRequested = ::requestAnalyticsGuestIdentityLink,
+        onProductAnalyticsPreferencePushRefused = ::reportProductAnalyticsPreferencePushRefused
     )
     private val localSyncRepository = LocalSyncRepository(
         database = database,
@@ -531,8 +536,19 @@ class AppGraph(
 
     init {
         if (isProductAnalyticsDisabledForProcess()) {
-            // Instrumentation must never post synthetic rows into production `product_events`.
+            // Instrumentation must never post synthetic rows into production `product_events`, and
+            // no setting may lift that, so the preference is not observed at all in this case.
             analytics.setEnabled(enabled = false)
+        } else {
+            // Synchronously, before anything in this process can track: the stored answer was read
+            // from `SharedPreferences` while the graph was built, so a cold start that precedes any
+            // sync already honors an opt-out taken on an earlier run.
+            analytics.setEnabled(
+                enabled = isProductAnalyticsEnabled(
+                    preferences = cloudPreferencesStore.currentAccountPreferences()
+                )
+            )
+            startProductAnalyticsPreferenceObserver()
         }
         analyticsNetworkMonitor.startObservingConnectivityRestored(
             onConnectivityRestored = analytics::onConnectivityRestored
@@ -561,6 +577,15 @@ class AppGraph(
                     enqueueMediaUploadWorker(context = applicationContext, initialDelayMillis = 0L)
                 }
             }
+        }
+    }
+
+    private fun startProductAnalyticsPreferenceObserver() {
+        productAnalyticsPreferenceJob = appScope.launch {
+            cloudPreferencesStore.observeAccountPreferences()
+                .map { preferences -> isProductAnalyticsEnabled(preferences = preferences) }
+                .distinctUntilChanged()
+                .collect { isEnabled -> analytics.setEnabled(enabled = isEnabled) }
         }
     }
 
@@ -595,6 +620,11 @@ class AppGraph(
         if (isProductAnalyticsDisabledForProcess()) {
             return
         }
+        // The identity link is a product-analytics write of its own, so an opted-out install must
+        // not make it either.
+        if (isProductAnalyticsEnabled(preferences = cloudPreferencesStore.currentAccountPreferences()).not()) {
+            return
+        }
         analyticsGuestIdentityLinkJob = appScope.launch {
             try {
                 cloudGuestSessionCoordinator.linkAnalyticsGuestIdentityToSignedInAccount()
@@ -608,6 +638,23 @@ class AppGraph(
                 )
             }
         }
+    }
+
+    /**
+     * The one report for a product-analytics answer the server will refuse the same way forever.
+     * The repository stops re-issuing that push, so this fires once rather than on every refresh.
+     */
+    private fun reportProductAnalyticsPreferencePushRefused(statusCode: Int?) {
+        observability.captureWarning(
+            event = AndroidWarningIssueEvent.AnalyticsPipelineWarning(
+                name = AndroidAnalyticsObservationName.PREFERENCE_PUSH_REFUSED,
+                eventCount = null,
+                statusCode = statusCode,
+                appVersion = appPackageInfo.versionName,
+                clientVersion = appPackageInfo.versionName,
+                versionCode = appPackageInfo.longVersionCode.toInt()
+            )
+        )
     }
 
     /**
@@ -922,6 +969,7 @@ class AppGraph(
         startupJob?.cancelAndJoin()
         cloudIdentityObserverJob?.cancelAndJoin()
         analyticsGuestIdentityLinkJob?.cancelAndJoin()
+        productAnalyticsPreferenceJob?.cancelAndJoin()
         reviewHistoryAppliedObserverJob?.cancelAndJoin()
         notificationsWorkspaceObserverJob?.cancelAndJoin()
         reviewNotificationsManager.close()

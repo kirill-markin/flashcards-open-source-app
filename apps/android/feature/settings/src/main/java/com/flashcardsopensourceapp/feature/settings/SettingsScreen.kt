@@ -96,6 +96,7 @@ fun SettingsRoute(
     onOpenReviewAnimations: () -> Unit,
     onOpenAiChatSuggestions: () -> Unit,
     onOpenLeaderboardParticipation: () -> Unit,
+    onOpenProductAnalytics: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenAccess: () -> Unit,
     onOpenDecks: () -> Unit,
@@ -259,6 +260,20 @@ fun SettingsRoute(
                     attentionCount = null,
                     testTag = settingsLeaderboardParticipationRowTag,
                     onClick = onOpenLeaderboardParticipation
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_product_analytics_title),
+                    summary = if (uiState.productAnalyticsEnabled) {
+                        stringResource(R.string.settings_common_on)
+                    } else {
+                        stringResource(R.string.settings_common_off)
+                    },
+                    attentionCount = null,
+                    testTag = settingsProductAnalyticsRowTag,
+                    onClick = onOpenProductAnalytics
                 )
             }
 
