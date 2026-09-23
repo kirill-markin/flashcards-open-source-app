@@ -77,6 +77,16 @@ function AudienceResults(props: Readonly<{ report: AudienceReport; from: string 
         <div className="funnel-detail-row"><span>At least one event with missing UI locale</span><strong>{audienceTotal(report, "missing_language_events")}</strong></div>
         <p>Each table uses the same distinct-user denominator. Buckets overlap: do not sum them. Unknown means no known value for that dimension; users with both known and missing event language appear in the missing-locale diagnostic too.</p>
       </section>
+      <section className="funnel-detail-card">
+        <h3>Analytics settings held right now</h3>
+        <div className="funnel-detail-row"><span>Opted out of product analytics — collection stopped at ingest</span><strong>{audienceTotal(report, "analytics_off")} / {total}</strong></div>
+        <div className="funnel-detail-row"><span>Explicitly switched on — stored as an answer, not left at the default</span><strong>{audienceTotal(report, "analytics_on")} / {total}</strong></div>
+        <div className="funnel-detail-row"><span>No answer recorded — collection allowed</span><strong>{audienceTotal(report, "analytics_unanswered")} / {total}</strong></div>
+        <div className="funnel-detail-row"><span>Analytics identifier declined — events still counted</span><strong>{audienceTotal(report, "consent_declined")} / {total}</strong></div>
+        <div className="funnel-detail-row"><span>Analytics identifier granted</span><strong>{audienceTotal(report, "consent_granted")} / {total}</strong></div>
+        <div className="funnel-detail-row"><span>No answer recorded — this row does not say whether an identifier exists</span><strong>{audienceTotal(report, "consent_unanswered")} / {total}</strong></div>
+        <p>Current state, not activity in the range: neither setting stores history, so the range picks the people and the values are whatever they hold today. Each trio splits the same distinct-user denominator with no overlap, but the two trios overlap each other: do not add them. A signed-out browser’s opt-out is invisible here, because it never leaves that browser.</p>
+      </section>
     </div>
     <p className="funnel-disclosure">Sample coverage is a conservative lower bound. Only retained first/latest sample endpoints with a matching accepted event batch count; intermediate samples, empty or duplicate batches, and unsampled gaps cannot be reconstructed. Known counts for past ranges can shrink as endpoints advance or expire. Both event date and upload sample must be inside the selected range for country and pairs. Detailed country cutoff: {retainedSince}. Generated: {report.generatedAtUtc}.</p>
   </>;
