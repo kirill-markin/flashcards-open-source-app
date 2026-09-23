@@ -51,23 +51,26 @@ publication deliverable; this implementation makes no compliance or consent-exem
 ## Automation installations
 
 A client may declare that its installation runs under automation. The declaration is stored on the
-installation, is never cleared, and stops product analytics for the three producers that resolve a
-replica (`review_answered`, `card_created` and `deck_created`) plus everything that installation
-uploads through the client ingest. Those three are the ones no in-app switch could prevent, because
+installation, is never cleared, and stops product analytics for the five facts that resolve a
+replica (`review_answered`, `card_created`, `card_deleted`, `deck_created` and `deck_deleted`) plus
+everything that installation uploads through the client ingest. Those are the ones no in-app switch
+could prevent, because
 the backend derives them from synced data rather than from anything the client sends. Absence of the
 declaration and an explicit `false` are the same negative case, and only `true` marks anything, so a
 client that says nothing, or that always sends `false`, behaves exactly as before.
 
 Deliberately not covered, and still emitted for a marked installation: `ai_message_sent`,
-`ai_run_failed`, `catalog_deck_installed`, `guest_upgrade_completed`, `friend_invitation_created`
-and `friendship_created`, none of which is attributed to a replica, and any review answered through
+`ai_run_failed`, `catalog_deck_installed`, `guest_upgrade_completed`, `friend_invitation_created`,
+`friendship_created`, and the account, workspace, package, agent-connection and feedback decisions
+in [decisionFacts.ts](../apps/backend/src/productAnalytics/serverFacts/decisionFacts.ts), none of
+which is attributed to a replica, and any review answered through
 an `ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and which therefore
 carries no marker by design. A marked installation is not an installation that produces zero events;
 read residue as these producers rather than as a defect in the marker.
 
 Also accepted rather than fixed: `sync.claim_installation` hands an installation to whoever presents
 its id with the matching platform, so a takeover can mark an installation that was somebody's real
-device, and there is no unset path to undo it. That zeroes the three replica-resolving producers for
+device, and there is no unset path to undo it. That zeroes the replica-resolving facts for
 that installation permanently.
 
 - [Sync wire declaration](../apps/backend/src/sync/contracts/input.ts) and
@@ -77,7 +80,7 @@ that installation permanently.
 - [Server-derived producers](../apps/backend/src/productAnalytics/serverFacts/replicaPlatforms.ts):
   the marker is joined onto the replica and its facts are dropped before emission, in
   [review answers](../apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts) and
-  [content creations](../apps/backend/src/productAnalytics/serverFacts/contentCreations.ts).
+  [content writes](../apps/backend/src/productAnalytics/serverFacts/contentWrites.ts).
 - [Client ingest](../apps/backend/src/routes/productAnalytics.ts): a batch declaring
   `isAutomation: true` is validated, answered, and stored nowhere;
   `analytics_events_ingest_automation_dropped` records it.

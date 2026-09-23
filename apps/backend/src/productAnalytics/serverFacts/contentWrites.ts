@@ -23,7 +23,12 @@ import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
 } from "../../observability/runtime";
-import type { ProductAnalyticsEventName, ProductAnalyticsPlatform } from "../catalog";
+import type { WorkspaceReplicaActorKind } from "../../sync/identity/replica";
+import type {
+  ProductAnalyticsEventName,
+  ProductAnalyticsPlatform,
+  productAnalyticsEventCatalog,
+} from "../catalog";
 import { productAnalyticsMaxEventAgeMs } from "../validation";
 import {
   createPostCommitAnalyticsBudget,
@@ -40,7 +45,6 @@ import {
 } from "./postCommitFactLifecycle";
 import {
   toWorkspaceReplicaAttribution,
-  toWorkspaceReplicaRowAttribution,
   type WorkspaceReplicaAttribution,
   type WorkspaceReplicaPlatformFacts,
   type WorkspaceReplicaPlatformRow,
@@ -50,44 +54,55 @@ import {
   type ServerDerivedProductAnalyticsEvent,
 } from "./serverEvents";
 
-export type ContentCreationEntityType = "card" | "deck";
+// db/migrations/0120 and 0121 cite this module as `contentCreations.ts`, which is what it was
+// called while it reported creations alone. Migration comments are immutable, so the pointer is
+// kept here rather than corrected there.
+export type ContentWriteEntityType = "card" | "deck";
+
+// What a write did to the row, which is the whole difference between the two facts this producer
+// reports. An update is deliberately neither: the overwhelming majority of writes that reach
+// content.cards are reviews rescheduling a card, a workspace progress reset touching every card in
+// the library at once, or background media settlement with no person acting at all, so a single
+// "content was written" event would have counted review volume under an authoring name. Deciding
+// what counts as an authoring update is its own question; a row appearing and a row being
+// tombstoned have no such ambiguity.
+type ContentWriteAction = "created" | "deleted";
 
 /**
- * One card or deck that a product transaction brought into existence.
- *
- * Only creations are reported here. An update is deliberately not a fact this producer knows about:
- * the overwhelming majority of writes that reach content.cards are reviews rescheduling a card, a
- * workspace progress reset touching every card in the library at once, or background media
- * settlement with no person acting at all, so a single "content was written" event would have
- * counted review volume under an authoring name. Deciding what counts as an authoring update is its
- * own question; a creation has no such ambiguity, because none of those paths ever inserts a row.
+ * One card or deck a product transaction brought into existence or tombstoned.
  */
-export type ContentCreation = Readonly<{
-  entityType: ContentCreationEntityType;
+export type ContentWrite = Readonly<{
+  entityType: ContentWriteEntityType;
   // The row's own id, always a canonical UUID because it is read back from a uuid column.
   entityId: string;
   workspaceId: string;
   // content.cards.last_modified_by_replica_id or content.decks.last_modified_by_replica_id as the
-  // insert stored it, which on a creation is the replica that wrote the row rather than the last one
-  // to touch it. It is carried as the id rather than as a platform because the replica row lives in
-  // another table: resolving it is one lookup for a whole drain instead of one per row on the content
-  // write. See resolveContentCreationReplicaAttributions.
+  // write stored it, which is the replica that made this change rather than the last one to touch
+  // the row before it. It is carried as the id rather than as a platform because the replica row
+  // lives in another table: resolving it is one lookup for a whole drain instead of one per row on
+  // the content write. See resolveContentWriteReplicaAttributions.
   replicaId: string;
-  // sync.hot_changes.client_updated_at for the write that created the row, as an ISO string.
+  // sync.hot_changes.client_updated_at for the write, as an ISO string.
   clientUpdatedAt: string;
 }>;
 
-const contentCreationEventNames: Readonly<
-  Record<ContentCreationEntityType, ProductAnalyticsEventName>
+type CollectedContentWrite = ContentWrite & Readonly<{ action: ContentWriteAction }>;
+
+const contentWriteEventNames: Readonly<
+  Record<ContentWriteEntityType, Readonly<Record<ContentWriteAction, ProductAnalyticsEventName>>>
 > = {
-  card: "card_created",
-  deck: "deck_created",
+  card: { created: "card_created", deleted: "card_deleted" },
+  deck: { created: "deck_created", deleted: "deck_deleted" },
 };
 
 // Reporting inline would hold sync.workspace_sync_metadata's write lock across a second database
-// transaction per creation, and that analytics transaction could not roll back with the product
+// transaction per write, and that analytics transaction could not roll back with the product
 // write. The shared lifecycle keeps the facts on this executor until its transaction commits.
-const collectedContentCreations = createPostCommitFactBuffer<ContentCreation>();
+//
+// Both actions share one buffer, so a transaction that creates and deletes - the agent SQL batch
+// mutation does both - drains once, resolves its replicas with one read and spends the post-commit
+// budget once for everything it wrote.
+const collectedContentWrites = createPostCommitFactBuffer<CollectedContentWrite>();
 
 /**
  * Records that this transaction created one card or deck, to be reported once it commits.
@@ -98,17 +113,102 @@ const collectedContentCreations = createPostCommitFactBuffer<ContentCreation>();
  * paths insert unconditionally on a freshly minted id. The LWW-lost branches return early with
  * `applied: false` and write no hot change at all, so they never get here.
  *
- * The creations only reach analytics through a transaction opened by one of the wrappers below.
+ * The writes only reach analytics through a transaction opened by one of the wrappers below.
  */
 export function collectContentCreation(
   executor: DatabaseExecutor,
-  creation: ContentCreation,
+  write: ContentWrite,
 ): void {
-  collectPostCommitFact(collectedContentCreations, executor, creation);
+  collectPostCommitFact(collectedContentWrites, executor, { ...write, action: "created" });
 }
 
-// What a replica this transaction writes through decides for its creations, keyed by the executor
-// running it and with the same lifetime as the creations above: created on first use, dropped with
+/**
+ * Records that this transaction tombstoned one card or deck, to be reported once it commits.
+ *
+ * Callers must only reach this from a branch whose own write left a row tombstoned that was not
+ * tombstoned before it - the live-to-tombstone update, and the snapshot insert that stores a row
+ * already carrying deleted_at because it was created and deleted before its first sync. A
+ * tombstone written over one the server already held reports nothing: a client re-syncing a
+ * library it already deleted from would otherwise count every deletion again on an append-only
+ * table.
+ *
+ * Nothing that removes content as a side effect may call this. A workspace or account deletion
+ * drops the workspace row and takes its cards and decks with it without ever reaching a per-entity
+ * path, and those two decisions report their own events instead.
+ */
+export function collectContentDeletion(
+  executor: DatabaseExecutor,
+  write: ContentWrite,
+): void {
+  collectPostCommitFact(collectedContentWrites, executor, { ...write, action: "deleted" });
+}
+
+// The channel a creation came through, as card_created.source spells it.
+type ContentCreationSource =
+  (typeof productAnalyticsEventCatalog)["card_created"]["properties"]["source"]["values"][number];
+
+// The channel the replica's own actor kind names, read from that column and never from platform,
+// exactly as ./reviewAnswers.ts reads it for review_answered.source and with the same vocabulary, so
+// a creation and an answer that came through one channel join by equality. workspace_seed and
+// workspace_reset are no channel a person authors through, so they map to null and the row omits
+// `source`, as it does for an actor kind this table does not know: a guess could never be corrected
+// on an append-only table. Keyed by every WorkspaceReplicaActorKind, so a new actor kind does not
+// compile until it is answered here.
+const contentCreationSourceByActorKind = {
+  client_installation: "app",
+  ai_chat: "ai_chat",
+  agent_connection: "agent",
+  workspace_seed: null,
+  workspace_reset: null,
+} as const satisfies Readonly<Record<WorkspaceReplicaActorKind, ContentCreationSource | null>>;
+
+function toActorKindContentCreationSource(actorKind: string): ContentCreationSource | null {
+  return Object.hasOwn(contentCreationSourceByActorKind, actorKind)
+    ? contentCreationSourceByActorKind[actorKind as WorkspaceReplicaActorKind]
+    : null;
+}
+
+// The channel this transaction says every creation it collects came through, keyed by the executor
+// running it and dropped with it, like the replica facts above.
+//
+// It exists because the actor kind cannot answer for every channel. A workspace-package import
+// writes through the person's own client installation replica, so the replica says `app` and is not
+// wrong about the device - but the cards came out of a file rather than out of authoring, and only
+// the transaction doing the import knows that. A transaction that declares nothing keeps the actor
+// kind's answer.
+const declaredContentCreationSources = new WeakMap<DatabaseExecutor, ContentCreationSource>();
+
+/**
+ * Names the channel every creation of this transaction came through.
+ *
+ * Only a transaction whose writes are all one channel may declare one, because the declaration
+ * covers the whole executor rather than a single write.
+ */
+export function declareContentCreationSource(
+  executor: DatabaseExecutor,
+  source: ContentCreationSource,
+): void {
+  declaredContentCreationSources.set(executor, source);
+}
+
+// Everything one replica decides for the writes attributed to it. It is the shared attribution
+// plus the creation channel, because both are read off the same replica row and neither may be
+// derived without the actor kind beside it.
+type ContentWriteReplicaAttribution = WorkspaceReplicaAttribution & Readonly<{
+  source: ContentCreationSource | null;
+}>;
+
+function toContentWriteReplicaAttribution(
+  replica: WorkspaceReplicaPlatformFacts,
+): ContentWriteReplicaAttribution {
+  return {
+    ...toWorkspaceReplicaAttribution(replica),
+    source: toActorKindContentCreationSource(replica.actorKind),
+  };
+}
+
+// What a replica this transaction writes through decides for its writes, keyed by the executor
+// running it and with the same lifetime as the writes above: created on first use, dropped with
 // the executor.
 //
 // A caller that ensured a replica already holds everything the derivation needs, so what it names
@@ -117,11 +217,11 @@ export function collectContentCreation(
 // just as much as a device does.
 const declaredReplicaAttributions = new WeakMap<
   DatabaseExecutor,
-  Map<string, WorkspaceReplicaAttribution>
+  Map<string, ContentWriteReplicaAttribution>
 >();
 
 /**
- * Names what one replica decides for its creations, from the facts the caller ensured it with.
+ * Names what one replica decides for its writes, from the facts the caller ensured it with.
  *
  * Callers must pass the actor kind and platform the stored row really carries, which is what
  * ensuring the replica guarantees: the upsert refuses a replica whose row disagrees with either. The
@@ -131,26 +231,26 @@ const declaredReplicaAttributions = new WeakMap<
  * never resolved, so what a caller names must already be the stored marker. The caller reads it
  * from sync.claim_installation, which returns it from the row it just locked, and folds this
  * request's own declaration into it before naming it (../../sync/identity/replica.ts). A client that
- * declares automation once therefore reports nothing for any creation afterwards, including on the
+ * declares automation once therefore reports nothing for any write afterwards, including on the
  * requests it declares nothing on - naming this request's body here instead would silently un-mark
  * the installation for exactly those.
  *
- * Declaring is optional everywhere. Creations naming a replica nothing declared are resolved by the
+ * Declaring is optional everywhere. Writes naming a replica nothing declared are resolved by the
  * drain instead, which is the only route left to a caller that was handed a replica id and no facts
  * at all - a workspace-package import, or a tool write whose replica was ensured in an earlier
  * transaction.
  */
-export function declareContentCreationReplicaFacts(
+export function declareContentWriteReplicaFacts(
   executor: DatabaseExecutor,
   replicaId: string,
   replica: WorkspaceReplicaPlatformFacts,
 ): void {
-  const attribution = toWorkspaceReplicaAttribution(replica);
+  const attribution = toContentWriteReplicaAttribution(replica);
   const declared = declaredReplicaAttributions.get(executor);
   if (declared === undefined) {
     declaredReplicaAttributions.set(
       executor,
-      new Map<string, WorkspaceReplicaAttribution>([[replicaId, attribution]]),
+      new Map<string, ContentWriteReplicaAttribution>([[replicaId, attribution]]),
     );
     return;
   }
@@ -168,7 +268,7 @@ export function declareContentCreationReplicaFacts(
  * the offline interval but keeps a broken device clock from parking events on an arbitrary day
  * forever on an append-only table.
  */
-function resolveContentCreationOccurredAt(clientUpdatedAt: string, recordedAt: Date): Date {
+function resolveContentWriteOccurredAt(clientUpdatedAt: string, recordedAt: Date): Date {
   const clientUpdatedAtMs = new Date(clientUpdatedAt).getTime();
   if (Number.isNaN(clientUpdatedAtMs)) {
     return recordedAt;
@@ -188,7 +288,7 @@ function resolveContentCreationOccurredAt(clientUpdatedAt: string, recordedAt: D
 // The most one drain may spend resolving the replicas nothing declared, including the product
 // connection it checks out to do it. It matches ./reviewAnswers.ts because the read, the table and
 // the budget gating it are the same, and that file derives the figure.
-const contentCreationPlatformResolutionTimeoutMs = 2_000;
+const contentWritePlatformResolutionTimeoutMs = 2_000;
 
 /**
  * Resolves the replicas of one drain to the platform each of their rows was created on.
@@ -200,11 +300,11 @@ const contentCreationPlatformResolutionTimeoutMs = 2_000;
  * executor.
  *
  * What is left is one query for the whole drain, after the product transaction committed, which is
- * what makes it affordable: the creations were collected per transaction, so the content write
+ * what makes it affordable: the writes were collected per transaction, so the content write
  * itself pays nothing and a 5,000-card import resolves through one indexed lookup rather than one
  * query per card.
  *
- * The read is scoped with the drain's own actor and the workspace of the creations it is resolving,
+ * The read is scoped with the drain's own actor and the workspace of the writes it is resolving,
  * which is the scope those writes ran under and the only one the RLS policy on
  * sync.workspace_replicas admits (workspace_replicas_scoped_select_runtime, stated in full in
  * ./reviewAnswers.ts). Every path that reaches this producer writes into one workspace as one
@@ -214,20 +314,20 @@ const contentCreationPlatformResolutionTimeoutMs = 2_000;
  *
  * Best effort, and it must be: the cards and decks are committed and this producer may not reject
  * into a caller whose transaction is already closed. A read that fails, a budget that is already
- * spent, a replica the scoped read does not reach - each leaves its creations out of a per-platform
+ * spent, a replica the scoped read does not reach - each leaves its writes out of a per-platform
  * breakdown rather than guessing at a platform the append-only table could never be corrected of.
  */
-async function resolveContentCreationReplicaAttributions(
-  creations: ReadonlyArray<ContentCreation>,
-  declaredAttributionByReplicaId: ReadonlyMap<string, WorkspaceReplicaAttribution>,
+async function resolveContentWriteReplicaAttributions(
+  writes: ReadonlyArray<ContentWrite>,
+  declaredAttributionByReplicaId: ReadonlyMap<string, ContentWriteReplicaAttribution>,
   actorUserId: string,
   budget: PostCommitAnalyticsBudget,
-): Promise<ReadonlyMap<string, WorkspaceReplicaAttribution>> {
-  const undeclaredCreations = creations.filter(
-    (creation) => !declaredAttributionByReplicaId.has(creation.replicaId),
+): Promise<ReadonlyMap<string, ContentWriteReplicaAttribution>> {
+  const undeclaredWrites = writes.filter(
+    (write) => !declaredAttributionByReplicaId.has(write.replicaId),
   );
-  const scopingCreation = undeclaredCreations[0];
-  if (scopingCreation === undefined) {
+  const scopingWrite = undeclaredWrites[0];
+  if (scopingWrite === undefined) {
     return declaredAttributionByReplicaId;
   }
 
@@ -239,7 +339,7 @@ async function resolveContentCreationReplicaAttributions(
     return declaredAttributionByReplicaId;
   }
 
-  const replicaIds = [...new Set(undeclaredCreations.map((creation) => creation.replicaId))];
+  const replicaIds = [...new Set(undeclaredWrites.map((write) => write.replicaId))];
   const attributionByReplicaId = new Map(declaredAttributionByReplicaId);
   const resolutionScope = createBackendObservationScope(
     "backend-api",
@@ -247,7 +347,7 @@ async function resolveContentCreationReplicaAttributions(
     null,
     null,
     actorUserId,
-    scopingCreation.workspaceId,
+    scopingWrite.workspaceId,
     null,
     null,
     null,
@@ -266,9 +366,9 @@ async function resolveContentCreationReplicaAttributions(
     // card the machine API just created with no platform at all, permanently, on an append-only
     // table, at the one surface where `agent` is a value only this read can produce.
     const replicas = await unsafeRunDatabaseOperationsWithIndependentDeadline(
-      Date.now() + contentCreationPlatformResolutionTimeoutMs,
+      Date.now() + contentWritePlatformResolutionTimeoutMs,
       async () => transactionWithWorkspaceScope(
-        { userId: actorUserId, workspaceId: scopingCreation.workspaceId },
+        { userId: actorUserId, workspaceId: scopingWrite.workspaceId },
         async (executor) => {
           const result = await executor.query<WorkspaceReplicaPlatformRow>(
             [
@@ -291,7 +391,7 @@ async function resolveContentCreationReplicaAttributions(
     );
     if (replicas.length < replicaIds.length) {
       // The read succeeded without matching every replica it asked about, so nothing throws and the
-      // creations behind the missing rows go on to be stored with a null platform. replicaIds is
+      // writes behind the missing rows go on to be stored with a null platform. replicaIds is
       // deduplicated and replica_id is the primary key of sync.workspace_replicas, so the read can
       // only come back short, never long, and the shortfall is exactly what is reported here. Both
       // content.cards.last_modified_by_replica_id and content.decks.last_modified_by_replica_id
@@ -299,17 +399,21 @@ async function resolveContentCreationReplicaAttributions(
       // row is never a deleted replica - it is a row this scoped read no longer reaches, which
       // ./reviewAnswers.ts states in full for the same read.
       captureBackendRuntimeWarning({
-        action: "product_analytics_content_creation_platform_resolution_incomplete",
+        action: "product_analytics_content_write_platform_resolution_incomplete",
         scope: resolutionScope,
         details: {
           replicaIdCount: replicaIds.length,
           matchedReplicaCount: replicas.length,
-          creationCount: undeclaredCreations.length,
+          writeCount: undeclaredWrites.length,
         },
       });
     }
     for (const replica of replicas) {
-      attributionByReplicaId.set(replica.replica_id, toWorkspaceReplicaRowAttribution(replica));
+      attributionByReplicaId.set(replica.replica_id, toContentWriteReplicaAttribution({
+        actorKind: replica.actor_kind,
+        platform: replica.platform,
+        isAutomation: replica.is_automation,
+      }));
     }
   } catch (error) {
     // Reported rather than swallowed. The events themselves are unaffected and still worth storing,
@@ -317,11 +421,11 @@ async function resolveContentCreationReplicaAttributions(
     // invisible, because the rows keep arriving and only the platform quietly stops being on them.
     const errorDetails = getDatabaseErrorFields(error);
     captureBackendRuntimeWarning({
-      action: "product_analytics_content_creation_platform_resolution_failed",
+      action: "product_analytics_content_write_platform_resolution_failed",
       scope: resolutionScope,
       details: {
         replicaIdCount: replicaIds.length,
-        creationCount: undeclaredCreations.length,
+        writeCount: undeclaredWrites.length,
         sqlState: errorDetails.sqlState,
         errorClass: errorDetails.errorClass,
         errorMessage: errorDetails.errorMessage,
@@ -332,22 +436,25 @@ async function resolveContentCreationReplicaAttributions(
   return attributionByReplicaId;
 }
 
-function toContentCreationEvent(
-  creation: ContentCreation,
+function toContentWriteEvent(
+  write: CollectedContentWrite,
   actorUserId: string,
   recordedAt: Date,
   platform: ProductAnalyticsPlatform | null,
+  source: ContentCreationSource | null,
 ): ServerDerivedProductAnalyticsEvent {
-  const eventName = contentCreationEventNames[creation.entityType];
+  const eventName = contentWriteEventNames[write.entityType][write.action];
   return {
-    // Keyed on the row id alone. There is only ever one creation per row, so any path that reaches
-    // this producer again for the same row - a replayed sync push, a guest merge - derives the same
-    // id and conflicts on event_id in the writer instead of counting a second creation. Only a path
-    // that preserves the row id dedupes this way: the workspace-package import mints a fresh card id
-    // per card, so a re-import is genuinely new cards and correctly counts new creations.
-    eventId: deriveServerDerivedProductAnalyticsEventId(eventName, [creation.entityId]),
+    // Keyed on the row id alone, under an event name that already separates the two actions. There
+    // is only ever one creation and one first tombstone per row, so any path that reaches this
+    // producer again for the same row - a replayed sync push, a guest merge, a re-sent delete -
+    // derives the same id and conflicts on event_id in the writer instead of counting a second
+    // fact. Only a path that preserves the row id dedupes this way: the workspace-package import
+    // mints a fresh card id per card, so a re-import is genuinely new cards and correctly counts
+    // new creations.
+    eventId: deriveServerDerivedProductAnalyticsEventId(eventName, [write.entityId]),
     eventName,
-    occurredAt: resolveContentCreationOccurredAt(creation.clientUpdatedAt, recordedAt),
+    occurredAt: resolveContentWriteOccurredAt(write.clientUpdatedAt, recordedAt),
     // The server clock, read once in Node after the product transaction committed and shared by
     // every event of one drain. It is deliberately not the same instant as
     // sync.hot_changes.recorded_at for the same write: that column defaults to now(), which in
@@ -373,10 +480,10 @@ function toContentCreationEvent(
     // through subject_user_id above, so what is lost here is the guest/account split on the row
     // itself, not the attribution.
     guestSessionId: null,
-    workspaceId: creation.workspaceId,
+    workspaceId: write.workspaceId,
     // The platform of the replica that wrote the row: named by the transaction that ensured that
     // replica itself, and otherwise read back from sync.workspace_replicas once for the whole drain.
-    // See resolveContentCreationReplicaAttributions.
+    // See resolveContentWriteReplicaAttributions.
     //
     // The platform column may never be read without the actor kind beside it, and the two actor kinds
     // that reach this producer with no device behind them are why: the machine API writes cards
@@ -390,7 +497,14 @@ function toContentCreationEvent(
     // a guess would file the row under a platform it never had, permanently, on an append-only table,
     // while null only leaves it out of a per-platform breakdown.
     platform,
-    properties: {},
+    // `source` goes on card creations and nowhere else, because that is the only place the catalog
+    // declares it and a property the catalog does not declare makes the writer refuse the whole
+    // batch. A deletion is left out because the channel a tombstone arrived over is a different
+    // question from the channel a card was authored through, and `deck_created` because a deck is a
+    // saved filter rather than something a channel writes for you.
+    properties: write.entityType === "card" && write.action === "created" && source !== null
+      ? { source }
+      : {},
     // Provenance about how a row was produced belongs to the backfill that reconstructs history.
     // A write observed as it happens has none.
     details: null,
@@ -398,7 +512,7 @@ function toContentCreationEvent(
 }
 
 /**
- * Names the creations the drain gave up on, so an aborted drain is legible rather than silent.
+ * Names the writes the drain gave up on, so an aborted drain is legible rather than silent.
  *
  * The reason says which of the two stop rules fired, because they call for opposite responses:
  * "writer_refused" means the analytics writer turned a chunk down and is degraded or down, while
@@ -412,7 +526,7 @@ function toContentCreationEvent(
  * failure that chunk already raised is the whole story, so a transaction small enough to fit one
  * chunk - which is almost all of them - still produces exactly one warning for one refusal.
  */
-function reportAbandonedContentCreations(
+function reportAbandonedContentWrites(
   abandoned: PostCommitFactEmissionAbortedOutcome & Readonly<{
     actorUserId: string;
     workspaceId: string | null;
@@ -423,7 +537,7 @@ function reportAbandonedContentCreations(
   }
 
   captureBackendRuntimeWarning({
-    action: "product_analytics_content_creation_drain_aborted",
+    action: "product_analytics_content_write_drain_aborted",
     scope: createBackendObservationScope(
       "backend-api",
       null,
@@ -447,44 +561,44 @@ function reportAbandonedContentCreations(
 }
 
 /**
- * Keeps only the creations of replicas that may be reported at all.
+ * Keeps only the writes of replicas that may be reported at all.
  *
- * An installation that declared itself automation produces no product analytics, and a creation it
+ * An installation that declared itself automation produces no product analytics, and a write it
  * wrote is dropped whole rather than stored with a null platform: the marker says the actor is not a
  * person, not that the device is unknown. A replica the resolution did not reach carries no marker
  * either way and is reported as it always was.
  *
  * That last case is emit-on-unknown and is deliberate. Once the declaration reflects storage, a
- * creation reaches it only when the resolution read threw or the post-commit budget ran out, and
- * both are transient: dropping on an unknown marker would lose a real person's creations to a
+ * write reaches it only when the resolution read threw or the post-commit budget ran out, and
+ * both are transient: dropping on an unknown marker would lose a real person's writes to a
  * failure that has nothing to do with them, while reporting one costs a marked installation a few
- * creations that the exclusion work removes downstream anyway. Do not "tighten" this to a drop.
+ * writes that the exclusion work removes downstream anyway. Do not "tighten" this to a drop.
  *
  * The drop is recorded rather than silent, so a run that produces nothing is legible as this rule
  * firing instead of as a producer that stopped working.
  */
-function dropAutomationContentCreations(
-  creations: ReadonlyArray<ContentCreation>,
-  attributionByReplicaId: ReadonlyMap<string, WorkspaceReplicaAttribution>,
+function dropAutomationContentWrites(
+  writes: ReadonlyArray<CollectedContentWrite>,
+  attributionByReplicaId: ReadonlyMap<string, ContentWriteReplicaAttribution>,
   actorUserId: string,
-): ReadonlyArray<ContentCreation> {
-  const reportable = creations.filter(
-    (creation) => attributionByReplicaId.get(creation.replicaId)?.isAutomation !== true,
+): ReadonlyArray<CollectedContentWrite> {
+  const reportable = writes.filter(
+    (write) => attributionByReplicaId.get(write.replicaId)?.isAutomation !== true,
   );
-  const suppressed = creations.length - reportable.length;
+  const suppressed = writes.length - reportable.length;
   if (suppressed === 0) {
     return reportable;
   }
 
   addBackendRuntimeBreadcrumb({
-    action: "product_analytics_content_creation_automation_suppressed",
+    action: "product_analytics_content_write_automation_suppressed",
     scope: createBackendObservationScope(
       "backend-api",
       null,
       null,
       null,
       actorUserId,
-      creations[0]?.workspaceId ?? null,
+      writes[0]?.workspaceId ?? null,
       null,
       null,
       null,
@@ -492,7 +606,7 @@ function dropAutomationContentCreations(
       null,
     ),
     details: {
-      factCount: creations.length,
+      factCount: writes.length,
       suppressedFactCount: suppressed,
     },
   });
@@ -501,8 +615,8 @@ function dropAutomationContentCreations(
 }
 
 /**
- * Reports one committed transaction's creations after resolving all undeclared replica platforms.
- * Workspace-package imports, bootstrap pushes and guest merges can collect thousands of creations;
+ * Reports one committed transaction's writes after resolving all undeclared replica platforms.
+ * Workspace-package imports, bootstrap pushes and guest merges can collect thousands of writes;
  * the shared lifecycle bounds and partitions their sequential writer work. The platform lookup is
  * released before emission starts, so a drain still holds at most one database connection at once.
  *
@@ -510,33 +624,38 @@ function dropAutomationContentCreations(
  * to push the response past API Gateway's limit could invite a retry after the product commit, and
  * that retry would mint new card ids and duplicate the imported library.
  */
-async function emitCollectedContentCreations(
+async function emitCollectedContentWrites(
   executor: DatabaseExecutor,
   actorUserId: string,
   budget: PostCommitAnalyticsBudget,
 ): Promise<void> {
-  const collected = takePostCommitFacts(collectedContentCreations, executor);
+  const collected = takePostCommitFacts(collectedContentWrites, executor);
   if (collected === undefined) {
     return;
   }
 
-  const declaredAttributionByReplicaId: ReadonlyMap<string, WorkspaceReplicaAttribution>
-    = declaredReplicaAttributions.get(executor) ?? new Map<string, WorkspaceReplicaAttribution>();
+  const declaredAttributionByReplicaId: ReadonlyMap<string, ContentWriteReplicaAttribution>
+    = declaredReplicaAttributions.get(executor) ?? new Map<string, ContentWriteReplicaAttribution>();
   declaredReplicaAttributions.delete(executor);
+  // A channel the transaction named for itself wins over the replica's actor kind, because it is
+  // the more specific answer: the replica still says which device wrote, and the declaration says
+  // what the writing was. Only the workspace-package import declares one today.
+  const declaredSource = declaredContentCreationSources.get(executor) ?? null;
+  declaredContentCreationSources.delete(executor);
   // The server timestamp every event of this drain carries. The drain's stop clock is no longer read
   // here: it belongs to the request rather than to this drain, so it is the budget's.
   const recordedAt = new Date();
   // What the transaction named as it wrote, plus at most one read of the product database for the
   // replicas it did not, before the first chunk and after the commit that released this transaction's
-  // connection. Creations left unresolved keep the null platform they always had; nothing here can
+  // connection. Writes left unresolved keep the null platform they always had; nothing here can
   // fail the drain.
-  const attributionByReplicaId = await resolveContentCreationReplicaAttributions(
+  const attributionByReplicaId = await resolveContentWriteReplicaAttributions(
     collected,
     declaredAttributionByReplicaId,
     actorUserId,
     budget,
   );
-  const reportable = dropAutomationContentCreations(collected, attributionByReplicaId, actorUserId);
+  const reportable = dropAutomationContentWrites(collected, attributionByReplicaId, actorUserId);
   if (reportable.length === 0) {
     return;
   }
@@ -544,15 +663,16 @@ async function emitCollectedContentCreations(
   const outcome = await emitPostCommitFactEvents(
     reportable,
     budget,
-    (creation) => toContentCreationEvent(
-      creation,
+    (write) => toContentWriteEvent(
+      write,
       actorUserId,
       recordedAt,
-      attributionByReplicaId.get(creation.replicaId)?.platform ?? null,
+      attributionByReplicaId.get(write.replicaId)?.platform ?? null,
+      declaredSource ?? attributionByReplicaId.get(write.replicaId)?.source ?? null,
     ),
   );
   if (outcome.status === "aborted") {
-    reportAbandonedContentCreations({
+    reportAbandonedContentWrites({
       ...outcome,
       actorUserId,
       // For either stop this is the first event not stored, and for a refusal it is also the event
@@ -562,7 +682,7 @@ async function emitCollectedContentCreations(
   }
 }
 
-async function runTransactionReportingContentCreations<Result>(
+async function runTransactionReportingContentWrites<Result>(
   openTransaction: (
     body: (executor: DatabaseExecutor) => Promise<CommittedTransaction<Result>>,
   ) => Promise<CommittedTransaction<Result>>,
@@ -573,7 +693,7 @@ async function runTransactionReportingContentCreations<Result>(
   return runTransactionWithPostCommitDrain(
     openTransaction,
     body,
-    async (committed) => emitCollectedContentCreations(
+    async (committed) => emitCollectedContentWrites(
       committed.executor,
       resolveActorUserId(committed.result),
       budget,
@@ -599,15 +719,15 @@ function resolvePostCommitAnalyticsBudget(
  * Opens one workspace-scoped product transaction and reports the cards and decks it created.
  *
  * Every transaction that can reach a card or deck insert must be opened through this instead of
- * transactionWithWorkspaceScope, otherwise its creations are collected and then dropped. The scope's
+ * transactionWithWorkspaceScope, otherwise its writes are collected and then dropped. The scope's
  * own user is the actor, because it is the identity every statement in the transaction runs as.
  */
-export async function transactionWithWorkspaceScopeReportingContentCreations<Result>(
+export async function transactionWithWorkspaceScopeReportingContentWrites<Result>(
   scope: WorkspaceDatabaseScope,
   callback: (executor: DatabaseExecutor) => Promise<Result>,
   budget?: PostCommitAnalyticsBudget,
 ): Promise<Result> {
-  return runTransactionReportingContentCreations<Result>(
+  return runTransactionReportingContentWrites<Result>(
     (body) => transactionWithWorkspaceScope(scope, body),
     callback,
     () => scope.userId,
@@ -622,12 +742,12 @@ export async function transactionWithWorkspaceScopeReportingContentCreations<Res
  * to read it from: the guest upgrade opens unscoped, works under the guest scope, and only then
  * re-scopes to the account it is merging into.
  */
-export async function unsafeTransactionReportingContentCreations<Result>(
+export async function unsafeTransactionReportingContentWrites<Result>(
   callback: (executor: DatabaseExecutor) => Promise<Result>,
   resolveActorUserId: (result: Result) => string,
   budget?: PostCommitAnalyticsBudget,
 ): Promise<Result> {
-  return runTransactionReportingContentCreations<Result>(
+  return runTransactionReportingContentWrites<Result>(
     (body) => unsafeTransaction(body),
     callback,
     resolveActorUserId,

@@ -9,7 +9,7 @@ import {
   captureBackendRuntimeWarning,
   createBackendObservationScope,
 } from "../observability/runtime";
-import { unsafeTransactionReportingContentCreations } from "../productAnalytics/serverFacts/contentCreations";
+import { unsafeTransactionReportingContentWrites } from "../productAnalytics/serverFacts/contentWrites";
 import {
   createPostCommitAnalyticsBudget,
   type PostCommitAnalyticsBudget,
@@ -265,7 +265,7 @@ export async function completeGuestUpgrade(
   const completion = await runTransactionReportingReviewAnswers<GuestUpgradeCompletion>(
     analyticsBudget,
     null,
-    (runInTransaction) => unsafeTransactionReportingContentCreations(
+    (runInTransaction) => unsafeTransactionReportingContentWrites(
       runInTransaction,
       // The merge re-creates the guest's cards and decks inside the target workspace, under the
       // target scope, so the account that adopted them is the actor on those rows and not the guest

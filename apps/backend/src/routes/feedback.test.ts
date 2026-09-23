@@ -171,6 +171,7 @@ function createFeedbackDependencies(state: FeedbackStoreState): FeedbackServiceD
         return {
           feedbackSubmissionId: existing.feedbackSubmissionId,
           createdAtServer: existing.createdAtServer,
+          workspaceId: existing.workspaceId,
           emailNotificationRequired: false,
         };
       }
@@ -187,6 +188,7 @@ function createFeedbackDependencies(state: FeedbackStoreState): FeedbackServiceD
       return {
         feedbackSubmissionId: input.feedbackSubmissionId,
         createdAtServer,
+        workspaceId: input.workspaceId,
         emailNotificationRequired: true,
       };
     },

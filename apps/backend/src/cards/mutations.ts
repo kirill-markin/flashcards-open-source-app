@@ -5,8 +5,9 @@ import {
 } from "../database";
 import {
   collectContentCreation,
-  transactionWithWorkspaceScopeReportingContentCreations,
-} from "../productAnalytics/serverFacts/contentCreations";
+  collectContentDeletion,
+  transactionWithWorkspaceScopeReportingContentWrites,
+} from "../productAnalytics/serverFacts/contentWrites";
 import { HttpError } from "../shared/errors";
 import {
   incomingLwwMetadataWins,
@@ -309,6 +310,20 @@ export async function upsertCardSnapshotInExecutor(
         replicaId: insertedCard.lastModifiedByReplicaId,
         clientUpdatedAt: insertedCard.clientUpdatedAt,
       });
+      // A first sync that already carries a tombstone: the person created the card and deleted it
+      // before it ever reached the server, which sees only the end state. Both facts are true, so
+      // both are collected here - the transition branch below cannot also fire in this call, and
+      // reporting the creation alone would leave card_created minus card_deleted overstating the
+      // live library by exactly the cards that were never synced alive.
+      if (insertedCard.deletedAt !== null) {
+        collectContentDeletion(executor, {
+          entityType: "card",
+          entityId: insertedCard.cardId,
+          workspaceId,
+          replicaId: insertedCard.lastModifiedByReplicaId,
+          clientUpdatedAt: insertedCard.clientUpdatedAt,
+        });
+      }
 
       return {
         card: insertedCard,
@@ -369,6 +384,19 @@ export async function upsertCardSnapshotInExecutor(
 
   const updatedCard = mapCard(updatedRow);
   const changeId = await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, updatedCard);
+  // The snapshot that turned a live card into a tombstone, which is how a deletion a person made
+  // offline reaches the server. Only the transition counts: a snapshot re-sending a tombstone the
+  // server already holds leaves existingCard deleted and reports nothing, so a client re-syncing
+  // its whole library cannot count one deletion again.
+  if (existingCard.deletedAt === null && updatedCard.deletedAt !== null) {
+    collectContentDeletion(executor, {
+      entityType: "card",
+      entityId: updatedCard.cardId,
+      workspaceId,
+      replicaId: updatedCard.lastModifiedByReplicaId,
+      clientUpdatedAt: updatedCard.clientUpdatedAt,
+    });
+  }
 
   return {
     card: updatedCard,
@@ -383,7 +411,7 @@ export async function upsertCardSnapshot(
   input: CardSnapshotInput,
   metadata: CardMutationMetadata,
 ): Promise<CardMutationResult> {
-  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => (
+  return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => (
     upsertCardSnapshotInExecutor(executor, workspaceId, input, metadata)
   ));
 }
@@ -450,7 +478,7 @@ export async function createCard(
   input: CreateCardInput,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  return transactionWithWorkspaceScopeReportingContentCreations(
+  return transactionWithWorkspaceScopeReportingContentWrites(
     { userId, workspaceId },
     async (executor) => createCardInExecutor(executor, workspaceId, input, metadata),
   );
@@ -463,7 +491,7 @@ export async function createCards(
 ): Promise<ReadonlyArray<Card>> {
   validateCardBatchCount(items.length);
 
-  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
     const createdCards: Array<Card> = [];
     for (const item of items) {
       createdCards.push(await createCardInExecutor(executor, workspaceId, item.input, item.metadata));
@@ -592,6 +620,16 @@ export async function deleteCardInExecutor(
 
   const card = mapCard(row);
   await recordCardSyncChange(executor, workspaceId, hotChangeWriteLock, card);
+  // The update above matches on deleted_at IS NULL, so a returned row is a card this statement
+  // found alive and left tombstoned. A card already gone returns nothing and raises the 404 above
+  // instead of reaching here, which is what keeps a repeated delete from counting twice.
+  collectContentDeletion(executor, {
+    entityType: "card",
+    entityId: card.cardId,
+    workspaceId,
+    replicaId: card.lastModifiedByReplicaId,
+    clientUpdatedAt: card.clientUpdatedAt,
+  });
   return card;
 }
 
@@ -601,7 +639,7 @@ export async function deleteCard(
   cardId: string,
   metadata: CardMutationMetadata,
 ): Promise<Card> {
-  return transactionWithWorkspaceScope(
+  return transactionWithWorkspaceScopeReportingContentWrites(
     { userId, workspaceId },
     async (executor) => deleteCardInExecutor(executor, workspaceId, cardId, metadata),
   );
@@ -615,7 +653,7 @@ export async function deleteCards(
   validateCardBatchCount(items.length);
   validateUniqueCardIds(items.map((item) => item.cardId));
 
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
     const deletedCardIds: Array<string> = [];
     for (const item of items) {
       const deletedCard = await deleteCardInExecutor(executor, workspaceId, item.cardId, item.metadata);

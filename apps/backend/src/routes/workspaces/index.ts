@@ -35,6 +35,11 @@ import {
   loadWorkspaceResetProgressPreviewForUserWithObservationScope,
   resetWorkspaceProgressForUserWithObservationScope,
 } from "../../workspaces/management";
+import {
+  recordAgentConnectionCreatedAnalytics,
+  recordStudyProgressResetAnalytics,
+  recordWorkspaceDeletedAnalytics,
+} from "../../productAnalytics/serverFacts/decisionFacts";
 import { HttpError } from "../../shared/errors";
 import {
   loadRequestContextFromRequest,
@@ -401,6 +406,10 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
           nextWorkspaceId: response.workspace.workspaceId,
         },
       });
+      // After the deleting transaction committed, so this reports a workspace the database really
+      // dropped. The cards and decks it took with it report nothing of their own: a cascade is not
+      // a per-entity deletion and counting it as one would drown the deliberate deletes.
+      await recordWorkspaceDeletedAnalytics(requestContext.userId, workspaceId);
       return context.json(response satisfies WorkspaceDeleteResponse);
     } catch (error) {
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
@@ -486,6 +495,12 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
           cardsResetCount: response.cardsResetCount,
         },
       });
+      // Only a reset that changed cards is a reset. A confirmed reset of a workspace with nothing
+      // scheduled returns 0 here without writing anything, so reporting it would count
+      // confirmations rather than resets.
+      if (response.cardsResetCount > 0) {
+        await recordStudyProgressResetAnalytics(requestContext.userId, workspaceId);
+      }
       return context.json(response satisfies WorkspaceResetProgressResponse);
     } catch (error) {
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, workspaceId, context.get("clientAppVersion"), context.get("clientPlatform"));
@@ -525,6 +540,9 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       requestContext.userId,
       normalizeAgentApiKeyLabel(body.label),
     );
+    // After the auth.agent_api_keys row committed, so this reports a connection the person can
+    // actually use. The label is theirs and never travels with the event.
+    await recordAgentConnectionCreatedAnalytics(requestContext.userId, connection.connectionId);
     return context.json(
       createAgentConnectionCreateEnvelope(apiKey, connection) satisfies AgentApiKeyCreateResponse,
       201,

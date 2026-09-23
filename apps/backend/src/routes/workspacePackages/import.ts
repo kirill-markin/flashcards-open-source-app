@@ -25,6 +25,7 @@ import {
   normalizeCaughtError,
 } from "../../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../../observability/reporting";
+import { recordWorkspacePackageImportedAnalytics } from "../../productAnalytics/serverFacts/decisionFacts";
 import { HttpError } from "../../shared/errors";
 import type { AppEnv } from "../../server/app";
 import {
@@ -375,6 +376,16 @@ export function createWorkspacePackageImportRoutes(options: WorkspacePackageImpo
           importedMediaAssetCount: result.summary.importedMediaAssetCount,
           appliedMediaAssetCount: result.summary.appliedMediaAssetCount,
         },
+      });
+      // After the import's own transaction committed, so card_count is what the workspace kept
+      // rather than what the package offered.
+      await recordWorkspacePackageImportedAnalytics({
+        userId: requestContext.userId,
+        subjectUserId: requestContext.subjectUserId,
+        guestSessionId: requestContext.guestSessionId,
+        workspaceId,
+        importId: upload.options.importId,
+        cardCount: result.summary.cardCount,
       });
 
       return context.json(result satisfies WorkspacePackageImportConfirmResponse);

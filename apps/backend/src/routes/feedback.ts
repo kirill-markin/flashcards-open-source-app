@@ -22,6 +22,7 @@ import {
   type BackendObservationScope,
 } from "../observability/sentry";
 import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
+import { recordFeedbackSubmittedAnalytics } from "../productAnalytics/serverFacts/decisionFacts";
 import type { AppEnv } from "../server/app";
 
 type FeedbackRoutesOptions = Readonly<{
@@ -267,7 +268,7 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
       );
       input = parseFeedbackSubmissionInput(await parseFeedbackJsonBody(context.req.raw));
 
-      const response = await submitFeedbackForRequest(
+      const submitted = await submitFeedbackForRequest(
         toFeedbackRequestUser(loadedContext.requestContext),
         input,
         requestId,
@@ -301,7 +302,18 @@ export function createFeedbackRoutes(options: FeedbackRoutesOptions): Hono<AppEn
           trigger: input.trigger,
         },
       });
-      return context.json(response);
+      // After the submission row is stored. The route is idempotent on the submission id, so a
+      // client resending one reaches this again and the derived event id keeps it at one message.
+      // The workspace id is the store's, not the body's: a resend skips the reference checks, so
+      // its body could otherwise put an unvalidated workspace on this row permanently.
+      await recordFeedbackSubmittedAnalytics({
+        userId: loadedContext.requestContext.userId,
+        subjectUserId: loadedContext.requestContext.subjectUserId,
+        guestSessionId: loadedContext.requestContext.guestSessionId,
+        workspaceId: submitted.storedWorkspaceId,
+        feedbackSubmissionId: submitted.response.feedbackSubmissionId,
+      });
+      return context.json(submitted.response);
     } catch (error) {
       const scope = createFeedbackRouteScope(
         requestId,

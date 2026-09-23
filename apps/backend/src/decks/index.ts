@@ -34,8 +34,9 @@ import { isLegacyEffortLevel } from "../sync/contracts/legacyEffort";
 import { appendLegacyEffortTag } from "../cards/shared";
 import {
   collectContentCreation,
-  transactionWithWorkspaceScopeReportingContentCreations,
-} from "../productAnalytics/serverFacts/contentCreations";
+  collectContentDeletion,
+  transactionWithWorkspaceScopeReportingContentWrites,
+} from "../productAnalytics/serverFacts/contentWrites";
 
 type TimestampValue = Date | string;
 type ErrorFactory = (message: string) => Error;
@@ -606,7 +607,7 @@ export async function createDeck(
   input: CreateDeckInput,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  return transactionWithWorkspaceScopeReportingContentCreations(
+  return transactionWithWorkspaceScopeReportingContentWrites(
     { userId, workspaceId },
     async (executor) => createDeckInExecutor(executor, workspaceId, input, metadata),
   );
@@ -674,6 +675,21 @@ export async function upsertDeckSnapshotInExecutor(
         replicaId: insertedDeck.lastModifiedByReplicaId,
         clientUpdatedAt: insertedDeck.clientUpdatedAt,
       });
+      // A first sync that already carries a tombstone, exactly as the card insert states it: the
+      // deck was created and deleted before the server ever saw it alive, the transition branch
+      // below cannot also fire in this call, and reporting the creation alone would leave
+      // deck_created minus deck_deleted overstating the live library by exactly the decks that were
+      // never synced alive. A later snapshot clearing the tombstone and another setting it again do
+      // take that branch, and stay one deletion for the deck, as deck_deleted in the catalog states.
+      if (insertedDeck.deletedAt !== null) {
+        collectContentDeletion(executor, {
+          entityType: "deck",
+          entityId: insertedDeck.deckId,
+          workspaceId,
+          replicaId: insertedDeck.lastModifiedByReplicaId,
+          clientUpdatedAt: insertedDeck.clientUpdatedAt,
+        });
+      }
 
       return {
         deck: insertedDeck,
@@ -756,6 +772,19 @@ export async function upsertDeckSnapshotInExecutor(
 
   const updatedDeck = mapDeck(updatedRow);
   const changeId = await recordDeckSyncChange(executor, workspaceId, hotChangeWriteLock, updatedDeck);
+  // Every deck deletion lands here, because deleteDeckInExecutor is itself a snapshot that sets
+  // deleted_at. Only the transition counts: a snapshot re-sending a tombstone the server already
+  // holds leaves existingDeck deleted and reports nothing, so a client re-syncing its whole library
+  // cannot count one deletion again.
+  if (existingDeck.deletedAt === null && updatedDeck.deletedAt !== null) {
+    collectContentDeletion(executor, {
+      entityType: "deck",
+      entityId: updatedDeck.deckId,
+      workspaceId,
+      replicaId: updatedDeck.lastModifiedByReplicaId,
+      clientUpdatedAt: updatedDeck.clientUpdatedAt,
+    });
+  }
 
   return {
     deck: updatedDeck,
@@ -770,7 +799,7 @@ export async function upsertDeckSnapshot(
   input: DeckSnapshotInput,
   metadata: DeckMutationMetadata,
 ): Promise<DeckMutationResult> {
-  return transactionWithWorkspaceScopeReportingContentCreations(
+  return transactionWithWorkspaceScopeReportingContentWrites(
     { userId, workspaceId },
     async (executor) => upsertDeckSnapshotInExecutor(executor, workspaceId, input, metadata),
   );
@@ -851,7 +880,7 @@ export async function updateDeck(
   input: UpdateDeckInput,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  return transactionWithWorkspaceScopeReportingContentCreations(
+  return transactionWithWorkspaceScopeReportingContentWrites(
     { userId, workspaceId },
     async (executor) => updateDeckInExecutor(executor, workspaceId, deckId, input, metadata),
   );
@@ -904,7 +933,7 @@ export async function deleteDeck(
   deckId: string,
   metadata: DeckMutationMetadata,
 ): Promise<Deck> {
-  return transactionWithWorkspaceScopeReportingContentCreations(
+  return transactionWithWorkspaceScopeReportingContentWrites(
     { userId, workspaceId },
     async (executor) => deleteDeckInExecutor(executor, workspaceId, deckId, metadata),
   );
@@ -917,7 +946,7 @@ export async function createDecks(
 ): Promise<ReadonlyArray<Deck>> {
   validateDeckBatchCount(items.length);
 
-  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
     const createdDecks: Array<Deck> = [];
     for (const item of items) {
       createdDecks.push(await createDeckInExecutor(executor, workspaceId, item.input, item.metadata));
@@ -935,7 +964,7 @@ export async function updateDecks(
   validateDeckBatchCount(items.length);
   validateUniqueDeckIds(items.map((item) => item.deckId));
 
-  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
     const updatedDecks: Array<Deck> = [];
     for (const item of items) {
       updatedDecks.push(await updateDeckInExecutor(executor, workspaceId, item.deckId, item.input, item.metadata));
@@ -953,7 +982,7 @@ export async function deleteDecks(
   validateDeckBatchCount(items.length);
   validateUniqueDeckIds(items.map((item) => item.deckId));
 
-  return transactionWithWorkspaceScopeReportingContentCreations({ userId, workspaceId }, async (executor) => {
+  return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
     const deletedDeckIds: Array<string> = [];
     for (const item of items) {
       const deletedDeck = await deleteDeckInExecutor(executor, workspaceId, item.deckId, item.metadata);
