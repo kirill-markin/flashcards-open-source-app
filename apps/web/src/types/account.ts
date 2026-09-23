@@ -4,6 +4,12 @@ export type AnalyticsConsentChoice = "granted" | "declined";
 export type AccountPreferences = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
+  /**
+   * Whether this person is measured at all, or null where nobody has answered. Null reads as on:
+   * the basis is legitimate interest, so only an explicit `false` turns collection off. It is not
+   * `analyticsConsent`, which answers the cookie banner alone.
+   */
+  productAnalyticsEnabled: boolean | null;
 }>;
 
 /**
@@ -15,6 +21,7 @@ export type AccountPreferences = Readonly<{
 export type AccountPreferencesUpdate = Readonly<{
   reviewReactionAnimationsEnabled?: boolean;
   analyticsConsent?: AnalyticsConsentChoice;
+  productAnalyticsEnabled?: boolean;
 }>;
 
 export type AccountPreferencesEnvelope = Readonly<{
