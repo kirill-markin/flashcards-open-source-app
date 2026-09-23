@@ -205,6 +205,95 @@ precedes any sync both honor it, and delivers it to the account or the guest ses
 account refresh that finds a credential
 ([repository](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/account/LocalCloudAccountRepository.kt)).
 
+### Neither answer is overwritten by a client reconciling an older one
+
+Both decisions above are stored on an account that several devices read and write, and neither
+column carries a timestamp, so two answers that disagree cannot be ordered. A device that read the
+account before a withdrawal taken on another device would otherwise carry its older answer back in
+silently, on every device the account has — undoing the off switch resumes collection outright,
+because ingest reads that column, while undoing a cookie refusal restores the shared identifier and
+nothing else, exactly as the two sections above keep them apart.
+
+`PATCH /v1/me/preferences` therefore takes an optional origin beside each of the two values,
+`analyticsConsentOrigin` and `productAnalyticsEnabledOrigin`, each `user_action` or
+`reconciliation` ([route](../apps/backend/src/routes/system/account/accountPreferences.ts)). A
+`reconciliation` is a client carrying over an answer it read somewhere earlier; `user_action` is the
+person answering on the client that sends it. Two fields rather than one, because a single PATCH can
+carry a person's press on one decision and a reconciled answer on the other, and one shared origin
+would have to be wrong about one of them.
+
+On an account, and on the account columns only, a reconciliation cannot loosen a stored refusal: a
+stored `analytics_consent = 'declined'` survives a `reconciliation` `granted`, and a stored
+`product_analytics_enabled = FALSE` survives a `reconciliation` `TRUE`. Everything else is stored as
+sent. A `user_action` always wins, so both switches stay reversible by the control that moved them.
+A reconciliation in the restrictive direction is stored too, because under-collection is the
+direction to err in against an append-only table. And a column still holding NULL — nobody has
+answered on this account — adopts whatever arrives including a reconciled answer, which is the only
+way an answer given before signing in ever reaches the account. The route answers with what is
+stored after the write, so a client whose value was refused learns the stored one from its own write
+rather than from a later read.
+
+Omitting an origin means `user_action`, which is what every client sent before the fields existed,
+so a released client keeps exactly the behaviour it was written against.
+
+The guest-session copies of both columns are not guarded
+([guest write](../apps/backend/src/guestAuth/store/session.ts)). A guest session row is reachable
+only by the credential that owns it, and that credential lives on one device, so there is no second
+writer here for the guard to order an answer against. `product_analytics_enabled` is written this
+way by the iOS and Android off switches, which fall back to the guest credential when the install
+has no account to store the answer on. `analytics_consent` has no client writer on the guest row at
+all: it is the cookie question, asked only where there is a cookie banner, and the only guest
+credential a browser can hold is a `web` one, which is refused before the route by the default-deny
+platform gate ([web guest gate](../apps/backend/src/guestAuth/webPlatform.ts)). That was true on
+2026-09-23 and stops being true the day a mobile surface asks the cookie question.
+
+What one writer does not settle is where that writer got the value. A device can write a value it
+merely adopted somewhere else — off an account it has since signed out of, among them — and on
+`product_analytics_enabled` republishing such an answer over a stricter stored one resumes ingest
+immediately rather than only restoring an identifier. So the rule for this column is about
+provenance, not about which client is speaking: a client that reconciles a guest column from a
+remembered value rather than a live read has to send an origin here too, and the guard has to move
+to the guest path with it.
+
+The guest upgrade cannot revert an account answer on either column: both carries write only where
+the account column is still NULL ([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)).
+
+The web sends both origins, and it is the only client that writes `analytics_consent` at all. Its
+one reconciliation — the carry described in the two sections above, and the only write in the client
+that is not a person pressing something — names itself `reconciliation` on both fields
+([web sync](../apps/web/src/analytics/accountAnalyticsPreferences.ts)). On the collection column
+that carry can only ever be an opt-out, which the guard permits anyway; the field is still sent,
+because it says who asked rather than what was asked for.
+
+Every other write of either column omits the origin and takes the `user_action` default. On the web
+those are the controls a person presses: the analytics settings screen, the consent banner, and the
+public panel with its off switch and its withdrawal link. The iOS and Android off switches store the
+answer on the device first and owe it to an identity until that identity acknowledges it, so what
+they send is an answer a person gave on that device, delivered late rather than reconciled. Neither
+mobile client writes `analytics_consent` at all.
+
+Late delivery is where that default stops being free, and this one is a gap rather than a settled
+contract. The debt outlives the process and carries no clock, so an owed answer can be retried
+against a column another surface has moved in the meantime, in either direction: turn the switch on
+on a phone that is offline, turn it off on the web days later, and the phone's retry arrives as
+`user_action`, which the guard is required to honor, and ingest resumes on the account. On Android
+it is not even a race, because the owed answer is pushed before `/me` is read, so the newer value
+cannot be seen first. Closing this is client work and nothing here does it today: a client must name
+a retried owed answer `reconciliation`, keeping `user_action` for the press that created the debt.
+Until one does, the guard defends `product_analytics_enabled` against a reconciliation that says so
+and not against a stale answer that calls itself a press — and this is the column where that means
+collection restarts rather than an identifier coming back.
+
+On iOS the identity a debt is owed to can also change without anyone answering again. Adopting a
+server answer re-owes a device-given answer to an identity that reported none of its own, and an
+identity reset re-owes it to the guest credential
+([iOS preference](../apps/ios/Flashcards/Flashcards/Analytics/ProductAnalyticsPreference.swift)), so
+an answer given under one account can be delivered to another. Two things bound that. The value is
+always one a person gave on this device and never a mirror, because a reported answer is stored only
+on the branch where nothing was answered here and that branch arms no debt. And the account it is
+redirected onto is one that reported no answer, so the write lands on a NULL column, which adopts
+any origin anyway — it bites only if that account was answered between the read and the `PATCH`.
+
 ## Account deletion
 
 The identity survives a logout by design and does not survive the deletion of the account it was
