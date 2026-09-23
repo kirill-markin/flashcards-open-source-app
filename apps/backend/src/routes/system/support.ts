@@ -81,6 +81,7 @@ export function assertFriendInvitationPublicPreviewTransport(request: Request): 
 const accountPreferenceFieldNames: ReadonlyArray<string> = [
   "reviewReactionAnimationsEnabled",
   "analyticsConsent",
+  "productAnalyticsEnabled",
 ];
 
 /** Null is refused rather than accepted as an erasure: a withdrawn consent is "declined". */
@@ -109,9 +110,19 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
     analyticsConsent: "analyticsConsent" in body
       ? expectAnalyticsConsentChoice(body.analyticsConsent, "analyticsConsent")
       : null,
+    // expectBoolean refuses an explicit null, so switching the collection off is `false` and never
+    // an erasure back to "never answered". A separate field from analyticsConsent on purpose: the
+    // cookie decision and the analytics off switch are two different questions.
+    productAnalyticsEnabled: "productAnalyticsEnabled" in body
+      ? expectBoolean(body.productAnalyticsEnabled, "productAnalyticsEnabled")
+      : null,
   };
 
-  if (update.reviewReactionAnimationsEnabled === null && update.analyticsConsent === null) {
+  if (
+    update.reviewReactionAnimationsEnabled === null
+    && update.analyticsConsent === null
+    && update.productAnalyticsEnabled === null
+  ) {
     throw new HttpError(
       400,
       `At least one preference field is required: ${accountPreferenceFieldNames.join(", ")}`,

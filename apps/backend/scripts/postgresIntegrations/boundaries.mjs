@@ -70,6 +70,39 @@ export const createdRolesByMigration = new Map([
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
 export const boundaryDefinitions = Object.freeze([
+  // 0149 adds org.user_settings.product_analytics_enabled, and the shared profile read now names
+  // that column as well: the SELECT in ensureUserProfileInExecutor (auth/ensureUser.ts), which
+  // loadAuthenticatedRequestContext runs for every authenticated request on every transport.
+  // Boundaries run current backend code against their own older schema, so every test whose path
+  // reaches that read has to be pinned at or after this migration or it fails with
+  // `column "product_analytics_enabled" does not exist`. This entry replaces 0142's, which named
+  // the same single test file for the same read, when that read first grew analytics_consent:
+  // agent/reviews, which serves its requests through a real createAgentRoutes app on the unmocked
+  // loadRequestContextFromRequest. Its createMcpServer half is still not the reason: that call
+  // takes an already-built AuthenticatedMcpAccessToken and never loads a request context.
+  // Import-reachable but unaffected, re-derived from scratch on this re-pin as on the five before
+  // it, so recorded here again:
+  // - admin/authz: value-imports ensureCognitoUserProfile through authz.ts, but the test only calls
+  //   loadAdminProfileEmail and never enters requireSessionAdminRequest.
+  // - the three mediaAssets/multipart tests: reach requestContext.ts only through
+  //   requestBoundary.ts's `import type { RequestContext }`, which tsx/esbuild erases.
+  // - sync/freshBootstrap: injects its own loadRequestContextFromRequestFn.
+  // - chat/cardImages/promotion/jobsSettlement: no import path to requestContext.ts at all.
+  // - guestAuthTestHarness/handlers/userSettings.ts is a third SQL site naming both columns, but no
+  //   pinned test imports it.
+  // The guest half of the migration adds no test of its own: auth.guest_sessions
+  // .product_analytics_enabled is named only by the guest credential lookup
+  // (guestAuth/session/index.ts) and the guest preference write, and no pinned test authenticates a
+  // real guest session against its boundary database.
+  // Moving a test retires the older-schema coverage it used to give, because each test runs only at
+  // its pinned boundary and there is no full-schema pass.
+  Object.freeze({
+    migrationFileName: "0149_product_analytics_off_switch.sql",
+    expectedMigrationCount: 151,
+    testFiles: Object.freeze([
+      "src/agent/reviews.postgres.integration.ts",
+    ]),
+  }),
   // 0145 adds analytics.product_events.automated_client, beside the daily_visitor_hash and
   // analytics.daily_visitor_hash_salts 0144 added. Only the credential-free collector's insert names
   // any of them, which is why the shared writer column list leaves both columns out and no test
@@ -85,34 +118,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
     ]),
   }),
-  // 0142 adds org.user_settings.analytics_consent, and the shared profile read now names that
-  // column: the SELECT in ensureUserProfileInExecutor (auth/ensureUser.ts), which
-  // loadAuthenticatedRequestContext runs for every authenticated request on every transport.
-  // Boundaries run current backend code against their own older schema, so every test whose path
-  // reaches that read has to be pinned at or after this migration or it fails with
-  // `column "analytics_consent" does not exist`. The one moved here is the complete set:
-  // agent/reviews from 0141, which serves its requests through a real createAgentRoutes app on the
-  // unmocked loadRequestContextFromRequest. Its createMcpServer half is not the reason: that call
-  // takes an already-built AuthenticatedMcpAccessToken and never loads a request context.
-  // Import-reachable but unaffected, re-derived from scratch on each of the four prior re-pins of
-  // this kind, so recorded here once:
-  // - admin/authz: value-imports ensureCognitoUserProfile through authz.ts, but the test only calls
-  //   loadAdminProfileEmail and never enters requireSessionAdminRequest.
-  // - the three mediaAssets/multipart tests: reach requestContext.ts only through
-  //   requestBoundary.ts's `import type { RequestContext }`, which tsx/esbuild erases.
-  // - sync/freshBootstrap: injects its own loadRequestContextFromRequestFn.
-  // - chat/cardImages/promotion/jobsSettlement: no import path to requestContext.ts at all.
-  // - guestAuthTestHarness/handlers/userSettings.ts is a third SQL site naming the column, but no
-  //   pinned test imports it.
-  // Moving a test retires the older-schema coverage it used to give, because each test runs only at
-  // its pinned boundary and there is no full-schema pass.
-  Object.freeze({
-    migrationFileName: "0142_analytics_consent_choice.sql",
-    expectedMigrationCount: 144,
-    testFiles: Object.freeze([
-      "src/agent/reviews.postgres.integration.ts",
-    ]),
-  }),
   // 0141 adds sync.installations.is_automation and recreates sync.claim_installation with it as an
   // extra output column, and the shared replica reads now name that column: the claim SELECT in
   // sync/identity/replica.ts, and the LEFT JOIN behind the product analytics content-creation and
@@ -122,7 +127,7 @@ export const boundaryDefinitions = Object.freeze([
   // reads and are the complete set: freshBootstrap (the /sync/bootstrap replica claim) and
   // jobsSettlement (which verifies a promoted asset through a real processSyncPull), both moved
   // here from 0107, and agent/reviews (processSyncPull, processSyncReviewHistoryPull, and the
-  // post-commit content-creation resolution), which came here from 0138 and which the 0142
+  // post-commit content-creation resolution), which came here from 0138 and which the 0149
   // boundary above now pins further forward, satisfying this one too. Moving them retires the
   // older-schema coverage they used to give, because each test runs only at its pinned boundary
   // and there is no full-schema pass.

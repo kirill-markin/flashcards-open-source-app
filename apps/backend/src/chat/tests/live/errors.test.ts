@@ -133,6 +133,7 @@ test("handleLiveRequest uses the authoritative Cognito profile for downstream ac
         guestSessionId: null,
         guestPlatform: null,
         guestAnalyticsConsent: null,
+        guestProductAnalyticsEnabled: null,
       }),
       ensureCognitoUserProfileFn: async (subjectUserId, email) => {
         assert.equal(subjectUserId, "cognito-subject");
@@ -146,6 +147,7 @@ test("handleLiveRequest uses the authoritative Cognito profile for downstream ac
           preferences: {
             reviewReactionAnimationsEnabled: true,
             analyticsConsent: null,
+            productAnalyticsEnabled: null,
           },
         };
       },

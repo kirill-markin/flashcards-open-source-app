@@ -156,6 +156,26 @@ type StoredGuestSessionAnalyticsConsentRow = Readonly<{
   analytics_consent: AnalyticsConsentChoice;
 }>;
 
+/** The write below sets a non-null value, so what it returns cannot be NULL. */
+type StoredGuestSessionProductAnalyticsEnabledRow = Readonly<{
+  product_analytics_enabled: boolean;
+}>;
+
+/**
+ * What a request may ask to store on the guest session. Null is a field the request left out, not
+ * an erasure: neither column is ever written back to NULL.
+ */
+export type GuestSessionAnalyticsPreferencesUpdate = Readonly<{
+  analyticsConsent: AnalyticsConsentChoice | null;
+  productAnalyticsEnabled: boolean | null;
+}>;
+
+/** Only the columns this call wrote. A field the update left out comes back null and untouched. */
+export type StoredGuestSessionAnalyticsPreferences = Readonly<{
+  analyticsConsent: AnalyticsConsentChoice | null;
+  productAnalyticsEnabled: boolean | null;
+}>;
+
 /**
  * Records on the guest session what a person with no account answered about analytics collection.
  *
@@ -164,40 +184,104 @@ type StoredGuestSessionAnalyticsConsentRow = Readonly<{
  * column is not there yet is the one outcome that must be impossible, so a pre-0147 schema raises
  * instead of reporting a success the database did not take.
  */
-export async function updateGuestSessionAnalyticsConsent(
+async function setGuestSessionAnalyticsConsentInExecutor(
+  executor: DatabaseExecutor,
   guestUserId: string,
   guestSessionId: string,
   analyticsConsent: AnalyticsConsentChoice,
 ): Promise<AnalyticsConsentChoice> {
-  const result = await transactionWithUserScope(
-    { userId: guestUserId },
-    async (executor) => {
-      if (!await guestSessionAnalyticsConsentColumnExistsInExecutor(executor)) {
-        throw new Error(
-          `Cannot store guest analytics consent "${analyticsConsent}": column`
-          + " auth.guest_sessions.analytics_consent does not exist yet, because migration"
-          + " 0147_guest_session_analytics_consent has not been applied in this environment.",
-        );
-      }
+  if (!await guestSessionAnalyticsConsentColumnExistsInExecutor(executor)) {
+    throw new Error(
+      `Cannot store guest analytics consent "${analyticsConsent}": column`
+      + " auth.guest_sessions.analytics_consent does not exist yet, because migration"
+      + " 0147_guest_session_analytics_consent has not been applied in this environment.",
+    );
+  }
 
-      return executor.query<StoredGuestSessionAnalyticsConsentRow>(
-        [
-          "UPDATE auth.guest_sessions",
-          "SET analytics_consent = $3::TEXT",
-          "WHERE session_id = $1 AND user_id = $2 AND revoked_at IS NULL",
-          "RETURNING analytics_consent",
-        ].join(" "),
-        [guestSessionId, guestUserId, analyticsConsent],
-      );
-    },
+  const result = await executor.query<StoredGuestSessionAnalyticsConsentRow>(
+    [
+      "UPDATE auth.guest_sessions",
+      "SET analytics_consent = $3::TEXT",
+      "WHERE session_id = $1 AND user_id = $2 AND revoked_at IS NULL",
+      "RETURNING analytics_consent",
+    ].join(" "),
+    [guestSessionId, guestUserId, analyticsConsent],
   );
-
   const row = result.rows[0];
   if (row === undefined) {
     throw createGuestSessionInvalidError();
   }
 
   return row.analytics_consent;
+}
+
+/**
+ * Records on the guest session whether a person with no account allows product analytics.
+ *
+ * No column probe, unlike the consent write above: infra/aws/lib/stack.ts binds the backend Lambda
+ * to the migration gate, so migration 0149 is applied before this code serves a request. A probe
+ * would also have to answer for a read path that must never report a stored opt-out as unanswered.
+ */
+async function setGuestSessionProductAnalyticsEnabledInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  guestSessionId: string,
+  productAnalyticsEnabled: boolean,
+): Promise<boolean> {
+  const result = await executor.query<StoredGuestSessionProductAnalyticsEnabledRow>(
+    [
+      "UPDATE auth.guest_sessions",
+      "SET product_analytics_enabled = $3::BOOLEAN",
+      "WHERE session_id = $1 AND user_id = $2 AND revoked_at IS NULL",
+      "RETURNING product_analytics_enabled",
+    ].join(" "),
+    [guestSessionId, guestUserId, productAnalyticsEnabled],
+  );
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw createGuestSessionInvalidError();
+  }
+
+  return row.product_analytics_enabled;
+}
+
+/**
+ * Stores every analytics answer a guest request carries, in one transaction.
+ *
+ * One transaction rather than a write per column because either write can fail - a revoked session,
+ * and a pre-0147 schema for the consent column - and a request carrying both answers must land
+ * both or neither. Two transactions would let a 500 still leave one answer stored, with no way for
+ * the client to tell which. A field the request left out is not written at all, so a request that
+ * touches neither column never reaches this function.
+ */
+export async function updateGuestSessionAnalyticsPreferences(
+  guestUserId: string,
+  guestSessionId: string,
+  update: GuestSessionAnalyticsPreferencesUpdate,
+): Promise<StoredGuestSessionAnalyticsPreferences> {
+  return transactionWithUserScope(
+    { userId: guestUserId },
+    async (executor) => {
+      const analyticsConsent = update.analyticsConsent === null
+        ? null
+        : await setGuestSessionAnalyticsConsentInExecutor(
+          executor,
+          guestUserId,
+          guestSessionId,
+          update.analyticsConsent,
+        );
+      const productAnalyticsEnabled = update.productAnalyticsEnabled === null
+        ? null
+        : await setGuestSessionProductAnalyticsEnabledInExecutor(
+          executor,
+          guestUserId,
+          guestSessionId,
+          update.productAnalyticsEnabled,
+        );
+
+      return { analyticsConsent, productAnalyticsEnabled };
+    },
+  );
 }
 
 /**
@@ -238,6 +322,56 @@ export async function carryGuestAnalyticsConsentToAccountInExecutor(
   await executor.query(
     "UPDATE org.user_settings SET analytics_consent = $2 WHERE user_id = $1 AND analytics_consent IS NULL",
     [targetUserId, analyticsConsent],
+  );
+}
+
+type GuestSessionProductAnalyticsEnabledRow = Readonly<{
+  product_analytics_enabled: boolean | null;
+}>;
+
+/**
+ * Carries a guest's recorded product-analytics switch onto the account that guest becomes at
+ * upgrade, on the same terms as the consent carry above.
+ *
+ * NULL on org.user_settings.product_analytics_enabled reads as collection allowed, so an upgrade
+ * that left the account column NULL would turn an opt-out back into collection at sign-in. An
+ * account that answered for itself keeps its own answer, which is why the copy lands only on a
+ * target row still holding NULL.
+ *
+ * Unlike a consent value, the restrictive answer here is `false`, so "the account's own answer
+ * wins" resolves toward more collection rather than less: a guest holding `false` who signs into an
+ * account already holding `true` loses the opt-out, and collection continues under the account.
+ * That is deliberate and matches 0147 - the account answer is that person's own later decision,
+ * made on the account they chose to sign into - and the switch stays theirs to set again.
+ *
+ * Runs in both upgrade shapes and therefore before the merge shape deletes the guest row. No column
+ * probe: the migration gate applies 0149 before this code runs, as for the write path.
+ */
+export async function carryGuestProductAnalyticsEnabledToAccountInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  guestSessionId: string,
+  targetUserId: string,
+): Promise<void> {
+  const guestResult = await executor.query<GuestSessionProductAnalyticsEnabledRow>(
+    [
+      "SELECT product_analytics_enabled",
+      "FROM auth.guest_sessions",
+      "WHERE session_id = $1 AND user_id = $2",
+      "LIMIT 1",
+    ].join(" "),
+    [guestSessionId, guestUserId],
+  );
+  const productAnalyticsEnabled = guestResult.rows[0]?.product_analytics_enabled ?? null;
+  if (productAnalyticsEnabled === null) {
+    return;
+  }
+
+  await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
+  await executor.query(
+    "UPDATE org.user_settings SET product_analytics_enabled = $2"
+    + " WHERE user_id = $1 AND product_analytics_enabled IS NULL",
+    [targetUserId, productAnalyticsEnabled],
   );
 }
 

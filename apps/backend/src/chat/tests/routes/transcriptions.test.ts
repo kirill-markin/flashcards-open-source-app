@@ -23,6 +23,7 @@ function createRequestContext(): RequestContext {
     preferences: {
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
+      productAnalyticsEnabled: null,
     },
     transport: "bearer",
     connectionId: null,

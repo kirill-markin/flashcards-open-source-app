@@ -26,6 +26,7 @@ import { mergeGuestWorkspaceIntoTargetInExecutor } from "../merge/index";
 import {
   assertTargetWorkspaceAccessInExecutor,
   carryGuestAnalyticsConsentToAccountInExecutor,
+  carryGuestProductAnalyticsEnabledToAccountInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestSessionWithUserSettingsLockInExecutor,
   loadGuestUpgradeReplayByGuestTokenInExecutor,
@@ -522,6 +523,12 @@ export async function completeGuestUpgradeInExecutor(
       guestSession.sessionId,
       targetUserId,
     );
+    await carryGuestProductAnalyticsEnabledToAccountInExecutor(
+      executor,
+      guestSession.userId,
+      guestSession.sessionId,
+      targetUserId,
+    );
 
     const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.userId);
     return {
@@ -623,10 +630,17 @@ export async function completeGuestUpgradeInExecutor(
     guestUpgradeResolution.targetWorkspaceId,
   );
 
-  // Phase 12: carry the guest's analytics answer onto the destination account, while the guest
+  // Phase 12: carry the guest's analytics answers - the consent decision and the product
+  // analytics switch - onto the destination account, while the guest
   // session still exists. The cleanup below deletes the guest org.user_settings row, and the guest
   // session cascades away with it, so a withdrawal not copied here is lost.
   await carryGuestAnalyticsConsentToAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestSession.sessionId,
+    guestUpgradeResolution.targetUserId,
+  );
+  await carryGuestProductAnalyticsEnabledToAccountInExecutor(
     executor,
     guestSession.userId,
     guestSession.sessionId,

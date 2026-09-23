@@ -37,8 +37,9 @@ export type AuthResult = Readonly<{
   guestSessionId: string | null;
   guestPlatform: GuestSessionPlatform | null;
   // Only a guest carries one: a signed-in person's analytics decision is kept on the account and
-  // arrives with the rest of the profile instead.
+  // arrives with the rest of the profile instead. The same holds for the switch below.
   guestAnalyticsConsent: AnalyticsConsentChoice | null;
+  guestProductAnalyticsEnabled: boolean | null;
 }>;
 
 export type AuthRequest = Readonly<{
@@ -333,6 +334,7 @@ async function authenticateRequestWithDependencies(
       guestSessionId: null,
       guestPlatform: null,
       guestAnalyticsConsent: null,
+      guestProductAnalyticsEnabled: null,
     };
   }
 
@@ -352,6 +354,7 @@ async function authenticateRequestWithDependencies(
       guestSessionId: null,
       guestPlatform: null,
       guestAnalyticsConsent: null,
+      guestProductAnalyticsEnabled: null,
     };
   }
 
@@ -372,6 +375,7 @@ async function authenticateRequestWithDependencies(
       guestSessionId: null,
       guestPlatform: null,
       guestAnalyticsConsent: null,
+      guestProductAnalyticsEnabled: null,
     };
   }
 
@@ -390,6 +394,7 @@ async function authenticateRequestWithDependencies(
       guestSessionId: guestSession.sessionId,
       guestPlatform: guestSession.platform,
       guestAnalyticsConsent: guestSession.analyticsConsent,
+      guestProductAnalyticsEnabled: guestSession.productAnalyticsEnabled,
     };
   }
 
@@ -411,6 +416,7 @@ async function authenticateRequestWithDependencies(
       guestSessionId: null,
       guestPlatform: null,
       guestAnalyticsConsent: null,
+      guestProductAnalyticsEnabled: null,
     };
   }
 

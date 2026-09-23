@@ -19,9 +19,16 @@ import {
 /** A recorded analytics consent decision. No decision is null, never a third choice value. */
 export type AnalyticsConsentChoice = "granted" | "declined";
 
+/**
+ * The product-analytics off switch. `false` is an explicit opt-out, `true` an explicit opt-in, and
+ * null no answer on this row, which reads as collection allowed: the basis is legitimate interest,
+ * so nothing prompts for it. Deliberately not derived from `analyticsConsent`, which answers the
+ * separate cookie-banner question; refusing that cookie leaves this switch unanswered and on.
+ */
 export type AccountPreferences = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
+  productAnalyticsEnabled: boolean | null;
 }>;
 
 export type UserProfile = Readonly<{
@@ -39,6 +46,7 @@ type UserSettingsRow = Readonly<{
   locale: string;
   review_reaction_animations_enabled: boolean;
   analytics_consent: AnalyticsConsentChoice | null;
+  product_analytics_enabled: boolean | null;
   created_at: Date | string;
 }>;
 
@@ -67,7 +75,8 @@ export async function ensureUserProfileInExecutor(
 
   const existing = await executor.query<UserSettingsRow>(
     [
-      "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent, created_at",
+      "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,",
+      "product_analytics_enabled, created_at",
       "FROM org.user_settings",
       "WHERE user_id = $1",
       "FOR UPDATE",
@@ -95,6 +104,7 @@ export async function ensureUserProfileInExecutor(
     preferences: {
       reviewReactionAnimationsEnabled: settings.review_reaction_animations_enabled,
       analyticsConsent: settings.analytics_consent,
+      productAnalyticsEnabled: settings.product_analytics_enabled,
     },
   };
 }

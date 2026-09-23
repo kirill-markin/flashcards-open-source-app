@@ -426,6 +426,12 @@ export type ProductBreadcrumbEvent =
   // one reports what it accepted and storedCount 0, which is the whole difference an automation
   // installation makes (db/migrations/0141_sync_installation_automation_marker.sql).
   | EventByAction<"analytics_events_ingest_automation_dropped", ProductAnalyticsIngestDetails>
+  // The same shape again, for the other reason a validated batch is stored nowhere: the credential
+  // that sent it holds the product-analytics off switch
+  // (db/migrations/0149_product_analytics_off_switch.sql). The switch is checked before the
+  // automation marker, so a batch that is both an automation run and an opt-out records only this
+  // action.
+  | EventByAction<"analytics_events_ingest_analytics_off_dropped", ProductAnalyticsIngestDetails>
   | EventByAction<"analytics_events_ingest_error", FailureDetailsFor<ProductAnalyticsIngestDetails>>
   | EventByAction<"workspaces_list", WorkspacesListDetails>
   | EventByAction<"workspaces_list_error", FailureDetailsFor<WorkspacesListDetails>>
