@@ -92,6 +92,12 @@ extension FlashcardsStore {
      * A retryable failure leaves the credential in place for the next start of this same claim.
      */
     func resumeAnalyticsGuestIdentityLinkIfNeeded() {
+        guard self.isProductAnalyticsEnabled else {
+            // The claim is analytics work done on this person's behalf, so an opt-out stops it too,
+            // even though the tail it would link was collected before. Nothing is lost: the
+            // credential stays stored and a later launch resumes the claim if analytics is back on.
+            return
+        }
         guard self.isAnalyticsGuestIdentityLinkResumeRunning == false else {
             return
         }

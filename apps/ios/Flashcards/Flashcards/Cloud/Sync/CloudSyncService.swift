@@ -69,7 +69,8 @@ private func makeCloudAccountContext(meResponse: MeResponse) -> CloudAccountCont
         userId: meResponse.userId,
         email: meResponse.profile.email,
         preferences: AccountPreferences(
-            reviewReactionAnimationsEnabled: meResponse.preferences.reviewReactionAnimationsEnabled
+            reviewReactionAnimationsEnabled: meResponse.preferences.reviewReactionAnimationsEnabled,
+            productAnalyticsEnabled: meResponse.preferences.productAnalyticsEnabled
         )
     )
 }
@@ -148,14 +149,14 @@ final class CloudSyncService: @unchecked Sendable {
     func updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
-        preferences: AccountPreferences
+        patch: AccountPreferencesPatchRequest
     ) async throws -> AccountPreferences {
         let response: UpdateAccountPreferencesResponse = try await self.transport.request(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
             path: "/me/preferences",
             method: "PATCH",
-            body: preferences
+            body: patch
         )
         return response.preferences
     }

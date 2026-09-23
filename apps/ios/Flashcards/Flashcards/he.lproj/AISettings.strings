@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "הצגתי בטבלת הדירוג";
 "settings.leaderboardParticipation.description" = "כשהאפשרות כבויה, הפעילות האנונימית שלך לא תופיע בטבלת הדירוג.";
 "settings.leaderboardParticipation.signInRequired" = "כדי לנהל השתתפות בטבלת הדירוג, יש לחבר סנכרון לענן.";
+"settings.productAnalytics.title" = "ניתוח שימוש במוצר";
+"settings.productAnalytics.toggle" = "שיתוף ניתוח שימוש במוצר";
+"settings.productAnalytics.footer" = "ניתוח השימוש מראה לנו באילו חלקים של האפליקציה משתמשים, ולעולם לא מה כתוב בכרטיסים שלך. כשהאפשרות כבויה, האפליקציה לא מתעדת ולא שולחת דבר. דוחות קריסה ושגיאות אינם מושפעים.";
 "settings.language.title" = "שפה";
 "settings.language.systemDescription" = "iOS קובע את שפת האפליקציה. בהגדרות iOS, יש לפתוח את Nibomo ולבחור שפה מועדפת. אם שפה מועדפת אינה מופיעה, יש להוסיף תחילה שפה נוספת בהגדרות > כללי > שפה ואזור.";
 "settings.language.action.openAppSettings" = "פתיחת הגדרות Nibomo";

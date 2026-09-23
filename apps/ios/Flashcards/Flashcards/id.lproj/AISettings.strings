@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Tampilkan saya di papan peringkat";
 "settings.leaderboardParticipation.description" = "Jika nonaktif, aktivitas anonim Anda tidak muncul di papan peringkat.";
 "settings.leaderboardParticipation.signInRequired" = "Hubungkan sinkronisasi cloud untuk mengelola partisipasi papan peringkat.";
+"settings.productAnalytics.title" = "Analitik Produk";
+"settings.productAnalytics.toggle" = "Bagikan analitik produk";
+"settings.productAnalytics.footer" = "Analitik produk memberi tahu kami bagian aplikasi mana yang digunakan orang, bukan isi kartu Anda. Saat dimatikan, aplikasi tidak merekam dan tidak mengirim apa pun. Laporan kerusakan dan kesalahan tidak terpengaruh.";
 "settings.language.title" = "Bahasa";
 "settings.language.systemDescription" = "Bahasa aplikasi diatur oleh iOS. Di Pengaturan iOS, buka Nibomo dan gunakan Bahasa Pilihan. Jika tidak muncul, tambahkan bahasa lain di Pengaturan > Umum > Bahasa & Wilayah terlebih dahulu.";
 "settings.language.action.openAppSettings" = "Buka pengaturan Nibomo";

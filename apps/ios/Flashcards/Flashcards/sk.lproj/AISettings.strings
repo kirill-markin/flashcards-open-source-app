@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Zobraziť ma v rebríčku";
 "settings.leaderboardParticipation.description" = "Keď je táto možnosť vypnutá, vaša anonymná aktivita sa nezobrazuje v rebríčku.";
 "settings.leaderboardParticipation.signInRequired" = "Ak chcete spravovať účasť v rebríčku, pripojte cloudovú synchronizáciu.";
+"settings.productAnalytics.title" = "Analytika produktu";
+"settings.productAnalytics.toggle" = "Zdieľať analytiku produktu";
+"settings.productAnalytics.footer" = "Analytika produktu nám ukazuje, ktoré časti aplikácie ľudia používajú, nikdy nie obsah vašich kartičiek. Keď je vypnutá, aplikácia nič nezaznamenáva ani neodosiela. Hlásenia o pádoch a chybách tým nie sú dotknuté.";
 "settings.language.title" = "Jazyk";
 "settings.language.systemDescription" = "Jazyk aplikácie riadi iOS. V Nastaveniach iOS otvorte Nibomo a použite Preferovaný jazyk. Ak sa Preferovaný jazyk nezobrazuje, najprv pridajte ďalší jazyk v Nastavenia > Všeobecné > Jazyk a región.";
 "settings.language.action.openAppSettings" = "Otvoriť nastavenia Nibomo";
