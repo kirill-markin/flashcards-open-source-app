@@ -211,7 +211,7 @@ function resolveReviewAnsweredServerAnchor(answer: ReviewAnswer, recordedAt: Dat
  * review can legitimately be days older than the sync that carried it, so the value is kept only
  * where it is plausible: within the same 30-day window the live client ingest accepts, and never
  * after the anchor. Outside it the anchor is used instead, which is the same rule the content
- * creations producer applies to client_updated_at.
+ * writes producer applies to client_updated_at.
  *
  * A value outside the window is dropped rather than pulled to the nearest edge, because an edge
  * value still claims a day the answer did not happen on.
@@ -420,7 +420,7 @@ function toReviewAnsweredEvent(
     // analytics.product_events_resolved reads the guest upgrade link through subject_user_id, so
     // without it every review answered before signing up would stay stranded on the guest identity.
     // For an account this names the authoritative user id where the ingest route would carry the
-    // Cognito subject, which is a deliberate divergence shared with the content creations producer:
+    // Cognito subject, which is a deliberate divergence shared with the content writes producer:
     // the only link keyed on subject_user_id is a guest upgrade, and no account's authoritative id
     // is ever a merged-away guest user id, so no attribution changes. A query that reads this column
     // as a Cognito subject, or that treats subject_user_id <> user_id as "this row came from a
@@ -471,7 +471,7 @@ function toReviewAnsweredEvent(
  * "budget_exhausted" means every chunk it answered was stored and the request's post-commit
  * analytics clock ran out. That clock is shared with every other analytics stage of the request, so
  * a "budget_exhausted" stop here does not have to mean this drain was the large one: on a sync push
- * or a guest upgrade the content creations drain runs first and can spend it. Only "writer_refused"
+ * or a guest upgrade the content writes drain runs first and can spend it. Only "writer_refused"
  * has a paired product_analytics_server_event_write_failed carrying the error, and only it reports a
  * non-zero failedEventCount.
  *
@@ -634,18 +634,18 @@ export type CommittedReviewTransaction<Result> = Readonly<{
  * Every transaction that can reach appendReviewEventSnapshotInExecutor must be opened through this,
  * otherwise its answers are collected and then dropped. The opener is injected rather than chosen
  * here because the four review write paths do not share one: a direct review and a review history
- * import open a plain workspace-scoped transaction, a sync push opens the content creations wrapper,
+ * import open a plain workspace-scoped transaction, a sync push opens the content writes wrapper,
  * and the guest upgrade opens the privileged one. Opening it here rather than trusting a callback to
  * have opened it is what makes the drain provably post-commit - the transaction returns only after
  * its COMMIT succeeded, so a transaction that threw never reaches the drain and its buffer is
  * dropped with its executor.
  *
- * Where the opener is a content creations wrapper, that wrapper's own drain runs inside
+ * Where the opener is a content writes wrapper, that wrapper's own drain runs inside
  * openTransaction and therefore strictly before this one. The shared lifecycle's no-rejection
  * contract keeps the later answer drain reachable after the product transaction has committed.
  *
  * budget is the post-commit analytics clock the whole request shares, so that this drain, the
- * content creations drain nested inside openTransaction, and anything the caller reports after this
+ * content writes drain nested inside openTransaction, and anything the caller reports after this
  * returns are bounded together rather than each on its own. It is required rather than optional
  * because two of the four review write paths already run other post-commit stages, and there are
  * only four call sites: making each one name the request's own clock is cheaper than leaving a

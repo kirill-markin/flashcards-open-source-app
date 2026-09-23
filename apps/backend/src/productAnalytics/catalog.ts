@@ -598,7 +598,7 @@ export const productAnalyticsEventCatalog = {
       //
       // `catalog_install` has no producer and keeps none while installing stays separate from
       // authoring: an installed card is written by the install's own SQL and never reaches the
-      // creation producer at all (../catalog/distribution/install/persistence.ts), so the whole
+      // content writes producer at all (../catalog/distribution/install/persistence.ts), so the whole
       // install is reported once as `catalog_deck_installed` rather than as one creation per card.
       // The value is declared because it names the one channel this vocabulary would otherwise
       // leave unspellable, and a zero count on it is that decision rather than a measurement.
@@ -834,6 +834,21 @@ export const productAnalyticsEventCatalog = {
   // purpose. iOS and Android assert `ai`, the only surface those clients dictate from. Web takes
   // the surface the person is on, because its composer can be open over another route, so a
   // failure there can be filed against a route while its own start named `ai`.
+  //
+  // An unpaired `dictation_started` is not a measure of anything, on any client. There is no success
+  // counterpart in this event set — a transcript reaching the draft reports nothing — so a start with
+  // no `dictation_failed` after it is normally a dictation that worked. Deliberate abandonment is
+  // not in the unpaired set either: it is the `cancelled` reason above, reported here rather than
+  // left as a start with nothing after it.
+  //
+  // What web actually loses is narrower than both. An attempt already transcribing when the app's
+  // IndexedDB recovery fires reports nothing at all: the in-flight call returns through the recovery
+  // branch, and the unmount that the recovery causes only marks that attempt rather than reporting
+  // it (apps/web/src/chat/composer/dictation/useChatDictationCapture.ts). A recording that has not
+  // been stopped yet is still paired `cancelled` by the same unmount, and a session whose recovery
+  // already failed cannot start a dictation at all. Nothing in the event set marks the attempts that
+  // are lost, so their starts are indistinguishable from successful ones, and an unpaired-start
+  // count bounds neither abandonment nor loss.
   dictation_failed: {
     serverOnly: false,
     requiresScreen: false,

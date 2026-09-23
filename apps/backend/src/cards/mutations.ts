@@ -549,10 +549,11 @@ export async function updateCardInExecutor(
   return card;
 }
 
-// The card update and delete transactions below stay on the plain scoped transaction, because
-// updateCardInExecutor and deleteCardInExecutor write their own UPDATE against a row they already
-// required to exist and never reach the snapshot upsert's insert branch, so they can collect no
-// creation to report.
+// The card update transactions below stay on the plain scoped transaction, because
+// updateCardInExecutor writes its own UPDATE against a row it already required to exist and never
+// reaches the snapshot upsert's insert branch, so it can collect no content write to report. The
+// delete transactions further down are on the reporting wrapper instead: deleteCardInExecutor
+// collects a content deletion, which needs the wrapper's post-commit drain to emit it.
 export async function updateCard(
   userId: string,
   workspaceId: string,

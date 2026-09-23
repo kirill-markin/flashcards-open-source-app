@@ -415,9 +415,9 @@ extension AnalyticsEvent {
 
     /**
      * `screen` is a top-level event field on the wire, never a property: a surface placed inside
-     * `properties` is rejected `unknown_property`. Only `screen_viewed`, `review_card_revealed`,
-     * the two sign-in steps and `dictation_started` carry one of their own; every other event
-     * takes the surface the caller was on, if any.
+     * `properties` is rejected `unknown_property`. The cases below carry one of their own, and they
+     * are exactly the events the server catalog marks `requiresScreen`; every other event takes the
+     * surface the caller was on, if any.
      */
     var declaredScreen: AnalyticsSurface? {
         switch self {

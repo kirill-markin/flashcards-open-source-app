@@ -41,13 +41,13 @@
 // ../../database/config.ts memoizes it process-wide, but nothing here guarantees it). The first
 // post-commit operation of a cold invocation can therefore run past 4s and carry the whole tail past
 // the figures above, so read them as the shape of the bound and not as an unconditional cap.
-// Second, the budget bounds only the stages wired to it - the content creations drain, the review
+// Second, the budget bounds only the stages wired to it - the content writes drain, the review
 // answers drain and the guest upgrade's completion event. recordFriendshipCreatedAnalytics
 // (../../community/analytics.ts) runs two sequential post-commit writes, and the catalog install and ai
 // message producers one each, none of them drawing on a budget, so a request that reaches one of
 // those pays its cost outside this bound; wiring them in is separate work.
 //
-// The budget is the 4.0s the content creations drain already carried on its own, so that drain loses
+// The budget is the 4.0s the content writes drain already carried on its own, so that drain loses
 // no healthy-case capacity: a healthy chunk is one unnest insert on a warm pooled connection, so 4s
 // still covers tens of thousands of facts before anything is skipped, and a drain that cannot finish
 // inside it was already threatening its request.
