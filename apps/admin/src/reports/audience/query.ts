@@ -45,6 +45,31 @@ export type AudienceReport = Readonly<{
 // rather than `app_opened` alone: it decides the interface language and the `unknown` language
 // coverage of a person the cohort already counted, and a credential-free row resolving onto that
 // person is not evidence of what language that person uses.
+//
+// `analytics_settings` is the one thing in this report that is not an event: both decisions are
+// stored state with no history, so the six metrics built from it say what the cohort holds now,
+// never who changed anything inside the range. The precedence below mirrors the guest-to-account
+// carry rather than inventing a reporting rule - the account row's explicit answer wins, and live
+// guest sessions decide only while the account holds NULL, exactly as
+// `apps/backend/src/guestAuth/store/session.ts` documents, on its own ground that an account answer
+// is that person's own later decision. It is needed because a bound upgrade leaves the guest session
+// alive under the same actor (`apps/backend/src/guestAuth/upgrade/index.ts`), so one person can
+// carry a frozen guest answer beside their account answer. Ingest is not the model for it: ingest
+// reads whichever credential the batch arrived on (`apps/backend/src/routes/productAnalytics.ts`,
+// over the guest override in `apps/backend/src/server/requestContext.ts`), so a batch sent on that
+// frozen guest credential is still dropped, and ingest never reads `analytics_consent` at all.
+// No path creates a second live guest row under one actor today - a new session mints a new user,
+// and a creation-idempotency retry rotates the secret on the existing row
+// (`apps/backend/src/guestAuth/session/index.ts`) - but were there ever two, the restrictive answer
+// among them would win. Revoked guest sessions are left out because both upgrade shapes carry a
+// recorded answer onto the account before anything revokes or deletes the guest row.
+// `db/migrations/0149_product_analytics_off_switch.sql` says why the two questions are never derived
+// from each other, and why NULL reads as ON while an explicit TRUE is stored rather than collapsed
+// back to it, so that "never answered" and "answered yes" stay distinguishable.
+// Two people this field cannot see: a deleted account, whose settings row is gone and whose guest
+// sessions cascaded with it while their `app_opened` rows keep them in the cohort, so they report as
+// no answer recorded even if they answered; and a signed-out browser, whose switch is enforced in
+// that browser because a web guest credential never holds a value here.
 export function buildAudienceSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, "Audience");
   const userSelection = buildUsersFilterSql("history.actor_id::text", filters.users);
@@ -136,6 +161,31 @@ ${buildConnectionCountrySamplesSql(dateRange, filters.eventPlatforms)}
   ), pairs AS (
     SELECT DISTINCT actor_id, country, ui_locale FROM sampled_events
     WHERE country IS NOT NULL AND ui_locale IS NOT NULL
+  ), analytics_settings AS (
+    SELECT actors.actor_id, TRUE AS is_account,
+      account_settings.analytics_consent, account_settings.product_analytics_enabled
+    FROM actors
+    JOIN org.user_settings AS account_settings
+      ON pg_catalog.lower(account_settings.user_id) = actors.actor_id::text
+    UNION ALL
+    SELECT actors.actor_id, FALSE AS is_account,
+      guest_sessions.analytics_consent, guest_sessions.product_analytics_enabled
+    FROM actors
+    JOIN auth.guest_sessions AS guest_sessions
+      ON pg_catalog.lower(guest_sessions.user_id) = actors.actor_id::text
+    WHERE guest_sessions.revoked_at IS NULL
+  ), analytics_answers AS (
+    SELECT actor_id,
+      COALESCE(bool_or(product_analytics_enabled IS FALSE) FILTER (WHERE is_account), FALSE) AS account_analytics_off,
+      COALESCE(bool_or(product_analytics_enabled IS TRUE) FILTER (WHERE is_account), FALSE) AS account_analytics_on,
+      COALESCE(bool_or(product_analytics_enabled IS FALSE) FILTER (WHERE NOT is_account), FALSE) AS guest_analytics_off,
+      COALESCE(bool_or(product_analytics_enabled IS TRUE) FILTER (WHERE NOT is_account), FALSE) AS guest_analytics_on,
+      COALESCE(bool_or(analytics_consent = 'declined') FILTER (WHERE is_account), FALSE) AS account_consent_declined,
+      COALESCE(bool_or(analytics_consent = 'granted') FILTER (WHERE is_account), FALSE) AS account_consent_granted,
+      COALESCE(bool_or(analytics_consent = 'declined') FILTER (WHERE NOT is_account), FALSE) AS guest_consent_declined,
+      COALESCE(bool_or(analytics_consent = 'granted') FILTER (WHERE NOT is_account), FALSE) AS guest_consent_granted
+    FROM analytics_settings
+    GROUP BY actor_id
   ), actor_coverage AS (
     SELECT actors.actor_id,
       (SELECT count(*) FROM countries WHERE countries.actor_id = actors.actor_id) AS countries,
@@ -143,8 +193,28 @@ ${buildConnectionCountrySamplesSql(dateRange, filters.eventPlatforms)}
       EXISTS (SELECT 1 FROM pairs WHERE pairs.actor_id = actors.actor_id) AS has_pair,
       EXISTS (SELECT 1 FROM language_events WHERE language_events.actor_id = actors.actor_id
         AND language_events.ui_locale IS NULL) AS has_unknown_language,
-      EXISTS (SELECT 1 FROM sampled_events WHERE sampled_events.actor_id = actors.actor_id) AS has_sample
+      EXISTS (SELECT 1 FROM sampled_events WHERE sampled_events.actor_id = actors.actor_id) AS has_sample,
+      -- The account's explicit answer outranks every live guest record of the same person, and the
+      -- guest records decide only while the account holds none - which is the account pair both
+      -- being false. Each pair is disjoint for every one of the sixteen input combinations, not only
+      -- the reachable ones, so the three counts below always partition the cohort: the restrictive
+      -- answer is checked first and the permissive one is guarded by its negation on both tiers.
+      COALESCE(answers.account_analytics_off
+        OR (NOT answers.account_analytics_off AND NOT answers.account_analytics_on
+          AND answers.guest_analytics_off), FALSE) AS has_analytics_off,
+      COALESCE(NOT answers.account_analytics_off
+        AND (answers.account_analytics_on
+          OR (NOT answers.account_analytics_on AND NOT answers.guest_analytics_off
+            AND answers.guest_analytics_on)), FALSE) AS has_analytics_on,
+      COALESCE(answers.account_consent_declined
+        OR (NOT answers.account_consent_declined AND NOT answers.account_consent_granted
+          AND answers.guest_consent_declined), FALSE) AS has_consent_declined,
+      COALESCE(NOT answers.account_consent_declined
+        AND (answers.account_consent_granted
+          OR (NOT answers.account_consent_granted AND NOT answers.guest_consent_declined
+            AND answers.guest_consent_granted)), FALSE) AS has_consent_granted
     FROM actors
+    LEFT JOIN analytics_answers AS answers ON answers.actor_id = actors.actor_id
   )
   SELECT 'summary' AS dimension, metric.value, '' AS secondary, metric.users
   FROM (
@@ -158,7 +228,13 @@ ${buildConnectionCountrySamplesSql(dateRange, filters.eventPlatforms)}
       count(*) FILTER (WHERE has_pair) AS pair_known,
       count(*) FILTER (WHERE NOT has_pair) AS pair_unknown,
       count(*) FILTER (WHERE has_unknown_language) AS missing_language_events,
-      count(*) FILTER (WHERE has_sample) AS sampled
+      count(*) FILTER (WHERE has_sample) AS sampled,
+      count(*) FILTER (WHERE has_analytics_off) AS analytics_off,
+      count(*) FILTER (WHERE has_analytics_on) AS analytics_on,
+      count(*) FILTER (WHERE NOT has_analytics_off AND NOT has_analytics_on) AS analytics_unanswered,
+      count(*) FILTER (WHERE has_consent_declined) AS consent_declined,
+      count(*) FILTER (WHERE has_consent_granted) AS consent_granted,
+      count(*) FILTER (WHERE NOT has_consent_declined AND NOT has_consent_granted) AS consent_unanswered
     FROM actor_coverage
   ) AS totals
   CROSS JOIN LATERAL (VALUES
@@ -166,7 +242,11 @@ ${buildConnectionCountrySamplesSql(dateRange, filters.eventPlatforms)}
     ('language_known', totals.language_known), ('language_unknown', totals.language_unknown),
     ('multi_country', totals.multi_country), ('multi_language', totals.multi_language),
     ('pair_known', totals.pair_known), ('pair_unknown', totals.pair_unknown),
-    ('missing_language_events', totals.missing_language_events), ('sampled', totals.sampled)
+    ('missing_language_events', totals.missing_language_events), ('sampled', totals.sampled),
+    ('analytics_off', totals.analytics_off), ('analytics_on', totals.analytics_on),
+    ('analytics_unanswered', totals.analytics_unanswered),
+    ('consent_declined', totals.consent_declined), ('consent_granted', totals.consent_granted),
+    ('consent_unanswered', totals.consent_unanswered)
   ) AS metric(value, users)
   UNION ALL
   SELECT 'country', country, '', count(DISTINCT actor_id) FROM countries GROUP BY country
