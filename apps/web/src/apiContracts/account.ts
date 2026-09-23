@@ -16,6 +16,7 @@ import {
   parseBoolean,
   parseEnum,
   parseLiteral,
+  parseNullableBoolean,
   parseNullableString,
   parseNumber,
   parseObject,
@@ -58,6 +59,13 @@ function parseAccountPreferences(value: unknown, endpoint: string, path: string)
       parseBoolean,
     ),
     analyticsConsent: parseRequiredField(objectValue, "analyticsConsent", endpoint, path, parseAnalyticsConsent),
+    productAnalyticsEnabled: parseRequiredField(
+      objectValue,
+      "productAnalyticsEnabled",
+      endpoint,
+      path,
+      parseNullableBoolean,
+    ),
   };
 }
 

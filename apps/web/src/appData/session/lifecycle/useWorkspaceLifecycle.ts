@@ -21,7 +21,7 @@ import {
 import {
   registerAnalyticsSessionOwnerPublisher,
   setAnalyticsConfirmedOwner,
-  syncAnalyticsConsentWithAccount,
+  syncAnalyticsPreferencesWithAccount,
 } from "../../../analytics";
 import { clearAnalyticsVisitorCookie, resetAnalyticsSession } from "../../../analytics/identity";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
@@ -273,11 +273,12 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       // or discard; until it is published nothing is sent, which is why it is only reached once the
       // session is verified and any user-scoped cleanup has already run.
       setAnalyticsConfirmedOwner(currentSession.userId);
-      // Reconciles this browser's consent answer with the account's, which wins where both exist.
-      // Not awaited here, like the link below: no sign-in may wait on analytics. The link does wait
-      // for it, because it must not spend the guest identity on an answer this is about to replace.
-      const analyticsConsentSync = syncAnalyticsConsentWithAccount(
-        currentSession.preferences.analyticsConsent,
+      // Reconciles this browser's two analytics answers with the account's, which win where both
+      // exist. Not awaited here, like the link below: no sign-in may wait on analytics. The link
+      // does wait for it, because it must not spend the guest identity on answers this is about to
+      // replace.
+      const analyticsPreferencesSync = syncAnalyticsPreferencesWithAccount(
+        currentSession.preferences,
       );
       // Started after the owner publish above, and never awaited: no user action may be blocked,
       // delayed or failed by an analytics call. `getSession()` above is also the
@@ -288,7 +289,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         storedGuestSession,
         storedGuestIdentityGeneration,
         currentSession.userId,
-        analyticsConsentSync,
+        analyticsPreferencesSync,
       );
       setSessionVerificationState("verified");
     } catch (error) {
@@ -419,7 +420,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           // dropped it and advanced the guest identity generation, which also stops a link started
           // by `initialize` from binding it to the account being published on this line.
           setAnalyticsConfirmedOwner(currentSession.userId);
-          void syncAnalyticsConsentWithAccount(currentSession.preferences.analyticsConsent);
+          void syncAnalyticsPreferencesWithAccount(currentSession.preferences);
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");

@@ -4,6 +4,7 @@ import { getAppConfig } from "../config";
 import { isAnalyticsEnabledForCurrentRuntime } from "./client";
 import { isAnalyticsIdentityConsented } from "./consent";
 import { createAnalyticsUuidV7, readAnalyticsAnonymousId } from "./identity";
+import { isProductAnalyticsCollectionEnabled } from "./productAnalyticsCollection";
 import { readAnalyticsDeviceLocale, readAnalyticsUiLocale } from "./wire";
 
 export type CatalogInstallFailureStage =
@@ -56,11 +57,20 @@ export function createCatalogInstallReportScope(): CatalogInstallReportScope {
 
 /**
  * These rows carry the shared browser visitor id, as every other fact this app reports does, so they
- * follow the same answer: a browser still waiting to be asked, or one that refused, reports none of
- * them.
+ * follow the same answers: a person who turned product analytics off reports none of them, and
+ * neither does a browser still waiting to be asked for the cookie, or one that refused it — this
+ * funnel has no identity-free form to fall back to.
+ *
+ * The browser's own answer is all there is here, and that is an accepted limit of this route rather
+ * than an oversight. The public catalog import route runs no session, so nothing reconciles the
+ * account's answer onto this browser, and these rows are posted with `credentials: "omit"` so the
+ * collector has no account to consult either. A person whose account says `false`, arriving on a
+ * browser that has never answered, therefore still reports this funnel until they sign in.
  */
 function isCatalogInstallAnalyticsAllowed(): boolean {
-  return isAnalyticsEnabledForCurrentRuntime() && isAnalyticsIdentityConsented();
+  return isAnalyticsEnabledForCurrentRuntime()
+    && isProductAnalyticsCollectionEnabled()
+    && isAnalyticsIdentityConsented();
 }
 
 function buildProperties(
