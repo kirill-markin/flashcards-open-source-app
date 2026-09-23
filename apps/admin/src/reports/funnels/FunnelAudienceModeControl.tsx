@@ -8,7 +8,7 @@ import {
 } from "../../filters/analyticsFilters";
 
 /**
- * The one control that decides who all four funnels count, as a segmented control above them.
+ * The one control that decides who every funnel counts, as a segmented control above them.
  *
  * It is not in the shared filter bar, and that is deliberate: every field there is a multi-select
  * whose empty state means something, while this is one choice out of three that always has an answer.
