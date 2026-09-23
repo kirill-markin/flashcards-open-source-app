@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { getDatabaseErrorFields } from "../../database/transient";
 // Report through `observability/runtime`, never through `observability/sentry`, for the reason
-// spelled out in contentWrites.ts: the content-creation drain calls the batch emission below, and
+// spelled out in contentWrites.ts: the content writes drain calls the batch emission below, and
 // it runs inside the direct image ingestion Lambda's import graph, whose bundle must reach no
 // `observability/sentry/capture`, `config` or `tracing` module. The runtime sink is
 // `captureBackendWarning` wherever `initializeBackendSentry` ran, so nothing about these two
