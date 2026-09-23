@@ -101,6 +101,13 @@ enum class AndroidAnalyticsObservationName(
      */
     IDENTITY_BOUNDARY_DISCARDED(tagValue = "analytics_identity_boundary_discarded"),
     BATCH_CONTRACT_REFUSED(tagValue = "analytics_batch_contract_refused"),
+
+    /**
+     * A product-analytics off-switch answer the server refused in a way repeating cannot fix, so
+     * the client gave it up as undeliverable. Reported exactly once per answer, because the push is
+     * not re-issued afterwards.
+     */
+    PREFERENCE_PUSH_REFUSED(tagValue = "analytics_preference_push_refused"),
     SUSTAINED_SERVER_ERRORS(tagValue = "analytics_sustained_server_errors")
 }
 

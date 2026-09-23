@@ -21,8 +21,8 @@ import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessio
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferKind
 import com.flashcardsopensourceapp.data.local.model.media.MediaTransferStatus
 import com.flashcardsopensourceapp.data.local.model.media.buildMediaBlobCacheRelativePath
-import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
 import com.flashcardsopensourceapp.data.local.network.SignedPutUploadResult
 import com.flashcardsopensourceapp.data.local.network.SignedPutUploader
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.CloudIdentityTestEnvironment
@@ -419,7 +419,7 @@ private class RecordingMediaUploadGateway(
         return CloudAccountSnapshot(
             userId = "user-1",
             email = "user@example.com",
-            preferences = AccountPreferences(reviewReactionAnimationsEnabled = true),
+            preferences = defaultAccountPreferences(),
             workspaces = listOf(
                 CloudWorkspaceSummary(
                     workspaceId = workspaceId,

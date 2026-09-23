@@ -17,6 +17,8 @@ data class SettingsUiState(
     val accountStatusAttentionCount: Int,
     val friendInviteAvailability: SettingsFriendInviteAvailability,
     val reviewReactionAnimationsEnabled: Boolean,
+    /** The resolved answer the switch shows: an unanswered account reads as on. */
+    val productAnalyticsEnabled: Boolean,
     val aiChatComposerSuggestionsEnabled: Boolean,
     val canManageAccountPreferences: Boolean,
     val isTestModeEnabled: Boolean

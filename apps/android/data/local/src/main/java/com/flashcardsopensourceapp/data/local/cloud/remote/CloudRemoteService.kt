@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudAccoun
 import com.flashcardsopensourceapp.data.local.cloud.remote.workspace.CloudWorkspacePackageRemoteApi
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackPromptEventRequest
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
@@ -166,12 +167,12 @@ class CloudRemoteService private constructor(
     override suspend fun updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
-        preferences: AccountPreferences
+        update: AccountPreferencesUpdate
     ): AccountPreferences {
         return accountWorkspaceApi.updateAccountPreferences(
             apiBaseUrl = apiBaseUrl,
             authorizationHeader = authorizationHeader,
-            preferences = preferences
+            update = update
         )
     }
 

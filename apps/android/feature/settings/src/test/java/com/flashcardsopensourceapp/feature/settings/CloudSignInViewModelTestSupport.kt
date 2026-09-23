@@ -30,6 +30,8 @@ import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressReview
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
+import com.flashcardsopensourceapp.data.local.model.sync.applyAccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
@@ -249,9 +251,16 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     override suspend fun refreshAccountContext() {
     }
 
-    override suspend fun updateAccountPreferences(preferences: AccountPreferences): AccountPreferences {
-        accountPreferences.value = preferences
-        return preferences
+    override suspend fun updateAccountPreferences(update: AccountPreferencesUpdate): AccountPreferences {
+        accountPreferences.value = applyAccountPreferencesUpdate(
+            preferences = accountPreferences.value,
+            update = update
+        )
+        return accountPreferences.value
+    }
+
+    override suspend fun updateProductAnalyticsEnabled(enabled: Boolean) {
+        accountPreferences.value = accountPreferences.value.copy(productAnalyticsEnabled = enabled)
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {

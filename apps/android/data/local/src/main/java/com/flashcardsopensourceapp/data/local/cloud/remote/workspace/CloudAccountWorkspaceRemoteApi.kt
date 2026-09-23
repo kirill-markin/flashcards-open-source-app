@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.cloud.remote.workspace
 
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildPaginatedCloudPath
+import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudBooleanOrNull
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
@@ -10,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableStr
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
@@ -72,14 +74,22 @@ internal class CloudAccountWorkspaceRemoteApi(
     suspend fun updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
-        preferences: AccountPreferences
+        update: AccountPreferencesUpdate
     ): AccountPreferences {
+        // Only the fields this update carries: the server keeps the stored value of every field the
+        // body leaves out.
+        val body = JSONObject()
+        update.reviewReactionAnimationsEnabled?.let { enabled ->
+            body.put("reviewReactionAnimationsEnabled", enabled)
+        }
+        update.productAnalyticsEnabled?.let { enabled ->
+            body.put("productAnalyticsEnabled", enabled)
+        }
         val response = httpClient.patchJson(
             baseUrl = apiBaseUrl,
             path = "/me/preferences",
             authorizationHeader = authorizationHeader,
-            body = JSONObject()
-                .put("reviewReactionAnimationsEnabled", preferences.reviewReactionAnimationsEnabled)
+            body = body
         )
         return parseAccountPreferences(
             preferences = response.requireCloudObject("preferences", "accountPreferences.preferences"),
@@ -266,6 +276,11 @@ internal fun parseAccountPreferences(
         reviewReactionAnimationsEnabled = preferences.requireCloudBoolean(
             "reviewReactionAnimationsEnabled",
             "$fieldPath.reviewReactionAnimationsEnabled"
+        ),
+        // Absent as well as null means nobody answered, which reads as on.
+        productAnalyticsEnabled = preferences.optCloudBooleanOrNull(
+            "productAnalyticsEnabled",
+            "$fieldPath.productAnalyticsEnabled"
         )
     )
 }

@@ -41,6 +41,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsLeaderboardParticipa
 import com.flashcardsopensourceapp.feature.settings.settingsLegalRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsOpenSourceRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsPrivateFeedbackRowTag
+import com.flashcardsopensourceapp.feature.settings.settingsProductAnalyticsRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsResetStudyProgressRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewAppRowTag
 import com.flashcardsopensourceapp.feature.settings.settingsReviewAnimationsRowTag
@@ -105,6 +106,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             settingsReviewAnimationsRowTag,
             settingsAiChatSuggestionsRowTag,
             settingsLeaderboardParticipationRowTag,
+            settingsProductAnalyticsRowTag,
             settingsLanguageRowTag,
             settingsAccessRowTag,
             settingsDecksRowTag,
@@ -181,6 +183,11 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         assertRowClick(
             rowTag = settingsLeaderboardParticipationRowTag,
             expectedClick = "leaderboard_participation",
+            clickedRows = clickedRows
+        )
+        assertRowClick(
+            rowTag = settingsProductAnalyticsRowTag,
+            expectedClick = "product_analytics",
             clickedRows = clickedRows
         )
         assertRowClick(
@@ -328,6 +335,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         accountStatusAttentionCount = 0,
                         friendInviteAvailability = friendInviteAvailability,
                         reviewReactionAnimationsEnabled = true,
+                        productAnalyticsEnabled = true,
                         aiChatComposerSuggestionsEnabled = true,
                         canManageAccountPreferences = canManageAccountPreferences,
                         isTestModeEnabled = isTestModeEnabled
@@ -358,6 +366,9 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenLeaderboardParticipation = {
                         clickedRows += "leaderboard_participation"
+                    },
+                    onOpenProductAnalytics = {
+                        clickedRows += "product_analytics"
                     },
                     onOpenLanguage = {
                         clickedRows += "language"

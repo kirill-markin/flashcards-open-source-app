@@ -54,6 +54,7 @@ import com.flashcardsopensourceapp.feature.settings.localSyncDiagnostics.createL
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsUiState
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
+import com.flashcardsopensourceapp.feature.settings.privacy.ProductAnalyticsRoute
 import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendDisplayNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.shareFlashcardsApp
@@ -168,6 +169,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenLeaderboardParticipation = {
                 navController.navigate(route = SettingsLeaderboardParticipationDestination.route)
+            },
+            onOpenProductAnalytics = {
+                navController.navigate(route = SettingsProductAnalyticsDestination.route)
             },
             onOpenLanguage = {
                 navController.navigate(route = SettingsLanguageDestination.route)
@@ -304,6 +308,36 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         AiChatSuggestionsRoute(
             aiChatComposerSuggestionsEnabled = uiState.aiChatComposerSuggestionsEnabled,
             onUpdateAiChatComposerSuggestionsEnabled = settingsViewModel::updateAiChatComposerSuggestionsEnabled,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsProductAnalyticsDestination.route) { backStackEntry ->
+        val context = LocalContext.current
+        val settingsRootBackStackEntry = settingsRootBackStackEntry(
+            navController = navController,
+            currentBackStackEntry = backStackEntry
+        )
+        val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
+            viewModelStoreOwner = settingsRootBackStackEntry,
+            factory = createSettingsViewModelFactory(
+                workspaceRepository = appGraph.workspaceRepository,
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                aiChatRepository = appGraph.aiChatRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                messageController = appGraph.appMessageBus,
+                testModeStore = appGraph.testModeStore,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                applicationContext = context.applicationContext
+            )
+        )
+        val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+
+        ProductAnalyticsRoute(
+            productAnalyticsEnabled = uiState.productAnalyticsEnabled,
+            onUpdateProductAnalyticsEnabled = settingsViewModel::updateProductAnalyticsEnabled,
             onBack = {
                 navController.popBackStack()
             }
