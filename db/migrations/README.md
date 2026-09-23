@@ -125,10 +125,10 @@ about the switch is true. What they say about account deletion is not: nothing e
 and account deletion least of all.
 
 `anonymizeProductAnalyticsInExecutor` (`apps/backend/src/auth/accountDeletion.ts`) rewrites them in
-place. It deletes `analytics.installation_profiles` rows matched three ways — the person's own
+place. It deletes `analytics.installation_profiles` rows matched three ways: the person's own
 `user_id`, every `(anonymous_id, platform)` pair their events carry, and every `anonymous_id` an
 `authenticated_client` link names, so a device they shared loses its profile in full, because its
-first country and sparse history may predate the latest owner — `UPDATE`s every
+first country and sparse history may predate the latest owner. It then `UPDATE`s every
 `analytics.product_events` row belonging to any user id that person ever reported under — guest
 phase included, walked through `auth.guest_upgrade_history` and the `server_derived`
 `analytics.identity_links` — onto a single `randomUUID()` pseudonym, generated per deletion and kept
