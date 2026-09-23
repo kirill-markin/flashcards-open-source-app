@@ -35,8 +35,9 @@ export type BlogToWebAppFunnelCounts = Readonly<{
 }>;
 
 /**
- * One group's counts under the key the SQL produced, keyed exactly as the home funnel's groups are: the
- * locale of the blog article the person entered on.
+ * One group's counts under the key the SQL produced, keyed on the blog article the person entered on:
+ * the locale that page was read in, or its own path (`blogFunnelGroupByDimensions` in
+ * `./blogFunnelEntry.ts`).
  */
 export type BlogToWebAppFunnelGroup = BlogToWebAppFunnelCounts & Readonly<{ key: string }>;
 
