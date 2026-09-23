@@ -23,6 +23,7 @@ import {
   analyticsThresholdEventTypeLabels,
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
+  deckVersionDiscriminatorLength,
   getAnalyticsFilterFieldExplanation,
   getAnalyticsFilterFieldLabel,
   parseAcceptedMinimumCount,
@@ -67,11 +68,6 @@ const filterValueSwatchColor = "var(--accent-strong)";
 const optionSummaryValueLimit = 3;
 // Above this many values an option list stops being scannable in a popover and is searched instead.
 const searchableFilterOptionCount = 15;
-// The leading group of a deck version UUID, which is what tells two picked versions of one deck apart
-// in the popover header without printing an id that would not fit on its one line. The option list
-// carries the whole id. Exported because a funnel grouped by deck version shortens its own legend
-// entries by the same rule, and the two have to cut at the same place to read as one product.
-export const deckVersionDiscriminatorLength = 8;
 
 type AnalyticsFilterBarProps = Readonly<{
   /** Chooses the wording of each field; the fields themselves are `fields`. */
