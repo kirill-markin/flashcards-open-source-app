@@ -23,6 +23,12 @@ const visitorCookieName = "analytics_visitor";
 const legacyAnonymousIdStorageKey = "flashcards-analytics-anonymous-id";
 const sessionStorageKey = "flashcards-analytics-session";
 export const analyticsEnabledStorageKey = "flashcards-analytics-enabled";
+/**
+ * This browser's answer to the product-analytics setting, kept apart from the key above on purpose:
+ * that one carries the operator kill switch and the cookie banner's answer, and a cookie refusal
+ * stored there must never be read as a refusal to be measured.
+ */
+export const productAnalyticsCollectionStorageKey = "flashcards-analytics-collection";
 
 /** 13 months, the lifetime the backend writes the shared cookie with. */
 const visitorCookieMaxAgeSeconds = 395 * 24 * 60 * 60;
@@ -341,6 +347,10 @@ export function resetAnalyticsSession(): void {
 const analyticsDisabledValue = "0";
 const analyticsDisabledPrefix = "0:";
 
+/** The product-analytics setting stores its own answer, and only an explicit one. */
+const productAnalyticsCollectionOnValue = "1";
+const productAnalyticsCollectionOffValue = "0";
+
 type StoredAnalyticsSwitch = Readonly<{
   isEnabled: boolean;
   decision: AnalyticsConsentChoice | null;
@@ -405,6 +415,26 @@ export function writeStoredAnalyticsConsentDecision(decision: AnalyticsConsentCh
   writeBrowserStorageItem(
     analyticsEnabledStorageKey,
     isEnabled ? decision : `${analyticsDisabledPrefix}${decision}`,
+  );
+}
+
+/**
+ * This browser's answer to the product-analytics setting, or null while it has given none. Null is
+ * the answer nobody gave rather than a refusal, and it reads as on wherever it is used.
+ */
+export function readStoredProductAnalyticsCollection(): boolean | null {
+  const storedValue = readBrowserStorageItem(productAnalyticsCollectionStorageKey);
+  if (storedValue === null) {
+    return null;
+  }
+
+  return storedValue !== productAnalyticsCollectionOffValue;
+}
+
+export function writeStoredProductAnalyticsCollection(isCollectionEnabled: boolean): void {
+  writeBrowserStorageItem(
+    productAnalyticsCollectionStorageKey,
+    isCollectionEnabled ? productAnalyticsCollectionOnValue : productAnalyticsCollectionOffValue,
   );
 }
 
