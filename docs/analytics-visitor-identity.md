@@ -170,6 +170,13 @@ credential's batch and still answers `200`, so a client released before the swit
 its queue instead of redelivering. The credential-free collector cannot enforce it and does not try;
 see [anonymous client analytics](anonymous-client-analytics.md).
 
+On Android the switch is Settings → Product analytics
+([route](../apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/privacy/ProductAnalyticsRoute.kt)).
+The client stores the answer on the device first, so an offline device and a cold start that
+precedes any sync both honor it, and delivers it to the account or the guest session on the next
+account refresh that finds a credential
+([repository](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/account/LocalCloudAccountRepository.kt)).
+
 ## Account deletion
 
 The identity survives a logout by design and does not survive the deletion of the account it was

@@ -11,9 +11,12 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
+import com.flashcardsopensourceapp.data.local.model.sync.isProductAnalyticsEnabled
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushRefusedException
+import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushUndeliverableException
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
@@ -78,6 +81,7 @@ class SettingsViewModel(
             accountStatusAttentionCount = attentionSummary.accountStatusRowCount,
             friendInviteAvailability = friendInviteAvailability(cloudState = cloudSettings.cloudState),
             reviewReactionAnimationsEnabled = accountPreferences.reviewReactionAnimationsEnabled,
+            productAnalyticsEnabled = isProductAnalyticsEnabled(preferences = accountPreferences),
             aiChatComposerSuggestionsEnabled = aiChatComposerSuggestionsEnabled,
             canManageAccountPreferences = canManageAccountPreferences(cloudState = cloudSettings.cloudState),
             isTestModeEnabled = isTestModeEnabled
@@ -96,6 +100,7 @@ class SettingsViewModel(
             accountStatusAttentionCount = 1,
             friendInviteAvailability = SettingsFriendInviteAvailability.LOADING,
             reviewReactionAnimationsEnabled = true,
+            productAnalyticsEnabled = true,
             aiChatComposerSuggestionsEnabled = true,
             canManageAccountPreferences = false,
             isTestModeEnabled = false
@@ -122,7 +127,10 @@ class SettingsViewModel(
         viewModelScope.launch {
             try {
                 cloudAccountRepository.updateAccountPreferences(
-                    preferences = AccountPreferences(reviewReactionAnimationsEnabled = isEnabled)
+                    update = AccountPreferencesUpdate(
+                        reviewReactionAnimationsEnabled = isEnabled,
+                        productAnalyticsEnabled = null
+                    )
                 )
             } catch (error: CancellationException) {
                 throw error
@@ -137,6 +145,37 @@ class SettingsViewModel(
                 throw error
             } catch (error: Exception) {
                 messageController.showMessage(message = strings.get(R.string.settings_account_preferences_refresh_failed))
+            }
+        }
+    }
+
+    /**
+     * The local answer stands whatever the server says, so the failure message tells the person the
+     * switch already took effect here and only the account copy is still owed.
+     *
+     * Only the ordinary failure promises a retry, because it is the only one that has one. A
+     * recorded refusal dropped the pending push and blocks it being re-armed, so nothing sends that
+     * answer again until the person toggles the switch themselves. An undeliverable opt-out has no
+     * account to reach at all — the client has stopped flushing, so it never mints the guest session
+     * the answer would be written to — and toggling again would find the same thing, so it is told
+     * apart from the refusal rather than folded into it.
+     */
+    fun updateProductAnalyticsEnabled(isEnabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                cloudAccountRepository.updateProductAnalyticsEnabled(enabled = isEnabled)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: ProductAnalyticsPreferencePushRefusedException) {
+                messageController.showMessage(
+                    message = strings.get(R.string.settings_product_analytics_update_refused)
+                )
+            } catch (_: ProductAnalyticsPreferencePushUndeliverableException) {
+                messageController.showMessage(
+                    message = strings.get(R.string.settings_product_analytics_update_undeliverable)
+                )
+            } catch (_: Exception) {
+                messageController.showMessage(message = strings.get(R.string.settings_product_analytics_update_failed))
             }
         }
     }

@@ -46,6 +46,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.cloud.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.sync.DeviceDiagnosticsSummary
@@ -156,6 +157,47 @@ open class SyncBlockedException(
     cause: Throwable?
 ) : IllegalStateException(message, cause)
 
+/**
+ * The server refused a product-analytics answer in a way repeating cannot fix, and the refusal was
+ * recorded so this device stops re-issuing it.
+ *
+ * Distinct from an ordinary failure because it removes the retry: the pending marker is dropped and
+ * the refusal record blocks it from being re-armed, so nothing sends this answer again until the
+ * person toggles the switch themselves. A caller that tells them "the app will retry" would be
+ * wrong here, which is the whole reason this is a type of its own. The device keeps honoring the
+ * answer locally either way.
+ */
+class ProductAnalyticsPreferencePushRefusedException(
+    cause: Throwable?
+) : IllegalStateException("Product analytics preference was refused by the server.", cause)
+
+/**
+ * The product-analytics answer is still owed to the server, and a later account read will deliver
+ * it. The ordinary failure: something between here and the server did not work this time.
+ *
+ * Carries no cause where the push never ran — a concurrent account read can take the answer,
+ * deliver it and leave it owed without this caller ever issuing a request of its own, and the
+ * outcome is the same either way.
+ */
+class ProductAnalyticsPreferencePushPendingException(
+    cause: Throwable?
+) : IllegalStateException("Product analytics preference is still owed to the server.", cause)
+
+/**
+ * The product-analytics answer is still owed and nothing will deliver it on its own, because there
+ * is no server-side identity to deliver it to and this answer is the one that stops the client ever
+ * asking for one.
+ *
+ * An opt-out with no analytics credential: a client told to stop never flushes, so it never mints
+ * the guest session the answer would be written to, and a session the server just revoked is gone
+ * for the same reason. Distinct from [ProductAnalyticsPreferencePushRefusedException] because
+ * answering again on this device changes nothing here — only signing in gives the answer somewhere
+ * to land. The device has already stopped collecting either way.
+ */
+class ProductAnalyticsPreferencePushUndeliverableException(
+    cause: Throwable?
+) : IllegalStateException("Product analytics opt-out has no account to reach.", cause)
+
 interface ProgressRepository {
     fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?>
     fun observeSeriesSnapshot(): Flow<ProgressSeriesSnapshot?>
@@ -193,7 +235,25 @@ interface CloudAccountRepository {
     suspend fun resumePendingAccountDeletionIfNeeded()
     suspend fun retryPendingAccountDeletion()
     suspend fun refreshAccountContext()
-    suspend fun updateAccountPreferences(preferences: AccountPreferences): AccountPreferences
+    suspend fun updateAccountPreferences(update: AccountPreferencesUpdate): AccountPreferences
+
+    /**
+     * Available with no cloud account at all, unlike every other preference: an install that never
+     * signed in still reports product analytics, so the off switch has to reach it. The answer is
+     * stored locally first and stays stored even when the server write fails, because the person
+     * asked this device to stop; the failure is raised so the caller can say the account copy is
+     * still owed.
+     *
+     * Returns once the answer is no longer owed, which is asserted from the stored outcome rather
+     * than from having performed the push: a concurrent account read can deliver — or be refused on
+     * — the same answer, leaving this call's own push nothing to do and nothing to report.
+     *
+     * Throws [ProductAnalyticsPreferencePushRefusedException] where the server refused it for good,
+     * [ProductAnalyticsPreferencePushUndeliverableException] where it is owed with no identity to
+     * reach, and [ProductAnalyticsPreferencePushPendingException] or the underlying failure where it
+     * stays owed and a later account read will deliver it.
+     */
+    suspend fun updateProductAnalyticsEnabled(enabled: Boolean)
     suspend fun sendCode(email: String): CloudSendCodeResult
     suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext
     /** [onVerified] runs where verification succeeds, never where its link context is published. */
