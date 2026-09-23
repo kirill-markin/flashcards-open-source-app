@@ -15,7 +15,9 @@ import {
   isGuestUpgradeMergeOnlyExecutorQuery,
   membershipKey,
   setGuestSessionAnalyticsConsent,
+  setGuestSessionProductAnalyticsEnabled,
   setUserSettingsAnalyticsConsent,
+  setUserSettingsProductAnalyticsEnabled,
   type GuestUpgradeExecutorParam,
 } from "../../guestAuthTestHarness";
 
@@ -1007,4 +1009,121 @@ test("completeGuestUpgradeInExecutor carries a guest analytics withdrawal on the
   // The bound shape keeps both rows, so the answer now stands on the account column as well.
   assert.equal(state.userSettings.get(guestUserId)?.analytics_consent, "declined");
   assert.equal(state.guestSession?.analytics_consent, "declined");
+});
+
+test("completeGuestUpgradeInExecutor carries a guest product analytics opt-out onto the merge target account", async () => {
+  const guestToken = "guest-token-switch-merge";
+  const guestUserId = "guest-user-switch-merge";
+  const guestWorkspaceId = "guest-workspace-switch-merge";
+  const targetUserId = "linked-user-switch-merge";
+  const targetWorkspaceId = "target-workspace-switch-merge";
+  const targetSubject = "cognito-subject-switch-merge";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-switch-merge",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-switch-merge",
+    installationId: "installation-switch-merge",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  setGuestSessionProductAnalyticsEnabled(state, false);
+
+  const result = await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  assert.equal(result.targetUserId, targetUserId);
+  // NULL on the account column reads as collection allowed, so losing this is losing the opt-out.
+  assert.equal(state.userSettings.get(targetUserId)?.product_analytics_enabled, false);
+});
+
+test("completeGuestUpgradeInExecutor keeps the merge target's own product analytics answer", async () => {
+  const guestToken = "guest-token-switch-merge-existing";
+  const guestUserId = "guest-user-switch-merge-existing";
+  const guestWorkspaceId = "guest-workspace-switch-merge-existing";
+  const targetUserId = "linked-user-switch-merge-existing";
+  const targetWorkspaceId = "target-workspace-switch-merge-existing";
+  const targetSubject = "cognito-subject-switch-merge-existing";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-switch-merge-existing",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-switch-merge-existing",
+    installationId: "installation-switch-merge-existing",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  setGuestSessionProductAnalyticsEnabled(state, false);
+  setUserSettingsProductAnalyticsEnabled(state, targetUserId, true);
+
+  await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    DROPPED_ENTITIES_UNSUPPORTED,
+  );
+
+  // The account's own answer wins, exactly as it does for consent. Here that resolves toward more
+  // collection rather than less, because the restrictive answer for this column is false.
+  assert.equal(state.userSettings.get(targetUserId)?.product_analytics_enabled, true);
+});
+
+test("completeGuestUpgradeInExecutor carries a guest product analytics opt-out on the same-user bound path", async () => {
+  const guestToken = "guest-token-switch-bound";
+  const guestUserId = "guest-user-switch-bound";
+  const guestWorkspaceId = "guest-workspace-switch-bound";
+  const linkedUserId = "linked-user-switch-bound";
+  const targetWorkspaceId = "target-workspace-switch-bound";
+  const targetSubject = "cognito-subject-switch-bound";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-switch-bound",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId: linkedUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-switch-bound",
+    installationId: "installation-switch-bound",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.identityMappings.set(targetSubject, guestUserId);
+  setGuestSessionProductAnalyticsEnabled(state, false);
+
+  const result = await completeGuestUpgradeInExecutor(
+    createGuestUpgradeExecutor(state),
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+    GUEST_SYNC_NOT_DRAINED,
+  );
+
+  assert.equal(result.targetUserId, guestUserId);
+  // The bound shape keeps both rows, so the answer now stands on the account column as well.
+  assert.equal(state.userSettings.get(guestUserId)?.product_analytics_enabled, false);
+  assert.equal(state.guestSession?.product_analytics_enabled, false);
 });

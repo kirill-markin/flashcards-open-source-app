@@ -6,7 +6,7 @@ import {
   shouldUseAgentSetupEnvelope,
 } from "../../agent/setup";
 import { unsafeQuery } from "../../database/unsafe";
-import { updateGuestSessionAnalyticsConsent } from "../../guestAuth/store/session";
+import { updateGuestSessionAnalyticsPreferences } from "../../guestAuth/store/session";
 import { createSourceDiscoveryResponse } from "../../shared/sourceDiscovery";
 import { getSessionCsrfToken } from "../../auth/requestSecurity";
 import { loadRequestContextFromRequest } from "../../server/requestContext";
@@ -53,8 +53,8 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const loadStreakLeaderboardFn = options.loadStreakLeaderboardFn ?? loadStreakLeaderboard;
   const loadReviewPlatformSummaryFn = options.loadReviewPlatformSummaryFn ?? loadReviewPlatformSummary;
   const updateAccountPreferencesFn = options.updateAccountPreferencesFn ?? updateAccountPreferences;
-  const updateGuestSessionAnalyticsConsentFn = options.updateGuestSessionAnalyticsConsentFn
-    ?? updateGuestSessionAnalyticsConsent;
+  const updateGuestSessionAnalyticsPreferencesFn = options.updateGuestSessionAnalyticsPreferencesFn
+    ?? updateGuestSessionAnalyticsPreferences;
   const ensurePublicProfileForUserFn = options.ensurePublicProfileForUserFn ?? ensurePublicProfileForUser;
   const updateLeaderboardParticipationFn = options.updateLeaderboardParticipationFn ?? updateLeaderboardParticipation;
   const createFriendInvitationFn = options.createFriendInvitationFn ?? createFriendInvitation;
@@ -106,7 +106,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     allowedOrigins: options.allowedOrigins,
     loadRequestContextFromRequestFn,
     updateAccountPreferencesFn,
-    updateGuestSessionAnalyticsConsentFn,
+    updateGuestSessionAnalyticsPreferencesFn,
   });
   registerCommunityProfileRoutes(app, {
     allowedOrigins: options.allowedOrigins,

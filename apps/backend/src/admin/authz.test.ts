@@ -27,6 +27,7 @@ function createAuthenticatedResult(
     guestSessionId: transport === "guest" ? "guest-session-1" : null,
     guestPlatform: transport === "guest" ? "ios" : null,
     guestAnalyticsConsent: null,
+    guestProductAnalyticsEnabled: null,
   };
 }
 
@@ -287,6 +288,7 @@ test("requireCatalogAdminRequestWithDependencies preserves session profile recon
           preferences: {
             reviewReactionAnimationsEnabled: true,
             analyticsConsent: null,
+            productAnalyticsEnabled: null,
           },
         };
       },
@@ -438,6 +440,7 @@ test("requireAdminRequestWithDependencies accepts signed-in admins and normalize
           preferences: {
             reviewReactionAnimationsEnabled: true,
             analyticsConsent: null,
+            productAnalyticsEnabled: null,
           },
         };
       },

@@ -30,7 +30,7 @@ import { createSystemRoutes } from "./index";
 import type {
   AccountPreferencesUpdate,
   LoadReviewPlatformSummaryFn,
-  UpdateGuestSessionAnalyticsConsentFn,
+  UpdateGuestSessionAnalyticsPreferencesFn,
 } from "./types";
 
 type SystemTestAppOptions = Readonly<{
@@ -39,7 +39,7 @@ type SystemTestAppOptions = Readonly<{
   enforceSessionCsrf?: boolean;
   getAccountPreferencesFn?: () => AccountPreferences;
   updateAccountPreferencesFn?: (userId: string, update: AccountPreferencesUpdate) => Promise<AccountPreferences>;
-  updateGuestSessionAnalyticsConsentFn?: UpdateGuestSessionAnalyticsConsentFn;
+  updateGuestSessionAnalyticsPreferencesFn?: UpdateGuestSessionAnalyticsPreferencesFn;
   ensurePublicProfileForUserFn?: (userId: string, localeHint: string) => Promise<PublicProfile>;
   updateLeaderboardParticipationFn?: (
     userId: string,
@@ -62,6 +62,7 @@ export function createDefaultAccountPreferences(): AccountPreferences {
   return {
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
+    productAnalyticsEnabled: null,
   };
 }
 
@@ -357,7 +358,7 @@ export function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv>
       };
     },
     updateAccountPreferencesFn: options.updateAccountPreferencesFn,
-    updateGuestSessionAnalyticsConsentFn: options.updateGuestSessionAnalyticsConsentFn,
+    updateGuestSessionAnalyticsPreferencesFn: options.updateGuestSessionAnalyticsPreferencesFn,
     ensurePublicProfileForUserFn: options.ensurePublicProfileForUserFn,
     updateLeaderboardParticipationFn: options.updateLeaderboardParticipationFn,
     createFriendInvitationFn: options.createFriendInvitationFn,

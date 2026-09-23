@@ -35,6 +35,7 @@ function createRequestContextWithTransport(transport: RequestContext["transport"
     preferences: {
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
+      productAnalyticsEnabled: null,
     },
     transport,
     connectionId: null,

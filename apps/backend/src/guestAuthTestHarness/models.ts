@@ -4,6 +4,7 @@ export type GuestSessionState = Readonly<{
   user_id: string;
   platform: "ios" | "android" | null;
   analytics_consent: "granted" | "declined" | null;
+  product_analytics_enabled: boolean | null;
   revoked_at: string | null;
 }>;
 
@@ -12,6 +13,7 @@ export type UserSettingsState = Readonly<{
   workspace_id: string | null;
   email: string | null;
   analytics_consent: "granted" | "declined" | null;
+  product_analytics_enabled: boolean | null;
   progress_time_zone: string | null;
 }>;
 
@@ -275,6 +277,22 @@ export function setGuestSessionAnalyticsConsent(
   };
 }
 
+/** Records on the fixture's guest session the product-analytics switch a guest set. */
+export function setGuestSessionProductAnalyticsEnabled(
+  state: MutableState,
+  productAnalyticsEnabled: boolean,
+): void {
+  const guestSession = state.guestSession;
+  if (guestSession === null) {
+    throw new Error("Cannot set the product analytics switch: the fixture holds no guest session.");
+  }
+
+  state.guestSession = {
+    ...guestSession,
+    product_analytics_enabled: productAnalyticsEnabled,
+  };
+}
+
 /** Records on the fixture's account row an analytics answer the upgrade must not overwrite. */
 export function setUserSettingsAnalyticsConsent(
   state: MutableState,
@@ -289,6 +307,25 @@ export function setUserSettingsAnalyticsConsent(
   state.userSettings.set(userId, {
     ...current,
     analytics_consent: analyticsConsent,
+  });
+}
+
+/** Records on the fixture's account row a switch answer the upgrade must not overwrite. */
+export function setUserSettingsProductAnalyticsEnabled(
+  state: MutableState,
+  userId: string,
+  productAnalyticsEnabled: boolean,
+): void {
+  const current = state.userSettings.get(userId);
+  if (current === undefined) {
+    throw new Error(
+      `Cannot set the product analytics switch: the fixture holds no user_settings row for ${userId}.`,
+    );
+  }
+
+  state.userSettings.set(userId, {
+    ...current,
+    product_analytics_enabled: productAnalyticsEnabled,
   });
 }
 

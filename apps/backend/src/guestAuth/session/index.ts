@@ -25,6 +25,7 @@ type GuestSessionRow = Readonly<{
   user_id: string;
   platform: GuestSessionPlatform | null;
   analytics_consent: AnalyticsConsentChoice | null;
+  product_analytics_enabled: boolean | null;
   revoked_at: Date | string | null;
 }>;
 
@@ -45,6 +46,7 @@ function toUndecidedGuestSessionRow(row: PreAnalyticsConsentGuestSessionRow): Gu
   return {
     ...row,
     analytics_consent: null,
+    product_analytics_enabled: null,
   };
 }
 
@@ -53,6 +55,7 @@ function toUnboundGuestSessionRow(row: LegacyGuestSessionRow): GuestSessionRow {
     ...row,
     platform: null,
     analytics_consent: null,
+    product_analytics_enabled: null,
   };
 }
 
@@ -66,9 +69,17 @@ async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow 
     // Each added column answers for itself: the platform probe above is cached true in production
     // and says nothing about the column migration 0147 has yet to add in this same release.
     if (await guestSessionAnalyticsConsentColumnExistsInExecutor(unsafeGuestSessionExecutor)) {
+      // product_analytics_enabled gets no probe of its own. The probes above exist because those
+      // migrations could land after the Lambda code that reads their column; migration 0149 cannot,
+      // because infra/aws/lib/stack.ts binds the backend Lambda to the migration gate
+      // (addDatabaseMigrationDependency), so CloudFormation applies it before this code serves a
+      // request. A probe here would also have to fail open, and a false answer would report a
+      // stored opt-out as unanswered, which reads as collection allowed - the one wrong answer this
+      // column must never give.
       const result = await unsafeQuery<GuestSessionRow>(
         [
-          "SELECT session_id, user_id, platform, analytics_consent, revoked_at",
+          "SELECT session_id, user_id, platform, analytics_consent, product_analytics_enabled,",
+          "revoked_at",
           "FROM auth.guest_sessions",
           "WHERE session_secret_hash = $1",
           "LIMIT 1",
@@ -114,6 +125,7 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
   userId: string;
   platform: GuestSessionPlatform | null;
   analyticsConsent: AnalyticsConsentChoice | null;
+  productAnalyticsEnabled: boolean | null;
 }>> {
   const row = await loadGuestSessionRow(guestToken);
   if (row === null || row.revoked_at !== null) {
@@ -124,9 +136,12 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
     sessionId: row.session_id,
     userId: row.user_id,
     platform: row.platform,
-    // A guest has no account to keep an analytics decision on, so it rides in with the credential
-    // that was read anyway rather than costing a second query per request.
+    // A guest has no account to keep an analytics decision on, so both decisions ride in with the
+    // credential that was read anyway rather than costing a second query per request. The
+    // product-analytics switch is read on every guest request because analytics ingest has to
+    // refuse an opted-out batch, and that is the one surface a web guest credential may reach.
     analyticsConsent: row.analytics_consent,
+    productAnalyticsEnabled: row.product_analytics_enabled,
   };
 }
 

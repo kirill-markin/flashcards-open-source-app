@@ -30,6 +30,14 @@ type AnonymousAnalyticsRouteOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
 }>;
 
+// The product-analytics off switch (org.user_settings.product_analytics_enabled and
+// auth.guest_sessions.product_analytics_enabled, db/migrations/0149_product_analytics_off_switch.sql)
+// cannot be enforced on this collector and deliberately is not attempted here. The authenticated
+// batch route refuses an opted-out credential because it has one to look the answer up by; this
+// route reads no credential at all, by design, so a request arrives with nothing to match an answer
+// against. What stops these events is the client: a browser that holds the switch off sends nothing
+// here. Guessing an identity from the request in order to enforce it - by IP, User-Agent or the
+// daily visitor hash - would build the identification the identity-free rows exist to avoid.
 export const anonymousAnalyticsEventPath = "/analytics/anonymous-events";
 
 // The path this collector carried while it accepted only the catalog install funnel. It is the same
