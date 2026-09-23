@@ -520,7 +520,7 @@ export type ProductAnalyticsDrainAbortedDetails = Readonly<{
   // thing to read. "budget_exhausted" means every chunk it was handed was stored and the request ran
   // out of the post-commit analytics clock, so analytics is healthy and the answer is a smaller
   // transaction or a queue, not a writer fix. That clock is one budget shared by every stage wired to
-  // it - today the content creations drain, the review answers drain and the guest upgrade's
+  // it - today the content writes drain, the review answers drain and the guest upgrade's
   // completion event - so the drain reporting the stop is not always the drain that spent it: a stage
   // that ran earlier on the same request may have.
   reason: "writer_refused" | "budget_exhausted";
