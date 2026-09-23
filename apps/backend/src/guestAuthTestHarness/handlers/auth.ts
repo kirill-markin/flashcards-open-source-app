@@ -48,6 +48,22 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
     return createQueryResult<Row>(rows);
   }
 
+  // Keyed by session id as well, and for the same reason: this is the upgrade carry reading the
+  // guest's product-analytics switch, not the token-hash lookup below it.
+  if (text.startsWith("SELECT product_analytics_enabled") && text.includes("FROM auth.guest_sessions")) {
+    const requestedSessionId = params[0];
+    const requestedUserId = params[1];
+    const guestSession = state.guestSession;
+    const rows = (
+      guestSession !== null
+      && requestedSessionId === guestSession.session_id
+      && requestedUserId === guestSession.user_id
+    )
+      ? [{ product_analytics_enabled: guestSession.product_analytics_enabled } as unknown as Row]
+      : [];
+    return createQueryResult<Row>(rows);
+  }
+
   if (text.includes("FROM auth.guest_sessions")) {
     const requestedHash = params[0];
     const guestSession = state.guestSession;

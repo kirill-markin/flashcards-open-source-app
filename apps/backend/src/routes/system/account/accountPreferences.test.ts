@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import type { AccountPreferences, AnalyticsConsentChoice } from "../../../auth/ensureUser";
+import type { AccountPreferences } from "../../../auth/ensureUser";
+import type { GuestSessionAnalyticsPreferencesUpdate } from "../../../guestAuth/store/session";
 import {
   createDefaultAccountPreferences,
   createSystemTestApp,
@@ -30,6 +31,7 @@ test("GET /me includes account preferences", async () => {
     preferences: {
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
+      productAnalyticsEnabled: null,
     },
   });
 });
@@ -59,6 +61,8 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
         reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled
           ?? persistedPreferences.reviewReactionAnimationsEnabled,
         analyticsConsent: update.analyticsConsent ?? persistedPreferences.analyticsConsent,
+        productAnalyticsEnabled: update.productAnalyticsEnabled
+          ?? persistedPreferences.productAnalyticsEnabled,
       };
       return persistedPreferences;
     },
@@ -69,6 +73,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.deepEqual((await initialResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
+    productAnalyticsEnabled: null,
   });
 
   const patchResponse = await app.request("http://localhost/me/preferences", {
@@ -85,6 +90,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
     preferences: {
       reviewReactionAnimationsEnabled: false,
       analyticsConsent: null,
+      productAnalyticsEnabled: null,
     },
   });
 
@@ -93,6 +99,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.deepEqual((await updatedResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
     reviewReactionAnimationsEnabled: false,
     analyticsConsent: null,
+    productAnalyticsEnabled: null,
   });
 });
 
@@ -153,14 +160,14 @@ test("PATCH /me/preferences rejects ApiKey authentication", async () => {
   });
 });
 
-type RecordedGuestConsentWrite = Readonly<{
+type RecordedGuestPreferencesWrite = Readonly<{
   guestUserId: string;
   guestSessionId: string;
-  analyticsConsent: AnalyticsConsentChoice;
+  update: GuestSessionAnalyticsPreferencesUpdate;
 }>;
 
 test("PATCH /me/preferences from a guest stores the consent on the guest session, not on the account", async () => {
-  const guestConsentWrites: Array<RecordedGuestConsentWrite> = [];
+  const guestPreferencesWrites: Array<RecordedGuestPreferencesWrite> = [];
   const accountUpdates: Array<AccountPreferencesUpdate> = [];
   const app = createSystemTestApp({
     transport: "guest",
@@ -170,11 +177,12 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
       return {
         reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled ?? true,
         analyticsConsent: null,
+        productAnalyticsEnabled: null,
       };
     },
-    updateGuestSessionAnalyticsConsentFn: async (guestUserId, guestSessionId, analyticsConsent) => {
-      guestConsentWrites.push({ guestUserId, guestSessionId, analyticsConsent });
-      return analyticsConsent;
+    updateGuestSessionAnalyticsPreferencesFn: async (guestUserId, guestSessionId, update) => {
+      guestPreferencesWrites.push({ guestUserId, guestSessionId, update });
+      return update;
     },
   });
 
@@ -194,22 +202,28 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
     preferences: {
       reviewReactionAnimationsEnabled: false,
       analyticsConsent: "declined",
+      productAnalyticsEnabled: null,
     },
   });
-  assert.deepEqual(guestConsentWrites, [{
+  // One call, carrying both columns, because the two guest writes share a transaction.
+  assert.deepEqual(guestPreferencesWrites, [{
     guestUserId: "user-1",
     guestSessionId: "guest-session-1",
-    analyticsConsent: "declined",
+    update: {
+      analyticsConsent: "declined",
+      productAnalyticsEnabled: null,
+    },
   }]);
   // The account write must never carry the consent value: a guest owns no account column for it.
   assert.deepEqual(accountUpdates, [{
     reviewReactionAnimationsEnabled: false,
     analyticsConsent: null,
+    productAnalyticsEnabled: null,
   }]);
 });
 
 test("PATCH /me/preferences from a guest with only a consent leaves org.user_settings untouched", async () => {
-  const guestConsentWrites: Array<RecordedGuestConsentWrite> = [];
+  const guestPreferencesWrites: Array<RecordedGuestPreferencesWrite> = [];
   let accountUpdateCalled = false;
   const app = createSystemTestApp({
     transport: "guest",
@@ -217,9 +231,9 @@ test("PATCH /me/preferences from a guest with only a consent leaves org.user_set
       accountUpdateCalled = true;
       return createDefaultAccountPreferences();
     },
-    updateGuestSessionAnalyticsConsentFn: async (guestUserId, guestSessionId, analyticsConsent) => {
-      guestConsentWrites.push({ guestUserId, guestSessionId, analyticsConsent });
-      return analyticsConsent;
+    updateGuestSessionAnalyticsPreferencesFn: async (guestUserId, guestSessionId, update) => {
+      guestPreferencesWrites.push({ guestUserId, guestSessionId, update });
+      return update;
     },
   });
 
@@ -238,8 +252,9 @@ test("PATCH /me/preferences from a guest with only a consent leaves org.user_set
     preferences: {
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: "declined",
+      productAnalyticsEnabled: null,
     },
   });
-  assert.equal(guestConsentWrites.length, 1);
+  assert.equal(guestPreferencesWrites.length, 1);
   assert.equal(accountUpdateCalled, false);
 });
