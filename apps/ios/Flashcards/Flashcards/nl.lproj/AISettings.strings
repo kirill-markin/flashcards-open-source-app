@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Mij tonen in het klassement";
 "settings.leaderboardParticipation.description" = "Als dit uitstaat, verschijnt je anonieme activiteit niet in het klassement.";
 "settings.leaderboardParticipation.signInRequired" = "Verbind cloudsynchronisatie om deelname aan het klassement te beheren.";
+"settings.productAnalytics.title" = "Productanalyse";
+"settings.productAnalytics.toggle" = "Productanalyse delen";
+"settings.productAnalytics.footer" = "Productanalyse laat ons zien welke delen van de app worden gebruikt, nooit wat er op je kaarten staat. Als dit uitstaat, registreert en verstuurt de app niets. Crash- en foutrapporten worden hier niet door beïnvloed.";
 "settings.language.title" = "Taal";
 "settings.language.systemDescription" = "iOS bepaalt de taal van de app. Open Nibomo in de iOS-instellingen en gebruik Voorkeurstaal. Als Voorkeurstaal niet wordt getoond, voeg dan eerst een andere taal toe via Instellingen > Algemeen > Taal en regio.";
 "settings.language.action.openAppSettings" = "Nibomo-instellingen openen";

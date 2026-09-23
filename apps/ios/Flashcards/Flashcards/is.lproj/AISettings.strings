@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Sýna mig á stigatöflunni";
 "settings.leaderboardParticipation.description" = "Þegar slökkt er birtist nafnlaus virkni þín ekki á stigatöflunni.";
 "settings.leaderboardParticipation.signInRequired" = "Tengdu skýjasamstillingu til að stjórna þátttöku í stigatöflunni.";
+"settings.productAnalytics.title" = "Notkunargreining";
+"settings.productAnalytics.toggle" = "Deila notkunargreiningu";
+"settings.productAnalytics.footer" = "Notkunargreining segir okkur hvaða hluta forritsins fólk notar, aldrei hvað stendur á spjöldunum þínum. Þegar slökkt er á henni skráir forritið ekkert og sendir ekkert. Þetta hefur ekki áhrif á hruns- og villuskýrslur.";
 "settings.language.title" = "Tungumál";
 "settings.language.systemDescription" = "iOS stjórnar tungumáli forritsins. Opnaðu Nibomo í Stillingum iOS og veldu tungumál. Ef tungumálaval sést ekki skaltu fyrst bæta við öðru tungumáli í Stillingar > Almennt > Tungumál og svæði.";
 "settings.language.action.openAppSettings" = "Opna stillingar Nibomo";

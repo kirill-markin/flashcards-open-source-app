@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Megjelenés a ranglistán";
 "settings.leaderboardParticipation.description" = "Kikapcsolva a névtelen aktivitásod nem jelenik meg a ranglistán.";
 "settings.leaderboardParticipation.signInRequired" = "A ranglista-részvétel kezeléséhez kapcsold be a felhőszinkronizálást.";
+"settings.productAnalytics.title" = "Termékanalitika";
+"settings.productAnalytics.toggle" = "Termékanalitika megosztása";
+"settings.productAnalytics.footer" = "A termékanalitika azt mutatja meg, az alkalmazás mely részeit használják, soha nem azt, mi van a kártyáidon. Ha ki van kapcsolva, az alkalmazás semmit nem rögzít és nem küld el. Az összeomlás- és hibajelentéseket ez nem érinti.";
 "settings.language.title" = "Nyelv";
 "settings.language.systemDescription" = "Az alkalmazás nyelvét az iOS kezeli. Az iOS Beállításokban nyisd meg a Nibomót, és válaszd az Előnyben részesített nyelvet. Ha ez nem látható, előbb adj hozzá egy másik nyelvet a Beállítások > Általános > Nyelv és régió alatt.";
 "settings.language.action.openAppSettings" = "Nibomo beállításainak megnyitása";

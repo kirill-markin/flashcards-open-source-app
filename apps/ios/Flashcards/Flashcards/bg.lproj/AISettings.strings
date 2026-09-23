@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Показвай ме в класацията";
 "settings.leaderboardParticipation.description" = "Когато това е изключено, вашата анонимна активност няма да се показва в класацията.";
 "settings.leaderboardParticipation.signInRequired" = "Свържете облачната синхронизация, за да управлявате участието в класацията.";
+"settings.productAnalytics.title" = "Продуктова аналитика";
+"settings.productAnalytics.toggle" = "Споделяне на продуктова аналитика";
+"settings.productAnalytics.footer" = "Продуктовата аналитика ни показва кои части от приложението се използват, а не какво има в картите ви. Когато е изключена, приложението не записва и не изпраща нищо. Това не засяга отчетите за сривове и грешки.";
 "settings.language.title" = "Език";
 "settings.language.systemDescription" = "iOS контролира езика на приложението. В Настройки на iOS отворете Nibomo и използвайте Предпочитан език. Ако Предпочитаният език не е показан, първо добавете друг език в Настройки > Общи > Език и регион.";
 "settings.language.action.openAppSettings" = "Отворете настройките на Nibomo";

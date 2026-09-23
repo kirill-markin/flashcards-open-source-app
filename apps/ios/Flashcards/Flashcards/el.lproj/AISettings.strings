@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Εμφάνιση στην κατάταξη";
 "settings.leaderboardParticipation.description" = "Όταν είναι ανενεργό, η ανώνυμη δραστηριότητά σας δεν εμφανίζεται στην κατάταξη.";
 "settings.leaderboardParticipation.signInRequired" = "Συνδέστε τον συγχρονισμό cloud για να διαχειριστείτε τη συμμετοχή στην κατάταξη.";
+"settings.productAnalytics.title" = "Αναλυτικά στοιχεία προϊόντος";
+"settings.productAnalytics.toggle" = "Κοινή χρήση αναλυτικών στοιχείων προϊόντος";
+"settings.productAnalytics.footer" = "Τα αναλυτικά στοιχεία προϊόντος μας δείχνουν ποια μέρη της εφαρμογής χρησιμοποιούνται, ποτέ το περιεχόμενο των καρτών σας. Όταν είναι απενεργοποιημένα, η εφαρμογή δεν καταγράφει και δεν στέλνει τίποτα. Οι αναφορές σφαλμάτων και καταρρεύσεων δεν επηρεάζονται.";
 "settings.language.title" = "Γλώσσα";
 "settings.language.systemDescription" = "Το iOS ελέγχει τη γλώσσα της εφαρμογής. Στις Ρυθμίσεις iOS, ανοίξτε το Nibomo και χρησιμοποιήστε την Προτιμώμενη γλώσσα. Αν δεν εμφανίζεται, προσθέστε πρώτα άλλη γλώσσα στις Ρυθμίσεις > Γενικά > Γλώσσα και περιοχή.";
 "settings.language.action.openAppSettings" = "Άνοιγμα ρυθμίσεων Nibomo";

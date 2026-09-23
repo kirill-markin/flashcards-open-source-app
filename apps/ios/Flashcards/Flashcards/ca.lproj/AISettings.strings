@@ -192,6 +192,9 @@
 "settings.leaderboardParticipation.toggle" = "Mostra’m a la classificació";
 "settings.leaderboardParticipation.description" = "Quan aquesta opció està desactivada, la teva activitat anònima no apareixerà a la taula de classificació.";
 "settings.leaderboardParticipation.signInRequired" = "Connecteu la sincronització al núvol per gestionar la participació en la classificació.";
+"settings.productAnalytics.title" = "Analítica del producte";
+"settings.productAnalytics.toggle" = "Compartir l'analítica del producte";
+"settings.productAnalytics.footer" = "L'analítica del producte ens indica quines parts de l'aplicació fa servir la gent, mai què hi ha a les teves targetes. Quan està desactivada, l'aplicació no registra ni envia res. Els informes de fallades i errors no es veuen afectats.";
 "settings.language.title" = "Idioma";
 "settings.language.systemDescription" = "iOS controla l'idioma de l'aplicació. A iOS Configuració, obriu Nibomo i feu servir l'idioma preferit. Si no es mostra l'idioma preferit, primer afegiu un altre idioma a Configuració > General > Idioma i regió.";
 "settings.language.action.openAppSettings" = "Obre la configuració de Nibomo";
