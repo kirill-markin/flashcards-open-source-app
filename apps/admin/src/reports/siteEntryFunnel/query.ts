@@ -2,8 +2,6 @@ import { runAdminQuery } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
-  buildActorAppUiLanguageSql,
-  buildActorConnectionCountrySql,
   buildAppUiLanguagesFilterSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
@@ -66,10 +64,9 @@ export type SiteEntryFunnelCounts = Readonly<{
  * `unresolvedFunnelGroupKey` for a person it cannot place, or `ungroupedSiteEntryGroupKey` while no
  * dimension is selected.
  *
- * The cookieless visitors are `Unresolved` under either dimension while one is selected, and on the
- * single group while none is. Their country is unknowable, and their page view's own `ui_locale` is
- * readable but deliberately not grouped on here, so a language group is short by the cookieless
- * people who carry that language rather than containing them.
+ * The cookieless visitors are keyed the same way, off their own entry page view, so a value group
+ * holds both cohorts and its lighter hashed segment sits under the locale that page was read in.
+ * Only a person whose entry row carried no locale at all is `Unresolved`, on either cohort.
  */
 export type SiteEntryFunnelGroup = SiteEntryFunnelCounts & Readonly<{ key: string }>;
 
@@ -85,74 +82,48 @@ export type SiteEntryFunnelReport = Readonly<{
 }>;
 
 /**
- * The one key of the ungrouped funnel, and the hashed row's key too while no dimension is selected.
- * Both reads must produce this same literal: the outer `SUM ... GROUP BY group_key` merges the two
- * rows on it, and a second literal would return the ungrouped `all`-mode funnel as two rows.
+ * The one key of the ungrouped funnel, on the identified rows and the hashed ones alike. Both arms
+ * take it from the same `groupKeySql` below: the outer `SUM ... GROUP BY group_key` merges them on
+ * it, and a second literal would return the ungrouped `all`-mode funnel as two rows.
  */
 const ungroupedSiteEntryGroupKey = "all";
 
 /**
- * The two dimensions, whose key is not on the cohort row but in a per-actor source joined beside it.
- * The ids are named here because the dimension that declares one and the join that supplies it have
- * to agree, and they are written in two places.
+ * The entry page view's own `ui_locale`, carried onto a cohort row under this name.
+ *
+ * BOTH COHORTS PROJECT IT UNDER THIS NAME AND UNDER THE `cohort` ALIAS, which is what lets the one
+ * key expression below be written once and read by the identified arm and the hashed arm alike.
  */
-const connectionCountryGroupByDimensionId = "country";
-const appUiLanguageGroupByDimensionId = "language";
+const entryUiLocaleColumnName = "entry_ui_locale";
 
 /**
- * What these funnels offer in their `Group by` field, in picker order.
+ * What these funnels offer in their `Group by` field.
  *
- * Each expression yields exactly one key per person in the cohort, so the groups partition the funnel
- * and still sum to it, and both can be NULL for somebody they cannot place, which the query folds
- * into the `Unresolved` group. The client platform is not offered: the entry is a marketing-site page
- * view and the site always reports as web, as the field explanations in
- * `../../filters/analyticsFilters.ts` state, so grouping by it would always draw one bar.
+ * ONE DIMENSION, KEYED ON THE ENTRY ROW ITSELF rather than on a per-actor source joined beside the
+ * cohort. The connection country and the app interface language of a person read trusted rows only,
+ * and measured on production no entrant of this cohort has ever produced one: of the 201 actors that
+ * have sent a site page view, none has any trusted row at all, so both would place every entrant in
+ * `Unresolved` and are not offered here. It is that measurement and not the entry rule that rules
+ * them out - the rule bars a trusted event only BEFORE the entry, so an entrant who signs in
+ * afterwards does have trusted rows in the range and could in principle carry such a key. The mobile
+ * and the deck funnels keep both dimensions, because their cohorts are identified. The locale the
+ * entry page was viewed in is on a row the statement already reads, is a property of the person by
+ * construction because one person enters on exactly one page view, and is NULL only for a client
+ * that reported none, which the query folds into `Unresolved`. The client platform is not offered
+ * either: the entry is a marketing-site page view and the site always reports as web, as the field
+ * explanations in `../../filters/analyticsFilters.ts` state, so grouping by it would always draw one
+ * bar.
  */
 export const siteEntryFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDimension> = [
   {
-    id: connectionCountryGroupByDimensionId,
-    label: "Connection country",
-    buildGroupKeySql: () => "actor_country.country",
-  },
-  {
-    id: appUiLanguageGroupByDimensionId,
-    label: "App interface language",
-    buildGroupKeySql: () => "actor_language.ui_locale",
+    // The id is `language` while the label and the key are narrower than that word: it is the URL
+    // token in `<funnelId>GroupBy` that shared links already carry, so it is not free to follow the
+    // label.
+    id: "language",
+    label: "Entry page language",
+    buildGroupKeySql: () => `cohort.${entryUiLocaleColumnName}`,
   },
 ];
-
-/**
- * The per-actor source the selected dimension's key expression reads, joined to the cohort, or no
- * lines at all while none is selected.
- *
- * ONE SOURCE, NEVER BOTH, the way `../mobileFirstLaunchFunnel/query.ts` does it: each of the two is a
- * scan of its own and this query is shaped around the 30 s statement timeout, so a join whose alias
- * the group key never mentions is paid for nothing. The alias each case supplies is the one the
- * matching dimension's `buildGroupKeySql` names, which is why the two are written against the same
- * id constants.
- */
-function buildGroupSourceJoinSqlLines(
-  groupByDimension: FunnelGroupByDimension | null,
-  dateRange: AnalyticsFilterState["dateRange"],
-): ReadonlyArray<string> {
-  if (groupByDimension?.id === connectionCountryGroupByDimensionId) {
-    return [
-      "LEFT JOIN (",
-      buildActorConnectionCountrySql(dateRange),
-      ") AS actor_country ON actor_country.actor_id = cohort.actor_id",
-    ];
-  }
-
-  if (groupByDimension?.id === appUiLanguageGroupByDimensionId) {
-    return [
-      "LEFT JOIN (",
-      buildActorAppUiLanguageSql(dateRange),
-      ") AS actor_language ON actor_language.actor_id = cohort.actor_id",
-    ];
-  }
-
-  return [];
-}
 
 /** A marketing-site fact: only the credential-free collector writes these, under the visitor cookie. */
 function buildSiteFactSql(rowAlias: string, eventName: string): string {
@@ -161,6 +132,25 @@ function buildSiteFactSql(rowAlias: string, eventName: string): string {
     `${rowAlias}.origin = 'client'`,
     `${rowAlias}.trust_level = 'anonymous_client'`,
   ].join(" AND ");
+}
+
+/**
+ * The page views a person can enter on: a marketing-site `pageKind` page view on a selected platform.
+ *
+ * TAKES THE ALIAS BECAUSE TWO STATEMENTS APPLY THE SAME TEST: the pass that takes the entry
+ * timestamp, and the lookup that takes the locale of the row that timestamp names. A locale read
+ * under a wider test could come from a page this person never entered on, so the two may not drift.
+ */
+function buildSiteEntryViewFilterSqlLines(
+  rowAlias: string,
+  pageKind: SiteEntryPageKind,
+  filters: AnalyticsFilterState,
+): ReadonlyArray<string> {
+  return [
+    buildSiteFactSql(rowAlias, "site_page_viewed"),
+    `${rowAlias}.event_properties ->> 'page_kind' = ${escapeSqlStringLiteral(pageKind)}`,
+    buildEventPlatformsFilterSql(`${rowAlias}.platform`, filters.eventPlatforms),
+  ];
 }
 
 /**
@@ -178,6 +168,11 @@ function buildSiteFactSql(rowAlias: string, eventName: string): string {
  * the end of their UTC day. The click is a `site_app_entry_clicked` for the web app at or after that
  * entry, which is where these people stop: every step below reads a trusted in-app row, and a
  * cookieless browser can produce none.
+ *
+ * The entry page view's own locale rides out with the person, and `hashed_cohort` is a
+ * `SELECT entry.*` over it, so these people are grouped by exactly the key the identified cohort is
+ * grouped by. It is the one dimension that can reach them: they have no actor, so nothing that reads
+ * a person's history can say anything about them, while their single page view can.
  */
 function buildHashedSiteEntryCteSqlLines(
   filters: AnalyticsFilterState,
@@ -186,6 +181,13 @@ function buildHashedSiteEntryCteSqlLines(
   to: string,
 ): ReadonlyArray<string> {
   const visitorDaySql = buildHashedVisitorDaySql("hashed_view");
+  // Written once and read twice below, because the entry timestamp and the entry locale have to be
+  // taken over the same rows: a locale read under a wider test could come from a page this person
+  // never entered on.
+  const entryViewFilterSql = [
+    `hashed_view.event_properties ->> 'page_kind' = ${escapeSqlStringLiteral(pageKind)}`,
+    ...buildHashedPageViewFilterSqlLines("hashed_view", "hashed_view.platform", filters),
+  ].join("\n        AND ");
 
   return [
     "), hashed_entries AS MATERIALIZED (",
@@ -194,9 +196,25 @@ function buildHashedSiteEntryCteSqlLines(
     `    ${visitorDaySql} AS visitor_day,`,
     "    MIN(hashed_view.occurred_at) AS first_page_viewed_at,",
     "    MIN(hashed_view.occurred_at) FILTER (",
-    `      WHERE hashed_view.event_properties ->> 'page_kind' = ${escapeSqlStringLiteral(pageKind)}`,
-    `        AND ${buildHashedPageViewFilterSqlLines("hashed_view", "hashed_view.platform", filters).join("\n        AND ")}`,
-    "    ) AS first_entry_viewed_at",
+    `      WHERE ${entryViewFilterSql}`,
+    "    ) AS first_entry_viewed_at,",
+    // The locale of the earliest entry page view, not an aggregate over every one of them, so it is
+    // the locale of the view the person actually entered on: `hashed_cohort` below keeps only the
+    // people whose earliest page view of the day is that row. Postgres has no first-value aggregate,
+    // hence the ordered array and its first element; the locale is the sort's own tiebreak, so two
+    // rows sharing a timestamp still answer the same way every run. NULL stands for a client that
+    // reported no locale, which the group key folds into `Unresolved`.
+    //
+    // THE ORDERED AGGREGATE STAYS HERE AND NOT ON THE IDENTIFIED PASS, which resolves its locale
+    // after the cohort instead: an ordered aggregate forbids hashed aggregation for the whole node,
+    // and this node is one group per hash and day over the selected range's site page views alone,
+    // so its sort is cheap and a second pass to avoid it would cost more than it saves. The two arms
+    // still name the same value: the first element under `ORDER BY occurred_at, ui_locale` is the
+    // alphabetically first locale among the rows at the entry instant, NULLs sorting last, which is
+    // exactly the `MIN` `entry_locales` takes over that same tie.
+    "    (ARRAY_AGG(hashed_view.ui_locale ORDER BY hashed_view.occurred_at, hashed_view.ui_locale) FILTER (",
+    `      WHERE ${entryViewFilterSql}`,
+    `    ))[1] AS ${entryUiLocaleColumnName}`,
     "  FROM analytics.product_events_resolved AS hashed_view",
     `  WHERE ${buildHashedSiteRowSqlLines("hashed_view", "site_page_viewed").join("\n    AND ")}`,
     `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_view", from, to).join("\n    AND ")}`,
@@ -223,11 +241,14 @@ function buildHashedSiteEntryCteSqlLines(
  * selected UTC day from `siteEntryFunnelStartDate` on, reduced in SQL to one row of step counts per
  * group that follow the funnel rule in `../funnels/funnelSections.ts`.
  *
- * THE GROUP KEY IS A PROPERTY OF THE PERSON, never of a step: it is computed once per cohort row and
- * every count is taken inside it, so the groups partition the funnel and sum back to it step by
- * step, `maturing_count` included. `None` groups by one literal, so there is one group of everybody
- * and no dimension source is joined at all, and a selected dimension joins only the one source its
- * own key reads.
+ * THE GROUP KEY IS A PROPERTY OF THE PERSON, never of a step: it is the locale of the one page view
+ * the person entered on, carried onto the cohort row beside `entered_at`, and every count is taken
+ * inside it, so the groups partition the funnel and sum back to it step by step, `maturing_count`
+ * included. `None` groups by one literal, so there is one group of everybody, and the two statements
+ * differ in that literal alone. The key costs the same either way, and deliberately little: it is
+ * read back off the entrants' own entry rows inside the selected range (`entry_locales`), never from
+ * a per-actor source joined beside the cohort and never from an aggregate on the whole-history pass
+ * below, whose plan it would change for every load.
  *
  * The person is the visitor cookie the site reports under, `analytics_visitor`, which the web app on
  * the same domain reports under too. The web app's first authenticated analytics batch after sign-in
@@ -241,9 +262,12 @@ function buildHashedSiteEntryCteSqlLines(
  *
  * - `actor_first_events` is one pass grouped by actor over trusted history and the site's page views
  *   up to the range end. Per actor it keeps the first page view, the first one of `pageKind` on a
- *   selected platform, and the first trusted event. `entries` keeps the people whose first page view
- *   is that one, on a selected day, with no trusted event before it, so someone who was already
- *   using the product does not enter as a new visitor once their cookie resolves to their account.
+ *   selected platform, and the first trusted event, and carries no locale, which is what keeps this
+ *   widest node a hash aggregate. `entries` keeps the people whose first page view is that one, on a
+ *   selected day, with no trusted event before it, so someone who was already using the product does
+ *   not enter as a new visitor once their cookie resolves to their account; `entry_locales` then
+ *   reads the group key back off those entrants' own entry rows and `cohort` carries it beside
+ *   `entered_at`.
  * - `step_events` hash-joins the step rows in the range to `actor_first_events`, each bounded to its
  *   own actor's `[first page view of pageKind, + 7 days]`, and each step is then a `GROUP BY` joined
  *   to the step above it.
@@ -259,8 +283,9 @@ function buildHashedSiteEntryCteSqlLines(
  *
  * The audience mode reaches this in two places and nowhere else: `signed-in` adds one restriction to
  * `cohort`, and `all` appends `buildHashedSiteEntryCteSqlLines` as a second, independent cohort whose
- * two counts are a group row of their own that the section adds to the first two steps. Neither
- * changes anything above, so the default mode produces exactly the statement it produced before.
+ * two counts are rows of their own, one per group key, that the section adds to the first two steps.
+ * Neither changes anything above, so the default mode produces exactly the statement it produced
+ * before.
  */
 export function buildSiteEntryFunnelSql(
   filters: AnalyticsFilterState,
@@ -276,6 +301,12 @@ export function buildSiteEntryFunnelSql(
   const stepWindowEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`;
   const windowSql = `INTERVAL '${catalogInstallConversionWindowDays} days'`;
   const pageViewSql = buildSiteFactSql("resolved", "site_page_viewed");
+  // The one entry-view test under the two aliases that apply it: the pass that takes the entry
+  // timestamp, and the lookup that takes the locale of the row that timestamp names.
+  const entryViewFilterSql = buildSiteEntryViewFilterSqlLines("resolved", pageKind, filters)
+    .join("\n        AND ");
+  const entryLocaleFilterSql = buildSiteEntryViewFilterSqlLines("entry_view", pageKind, filters)
+    .join("\n    AND ");
   // Left out of the statement entirely rather than executed and discarded, so the default mode costs
   // what it cost before the modes existed and only `all` pays for the second pass over the site rows.
   const isHashedCohortRead = isFunnelHashedCohortRead(filters);
@@ -286,9 +317,7 @@ export function buildSiteEntryFunnelSql(
     "    resolved.actor_id,",
     `    MIN(resolved.occurred_at) FILTER (WHERE ${pageViewSql}) AS first_page_viewed_at,`,
     "    MIN(resolved.occurred_at) FILTER (",
-    `      WHERE ${pageViewSql}`,
-    `        AND resolved.event_properties ->> 'page_kind' = ${escapeSqlStringLiteral(pageKind)}`,
-    `        AND ${buildEventPlatformsFilterSql("resolved.platform", filters.eventPlatforms)}`,
+    `      WHERE ${entryViewFilterSql}`,
     "    ) AS first_entry_viewed_at,",
     `    MIN(resolved.occurred_at) FILTER (WHERE ${buildTrustedActorRowsFilterSql("resolved.trust_level")}) AS first_trusted_event_at`,
     "  FROM analytics.product_events_resolved AS resolved",
@@ -297,7 +326,9 @@ export function buildSiteEntryFunnelSql(
     `    AND resolved.occurred_at < ${rangeEndSql}`,
     "  GROUP BY resolved.actor_id",
     "), entries AS MATERIALIZED (",
-    "  SELECT history.actor_id, history.first_entry_viewed_at AS entered_at",
+    "  SELECT",
+    "    history.actor_id,",
+    "    history.first_entry_viewed_at AS entered_at",
     "  FROM actor_first_events AS history",
     `  WHERE history.first_entry_viewed_at >= ${rangeStartSql}`,
     "    AND history.first_entry_viewed_at = history.first_page_viewed_at",
@@ -305,9 +336,43 @@ export function buildSiteEntryFunnelSql(
     "      history.first_trusted_event_at IS NULL",
     "      OR history.first_trusted_event_at >= history.first_entry_viewed_at",
     "    )",
+    // The group key, resolved over the entrants alone rather than on the pass above.
+    //
+    // NOT AN ORDERED AGGREGATE ON `actor_first_events`, which is where the locale would read most
+    // directly: Postgres refuses hashed aggregation for any query holding an `ORDER BY` or
+    // `DISTINCT` aggregate (`create_grouping_paths`), so taking the first entry row's locale there
+    // would turn that node - one group per actor over all of history, with no lower time bound -
+    // from a hash aggregate into a sort, on every load including `None`, against the 30 s
+    // `reporting_readonly` statement timeout.
+    //
+    // `entered_at` already names the exact row, so this is a lookup and not a reduction: the entry
+    // rows of that actor at that instant, normally one. `MIN` over a tie is the same value the
+    // ordered-array form picks, because both take the alphabetically first locale and both answer
+    // NULL only when every tied row reported none. The range bounds are redundant against the
+    // equality and are there for the planner, so the scan can use the `event_name, occurred_at`
+    // index rather than read every site page view ever sent.
+    "), entry_locales AS MATERIALIZED (",
+    "  SELECT",
+    "    entrant.actor_id,",
+    `    MIN(entry_view.ui_locale) AS ${entryUiLocaleColumnName}`,
+    "  FROM entries AS entrant",
+    "  INNER JOIN analytics.product_events_resolved AS entry_view",
+    "    ON entry_view.actor_id = entrant.actor_id",
+    "    AND entry_view.occurred_at = entrant.entered_at",
+    `  WHERE ${entryLocaleFilterSql}`,
+    `    AND entry_view.occurred_at >= ${rangeStartSql}`,
+    `    AND entry_view.occurred_at < ${rangeEndSql}`,
+    "  GROUP BY entrant.actor_id",
     "), cohort AS MATERIALIZED (",
-    "  SELECT candidate.actor_id, candidate.entered_at",
+    "  SELECT",
+    "    candidate.actor_id,",
+    "    candidate.entered_at,",
+    `    entry_locale.${entryUiLocaleColumnName}`,
     "  FROM entries AS candidate",
+    // `LEFT JOIN` though `entries` guarantees the row: an entrant may never be dropped over their
+    // group key, and a person whose entry row carried no locale arrives NULL either way, which the
+    // key folds into `Unresolved`.
+    "  LEFT JOIN entry_locales AS entry_locale ON entry_locale.actor_id = candidate.actor_id",
     "  WHERE TRUE",
     ...buildExcludedActorSqlLines("candidate.actor_id::text"),
     ...buildFunnelAudienceActorSqlLines(filters, "candidate.actor_id::text"),
@@ -384,6 +449,9 @@ export function buildSiteEntryFunnelSql(
   ];
   // Every count is grouped, always: with no dimension the key is one literal, so the shape of the
   // query is the same whichever way the field is set and `None` is simply one group of everybody.
+  // ONE EXPRESSION FOR BOTH COHORTS, which is why the hashed arm below aliases `hashed_cohort` as
+  // `cohort`: the two arms are `UNION ALL`ed and merged on this key, so they may not read it from
+  // two expressions that could drift apart.
   // `::text` on both branches, deliberately rather than by default: the key is also the `GROUP BY`
   // target and is read back as a string, so nothing here depends on how Postgres resolves the type
   // of a bare literal or of a `COALESCE` over one.
@@ -414,26 +482,11 @@ export function buildSiteEntryFunnelSql(
     "LEFT JOIN sessions AS signed_in ON signed_in.actor_id = cohort.actor_id",
     "LEFT JOIN first_reviews AS first_review ON first_review.actor_id = cohort.actor_id",
     "LEFT JOIN person_engagement AS engagement ON engagement.actor_id = cohort.actor_id",
-    ...buildGroupSourceJoinSqlLines(groupByDimension, filters.dateRange),
     "GROUP BY group_key",
   ];
   if (isHashedCohortRead === false) {
     return [...cteSqlLines, ...identifiedGroupSqlLines].join("\n");
   }
-
-  // The cookieless people are a row of their own rather than two scalars on the identified rows,
-  // because a grouped aggregate returns no row at all when nobody identified entered, and their
-  // count may not disappear with them; the outer aggregate then merges that row into the identified
-  // group of the same key and every count stays summed exactly once. The key is `Unresolved` under
-  // either dimension while one is selected, and the single ungrouped key while none is: a hashed
-  // person has no actor, so their country is unknowable, and their locale never reaches this row at
-  // all, because `hashed_entries` projects only the hash, the day and the two timestamps and
-  // `hashed_cohort` is a `SELECT entry.*` over it. `ui_locale` stays on the underlying
-  // `site_page_viewed` rows, where `buildHashedPageViewFilterSqlLines` reads it only to emit the App
-  // interface language predicate, so an unfiltered query reads no locale for these people. Grouping
-  // them by it is deliberately out of scope: keying this row on a locale would make it an aggregate
-  // whose two uncorrelated hashed scalars would be attributed to every locale group at once.
-  const hashedGroupKey = groupByDimension === null ? ungroupedSiteEntryGroupKey : unresolvedFunnelGroupKey;
 
   return [
     ...cteSqlLines,
@@ -451,8 +504,20 @@ export function buildSiteEntryFunnelSql(
     "FROM (",
     ...identifiedGroupSqlLines,
     "  UNION ALL",
+    // The cookieless people are rows of their own rather than scalars on the identified rows,
+    // because a grouped aggregate returns no row at all when nobody identified entered, and their
+    // counts may not disappear with them; the outer aggregate then merges each of these rows into
+    // the identified group of the same key and every count stays summed exactly once. They are keyed
+    // exactly as the identified people are, off `hashed_cohort`, which is aliased `cohort` so that
+    // the dimension's one key expression reads the same column here as it does above.
+    //
+    // BOTH COUNTS ARE AGGREGATES OVER THE JOINED COHORT, never scalar subqueries over
+    // `hashed_cohort` and `hashed_clicks`: a scalar is uncorrelated, evaluated once for the whole
+    // statement, so at one row per key it would attribute every hashed entry and every hashed click
+    // to every group at once. The join is one row per hashed person, `hashed_clicks` holding at most
+    // one row per person, so the click count is the people with a click in that group.
     "  SELECT",
-    `    ${escapeSqlStringLiteral(hashedGroupKey)}::text AS group_key,`,
+    `    ${groupKeySql} AS group_key,`,
     "    0::int AS entry_view_count,",
     "    0::int AS app_entry_click_count,",
     "    0::int AS signed_in_count,",
@@ -461,15 +526,19 @@ export function buildSiteEntryFunnelSql(
     "    0::int AS engaged_returning_count,",
     // A hashed person ceases to exist at the end of their UTC day, so they have no window to fill.
     "    0::int AS maturing_count,",
-    // Uncorrelated scalars over the hashed relations, evaluated once each rather than per person.
-    "    (SELECT COUNT(*) FROM hashed_cohort)::int AS hashed_entry_view_count,",
-    "    (SELECT COUNT(*) FROM hashed_clicks)::int AS hashed_app_entry_click_count",
+    "    COUNT(*)::int AS hashed_entry_view_count,",
+    "    COUNT(clicked.daily_visitor_hash)::int AS hashed_app_entry_click_count",
+    "  FROM hashed_cohort AS cohort",
+    "  LEFT JOIN hashed_clicks AS clicked",
+    "    ON clicked.daily_visitor_hash = cohort.daily_visitor_hash",
+    "    AND clicked.visitor_day = cohort.visitor_day",
+    "  GROUP BY group_key",
     ") AS funnel_group",
     "GROUP BY funnel_group.group_key",
-    // The hashed row is emitted unconditionally, so without this the `Unresolved` group survives
-    // with nobody in it whenever the hashed relations are empty - common, since hashed rows exist
-    // only for pre-consent EEA and UK traffic - and the chart spends a legend entry, a band slot
-    // that narrows every real bar, and a table row on it. Only a group that entered is a group.
+    // A group nobody entered is not a group: it would spend a legend entry, a band slot that narrows
+    // every real bar, and a table row on nobody. Both arms aggregate over people, so every group
+    // they emit already holds one; this states the rule on the statement rather than leaving it to
+    // the two arms continuing to agree.
     "HAVING SUM(funnel_group.entry_view_count) + SUM(funnel_group.hashed_entry_view_count) > 0",
   ].join("\n");
 }
