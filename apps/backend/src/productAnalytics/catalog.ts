@@ -714,6 +714,137 @@ export const productAnalyticsEventCatalog = {
       },
     },
   },
+  // One authoring edit a person made to a card, and the narrowest of the content facts. It is not
+  // "the card row was written": the overwhelming majority of writes that reach `content.cards` are
+  // reviews rescheduling a card, a workspace progress reset putting a whole library back to new, or
+  // background managed-image settlement with no person acting at all, and counting those under an
+  // authoring name would have made this series a disguised measure of review volume.
+  //
+  // WHAT AN AUTHORING EDIT IS. A write that left the card alive and left at least one of its front
+  // text, back text and tags different from the value the server held before that write. Those
+  // three fields are the whole definition. `card_type`, `metadata`, `created_at`, `due_at`, every
+  // FSRS column and every sync bookkeeping column are out, so a review, a progress reset, a settled
+  // managed image and a client re-syncing a library it has not touched report nothing whenever the
+  // write leaves those three fields holding what the server already held. For two of those four
+  // that is not merely ordinary but certain, because neither is a client push at all: a workspace
+  // progress reset is a server-side UPDATE of scheduling columns only (../workspaces/management.ts)
+  // and creates no client outbox entry on any of the three clients, and a settled managed image is
+  // the other server-side write named just below - both reach neither collection point, so both
+  // contribute exactly zero. Read a `card_updated` spike after a bulk reset as something else.
+  // For the other two it is only what such a write ordinarily does, because a review and a re-sync
+  // are each pushed as a whole card snapshot that carries authored text too, and stale text in that
+  // snapshot reverts what the server held. A revert is a change and is counted - see OVER-COUNTS
+  // below.
+  //
+  // The comparison is made against the row the database held, never against the request: the
+  // clients are offline-first and push a full card snapshot on every write, so which fields a
+  // request names carries no information about what changed.
+  //
+  // A person attaching media in a client IS counted, because the attachment is a markdown reference
+  // written into the card's own text and pushed as an edit of that text, which is what it is. The
+  // backend appending or settling a generated image is not: no person acted, and that path writes
+  // `content.cards` through a statement of its own that reaches neither collection point
+  // (../cards/managedMedia/managedImageSettlement.ts).
+  //
+  // ONE ROW IS ONE EDIT - not one card, and not one editing session. The event id is derived from
+  // the card id and the writing operation's `last_operation_id` together. That deliberately does
+  // not share the shape of `card_created` and `card_deleted`, which are keyed on the card alone
+  // because a card is created once and is first tombstoned once; a card can be edited any number of
+  // times, and an entity-only key would have counted cards ever edited instead. Two edits made
+  // inside the same millisecond are two operations and stay two rows, which a timestamp-based key
+  // would have collapsed.
+  //
+  // One edit is never two rows either, by two different mechanisms depending on where the write
+  // came from. A sync push carries the client's own queued operation id, so a replayed push of one
+  // edit derives the same event id and the writer's ON CONFLICT drops it. The agent surfaces mint a
+  // fresh operation id per call, so a repeated agent call derives a different event id, and what
+  // stops that counting twice is the comparison itself: the first call already stored the text the
+  // second one sends, so the second finds nothing changed.
+  //
+  // DELETION AND RESURRECTION. A write that tombstones a live card reports `card_deleted` and no
+  // edit, even when the same write also carried different text; a write over a card the server
+  // already holds tombstoned reports nothing, because editing a tombstone is not authoring. A write
+  // that brings a tombstoned card back alive with different text does report an edit, which is how
+  // an offline edit that outranks another device's delete by last-write-wins lands, and how an
+  // Android client that clears the tombstone on save lands. Since `card_deleted` counts a card once
+  // ever, the two series can show an edit dated after that card's deletion, and can show one
+  // deletion and a later edit for a card that is currently alive.
+  //
+  // A resurrection carrying the card's text unchanged reports nothing at all, and Android is the
+  // one client that can produce it: its card repository clears the tombstone on save whether or not
+  // the text moved, where iOS and web guard every local write on the card still being alive. It is
+  // not a common shape even there, because it needs another device to have tombstoned the card and
+  // needs the save that finds it to change none of the three authored fields. Nothing in the event
+  // set marks a card as alive again, so that card's `card_deleted` stands alone forever with no
+  // counter-signal, and `card_created` minus `card_deleted` under-counts the live library by every
+  // card resurrected without an edit. Read that difference as a lower bound on the live library,
+  // never as its size.
+  //
+  // UNDER-COUNTS, ALL DELIBERATE, because `analytics.product_events` is append-only with no repair
+  // path and an inflated count could never be taken back. An edit that loses last-write-wins to
+  // another device is discarded by the sync push before any row changes and is never counted - the
+  // server never held that text. An edit folded into the same write as a deletion is counted only
+  // as the deletion. Tags are compared without regard to order, so reordering a card's tags and
+  // changing nothing else is not an edit. And any two edits a client collapses into one queued
+  // operation before pushing are one row, because the server only ever sees the result.
+  //
+  // OVER-COUNTS, EACH KNOWN AND NONE OF THEM DELIBERATE. None is a bug in the comparison - the
+  // stored authored text really did change - but each attributes an edit to something no person
+  // authored, and on an append-only table with no repair path the disclosure is the whole remedy.
+  //
+  //  - A LAST-WRITE-WINS REVERT COUNTS AS AN EDIT, so a review can store `card_updated`. Every
+  //    client push is a whole card snapshot, and the client freezes that snapshot into its outbox
+  //    at the moment it queues the write, so a device holding text older than the server's sends
+  //    the stale text and pulling before pushing cannot refresh an already-queued payload. The
+  //    snapshot is stamped with the moment of the action that queued it, which outranks the stored
+  //    version by last-write-wins, so the server's text is written back to what that device still
+  //    held. The comparison sees a change because there was one.
+  //    THE DOMINANT SOURCE OF THIS IS A SECOND DEVICE, not any one feature. One person edits a
+  //    card's back text on a phone at 10:00; their laptop, which last pulled at 09:00, reviews that
+  //    card at 10:05 and pushes at 10:06; the push wins, reverts the phone's edit, and stores a
+  //    second `card_updated` attributed to a review. No server-side writer is involved. Size this
+  //    noise by how many people review offline on a device that is behind, which is ordinary
+  //    multi-device use.
+  //    Backend managed-image append and settlement
+  //    (../cards/managedMedia/managedImageSettlement.ts) opens the same window from the server
+  //    side, and is one instance of the mechanism rather than its cause - much rarer, because it
+  //    needs that AI feature. It is the one instance where the revert also drops the image
+  //    reference out of the card, which is a product defect tracked on its own and not something
+  //    this series can see.
+  //  - A LEGACY EFFORT LEVEL BECOMES A TAG ON THE WAY IN, so a push that authored nothing can store
+  //    an edit. The sync contract translates an older client's `effortLevel` on a card, and an
+  //    older client's `effortLevels` inside a deck's filter, into ordinary tags before any write
+  //    sees them (../sync/contracts/snapshots.ts). A still-shipping older client that sends
+  //    `medium` or `long` for an entity whose stored tags do not already carry that tag has the tag
+  //    appended server-side, the comparison sees the longer list, and one `card_updated` or
+  //    `deck_updated` is stored for a snapshot carrying nothing a person changed. Bounded and
+  //    legacy-only: modern clients send `fast`, which is never appended, and once the tag is stored
+  //    the next push of that entity matches. One row per affected entity.
+  //  - DROPPING A STORED DUPLICATE TAG COUNTS AS AN EDIT, once per affected card. The snapshot
+  //    write path dedupes the tags it stores (`normalizeCardSnapshotInput` in
+  //    ../cards/mutations.ts), so the first push that reaches a row written before that dedupe
+  //    existed and still holding the same tag twice stores a shorter tag list than it found. The
+  //    comparison is multiset-correct on purpose (../cards/shared.ts), so it sees that, correctly
+  //    by its own definition and wrongly as a record of authoring. One row per such card, one
+  //    time.
+  //
+  // NO BACKFILL, AND ONE OLDER COMMENT THIS ENTRY SUPERSEDES. Nothing has ever reconstructed these
+  // two names, so the series begins when this producer shipped.
+  // `db/migrations/0120_backfill_product_analytics_server_facts.sql` skipped them explicitly, and
+  // the reason it gives at its line 239 - that the content producer emits creations only - was true
+  // when 0120 was written and had already stopped being true before either of these two names
+  // existed: `card_deleted` and `deck_deleted` shipped first and are what made it false. These two
+  // names only make it false a second time. Migration comments are immutable, so it is corrected
+  // here rather than there; what stands there is the decision not to backfill, not its reason.
+  // Mind which neighbours that boundary applies to: 0120 reconstructed `card_created` and
+  // `deck_created` and reaches back into history, while `card_deleted` and `deck_deleted` were
+  // never backfilled either and begin at their own producer. Never read a reconstructed series
+  // against a live-only one across the date its producer shipped.
+  //
+  // No property is carried, for the same reason the deletions carry none: anything describing what
+  // changed would be content a person typed. Which channel the edit came through is not declared
+  // either - `platform` already separates an agent edit from a device one, and `source` stays a
+  // `card_created` property so that a value there always names how a card came to exist.
   card_updated: {
     serverOnly: true,
     requiresScreen: false,
@@ -724,6 +855,18 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: {},
   },
+  // One authoring edit a person made to a deck, under the same boundary `card_updated` states in
+  // full above: keyed on the deck id and the writing operation together so one row is one edit,
+  // measured against the row the database held rather than against the request, and never
+  // backfilled, so this series begins at its producer while `deck_created` reaches back into
+  // history through 0120.
+  //
+  // A deck is a saved tag filter, so what a person authors about one is its name and the tags its
+  // filter selects, and those two are the whole definition here. The filter definition carries
+  // nothing else a person chose - its `version` is the stored shape - and a deck's `created_at` is
+  // rewritten by the same statement without being authoring. A deletion re-sends the deck's own
+  // stored name and filter, so it reports `deck_deleted` and no edit. Deck tags are compared
+  // without regard to order, so a pure reordering is not counted.
   deck_updated: {
     serverOnly: true,
     requiresScreen: false,
